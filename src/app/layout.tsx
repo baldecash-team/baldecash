@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "BaldeCash - Prototipos UI/UX",
   description: "Prototipos de diseño para financiamiento estudiantil",
+  icons: {
+    icon: "/baldecash/favicon.ico",
+  },
 };
 
 export default function RootLayout({

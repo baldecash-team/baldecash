@@ -14,7 +14,11 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add 3 UI/UX prototypes for BaldeCash fintech platform\n\n- Add NextUI, DaisyUI, and Shadcn UI component libraries\n- Create E-commerce Laptops prototype with product catalog, financing calculator, and upsell flow\n- Create Fintech prototype with 3-step conversational wizard for loan application\n- Create Dashboard Super-App prototype inspired by Nubank/Yape with credit widgets\n- Implement mobile-first design patterns following BaldeCash UI/UX study\n- All prototypes accessible from /prototipos/* routes\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(gh run list:*)",
+      "mcp__github__get_file_contents",
+      "Bash(npm run dev:*)",
+      "Bash(npm run start)"
     ],
     "deny": [],
     "ask": []
