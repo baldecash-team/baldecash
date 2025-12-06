@@ -203,9 +203,15 @@ export default function LaptopsPage() {
                       Agotado
                     </Badge>
                   )}
-                  <button className="absolute top-3 right-3 p-2 bg-white/80 rounded-full hover:bg-white transition">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.key === 'Enter' && e.stopPropagation()}
+                    className="absolute top-3 right-3 p-2 bg-white/80 rounded-full hover:bg-white transition cursor-pointer"
+                  >
                     <Heart className="w-4 h-4 text-slate-600" />
-                  </button>
+                  </div>
                 </div>
                 <div className="p-4">
                   <p className="text-xs text-slate-500 uppercase tracking-wider">{laptop.brand}</p>
