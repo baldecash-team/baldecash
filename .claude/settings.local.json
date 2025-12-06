@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest baldecash2 --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(taskkill:*)",
+      "Bash(npx create-next-app@latest baldecash2 --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-turbopack)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(rm:*)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add 3 UI/UX prototypes for BaldeCash fintech platform\n\n- Add NextUI, DaisyUI, and Shadcn UI component libraries\n- Create E-commerce Laptops prototype with product catalog, financing calculator, and upsell flow\n- Create Fintech prototype with 3-step conversational wizard for loan application\n- Create Dashboard Super-App prototype inspired by Nubank/Yape with credit widgets\n- Implement mobile-first design patterns following BaldeCash UI/UX study\n- All prototypes accessible from /prototipos/* routes\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
