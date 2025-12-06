@@ -194,34 +194,34 @@ export default function LaptopsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-[#262877]/5 via-white to-violet-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#262877]/10 shadow-sm">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/" className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-                <ArrowLeft className="w-5 h-5 text-slate-700" />
+              <Link href="/" className="p-2 hover:bg-[#262877]/10 rounded-xl transition-colors">
+                <ArrowLeft className="w-5 h-5 text-[#262877]" />
               </Link>
               <div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                <h1 className="text-lg font-bold text-[#262877]">
                   BaldeCash Store
                 </h1>
-                <p className="text-xs text-slate-500">Laptops con financiamiento flexible</p>
+                <p className="text-xs text-[#262877]/70">Laptops con financiamiento flexible</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors md:hidden"
+                className="p-2.5 hover:bg-[#262877]/10 rounded-xl transition-colors md:hidden"
               >
-                <Search className="w-5 h-5 text-slate-600" />
+                <Search className="w-5 h-5 text-[#262877]" />
               </button>
               <button
                 onClick={() => {/* Show favorites modal */}}
-                className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors relative group"
+                className="p-2.5 hover:bg-[#262877]/10 rounded-xl transition-colors relative group"
               >
-                <Heart className={`w-5 h-5 transition-colors ${favorites.length > 0 ? 'text-rose-500 fill-rose-500' : 'text-slate-600'}`} />
+                <Heart className={`w-5 h-5 transition-colors ${favorites.length > 0 ? 'text-rose-500 fill-rose-500' : 'text-[#262877]'}`} />
                 {favorites.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center">
                     {favorites.length}
@@ -230,11 +230,11 @@ export default function LaptopsPage() {
               </button>
               <button
                 onClick={() => setIsCartOpen(true)}
-                className="p-2.5 hover:bg-slate-100 rounded-xl transition-colors relative group"
+                className="p-2.5 hover:bg-[#262877]/10 rounded-xl transition-colors relative group"
               >
-                <ShoppingCart className="w-5 h-5 text-slate-600" />
+                <ShoppingCart className="w-5 h-5 text-[#262877]" />
                 {cart.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blue-600 text-white text-[10px] font-medium rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#262877] text-white text-[10px] font-medium rounded-full flex items-center justify-center animate-pulse">
                     {cart.length}
                   </span>
                 )}
@@ -252,7 +252,7 @@ export default function LaptopsPage() {
                   placeholder="Buscar laptops..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border-2 border-[#262877]/20 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#262877]/20 focus:border-[#262877]"
                   autoFocus
                 />
                 {searchQuery && (
@@ -270,7 +270,7 @@ export default function LaptopsPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-600 text-white py-10 md:py-14">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#262877] via-[#3a3b9e] to-[#262877] text-white py-10 md:py-14">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50"></div>
         <div className="container mx-auto px-4 relative">
           <div className="max-w-2xl mx-auto text-center">
@@ -280,9 +280,9 @@ export default function LaptopsPage() {
             </div>
             <h2 className="text-3xl md:text-5xl font-bold mb-3 tracking-tight">
               Tu laptop desde
-              <span className="block text-cyan-300">S/89/mes</span>
+              <span className="block text-violet-200">S/89/mes</span>
             </h2>
-            <p className="text-blue-100 mb-6 text-sm md:text-base">
+            <p className="text-violet-100 mb-6 text-sm md:text-base">
               Sin cuenta bancaria. Sin aval. 100% digital.
             </p>
 
@@ -295,7 +295,7 @@ export default function LaptopsPage() {
                   placeholder="Buscar por marca, modelo o procesador..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white rounded-2xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-300 shadow-lg"
+                  className="w-full pl-12 pr-4 py-3 bg-white rounded-2xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#262877]/30 shadow-lg"
                 />
                 {searchQuery && (
                   <button
@@ -348,6 +348,10 @@ export default function LaptopsPage() {
                 selectionMode="single"
                 selectedKeys={[sortBy]}
                 onSelectionChange={(keys) => setSortBy(Array.from(keys)[0] as SortOption)}
+                className="bg-white"
+                itemClasses={{
+                  base: "data-[hover=true]:bg-slate-100",
+                }}
               >
                 <DropdownItem key="rating">Mejor valorados</DropdownItem>
                 <DropdownItem key="price-asc">Menor precio</DropdownItem>
@@ -374,9 +378,10 @@ export default function LaptopsPage() {
               <Chip
                 key={brand}
                 variant={selectedBrand === brand ? "solid" : "bordered"}
-                color={selectedBrand === brand ? "primary" : "default"}
                 className={`cursor-pointer shrink-0 transition-all ${
-                  selectedBrand !== brand ? 'hover:bg-slate-100' : ''
+                  selectedBrand === brand
+                    ? 'bg-[#262877] text-white border-[#262877]'
+                    : 'border-[#262877]/30 text-[#262877] hover:bg-[#262877]/10'
                 }`}
                 onClick={() => setSelectedBrand(brand)}
               >
@@ -391,7 +396,7 @@ export default function LaptopsPage() {
           <p className="text-sm text-slate-600">
             <span className="font-semibold">{filteredLaptops.length}</span> productos encontrados
             {selectedBrand !== "Todas" && (
-              <span className="ml-2 inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
+              <span className="ml-2 inline-flex items-center gap-1 bg-[#262877]/10 text-[#262877] px-2 py-0.5 rounded-full text-xs">
                 {selectedBrand}
                 <button onClick={() => setSelectedBrand("Todas")}>
                   <X className="w-3 h-3" />
@@ -491,7 +496,7 @@ export default function LaptopsPage() {
 
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">{laptop.brand}</p>
+                      <p className="text-xs font-semibold text-[#262877] uppercase tracking-wider">{laptop.brand}</p>
                       <div className="flex items-center gap-1">
                         <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         <span className="text-xs font-semibold text-slate-700">{laptop.rating}</span>
@@ -524,7 +529,7 @@ export default function LaptopsPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-slate-500 mb-0.5">Desde</p>
-                        <p className="text-lg font-bold text-blue-600">
+                        <p className="text-lg font-bold text-[#262877]">
                           S/{calculateMonthlyPayment(laptop.price, 12)}<span className="text-sm font-medium">/mes</span>
                         </p>
                       </div>
@@ -553,7 +558,7 @@ export default function LaptopsPage() {
             <>
               <ModalHeader className="flex flex-col gap-1 pb-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">{selectedLaptop.brand}</span>
+                  <span className="text-xs font-semibold text-[#262877] uppercase tracking-wider">{selectedLaptop.brand}</span>
                   <span className="text-xs text-slate-400">•</span>
                   <span className="text-xs text-slate-500">{selectedLaptop.color}</span>
                 </div>
@@ -575,8 +580,8 @@ export default function LaptopsPage() {
                   {/* Specs Grid */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="text-center p-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border border-slate-200/50">
-                      <div className="w-10 h-10 mx-auto mb-2 bg-blue-100 rounded-xl flex items-center justify-center">
-                        <Cpu className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 mx-auto mb-2 bg-[#262877]/10 rounded-xl flex items-center justify-center">
+                        <Cpu className="w-5 h-5 text-[#262877]" />
                       </div>
                       <p className="text-[10px] text-slate-500 uppercase tracking-wider">Procesador</p>
                       <p className="font-semibold text-sm text-slate-900">{selectedLaptop.specs.processor}</p>
@@ -598,29 +603,33 @@ export default function LaptopsPage() {
                   </div>
 
                   {/* Payment Calculator */}
-                  <div className="bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-50 p-5 rounded-2xl border border-blue-100">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <div className="bg-white border-2 border-[#262877]/20 p-4 rounded-2xl shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 bg-[#262877] rounded-lg flex items-center justify-center">
                         <CreditCard className="w-4 h-4 text-white" />
                       </div>
                       <h4 className="font-semibold text-slate-900">Configura tu financiamiento</h4>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <div>
-                        <div className="flex justify-between text-sm mb-3">
+                        <div className="flex justify-between text-sm mb-2">
                           <span className="text-slate-600">Plazo de pago</span>
-                          <span className="font-bold text-blue-600">{months} meses</span>
+                          <span className="font-bold text-[#262877]">{months} meses</span>
                         </div>
                         <Slider
-                          size="md"
+                          size="sm"
                           step={6}
                           minValue={6}
                           maxValue={24}
                           value={months}
                           onChange={(val) => setMonths(val as number)}
                           className="max-w-full"
-                          color="primary"
+                          classNames={{
+                            track: "bg-[#262877]/20",
+                            filler: "bg-[#262877]",
+                            thumb: "bg-[#262877] border-[#262877]",
+                          }}
                           showSteps
                           marks={[
                             { value: 6, label: "6" },
@@ -631,16 +640,16 @@ export default function LaptopsPage() {
                         />
                       </div>
 
-                      <div className="flex justify-between items-center pt-3 border-t border-blue-200/50">
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-200">
                         <div>
                           <p className="text-xs text-slate-500">Tu cuota mensual</p>
-                          <p className="text-sm text-slate-600">Tasa preferencial 2.5%</p>
+                          <p className="text-xs text-slate-400">Tasa 2.5%</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-3xl font-bold text-blue-600">
+                          <span className="text-2xl font-bold text-[#262877]">
                             S/{calculateMonthlyPayment(totalPrice, months)}
                           </span>
-                          <span className="text-blue-600 font-medium">/mes</span>
+                          <span className="text-[#262877] font-medium text-sm">/mes</span>
                         </div>
                       </div>
                     </div>
@@ -659,13 +668,13 @@ export default function LaptopsPage() {
                           onClick={() => toggleAccessory(acc.id)}
                           className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
                             selectedAccessories.includes(acc.id)
-                              ? "border-blue-500 bg-blue-50/50 shadow-md shadow-blue-500/10"
+                              ? "border-[#262877] bg-[#262877]/5 shadow-md shadow-[#262877]/10"
                               : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-                              selectedAccessories.includes(acc.id) ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-600"
+                              selectedAccessories.includes(acc.id) ? "bg-[#262877] text-white" : "bg-slate-100 text-slate-600"
                             }`}>
                               <acc.icon className="w-5 h-5" />
                             </div>
@@ -675,12 +684,12 @@ export default function LaptopsPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className={`font-semibold ${selectedAccessories.includes(acc.id) ? 'text-blue-600' : 'text-slate-600'}`}>
+                            <span className={`font-semibold ${selectedAccessories.includes(acc.id) ? 'text-[#262877]' : 'text-slate-600'}`}>
                               +S/{acc.price}
                             </span>
                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                               selectedAccessories.includes(acc.id)
-                                ? 'border-blue-500 bg-blue-500'
+                                ? 'border-[#262877] bg-[#262877]'
                                 : 'border-slate-300'
                             }`}>
                               {selectedAccessories.includes(acc.id) && (
@@ -703,13 +712,13 @@ export default function LaptopsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-slate-500">{months} cuotas de</p>
-                    <span className="text-xl font-bold text-blue-600">S/{calculateMonthlyPayment(totalPrice, months)}</span>
+                    <span className="text-xl font-bold text-[#262877]">S/{calculateMonthlyPayment(totalPrice, months)}</span>
                   </div>
                 </div>
                 <Button
                   color="primary"
                   size="lg"
-                  className="w-full font-semibold text-base h-12 bg-gradient-to-r from-blue-600 to-cyan-600 shadow-lg shadow-blue-500/30"
+                  className="w-full font-semibold text-base h-12 bg-[#262877] hover:bg-[#3a3b9e] shadow-lg shadow-[#262877]/30"
                   onPress={handleAddToCart}
                   isDisabled={!selectedLaptop.available}
                 >
@@ -739,7 +748,7 @@ export default function LaptopsPage() {
       >
         <ModalContent>
           <ModalHeader className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-blue-600" />
+            <ShoppingCart className="w-5 h-5 text-[#262877]" />
             <span>Mi Carrito ({cart.length})</span>
           </ModalHeader>
           <ModalBody>
@@ -763,7 +772,7 @@ export default function LaptopsPage() {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-blue-600 font-medium">{item.brand}</p>
+                      <p className="text-xs text-[#262877] font-medium">{item.brand}</p>
                       <p className="font-semibold text-slate-900 truncate">{item.name}</p>
                       <p className="text-sm text-slate-600">S/{item.price.toLocaleString()}</p>
                     </div>
@@ -787,7 +796,7 @@ export default function LaptopsPage() {
               <Button
                 color="primary"
                 size="lg"
-                className="w-full font-semibold bg-gradient-to-r from-blue-600 to-cyan-600"
+                className="w-full font-semibold bg-[#262877] hover:bg-[#3a3b9e]"
               >
                 Proceder al pago
               </Button>
@@ -799,13 +808,13 @@ export default function LaptopsPage() {
       {/* Bottom Navigation Mobile */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200/50 md:hidden z-50 pb-safe">
         <div className="flex justify-around py-2">
-          <button className="flex flex-col items-center py-1.5 px-3 text-blue-600">
+          <button className="flex flex-col items-center py-1.5 px-3 text-[#262877]">
             <Laptop className="w-5 h-5" />
             <span className="text-[10px] mt-0.5 font-medium">Productos</span>
           </button>
           <button
             onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className={`flex flex-col items-center py-1.5 px-3 transition-colors ${isSearchOpen ? 'text-blue-600' : 'text-slate-400'}`}
+            className={`flex flex-col items-center py-1.5 px-3 transition-colors ${isSearchOpen ? 'text-[#262877]' : 'text-slate-400'}`}
           >
             <Search className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Buscar</span>
@@ -826,7 +835,7 @@ export default function LaptopsPage() {
             <ShoppingCart className="w-5 h-5" />
             <span className="text-[10px] mt-0.5">Carrito</span>
             {cart.length > 0 && (
-              <span className="absolute top-0 right-1 w-4 h-4 bg-blue-600 text-white text-[10px] rounded-full flex items-center justify-center">
+              <span className="absolute top-0 right-1 w-4 h-4 bg-[#262877] text-white text-[10px] rounded-full flex items-center justify-center">
                 {cart.length}
               </span>
             )}
