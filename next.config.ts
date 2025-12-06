@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   basePath: isProd ? "/baldecash" : "",
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
   },
 };
 

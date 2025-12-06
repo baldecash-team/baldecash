@@ -18,7 +18,8 @@
       "Bash(gh run list:*)",
       "mcp__github__get_file_contents",
       "Bash(npm run dev:*)",
-      "Bash(npm run start)"
+      "Bash(npm run start)",
+      "WebFetch(domain:baldecash.com)"
     ],
     "deny": [],
     "ask": []
