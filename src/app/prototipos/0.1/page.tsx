@@ -494,7 +494,7 @@ export default function ComponentComparisonPage() {
               {selectedComponent === "card" && (
                 <ShadcnCard className="border-[#262877]/20">
                   <ShadcnCardHeader>
-                    <CardTitle className="text-[#262877]">Shadcn UI Card</CardTitle>
+                    <ShadcnCardTitle className="text-[#262877]">Shadcn UI Card</ShadcnCardTitle>
                   </ShadcnCardHeader>
                   <ShadcnCardContent>
                     <p className="text-sm text-slate-600">Componente totalmente customizable con código en tu proyecto</p>

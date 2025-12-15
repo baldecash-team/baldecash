@@ -2,9 +2,24 @@
 
 import Link from "next/link";
 import { Card, CardBody, CardHeader } from "@nextui-org/react";
-import { Laptop, Wallet, LayoutDashboard } from "lucide-react";
+import { Laptop, Wallet, LayoutDashboard, Palette, Sparkles } from "lucide-react";
 
 const prototipos = [
+  {
+    title: "Hero Section 2.0",
+    description: "Componentes del Hero Section con múltiples variantes para A/B testing - Mobile-first y juvenil",
+    href: "/prototipos/0.2",
+    icon: Sparkles,
+    color: "from-indigo-500 to-cyan-500",
+    badge: "Nuevo",
+  },
+  {
+    title: "UI Components Comparison",
+    description: "Comparación detallada de NextUI, DaisyUI y Shadcn UI con pros/cons y casos de uso",
+    href: "/prototipos/0.1",
+    icon: Palette,
+    color: "from-violet-500 to-purple-500",
+  },
   {
     title: "E-commerce Laptops",
     description: "Catálogo de laptops con financiamiento, calculadora de cuotas y flujo de compra conversacional",
@@ -47,15 +62,22 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {prototipos.map((proto) => {
             const IconComponent = proto.icon;
             return (
               <Link key={proto.href} href={proto.href}>
                 <Card
-                  className="bg-slate-800/50 border border-slate-700 hover:border-slate-500 transition-all duration-300 hover:scale-105 cursor-pointer h-full"
+                  className="bg-slate-800/50 border border-slate-700 hover:border-slate-500 transition-all duration-300 hover:scale-105 cursor-pointer h-full relative"
                   isPressable
                 >
+                  {proto.badge && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className="px-3 py-1 bg-emerald-500 text-white text-xs font-semibold rounded-full shadow-lg">
+                        {proto.badge}
+                      </span>
+                    </div>
+                  )}
                   <CardHeader className="flex flex-col items-center pt-8">
                     <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${proto.color} flex items-center justify-center mb-4`}>
                       <IconComponent className="w-8 h-8 text-white" />
