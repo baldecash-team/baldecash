@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Card, CardBody } from "@nextui-org/react";
+import { QuestionIcon, CheckIcon } from "./Icons";
 
 /**
  * HeroCTA - Versión B (Enfoque en beneficio/precio)
@@ -17,7 +18,7 @@ export const HeroCTAV2 = () => {
   return (
     <div className="w-full max-w-2xl mx-auto px-4 py-6">
       {/* Price Highlight Card */}
-      <Card className="mb-6 bg-gradient-to-r from-[#4654CD]/5 to-[#03DBD0]/5 border-2 border-[#4654CD]/20">
+      <Card className="mb-6 bg-[#4247d2]/5 border-2 border-[#4247d2]/20">
         <CardBody className="p-6">
           <div className="text-center">
             <p
@@ -27,7 +28,7 @@ export const HeroCTAV2 = () => {
               Financia tu laptop desde
             </p>
             <div
-              className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#4654CD] to-[#03DBD0] bg-clip-text text-transparent mb-2"
+              className="text-5xl md:text-6xl font-bold text-[#4247d2] mb-2"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               S/49
@@ -49,7 +50,7 @@ export const HeroCTAV2 = () => {
         <Button
           href="/productos"
           as="a"
-          className="w-full sm:w-auto bg-[#4654CD] text-white font-bold text-lg px-8 py-6 hover:bg-[#3544A8] transition-all hover:scale-105 shadow-lg hover:shadow-xl"
+          className="w-full sm:w-auto bg-[#4247d2] text-white font-bold text-lg px-8 py-6 hover:bg-[#4247d2]/90 transition-all hover:scale-105 shadow-lg hover:shadow-xl"
           size="lg"
           endContent={
             <span className="text-xl">→</span>
@@ -62,11 +63,11 @@ export const HeroCTAV2 = () => {
         <Button
           href="/como-funciona"
           as="a"
-          className="w-full sm:w-auto text-[#4654CD] font-semibold text-lg px-8 py-6 hover:bg-[#F5F5F5] transition-all"
+          className="w-full sm:w-auto text-[#4247d2] font-semibold text-lg px-8 py-6 hover:bg-[#F5F5F5] transition-all"
           variant="light"
           size="lg"
           endContent={
-            <span className="text-xl">❓</span>
+            <QuestionIcon size={20} />
           }
         >
           ¿Cómo funciona?
@@ -76,15 +77,15 @@ export const HeroCTAV2 = () => {
       {/* Benefits list */}
       <div className="flex flex-wrap justify-center gap-4 mt-6">
         <div className="flex items-center gap-2 text-sm text-[#737373]">
-          <span className="text-[#03DBD0] text-lg">✓</span>
+          <CheckIcon size={18} className="text-[#4247d2]" />
           <span>Aprobación en 24h</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-[#737373]">
-          <span className="text-[#03DBD0] text-lg">✓</span>
+          <CheckIcon size={18} className="text-[#4247d2]" />
           <span>Envío gratis</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-[#737373]">
-          <span className="text-[#03DBD0] text-lg">✓</span>
+          <CheckIcon size={18} className="text-[#4247d2]" />
           <span>Sin sorpresas</span>
         </div>
       </div>

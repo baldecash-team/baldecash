@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Avatar } from "@nextui-org/react";
 import type { SocialProofProps } from "./types";
+import { GraduationCapIcon } from "./Icons";
 
 /**
  * SocialProof - Versión A (Carrusel automático)
@@ -60,17 +61,17 @@ export const SocialProofV1 = ({ studentCount, institutions }: SocialProofProps) 
   const duplicatedInstitutions = [...institutions, ...institutions];
 
   return (
-    <div className="w-full py-8 bg-gradient-to-b from-white to-[#F5F5F5]">
+    <div className="w-full py-8 bg-[#F5F5F5]">
       <div className="max-w-6xl mx-auto px-4">
         {/* Student Counter */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4654CD] to-[#03DBD0] flex items-center justify-center">
-              <span className="text-2xl">🎓</span>
+            <div className="w-12 h-12 rounded-full bg-[#4247d2] flex items-center justify-center">
+              <GraduationCapIcon size={24} className="text-white" />
             </div>
             <div className="text-left">
               <div
-                className="text-4xl font-bold bg-gradient-to-r from-[#4654CD] to-[#03DBD0] bg-clip-text text-transparent"
+                className="text-4xl font-bold text-[#4247d2]"
                 style={{ fontFamily: "'Baloo 2', cursive" }}
               >
                 {count.toLocaleString()}+
@@ -120,8 +121,8 @@ export const SocialProofV1 = ({ studentCount, institutions }: SocialProofProps) 
             ))}
           </div>
           {/* Fade edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#F5F5F5] to-transparent pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#F5F5F5] to-transparent pointer-events-none"></div>
+          <div className="absolute left-0 top-0 bottom-0 w-20 bg-[#F5F5F5] pointer-events-none"></div>
+          <div className="absolute right-0 top-0 bottom-0 w-20 bg-[#F5F5F5] pointer-events-none"></div>
         </div>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { SocialProofProps } from "./types";
+import { GraduationCapIcon } from "./Icons";
 
 /**
  * SocialProof - Versión B (Grid compacto)
@@ -61,13 +62,13 @@ export const SocialProofV2 = ({ studentCount, institutions }: SocialProofProps) 
       <div className="max-w-5xl mx-auto px-4">
         {/* Student Counter */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-4 px-6 py-4 bg-gradient-to-r from-[#4654CD]/5 to-[#03DBD0]/5 rounded-2xl border border-[#E5E5E5]">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#4654CD] to-[#03DBD0] flex items-center justify-center">
-              <span className="text-3xl">🎓</span>
+          <div className="inline-flex items-center gap-4 px-6 py-4 bg-[#4247d2]/5 rounded-2xl border border-[#E5E5E5]">
+            <div className="w-14 h-14 rounded-full bg-[#4247d2] flex items-center justify-center">
+              <GraduationCapIcon size={28} className="text-white" />
             </div>
             <div className="text-left">
               <div
-                className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#4654CD] to-[#03DBD0] bg-clip-text text-transparent"
+                className="text-4xl md:text-5xl font-bold text-[#4247d2]"
                 style={{ fontFamily: "'Baloo 2', cursive" }}
               >
                 {count.toLocaleString()}+
@@ -107,8 +108,8 @@ export const SocialProofV2 = ({ studentCount, institutions }: SocialProofProps) 
                 transition-all duration-300 cursor-pointer
                 ${
                   hoveredIndex === index
-                    ? "border-[#4654CD] shadow-lg scale-105 z-10"
-                    : "border-[#E5E5E5] hover:border-[#03DBD0]"
+                    ? "border-[#4247d2] shadow-lg scale-105 z-10"
+                    : "border-[#E5E5E5] hover:border-[#4247d2]"
                 }
               `}
               style={{
@@ -147,7 +148,7 @@ export const SocialProofV2 = ({ studentCount, institutions }: SocialProofProps) 
         <div className="text-center mt-8">
           <a
             href="/instituciones"
-            className="text-[#4654CD] font-semibold hover:text-[#03DBD0] transition-colors"
+            className="text-[#4247d2] font-semibold hover:text-[#4247d2]/80 transition-colors"
             style={{ fontFamily: "'Asap', sans-serif" }}
           >
             Ver todas las instituciones →

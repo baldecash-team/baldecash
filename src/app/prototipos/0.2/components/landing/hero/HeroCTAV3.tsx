@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@nextui-org/react";
+import { CalculatorIcon, LaptopIcon, LightningIcon, LockIcon, SparkleIcon } from "./Icons";
 
 /**
  * HeroCTA - Versión C (Enfoque en capacidad del usuario)
@@ -38,10 +39,10 @@ export const HeroCTAV3 = () => {
         <Button
           href="/calculadora"
           as="a"
-          className="w-full sm:w-auto bg-gradient-to-r from-[#4654CD] to-[#03DBD0] text-white font-bold text-lg px-8 py-6 hover:scale-105 transition-all shadow-lg hover:shadow-xl"
+          className="w-full sm:w-auto bg-[#4247d2] text-white font-bold text-lg px-8 py-6 hover:scale-105 transition-all shadow-lg hover:shadow-xl"
           size="lg"
           endContent={
-            <span className="text-xl">🧮</span>
+            <CalculatorIcon size={20} className="text-white" />
           }
         >
           Conoce tu capacidad de crédito
@@ -51,11 +52,11 @@ export const HeroCTAV3 = () => {
         <Button
           href="/productos"
           as="a"
-          className="w-full sm:w-auto border-2 border-[#03DBD0] text-[#03DBD0] font-semibold text-lg px-8 py-6 hover:bg-[#03DBD0] hover:text-white transition-all"
+          className="w-full sm:w-auto border-2 border-[#4247d2] text-[#4247d2] font-semibold text-lg px-8 py-6 hover:bg-[#4247d2] hover:text-white transition-all"
           variant="bordered"
           size="lg"
           endContent={
-            <span className="text-xl">💻</span>
+            <LaptopIcon size={20} />
           }
         >
           Explorar catálogo
@@ -65,8 +66,8 @@ export const HeroCTAV3 = () => {
       {/* Trust indicators */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="text-center p-4">
-          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#4654CD]/10 flex items-center justify-center">
-            <span className="text-2xl">⚡</span>
+          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#4247d2]/10 flex items-center justify-center">
+            <LightningIcon size={24} className="text-[#4247d2]" />
           </div>
           <p
             className="text-sm font-semibold text-[#262626] mb-1"
@@ -78,8 +79,8 @@ export const HeroCTAV3 = () => {
         </div>
 
         <div className="text-center p-4">
-          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#03DBD0]/10 flex items-center justify-center">
-            <span className="text-2xl">🔒</span>
+          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#4247d2]/10 flex items-center justify-center">
+            <LockIcon size={24} className="text-[#4247d2]" />
           </div>
           <p
             className="text-sm font-semibold text-[#262626] mb-1"
@@ -91,8 +92,8 @@ export const HeroCTAV3 = () => {
         </div>
 
         <div className="text-center p-4">
-          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#4654CD]/10 flex items-center justify-center">
-            <span className="text-2xl">✨</span>
+          <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-[#4247d2]/10 flex items-center justify-center">
+            <SparkleIcon size={24} className="text-[#4247d2]" />
           </div>
           <p
             className="text-sm font-semibold text-[#262626] mb-1"

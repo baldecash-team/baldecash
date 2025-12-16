@@ -2,6 +2,7 @@
 
 import { Chip } from "@nextui-org/react";
 import type { InstitutionalBannerProps } from "./types";
+import { StarIcon } from "./Icons";
 
 /**
  * InstitutionalBanner - Versión A (Banner horizontal completo)
@@ -40,7 +41,7 @@ export const InstitutionalBannerV1 = ({
   }`;
 
   return (
-    <div className="w-full bg-gradient-to-r from-[#4654CD]/5 via-[#03DBD0]/5 to-[#4654CD]/5 border-b-2 border-[#03DBD0]/20">
+    <div className="w-full bg-[#4247d2]/5 border-b-2 border-[#4247d2]/20">
       <div className="max-w-7xl mx-auto px-4 py-4 md:py-5">
         <div className="flex flex-col md:flex-row items-center justify-center gap-4">
           {/* Institution Logo */}
@@ -81,11 +82,14 @@ export const InstitutionalBannerV1 = ({
           {hasSpecialConditions && (
             <div className="flex-shrink-0">
               <Chip
-                className="bg-gradient-to-r from-[#4654CD] to-[#03DBD0] text-white font-semibold px-4 py-2"
+                className="bg-[#4247d2] text-white font-semibold px-4 py-2"
                 size="lg"
                 variant="solid"
               >
-                ⭐ Condiciones especiales
+                <span className="flex items-center gap-2">
+                  <StarIcon size={16} className="text-white" />
+                  Condiciones especiales
+                </span>
               </Chip>
             </div>
           )}

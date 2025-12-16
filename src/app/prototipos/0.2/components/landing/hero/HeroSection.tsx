@@ -5,9 +5,11 @@ import { BrandIdentity } from "./BrandIdentity";
 import { ProfileIdentificationV1 } from "./ProfileIdentificationV1";
 import { ProfileIdentificationV2 } from "./ProfileIdentificationV2";
 import { ProfileIdentificationV3 } from "./ProfileIdentificationV3";
+import { ProfileIdentificationV4 } from "./ProfileIdentificationV4";
 import { InstitutionalBannerV1 } from "./InstitutionalBannerV1";
 import { InstitutionalBannerV2 } from "./InstitutionalBannerV2";
 import { InstitutionalBannerV3 } from "./InstitutionalBannerV3";
+import { InstitutionalBannerV4 } from "./InstitutionalBannerV4";
 import { SocialProofV1 } from "./SocialProofV1";
 import { SocialProofV2 } from "./SocialProofV2";
 import { SocialProofV3 } from "./SocialProofV3";
@@ -23,9 +25,9 @@ import { HeroCTAV3 } from "./HeroCTAV3";
  */
 
 interface HeroSectionProps {
-  // Version selectors (1, 2, or 3)
-  profileIdentificationVersion?: 1 | 2 | 3;
-  institutionalBannerVersion?: 1 | 2 | 3;
+  // Version selectors (1, 2, 3, or 4)
+  profileIdentificationVersion?: 1 | 2 | 3 | 4;
+  institutionalBannerVersion?: 1 | 2 | 3 | 4;
   socialProofVersion?: 1 | 2 | 3;
   ctaVersion?: 1 | 2 | 3;
 
@@ -66,7 +68,9 @@ export const HeroSection = ({
       ? ProfileIdentificationV1
       : profileIdentificationVersion === 2
       ? ProfileIdentificationV2
-      : ProfileIdentificationV3;
+      : profileIdentificationVersion === 3
+      ? ProfileIdentificationV3
+      : ProfileIdentificationV4;
 
   // Institutional Banner component selector
   const InstitutionalBannerComponent =
@@ -74,7 +78,9 @@ export const HeroSection = ({
       ? InstitutionalBannerV1
       : institutionalBannerVersion === 2
       ? InstitutionalBannerV2
-      : InstitutionalBannerV3;
+      : institutionalBannerVersion === 3
+      ? InstitutionalBannerV3
+      : InstitutionalBannerV4;
 
   // Social Proof component selector
   const SocialProofComponent =

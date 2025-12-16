@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, useDisclosure } from "@nextui-org/react";
 import type { ProfileIdentificationProps } from "./types";
+import { GraduationCapIcon } from "./Icons";
 
 /**
  * ProfileIdentification - Versión A (Modal/Overlay)
@@ -49,9 +50,9 @@ export const ProfileIdentificationV1 = ({ onResponse }: ProfileIdentificationPro
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               <div className="flex justify-center mb-2">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#4654CD] to-[#03DBD0] p-0.5">
+                <div className="w-16 h-16 rounded-full bg-[#4247d2] p-0.5">
                   <div className="w-full h-full bg-[#1a1a1a] rounded-full flex items-center justify-center">
-                    <span className="text-2xl">🎓</span>
+                    <GraduationCapIcon size={28} className="text-white" />
                   </div>
                 </div>
               </div>
@@ -64,14 +65,14 @@ export const ProfileIdentificationV1 = ({ onResponse }: ProfileIdentificationPro
             </ModalBody>
             <ModalFooter className="flex-col gap-3 pb-6">
               <Button
-                className="w-full bg-[#4654CD] text-white font-semibold hover:bg-[#3544A8] transition-colors"
+                className="w-full bg-[#4247d2] text-white font-semibold hover:bg-[#4247d2]/90 transition-colors"
                 size="lg"
                 onPress={() => handleResponse(true)}
               >
                 Sí, soy estudiante
               </Button>
               <Button
-                className="w-full border-2 border-[#444444] text-gray-300 font-medium hover:border-[#4654CD] hover:text-white bg-transparent transition-colors"
+                className="w-full border-2 border-[#444444] text-gray-300 font-medium hover:border-[#4247d2] hover:text-white bg-transparent transition-colors"
                 variant="bordered"
                 size="lg"
                 onPress={() => handleResponse(false)}

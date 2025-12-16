@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardBody, Link } from "@nextui-org/react";
 import type { SocialProofProps } from "./types";
+import { GraduationCapIcon, InstitutionIcon } from "./Icons";
 
 /**
  * SocialProof - Versión C (Contador + logos destacados)
@@ -62,17 +63,17 @@ export const SocialProofV3 = ({ studentCount, institutions }: SocialProofProps) 
     featuredInstitutions.length > 0 ? featuredInstitutions : institutions.slice(0, 5);
 
   return (
-    <div className="w-full py-10 bg-gradient-to-b from-[#FAFAFA] to-white">
+    <div className="w-full py-10 bg-[#FAFAFA]">
       <div className="max-w-4xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           {/* Left: Stats */}
           <div className="space-y-6">
             {/* Student Counter */}
-            <Card className="bg-gradient-to-br from-[#4654CD] to-[#03DBD0] border-0">
+            <Card className="bg-[#4247d2] border-0">
               <CardBody className="p-6">
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                    <span className="text-4xl">🎓</span>
+                    <GraduationCapIcon size={32} className="text-white" />
                   </div>
                   <div>
                     <div
@@ -96,12 +97,12 @@ export const SocialProofV3 = ({ studentCount, institutions }: SocialProofProps) 
             <Card className="bg-white border-2 border-[#E5E5E5]">
               <CardBody className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#4654CD]/10 to-[#03DBD0]/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-4xl">🏛️</span>
+                  <div className="w-16 h-16 rounded-full bg-[#4247d2]/10 flex items-center justify-center flex-shrink-0">
+                    <InstitutionIcon size={32} className="text-[#4247d2]" />
                   </div>
                   <div>
                     <div
-                      className="text-5xl font-bold bg-gradient-to-r from-[#4654CD] to-[#03DBD0] bg-clip-text text-transparent mb-1"
+                      className="text-5xl font-bold text-[#4247d2] mb-1"
                       style={{ fontFamily: "'Baloo 2', cursive" }}
                     >
                       {institutions.length}+
@@ -154,7 +155,7 @@ export const SocialProofV3 = ({ studentCount, institutions }: SocialProofProps) 
             <div className="text-center">
               <Link
                 href="/instituciones"
-                className="text-[#4654CD] font-semibold hover:text-[#03DBD0] transition-colors inline-flex items-center gap-1"
+                className="text-[#4247d2] font-semibold hover:text-[#4247d2]/80 transition-colors inline-flex items-center gap-1"
                 style={{ fontFamily: "'Asap', sans-serif" }}
               >
                 Ver todas las instituciones

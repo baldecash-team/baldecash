@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@nextui-org/react";
+import { LaptopIcon, ClipboardIcon } from "./Icons";
 
 /**
  * HeroCTA - Versión A (Enfoque en acción directa)
@@ -21,10 +22,10 @@ export const HeroCTAV1 = () => {
         <Button
           href="/productos"
           as="a"
-          className="w-full sm:w-auto bg-[#4654CD] text-white font-bold text-lg px-8 py-6 hover:bg-[#3544A8] transition-all hover:scale-105 shadow-lg hover:shadow-xl"
+          className="w-full sm:w-auto bg-[#4247d2] text-white font-bold text-lg px-8 py-6 hover:bg-[#4247d2]/90 transition-all hover:scale-105 shadow-lg hover:shadow-xl"
           size="lg"
           endContent={
-            <span className="text-xl">💻</span>
+            <LaptopIcon size={20} className="text-white" />
           }
         >
           Ver laptops disponibles
@@ -34,11 +35,11 @@ export const HeroCTAV1 = () => {
         <Button
           href="/requisitos"
           as="a"
-          className="w-full sm:w-auto border-2 border-[#4654CD] text-[#4654CD] font-semibold text-lg px-8 py-6 hover:bg-[#4654CD] hover:text-white transition-all"
+          className="w-full sm:w-auto border-2 border-[#4247d2] text-[#4247d2] font-semibold text-lg px-8 py-6 hover:bg-[#4247d2] hover:text-white transition-all"
           variant="bordered"
           size="lg"
           endContent={
-            <span className="text-xl">📋</span>
+            <ClipboardIcon size={20} />
           }
         >
           Conocer requisitos

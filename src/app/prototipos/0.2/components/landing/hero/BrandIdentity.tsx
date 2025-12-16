@@ -35,7 +35,7 @@ export const BrandIdentity = () => {
       </p>
 
       {/* Decorative underline */}
-      <div className="h-1 w-16 bg-gradient-to-r from-[#4654CD] to-[#03DBD0] rounded-full mt-2"></div>
+      <div className="h-1 w-16 bg-[#4247d2] rounded-full mt-2"></div>
     </div>
   );
 };

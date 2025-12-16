@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Chip, Tooltip, Card, CardBody } from "@nextui-org/react";
 import type { InstitutionalBannerProps } from "./types";
+import { StarIcon, CloseIcon } from "./Icons";
 
 /**
  * InstitutionalBanner - Versión B (Badge/Chip flotante)
@@ -52,12 +53,14 @@ export const InstitutionalBannerV2 = ({
             className="cursor-pointer hover:scale-105 transition-transform"
           >
             <Chip
-              className="bg-gradient-to-r from-[#4654CD] to-[#03DBD0] text-white font-semibold shadow-lg"
+              className="bg-[#4247d2] text-white font-semibold shadow-lg"
               size="lg"
               variant="solid"
             >
-              {institutionName}
-              {hasSpecialConditions && " ⭐"}
+              <span className="flex items-center gap-1">
+                {institutionName}
+                {hasSpecialConditions && <StarIcon size={14} className="text-white" />}
+              </span>
             </Chip>
           </div>
         </Tooltip>
@@ -94,19 +97,22 @@ export const InstitutionalBannerV2 = ({
                   {hasSpecialConditions && (
                     <Chip
                       size="sm"
-                      className="bg-[#03DBD0]/10 text-[#03DBD0] font-semibold"
+                      className="bg-[#4247d2]/10 text-[#4247d2] font-semibold"
                     >
-                      ⭐ Especial
+                      <span className="flex items-center gap-1">
+                        <StarIcon size={12} className="text-[#4247d2]" />
+                        Especial
+                      </span>
                     </Chip>
                   )}
                 </div>
               </div>
               <button
                 onClick={() => setIsExpanded(false)}
-                className="text-[#737373] hover:text-[#262626] text-lg"
+                className="text-[#737373] hover:text-[#262626]"
                 aria-label="Cerrar"
               >
-                ✕
+                <CloseIcon size={18} />
               </button>
             </div>
             <p

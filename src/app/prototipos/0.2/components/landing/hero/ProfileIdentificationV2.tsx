@@ -2,6 +2,7 @@
 
 import { Card, CardBody } from "@nextui-org/react";
 import type { ProfileIdentificationProps } from "./types";
+import { GraduationCapIcon, EyeIcon } from "./Icons";
 
 /**
  * ProfileIdentification - Versión B (Inline destacado)
@@ -34,13 +35,13 @@ export const ProfileIdentificationV2 = ({ onResponse }: ProfileIdentificationPro
         <Card
           isPressable
           onPress={() => onResponse?.(true)}
-          className="border-2 border-[#E5E5E5] hover:border-[#4654CD] hover:shadow-lg transition-all cursor-pointer group"
+          className="border-2 border-[#E5E5E5] hover:border-[#4247d2] hover:shadow-lg transition-all cursor-pointer group"
         >
-          <CardBody className="p-6 text-center">
+          <CardBody className="p-6 text-center flex flex-col h-full">
             <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#4654CD] to-[#03DBD0] p-1 group-hover:scale-110 transition-transform">
+              <div className="w-20 h-20 rounded-full bg-[#4247d2] p-1 group-hover:scale-110 transition-transform">
                 <div className="w-full h-full bg-white rounded-full flex items-center justify-center">
-                  <span className="text-4xl">🎓</span>
+                  <GraduationCapIcon size={36} className="text-[#4247d2]" />
                 </div>
               </div>
             </div>
@@ -50,10 +51,10 @@ export const ProfileIdentificationV2 = ({ onResponse }: ProfileIdentificationPro
             >
               Soy estudiante
             </h3>
-            <p className="text-sm text-[#737373]" style={{ fontFamily: "'Asap', sans-serif" }}>
+            <p className="text-sm text-[#737373] mb-4 flex-grow" style={{ fontFamily: "'Asap', sans-serif" }}>
               Accede a financiamiento especial para tu laptop
             </p>
-            <div className="mt-4 bg-[#4654CD] text-white font-semibold w-full py-2 px-4 rounded-lg text-center">
+            <div className="bg-[#4247d2] text-white font-semibold w-full py-2 px-4 rounded-lg text-center">
               Continuar
             </div>
           </CardBody>
@@ -63,13 +64,13 @@ export const ProfileIdentificationV2 = ({ onResponse }: ProfileIdentificationPro
         <Card
           isPressable
           onPress={() => onResponse?.(false)}
-          className="border-2 border-[#E5E5E5] hover:border-[#03DBD0] hover:shadow-lg transition-all cursor-pointer group"
+          className="border-2 border-[#E5E5E5] hover:border-[#4247d2] hover:shadow-lg transition-all cursor-pointer group"
         >
-          <CardBody className="p-6 text-center">
+          <CardBody className="p-6 text-center flex flex-col h-full">
             <div className="flex justify-center mb-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#03DBD0] to-[#4654CD] p-1 group-hover:scale-110 transition-transform">
+              <div className="w-20 h-20 rounded-full bg-[#4247d2] p-1 group-hover:scale-110 transition-transform">
                 <div className="w-full h-full bg-white rounded-full flex items-center justify-center">
-                  <span className="text-4xl">👀</span>
+                  <EyeIcon size={36} className="text-[#4247d2]" />
                 </div>
               </div>
             </div>
@@ -79,10 +80,10 @@ export const ProfileIdentificationV2 = ({ onResponse }: ProfileIdentificationPro
             >
               Estoy explorando
             </h3>
-            <p className="text-sm text-[#737373]" style={{ fontFamily: "'Asap', sans-serif" }}>
+            <p className="text-sm text-[#737373] mb-4 flex-grow" style={{ fontFamily: "'Asap', sans-serif" }}>
               Conoce cómo funciona BaldeCash
             </p>
-            <div className="mt-4 border-2 border-[#03DBD0] text-[#03DBD0] font-semibold w-full py-2 px-4 rounded-lg text-center">
+            <div className="border-2 border-[#4247d2] text-[#4247d2] font-semibold w-full py-2 px-4 rounded-lg text-center">
               Ver información
             </div>
           </CardBody>

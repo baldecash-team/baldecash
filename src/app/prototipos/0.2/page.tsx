@@ -12,8 +12,8 @@ import { HeroSection } from "./components/landing/hero/HeroSection";
 
 export default function HeroSectionPreview() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [profileVersion, setProfileVersion] = useState<1 | 2 | 3>(1);
-  const [institutionalVersion, setInstitutionalVersion] = useState<1 | 2 | 3>(1);
+  const [profileVersion, setProfileVersion] = useState<1 | 2 | 3 | 4>(1);
+  const [institutionalVersion, setInstitutionalVersion] = useState<1 | 2 | 3 | 4>(1);
   const [socialProofVersion, setSocialProofVersion] = useState<1 | 2 | 3>(1);
   const [ctaVersion, setCtaVersion] = useState<1 | 2 | 3>(1);
 
@@ -45,7 +45,7 @@ export default function HeroSectionPreview() {
       {/* Floating Config Button */}
       <button
         onClick={onOpen}
-        className="fixed bottom-8 right-8 z-50 w-16 h-16 bg-gradient-to-r from-[#4654CD] to-[#03DBD0] text-white rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center group"
+        className="fixed bottom-8 right-8 z-50 w-16 h-16 bg-[#4247d2] text-white rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center group"
         aria-label="Configurar versiones"
       >
         <svg
@@ -103,7 +103,7 @@ export default function HeroSectionPreview() {
                     </p>
                   </div>
                   <Chip
-                    className="bg-gradient-to-r from-[#4654CD] to-[#03DBD0] text-white font-semibold"
+                    className="bg-[#4247d2] text-white font-semibold"
                     size="lg"
                   >
                     Versión 0.2
@@ -124,7 +124,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       profileVersion === 1
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setProfileVersion(1)}
@@ -135,7 +135,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       profileVersion === 2
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setProfileVersion(2)}
@@ -146,12 +146,23 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       profileVersion === 3
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setProfileVersion(3)}
                   >
                     V3
+                  </Button>
+                  <Button
+                    size="sm"
+                    className={
+                      profileVersion === 4
+                        ? "bg-[#4247d2] text-white"
+                        : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
+                    }
+                    onPress={() => setProfileVersion(4)}
+                  >
+                    V4
                   </Button>
                 </div>
               </CardBody>
@@ -168,7 +179,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       institutionalVersion === 1
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setInstitutionalVersion(1)}
@@ -179,7 +190,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       institutionalVersion === 2
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setInstitutionalVersion(2)}
@@ -190,12 +201,23 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       institutionalVersion === 3
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setInstitutionalVersion(3)}
                   >
                     V3
+                  </Button>
+                  <Button
+                    size="sm"
+                    className={
+                      institutionalVersion === 4
+                        ? "bg-[#4247d2] text-white"
+                        : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
+                    }
+                    onPress={() => setInstitutionalVersion(4)}
+                  >
+                    V4
                   </Button>
                 </div>
               </CardBody>
@@ -210,7 +232,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       socialProofVersion === 1
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setSocialProofVersion(1)}
@@ -221,7 +243,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       socialProofVersion === 2
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setSocialProofVersion(2)}
@@ -232,7 +254,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       socialProofVersion === 3
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setSocialProofVersion(3)}
@@ -252,7 +274,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       ctaVersion === 1
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setCtaVersion(1)}
@@ -263,7 +285,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       ctaVersion === 2
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setCtaVersion(2)}
@@ -274,7 +296,7 @@ export default function HeroSectionPreview() {
                     size="sm"
                     className={
                       ctaVersion === 3
-                        ? "bg-[#4654CD] text-white"
+                        ? "bg-[#4247d2] text-white"
                         : "bg-[#3a3a3a] text-gray-300 hover:bg-[#4a4a4a]"
                     }
                     onPress={() => setCtaVersion(3)}
@@ -301,16 +323,20 @@ export default function HeroSectionPreview() {
                       <h4 className="font-semibold text-gray-200 text-sm">Profile Identification</h4>
                       <div className="space-y-2 text-xs">
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V1</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V1</span>
                           <p className="text-gray-400">Modal centrado, máxima tasa de respuesta</p>
                         </div>
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V2</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V2</span>
                           <p className="text-gray-400">Cards integradas, mantiene flujo visual</p>
                         </div>
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V3</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V3</span>
                           <p className="text-gray-400">Banner sticky superior, dismissible</p>
+                        </div>
+                        <div>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V4</span>
+                          <p className="text-gray-400">Sin sección, navegación sin fricción</p>
                         </div>
                       </div>
                     </div>
@@ -320,16 +346,20 @@ export default function HeroSectionPreview() {
                       <h4 className="font-semibold text-gray-200 text-sm">Institutional Banner</h4>
                       <div className="space-y-2 text-xs">
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V1</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V1</span>
                           <p className="text-gray-400">Banner horizontal, máxima visibilidad</p>
                         </div>
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V2</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V2</span>
                           <p className="text-gray-400">Chip flotante, sutil pero presente</p>
                         </div>
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V3</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V3</span>
                           <p className="text-gray-400">Sección dedicada en hero</p>
+                        </div>
+                        <div>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V4</span>
+                          <p className="text-gray-400">Sin sección, diseño limpio</p>
                         </div>
                       </div>
                     </div>
@@ -339,15 +369,15 @@ export default function HeroSectionPreview() {
                       <h4 className="font-semibold text-gray-200 text-sm">Social Proof</h4>
                       <div className="space-y-2 text-xs">
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V1</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V1</span>
                           <p className="text-gray-400">Logos en movimiento continuo</p>
                         </div>
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V2</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V2</span>
                           <p className="text-gray-400">Todos los logos visibles</p>
                         </div>
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V3</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V3</span>
                           <p className="text-gray-400">Contador + logos destacados</p>
                         </div>
                       </div>
@@ -358,15 +388,15 @@ export default function HeroSectionPreview() {
                       <h4 className="font-semibold text-gray-200 text-sm">Hero CTA</h4>
                       <div className="space-y-2 text-xs">
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V1</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V1</span>
                           <p className="text-gray-400">Acción directa: ver laptops</p>
                         </div>
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V2</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V2</span>
                           <p className="text-gray-400">Enfoque en precio: desde S/49/mes</p>
                         </div>
                         <div>
-                          <span className="inline-block bg-[#4654CD] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V3</span>
+                          <span className="inline-block bg-[#4247d2] text-white px-2 py-0.5 rounded text-xs font-medium mb-1">V3</span>
                           <p className="text-gray-400">Capacidad de crédito</p>
                         </div>
                       </div>

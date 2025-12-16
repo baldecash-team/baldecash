@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Chip } from "@nextui-org/react";
 import type { ProfileIdentificationProps } from "./types";
+import { GraduationCapIcon, CloseIcon } from "./Icons";
 
 /**
  * ProfileIdentification - Versión C (Floating/Sticky)
@@ -32,9 +33,9 @@ export const ProfileIdentificationV3 = ({ onResponse }: ProfileIdentificationPro
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Icon + Message */}
             <div className="flex items-center gap-3 flex-1">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4654CD] to-[#03DBD0] p-0.5 flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-[#4247d2] p-0.5 flex-shrink-0">
                 <div className="w-full h-full bg-white rounded-full flex items-center justify-center">
-                  <span className="text-2xl">🎓</span>
+                  <GraduationCapIcon size={24} className="text-[#4247d2]" />
                 </div>
               </div>
               <div>
@@ -56,14 +57,14 @@ export const ProfileIdentificationV3 = ({ onResponse }: ProfileIdentificationPro
             {/* Action Buttons */}
             <div className="flex items-center gap-3 flex-shrink-0">
               <Button
-                className="bg-[#4654CD] text-white font-semibold hover:bg-[#3544A8] transition-colors"
+                className="bg-[#4247d2] text-white font-semibold hover:bg-[#4247d2]/90 transition-colors"
                 size="md"
                 onPress={() => handleResponse(true)}
               >
                 Sí, soy estudiante
               </Button>
               <Button
-                className="border-2 border-[#E5E5E5] text-[#737373] font-medium hover:border-[#4654CD] hover:text-[#4654CD] transition-colors"
+                className="border-2 border-[#E5E5E5] text-[#737373] font-medium hover:border-[#4247d2] hover:text-[#4247d2] transition-colors"
                 variant="bordered"
                 size="md"
                 onPress={() => handleResponse(false)}
@@ -78,7 +79,7 @@ export const ProfileIdentificationV3 = ({ onResponse }: ProfileIdentificationPro
                 className="text-[#737373] hover:text-[#262626]"
                 aria-label="Cerrar"
               >
-                ✕
+                <CloseIcon size={18} />
               </Button>
             </div>
           </div>

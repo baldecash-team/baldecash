@@ -2,6 +2,7 @@
 
 import { Card, CardBody, Chip } from "@nextui-org/react";
 import type { InstitutionalBannerProps } from "./types";
+import { StarIcon } from "./Icons";
 
 /**
  * InstitutionalBanner - Versión C (Sección integrada en hero)
@@ -39,7 +40,7 @@ export const InstitutionalBannerV3 = ({
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-6">
-      <Card className="border-2 border-[#4654CD]/20 bg-gradient-to-br from-[#4654CD]/5 to-[#03DBD0]/5">
+      <Card className="border-2 border-[#4247d2]/20 bg-[#4247d2]/5">
         <CardBody className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row items-center gap-6">
             {/* Institution Logo */}
@@ -65,8 +66,8 @@ export const InstitutionalBannerV3 = ({
                 {/* Decorative glow */}
                 {hasSpecialConditions && (
                   <div className="absolute -top-2 -right-2">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4654CD] to-[#03DBD0] flex items-center justify-center shadow-lg">
-                      <span className="text-white text-lg">⭐</span>
+                    <div className="w-8 h-8 rounded-full bg-[#4247d2] flex items-center justify-center shadow-lg">
+                      <StarIcon size={16} className="text-white" />
                     </div>
                   </div>
                 )}
@@ -93,14 +94,14 @@ export const InstitutionalBannerV3 = ({
               {hasSpecialConditions && (
                 <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                   <Chip
-                    className="bg-gradient-to-r from-[#4654CD] to-[#03DBD0] text-white font-semibold"
+                    className="bg-[#4247d2] text-white font-semibold"
                     size="lg"
                     variant="solid"
                   >
                     Condiciones especiales
                   </Chip>
                   <Chip
-                    className="bg-white text-[#4654CD] border-2 border-[#4654CD] font-semibold"
+                    className="bg-white text-[#4247d2] border-2 border-[#4247d2] font-semibold"
                     size="lg"
                     variant="bordered"
                   >
