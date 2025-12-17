@@ -1,0 +1,74 @@
+{
+  "versions": [
+    {
+      "version": "0.2",
+      "date": "2024-12-01",
+      "status": "archived",
+      "summary": "MVP inicial con componentes básicos",
+      "keyDecisions": {
+        "hero.brandIdentity": 1,
+        "hero.profileIdentification": 1,
+        "hero.socialProof": 1,
+        "catalogo.layout": 1,
+        "catalogo.cardEnfoque": 1,
+        "wizard.layout": 1,
+        "wizard.progress": 1
+      },
+      "results": {
+        "completionRate": "4%",
+        "avgTimeOnPage": "45s",
+        "notes": "Baseline inicial"
+      }
+    },
+    {
+      "version": "0.3",
+      "date": "2024-12-17",
+      "status": "testing",
+      "summary": "Iteración con Hero 2.0 y sistema de A/B testing",
+      "keyDecisions": {
+        "hero.brandIdentity": 1,
+        "hero.profileIdentification": 2,
+        "hero.socialProof": 1,
+        "hero.navbar": 1,
+        "hero.heroCta": 1,
+        "catalogo.layout": 1,
+        "catalogo.brandFilter": 1,
+        "catalogo.cardEnfoque": 1,
+        "catalogo.badgePosition": 1,
+        "catalogo.hoverBehavior": 1,
+        "wizard.layout": 1,
+        "wizard.progress": 1,
+        "wizard.celebration": 1,
+        "results.approval": 1,
+        "results.rejection": 1
+      },
+      "results": null
+    }
+  ],
+  "componentEvolution": {
+    "hero.brandIdentity": {
+      "0.2": { "version": 1, "type": "baseline" },
+      "0.3": { "version": 1, "type": "maintained" }
+    },
+    "hero.profileIdentification": {
+      "0.2": { "version": 1, "type": "baseline" },
+      "0.3": { "version": 2, "type": "iterated" }
+    },
+    "hero.socialProof": {
+      "0.2": { "version": 1, "type": "baseline" },
+      "0.3": { "version": 1, "type": "maintained" }
+    },
+    "catalogo.layout": {
+      "0.2": { "version": 1, "type": "baseline" },
+      "0.3": { "version": 1, "type": "maintained" }
+    },
+    "catalogo.cardEnfoque": {
+      "0.2": { "version": 1, "type": "baseline" },
+      "0.3": { "version": 1, "type": "maintained" }
+    },
+    "wizard.layout": {
+      "0.2": { "version": 1, "type": "baseline" },
+      "0.3": { "version": 1, "type": "maintained" }
+    }
+  }
+}

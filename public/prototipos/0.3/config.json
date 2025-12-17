@@ -1,0 +1,166 @@
+{
+  "version": "0.3",
+  "createdAt": "2024-12-17T00:00:00.000Z",
+  "updatedAt": "2024-12-17T00:00:00.000Z",
+  "description": "Prototipo v0.3 - Hero 2.0 con sistema de A/B testing",
+  "status": "testing",
+  "sections": {
+    "hero": {
+      "enabled": true,
+      "lastUpdated": "2024-12-17T00:00:00.000Z",
+      "components": {
+        "brandIdentity": {
+          "version": 1,
+          "notes": "V1 - Centrado con logo + tagline"
+        },
+        "profileIdentification": {
+          "version": 2,
+          "notes": "V2 - Cards integradas en hero"
+        },
+        "institutionalBanner": {
+          "version": 1,
+          "notes": "Banner institucional básico"
+        },
+        "socialProof": {
+          "version": 1,
+          "notes": "V1 - Marquee con logos en movimiento"
+        },
+        "navbar": {
+          "version": 1,
+          "notes": "V1 - Sticky sólido siempre visible"
+        },
+        "heroCta": {
+          "version": 1,
+          "notes": "V1 - Ver laptops (acción directa)"
+        }
+      }
+    },
+    "catalogoLayout": {
+      "enabled": true,
+      "lastUpdated": "2024-12-17T00:00:00.000Z",
+      "components": {
+        "layout": {
+          "version": 1,
+          "notes": "V1 - Sidebar 280px izquierdo"
+        },
+        "brandFilter": {
+          "version": 1,
+          "notes": "V1 - Solo texto con checkbox"
+        }
+      }
+    },
+    "catalogoCards": {
+      "enabled": true,
+      "lastUpdated": "2024-12-17T00:00:00.000Z",
+      "components": {
+        "cardEnfoque": {
+          "version": 1,
+          "notes": "V1 - Técnico (specs prominentes)"
+        },
+        "badgePosition": {
+          "version": 1,
+          "notes": "V1 - Esquina superior overlay"
+        },
+        "badgeColors": {
+          "version": 1,
+          "notes": "Colores de marca"
+        },
+        "keyFeatures": {
+          "version": 1,
+          "notes": "Features clave visibles"
+        },
+        "stockDisplay": {
+          "version": 1,
+          "notes": "Mostrar stock disponible"
+        },
+        "favoriteButton": {
+          "version": 1,
+          "notes": "Botón corazón"
+        },
+        "hoverBehavior": {
+          "version": 1,
+          "notes": "V1 - Muestra descripción"
+        },
+        "imageStyle": {
+          "version": 1,
+          "notes": "Estilo de imagen por defecto"
+        },
+        "multipleImages": {
+          "version": 1,
+          "notes": "Soporte para múltiples imágenes"
+        }
+      }
+    },
+    "detalleProducto": {
+      "enabled": false,
+      "components": {}
+    },
+    "wizard": {
+      "enabled": true,
+      "lastUpdated": "2024-12-17T00:00:00.000Z",
+      "components": {
+        "layout": {
+          "version": 1,
+          "notes": "V1 - Fullscreen sin header"
+        },
+        "progress": {
+          "version": 1,
+          "notes": "V1 - Paso X de Y"
+        },
+        "navigation": {
+          "version": 1,
+          "notes": "Navegación entre pasos"
+        },
+        "motivation": {
+          "version": 1,
+          "notes": "Mensajes motivacionales"
+        },
+        "celebration": {
+          "version": 1,
+          "notes": "V1 - Confetti sutil"
+        },
+        "stepLayout": {
+          "version": 1,
+          "notes": "Layout de cada paso"
+        }
+      }
+    },
+    "results": {
+      "enabled": true,
+      "lastUpdated": "2024-12-17T00:00:00.000Z",
+      "components": {
+        "approval": {
+          "version": 1,
+          "notes": "V1 - Confetti + ilustración"
+        },
+        "rejection": {
+          "version": 1,
+          "notes": "V1 - Colores neutros"
+        }
+      }
+    },
+    "upsell": {
+      "enabled": false,
+      "components": {}
+    },
+    "comparador": {
+      "enabled": false,
+      "components": {}
+    },
+    "quiz": {
+      "enabled": false,
+      "components": {}
+    },
+    "estadoVacio": {
+      "enabled": false,
+      "components": {}
+    }
+  },
+  "testingNotes": [
+    {
+      "date": "2024-12-17",
+      "note": "Inicio de pruebas con Hero 2.0",
+      "author": "Claude"
+    }
+  ]
+}

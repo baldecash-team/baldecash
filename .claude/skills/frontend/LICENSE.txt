@@ -1,0 +1,13 @@
+BaldeCash Web 3.0 Skill
+Copyright (c) 2024 BaldeCash
+
+This skill is proprietary to BaldeCash and intended for internal use only.
+All rights reserved.
+
+This skill contains:
+- Brand guidelines and visual identity
+- UX/UI decisions from research phase
+- Component patterns and code references
+- Configuration files for the tech stack
+
+For questions or modifications, contact the BaldeCash IT team.
