@@ -19,7 +19,15 @@
       "mcp__github__get_file_contents",
       "Bash(npm run dev:*)",
       "Bash(npm run start)",
-      "WebFetch(domain:baldecash.com)"
+      "WebFetch(domain:baldecash.com)",
+      "Bash(node --version:*)",
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:claude.com)",
+      "WebFetch(domain:docs.blip.ai)",
+      "WebSearch",
+      "WebFetch(domain:help.blip.ai)",
+      "Skill(brandbook)",
+      "Skill(frontend)"
     ],
     "deny": [],
     "ask": []

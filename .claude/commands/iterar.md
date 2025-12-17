@@ -8,7 +8,7 @@ Ejemplo: `/iterar 01 0.3` o `/iterar 02 0.4`
 
 ## Instrucciones
 
-1. Lee `.claude/docs/section-specs/PROMPT_{PROMPT_NUMBER}_*.md`
+1. Lee `.claude/docs/{VERSION}/section-specs/PROMPT_{PROMPT_NUMBER}_*.md`
 2. Usa los skills brandbook y frontend (ya cargados arriba)
 3. Genera componentes según marcadores:
    - **[T]** = 3 versiones (V1, V2, V3)
