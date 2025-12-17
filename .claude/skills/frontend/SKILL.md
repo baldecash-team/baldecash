@@ -351,6 +351,309 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
 | Aprobación | `PROMPT_15_APROBACION.md` | 13 |
 | Rechazo | `PROMPT_16_RECHAZO.md` | 19 |
 
+## Reglas Criticas de UI
+
+### NUNCA fondos transparentes en elementos fijos
+```tsx
+// ❌ PROHIBIDO - Navbar transparente
+<nav className="bg-transparent">
+
+// ❌ PROHIBIDO - Modal sin backdrop solido
+<Modal>
+  <ModalContent>
+
+// ✅ CORRECTO - Navbar siempre con fondo solido
+<nav className="bg-white shadow-sm">
+<nav className="bg-[#4654CD]">
+
+// ✅ CORRECTO - Modal con backdrop y fondo explicito
+<Modal backdrop="blur" classNames={{ backdrop: 'bg-black/50' }}>
+  <ModalContent className="bg-white">
+```
+
+### Navbars: SIEMPRE fondo solido
+- `bg-white` o `bg-[#4654CD]` - nunca `bg-transparent`
+- Si cambia al scroll, cambiar entre dos colores solidos
+- Mobile menu siempre `bg-white`
+
+### Modals: SIEMPRE backdrop + fondo explicito + centrado simetrico
+```tsx
+// ❌ PROHIBIDO - scrollBehavior="inside" causa problemas de centrado
+<Modal
+  scrollBehavior="inside"
+  classNames={{
+    base: 'max-h-[90vh]',
+  }}
+>
+
+// ✅ CORRECTO - scrollBehavior="outside" + placement="center" + padding simetrico
+<Modal
+  backdrop="blur"
+  scrollBehavior="outside"
+  placement="center"
+  classNames={{
+    base: 'bg-white my-8',
+    wrapper: 'items-center justify-center py-8 min-h-full',
+    backdrop: 'bg-black/50',
+    body: 'bg-white max-h-[60vh] overflow-y-auto',
+    closeButton: 'cursor-pointer',
+  }}
+>
+  <ModalContent className="bg-white">
+```
+
+### Claves para centrado simetrico en modales:
+- `scrollBehavior="outside"` - Evita problemas de posicionamiento
+- `placement="center"` - Posicionamiento centrado
+- `base: 'my-8'` - Margen vertical en el modal
+- `wrapper: 'py-8 min-h-full'` - Padding simetrico en todos los breakpoints
+- `closeButton: 'cursor-pointer'` - El boton X de NextUI NO tiene cursor por defecto
+- **NUNCA** usar `scrollBehavior="inside"` con modales que requieren centrado
+
+## Tipografia con Contraste Extremo
+
+Usar extremos de peso y tamano para crear jerarquia clara:
+
+### Pesos de fuente
+```tsx
+// ❌ EVITAR - Contraste debil
+font-normal vs font-medium  // 400 vs 500
+font-medium vs font-semibold // 500 vs 600
+
+// ✅ PREFERIR - Contraste extremo
+font-light vs font-black    // 300 vs 900
+font-normal vs font-bold    // 400 vs 700
+text-xs vs text-4xl         // Saltos de 3x minimo
+```
+
+### Tamanos de texto
+```tsx
+// ❌ EVITAR - Saltos pequenos
+text-sm → text-base → text-lg  // 1.2x cada salto
+
+// ✅ PREFERIR - Saltos dramaticos
+text-xs → text-xl → text-5xl   // 3x+ entre niveles
+```
+
+### Ejemplo de jerarquia
+```tsx
+<h1 className="text-5xl font-black">Titulo Principal</h1>
+<p className="text-base font-normal text-neutral-600">Descripcion</p>
+<span className="text-xs font-light text-neutral-400">Detalle menor</span>
+```
+
+## Elementos Clickeables
+
+### OBLIGATORIO: cursor-pointer en TODO elemento clickeable
+
+Todo elemento con `onClick`, `onPress`, o que sea interactivo DEBE tener `cursor-pointer`:
+
+```tsx
+// ❌ PROHIBIDO - Sin cursor-pointer
+<button onClick={handleClick} className="p-2 hover:bg-neutral-100">
+
+// ✅ CORRECTO - Con cursor-pointer
+<button onClick={handleClick} className="p-2 hover:bg-neutral-100 cursor-pointer">
+
+// ❌ PROHIBIDO - Div clickeable sin cursor
+<div onClick={handleClick} className="p-4 rounded-lg">
+
+// ✅ CORRECTO - Div clickeable con cursor
+<div onClick={handleClick} className="p-4 rounded-lg cursor-pointer">
+```
+
+### Elementos que SIEMPRE necesitan cursor-pointer:
+- `<button>` con `onClick`
+- `<motion.button>` con `onClick`
+- `<div>` o `<span>` con `onClick`
+- **NextUI `<Button>` con `onPress`** (NO tiene cursor-pointer por defecto)
+- **NextUI Modal `closeButton`** (agregar en classNames)
+- Cards clickeables (NextUI `isPressable`)
+- Links estilizados como botones
+- Iconos interactivos
+
+### NextUI Button - SIEMPRE agregar cursor-pointer
+```tsx
+// ❌ PROHIBIDO - NextUI Button sin cursor-pointer
+<Button onPress={handleClick} className="bg-[#4654CD] text-white">
+  Zona Estudiantes
+</Button>
+
+// ✅ CORRECTO - NextUI Button con cursor-pointer
+<Button onPress={handleClick} className="bg-[#4654CD] text-white cursor-pointer">
+  Zona Estudiantes
+</Button>
+```
+
+## Estados de Seleccion
+
+### Elementos seleccionables SIEMPRE con estado visual claro
+
+Todo boton, card, o elemento clickeable que representa una opcion seleccionable DEBE tener:
+1. Estado default (no seleccionado)
+2. Estado hover
+3. **Estado seleccionado con color primario**
+
+```tsx
+// ❌ PROHIBIDO - Sin estado seleccionado
+<button className={profile.highlight ? 'border-primary' : 'border-neutral-200'}>
+
+// ✅ CORRECTO - Con estado seleccionado dinamico
+const [selected, setSelected] = useState<string | null>(null);
+
+<button
+  onClick={() => setSelected(id)}
+  className={`transition-all ${
+    selected === id
+      ? 'border-[#4654CD] bg-[#4654CD] text-white'  // Seleccionado
+      : 'border-neutral-200 bg-white hover:border-[#4654CD]'  // Default
+  }`}
+>
+```
+
+### Patron para opciones seleccionables
+```tsx
+const getSelectionStyles = (isSelected: boolean, isRecommended: boolean) => {
+  if (isSelected) {
+    // SIEMPRE primario cuando seleccionado
+    return 'border-[#4654CD] bg-[#4654CD] text-white';
+  }
+  if (isRecommended) {
+    return 'border-[#4654CD] bg-[#4654CD]/5 hover:bg-[#4654CD]/10';
+  }
+  // Default: hover debe mostrar intencion de seleccion
+  return 'border-neutral-200 bg-white hover:border-[#4654CD] hover:bg-[#4654CD]/5';
+};
+```
+
+### Feedback visual en seleccion
+- Cambiar icono a `Check` cuando seleccionado
+- Texto cambia a `text-white` sobre fondo primario
+- Transiciones suaves con `transition-all` o `transition-colors`
+
+## Titulos Hero con Color de Marca
+
+### NUNCA usar negro puro en titulos principales del hero
+
+Los titulos hero deben usar el color primario para mayor impacto visual:
+
+```tsx
+// ❌ PROHIBIDO - Negro puro sin personalidad
+<h1 className="text-neutral-900">La laptop que necesitas</h1>
+<h1 className="text-black">Financiamiento para estudiantes</h1>
+
+// ✅ CORRECTO - Color primario de marca
+<h1 className="text-[#4654CD]">La laptop que necesitas</h1>
+
+// ✅ CORRECTO - Blanco sobre fondo de color (como BrandIdentityV3)
+<div className="bg-[#4654CD]">
+  <h1 className="text-white">Tu equipo para estudiar</h1>
+</div>
+```
+
+### Reglas de color para titulos:
+- **Hero h1 sobre fondo claro**: Usar `text-[#4654CD]` (primario)
+- **Hero h1 sobre fondo primario**: Usar `text-white`
+- **Subtitulos/subheadlines**: Usar `text-neutral-600` para contraste
+- **NUNCA**: `text-neutral-900`, `text-black`, `text-gray-900` en h1 del hero
+
+## Dividers Visibles (No Usar NextUI Divider)
+
+### NUNCA usar `<Divider>` de NextUI - es invisible por defecto
+
+El componente Divider de NextUI renderiza un `<hr>` con `border-none` y `bg-divider` que puede ser invisible:
+
+```tsx
+// ❌ PROHIBIDO - Divider invisible que solo agrega espacio
+import { Divider } from '@nextui-org/react';
+<Divider className="mb-4" />
+// Renderiza: <hr class="bg-divider border-none"> (INVISIBLE!)
+
+// ✅ CORRECTO - Usar border de Tailwind directamente
+<p className="mb-4 pb-4 border-b border-neutral-200">
+  Texto con separador visible
+</p>
+
+// ✅ CORRECTO - Div con borde superior
+<div className="mt-4 pt-4 border-t border-neutral-200">
+  Contenido separado
+</div>
+
+// ✅ CORRECTO - HR nativo con estilos visibles
+<hr className="border-t border-neutral-200 my-4" />
+```
+
+### Reglas para separadores:
+- **NUNCA** importar ni usar `Divider` de `@nextui-org/react`
+- Usar `border-b border-neutral-200` en el elemento superior
+- Usar `border-t border-neutral-200` en el elemento inferior
+- Si necesitas un separador independiente, usar `<hr>` con estilos de Tailwind
+
+## Espaciado en Modales y Paneles
+
+### EVITAR espaciado excesivo entre secciones
+
+En modales, sidebars y paneles de configuracion, usar espaciado compacto:
+
+```tsx
+// ❌ PROHIBIDO - Espaciado excesivo (mb-6 + my-4 = 40px+)
+<p className="mb-6">Descripcion introductoria</p>
+<Divider className="my-4" />
+<div className="mb-6">Contenido...</div>
+
+// ✅ CORRECTO - Espaciado compacto y consistente
+<p className="mb-4">Descripcion introductoria</p>
+<Divider className="mb-4" />  {/* Solo margen inferior */}
+<div className="mb-4">Contenido...</div>
+```
+
+### Reglas de espaciado en modales:
+- **Entre texto y divider**: Usar `mb-4` en el texto, `mb-4` en el divider (no `my-4`)
+- **Entre secciones repetidas**: Maximo `mb-4` (16px) entre elementos
+- **Padding de contenedores**: `p-3` o `p-4`, nunca `p-6` en elementos internos
+- **Antes de notas/footers**: `mt-2 mb-4` en dividers separadores
+
+### Escala de espaciado recomendada:
+| Contexto | Espaciado | Clase |
+|----------|-----------|-------|
+| Entre items de lista | 8px | `mb-2` / `gap-2` |
+| Entre secciones internas | 16px | `mb-4` / `gap-4` |
+| Padding de modal body | 24px | `py-6` |
+| Entre grupos mayores | 24px | `mb-6` (solo top-level) |
+
+## Evitar Texto Duplicado
+
+### NUNCA mostrar la misma informacion dos veces en la misma vista
+
+Cada dato debe aparecer UNA sola vez por componente/seccion:
+
+```tsx
+// ❌ PROHIBIDO - Precio duplicado
+<p className="text-lg">Desde S/49/mes. Sin historial crediticio.</p>
+<div className="mt-4">
+  <span>Cuotas desde</span>
+  <span className="text-2xl font-bold">S/49/mes</span>  // DUPLICADO!
+</div>
+
+// ✅ CORRECTO - Informacion complementaria sin duplicar
+<p className="text-lg">Sin historial crediticio. Sin aval ni garante.</p>
+<div className="mt-4">
+  <span>Cuotas desde</span>
+  <span className="text-2xl font-bold">S/49/mes</span>  // Unica mencion del precio
+</div>
+```
+
+### Reglas de no duplicacion:
+- **Precio/cuota**: Mostrar en UN lugar prominente (price highlight o headline, no ambos)
+- **Beneficios**: Si esta en el subheadline, no repetir en badges
+- **CTAs**: Texto de boton no debe repetir lo que dice el headline
+- **Trust signals**: Cada senal aparece una sola vez
+
+### Verificacion antes de entregar:
+1. Buscar visualmente datos numericos (precios, porcentajes, cantidades)
+2. Verificar que cada numero aparece UNA sola vez
+3. Buscar frases clave ("desde", "sin historial", beneficios) - no duplicar
+
 ## Checklist de Calidad
 
 Antes de entregar cualquier componente, verificar:
@@ -364,3 +667,11 @@ Antes de entregar cualquier componente, verificar:
 - [ ] Accesibilidad: aria-labels, focus visible
 - [ ] TypeScript types definidos
 - [ ] Cuota prominente sobre precio total
+- [ ] **Navbars con fondo solido (NUNCA transparente)**
+- [ ] **Modals con scrollBehavior="outside" para centrado simetrico (nunca "inside")**
+- [ ] **Tipografia con contraste extremo (font-light vs font-black)**
+- [ ] **Elementos seleccionables con estado selected en color primario**
+- [ ] **cursor-pointer en TODOS los elementos clickeables**
+- [ ] **Sin texto duplicado (precio, beneficios, datos numericos)**
+- [ ] **Espaciado compacto en modales (mb-4 entre secciones, no mb-6)**
+- [ ] **Titulos hero en color primario (#4654CD), nunca negro**

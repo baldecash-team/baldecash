@@ -27,7 +27,8 @@
       "WebSearch",
       "WebFetch(domain:help.blip.ai)",
       "Skill(brandbook)",
-      "Skill(frontend)"
+      "Skill(frontend)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

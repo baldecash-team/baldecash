@@ -8,3 +8,4 @@ export { useSectionSettings, generateSettingsGroups } from './hooks/useSectionSe
 // Components
 export { SettingsButton } from './components/SettingsButton';
 export { SettingsModal } from './components/SettingsModal';
+export { VersionNav } from './components/VersionNav';
