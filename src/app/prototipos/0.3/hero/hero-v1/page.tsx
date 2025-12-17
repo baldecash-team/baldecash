@@ -22,6 +22,7 @@ const configV1: HeroConfig = {
   ctaVersion: 1,
   profileIdentificationVersion: 1,
   institutionalBannerVersion: 1,
+  footerVersion: 1,
 };
 
 export default function HeroV1Page() {

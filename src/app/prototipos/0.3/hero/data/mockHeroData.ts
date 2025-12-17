@@ -7,6 +7,7 @@ import {
   QuotaCalculatorConfig,
   NavItem,
   Institution,
+  FooterData,
 } from '../types/hero';
 
 // ============================================
@@ -222,4 +223,58 @@ export const formatCurrency = (amount: number): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount).replace('PEN', 'S/');
+};
+
+// ============================================
+// Footer Data
+// ============================================
+
+export const mockFooterData: FooterData = {
+  logo: { text: 'BaldeCash', tagline: 'Financiamiento estudiantil en Peru' },
+  navigation: [
+    {
+      title: 'Productos',
+      links: [
+        { label: 'Laptops', href: '/prototipos/0.3' },
+        { label: 'Financiamiento', href: '#financiamiento' },
+        { label: 'Calculadora', href: '#calculadora' },
+      ],
+    },
+    {
+      title: 'Soporte',
+      links: [
+        { label: 'Centro de ayuda', href: '#ayuda' },
+        { label: 'FAQ', href: '#faq' },
+        { label: 'Contacto', href: '#contacto' },
+      ],
+    },
+    {
+      title: 'Empresa',
+      links: [
+        { label: 'Sobre nosotros', href: '#nosotros' },
+        { label: 'Alianzas', href: '#alianzas' },
+        { label: 'Blog', href: '#blog' },
+      ],
+    },
+  ],
+  social: [
+    { platform: 'instagram', url: 'https://instagram.com/baldecash', label: 'Instagram' },
+    { platform: 'facebook', url: 'https://facebook.com/baldecash', label: 'Facebook' },
+    { platform: 'tiktok', url: 'https://tiktok.com/@baldecash', label: 'TikTok' },
+    { platform: 'whatsapp', url: 'https://wa.me/51999999999', label: 'WhatsApp' },
+  ],
+  contact: { phone: '+51 1 234 5678', whatsapp: '+51 999 999 999', email: 'hola@baldecash.com' },
+  certifications: [
+    { name: 'SBS', icon: 'Shield', description: 'Regulados por la SBS' },
+    { name: 'SSL', icon: 'Lock', description: 'Conexion segura' },
+    { name: '5 anos', icon: 'Award', description: '5 anos en el mercado' },
+  ],
+  legal: {
+    copyright: '© 2025 BaldeCash. Todos los derechos reservados.',
+    links: [
+      { label: 'Terminos', href: '#terminos' },
+      { label: 'Privacidad', href: '#privacidad' },
+      { label: 'Libro de Reclamaciones', href: '#reclamaciones' },
+    ],
+  },
 };

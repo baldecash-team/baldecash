@@ -22,6 +22,7 @@ const configMinimal: HeroConfig = {
   ctaVersion: 3,
   profileIdentificationVersion: 4,
   institutionalBannerVersion: 4,
+  footerVersion: 1,
 };
 
 export default function HeroMinimalPage() {

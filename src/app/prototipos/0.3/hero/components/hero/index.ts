@@ -30,3 +30,6 @@ export {
   InstitutionalBannerV3,
   InstitutionalBannerV4,
 } from './institutional';
+
+// Footer
+export { FooterV1, FooterV2, FooterV3 } from './footer';
