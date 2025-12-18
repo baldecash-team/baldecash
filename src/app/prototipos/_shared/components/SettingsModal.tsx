@@ -13,7 +13,7 @@ import {
   Divider,
   Chip,
 } from '@nextui-org/react';
-import { RotateCcw, Check, X } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import type { SettingsGroup, ComponentVersion } from '../types/config.types';
 
 interface SettingsModalProps {
@@ -53,12 +53,17 @@ export function SettingsModal({
       isOpen={isOpen}
       onClose={onClose}
       size="2xl"
-      scrollBehavior="inside"
+      scrollBehavior="outside"
+      backdrop="blur"
+      placement="center"
       classNames={{
-        base: 'bg-white',
-        header: 'border-b border-neutral-200',
-        body: 'py-6',
-        footer: 'border-t border-neutral-200',
+        base: 'bg-white my-8',
+        wrapper: 'items-center justify-center py-8 min-h-full',
+        backdrop: 'bg-black/50',
+        header: 'border-b border-neutral-200 bg-white py-4 pr-12',
+        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide py-6',
+        footer: 'border-t border-neutral-200 bg-white',
+        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>
@@ -122,33 +127,20 @@ export function SettingsModal({
           </div>
         </ModalBody>
 
-        <ModalFooter className="flex justify-between">
+        <ModalFooter className="bg-white">
           <Button
             variant="light"
             startContent={<RotateCcw className="w-4 h-4" />}
             onPress={onReset}
-            className="text-neutral-600"
           >
-            Resetear
+            Restablecer
           </Button>
-
-          <div className="flex gap-2">
-            <Button
-              variant="bordered"
-              startContent={<X className="w-4 h-4" />}
-              onPress={onClose}
-            >
-              Cancelar
-            </Button>
-            <Button
-              className="bg-[#4654CD] text-white"
-              startContent={<Check className="w-4 h-4" />}
-              onPress={handleApplyAndClose}
-              isDisabled={!hasChanges}
-            >
-              Aplicar cambios
-            </Button>
-          </div>
+          <Button
+            className="bg-[#4654CD] text-white"
+            onPress={handleApplyAndClose}
+          >
+            Aplicar
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

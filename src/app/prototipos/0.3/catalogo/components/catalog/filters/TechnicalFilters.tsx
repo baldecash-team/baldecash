@@ -210,6 +210,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) =>
                 onChange({ gpuType: val ? ['dedicated'] : [] })
               }
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -227,6 +228,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.touchScreen === true}
               onValueChange={(val) => onChange({ touchScreen: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -238,6 +240,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.backlitKeyboard === true}
               onValueChange={(val) => onChange({ backlitKeyboard: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -249,6 +252,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.numericKeypad === true}
               onValueChange={(val) => onChange({ numericKeypad: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -260,6 +264,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.fingerprint === true}
               onValueChange={(val) => onChange({ fingerprint: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -271,6 +276,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.hasWindows === true}
               onValueChange={(val) => onChange({ hasWindows: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -288,6 +294,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.hasThunderbolt === true}
               onValueChange={(val) => onChange({ hasThunderbolt: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -299,6 +306,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.hasEthernet === true}
               onValueChange={(val) => onChange({ hasEthernet: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -310,6 +318,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.hasSDCard === true}
               onValueChange={(val) => onChange({ hasSDCard: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}
@@ -321,6 +330,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               size="sm"
               isSelected={filters.hasHDMI === true}
               onValueChange={(val) => onChange({ hasHDMI: val ? true : null })}
+              color="primary"
               classNames={{
                 wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
               }}

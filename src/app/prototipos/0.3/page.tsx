@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardBody, CardHeader } from "@nextui-org/react";
-import { ArrowRight, CheckCircle2, Clock, AlertCircle, Layers, Monitor, ShoppingCart, FileText, Search, HelpCircle, AlertTriangle, Trophy } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, AlertCircle, Layers, Monitor, ShoppingCart, FileText, Search, HelpCircle, AlertTriangle, Trophy, PackagePlus, PartyPopper, XCircle } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
 
@@ -16,7 +16,9 @@ const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> 
   quiz: HelpCircle,
   estados: AlertTriangle,
   wizard: FileText,
-  resultados: Trophy,
+  upsell: PackagePlus,
+  aprobacion: PartyPopper,
+  rechazo: XCircle,
 };
 
 const statusStyles = {

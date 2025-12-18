@@ -14,6 +14,7 @@ import { CatalogConfig } from '../types/catalog';
 const configV2: CatalogConfig = {
   layoutVersion: 2,
   brandFilterVersion: 2,
+  cardVersion: 2,
 };
 
 export default function CatalogV2Page() {

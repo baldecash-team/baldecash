@@ -31,7 +31,9 @@ export const SECTION_MAP: Record<string, { name: string; promptNumber: string }>
   quiz: { name: 'Quiz Ayuda', promptNumber: '06' },
   estados: { name: 'Estados Vacíos', promptNumber: '07' },
   wizard: { name: 'Wizard/Form', promptNumber: '08-13' },
-  resultados: { name: 'Resultados', promptNumber: '14-16' },
+  upsell: { name: 'Upsell', promptNumber: '14' },
+  aprobacion: { name: 'Aprobación', promptNumber: '15' },
+  rechazo: { name: 'Rechazo', promptNumber: '16' },
 };
 
 // Registro de todas las versiones
@@ -73,11 +75,13 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'hero', name: 'Hero', path: '/prototipos/0.3/hero', status: 'done', promptNumber: '01' },
       { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.3/catalogo', status: 'done', promptNumber: '02-03' },
       { id: 'detalle', name: 'Detalle', path: '/prototipos/0.3/detalle', status: 'pending', promptNumber: '04' },
-      { id: 'comparador', name: 'Comparador', path: '/prototipos/0.3/comparador', status: 'pending', promptNumber: '05' },
+      { id: 'comparador', name: 'Comparador', path: '/prototipos/0.3/comparador', status: 'done', promptNumber: '05' },
       { id: 'quiz', name: 'Quiz', path: '/prototipos/0.3/quiz', status: 'pending', promptNumber: '06' },
-      { id: 'estados', name: 'Estados', path: '/prototipos/0.3/estados', status: 'pending', promptNumber: '07' },
-      { id: 'wizard', name: 'Wizard', path: '/prototipos/0.3/wizard', status: 'pending', promptNumber: '08-13' },
-      { id: 'resultados', name: 'Resultados', path: '/prototipos/0.3/resultados', status: 'pending', promptNumber: '14-16' },
+      { id: 'estados', name: 'Estados Vacíos', path: '/prototipos/0.3/estados', status: 'done', promptNumber: '07' },
+      { id: 'wizard', name: 'Wizard', path: '/prototipos/0.3/wizard', status: 'done', promptNumber: '08-13' },
+      { id: 'upsell', name: 'Upsell', path: '/prototipos/0.3/upsell', status: 'done', promptNumber: '14' },
+      { id: 'aprobacion', name: 'Aprobación', path: '/prototipos/0.3/aprobacion', status: 'done', promptNumber: '15' },
+      { id: 'rechazo', name: 'Rechazo', path: '/prototipos/0.3/rechazo', status: 'done', promptNumber: '16' },
     ],
     createdAt: '2025-12-15',
     updatedAt: '2025-12-17',
