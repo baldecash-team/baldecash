@@ -16,6 +16,7 @@ const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> 
   quiz: HelpCircle,
   estados: AlertTriangle,
   wizard: FileText,
+  solicitud: FileText,
   upsell: PackagePlus,
   aprobacion: PartyPopper,
   rechazo: XCircle,
@@ -80,9 +81,8 @@ export default function Version03Page() {
                   className={`bg-white border transition-all duration-300 w-full h-full ${
                     isClickable
                       ? 'border-neutral-200 hover:border-[#4654CD] hover:scale-[1.02] cursor-pointer shadow-sm'
-                      : 'border-neutral-100 opacity-60'
+                      : 'border-neutral-100 opacity-60 pointer-events-none'
                   }`}
-                  isPressable={isClickable}
                 >
                   <CardBody className="p-4 flex flex-col">
                     {/* Icon */}
