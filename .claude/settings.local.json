@@ -28,7 +28,8 @@
       "WebFetch(domain:help.blip.ai)",
       "Skill(brandbook)",
       "Skill(frontend)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "SlashCommand(/iterar:*)"
     ],
     "deny": [],
     "ask": []

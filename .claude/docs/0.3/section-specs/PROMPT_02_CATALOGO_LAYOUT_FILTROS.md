@@ -9,6 +9,7 @@
 | **Iteraciones T (3 versiones)** | 4 |
 | **Iteraciones F (1 versión)** | 32 |
 | **Prioridad** | Alta - MVP Core |
+| **Productos de prueba** | 39 laptops |
 
 ---
 
@@ -508,6 +509,24 @@ export interface FilterTooltipContent {
 ---
 
 ## 7. Datos de Prueba
+
+**Total de productos mock: 39 laptops** con la siguiente distribución:
+
+| Marca | Cantidad |
+|-------|----------|
+| Lenovo | 9 |
+| HP | 8 |
+| ASUS | 7 |
+| Acer | 6 |
+| Dell | 5 |
+| MSI | 4 |
+
+| Gama | Cantidad |
+|------|----------|
+| Entry | 10 |
+| Media | 13 |
+| Alta | 10 |
+| Premium | 6 |
 
 ```typescript
 // data/mockCatalogData.ts

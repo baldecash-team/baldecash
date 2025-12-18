@@ -41,11 +41,49 @@
       "components": {
         "layout": {
           "version": 1,
-          "notes": "V1 - Sidebar 280px izquierdo"
+          "variants": 3,
+          "notes": "V1 - Sidebar 280px izquierdo, V2 - Filtros horizontales, V3 - Drawer flotante"
         },
         "brandFilter": {
           "version": 1,
-          "notes": "V1 - Solo texto con checkbox"
+          "variants": 3,
+          "notes": "V1 - Solo texto, V2 - Logo + texto, V3 - Grid de logos"
+        },
+        "filterSection": {
+          "version": 1,
+          "notes": "Seccion colapsable con tooltips"
+        },
+        "filterChips": {
+          "version": 1,
+          "notes": "Chips removibles de filtros aplicados"
+        },
+        "filterDrawer": {
+          "version": 1,
+          "notes": "Drawer de filtros para movil"
+        },
+        "priceRangeFilter": {
+          "version": 1,
+          "notes": "Slider de rango de precio total"
+        },
+        "quotaRangeFilter": {
+          "version": 1,
+          "notes": "Slider de cuota con selector de frecuencia"
+        },
+        "usageFilter": {
+          "version": 1,
+          "notes": "Filtro de uso recomendado con iconos"
+        },
+        "technicalFilters": {
+          "version": 1,
+          "notes": "RAM, SSD, pantalla, procesador, GPU, etc."
+        },
+        "commercialFilters": {
+          "version": 1,
+          "notes": "Condicion, gama, disponibilidad"
+        },
+        "sortDropdown": {
+          "version": 1,
+          "notes": "Ordenamiento con 6 opciones"
         }
       }
     },

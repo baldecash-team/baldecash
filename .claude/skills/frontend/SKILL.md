@@ -152,6 +152,195 @@ Crear atmósfera y profundidad, no fondos planos.
 ❌ Efectos glassmorphism
 ```
 
+## Select y Dropdowns (NextUI)
+
+### SIEMPRE estilizar el popover y los items del Select
+
+Los Select de NextUI requieren estilos explícitos para el dropdown desplegado, hover states y item seleccionado:
+
+```tsx
+// ❌ PROHIBIDO - Select sin estilos de dropdown
+<Select
+  selectedKeys={[value]}
+  onChange={handleChange}
+  classNames={{
+    trigger: 'h-10 bg-white border border-neutral-200',
+  }}
+>
+  <SelectItem key="opt1">Opción 1</SelectItem>
+</Select>
+
+// ✅ CORRECTO - Select con estilos completos y fondo blanco garantizado
+<Select
+  aria-label="Label accesible"
+  selectedKeys={[value]}
+  onChange={handleChange}
+  classNames={{
+    base: 'min-w-[200px]',
+    trigger: 'h-10 min-h-10 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
+    value: 'text-sm text-neutral-700',
+    popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
+    listbox: 'p-1 bg-white',
+    listboxWrapper: 'max-h-[300px] bg-white',
+  }}
+  popoverProps={{
+    classNames: {
+      base: 'bg-white',
+      content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
+    },
+  }}
+>
+  <SelectItem
+    key="opt1"
+    classNames={{
+      base: 'px-3 py-2 rounded-md text-sm text-neutral-700 data-[hover=true]:bg-[#4654CD]/10 data-[hover=true]:text-[#4654CD] data-[selectable=true]:focus:bg-[#4654CD]/10 data-[selected=true]:bg-[#4654CD] data-[selected=true]:text-white cursor-pointer',
+    }}
+  >
+    Opción 1
+  </SelectItem>
+</Select>
+```
+
+### Claves para estilar Select de NextUI:
+
+| Propiedad | Uso | Ejemplo |
+|-----------|-----|---------|
+| `trigger` | Botón que abre el dropdown | `hover:border-[#4654CD]/50 cursor-pointer` |
+| `popoverContent` | Contenedor del dropdown | `bg-white border shadow-lg rounded-lg` |
+| `listbox` | Lista de opciones | `p-1` (padding interno) |
+| `SelectItem.base` | Cada opción individual | Ver data attributes abajo |
+
+### Data attributes para estados de SelectItem:
+- `data-[hover=true]` - Hover sobre el item
+- `data-[selected=true]` - Item actualmente seleccionado
+- `data-[selectable=true]:focus` - Focus del item
+
+### Reglas para Select:
+- **SIEMPRE** incluir `aria-label` si no hay label visible
+- **SIEMPRE** usar `cursor-pointer` en trigger e items
+- **SIEMPRE** estilizar hover con color primario (`bg-[#4654CD]/10`)
+- **SIEMPRE** estilizar selected con fondo primario sólido
+- Usar `popoverProps` para control adicional del dropdown
+
+### IMPORTANTE: Fondo blanco en dropdowns
+
+NextUI Select puede mostrar fondo transparente por defecto. Para garantizar fondo blanco, aplicar `bg-white` en MÚLTIPLES lugares:
+
+```tsx
+classNames={{
+  popoverContent: 'bg-white ...',  // 1. Contenedor del popover
+  listbox: 'bg-white ...',          // 2. Lista de opciones
+  listboxWrapper: 'bg-white ...',   // 3. Wrapper de la lista
+}}
+popoverProps={{
+  classNames: {
+    base: 'bg-white',               // 4. Base del popover
+    content: 'bg-white ...',        // 5. Contenido del popover
+  },
+}}
+```
+
+**NO es suficiente** aplicar `bg-white` solo en `popoverContent` - debe aplicarse en todos los niveles para garantizar que el fondo sea visible.
+
+## Badges y Chips (NextUI)
+
+### SIEMPRE usar radius="sm" y padding explícito en Chips
+
+Los Chips de NextUI tienen forma de "pill" (muy redondeados) por defecto. Para BaldeCash usar badges rectangulares con bordes sutilmente redondeados:
+
+```tsx
+// ❌ PROHIBIDO - Chip con forma de pill (default)
+<Chip size="sm" className="bg-[#4654CD] text-white text-xs">
+  Nuevo
+</Chip>
+
+// ✅ CORRECTO - Chip rectangular con padding consistente
+<Chip
+  size="sm"
+  radius="sm"
+  classNames={{
+    base: 'bg-[#4654CD] px-2.5 py-1 h-auto',
+    content: 'text-white text-xs font-medium',
+  }}
+>
+  Nuevo
+</Chip>
+```
+
+### Configuración estándar de badges:
+
+| Tipo | Base classNames | Content classNames |
+|------|-----------------|-------------------|
+| **Badge primario** | `bg-[#4654CD] px-2.5 py-1 h-auto` | `text-white text-xs font-medium` |
+| **Badge éxito** | `bg-[#22c55e] px-2.5 py-1 h-auto` | `text-white text-xs font-medium` |
+| **Badge gama** | `bg-[color] px-2 py-0.5 h-auto` | `text-xs font-medium` |
+| **Badge warning** | `bg-amber-100 px-2 py-0.5 h-auto` | `text-amber-700 text-xs font-medium` |
+
+### Reglas para badges:
+- **SIEMPRE** usar `radius="sm"` (nunca default pill)
+- **SIEMPRE** usar `classNames` en lugar de `className` para control granular
+- **h-auto** para que el padding controle la altura
+- **font-medium** para mejor legibilidad
+- Separación entre badges: `gap-1.5` en el contenedor
+
+## Imágenes Externas (Unsplash, CDN, etc.)
+
+### NUNCA usar NextUI Image con removeWrapper para URLs externas
+
+El componente `<Image>` de NextUI con `removeWrapper` no funciona correctamente con URLs externas (Unsplash, CDNs) en builds con `output: "export"`:
+
+```tsx
+// ❌ PROHIBIDO - No carga imágenes externas en static export
+import { Image } from '@nextui-org/react';
+<Image
+  src="https://images.unsplash.com/photo-xxx"
+  alt="Laptop"
+  className="w-full h-full object-contain"
+  removeWrapper
+/>
+
+// ✅ CORRECTO - Usar <img> nativo con lazy loading y error handling
+<img
+  src="https://images.unsplash.com/photo-xxx"
+  alt="Laptop"
+  className="w-full h-full object-contain"
+  loading="lazy"
+  onError={(e) => {
+    const target = e.target as HTMLImageElement;
+    target.style.display = 'none';
+    // Mostrar fallback (icono o placeholder)
+  }}
+/>
+```
+
+### Configuración requerida en next.config.ts
+
+Para proyectos con `output: "export"`, asegurar esta configuración:
+
+```typescript
+// next.config.ts
+const nextConfig = {
+  output: "export",
+  images: {
+    unoptimized: true,  // OBLIGATORIO para static export
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      // Agregar otros dominios según necesidad
+    ],
+  },
+};
+```
+
+### Reglas para imágenes:
+- **Static export (`output: "export"`)**: Siempre usar `<img>` nativo, no NextUI Image
+- **Server-side rendering**: Puede usar Next.js `<Image>` o NextUI Image
+- **Error handling**: Siempre incluir `onError` para mostrar fallback
+- **Lazy loading**: Usar `loading="lazy"` para performance
+- **Alt text**: Siempre descriptivo para accesibilidad
+
 ## Jerarquía de Información
 
 ### Página de Producto
@@ -654,6 +843,95 @@ Cada dato debe aparecer UNA sola vez por componente/seccion:
 2. Verificar que cada numero aparece UNA sola vez
 3. Buscar frases clave ("desde", "sin historial", beneficios) - no duplicar
 
+## Switch y Toggles (NextUI)
+
+### SIEMPRE estilizar fondo del Switch para que sea visible
+
+El Switch de NextUI puede ser invisible por defecto si no tiene estilos de fondo explícitos:
+
+```tsx
+// ❌ PROHIBIDO - Switch invisible (solo borde curvo visible)
+<Switch
+  size="sm"
+  isSelected={value}
+  onValueChange={setValue}
+  classNames={{
+    wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
+  }}
+/>
+
+// ✅ CORRECTO - Switch con fondo visible en ambos estados
+<Switch
+  size="sm"
+  isSelected={value}
+  onValueChange={setValue}
+  classNames={{
+    wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+    thumb: 'bg-white shadow-md',
+  }}
+/>
+```
+
+### Configuración estándar de Switch:
+
+| Propiedad | Clase | Propósito |
+|-----------|-------|-----------|
+| `wrapper` (off) | `bg-neutral-300` | Fondo gris visible cuando está apagado |
+| `wrapper` (on) | `group-data-[selected=true]:bg-[#4654CD]` | Color primario cuando está encendido |
+| `thumb` | `bg-white shadow-md` | Bolita del switch visible con sombra |
+
+### Reglas para Switch:
+- **SIEMPRE** incluir `bg-neutral-300` en el wrapper para estado off
+- **SIEMPRE** estilizar el thumb con `bg-white shadow-md` para contraste
+- **SIEMPRE** usar color primario `#4654CD` para estado on (no otros colores)
+- Envolver en `<label>` con texto descriptivo para accesibilidad
+
+## Checkbox (NextUI)
+
+### SIEMPRE estilizar borde y fondo del Checkbox para visibilidad
+
+El Checkbox de NextUI necesita estilos explícitos para que el borde sea visible:
+
+```tsx
+// ❌ PROHIBIDO - Checkbox con borde fino/invisible
+<Checkbox
+  isSelected={value}
+  onValueChange={setValue}
+  classNames={{
+    base: 'cursor-pointer',
+    wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+  }}
+/>
+
+// ✅ CORRECTO - Checkbox con borde visible, color primario y animaciones
+<Checkbox
+  isSelected={value}
+  onValueChange={setValue}
+  classNames={{
+    base: 'cursor-pointer',
+    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
+    icon: 'text-white transition-opacity',
+  }}
+/>
+```
+
+### Configuración estándar de Checkbox:
+
+| Propiedad | Clase | Propósito |
+|-----------|-------|-----------|
+| `base` | `cursor-pointer` | Cursor de mano al hover |
+| `wrapper` (border) | `before:border-2 before:border-neutral-300` | Borde grueso visible |
+| `wrapper` (selected) | `after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD]` | Color primario al seleccionar |
+| `wrapper` (animación) | `before:transition-colors after:transition-all` | Animación suave on/off |
+| `icon` | `text-white transition-opacity` | Checkmark blanco con fade |
+
+### Reglas para Checkbox:
+- **SIEMPRE** usar `before:border-2` para borde visible (no `before:border` simple)
+- **SIEMPRE** incluir `icon: 'text-white transition-opacity'` para checkmark animado
+- **SIEMPRE** incluir `before:transition-colors after:transition-all` para animaciones
+- **SIEMPRE** usar color primario `#4654CD` para estado seleccionado
+- Envolver en `<label>` para mejor área de click y accesibilidad
+
 ## Checklist de Calidad
 
 Antes de entregar cualquier componente, verificar:
@@ -675,3 +953,8 @@ Antes de entregar cualquier componente, verificar:
 - [ ] **Sin texto duplicado (precio, beneficios, datos numericos)**
 - [ ] **Espaciado compacto en modales (mb-4 entre secciones, no mb-6)**
 - [ ] **Titulos hero en color primario (#4654CD), nunca negro**
+- [ ] **Imágenes externas con `<img>` nativo (no NextUI Image en static export)**
+- [ ] **Badges/Chips con radius="sm" y classNames (nunca pill default)**
+- [ ] **Select con estilos de popover, hover y selected (data attributes)**
+- [ ] **Switch con bg-neutral-300 en wrapper y thumb con bg-white shadow-md**
+- [ ] **Checkbox con before:border-2, transiciones y icon: 'text-white transition-opacity'**
