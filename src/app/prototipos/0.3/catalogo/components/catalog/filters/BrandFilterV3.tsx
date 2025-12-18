@@ -7,8 +7,7 @@
  * Mejor reconocimiento visual, ideal para pocas marcas
  */
 
-import React from 'react';
-import { Image } from '@nextui-org/react';
+import React, { useState } from 'react';
 import { Check } from 'lucide-react';
 import { FilterOption } from '../../../types/catalog';
 
@@ -17,6 +16,30 @@ interface BrandFilterV3Props {
   selected: string[];
   onChange: (brands: string[]) => void;
 }
+
+// Brand logo component with fallback
+const BrandLogo: React.FC<{ logo?: string; label: string }> = ({ logo, label }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!logo || hasError) {
+    // Fallback: show brand name
+    return (
+      <span className="text-sm font-semibold text-neutral-700 text-center leading-tight">
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={logo}
+      alt={label}
+      className="max-w-full max-h-full object-contain"
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 export const BrandFilterV3: React.FC<BrandFilterV3Props> = ({
   options,
@@ -52,17 +75,10 @@ export const BrandFilterV3: React.FC<BrandFilterV3Props> = ({
               </div>
             )}
 
-            {/* Logo */}
-            {option.logo && (
-              <div className="w-12 h-8 flex items-center justify-center mb-1">
-                <Image
-                  src={option.logo}
-                  alt={option.label}
-                  className="max-w-full max-h-full object-contain"
-                  removeWrapper
-                />
-              </div>
-            )}
+            {/* Logo with fallback */}
+            <div className="w-12 h-8 flex items-center justify-center mb-1">
+              <BrandLogo logo={option.logo} label={option.label} />
+            </div>
 
             {/* Count */}
             <span className="text-xs text-neutral-400">({option.count})</span>

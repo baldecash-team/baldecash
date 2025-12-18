@@ -29,7 +29,8 @@
       "Skill(brandbook)",
       "Skill(frontend)",
       "Bash(git checkout:*)",
-      "SlashCommand(/iterar:*)"
+      "SlashCommand(/iterar:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

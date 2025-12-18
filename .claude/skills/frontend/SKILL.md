@@ -193,7 +193,12 @@ Los Select de NextUI requieren estilos explícitos para el dropdown desplegado, 
   <SelectItem
     key="opt1"
     classNames={{
-      base: 'px-3 py-2 rounded-md text-sm text-neutral-700 data-[hover=true]:bg-[#4654CD]/10 data-[hover=true]:text-[#4654CD] data-[selectable=true]:focus:bg-[#4654CD]/10 data-[selected=true]:bg-[#4654CD] data-[selected=true]:text-white cursor-pointer',
+      base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
+        text-neutral-700
+        data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
+        data-[selected=false]:data-[hover=true]:text-[#4654CD]
+        data-[selected=true]:bg-[#4654CD]
+        data-[selected=true]:text-white`,
     }}
   >
     Opción 1
@@ -213,12 +218,13 @@ Los Select de NextUI requieren estilos explícitos para el dropdown desplegado, 
 ### Data attributes para estados de SelectItem:
 - `data-[hover=true]` - Hover sobre el item
 - `data-[selected=true]` - Item actualmente seleccionado
+- `data-[selected=false]:data-[hover=true]` - Hover SOLO cuando NO está seleccionado (evita hover en item activo)
 - `data-[selectable=true]:focus` - Focus del item
 
 ### Reglas para Select:
 - **SIEMPRE** incluir `aria-label` si no hay label visible
 - **SIEMPRE** usar `cursor-pointer` en trigger e items
-- **SIEMPRE** estilizar hover con color primario (`bg-[#4654CD]/10`)
+- **SIEMPRE** usar `data-[selected=false]:data-[hover=true]:` para hover (NO aplica cuando seleccionado)
 - **SIEMPRE** estilizar selected con fondo primario sólido
 - Usar `popoverProps` para control adicional del dropdown
 
@@ -850,40 +856,37 @@ Cada dato debe aparecer UNA sola vez por componente/seccion:
 El Switch de NextUI puede ser invisible por defecto si no tiene estilos de fondo explícitos:
 
 ```tsx
-// ❌ PROHIBIDO - Switch invisible (solo borde curvo visible)
+// ❌ PROHIBIDO - Switch sin color="primary" ni estilos de wrapper
 <Switch
   size="sm"
   isSelected={value}
   onValueChange={setValue}
-  classNames={{
-    wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-  }}
 />
 
-// ✅ CORRECTO - Switch con fondo visible en ambos estados
+// ✅ CORRECTO - Switch con color="primary" y wrapper con color de marca
 <Switch
   size="sm"
   isSelected={value}
   onValueChange={setValue}
+  color="primary"
   classNames={{
-    wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-    thumb: 'bg-white shadow-md',
+    wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
   }}
 />
 ```
 
 ### Configuración estándar de Switch:
 
-| Propiedad | Clase | Propósito |
+| Propiedad | Valor | Propósito |
 |-----------|-------|-----------|
-| `wrapper` (off) | `bg-neutral-300` | Fondo gris visible cuando está apagado |
-| `wrapper` (on) | `group-data-[selected=true]:bg-[#4654CD]` | Color primario cuando está encendido |
-| `thumb` | `bg-white shadow-md` | Bolita del switch visible con sombra |
+| `color` | `"primary"` | Activa estilos nativos de NextUI (fondo gris off, animaciones, thumb) |
+| `wrapper` (on) | `group-data-[selected=true]:bg-[#4654CD]` | Sobrescribe color ON con color de marca |
 
 ### Reglas para Switch:
-- **SIEMPRE** incluir `bg-neutral-300` en el wrapper para estado off
-- **SIEMPRE** estilizar el thumb con `bg-white shadow-md` para contraste
-- **SIEMPRE** usar color primario `#4654CD` para estado on (no otros colores)
+- **SIEMPRE** usar `color="primary"` para que NextUI maneje fondo off, animaciones y movimiento del thumb
+- **SIEMPRE** sobrescribir solo el color ON con `wrapper: 'group-data-[selected=true]:bg-[#4654CD]'`
+- **NUNCA** agregar estilos al `thumb` (interfiere con animaciones nativas de NextUI)
+- **NUNCA** agregar `bg-neutral-300` manualmente (NextUI lo maneja con `color="primary"`)
 - Envolver en `<label>` con texto descriptivo para accesibilidad
 
 ## Checkbox (NextUI)
@@ -932,6 +935,143 @@ El Checkbox de NextUI necesita estilos explícitos para que el borde sea visible
 - **SIEMPRE** usar color primario `#4654CD` para estado seleccionado
 - Envolver en `<label>` para mejor área de click y accesibilidad
 
+## Imágenes con Fallback (Logos, Marcas, CDN externos)
+
+### SIEMPRE manejar errores de carga en imágenes externas
+
+Las URLs de Wikipedia, CDNs externos, o cualquier imagen remota pueden fallar por CORS, hotlinking bloqueado, o 404. Siempre implementar fallback:
+
+```tsx
+// ❌ PROHIBIDO - Sin manejo de error (imagen invisible si falla)
+{option.logo && (
+  <img src={option.logo} alt={option.label} className="w-12 h-8" />
+)}
+
+// ❌ PROHIBIDO - NextUI Image sin fallback
+import { Image } from '@nextui-org/react';
+<Image src={option.logo} alt={option.label} removeWrapper />
+
+// ✅ CORRECTO - Componente con estado de error y fallback a texto
+const BrandLogo: React.FC<{ logo?: string; label: string }> = ({ logo, label }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!logo || hasError) {
+    // Fallback: mostrar nombre de marca
+    return (
+      <span className="text-sm font-semibold text-neutral-700 text-center leading-tight">
+        {label}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={logo}
+      alt={label}
+      className="max-w-full max-h-full object-contain"
+      onError={() => setHasError(true)}
+    />
+  );
+};
+```
+
+### Patrón para filtros de marca (BrandFilter):
+
+```tsx
+// Componente contenedor siempre renderiza, con fallback interno
+<div className="w-12 h-8 flex items-center justify-center mb-1">
+  <BrandLogo logo={option.logo} label={option.label} />
+</div>
+```
+
+### Reglas para imágenes con fallback:
+- **SIEMPRE** usar `useState` para trackear errores de carga
+- **SIEMPRE** incluir `onError={() => setHasError(true)}` en la imagen
+- **SIEMPRE** proporcionar fallback visual (texto, icono, placeholder)
+- **SIEMPRE** renderizar el contenedor incluso si la imagen falla
+- **NUNCA** usar condicional que oculte el espacio si la imagen falla
+- Usar `<img>` nativo en lugar de NextUI `<Image>` para mejor control de errores
+
+### URLs problemáticas comunes:
+| Dominio | Problema | Solución |
+|---------|----------|----------|
+| Wikipedia SVG | CORS / Hotlinking | Fallback a texto o usar CDN propio |
+| Unsplash | Puede fallar en export | `<img>` nativo con lazy loading |
+| URLs dinámicas | 404 frecuentes | Siempre implementar onError |
+
+## Component Versioning Pattern (A/B Testing)
+
+### SIEMPRE usar wrapper pattern para componentes con múltiples versiones
+
+Cuando un componente tiene 3 versiones (V1, V2, V3), usar un wrapper que selecciona la versión según config:
+
+```tsx
+// ❌ PROHIBIDO - Condicionales en el componente principal
+export const ProductCard: React.FC<Props> = ({ product, version }) => {
+  if (version === 1) return <div>V1 implementation...</div>;
+  if (version === 2) return <div>V2 implementation...</div>;
+  // Código largo y difícil de mantener
+};
+
+// ✅ CORRECTO - Wrapper que delega a componentes específicos
+// ProductCard.tsx (wrapper)
+export const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  cardVersion = 1,
+  ...props
+}) => {
+  switch (cardVersion) {
+    case 1: return <ProductCardV1 product={product} {...props} />;
+    case 2: return <ProductCardV2 product={product} {...props} />;
+    case 3: return <ProductCardV3 product={product} {...props} />;
+    default: return <ProductCardV1 product={product} {...props} />;
+  }
+};
+```
+
+### Estructura de archivos para versiones:
+
+```
+components/catalog/
+├── ProductCard.tsx           # Wrapper selector
+├── ProductCardSkeleton.tsx   # Shared skeleton
+└── cards/
+    ├── index.ts              # Exports de versiones
+    ├── ProductCardV1.tsx     # Enfoque Técnico (specs)
+    ├── ProductCardV2.tsx     # Enfoque Beneficios (uso)
+    └── ProductCardV3.tsx     # Enfoque Híbrido (equilibrado)
+```
+
+### Tipos en CatalogConfig:
+
+```tsx
+export interface CatalogConfig {
+  layoutVersion: 1 | 2 | 3;
+  brandFilterVersion: 1 | 2 | 3;
+  cardVersion: 1 | 2 | 3;  // Agregar nueva versión aquí
+}
+
+export const versionDescriptions = {
+  layout: {
+    1: 'Sidebar 280px izquierdo',
+    2: 'Filtros horizontales',
+    3: 'Drawer mobile-first',
+  },
+  card: {
+    1: 'Enfoque Técnico: CPU, RAM, SSD con iconos',
+    2: 'Enfoque Beneficios: Ideal para estudios, gaming',
+    3: 'Enfoque Híbrido: 2 specs + 2 beneficios',
+  },
+} as const;
+```
+
+### Reglas para versiones:
+- **SIEMPRE** mantener props consistentes entre versiones (misma interfaz)
+- **SIEMPRE** incluir `cardVersion` en `CatalogConfig` type cuando agregas nueva versión
+- **SIEMPRE** actualizar `defaultCatalogConfig` con valor default
+- **SIEMPRE** agregar selector en `CatalogSettingsModal` para poder probar versiones
+- **SIEMPRE** actualizar páginas standalone (catalog-v1, v2, v3) con nueva prop
+
 ## Checklist de Calidad
 
 Antes de entregar cualquier componente, verificar:
@@ -955,6 +1095,7 @@ Antes de entregar cualquier componente, verificar:
 - [ ] **Titulos hero en color primario (#4654CD), nunca negro**
 - [ ] **Imágenes externas con `<img>` nativo (no NextUI Image en static export)**
 - [ ] **Badges/Chips con radius="sm" y classNames (nunca pill default)**
-- [ ] **Select con estilos de popover, hover y selected (data attributes)**
-- [ ] **Switch con bg-neutral-300 en wrapper y thumb con bg-white shadow-md**
+- [ ] **Select: hover con `data-[selected=false]:data-[hover=true]:` (NO aplica hover cuando seleccionado)**
+- [ ] **Switch: usar color="primary" + wrapper con group-data-[selected=true]:bg-[#4654CD] (NO estilos en thumb)**
 - [ ] **Checkbox con before:border-2, transiciones y icon: 'text-white transition-opacity'**
+- [ ] **Imágenes externas (logos, marcas) con fallback a texto usando onError + useState**

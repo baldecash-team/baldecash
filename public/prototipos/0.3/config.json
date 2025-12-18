@@ -182,6 +182,98 @@
         "showTimeEstimate": true
       }
     },
+    "wizardFields": {
+      "enabled": true,
+      "lastUpdated": "2024-12-17T00:00:00.000Z",
+      "components": {
+        "labelStyle": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Label arriba, V2 - Flotante, V3 - Solo placeholder"
+        },
+        "inputStyle": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Bordes, V2 - Linea inferior, V3 - Filled"
+        },
+        "radioStyle": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Radio tradicional, V2 - Segmented, V3 - Cards"
+        },
+        "uploadStyle": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Drag & drop, V2 - Solo boton, V3 - Area clickeable"
+        },
+        "previewStyle": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Thumbnail, V2 - Nombre + tamaño, V3 - Modal"
+        },
+        "progressStyle": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Barra horizontal, V2 - Spinner, V3 - Solo estado"
+        },
+        "validationSubmit": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Errores arriba, V2 - Scroll a error, V3 - Shake"
+        },
+        "errorPosition": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Inline, V2 - Tooltip, V3 - Resumen + inline"
+        },
+        "errorStyle": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Borde rojo, V2 - Borde + fondo, V3 - Solo mensaje"
+        },
+        "helpStyle": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Tooltip, V2 - Visible, V3 - Expandible"
+        },
+        "documentExample": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Tooltip, V2 - Modal gallery, V3 - Inline"
+        }
+      }
+    },
+    "wizardPersonal": {
+      "enabled": true,
+      "lastUpdated": "2024-12-17T00:00:00.000Z",
+      "components": {
+        "dniLoading": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Skeleton, V2 - Spinner + mensaje, V3 - Progress bar"
+        },
+        "dataAppear": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Fade in, V2 - Cascada, V3 - Instantaneo"
+        },
+        "mapConfirm": {
+          "version": 3,
+          "variants": 3,
+          "notes": "V1 - Mapa inline, V2 - Modal, V3 - Sin mapa"
+        },
+        "addressFallback": {
+          "version": 2,
+          "variants": 3,
+          "notes": "V1 - Auto manual, V2 - Boton, V3 - Tooltip"
+        },
+        "termsLink": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1 - Modal, V2 - Nueva pestana, V3 - Expandible"
+        }
+      }
+    },
     "results": {
       "enabled": true,
       "lastUpdated": "2024-12-17T00:00:00.000Z",

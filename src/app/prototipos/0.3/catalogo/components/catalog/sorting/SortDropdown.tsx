@@ -57,7 +57,12 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
               key={option.value}
               value={option.value}
               classNames={{
-                base: 'px-3 py-2 rounded-md text-sm text-neutral-700 data-[hover=true]:bg-[#4654CD]/10 data-[hover=true]:text-[#4654CD] data-[selectable=true]:focus:bg-[#4654CD]/10 data-[selected=true]:bg-[#4654CD] data-[selected=true]:text-white cursor-pointer',
+                base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
+                  text-neutral-700
+                  data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
+                  data-[selected=false]:data-[hover=true]:text-[#4654CD]
+                  data-[selected=true]:bg-[#4654CD]
+                  data-[selected=true]:text-white`,
               }}
             >
               {option.label}

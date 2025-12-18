@@ -13,7 +13,7 @@ import {
   Gamepad2,
   Palette,
   Briefcase,
-  Code,
+  Code2,
   LucideIcon,
 } from 'lucide-react';
 import { FilterOption, UsageType } from '../../../types/catalog';
@@ -24,12 +24,13 @@ interface UsageFilterProps {
   onChange: (usage: UsageType[]) => void;
 }
 
-const iconMap: Record<string, LucideIcon> = {
-  GraduationCap,
-  Gamepad2,
-  Palette,
-  Briefcase,
-  Code,
+// Mapear por valor de uso (más confiable que por string de icono)
+const usageIconMap: Record<string, LucideIcon> = {
+  estudios: GraduationCap,
+  gaming: Gamepad2,
+  diseno: Palette,
+  oficina: Briefcase,
+  programacion: Code2,
 };
 
 export const UsageFilter: React.FC<UsageFilterProps> = ({
@@ -50,7 +51,7 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
     <div className="grid grid-cols-2 gap-2">
       {options.map((option) => {
         const isSelected = selected.includes(option.value as UsageType);
-        const IconComponent = option.icon ? iconMap[option.icon] : null;
+        const IconComponent = usageIconMap[option.value];
 
         return (
           <button

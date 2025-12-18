@@ -51,7 +51,7 @@ const VersionSelector: React.FC<VersionSelectorProps> = ({
           <button
             key={option}
             onClick={() => onChange(option)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-center ${
               value === option
                 ? 'bg-[#4654CD] text-white'
                 : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
@@ -89,7 +89,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
         wrapper: 'items-center justify-center py-8 min-h-full',
         backdrop: 'bg-black/50',
         header: 'border-b border-neutral-200 bg-white py-4 pr-12',
-        body: 'bg-white max-h-[60vh] overflow-y-auto',
+        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
         footer: 'border-t border-neutral-200 bg-white',
         closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
       }}
@@ -127,6 +127,17 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
             descriptions={versionDescriptions.brandFilter}
             onChange={(v) =>
               onConfigChange({ ...config, brandFilterVersion: v as 1 | 2 | 3 })
+            }
+          />
+
+          {/* Card Version */}
+          <VersionSelector
+            label="B.37 - Tarjeta de Producto"
+            value={config.cardVersion}
+            options={[1, 2, 3]}
+            descriptions={versionDescriptions.card}
+            onChange={(v) =>
+              onConfigChange({ ...config, cardVersion: v as 1 | 2 | 3 })
             }
           />
 

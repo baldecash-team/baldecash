@@ -10,11 +10,13 @@ import { ReactNode } from 'react';
 export interface CatalogConfig {
   layoutVersion: 1 | 2 | 3;
   brandFilterVersion: 1 | 2 | 3;
+  cardVersion: 1 | 2 | 3;
 }
 
 export const defaultCatalogConfig: CatalogConfig = {
   layoutVersion: 1,
   brandFilterVersion: 1,
+  cardVersion: 1,
 };
 
 // ============================================
@@ -322,6 +324,11 @@ export const versionDescriptions = {
     1: 'Solo texto con checkbox',
     2: 'Logo pequeno + texto con checkbox',
     3: 'Grid de logos clickeables (estilo e-commerce)',
+  },
+  card: {
+    1: 'Enfoque Tecnico: CPU, RAM, SSD, Pantalla con iconos',
+    2: 'Enfoque Beneficios: Ideal para estudios, Bateria todo el dia',
+    3: 'Enfoque Hibrido: 2 specs principales + 2 beneficios clave',
   },
 } as const;
 

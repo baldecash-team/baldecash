@@ -95,9 +95,9 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
             size="sm"
             isSelected={filters.availableNow}
             onValueChange={(val) => onChange({ availableNow: val })}
+            color="primary"
             classNames={{
-              wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-              thumb: 'bg-white shadow-md',
+              wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
             }}
           />
           <span className="text-sm text-neutral-600">Disponible ahora</span>
