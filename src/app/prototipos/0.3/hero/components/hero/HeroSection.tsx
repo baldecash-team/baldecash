@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { HeroConfig, defaultHeroConfig } from '../../types/hero';
-import { mockHeroContentV1, mockHeroContentV2, mockHeroContentV3, mockSocialProof } from '../../data/mockHeroData';
+import { mockHeroContentV1, mockHeroContentV2, mockHeroContentV3, mockSocialProof, mockFooterData } from '../../data/mockHeroData';
 
 // Navigation
 import { NavbarV1, NavbarV2, NavbarV3 } from './navigation';
@@ -28,6 +28,9 @@ import { ProfileIdentificationV1, ProfileIdentificationV2, ProfileIdentification
 
 // Institutional Banner
 import { InstitutionalBannerV1, InstitutionalBannerV2, InstitutionalBannerV3, InstitutionalBannerV4 } from './institutional';
+
+// Footer
+import { FooterV1, FooterV2, FooterV3 } from './footer';
 
 interface HeroSectionProps {
   config?: HeroConfig;
@@ -151,6 +154,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     }
   };
 
+  // Render Footer based on version
+  const renderFooter = () => {
+    switch (config.footerVersion) {
+      case 1:
+        return <FooterV1 data={mockFooterData} />;
+      case 2:
+        return <FooterV2 data={mockFooterData} />;
+      case 3:
+        return <FooterV3 data={mockFooterData} />;
+      default:
+        return <FooterV1 data={mockFooterData} />;
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {/* Profile Identification (V3 is sticky banner) */}
@@ -187,6 +204,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Social Proof */}
         {renderSocialProof()}
       </main>
+
+      {/* Footer */}
+      {renderFooter()}
     </div>
   );
 };

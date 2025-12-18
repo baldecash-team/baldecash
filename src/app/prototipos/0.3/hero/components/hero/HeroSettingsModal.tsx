@@ -162,6 +162,15 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
             onChange={(v) => onConfigChange({ ...config, institutionalBannerVersion: v as 1 | 2 | 3 | 4 })}
           />
 
+          {/* Footer Version */}
+          <VersionSelector
+            label="A.8 - Footer"
+            value={config.footerVersion}
+            options={[1, 2, 3]}
+            descriptions={versionDescriptions.footer}
+            onChange={(v) => onConfigChange({ ...config, footerVersion: v as 1 | 2 | 3 })}
+          />
+
           <div className="mt-4 pt-4 border-t border-neutral-200">
             <div className="bg-neutral-50 rounded-lg p-3">
               <p className="text-xs text-neutral-500">

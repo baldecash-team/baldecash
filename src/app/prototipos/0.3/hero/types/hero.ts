@@ -14,6 +14,7 @@ export interface HeroConfig {
   socialProofVersion: 1 | 2 | 3;
   navbarVersion: 1 | 2 | 3;
   ctaVersion: 1 | 2 | 3;
+  footerVersion: 1 | 2 | 3;
 }
 
 export const defaultHeroConfig: HeroConfig = {
@@ -23,6 +24,7 @@ export const defaultHeroConfig: HeroConfig = {
   socialProofVersion: 1,
   navbarVersion: 1,
   ctaVersion: 1,
+  footerVersion: 1,
 };
 
 // ============================================
@@ -161,6 +163,40 @@ export interface HeroSettingsModalProps {
 }
 
 // ============================================
+// Footer Types
+// ============================================
+
+export interface FooterLink {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+export interface FooterNavSection {
+  title: string;
+  links: FooterLink[];
+}
+
+export interface FooterSocialLink {
+  platform: 'instagram' | 'facebook' | 'tiktok' | 'whatsapp';
+  url: string;
+  label: string;
+}
+
+export interface FooterData {
+  logo: { text: string; tagline: string };
+  navigation: FooterNavSection[];
+  social: FooterSocialLink[];
+  contact: { phone?: string; whatsapp?: string; email?: string };
+  certifications: { name: string; icon: string; description: string }[];
+  legal: { copyright: string; links: FooterLink[] };
+}
+
+export interface FooterProps {
+  data: FooterData;
+}
+
+// ============================================
 // Version Descriptions (for Settings Modal)
 // ============================================
 
@@ -196,5 +232,10 @@ export const versionDescriptions = {
     1: 'Ver laptops disponibles (acción directa)',
     2: 'Desde S/49/mes - Solicitar ahora (precio)',
     3: 'Descubre tu monto disponible (pre-calificación)',
+  },
+  footer: {
+    1: 'Minimalista oscuro (neutral-900)',
+    2: 'Columnas claro (neutral-100)',
+    3: 'Compacto con CTA WhatsApp (primario)',
   },
 } as const;

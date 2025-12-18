@@ -5,8 +5,8 @@
 | Campo | Valor |
 |-------|-------|
 | **Segmento** | A |
-| **Preguntas totales** | 18 |
-| **Iteraciones T (3 versiones)** | 10 |
+| **Preguntas totales** | 21 |
+| **Iteraciones T (3 versiones)** | 13 |
 | **Iteraciones F (1 versión)** | 8 |
 | **Prioridad** | Alta - MVP Core |
 
@@ -136,10 +136,14 @@ src/app/prototipos/0.2/hero/
 │       │   ├── NavbarV1.tsx                 # Navbar clásico
 │       │   ├── NavbarV2.tsx                 # Navbar con mega menu
 │       │   └── NavbarV3.tsx                 # Navbar minimalista
-│       └── cta/
-│           ├── HeroCtaV1.tsx                # Acción directa
-│           ├── HeroCtaV2.tsx                # Enfoque en precio
-│           └── HeroCtaV3.tsx                # Capacidad de crédito
+│       ├── cta/
+│       │   ├── HeroCtaV1.tsx                # Acción directa
+│       │   ├── HeroCtaV2.tsx                # Enfoque en precio
+│       │   └── HeroCtaV3.tsx                # Capacidad de crédito
+│       └── footer/
+│           ├── FooterV1.tsx                 # Minimalista oscuro
+│           ├── FooterV2.tsx                 # Columnas claro
+│           └── FooterV3.tsx                 # Compacto con CTA
 ├── types/
 │   └── hero.ts                           # Tipos TypeScript del módulo
 ├── data/
@@ -379,6 +383,49 @@ src/app/prototipos/0.2/hero/
 
 ---
 
+### 5.6 Footer (3 preguntas)
+
+#### Pregunta A.19 [ITERAR - 3 versiones]
+| Campo | Valor |
+|-------|-------|
+| **Tema** | Footer |
+| **Pregunta** | ¿Qué estilo de footer usar? |
+| **Contexto** | El footer proporciona navegación secundaria, información legal y confianza. |
+| **Respuesta** | No tenemos una idea clara, evaluar opciones |
+
+**Versiones a generar:**
+- **V1**: Minimalista oscuro - Logo centrado + links inline + social icons + copyright (fondo neutral-900)
+- **V2**: Columnas claro - 3 columnas con links agrupados + social + legal (fondo neutral-100)
+- **V3**: Compacto con CTA - Logo + links esenciales + WhatsApp destacado (fondo #4654CD)
+
+#### Pregunta A.20 [ITERAR - 3 versiones]
+| Campo | Valor |
+|-------|-------|
+| **Tema** | Footer |
+| **Pregunta** | ¿Cómo mostrar las redes sociales y contacto? |
+| **Contexto** | Canales de comunicación con estudiantes. |
+| **Respuesta** | No tenemos una idea clara, evaluar opciones |
+
+**Versiones a generar:**
+- **V1**: Iconos circulares con hover en color primario
+- **V2**: Iconos con label de texto + sección de contacto dedicada
+- **V3**: Solo WhatsApp como botón CTA destacado
+
+#### Pregunta A.21 [ITERAR - 3 versiones]
+| Campo | Valor |
+|-------|-------|
+| **Tema** | Footer |
+| **Pregunta** | ¿Cómo mostrar certificaciones y enlaces legales? |
+| **Contexto** | Reforzar confianza y cumplimiento normativo. |
+| **Respuesta** | No tenemos una idea clara, evaluar opciones |
+
+**Versiones a generar:**
+- **V1**: Badges SBS/SSL + links legales en línea separada
+- **V2**: Certificaciones integradas en columna "Empresa"
+- **V3**: Solo copyright + link a términos (ultra minimalista)
+
+---
+
 ## 6. Tipos TypeScript
 
 ```typescript
@@ -391,6 +438,7 @@ export interface HeroConfig {
   socialProofVersion: 1 | 2 | 3;
   navbarVersion: 1 | 2 | 3;
   ctaVersion: 1 | 2 | 3;
+  footerVersion: 1 | 2 | 3;
 }
 
 export interface Institution {
@@ -446,6 +494,33 @@ export interface QuotaCalculatorConfig {
   defaultAmount: number;
   terms: number[]; // [12, 18, 24, 36, 48]
   monthlyRate: number;
+}
+
+// Footer Types
+export interface FooterNavSection {
+  title: string;
+  links: FooterLink[];
+}
+
+export interface FooterLink {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+export interface FooterSocialLink {
+  platform: 'instagram' | 'facebook' | 'tiktok' | 'whatsapp';
+  url: string;
+  label: string;
+}
+
+export interface FooterData {
+  logo: { text: string; tagline: string };
+  navigation: FooterNavSection[];
+  social: FooterSocialLink[];
+  contact: { phone?: string; whatsapp?: string; email?: string };
+  certifications: { name: string; icon: string; description: string }[];
+  legal: { copyright: string; links: FooterLink[] };
 }
 ```
 
@@ -507,6 +582,47 @@ export const mockQuotaCalculator: QuotaCalculatorConfig = {
   defaultAmount: 2500,
   terms: [12, 18, 24, 36, 48],
   monthlyRate: 0.012, // 1.2% mensual
+};
+
+export const mockFooterData: FooterData = {
+  logo: { text: 'BaldeCash', tagline: 'Financiamiento estudiantil en Perú' },
+  navigation: [
+    { title: 'Productos', links: [
+      { label: 'Laptops', href: '/prototipos/0.3' },
+      { label: 'Financiamiento', href: '#financiamiento' },
+      { label: 'Calculadora', href: '#calculadora' },
+    ]},
+    { title: 'Soporte', links: [
+      { label: 'Centro de ayuda', href: '#ayuda' },
+      { label: 'FAQ', href: '#faq' },
+      { label: 'Contacto', href: '#contacto' },
+    ]},
+    { title: 'Empresa', links: [
+      { label: 'Sobre nosotros', href: '#nosotros' },
+      { label: 'Alianzas', href: '#alianzas' },
+      { label: 'Blog', href: '#blog' },
+    ]},
+  ],
+  social: [
+    { platform: 'instagram', url: 'https://instagram.com/baldecash', label: 'Instagram' },
+    { platform: 'facebook', url: 'https://facebook.com/baldecash', label: 'Facebook' },
+    { platform: 'tiktok', url: 'https://tiktok.com/@baldecash', label: 'TikTok' },
+    { platform: 'whatsapp', url: 'https://wa.me/51999999999', label: 'WhatsApp' },
+  ],
+  contact: { phone: '+51 1 234 5678', whatsapp: '+51 999 999 999', email: 'hola@baldecash.com' },
+  certifications: [
+    { name: 'SBS', icon: 'Shield', description: 'Regulados por la SBS' },
+    { name: 'SSL', icon: 'Lock', description: 'Conexión segura' },
+    { name: '5 años', icon: 'Award', description: '5 años en el mercado' },
+  ],
+  legal: {
+    copyright: '© 2025 BaldeCash. Todos los derechos reservados.',
+    links: [
+      { label: 'Términos', href: '#terminos' },
+      { label: 'Privacidad', href: '#privacidad' },
+      { label: 'Libro de Reclamaciones', href: '#reclamaciones' },
+    ],
+  },
 };
 ```
 
@@ -639,6 +755,7 @@ export const HeroCtaV1: React.FC<HeroCtaV1Props> = ({
 - [ ] `SocialProofV1.tsx`, `V2.tsx`, `V3.tsx`
 - [ ] `NavbarV1.tsx`, `V2.tsx`, `V3.tsx`
 - [ ] `HeroCtaV1.tsx`, `V2.tsx`, `V3.tsx`
+- [ ] `FooterV1.tsx`, `V2.tsx`, `V3.tsx`
 - [ ] `hero-preview/page.tsx`
 - [ ] `hero-v1/page.tsx`, `hero-v2/page.tsx`, `hero-v3/page.tsx`
 - [ ] `HERO_README.md`
