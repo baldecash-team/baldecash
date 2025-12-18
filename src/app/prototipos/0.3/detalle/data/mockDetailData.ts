@@ -1,0 +1,283 @@
+// Mock Data for Detail Section - BaldeCash v0.3
+// Generated from PROMPT_04_DETALLE_PRODUCTO.md
+
+import {
+  ProductDetail,
+  SimilarProduct,
+  ProductLimitation,
+  Certification,
+  PaymentPlan,
+} from '../types/detail';
+
+// ============================================
+// Main Product Detail
+// ============================================
+
+export const mockProductDetail: ProductDetail = {
+  id: 'lenovo-v15-g4',
+  slug: 'lenovo-v15-g4-ryzen5-8gb-256ssd',
+  name: 'Lenovo V15 G4 AMN',
+  displayName: 'Laptop Lenovo 15.6" para estudios - Ryzen 5',
+  brand: 'Lenovo',
+  category: 'laptops',
+  price: 2499,
+  originalPrice: 2899,
+  discount: 400,
+  lowestQuota: 89,
+  images: [
+    { id: '1', url: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', alt: 'Laptop frontal', type: 'main' },
+    { id: '2', url: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800', alt: 'Laptop lateral', type: 'gallery' },
+    { id: '3', url: 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800', alt: 'Laptop teclado', type: 'gallery' },
+    { id: '4', url: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800', alt: 'Laptop abierta', type: 'gallery' },
+    { id: '5', url: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800', alt: 'Laptop cerrada', type: 'detail' },
+  ],
+  description: 'La Lenovo V15 G4 es la laptop perfecta para estudiantes universitarios. Con su procesador AMD Ryzen 5 y 8GB de RAM, podras ejecutar todas tus aplicaciones de estudio sin problemas. Su pantalla de 15.6 pulgadas Full HD te permite trabajar comodamente durante horas.',
+  shortDescription: 'Laptop ideal para estudios universitarios con Ryzen 5, 8GB RAM y SSD de 256GB.',
+  specs: [
+    {
+      category: 'Procesador',
+      icon: 'Cpu',
+      specs: [
+        { label: 'Procesador', value: 'AMD Ryzen 5 7520U', tooltip: 'El cerebro de tu laptop. Ryzen 5 es ideal para multitarea y aplicaciones de estudio.', highlight: true },
+        { label: 'Nucleos', value: '4 nucleos / 8 hilos', tooltip: 'Mas nucleos significa mejor rendimiento al ejecutar varias aplicaciones.' },
+        { label: 'Velocidad', value: 'Hasta 4.3 GHz', tooltip: 'La velocidad maxima que puede alcanzar el procesador.' },
+        { label: 'Cache', value: '4MB L3' },
+      ],
+    },
+    {
+      category: 'Memoria',
+      icon: 'MemoryStick',
+      specs: [
+        { label: 'RAM', value: '8GB DDR5', tooltip: '8GB es suficiente para estudios. Permite tener varias aplicaciones abiertas.', highlight: true },
+        { label: 'Tipo', value: 'DDR5-4800' },
+        { label: 'Expandible', value: 'Hasta 16GB', tooltip: 'Puedes agregar mas RAM en el futuro si lo necesitas.' },
+      ],
+    },
+    {
+      category: 'Almacenamiento',
+      icon: 'HardDrive',
+      specs: [
+        { label: 'SSD', value: '256GB NVMe', tooltip: 'SSD es mucho mas rapido que un disco duro tradicional. Tu laptop enciende en segundos.', highlight: true },
+        { label: 'Tipo', value: 'M.2 2242 PCIe 4.0' },
+        { label: 'Expandible', value: 'Si, slot disponible' },
+      ],
+    },
+    {
+      category: 'Pantalla',
+      icon: 'Monitor',
+      specs: [
+        { label: 'Tamano', value: '15.6 pulgadas', highlight: true },
+        { label: 'Resolucion', value: '1920 x 1080 (Full HD)', tooltip: 'Full HD te da imagenes nitidas y claras.' },
+        { label: 'Panel', value: 'TN Anti-reflejo' },
+        { label: 'Brillo', value: '220 nits' },
+      ],
+    },
+    {
+      category: 'Bateria',
+      icon: 'Battery',
+      specs: [
+        { label: 'Capacidad', value: '38Wh' },
+        { label: 'Duracion', value: 'Hasta 6 horas', tooltip: 'Duracion estimada con uso normal (navegacion, documentos).' },
+        { label: 'Carga rapida', value: '65W', tooltip: 'Carga al 50% en aproximadamente 30 minutos.' },
+      ],
+    },
+    {
+      category: 'Conectividad',
+      icon: 'Wifi',
+      specs: [
+        { label: 'WiFi', value: 'WiFi 6 (802.11ax)', tooltip: 'WiFi 6 es la ultima generacion, mas rapido y estable.' },
+        { label: 'Bluetooth', value: '5.1' },
+        { label: 'Camara', value: '720p con privacidad' },
+      ],
+    },
+  ],
+  ports: [
+    { name: 'USB-C', icon: 'Usb', count: 1, position: 'left' },
+    { name: 'USB-A 3.2', icon: 'Usb', count: 2, position: 'right' },
+    { name: 'HDMI', icon: 'Monitor', count: 1, position: 'left' },
+    { name: 'Audio Jack', icon: 'Headphones', count: 1, position: 'left' },
+    { name: 'Lector SD', icon: 'CreditCard', count: 1, position: 'right' },
+  ],
+  software: [
+    { name: 'Windows 11 Home', icon: 'Monitor', included: true, description: 'Sistema operativo incluido' },
+    { name: 'Microsoft 365', icon: 'FileText', included: false, description: 'Prueba gratuita de 1 mes' },
+    { name: 'Lenovo Vantage', icon: 'Settings', included: true, description: 'Gestion y actualizaciones' },
+  ],
+  features: [
+    { icon: 'Zap', title: 'Rendimiento fluido', description: 'Ryzen 5 + 8GB RAM para multitarea sin lag' },
+    { icon: 'Battery', title: 'Toda la clase', description: 'Hasta 6 horas de bateria para tu dia universitario' },
+    { icon: 'Feather', title: 'Facil de cargar', description: 'Solo 1.65kg para llevarlo a todas partes' },
+    { icon: 'Shield', title: 'Camara con privacidad', description: 'Obturador fisico para proteger tu privacidad' },
+  ],
+  batteryLife: 'Hasta 6 horas',
+  fastCharge: '65W (50% en 30 min)',
+  hasOS: true,
+  osName: 'Windows 11 Home',
+  warranty: '1 ano con fabricante + 6 meses BaldeCash',
+  stock: 15,
+  rating: 4.5,
+  reviewCount: 128,
+};
+
+// ============================================
+// Payment Plans
+// ============================================
+
+export const mockPaymentPlans: PaymentPlan[] = [
+  { term: 12, monthlyQuota: 229, totalAmount: 2748, interestRate: 0.012, interestAmount: 249 },
+  { term: 18, monthlyQuota: 159, totalAmount: 2862, interestRate: 0.012, interestAmount: 363 },
+  { term: 24, monthlyQuota: 124, totalAmount: 2976, interestRate: 0.012, interestAmount: 477 },
+  { term: 36, monthlyQuota: 89, totalAmount: 3204, interestRate: 0.012, interestAmount: 705 },
+  { term: 48, monthlyQuota: 71, totalAmount: 3408, interestRate: 0.012, interestAmount: 909 },
+];
+
+// ============================================
+// Similar Products
+// ============================================
+
+export const mockSimilarProducts: SimilarProduct[] = [
+  {
+    id: 'hp-15-fc0013',
+    name: 'HP 15 AMD Ryzen 3',
+    thumbnail: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=400',
+    price: 1899,
+    lowestQuota: 69,
+    matchScore: 85,
+    differentiators: ['Mas economica', 'Ryzen 3'],
+    slug: 'hp-15-ryzen3-8gb',
+  },
+  {
+    id: 'acer-aspire3',
+    name: 'Acer Aspire 3 Intel i5',
+    thumbnail: 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=400',
+    price: 2699,
+    lowestQuota: 99,
+    matchScore: 90,
+    differentiators: ['Intel i5', 'Pantalla IPS'],
+    slug: 'acer-aspire3-i5-8gb',
+  },
+  {
+    id: 'asus-vivobook',
+    name: 'ASUS VivoBook 15',
+    thumbnail: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
+    price: 2599,
+    lowestQuota: 94,
+    matchScore: 88,
+    differentiators: ['Mas liviana', 'Mejor bateria'],
+    slug: 'asus-vivobook-15-ryzen5',
+  },
+  {
+    id: 'dell-inspiron15',
+    name: 'Dell Inspiron 15 3000',
+    thumbnail: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400',
+    price: 2399,
+    lowestQuota: 86,
+    matchScore: 82,
+    differentiators: ['Mejor soporte', 'Mas puertos'],
+    slug: 'dell-inspiron15-i3-8gb',
+  },
+];
+
+// ============================================
+// Product Limitations
+// ============================================
+
+export const mockLimitations: ProductLimitation[] = [
+  {
+    category: 'Pantalla',
+    description: 'Panel TN con angulos de vision limitados',
+    severity: 'info',
+    alternative: 'Si editas fotos/videos, considera una laptop con panel IPS',
+    icon: 'Monitor',
+  },
+  {
+    category: 'Almacenamiento',
+    description: '256GB puede llenarse rapido con muchos archivos',
+    severity: 'info',
+    alternative: 'Usa almacenamiento en la nube o disco externo',
+    icon: 'HardDrive',
+  },
+  {
+    category: 'Graficos',
+    description: 'Graficos integrados, no ideal para juegos pesados',
+    severity: 'warning',
+    alternative: 'Perfecta para estudios, Office y navegacion',
+    icon: 'Gamepad2',
+  },
+];
+
+// ============================================
+// Certifications
+// ============================================
+
+export const mockCertifications: Certification[] = [
+  {
+    code: 'energy-star',
+    name: 'ENERGY STAR',
+    logo: '/certifications/energy-star.svg',
+    description: 'Certificacion de eficiencia energetica. Este equipo consume menos energia, ahorrando en tu recibo de luz.',
+    learnMoreUrl: 'https://www.energystar.gov/',
+  },
+  {
+    code: 'epeat',
+    name: 'EPEAT Gold',
+    logo: '/certifications/epeat.svg',
+    description: 'Certificacion ambiental que garantiza un producto mas sostenible y reciclable.',
+  },
+  {
+    code: 'tco',
+    name: 'TCO Certified',
+    logo: '/certifications/tco.svg',
+    description: 'Cumple con estandares de salud, seguridad y reduccion de sustancias peligrosas.',
+  },
+];
+
+// ============================================
+// Helper Functions
+// ============================================
+
+export const calculateQuota = (
+  amount: number,
+  term: number,
+  monthlyRate: number = 0.012
+): number => {
+  const r = monthlyRate;
+  const n = term;
+  const quota = amount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  return Math.ceil(quota);
+};
+
+export const generatePaymentSchedule = (
+  amount: number,
+  term: number,
+  monthlyRate: number = 0.012
+) => {
+  const monthlyQuota = calculateQuota(amount, term, monthlyRate);
+  const schedule = [];
+  let balance = amount;
+  const today = new Date();
+
+  for (let i = 1; i <= term; i++) {
+    const interest = balance * monthlyRate;
+    const principal = monthlyQuota - interest;
+    balance = Math.max(0, balance - principal);
+
+    const dueDate = new Date(today);
+    dueDate.setMonth(dueDate.getMonth() + i);
+
+    schedule.push({
+      cuotaNumber: i,
+      dueDate: dueDate.toLocaleDateString('es-PE', { month: 'short', year: 'numeric' }),
+      amount: monthlyQuota,
+      principal: Math.round(principal),
+      interest: Math.round(interest),
+      balance: Math.round(balance),
+    });
+  }
+
+  return schedule;
+};
+
+export const formatCurrency = (amount: number): string => {
+  return `S/${amount.toLocaleString('es-PE')}`;
+};
