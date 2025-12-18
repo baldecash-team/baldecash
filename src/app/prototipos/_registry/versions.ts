@@ -76,7 +76,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'comparador', name: 'Comparador', path: '/prototipos/0.3/comparador', status: 'pending', promptNumber: '05' },
       { id: 'quiz', name: 'Quiz', path: '/prototipos/0.3/quiz', status: 'pending', promptNumber: '06' },
       { id: 'estados', name: 'Estados', path: '/prototipos/0.3/estados', status: 'pending', promptNumber: '07' },
-      { id: 'wizard', name: 'Wizard', path: '/prototipos/0.3/wizard', status: 'pending', promptNumber: '08-13' },
+      { id: 'wizard', name: 'Wizard', path: '/prototipos/0.3/solicitud', status: 'in_progress', promptNumber: '08-13' },
       { id: 'resultados', name: 'Resultados', path: '/prototipos/0.3/resultados', status: 'pending', promptNumber: '14-16' },
     ],
     createdAt: '2025-12-15',

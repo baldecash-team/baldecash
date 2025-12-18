@@ -135,32 +135,51 @@
     },
     "wizard": {
       "enabled": true,
-      "lastUpdated": "2024-12-17T00:00:00.000Z",
+      "lastUpdated": "2024-12-18T00:00:00.000Z",
+      "prompt": "PROMPT_08_FORM_ESTRUCTURA",
+      "route": "/prototipos/0.3/solicitud",
+      "previewRoute": "/prototipos/0.3/solicitud/wizard-preview",
       "components": {
         "layout": {
-          "version": 1,
-          "notes": "V1 - Fullscreen sin header"
+          "version": 2,
+          "variants": 3,
+          "notes": "V1 - Fullscreen, V2 - Header minimalista, V3 - Header + Progress sticky"
         },
         "progress": {
           "version": 1,
-          "notes": "V1 - Paso X de Y"
+          "variants": 3,
+          "notes": "V1 - Steps numerados, V2 - Barra con %, V3 - Dots collapsible"
         },
         "navigation": {
-          "version": 1,
-          "notes": "Navegación entre pasos"
+          "version": 2,
+          "variants": 3,
+          "notes": "V1 - Fixed bottom, V2 - Inline con form, V3 - Adaptive móvil/desktop"
         },
         "motivation": {
           "version": 1,
-          "notes": "Mensajes motivacionales"
-        },
-        "celebration": {
-          "version": 1,
-          "notes": "V1 - Confetti sutil"
+          "variants": 3,
+          "notes": "V1 - Estático, V2 - Dinámico con barra, V3 - Avatar con tips"
         },
         "stepLayout": {
+          "version": 2,
+          "variants": 3,
+          "notes": "V1 - Single column, V2 - Secciones agrupadas, V3 - Cards por grupo"
+        },
+        "celebration": {
+          "version": 2,
+          "variants": 3,
+          "notes": "V1 - Check rápido, V2 - Mensaje + check, V3 - Confetti animado"
+        },
+        "milestone": {
           "version": 1,
-          "notes": "Layout de cada paso"
+          "variants": 1,
+          "notes": "Animación para hitos (25%, 50%, 75%, 100%)"
         }
+      },
+      "config": {
+        "allowFreeNavigation": false,
+        "autoSave": true,
+        "showTimeEstimate": true
       }
     },
     "results": {
