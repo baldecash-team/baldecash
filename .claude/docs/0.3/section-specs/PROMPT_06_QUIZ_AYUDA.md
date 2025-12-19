@@ -253,3 +253,33 @@ export const QuizQuestionV1: React.FC<{ question: QuizQuestion; onAnswer: (optio
 4. **Resultado inmediato**: Sin esperas ni loading extensos
 5. **CTA claro**: "Ver laptop recomendada"
 6. **Sin emojis**: Solo Lucide icons
+
+---
+
+## 8. Notas de Implementación
+
+### Grid Dinámico en QuizQuestionV1
+
+El componente `QuizQuestionV1` usa un grid dinámico basado en el número de opciones para evitar que cards queden con anchos inconsistentes:
+
+```tsx
+<div
+  className={`grid gap-3 md:gap-4 ${
+    question.options.length === 2
+      ? 'grid-cols-2'
+      : question.options.length === 3
+        ? 'grid-cols-2 md:grid-cols-3'
+        : question.options.length === 4
+          ? 'grid-cols-2 md:grid-cols-4'
+          : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
+  }`}
+>
+```
+
+**Lógica:**
+- **2 opciones**: 2 columnas (1 fila)
+- **3 opciones**: 2 columnas móvil, 3 columnas tablet+ (1 fila perfecta)
+- **4 opciones**: 2 columnas móvil (2x2), 4 columnas tablet+ (1 fila)
+- **5+ opciones**: 2 columnas móvil, 3 tablet, 5 desktop
+
+Esto asegura que todas las cards tengan el mismo ancho dentro de cada fila.
