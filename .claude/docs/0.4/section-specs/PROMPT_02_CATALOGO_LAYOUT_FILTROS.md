@@ -1,4 +1,4 @@
-# Prompt #2: Catálogo - Layout y Filtros - BaldeCash Web 3.0
+# Prompt #2: Catálogo - Layout y Filtros - BaldeCash Web 4.0
 
 ## Información del Módulo
 
@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | B (parcial) |
 | **Preguntas totales** | 36 |
-| **Iteraciones T (3 versiones)** | 4 |
+| **Iteraciones T (10 versiones)** | 4 |
 | **Iteraciones F (1 versión)** | 32 |
 | **Prioridad** | Alta - MVP Core |
 | **Productos de prueba** | 39 laptops |
@@ -78,35 +78,45 @@ font-family: 'Asap', sans-serif; /* Cuerpo */
 
 ---
 
-## 4. Estructura de Archivos a Generar
+## 4. Estructura de Archivos a Generar (10 versiones)
 
 ```
-src/app/prototipos/0.2/catalogo/
+src/app/prototipos/0.4/catalogo/
 ├── page.tsx                              # Redirecciona a catalog-preview
 ├── catalog-preview/
-│   └── page.tsx                          # Preview con settings modal
-├── catalog-v1/
-│   └── page.tsx                          # Layout Sidebar Clásico
-├── catalog-v2/
-│   └── page.tsx                          # Layout Filtros Horizontales
-├── catalog-v3/
-│   └── page.tsx                          # Layout Mobile-First Drawer
+│   └── page.tsx                          # Preview con settings modal (10 opciones)
+├── catalog-v1/ ... catalog-v10/
+│   └── page.tsx                          # Demo versión X standalone
 ├── components/
 │   └── catalog/
 │       ├── CatalogLayout.tsx             # Wrapper principal
-│       ├── CatalogSettingsButton.tsx     # Botón flotante
-│       ├── CatalogSettingsModal.tsx      # Modal de configuración
+│       ├── CatalogSettingsModal.tsx      # Modal de configuración (10 opciones)
 │       ├── layout/
-│       │   ├── CatalogLayoutV1.tsx       # Sidebar 280px izquierdo
-│       │   ├── CatalogLayoutV2.tsx       # Filtros horizontales arriba
-│       │   └── CatalogLayoutV3.tsx       # Mobile-first con drawer
+│       │   ├── CatalogLayoutV1.tsx       # Sidebar Clásico
+│       │   ├── CatalogLayoutV2.tsx       # Filtros Horizontales
+│       │   ├── CatalogLayoutV3.tsx       # Mobile-First Drawer
+│       │   ├── CatalogLayoutV4.tsx       # Split View Abstracto
+│       │   ├── CatalogLayoutV5.tsx       # Split 50/50 Preview
+│       │   ├── CatalogLayoutV6.tsx       # Centrado Sticky
+│       │   ├── CatalogLayoutV7.tsx       # Asimétrico Flotante
+│       │   ├── CatalogLayoutV8.tsx       # Data-Driven Stats
+│       │   ├── CatalogLayoutV9.tsx       # Storytelling Categorías
+│       │   └── CatalogLayoutV10.tsx      # Interactivo Comparador
 │       ├── filters/
 │       │   ├── FilterSection.tsx         # Wrapper de sección
 │       │   ├── FilterChips.tsx           # Chips de filtros aplicados
 │       │   ├── FilterDrawer.tsx          # Drawer móvil
-│       │   ├── BrandFilterV1.tsx         # Solo texto
-│       │   ├── BrandFilterV2.tsx         # Logo + texto
-│       │   ├── BrandFilterV3.tsx         # Grid de logos
+│       │   ├── brand/
+│       │   │   ├── BrandFilterV1.tsx     # Solo texto
+│       │   │   ├── BrandFilterV2.tsx     # Logo + texto
+│       │   │   ├── BrandFilterV3.tsx     # Grid de logos
+│       │   │   ├── BrandFilterV4.tsx     # Carousel
+│       │   │   ├── BrandFilterV5.tsx     # Dropdown
+│       │   │   ├── BrandFilterV6.tsx     # Chips
+│       │   │   ├── BrandFilterV7.tsx     # Accordion
+│       │   │   ├── BrandFilterV8.tsx     # Stats
+│       │   │   ├── BrandFilterV9.tsx     # Favoritos
+│       │   │   └── BrandFilterV10.tsx    # Search
 │       │   ├── PriceRangeFilter.tsx      # Slider precio total
 │       │   ├── QuotaRangeFilter.tsx      # Slider cuota mensual
 │       │   ├── UsageFilter.tsx           # Uso recomendado
@@ -128,7 +138,7 @@ src/app/prototipos/0.2/catalogo/
 
 ### 5.1 Layout General (4 preguntas)
 
-#### Pregunta B.1 [ITERAR - 3 versiones]
+#### Pregunta B.1 [ITERAR - 10 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Layout general |
@@ -136,12 +146,225 @@ src/app/prototipos/0.2/catalogo/
 | **Contexto** | Grid muestra más productos; lista permite más detalle por producto. |
 | **Respuesta** | No tenemos una idea clara, pero considerando que tendremos el doble de productos |
 
-**Versiones a generar:**
-- **V1**: Grid 3 columnas desktop, 2 tablet, 1 móvil (Sidebar 280px)
-- **V2**: Grid 4 columnas desktop con filtros horizontales arriba
-- **V3**: Grid adaptativo mobile-first con drawer de filtros
+**10 Versiones Detalladas:**
 
-#### Pregunta B.2 [ITERAR - 3 versiones]
+---
+
+### V1: Layout Sidebar Clásico (E-commerce Tradicional)
+
+**Concepto**: Sidebar fijo izquierdo 280px con filtros, grid de productos a la derecha
+
+**Elementos visuales**:
+- Sidebar: `w-[280px] bg-white border-r`
+- Grid: 3 columnas desktop, 2 tablet, 1 móvil
+- Header con breadcrumbs y contador de resultados
+- Filtros expandidos por defecto
+
+**Layout**:
+```
+[SIDEBAR 280px  |  HEADER + SORT              ]
+[  Filtros      |  [Card][Card][Card]         ]
+[  expandidos   |  [Card][Card][Card]         ]
+[               |  [Pagination]               ]
+```
+
+**Referencia**: Amazon, Mercado Libre, Falabella
+
+---
+
+### V2: Filtros Horizontales Colapsables
+
+**Concepto**: Filtros en fila horizontal arriba del grid, colapsables
+
+**Elementos visuales**:
+- Barra de filtros: `flex gap-2` con dropdowns
+- Chips de filtros aplicados debajo
+- Grid ocupa todo el ancho
+- Más productos visibles por pantalla
+
+**Layout**:
+```
+[HEADER + SORT                                ]
+[[Marca v] [Precio v] [RAM v] [Más filtros]]  ]
+[Chips aplicados: Lenovo × | 8GB+ ×           ]
+[  [Card]  [Card]  [Card]  [Card]             ]
+[  [Card]  [Card]  [Card]  [Card]             ]
+```
+
+**Referencia**: Apple Store, Nike, Zara
+
+---
+
+### V3: Mobile-First Drawer
+
+**Concepto**: Botón flotante que abre drawer de filtros, mismo UX en desktop y móvil
+
+**Elementos visuales**:
+- FAB: `fixed bottom-6 right-6` con icono Filter
+- Drawer: `w-full md:w-[400px]` desde la derecha
+- Grid sin sidebar, máximo aprovechamiento
+
+**Layout**:
+```
+[HEADER + SORT                                ]
+[  [Card]  [Card]  [Card]  [Card]             ]
+[  [Card]  [Card]  [Card]  [Card]             ]
+                                    [FAB 🔧]
+```
+
+**Referencia**: Airbnb, Booking, apps móviles
+
+---
+
+### V4: Split View Abstracto
+
+**Concepto**: Vista dividida con filtros flotantes sobre fondo con shapes geométricos
+
+**Elementos visuales**:
+- Fondo: Shapes sutiles en tonos primarios `bg-[#4654CD]/5`
+- Panel de filtros: Card flotante con sombra
+- Transiciones suaves entre estados
+
+**Layout**:
+```
+[    SHAPES BACKGROUND SUBTLE                 ]
+[  [Filtros Card]  |  GRID                    ]
+[  [flotante]      |  [Card][Card][Card]      ]
+```
+
+**Referencia**: Nubank, Revolut (secciones de productos)
+
+---
+
+### V5: Split 50/50 con Preview
+
+**Concepto**: Mitad filtros/preview, mitad resultados
+
+**Elementos visuales**:
+- Izquierda: Filtros + preview del producto seleccionado
+- Derecha: Lista/Grid de productos
+- Hover en producto muestra preview izquierdo
+
+**Layout**:
+```
+[FILTROS + PREVIEW  |  GRID RESULTADOS        ]
+[  [Filtros]        |  [Card][Card]           ]
+[  [Preview Card]   |  [Card][Card]           ]
+[  del hover        |  [Card][Card]           ]
+```
+
+**Referencia**: Notion database views, Figma asset panels
+
+---
+
+### V6: Centrado con Filtros Sticky
+
+**Concepto**: Grid centrado, filtros como barra sticky superior
+
+**Elementos visuales**:
+- Barra sticky: `sticky top-16` con filtros inline
+- Grid centrado: `max-w-6xl mx-auto`
+- Scroll suave con filtros siempre visibles
+
+**Layout**:
+```
+[=== STICKY FILTER BAR ====================== ]
+[                                             ]
+[        [Card]  [Card]  [Card]               ]
+[        [Card]  [Card]  [Card]               ]
+[        [Card]  [Card]  [Card]               ]
+```
+
+**Referencia**: Spotify Browse, Netflix categorías
+
+---
+
+### V7: Asimétrico con Filtros Flotantes
+
+**Concepto**: Grid asimétrico con panel de filtros que flota sobre el contenido
+
+**Elementos visuales**:
+- Grid: Masonry o tamaños variados
+- Filtros: Panel flotante que se puede mover/minimizar
+- Diseño editorial, menos estructurado
+
+**Layout**:
+```
+[        GRID ASIMÉTRICO                      ]
+[  [Card Grande]  [Card]                      ]
+[  [Card]  [Card]  [Card]     [Filtros]       ]
+[  [Card]  [Card Grande]       flotante       ]
+```
+
+**Referencia**: Pinterest, Behance
+
+---
+
+### V8: Data-Driven con Stats
+
+**Concepto**: Layout enfocado en datos, con estadísticas y métricas visibles
+
+**Elementos visuales**:
+- Header con stats: "39 laptops | S/49-S/299/mes | 6 marcas"
+- Filtros con contadores prominentes
+- Ordenamiento por métricas visibles
+
+**Layout**:
+```
+[39 laptops encontradas | Rango S/49-S/299    ]
+[[Marca (6)] [Precio ↕] [RAM (4)] [Más]]      ]
+[  [Card con stats]  [Card con stats]         ]
+[  [Card con stats]  [Card con stats]         ]
+```
+
+**Referencia**: Fintech dashboards, Kayak
+
+---
+
+### V9: Storytelling con Categorías
+
+**Concepto**: Catálogo organizado por narrativas/historias de uso
+
+**Elementos visuales**:
+- Secciones: "Para estudiar", "Para crear", "Para jugar"
+- Cada sección con su mini-header
+- Scroll horizontal por categoría
+
+**Layout**:
+```
+[PARA ESTUDIAR - La mejor opción para clases  ]
+[ → [Card] [Card] [Card] [Card] →             ]
+[PARA CREAR - Diseño y programación           ]
+[ → [Card] [Card] [Card] [Card] →             ]
+```
+
+**Referencia**: Duolingo, Headspace, app stores
+
+---
+
+### V10: Interactivo con Comparador Inline
+
+**Concepto**: Grid con funcionalidad de comparación integrada
+
+**Elementos visuales**:
+- Checkbox de comparación en cada card
+- Panel inferior que aparece al seleccionar 2+
+- Comparación side-by-side inline
+
+**Layout**:
+```
+[[Filtros horizontales]                       ]
+[  [☑Card]  [☑Card]  [Card]  [Card]           ]
+[  [Card]   [Card]   [Card]  [Card]           ]
+[=========== COMPARAR 2 PRODUCTOS ============]
+[ [Mini Card 1]  vs  [Mini Card 2]  [Comparar]]
+```
+
+**Referencia**: PCPartPicker, comparison tools
+
+---
+
+#### Pregunta B.2 [ITERAR - 10 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Layout general |
@@ -150,11 +373,18 @@ src/app/prototipos/0.2/catalogo/
 | **Respuesta** | No tenemos una idea clara, mejores prácticas UX & UI |
 
 **Versiones a generar:**
-- **V1**: 6 productos desktop (2 filas × 3), 2 móvil
-- **V2**: 8 productos desktop (2 filas × 4), 2 móvil
-- **V3**: 9 productos desktop (3 filas × 3), 3 móvil (cards compactas)
+- **V1**: 6 productos (2×3), cards medianas con specs
+- **V2**: 8 productos (2×4), cards compactas
+- **V3**: 9 productos (3×3), cards muy compactas
+- **V4**: 4 productos (2×2), cards grandes con más detalle
+- **V5**: 6 productos split (3 izquierda, preview derecha)
+- **V6**: 12 productos (3×4), cards minimalistas
+- **V7**: Variable (masonry layout)
+- **V8**: 6 productos + stats header prominente
+- **V9**: Por sección (4 por categoría horizontal)
+- **V10**: 6 productos + comparador activo
 
-#### Pregunta B.3 [ITERAR - 3 versiones]
+#### Pregunta B.3 [ITERAR - 10 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Layout general |
@@ -163,9 +393,16 @@ src/app/prototipos/0.2/catalogo/
 | **Respuesta** | No tenemos una idea clara, mejores prácticas UX & UI |
 
 **Versiones a generar:**
-- **V1**: Sidebar fijo izquierdo 280px (oculto en móvil, drawer)
-- **V2**: Filtros horizontales colapsables arriba del grid
-- **V3**: Botón flotante que abre drawer (desktop y móvil)
+- **V1**: Sidebar fijo izquierdo 280px
+- **V2**: Filtros horizontales colapsables
+- **V3**: Drawer desde la derecha (FAB)
+- **V4**: Panel flotante con shapes decorativos
+- **V5**: Split 50/50 filtros + preview
+- **V6**: Barra sticky superior
+- **V7**: Panel flotante movible
+- **V8**: Filtros inline con contadores
+- **V9**: Filtros por sección/categoría
+- **V10**: Filtros + comparador integrado
 
 #### Pregunta B.4 [DEFINIDO - 1 versión]
 | Campo | Valor |
@@ -265,7 +502,7 @@ src/app/prototipos/0.2/catalogo/
 
 **Implementación:** Toggle o checkbox "Solo disponibles ahora"
 
-#### Pregunta B.13 [ITERAR - 3 versiones]
+#### Pregunta B.13 [ITERAR - 10 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Filtros - Contenido |
@@ -273,10 +510,18 @@ src/app/prototipos/0.2/catalogo/
 | **Contexto** | Logos son más reconocibles visualmente. |
 | **Respuesta** | No tenemos idea clara, mejores prácticas UX & UI |
 
-**Versiones a generar:**
-- **V1**: Solo texto con checkbox
-- **V2**: Logo pequeño + texto con checkbox
-- **V3**: Grid de logos clickeables (estilo e-commerce)
+**10 Versiones Detalladas:**
+
+- **V1 - Solo Texto**: Checkboxes con nombre de marca + conteo "(12)"
+- **V2 - Logo + Texto**: Logo pequeño 24px + nombre + checkbox
+- **V3 - Grid de Logos**: Grid 3×2 de logos clickeables, sin texto
+- **V4 - Carousel de Logos**: Scroll horizontal de logos, selección múltiple
+- **V5 - Dropdown con Logos**: Select con logos en opciones
+- **V6 - Chips Seleccionables**: Chips con logo + nombre, toggle on/off
+- **V7 - Accordion por Marca**: Expandir marca muestra productos
+- **V8 - Stats por Marca**: Logo + barra de cantidad visual
+- **V9 - Favoritos Primero**: Logos ordenados por popularidad
+- **V10 - Search + Logos**: Input de búsqueda + grid filtrable
 
 ---
 
@@ -366,8 +611,8 @@ src/app/prototipos/0.2/catalogo/
 #### Pregunta B.32-B.33 [DEFINIDO - 1 versión cada uno]
 | Filtro | Implementación |
 |--------|----------------|
-| Nueva vs Reacondicionada | Chips seleccionables (con `truncate` + `title` para palabras largas como "Reacondicionada") |
-| Stock disponible | Switch "Disponible ahora" - **activado por defecto** (`availableNow: true`) |
+| Nueva vs Reacondicionada | Chips seleccionables |
+| Stock disponible | Toggle "Disponible ahora" |
 
 ---
 
@@ -488,8 +733,8 @@ export interface FilterSectionProps {
 }
 
 export interface CatalogLayoutConfig {
-  layoutVersion: 1 | 2 | 3;
-  brandFilterVersion: 1 | 2 | 3;
+  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  brandFilterVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   productsPerRow: {
     mobile: number;
     tablet: number;
@@ -671,23 +916,29 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
 
 | Ruta | Descripción |
 |------|-------------|
-| `/prototipos/0.2/catalogo` | Redirecciona a preview |
-| `/prototipos/0.2/catalogo/catalog-preview` | Comparador con settings |
-| `/prototipos/0.2/catalogo/catalog-v1` | Sidebar clásico |
-| `/prototipos/0.2/catalogo/catalog-v2` | Filtros horizontales |
-| `/prototipos/0.2/catalogo/catalog-v3` | Mobile-first drawer |
+| `/prototipos/0.4/catalogo` | Redirecciona a preview |
+| `/prototipos/0.4/catalogo/catalog-preview` | Comparador con settings modal (10 opciones) |
+| `/prototipos/0.4/catalogo/catalog-v1` | V1: Sidebar Clásico |
+| `/prototipos/0.4/catalogo/catalog-v2` | V2: Filtros Horizontales |
+| `/prototipos/0.4/catalogo/catalog-v3` | V3: Mobile-First Drawer |
+| `/prototipos/0.4/catalogo/catalog-v4` | V4: Split View Abstracto |
+| `/prototipos/0.4/catalogo/catalog-v5` | V5: Split 50/50 Preview |
+| `/prototipos/0.4/catalogo/catalog-v6` | V6: Centrado Sticky |
+| `/prototipos/0.4/catalogo/catalog-v7` | V7: Asimétrico Flotante |
+| `/prototipos/0.4/catalogo/catalog-v8` | V8: Data-Driven Stats |
+| `/prototipos/0.4/catalogo/catalog-v9` | V9: Storytelling Categorías |
+| `/prototipos/0.4/catalogo/catalog-v10` | V10: Interactivo Comparador |
 
 ---
 
 ## 10. Checklist de Entregables
 
-- [ ] `types/catalog.ts` - Tipos completos
+- [ ] `types/catalog.ts` - Tipos completos con 10 versiones
 - [ ] `data/mockCatalogData.ts` - Datos y tooltips
 - [ ] `CatalogLayout.tsx` - Wrapper principal
-- [ ] `CatalogSettingsButton.tsx` - Botón flotante
-- [ ] `CatalogSettingsModal.tsx` - Modal configuración
-- [ ] `CatalogLayoutV1.tsx`, `V2.tsx`, `V3.tsx` - 3 versiones layout
-- [ ] `BrandFilterV1.tsx`, `V2.tsx`, `V3.tsx` - 3 versiones marca
+- [ ] `CatalogSettingsModal.tsx` - Modal configuración (10 opciones por componente)
+- [ ] `CatalogLayoutV1.tsx` a `V10.tsx` - 10 versiones de layout
+- [ ] `BrandFilterV1.tsx` a `V10.tsx` - 10 versiones de filtro de marca
 - [ ] `FilterSection.tsx` - Sección colapsable
 - [ ] `FilterChips.tsx` - Chips removibles
 - [ ] `FilterDrawer.tsx` - Drawer móvil
@@ -698,7 +949,8 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
 - [ ] `CommercialFilters.tsx` - Filtros comerciales
 - [ ] `FilterTooltip.tsx` - Tooltips explicativos
 - [ ] `SortDropdown.tsx` - Ordenamiento
-- [ ] Páginas de preview y versiones standalone
+- [ ] `catalog-preview/page.tsx`
+- [ ] `catalog-v1/page.tsx` hasta `catalog-v10/page.tsx`
 - [ ] `CATALOG_README.md`
 
 ---
@@ -712,5 +964,3 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
 5. **Accesibilidad**: Focus states, aria-labels, navegación por teclado
 6. **Sin gradientes**: Colores sólidos
 7. **Sin emojis**: Solo Lucide icons
-8. **Truncate en filtros**: Usar `truncate` + `title` en botones de filtro para evitar scroll horizontal con palabras largas (ej: "Reacondicionada")
-9. **Switch disponibilidad**: Activado por defecto (`availableNow: true`) para mostrar solo productos en stock

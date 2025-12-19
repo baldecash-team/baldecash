@@ -9,8 +9,9 @@
  */
 
 import React from 'react';
-import { Button, Switch, Chip } from '@nextui-org/react';
+import { Button, Chip } from '@nextui-org/react';
 import { motion } from 'framer-motion';
+import { CustomSwitch } from '@/app/prototipos/_shared/components/CustomSwitch';
 import {
   ArrowLeft,
   Trash2,
@@ -105,34 +106,22 @@ export const ComparatorLayoutV2: React.FC<ComparatorLayoutV2Props> = ({
           <div className="flex flex-wrap items-center justify-between gap-4">
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Switch
-                  size="sm"
-                  isSelected={showOnlyDifferences}
-                  onValueChange={onToggleDifferences}
-                  classNames={{
-                    wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                    thumb: 'bg-white shadow-md',
-                  }}
-                />
-                <span className="text-sm text-neutral-600">
-                  Solo diferencias
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Switch
-                  size="sm"
-                  isSelected={highlightWinners}
-                  onValueChange={onToggleHighlight}
-                  classNames={{
-                    wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                    thumb: 'bg-white shadow-md',
-                  }}
-                />
-                <span className="text-sm text-neutral-600">
-                  Resaltar mejor/peor
-                </span>
-              </label>
+              <CustomSwitch
+                size="sm"
+                color="primary"
+                isSelected={showOnlyDifferences}
+                onValueChange={onToggleDifferences}
+              >
+                Solo diferencias
+              </CustomSwitch>
+              <CustomSwitch
+                size="sm"
+                color="primary"
+                isSelected={highlightWinners}
+                onValueChange={onToggleHighlight}
+              >
+                Resaltar mejor/peor
+              </CustomSwitch>
             </div>
 
             {/* Product Count + Clear */}

@@ -9,8 +9,9 @@
  */
 
 import React from 'react';
-import { Card, CardBody, Switch, Chip } from '@nextui-org/react';
+import { Card, CardBody, Chip } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CustomSwitch } from '@/app/prototipos/_shared/components/CustomSwitch';
 import { Accessory } from '../../../types/upsell';
 
 interface AccessoryCardV2Props {
@@ -103,15 +104,12 @@ export const AccessoryCardV2: React.FC<AccessoryCardV2Props> = ({
               </div>
 
               {/* Toggle Switch */}
-              <Switch
+              <CustomSwitch
                 isSelected={isSelected}
                 onValueChange={canToggle ? onToggle : undefined}
                 isDisabled={!canToggle}
                 size="sm"
-                classNames={{
-                  wrapper: isSelected ? 'bg-[#4654CD]' : 'bg-neutral-300',
-                  thumb: 'bg-white shadow-md',
-                }}
+                color="primary"
               />
             </div>
 

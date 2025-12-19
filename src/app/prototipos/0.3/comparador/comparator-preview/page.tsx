@@ -7,7 +7,7 @@
  * Permite probar diferentes combinaciones de componentes
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@nextui-org/react';
 import { GitCompareArrows } from 'lucide-react';
 import {
@@ -32,7 +32,14 @@ export default function ComparatorPreviewPage() {
   const [selectedProducts, setSelectedProducts] = useState<ComparisonProduct[]>(
     defaultComparisonProducts
   );
-  const [isComparatorOpen, setIsComparatorOpen] = useState(true);
+  const [isComparatorOpen, setIsComparatorOpen] = useState(false);
+
+  // Reset comparator open state when products drop below 2
+  useEffect(() => {
+    if (selectedProducts.length < 2) {
+      setIsComparatorOpen(false);
+    }
+  }, [selectedProducts.length]);
 
   const handleAddProduct = (product: ComparisonProduct) => {
     if (selectedProducts.length >= config.maxProducts) return;

@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Switch } from '@nextui-org/react';
+import { CustomSwitch } from '@/app/prototipos/_shared/components/CustomSwitch';
 import { FilterSection } from './FilterSection';
 import { conditionOptions, gamaOptions } from '../../../data/mockCatalogData';
 import { FilterState, ProductCondition, GamaTier } from '../../../types/catalog';
@@ -48,15 +48,15 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
               <button
                 key={option.value}
                 onClick={() => handleToggleCondition(option.value as ProductCondition)}
-                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer overflow-hidden ${
                   isSelected
                     ? 'border-[#4654CD] bg-[#4654CD] text-white'
                     : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
                 }`}
               >
-                <span className="text-sm font-medium">{option.label}</span>
+                <span className="text-sm font-medium truncate flex-1 text-left" title={option.label}>{option.label}</span>
                 <span
-                  className={`text-xs ${
+                  className={`text-xs flex-shrink-0 ml-1 ${
                     isSelected ? 'text-white/80' : 'text-neutral-400'
                   }`}
                 >
@@ -77,15 +77,15 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
               <button
                 key={option.value}
                 onClick={() => handleToggleGama(option.value as GamaTier)}
-                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer overflow-hidden ${
                   isSelected
                     ? 'border-[#4654CD] bg-[#4654CD] text-white'
                     : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
                 }`}
               >
-                <span className="text-sm font-medium">{option.label}</span>
+                <span className="text-sm font-medium truncate flex-1 text-left" title={option.label}>{option.label}</span>
                 <span
-                  className={`text-xs ${
+                  className={`text-xs flex-shrink-0 ml-1 ${
                     isSelected ? 'text-white/80' : 'text-neutral-400'
                   }`}
                 >
@@ -100,16 +100,12 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
       {/* Availability */}
       <FilterSection title="Disponibilidad">
         <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-neutral-50 border border-neutral-200">
-          <Switch
+          <CustomSwitch
+            defaultSelected
             size="sm"
-            isSelected={filters.availableNow}
+            color="primary"
+            aria-label="Disponible ahora"
             onValueChange={(val) => onChange({ availableNow: val })}
-            classNames={{
-              base: 'flex-shrink-0 min-w-[40px] cursor-pointer',
-              wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-              thumb: 'bg-white shadow-md',
-              hiddenInput: 'z-0',
-            }}
           />
           <div className="flex-1 min-w-0">
             <span className="text-sm text-neutral-700 font-medium block">Disponible ahora</span>

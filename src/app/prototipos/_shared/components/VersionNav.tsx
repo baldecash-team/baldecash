@@ -17,28 +17,36 @@ export function VersionNav({ currentVersion, showSections = true }: VersionNavPr
   const progress = current ? getVersionProgress(current) : 0;
 
   return (
-    <nav className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-700">
+    <nav className="sticky top-0 z-50 bg-[#151744]/95 backdrop-blur-sm border-b border-[#212469]">
       <div className="container mx-auto px-4">
         {/* Main nav row */}
         <div className="flex items-center justify-between h-14">
-          {/* Left: Home + Version */}
+          {/* Left: Home + Logo + Version */}
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="p-2 rounded-lg hover:bg-slate-800 transition-colors text-slate-400 hover:text-white"
+              className="p-2 rounded-lg hover:bg-[#212469] transition-colors text-neutral-400 hover:text-white"
               title="Volver al Home"
             >
               <Home className="w-5 h-5" />
             </Link>
 
-            <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-emerald-400" />
-              <span className="text-white font-medium">v{currentVersion}</span>
-              {current?.badge && (
-                <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs rounded-full">
-                  {current.badge}
-                </span>
-              )}
+            <div className="flex items-center gap-3">
+              <img
+                src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+                alt="BaldeCash"
+                className="h-6 object-contain"
+              />
+              <div className="h-4 w-px bg-[#212469]" />
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[#03DBD0]" />
+                <span className="text-white font-medium">v{currentVersion}</span>
+                {current?.badge && (
+                  <span className="px-2 py-0.5 bg-[#03DBD0]/20 text-[#03DBD0] text-xs rounded-full">
+                    {current.badge}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -52,7 +60,7 @@ export function VersionNav({ currentVersion, showSections = true }: VersionNavPr
             {prev ? (
               <Link
                 href={`/prototipos/${prev.version}`}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors text-sm text-slate-300 hover:text-white"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#212469] hover:bg-[#31359C] transition-colors text-sm text-neutral-300 hover:text-white"
               >
                 <ChevronLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">v{prev.version}</span>
@@ -64,7 +72,7 @@ export function VersionNav({ currentVersion, showSections = true }: VersionNavPr
             {next ? (
               <Link
                 href={`/prototipos/${next.version}`}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors text-sm text-slate-300 hover:text-white"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#212469] hover:bg-[#31359C] transition-colors text-sm text-neutral-300 hover:text-white"
               >
                 <span className="hidden sm:inline">v{next.version}</span>
                 <ChevronRight className="w-4 h-4" />
@@ -78,18 +86,18 @@ export function VersionNav({ currentVersion, showSections = true }: VersionNavPr
         {/* Sections row (optional) */}
         {showSections && current?.sections && current.sections.length > 0 && (
           <div className="flex items-center gap-4 pb-3 overflow-x-auto">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs text-neutral-400">
               <span>Progreso:</span>
-              <div className="w-24 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+              <div className="w-24 h-1.5 bg-[#212469] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 transition-all duration-300"
+                  className="h-full bg-[#03DBD0] transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
               <span>{progress}%</span>
             </div>
 
-            <div className="h-4 w-px bg-slate-700" />
+            <div className="h-4 w-px bg-[#212469]" />
 
             <div className="flex items-center gap-2">
               {current.sections.map((section) => {
@@ -101,12 +109,12 @@ export function VersionNav({ currentVersion, showSections = true }: VersionNavPr
                     className={`
                       px-3 py-1 rounded-full text-xs font-medium transition-colors
                       ${isActive
-                        ? 'bg-emerald-500 text-white'
+                        ? 'bg-[#4654CD] text-white'
                         : section.status === 'done'
-                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          ? 'bg-[#212469] text-neutral-300 hover:bg-[#31359C]'
                           : section.status === 'in_progress'
-                            ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                            : 'bg-slate-800 text-slate-500 hover:bg-slate-700'
+                            ? 'bg-[#03DBD0]/20 text-[#03DBD0] hover:bg-[#03DBD0]/30'
+                            : 'bg-[#151744] text-neutral-500 hover:bg-[#212469]'
                       }
                     `}
                   >
@@ -127,7 +135,7 @@ function VersionSelector({ currentVersion }: { currentVersion: string }) {
   const versions = getActiveVersions();
 
   return (
-    <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1">
+    <div className="flex items-center gap-1 bg-[#212469] rounded-lg p-1">
       {versions.map((v) => {
         const isActive = v.version === currentVersion;
         return (
@@ -137,8 +145,8 @@ function VersionSelector({ currentVersion }: { currentVersion: string }) {
             className={`
               px-3 py-1 rounded-md text-sm font-medium transition-colors
               ${isActive
-                ? 'bg-emerald-500 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                ? 'bg-[#4654CD] text-white'
+                : 'text-neutral-400 hover:text-white hover:bg-[#31359C]'
               }
             `}
           >

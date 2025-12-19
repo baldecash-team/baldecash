@@ -9,11 +9,11 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, HelpCircle, Play, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { HelpCircle, Play } from 'lucide-react';
 
 // Components
 import { HelpQuiz, QuizSettingsModal } from './components/quiz';
+import { FloatingControls } from '@/app/prototipos/_shared/components/FloatingControls';
 
 // Types
 import { QuizConfig, defaultQuizConfig, versionDescriptions } from './types/quiz';
@@ -24,44 +24,23 @@ export default function QuizPreviewPage() {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      {/* Header */}
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/prototipos/0.3"
-              className="text-sm text-neutral-500 hover:text-[#4654CD] transition-colors"
-            >
-              ← Volver a prototipos
-            </Link>
-            <div className="h-4 w-px bg-neutral-200" />
-            <h1 className="text-lg font-bold text-neutral-800">
-              Quiz de Ayuda
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="bordered"
-              startContent={<Settings className="w-4 h-4" />}
-              onPress={() => setIsSettingsOpen(true)}
-              className="cursor-pointer border-neutral-300"
-            >
-              Configurar
-            </Button>
-            <Button
-              className="bg-[#4654CD] text-white cursor-pointer"
-              startContent={<Play className="w-4 h-4" />}
-              onPress={() => setIsQuizOpen(true)}
-            >
-              Iniciar Quiz
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white relative">
+      {/* Floating Controls */}
+      <FloatingControls
+        config={config}
+        onSettingsClick={() => setIsSettingsOpen(true)}
+        extraActions={[
+          {
+            icon: <Play className="w-5 h-5" />,
+            onClick: () => setIsQuizOpen(true),
+            tooltip: 'Iniciar Quiz',
+            variant: 'primary',
+          },
+        ]}
+      />
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-6 pt-8">
         {/* Current config summary */}
         <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-8">
           <div className="flex items-center gap-3 mb-4">
