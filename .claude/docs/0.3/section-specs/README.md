@@ -44,6 +44,16 @@ Ver `GUIA_TRABAJO_CLAUDE_TERMINAL.md` para:
 - Checklist de calidad
 - Estructura de carpetas esperada
 
+## Componentes Compartidos
+
+Ver `COMPONENT_CUSTOM_SWITCH.md` para documentacion del componente Switch custom.
+
+| Componente | Archivo | Descripcion |
+|------------|---------|-------------|
+| `CustomSwitch` | `_shared/components/CustomSwitch.tsx` | Switch compatible con Tailwind v4 (reemplazo de NextUI Switch) |
+
+**Nota:** NextUI v2 no es compatible con Tailwind CSS v4. Usar `CustomSwitch` en lugar de `Switch` de NextUI.
+
 ## Skills Relacionados
 
 Antes de generar cualquier sección, invocar:

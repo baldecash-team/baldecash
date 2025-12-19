@@ -248,3 +248,56 @@ export const ComparisonTableV1: React.FC<{ products: ComparisonProduct[] }> = ({
 4. **Persistencia**: Guardar selección en localStorage
 5. **Sin gradientes**: Colores sólidos
 6. **Sin emojis**: Solo Lucide icons
+
+---
+
+## 8. Notas de Implementación
+
+### Modal V1 - Comportamiento de Apertura
+
+El modal del comparador (Layout V1) solo debe abrirse cuando el usuario presiona el botón "Abrir Comparador". Para evitar que se abra automáticamente al seleccionar productos:
+
+```tsx
+// En comparator-preview/page.tsx
+const [isComparatorOpen, setIsComparatorOpen] = useState(false);
+
+// Reset cuando productos bajan de 2
+useEffect(() => {
+  if (selectedProducts.length < 2) {
+    setIsComparatorOpen(false);
+  }
+}, [selectedProducts.length]);
+```
+
+### Modal V1 - Tamaño y Espaciado
+
+El modal usa `size="5xl"` con márgenes para dejar espacio visual:
+
+```tsx
+<Modal
+  size="5xl"
+  classNames={{
+    base: 'bg-white m-4 sm:m-8 rounded-xl max-h-[90vh]',
+    wrapper: 'items-center justify-center p-4',
+  }}
+>
+```
+
+### CustomSwitch en lugar de NextUI Switch
+
+NextUI v2 no es compatible con Tailwind CSS v4. Los switches del comparador usan `CustomSwitch`:
+
+```tsx
+import { CustomSwitch } from '@/app/prototipos/_shared/components/CustomSwitch';
+
+<CustomSwitch
+  size="sm"
+  color="primary"
+  isSelected={showOnlyDifferences}
+  onValueChange={onToggleDifferences}
+>
+  Solo diferencias
+</CustomSwitch>
+```
+
+Ver `COMPONENT_CUSTOM_SWITCH.md` para documentación completa.

@@ -121,7 +121,7 @@ export const defaultFilterState: FilterState = {
   condition: [],
   stock: [],
   gama: [],
-  availableNow: false,
+  availableNow: true,
 };
 
 // ============================================

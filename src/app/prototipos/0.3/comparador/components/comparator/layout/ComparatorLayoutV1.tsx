@@ -16,9 +16,9 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Switch,
 } from '@nextui-org/react';
-import { X, Trash2, GitCompareArrows, Eye, EyeOff } from 'lucide-react';
+import { Trash2, GitCompareArrows } from 'lucide-react';
+import { CustomSwitch } from '@/app/prototipos/_shared/components/CustomSwitch';
 import { ComparatorLayoutProps } from '../../../types/comparator';
 
 interface ComparatorLayoutV1Props extends ComparatorLayoutProps {
@@ -45,12 +45,13 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutV1Props> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size="full"
-      scrollBehavior="outside"
+      size="5xl"
+      scrollBehavior="inside"
       backdrop="blur"
+      placement="center"
       classNames={{
-        base: 'bg-white m-0 sm:m-4 rounded-none sm:rounded-xl max-h-screen',
-        wrapper: 'items-start sm:items-center justify-center',
+        base: 'bg-white m-4 sm:m-8 rounded-xl max-h-[90vh]',
+        wrapper: 'items-center justify-center p-4',
         backdrop: 'bg-black/60',
         header: 'border-b border-neutral-200 bg-white py-4',
         body: 'bg-white p-0 overflow-auto',
@@ -61,9 +62,9 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutV1Props> = ({
       <ModalContent>
         {(onCloseModal) => (
           <>
-            <ModalHeader className="flex items-center justify-between gap-4">
+            <ModalHeader className="flex items-center justify-between gap-4 pr-14">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
                   <GitCompareArrows className="w-5 h-5 text-[#4654CD]" />
                 </div>
                 <div>
@@ -77,69 +78,49 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutV1Props> = ({
               </div>
 
               {/* Controls */}
-              <div className="hidden md:flex items-center gap-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Switch
-                    size="sm"
-                    isSelected={showOnlyDifferences}
-                    onValueChange={onToggleDifferences}
-                    classNames={{
-                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                      thumb: 'bg-white shadow-md',
-                    }}
-                  />
-                  <span className="text-sm text-neutral-600">
-                    Solo diferencias
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Switch
-                    size="sm"
-                    isSelected={highlightWinners}
-                    onValueChange={onToggleHighlight}
-                    classNames={{
-                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                      thumb: 'bg-white shadow-md',
-                    }}
-                  />
-                  <span className="text-sm text-neutral-600">
-                    Resaltar mejor/peor
-                  </span>
-                </label>
+              <div className="hidden md:flex items-center gap-6 flex-shrink-0">
+                <CustomSwitch
+                  size="sm"
+                  color="primary"
+                  isSelected={showOnlyDifferences}
+                  onValueChange={onToggleDifferences}
+                  aria-label="Solo diferencias"
+                >
+                  Solo diferencias
+                </CustomSwitch>
+                <CustomSwitch
+                  size="sm"
+                  color="primary"
+                  isSelected={highlightWinners}
+                  onValueChange={onToggleHighlight}
+                  aria-label="Resaltar mejor/peor"
+                >
+                  Resaltar mejor/peor
+                </CustomSwitch>
               </div>
             </ModalHeader>
 
             <ModalBody className="p-4 md:p-6">
               {/* Mobile Controls */}
               <div className="md:hidden flex flex-wrap gap-4 mb-4 p-3 bg-neutral-50 rounded-lg">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Switch
-                    size="sm"
-                    isSelected={showOnlyDifferences}
-                    onValueChange={onToggleDifferences}
-                    classNames={{
-                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                      thumb: 'bg-white shadow-md',
-                    }}
-                  />
-                  <span className="text-xs text-neutral-600">
-                    Solo diferencias
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Switch
-                    size="sm"
-                    isSelected={highlightWinners}
-                    onValueChange={onToggleHighlight}
-                    classNames={{
-                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                      thumb: 'bg-white shadow-md',
-                    }}
-                  />
-                  <span className="text-xs text-neutral-600">
-                    Resaltar mejor/peor
-                  </span>
-                </label>
+                <CustomSwitch
+                  size="sm"
+                  color="primary"
+                  isSelected={showOnlyDifferences}
+                  onValueChange={onToggleDifferences}
+                  aria-label="Solo diferencias"
+                >
+                  Solo diferencias
+                </CustomSwitch>
+                <CustomSwitch
+                  size="sm"
+                  color="primary"
+                  isSelected={highlightWinners}
+                  onValueChange={onToggleHighlight}
+                  aria-label="Resaltar mejor/peor"
+                >
+                  Resaltar mejor/peor
+                </CustomSwitch>
               </div>
 
               {/* Comparison Content */}

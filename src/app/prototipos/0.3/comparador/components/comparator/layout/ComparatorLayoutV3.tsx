@@ -9,8 +9,9 @@
  */
 
 import React from 'react';
-import { Button, Switch, Chip } from '@nextui-org/react';
+import { Button, Chip } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CustomSwitch } from '@/app/prototipos/_shared/components/CustomSwitch';
 import {
   X,
   Trash2,
@@ -116,34 +117,22 @@ export const ComparatorLayoutV3: React.FC<ComparatorLayoutV3Props> = ({
             {/* Controls */}
             <div className="p-3 border-b border-neutral-100 bg-neutral-50 space-y-2">
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Switch
-                    size="sm"
-                    isSelected={showOnlyDifferences}
-                    onValueChange={onToggleDifferences}
-                    classNames={{
-                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                      thumb: 'bg-white shadow-md',
-                    }}
-                  />
-                  <span className="text-xs text-neutral-600">
-                    Solo diferencias
-                  </span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Switch
-                    size="sm"
-                    isSelected={highlightWinners}
-                    onValueChange={onToggleHighlight}
-                    classNames={{
-                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                      thumb: 'bg-white shadow-md',
-                    }}
-                  />
-                  <span className="text-xs text-neutral-600">
-                    Resaltar
-                  </span>
-                </label>
+                <CustomSwitch
+                  size="sm"
+                  color="primary"
+                  isSelected={showOnlyDifferences}
+                  onValueChange={onToggleDifferences}
+                >
+                  Solo diferencias
+                </CustomSwitch>
+                <CustomSwitch
+                  size="sm"
+                  color="primary"
+                  isSelected={highlightWinners}
+                  onValueChange={onToggleHighlight}
+                >
+                  Resaltar
+                </CustomSwitch>
               </div>
             </div>
 

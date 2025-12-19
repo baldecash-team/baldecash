@@ -76,8 +76,18 @@ export const QuizQuestionV1: React.FC<QuizQuestionProps> = ({
         )}
       </div>
 
-      {/* Options grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+      {/* Options grid - dynamic columns based on option count */}
+      <div
+        className={`grid gap-3 md:gap-4 ${
+          question.options.length === 2
+            ? 'grid-cols-2'
+            : question.options.length === 3
+              ? 'grid-cols-2 md:grid-cols-3'
+              : question.options.length === 4
+                ? 'grid-cols-2 md:grid-cols-4'
+                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5'
+        }`}
+      >
         {question.options.map((option, index) => {
           const IconComponent = iconMap[option.icon] || Laptop;
           const isSelected = selectedOption === option.id;

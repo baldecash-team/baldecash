@@ -7,7 +7,7 @@
  * Permite probar diferentes combinaciones de componentes
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@nextui-org/react';
 import { GitCompareArrows, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -42,11 +42,17 @@ export default function ComparatorPreviewPage() {
   };
 
   const handleRemoveProduct = (productId: string) => {
-    setSelectedProducts(selectedProducts.filter((p) => p.id !== productId));
+    const newProducts = selectedProducts.filter((p) => p.id !== productId);
+    setSelectedProducts(newProducts);
+    // Close comparator if less than 2 products remain
+    if (newProducts.length < 2) {
+      setIsComparatorOpen(false);
+    }
   };
 
   const handleClearAll = () => {
     setSelectedProducts([]);
+    setIsComparatorOpen(false);
   };
 
   // For Layout V1 (modal) and V3 (panel), we show a product selector

@@ -7,7 +7,7 @@
  * con controles de configuracion A/B.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@nextui-org/react';
 import { HelpCircle, Play, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -25,7 +25,7 @@ export default function QuizPreviewPage() {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-neutral-50 relative">
+    <div className="min-h-screen bg-white relative">
       {/* Back to prototypes */}
       <div className="fixed top-4 left-4 z-[60]">
         <Link href="/prototipos/0.3">
@@ -44,26 +44,18 @@ export default function QuizPreviewPage() {
       <FloatingControls
         config={config}
         onSettingsClick={() => setIsSettingsOpen(true)}
+        extraActions={[
+          {
+            icon: <Play className="w-5 h-5" />,
+            onClick: () => setIsQuizOpen(true),
+            tooltip: 'Iniciar Quiz',
+            variant: 'primary',
+          },
+        ]}
       />
 
-      {/* Header */}
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-neutral-800">
-            Quiz de Ayuda
-          </h1>
-          <Button
-            className="bg-[#4654CD] text-white cursor-pointer"
-            startContent={<Play className="w-4 h-4" />}
-            onPress={() => setIsQuizOpen(true)}
-          >
-            Iniciar Quiz
-          </Button>
-        </div>
-      </header>
-
       {/* Main content */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-6 pt-8">
         {/* Current config summary */}
         <div className="bg-white rounded-xl border border-neutral-200 p-6 mb-8">
           <div className="flex items-center gap-3 mb-4">
