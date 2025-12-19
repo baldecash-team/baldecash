@@ -2,30 +2,30 @@
 
 import Link from "next/link";
 import { Card, CardBody } from "@nextui-org/react";
-import { AlertCircle, Clock, Layers, Rocket, ArrowLeft } from "lucide-react";
+import { AlertCircle, Clock, Layers, Rocket, ArrowLeft, Monitor, ShoppingCart, Search, HelpCircle, AlertTriangle, FileText, PackagePlus, PartyPopper, XCircle, CheckCircle2 } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
 
 const version = getVersionByNumber("0.4")!;
 
 const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  hero: Rocket,
-  catalogo: Layers,
-  detalle: Layers,
+  hero: Monitor,
+  catalogo: ShoppingCart,
+  detalle: Search,
   comparador: Layers,
-  quiz: Layers,
-  estados: Layers,
-  wizard: Layers,
-  solicitud: Layers,
-  upsell: Layers,
-  aprobacion: Layers,
-  rechazo: Layers,
+  quiz: HelpCircle,
+  estados: AlertTriangle,
+  wizard: FileText,
+  solicitud: FileText,
+  upsell: PackagePlus,
+  aprobacion: PartyPopper,
+  rechazo: XCircle,
 };
 
 const statusStyles = {
   pending: { icon: AlertCircle, color: "text-neutral-400", bg: "bg-neutral-200", label: "Pendiente" },
   in_progress: { icon: Clock, color: "text-[#03DBD0]", bg: "bg-[#03DBD0]/20", label: "En desarrollo" },
-  done: { icon: Layers, color: "text-[#4654CD]", bg: "bg-[#4654CD]/20", label: "Completado" },
+  done: { icon: CheckCircle2, color: "text-[#4654CD]", bg: "bg-[#4654CD]/20", label: "Completado" },
 };
 
 export default function Version04Page() {
@@ -85,11 +85,15 @@ export default function Version04Page() {
               const IconComponent = sectionIcons[section.id] || Layers;
               const status = statusStyles[section.status];
               const StatusIcon = status.icon;
+              const isClickable = section.status !== 'pending';
 
-              return (
+              const cardContent = (
                 <Card
-                  key={section.id}
-                  className="bg-white border border-neutral-100 opacity-60 pointer-events-none"
+                  className={`bg-white border transition-all duration-300 w-full h-full ${
+                    isClickable
+                      ? 'border-neutral-200 hover:border-[#4654CD] hover:scale-[1.02] cursor-pointer shadow-sm'
+                      : 'border-neutral-100 opacity-60 pointer-events-none'
+                  }`}
                 >
                   <CardBody className="p-4 flex flex-col">
                     {/* Icon */}
@@ -108,6 +112,14 @@ export default function Version04Page() {
                     </div>
                   </CardBody>
                 </Card>
+              );
+
+              return isClickable ? (
+                <Link key={section.id} href={section.path} className="block w-full h-full">
+                  {cardContent}
+                </Link>
+              ) : (
+                <div key={section.id} className="w-full h-full">{cardContent}</div>
               );
             })}
           </div>

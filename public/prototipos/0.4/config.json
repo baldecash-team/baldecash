@@ -1,0 +1,115 @@
+{
+  "version": "0.4",
+  "createdAt": "2024-12-19T00:00:00.000Z",
+  "updatedAt": "2024-12-19T00:00:00.000Z",
+  "description": "Prototipo v0.4 - Sistema de A/B testing con 10 versiones por componente",
+  "status": "in_progress",
+  "sections": {
+    "hero": {
+      "status": "pending",
+      "components": {}
+    },
+    "catalogoLayout": {
+      "status": "done",
+      "lastUpdated": "2024-12-19T00:00:00.000Z",
+      "components": {
+        "layout": {
+          "version": 1,
+          "variants": 10,
+          "notes": "V1-Sidebar, V2-Horizontal, V3-Drawer, V4-Split, V5-Preview, V6-Sticky, V7-Flotante, V8-Stats, V9-Storytelling, V10-Comparador"
+        },
+        "brandFilter": {
+          "version": 1,
+          "variants": 10,
+          "notes": "V1-Texto, V2-Logo+Texto, V3-Grid logos, V4-Carousel, V5-Dropdown, V6-Chips, V7-Accordion, V8-Stats, V9-Popularity, V10-Search"
+        },
+        "productCard": {
+          "version": 1,
+          "variants": 3,
+          "notes": "V1-Técnico, V2-Beneficios, V3-Híbrido"
+        },
+        "filterSection": {
+          "version": 1,
+          "notes": "Sección colapsable con tooltips"
+        },
+        "filterChips": {
+          "version": 1,
+          "notes": "Chips removibles de filtros aplicados"
+        },
+        "filterDrawer": {
+          "version": 1,
+          "notes": "Drawer de filtros para móvil"
+        },
+        "priceRangeFilter": {
+          "version": 1,
+          "notes": "Slider de rango de precio total"
+        },
+        "quotaRangeFilter": {
+          "version": 1,
+          "notes": "Slider de cuota con selector de frecuencia"
+        },
+        "usageFilter": {
+          "version": 1,
+          "notes": "Filtro de uso recomendado con iconos"
+        },
+        "technicalFilters": {
+          "version": 1,
+          "notes": "RAM, SSD, pantalla, procesador, GPU, etc."
+        },
+        "commercialFilters": {
+          "version": 1,
+          "notes": "Condición, gama, disponibilidad"
+        },
+        "sortDropdown": {
+          "version": 1,
+          "notes": "Ordenamiento con 6 opciones"
+        },
+        "emptyState": {
+          "version": 1,
+          "notes": "Estado vacío con sugerencias"
+        }
+      },
+      "totalCombinations": 300,
+      "combinationFormula": "10 layouts x 10 brand filters x 3 cards = 300"
+    },
+    "detalleProducto": {
+      "status": "pending",
+      "components": {}
+    },
+    "comparador": {
+      "status": "pending",
+      "components": {}
+    },
+    "quiz": {
+      "status": "pending",
+      "components": {}
+    },
+    "estadoVacio": {
+      "status": "pending",
+      "components": {}
+    },
+    "wizard": {
+      "status": "pending",
+      "components": {}
+    },
+    "upsell": {
+      "status": "pending",
+      "components": {}
+    },
+    "aprobacion": {
+      "status": "pending",
+      "components": {}
+    },
+    "rechazo": {
+      "status": "pending",
+      "components": {}
+    }
+  },
+  "testingNotes": [
+    {
+      "date": "2024-12-19",
+      "note": "Inicio de v0.4 con sistema de 10 versiones para catálogo",
+      "author": "Claude"
+    }
+  ]
+}
