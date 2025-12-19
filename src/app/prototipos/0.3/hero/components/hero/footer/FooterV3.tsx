@@ -31,9 +31,11 @@ export const FooterV3: React.FC<FooterProps> = ({ data }) => {
       <div className="container mx-auto px-4 py-8">
         {/* Top Row: Logo + WhatsApp CTA */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <h2 className="font-['Baloo_2'] text-xl font-bold">
-            {data.logo.text}<span className="text-[#03DBD0]">.com</span>
-          </h2>
+          <img
+            src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+            alt="BaldeCash"
+            className="h-8 object-contain brightness-0 invert"
+          />
 
           {whatsappLink && (
             <Button

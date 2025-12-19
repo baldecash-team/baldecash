@@ -41,27 +41,14 @@ export const NavbarV3: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <a href="/prototipos/0.3/hero" className="flex items-center gap-2">
-            <div
-              className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
-                isScrolled ? 'bg-[#4654CD]' : 'bg-white'
+          <a href="/prototipos/0.3/hero" className="flex items-center">
+            <img
+              src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+              alt="BaldeCash"
+              className={`h-8 object-contain transition-all ${
+                isScrolled ? '' : 'brightness-0 invert'
               }`}
-            >
-              <span
-                className={`font-black text-lg transition-colors ${
-                  isScrolled ? 'text-white' : 'text-[#4654CD]'
-                }`}
-              >
-                B
-              </span>
-            </div>
-            <span
-              className={`font-['Baloo_2'] font-black text-xl hidden sm:block transition-colors ${
-                isScrolled ? 'text-neutral-900' : 'text-white'
-              }`}
-            >
-              BaldeCash
-            </span>
+            />
           </a>
 
           {/* Desktop Navigation */}

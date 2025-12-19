@@ -10,7 +10,6 @@
  */
 
 import React from 'react';
-import { Image } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { SocialProofProps } from '../../../types/hero';
 import { mockSocialProof } from '../../../data/mockHeroData';
@@ -51,11 +50,11 @@ export const SocialProofV1: React.FC<SocialProofProps> = ({
                 key={`${logo.id}-${index}`}
                 className="flex-shrink-0 flex items-center justify-center h-12 w-32 grayscale hover:grayscale-0 transition-all duration-300"
               >
-                <Image
+                <img
                   src={logo.url}
                   alt={logo.name}
                   className="max-h-10 max-w-28 object-contain"
-                  removeWrapper
+                  loading="lazy"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';

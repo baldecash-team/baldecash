@@ -37,9 +37,13 @@ export const FooterV2: React.FC<FooterProps> = ({ data }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-8">
           {/* Logo & Tagline */}
           <div className="lg:col-span-2">
-            <h2 className="font-['Baloo_2'] text-2xl font-bold text-[#4654CD] mb-2">
-              {data.logo.text}<span className="text-[#03DBD0]">.com</span>
-            </h2>
+            <div className="mb-2">
+              <img
+                src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+                alt="BaldeCash"
+                className="h-8 object-contain"
+              />
+            </div>
             <p className="text-neutral-500 text-sm mb-4">{data.logo.tagline}</p>
 
             {/* Contact Info */}

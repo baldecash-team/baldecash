@@ -1561,11 +1561,12 @@ const LogoMarquee = () => {
       >
         {allLogos.map((logo, index) => (
           <div key={`${logo.id}-${index}`} className="flex-shrink-0 h-12 w-32 grayscale hover:grayscale-0 transition-all">
-            <Image
+            {/* IMPORTANTE: Usar <img> nativo, NO NextUI Image para URLs externas */}
+            <img
               src={logo.url}
               alt={logo.name}
               className="max-h-10 max-w-28 object-contain"
-              removeWrapper
+              loading="lazy"
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           </div>
@@ -1575,6 +1576,8 @@ const LogoMarquee = () => {
   );
 };
 ```
+
+**IMPORTANTE**: Usar `<img>` nativo en lugar de NextUI `<Image>` para URLs de CDN externos. NextUI Image con `removeWrapper` no funciona correctamente en builds con `output: "export"`.
 
 ### Estadísticas disponibles:
 
