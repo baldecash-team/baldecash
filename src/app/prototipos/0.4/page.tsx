@@ -44,17 +44,6 @@ export default function Version04Page() {
           <p className="text-lg text-neutral-500 max-w-2xl mx-auto">{version.description}</p>
         </header>
 
-        {/* Coming Soon Banner */}
-        <section className="max-w-4xl mx-auto mb-12">
-          <div className="bg-gradient-to-r from-[#4654CD] to-[#03DBD0] rounded-2xl p-8 text-white text-center">
-            <Clock className="w-16 h-16 mx-auto mb-4 opacity-80" />
-            <h2 className="text-2xl font-bold mb-2">Próximamente</h2>
-            <p className="text-white/80 max-w-md mx-auto">
-              Esta versión está en desarrollo. Las secciones estarán disponibles pronto con mejoras y optimizaciones basadas en los aprendizajes de la v0.3.
-            </p>
-          </div>
-        </section>
-
         {/* Progress Overview */}
         <section className="max-w-4xl mx-auto mb-12">
           <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm">
