@@ -752,6 +752,46 @@ Todo elemento con `onClick`, `onPress`, o que sea interactivo DEBE tener `cursor
 </Button>
 ```
 
+### NextUI Card clickeable con navegación (mobile-friendly)
+
+El patrón `<Link><Card>` NO funciona correctamente en mobile porque NextUI Card intercepta eventos táctiles. Usar `isPressable` con `useRouter`:
+
+```tsx
+// ❌ PROHIBIDO - Link + Card (no funciona en mobile)
+import Link from "next/link";
+
+<Link href="/destino">
+  <Card className="cursor-pointer">
+    <CardBody>Contenido</CardBody>
+  </Card>
+</Link>
+
+// ✅ CORRECTO - Card isPressable con useRouter
+import { useRouter } from "next/navigation";
+import { Card, CardBody } from "@nextui-org/react";
+
+const MyComponent = () => {
+  const router = useRouter();
+
+  return (
+    <Card
+      isPressable
+      onPress={() => router.push("/destino")}
+      className="cursor-pointer hover:border-[#4654CD]/50 hover:shadow-md transition-all"
+    >
+      <CardBody>Contenido</CardBody>
+    </Card>
+  );
+};
+```
+
+### Reglas para Cards clickeables:
+- **NUNCA** envolver Card de NextUI con Link (no funciona en mobile)
+- **SIEMPRE** usar `isPressable` prop en Card
+- **SIEMPRE** usar `onPress={() => router.push(path)}` para navegación
+- **SIEMPRE** agregar `cursor-pointer` en className
+- **SIEMPRE** agregar efectos hover para feedback visual
+
 ## Estados de Seleccion
 
 ### Elementos seleccionables SIEMPRE con estado visual claro

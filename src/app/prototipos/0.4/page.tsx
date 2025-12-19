@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@nextui-org/react";
 import { AlertCircle, Layers, Rocket, ArrowLeft, CheckCircle } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
@@ -29,6 +30,8 @@ const statusStyles = {
 };
 
 export default function Version04Page() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <VersionNav currentVersion="0.4" showSections={false} />
@@ -97,11 +100,14 @@ export default function Version04Page() {
 
               if (isDone) {
                 return (
-                  <Link key={section.id} href={section.path}>
-                    <Card className="bg-white border border-neutral-100 hover:border-[#4654CD]/50 hover:shadow-md transition-all cursor-pointer h-full">
-                      {cardContent}
-                    </Card>
-                  </Link>
+                  <Card
+                    key={section.id}
+                    isPressable
+                    onPress={() => router.push(section.path)}
+                    className="bg-white border border-neutral-100 hover:border-[#4654CD]/50 hover:shadow-md transition-all cursor-pointer h-full"
+                  >
+                    {cardContent}
+                  </Card>
                 );
               }
 

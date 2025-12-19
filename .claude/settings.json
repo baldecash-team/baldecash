@@ -17,7 +17,9 @@
       "WebSearch",
       "Skill(brandbook)",
       "Skill(frontend)",
-      "SlashCommand(/iterar:*)"
+      "Skill(fix)",
+      "SlashCommand(/iterar:*)",
+      "SlashCommand(/fix:*)"
     ],
     "deny": []
   }
