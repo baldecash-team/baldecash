@@ -39,7 +39,7 @@ export default function SolicitudPage() {
       {/* Back link */}
       <Link
         href="/prototipos/0.3"
-        className="fixed top-4 left-4 z-50 flex items-center gap-2 text-sm text-neutral-500 hover:text-[#4654CD] transition-colors"
+        className="fixed top-4 left-4 z-50 flex items-center gap-2 text-sm text-white hover:text-white/80 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Volver a prototipos
