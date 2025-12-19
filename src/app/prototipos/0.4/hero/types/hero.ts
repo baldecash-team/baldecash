@@ -1,0 +1,280 @@
+// Hero Section Types - BaldeCash v0.4
+// Generated from PROMPT_01_HERO_LANDING.md
+// 10 versiones por componente para A/B testing
+
+import { ReactNode } from 'react';
+
+// ============================================
+// Configuration Types (10 versions each)
+// ============================================
+
+export type HeroVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+
+export interface HeroConfig {
+  heroBannerVersion: HeroVersion;
+  socialProofVersion: HeroVersion;
+  navbarVersion: HeroVersion;
+  ctaVersion: HeroVersion;
+  footerVersion: HeroVersion;
+}
+
+export const defaultHeroConfig: HeroConfig = {
+  heroBannerVersion: 1,
+  socialProofVersion: 1,
+  navbarVersion: 1,
+  ctaVersion: 1,
+  footerVersion: 1,
+};
+
+// ============================================
+// Institution Types
+// ============================================
+
+export type AgreementType = 'convenio_marco' | 'convenio_especifico' | 'alianza';
+
+export interface Institution {
+  id: string;
+  code: string;
+  name: string;
+  shortName: string;
+  logo: string;
+  hasAgreement: boolean;
+  agreementType?: AgreementType;
+  specialConditions?: string;
+}
+
+// ============================================
+// Social Proof Types
+// ============================================
+
+export interface MediaLogo {
+  name: string;
+  logo: string;
+  url?: string;
+}
+
+export interface SocialProofData {
+  studentCount: number;
+  institutionCount: number;
+  yearsInMarket: number;
+  institutions: Institution[];
+  mediaLogos: MediaLogo[];
+}
+
+// ============================================
+// Trust & CTA Types
+// ============================================
+
+export interface TrustSignal {
+  icon: string;
+  text: string;
+  tooltip?: string;
+}
+
+export type CtaVariant = 'primary' | 'secondary' | 'outline';
+
+export interface CtaConfig {
+  text: string;
+  href: string;
+  icon?: string;
+  variant: CtaVariant;
+}
+
+// ============================================
+// Hero Content Types
+// ============================================
+
+export interface HeroContent {
+  headline: string;
+  subheadline: string;
+  primaryCta: CtaConfig;
+  secondaryCta?: CtaConfig;
+  minQuota: number;
+  trustSignals: TrustSignal[];
+}
+
+// ============================================
+// Calculator Types
+// ============================================
+
+export interface QuotaCalculatorConfig {
+  minAmount: number;
+  maxAmount: number;
+  defaultAmount: number;
+  terms: number[];
+  monthlyRate: number;
+}
+
+// ============================================
+// Component Props Types
+// ============================================
+
+export interface NavbarProps {
+  logoSrc?: string;
+  items?: NavItem[];
+  onLogin?: () => void;
+}
+
+export interface NavItem {
+  label: string;
+  href: string;
+  isActive?: boolean;
+}
+
+export interface HeroBannerProps {
+  headline: string;
+  subheadline: string;
+  minQuota: number;
+  imageSrc?: string;
+  primaryCta?: CtaConfig;
+  secondaryCta?: CtaConfig;
+  trustSignals?: TrustSignal[];
+}
+
+export interface SocialProofProps {
+  data: SocialProofData;
+}
+
+export interface HeroCtaProps {
+  primaryCta: CtaConfig;
+  secondaryCta?: CtaConfig;
+  minQuota: number;
+  showSecurityBadge?: boolean;
+}
+
+export interface QuotaCalculatorProps {
+  config: QuotaCalculatorConfig;
+  onCalculate?: (amount: number, term: number, quota: number) => void;
+}
+
+export interface HeroSettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  config: HeroConfig;
+  onConfigChange: (config: HeroConfig) => void;
+}
+
+// ============================================
+// Footer Types
+// ============================================
+
+export interface FooterLink {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+export interface FooterNavSection {
+  title: string;
+  links: FooterLink[];
+}
+
+export interface FooterSocialLink {
+  platform: 'instagram' | 'facebook' | 'tiktok' | 'whatsapp';
+  url: string;
+  label: string;
+}
+
+export interface FooterData {
+  logo: { text: string; tagline: string };
+  navigation: FooterNavSection[];
+  social: FooterSocialLink[];
+  contact: { phone?: string; whatsapp?: string; email?: string };
+  certifications: { name: string; icon: string; description: string }[];
+  legal: { copyright: string; links: FooterLink[] };
+}
+
+export interface FooterProps {
+  data: FooterData;
+}
+
+// ============================================
+// Testimonial Types
+// ============================================
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  institution: string;
+  quote: string;
+  avatar?: string;
+  rating?: number;
+}
+
+// ============================================
+// Timeline Step Types
+// ============================================
+
+export interface TimelineStep {
+  id: number;
+  title: string;
+  description?: string;
+  icon?: string;
+}
+
+// ============================================
+// Version Descriptions (for Settings Modal)
+// ============================================
+
+export const versionDescriptions = {
+  heroBanner: {
+    1: 'Foto Producto (E-commerce Clasico)',
+    2: 'Foto Lifestyle (Aspiracional)',
+    3: 'Ilustracion Flat (Corporativo Moderno)',
+    4: 'Abstracto Flotante (Fintech Moderna)',
+    5: 'Split 50/50 (Equilibrado)',
+    6: 'Centrado Hero (Impacto Maximo)',
+    7: 'Asimetrico Bold (Disruptivo)',
+    8: 'Data-Driven (Confianza por Numeros)',
+    9: 'Storytelling (Narrativa Emocional)',
+    10: 'Interactivo (Engagement Inmediato)',
+  },
+  socialProof: {
+    1: 'Marquee Continuo (logos en movimiento)',
+    2: 'Grid Estatico (todos los logos)',
+    3: 'Contador + Logos (numero grande)',
+    4: 'Carrusel Manual (flechas)',
+    5: 'Testimonios con Logo (rotacion)',
+    6: 'Mapa de Peru (visual geografico)',
+    7: 'Timeline de Convenios (crecimiento)',
+    8: 'Stats Cards (3 metricas grandes)',
+    9: 'Video Testimonial (thumbnail)',
+    10: 'Filtrable por Tipo (tabs)',
+  },
+  navbar: {
+    1: 'Sticky Solido (siempre visible)',
+    2: 'Hide on Scroll Down (aparece al subir)',
+    3: 'Transparente a Solido (scroll effect)',
+    4: 'Hamburger Siempre (fullscreen menu)',
+    5: 'Bottom Navigation (mobile app style)',
+    6: 'Con Mega Menu (categorias)',
+    7: 'Con Search Prominente (e-commerce)',
+    8: 'Minimalista (solo logo + CTA)',
+    9: 'Con Notificacion (badge ofertas)',
+    10: 'Con Progreso (barra de funnel)',
+  },
+  cta: {
+    1: 'Boton Simple (Ver laptops)',
+    2: 'Precio en Boton (Desde S/49/mes)',
+    3: 'Dual CTA (primario + secundario)',
+    4: 'Con Urgencia (countdown timer)',
+    5: 'Pre-calificacion (Descubre tu monto)',
+    6: 'WhatsApp Directo (boton verde)',
+    7: 'Sticky Bottom (fijo en mobile)',
+    8: 'Con Social Proof (X estudiantes)',
+    9: 'Animado (pulse effect)',
+    10: 'Contextual (cambia con scroll)',
+  },
+  footer: {
+    1: 'Minimalista Oscuro (neutral-900)',
+    2: 'Columnas Claro (neutral-100)',
+    3: 'Con CTA WhatsApp (fondo primario)',
+    4: 'Mega Footer (muchos links)',
+    5: 'Compacto (una linea)',
+    6: 'Con Mapa (ubicacion)',
+    7: 'Con App Download (badges)',
+    8: 'Con Trust Badges (certificaciones)',
+    9: 'Con FAQ Inline (acordeon)',
+    10: 'Con Chatbot (widget)',
+  },
+} as const;
