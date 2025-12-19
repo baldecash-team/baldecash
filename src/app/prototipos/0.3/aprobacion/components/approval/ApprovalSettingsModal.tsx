@@ -215,10 +215,11 @@ export const ApprovalSettingsModal: React.FC<ApprovalSettingsModalProps> = ({
             variant="light"
             startContent={<RotateCcw className="w-4 h-4" />}
             onPress={handleReset}
+            className="cursor-pointer"
           >
             Restablecer
           </Button>
-          <Button className="bg-[#4654CD] text-white" onPress={onClose}>
+          <Button className="bg-[#4654CD] text-white cursor-pointer" onPress={onClose}>
             Aplicar
           </Button>
         </ModalFooter>

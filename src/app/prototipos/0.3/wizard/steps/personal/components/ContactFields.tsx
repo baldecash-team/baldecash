@@ -86,10 +86,13 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
         }
         classNames={{
           base: 'w-full',
-          input: 'text-base',
+          input: 'text-base outline-none',
+          innerWrapper: 'bg-transparent',
           inputWrapper: `
-            border-2 rounded-lg transition-all duration-200 bg-white
-            ${errors.celular && touched.celular ? 'border-[#ef4444] bg-[#ef4444]/5' : ''}
+            border-2 rounded-lg transition-all duration-200 bg-white shadow-none
+            data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0
+            data-[hover=true]:bg-white
+            ${errors.celular && touched.celular ? 'border-[#ef4444] bg-[#ef4444]/5 data-[hover=true]:bg-[#ef4444]/5' : ''}
             ${isCelularValid && touched.celular && !errors.celular ? 'border-[#22c55e]' : ''}
             ${!errors.celular && !isCelularValid ? 'border-neutral-300 hover:border-neutral-400 data-[focus=true]:border-[#4654CD]' : ''}
           `,
@@ -119,10 +122,13 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
         }
         classNames={{
           base: 'w-full',
-          input: 'text-base',
+          input: 'text-base outline-none',
+          innerWrapper: 'bg-transparent',
           inputWrapper: `
-            border-2 rounded-lg transition-all duration-200 bg-white
-            ${errors.email && touched.email ? 'border-[#ef4444] bg-[#ef4444]/5' : ''}
+            border-2 rounded-lg transition-all duration-200 bg-white shadow-none
+            data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0
+            data-[hover=true]:bg-white
+            ${errors.email && touched.email ? 'border-[#ef4444] bg-[#ef4444]/5 data-[hover=true]:bg-[#ef4444]/5' : ''}
             ${isEmailValid && touched.email && !errors.email ? 'border-[#22c55e]' : ''}
             ${!errors.email && !isEmailValid ? 'border-neutral-300 hover:border-neutral-400 data-[focus=true]:border-[#4654CD]' : ''}
           `,
@@ -175,10 +181,13 @@ export const ContactFields: React.FC<ContactFieldsProps> = ({
           }
           classNames={{
             base: 'w-full',
-            input: 'text-base',
+            input: 'text-base outline-none',
+            innerWrapper: 'bg-transparent',
             inputWrapper: `
-              border-2 rounded-lg transition-all duration-200 bg-white
-              ${errors.whatsapp && touched.whatsapp ? 'border-[#ef4444] bg-[#ef4444]/5' : ''}
+              border-2 rounded-lg transition-all duration-200 bg-white shadow-none
+              data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0
+              data-[hover=true]:bg-white
+              ${errors.whatsapp && touched.whatsapp ? 'border-[#ef4444] bg-[#ef4444]/5 data-[hover=true]:bg-[#ef4444]/5' : ''}
               ${isWhatsappValid && touched.whatsapp && !errors.whatsapp && whatsapp ? 'border-[#22c55e]' : ''}
               ${!errors.whatsapp && !isWhatsappValid ? 'border-neutral-300 hover:border-neutral-400 data-[focus=true]:border-[#4654CD]' : ''}
             `,

@@ -110,7 +110,8 @@ export const AccessoryCardV2: React.FC<AccessoryCardV2Props> = ({
                 isDisabled={!canToggle}
                 size="sm"
                 classNames={{
-                  wrapper: isSelected ? 'bg-[#4654CD]' : 'bg-neutral-200',
+                  wrapper: isSelected ? 'bg-[#4654CD]' : 'bg-neutral-300',
+                  thumb: 'bg-white shadow-md',
                 }}
               />
             </div>

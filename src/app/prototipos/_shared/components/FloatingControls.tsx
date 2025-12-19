@@ -58,7 +58,7 @@ export function FloatingControls({
         <Tooltip content={codeTooltip} placement="left">
           <Button
             isIconOnly
-            className="bg-white shadow-lg border border-neutral-200 cursor-pointer"
+            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
             size="lg"
             onPress={() => setShowConfig(!showConfig)}
             aria-label={codeTooltip}
@@ -74,8 +74,8 @@ export function FloatingControls({
               isIconOnly
               className={
                 action.variant === 'primary'
-                  ? 'bg-[#4654CD] text-white shadow-lg cursor-pointer'
-                  : 'bg-white shadow-lg border border-neutral-200 cursor-pointer'
+                  ? 'bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors'
+                  : 'bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors'
               }
               size="lg"
               onPress={action.onClick}
@@ -90,7 +90,7 @@ export function FloatingControls({
         <Tooltip content={settingsTooltip} placement="left">
           <Button
             isIconOnly
-            className="bg-[#4654CD] text-white shadow-lg cursor-pointer"
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
             size="lg"
             onPress={onSettingsClick}
             aria-label={settingsTooltip}

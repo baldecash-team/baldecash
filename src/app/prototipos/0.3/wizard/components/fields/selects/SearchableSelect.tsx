@@ -117,8 +117,9 @@ export const SearchableSelect: React.FC<SelectProps> = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 startContent={<Search className="w-4 h-4 text-neutral-400" />}
                 classNames={{
-                  input: 'text-sm',
-                  inputWrapper: 'h-9 min-h-9 bg-neutral-50 border-0',
+                  input: 'text-sm outline-none',
+                  innerWrapper: 'bg-transparent',
+                  inputWrapper: 'h-9 min-h-9 bg-neutral-50 border-0 shadow-none data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0',
                 }}
               />
             </div>

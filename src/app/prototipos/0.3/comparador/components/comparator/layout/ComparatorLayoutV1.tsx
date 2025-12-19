@@ -83,9 +83,9 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutV1Props> = ({
                     size="sm"
                     isSelected={showOnlyDifferences}
                     onValueChange={onToggleDifferences}
-                    color="primary"
                     classNames={{
-                      wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
+                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                      thumb: 'bg-white shadow-md',
                     }}
                   />
                   <span className="text-sm text-neutral-600">
@@ -97,9 +97,9 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutV1Props> = ({
                     size="sm"
                     isSelected={highlightWinners}
                     onValueChange={onToggleHighlight}
-                    color="primary"
                     classNames={{
-                      wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
+                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                      thumb: 'bg-white shadow-md',
                     }}
                   />
                   <span className="text-sm text-neutral-600">
@@ -117,9 +117,9 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutV1Props> = ({
                     size="sm"
                     isSelected={showOnlyDifferences}
                     onValueChange={onToggleDifferences}
-                    color="primary"
                     classNames={{
-                      wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
+                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                      thumb: 'bg-white shadow-md',
                     }}
                   />
                   <span className="text-xs text-neutral-600">
@@ -131,9 +131,9 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutV1Props> = ({
                     size="sm"
                     isSelected={highlightWinners}
                     onValueChange={onToggleHighlight}
-                    color="primary"
                     classNames={{
-                      wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
+                      wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                      thumb: 'bg-white shadow-md',
                     }}
                   />
                   <span className="text-xs text-neutral-600">

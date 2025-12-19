@@ -82,7 +82,9 @@ export const EmailCaptureV1: React.FC<EmailCaptureV1Props> = ({ onSubmit }) => {
                   onValueChange={setEmail}
                   startContent={<Mail className="w-4 h-4 text-neutral-400" />}
                   classNames={{
-                    inputWrapper: 'bg-white border-neutral-200',
+                    input: 'outline-none',
+                    innerWrapper: 'bg-transparent',
+                    inputWrapper: 'bg-white border border-neutral-200 shadow-none data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0 data-[hover=true]:bg-white data-[focus=true]:border-[#4654CD]',
                   }}
                   className="flex-1"
                 />

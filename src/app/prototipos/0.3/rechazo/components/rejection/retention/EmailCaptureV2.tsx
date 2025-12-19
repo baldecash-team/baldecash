@@ -78,7 +78,9 @@ export const EmailCaptureV2: React.FC<EmailCaptureV2Props> = ({
               startContent={<Mail className="w-4 h-4 text-neutral-400" />}
               size="lg"
               classNames={{
-                inputWrapper: 'border-neutral-200',
+                input: 'outline-none',
+                innerWrapper: 'bg-transparent',
+                inputWrapper: 'border border-neutral-200 bg-white shadow-none data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0 data-[hover=true]:bg-white data-[focus=true]:border-[#4654CD]',
               }}
             />
 

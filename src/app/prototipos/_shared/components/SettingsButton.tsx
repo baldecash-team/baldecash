@@ -42,7 +42,7 @@ export function SettingsButton({
         <Button
           isIconOnly
           size="lg"
-          className="bg-[#4654CD] text-white shadow-lg hover:shadow-xl transition-shadow"
+          className="bg-[#4654CD] text-white shadow-lg hover:bg-[#3a47b3] hover:shadow-xl transition-all cursor-pointer"
           aria-label={label}
           onPress={onClick}
         >

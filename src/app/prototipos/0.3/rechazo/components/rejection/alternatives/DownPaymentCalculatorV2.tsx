@@ -105,7 +105,9 @@ export const DownPaymentCalculatorV2: React.FC<DownPaymentCalculatorV2Props> = (
                 <span className="text-neutral-400 text-sm">S/</span>
               }
               classNames={{
-                inputWrapper: 'border-neutral-200',
+                input: 'outline-none',
+                innerWrapper: 'bg-transparent',
+                inputWrapper: 'border border-neutral-200 bg-white shadow-none data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0 data-[hover=true]:bg-white data-[focus=true]:border-[#4654CD]',
               }}
             />
           </div>

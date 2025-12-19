@@ -240,10 +240,11 @@ export const RejectionSettingsModal: React.FC<RejectionSettingsModalProps> = ({
             variant="light"
             startContent={<RotateCcw className="w-4 h-4" />}
             onPress={resetConfig}
+            className="cursor-pointer"
           >
             Restablecer
           </Button>
-          <Button className="bg-[#4654CD] text-white" onPress={onClose}>
+          <Button className="bg-[#4654CD] text-white cursor-pointer" onPress={onClose}>
             Aplicar
           </Button>
         </ModalFooter>

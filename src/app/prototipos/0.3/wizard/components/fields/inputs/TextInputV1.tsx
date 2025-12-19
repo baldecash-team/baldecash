@@ -83,10 +83,13 @@ export const TextInputV1: React.FC<TextInputV1Props> = ({
           maxLength={maxLength}
           classNames={{
             base: 'w-full',
-            input: 'text-base text-neutral-800',
+            input: 'text-base text-neutral-800 outline-none',
+            innerWrapper: 'bg-transparent',
             inputWrapper: `
-              border-2 rounded-lg transition-all duration-200 bg-white
-              ${error ? 'border-[#ef4444] bg-[#ef4444]/5' : ''}
+              border-2 rounded-lg transition-all duration-200 bg-white shadow-none
+              data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0
+              data-[hover=true]:bg-white
+              ${error ? 'border-[#ef4444] bg-[#ef4444]/5 data-[hover=true]:bg-[#ef4444]/5' : ''}
               ${isValid && !error ? 'border-[#22c55e]' : ''}
               ${isFocused && !error && !isValid ? 'border-[#4654CD]' : ''}
               ${!isFocused && !error && !isValid ? 'border-neutral-300 hover:border-neutral-400' : ''}

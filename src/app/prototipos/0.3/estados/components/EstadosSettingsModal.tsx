@@ -208,6 +208,10 @@ export const EstadosSettingsModal: React.FC<EstadosSettingsModalProps> = ({
                 <Switch
                   isSelected={config.showSuggestions}
                   onValueChange={(value) => onConfigChange({ ...config, showSuggestions: value })}
+                  classNames={{
+                    wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                    thumb: 'bg-white shadow-md',
+                  }}
                 />
               </div>
 
@@ -219,6 +223,10 @@ export const EstadosSettingsModal: React.FC<EstadosSettingsModalProps> = ({
                 <Switch
                   isSelected={config.showFilterActions}
                   onValueChange={(value) => onConfigChange({ ...config, showFilterActions: value })}
+                  classNames={{
+                    wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                    thumb: 'bg-white shadow-md',
+                  }}
                 />
               </div>
             </div>
@@ -241,10 +249,11 @@ export const EstadosSettingsModal: React.FC<EstadosSettingsModalProps> = ({
             variant="light"
             startContent={<RotateCcw className="w-4 h-4" />}
             onPress={resetConfig}
+            className="cursor-pointer"
           >
             Restablecer
           </Button>
-          <Button className="bg-[#4654CD] text-white" onPress={onClose}>
+          <Button className="bg-[#4654CD] text-white cursor-pointer" onPress={onClose}>
             Aplicar
           </Button>
         </ModalFooter>

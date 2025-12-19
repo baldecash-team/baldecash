@@ -152,10 +152,13 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({
             }
             classNames={{
               base: 'w-full',
-              input: 'text-base',
+              input: 'text-base outline-none',
+              innerWrapper: 'bg-transparent',
               inputWrapper: `
-                border-2 rounded-lg transition-all duration-200 bg-white
-                ${error && touched ? 'border-[#ef4444] bg-[#ef4444]/5' : ''}
+                border-2 rounded-lg transition-all duration-200 bg-white shadow-none
+                data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0
+                data-[hover=true]:bg-white
+                ${error && touched ? 'border-[#ef4444] bg-[#ef4444]/5 data-[hover=true]:bg-[#ef4444]/5' : ''}
                 ${addressConfirmed ? 'border-[#22c55e]' : ''}
                 ${!error && !addressConfirmed ? 'border-neutral-300 hover:border-neutral-400 data-[focus=true]:border-[#4654CD]' : ''}
               `,
@@ -254,7 +257,9 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({
             value={direccion}
             onChange={(e) => onDireccionChange(e.target.value)}
             classNames={{
-              inputWrapper: 'border-2 border-neutral-300 bg-white',
+              input: 'outline-none',
+              innerWrapper: 'bg-transparent',
+              inputWrapper: 'border-2 border-neutral-300 bg-white shadow-none data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0 data-[hover=true]:bg-white data-[focus=true]:border-[#4654CD]',
             }}
           />
         </div>
@@ -270,7 +275,9 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({
         onChange={(e) => onDireccionDetalleChange(e.target.value)}
         classNames={{
           base: 'w-full',
-          inputWrapper: 'border-2 border-neutral-300 bg-white data-[focus=true]:border-[#4654CD]',
+          input: 'outline-none',
+          innerWrapper: 'bg-transparent',
+          inputWrapper: 'border-2 border-neutral-300 bg-white shadow-none data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0 data-[hover=true]:bg-white data-[focus=true]:border-[#4654CD]',
         }}
         description="Opcional"
       />
@@ -284,7 +291,9 @@ export const AddressFields: React.FC<AddressFieldsProps> = ({
         onChange={(e) => onReferenciaChange(e.target.value)}
         classNames={{
           base: 'w-full',
-          inputWrapper: 'border-2 border-neutral-300 bg-white data-[focus=true]:border-[#4654CD]',
+          input: 'outline-none',
+          innerWrapper: 'bg-transparent',
+          inputWrapper: 'border-2 border-neutral-300 bg-white shadow-none data-[focus-visible=true]:ring-0 data-[focus-visible=true]:ring-offset-0 data-[hover=true]:bg-white data-[focus=true]:border-[#4654CD]',
         }}
         description="Nos ayuda a ubicarte mas facil"
       />
