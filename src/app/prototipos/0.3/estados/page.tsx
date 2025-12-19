@@ -8,6 +8,9 @@
  */
 
 import React, { useState } from 'react';
+import { Button } from '@nextui-org/react';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 import { EmptyStateV1, EmptyStateV2, EmptyStateV3 } from './components/empty';
 import { SuggestionsPanel } from './components/empty/SuggestionsPanel';
@@ -51,7 +54,21 @@ export default function EstadosPage() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative min-h-screen">
+      {/* Back to prototypes */}
+      <div className="fixed top-4 left-4 z-[60]">
+        <Link href="/prototipos/0.3">
+          <Button
+            variant="flat"
+            size="sm"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            className="bg-white shadow-md cursor-pointer"
+          >
+            Prototipos
+          </Button>
+        </Link>
+      </div>
+
       {/* Floating Controls */}
       <FloatingControls
         config={{ config, scenario: selectedScenario.id }}

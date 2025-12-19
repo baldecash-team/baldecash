@@ -9,7 +9,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { GitCompareArrows } from 'lucide-react';
+import { GitCompareArrows, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import {
   ProductComparator,
   ComparatorSettingsModal,
@@ -32,7 +33,7 @@ export default function ComparatorPreviewPage() {
   const [selectedProducts, setSelectedProducts] = useState<ComparisonProduct[]>(
     defaultComparisonProducts
   );
-  const [isComparatorOpen, setIsComparatorOpen] = useState(true);
+  const [isComparatorOpen, setIsComparatorOpen] = useState(false);
 
   const handleAddProduct = (product: ComparisonProduct) => {
     if (selectedProducts.length >= config.maxProducts) return;
@@ -53,6 +54,20 @@ export default function ComparatorPreviewPage() {
 
   return (
     <div className="min-h-screen bg-white relative">
+      {/* Back to prototypes */}
+      <div className="fixed top-4 left-4 z-[60]">
+        <Link href="/prototipos/0.3">
+          <Button
+            variant="flat"
+            size="sm"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            className="bg-white shadow-md cursor-pointer"
+          >
+            Prototipos
+          </Button>
+        </Link>
+      </div>
+
       {/* Floating Controls */}
       <FloatingControls
         config={config}

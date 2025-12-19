@@ -30,7 +30,7 @@ export default function DetallePreviewPage() {
   return (
     <div className="min-h-screen bg-neutral-100">
       {/* Back to prototypes */}
-      <div className="fixed top-4 left-4 z-50">
+      <div className="fixed top-4 left-4 z-[60]">
         <Link href="/prototipos/0.3">
           <Button
             variant="flat"

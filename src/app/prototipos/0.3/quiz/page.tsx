@@ -9,11 +9,12 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, HelpCircle, Play, ExternalLink } from 'lucide-react';
+import { HelpCircle, Play, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 // Components
 import { HelpQuiz, QuizSettingsModal } from './components/quiz';
+import { FloatingControls } from '@/app/prototipos/_shared/components/FloatingControls';
 
 // Types
 import { QuizConfig, defaultQuizConfig, versionDescriptions } from './types/quiz';
@@ -24,39 +25,40 @@ export default function QuizPreviewPage() {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50 relative">
+      {/* Back to prototypes */}
+      <div className="fixed top-4 left-4 z-[60]">
+        <Link href="/prototipos/0.3">
+          <Button
+            variant="flat"
+            size="sm"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            className="bg-white shadow-md cursor-pointer"
+          >
+            Prototipos
+          </Button>
+        </Link>
+      </div>
+
+      {/* Floating Controls */}
+      <FloatingControls
+        config={config}
+        onSettingsClick={() => setIsSettingsOpen(true)}
+      />
+
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/prototipos/0.3"
-              className="text-sm text-neutral-500 hover:text-[#4654CD] transition-colors"
-            >
-              ← Volver a prototipos
-            </Link>
-            <div className="h-4 w-px bg-neutral-200" />
-            <h1 className="text-lg font-bold text-neutral-800">
-              Quiz de Ayuda
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="bordered"
-              startContent={<Settings className="w-4 h-4" />}
-              onPress={() => setIsSettingsOpen(true)}
-              className="cursor-pointer border-neutral-300"
-            >
-              Configurar
-            </Button>
-            <Button
-              className="bg-[#4654CD] text-white cursor-pointer"
-              startContent={<Play className="w-4 h-4" />}
-              onPress={() => setIsQuizOpen(true)}
-            >
-              Iniciar Quiz
-            </Button>
-          </div>
+          <h1 className="text-lg font-bold text-neutral-800">
+            Quiz de Ayuda
+          </h1>
+          <Button
+            className="bg-[#4654CD] text-white cursor-pointer"
+            startContent={<Play className="w-4 h-4" />}
+            onPress={() => setIsQuizOpen(true)}
+          >
+            Iniciar Quiz
+          </Button>
         </div>
       </header>
 

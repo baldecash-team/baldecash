@@ -1,16 +1,10 @@
 'use client';
 
 /**
- * DetalleSettingsModal - Modal de Configuracion de Detalle
+ * DetalleSettingsModal - Modal de configuracion de versiones
  *
- * Permite seleccionar las versiones de cada componente:
- * - Galeria (V1, V2, V3)
- * - Tabs (V1, V2, V3)
- * - Specs Display (V1, V2, V3)
- * - Tooltips (V1, V2, V3)
- * - Limitaciones (V1, V2, V3)
- * - Productos similares (V1, V2, V3)
- * - Certificaciones (V1, V2, V3)
+ * Permite seleccionar las versiones de cada componente
+ * para pruebas A/B y demos
  */
 
 import React from 'react';
@@ -21,11 +15,8 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  RadioGroup,
-  Radio,
-  Chip,
 } from '@nextui-org/react';
-import { Settings, Image, Layers, List, HelpCircle, AlertCircle, Scale, Shield, RotateCcw, Calculator } from 'lucide-react';
+import { Settings, RotateCcw } from 'lucide-react';
 import { DetailConfig, defaultDetailConfig, versionDescriptions } from '../types/detail';
 
 interface DetalleSettingsModalProps {
@@ -35,67 +26,42 @@ interface DetalleSettingsModalProps {
   onConfigChange: (config: DetailConfig) => void;
 }
 
-interface SettingsSectionProps {
-  title: string;
-  icon: React.ReactNode;
-  value: 1 | 2 | 3;
-  onChange: (value: 1 | 2 | 3) => void;
+interface VersionSelectorProps {
+  label: string;
+  value: number;
+  options: number[];
   descriptions: Record<number, string>;
+  onChange: (value: number) => void;
 }
 
-const SettingsSection: React.FC<SettingsSectionProps> = ({
-  title,
-  icon,
+const VersionSelector: React.FC<VersionSelectorProps> = ({
+  label,
   value,
-  onChange,
+  options,
   descriptions,
+  onChange,
 }) => {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className="font-medium text-neutral-800">{title}</span>
-      </div>
-
-      <RadioGroup
-        value={value.toString()}
-        onValueChange={(v) => onChange(parseInt(v) as 1 | 2 | 3)}
-        classNames={{
-          wrapper: 'gap-2',
-        }}
-      >
-        {[1, 2, 3].map((v) => (
-          <Radio
-            key={v}
-            value={v.toString()}
-            classNames={{
-              base: `flex-row-reverse justify-between w-full max-w-full p-3 rounded-lg border cursor-pointer transition-colors
-                ${value === v
-                  ? 'border-[#4654CD] bg-[#4654CD]/5'
-                  : 'border-neutral-200 hover:border-neutral-300'
-                }`,
-              label: 'text-sm text-neutral-700',
-              wrapper: 'group-data-[selected=true]:border-[#4654CD] group-data-[selected=true]:bg-[#4654CD]',
-            }}
+    <div className="mb-4">
+      <label className="text-sm font-medium text-neutral-700 mb-2 block">
+        {label}
+      </label>
+      <div className="flex gap-2 mb-2">
+        {options.map((option) => (
+          <button
+            key={option}
+            onClick={() => onChange(option)}
+            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-center ${
+              value === option
+                ? 'bg-[#4654CD] text-white'
+                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+            }`}
           >
-            <div className="flex items-center gap-2">
-              <Chip
-                size="sm"
-                radius="sm"
-                classNames={{
-                  base: `h-5 px-1.5 ${value === v ? 'bg-[#4654CD]' : 'bg-neutral-200'}`,
-                  content: `text-xs font-medium px-0 ${value === v ? 'text-white' : 'text-neutral-600'}`,
-                }}
-              >
-                V{v}
-              </Chip>
-              <span className={value === v ? 'text-[#4654CD]' : 'text-neutral-600'}>
-                {descriptions[v]}
-              </span>
-            </div>
-          </Radio>
+            V{option}
+          </button>
         ))}
-      </RadioGroup>
+      </div>
+      <p className="text-xs text-neutral-500">{descriptions[value]}</p>
     </div>
   );
 };
@@ -106,11 +72,7 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
   config,
   onConfigChange,
 }) => {
-  const updateConfig = (key: keyof DetailConfig, value: 1 | 2 | 3) => {
-    onConfigChange({ ...config, [key]: value });
-  };
-
-  const resetConfig = () => {
+  const handleReset = () => {
     onConfigChange(defaultDetailConfig);
   };
 
@@ -119,134 +81,120 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="2xl"
-      backdrop="blur"
       scrollBehavior="outside"
+      backdrop="blur"
       placement="center"
       classNames={{
         base: 'bg-white my-8',
         wrapper: 'items-center justify-center py-8 min-h-full',
         backdrop: 'bg-black/50',
-        body: 'bg-white max-h-[70vh] overflow-y-auto',
-        closeButton: 'cursor-pointer',
+        header: 'border-b border-neutral-200 bg-white py-4 pr-12',
+        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
+        footer: 'border-t border-neutral-200 bg-white',
+        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
       }}
     >
-      <ModalContent className="bg-white">
-        <ModalHeader className="flex items-center gap-3 border-b border-neutral-100">
-          <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-            <Settings className="w-5 h-5 text-[#4654CD]" />
+      <ModalContent>
+        <ModalHeader className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
+            <Settings className="w-4 h-4 text-[#4654CD]" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-neutral-800">
-              Configuracion de Detalle
-            </h2>
-            <p className="text-sm text-neutral-500">
-              Selecciona las versiones de cada componente
-            </p>
-          </div>
+          <span className="text-lg font-semibold text-neutral-800">Configuracion de Detalle</span>
         </ModalHeader>
 
-        <ModalBody className="space-y-6 py-6">
-          {/* Galeria */}
-          <SettingsSection
-            title="Galeria de imagenes"
-            icon={<Image className="w-5 h-5 text-[#4654CD]" />}
+        <ModalBody className="py-6 bg-white">
+          <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
+            Selecciona las versiones de cada componente para crear diferentes
+            combinaciones y probar cual funciona mejor.
+          </p>
+
+          {/* Galeria de imagenes */}
+          <VersionSelector
+            label="B.1 - Galeria de imagenes"
             value={config.galleryVersion}
-            onChange={(v) => updateConfig('galleryVersion', v)}
+            options={[1, 2, 3]}
             descriptions={versionDescriptions.gallery}
+            onChange={(v) => onConfigChange({ ...config, galleryVersion: v as 1 | 2 | 3 })}
           />
 
-          <div className="border-t border-neutral-100" />
-
-          {/* Tabs */}
-          <SettingsSection
-            title="Organizacion de contenido"
-            icon={<Layers className="w-5 h-5 text-[#03DBD0]" />}
+          {/* Organizacion de contenido (Tabs) */}
+          <VersionSelector
+            label="B.2 - Organizacion de contenido"
             value={config.tabsVersion}
-            onChange={(v) => updateConfig('tabsVersion', v)}
+            options={[1, 2, 3]}
             descriptions={versionDescriptions.tabs}
+            onChange={(v) => onConfigChange({ ...config, tabsVersion: v as 1 | 2 | 3 })}
           />
 
-          <div className="border-t border-neutral-100" />
-
-          {/* Specs Display */}
-          <SettingsSection
-            title="Visualizacion de specs"
-            icon={<List className="w-5 h-5 text-amber-500" />}
+          {/* Visualizacion de specs */}
+          <VersionSelector
+            label="B.3 - Visualizacion de specs"
             value={config.specsDisplayVersion}
-            onChange={(v) => updateConfig('specsDisplayVersion', v)}
+            options={[1, 2, 3]}
             descriptions={versionDescriptions.specsDisplay}
+            onChange={(v) => onConfigChange({ ...config, specsDisplayVersion: v as 1 | 2 | 3 })}
           />
 
-          <div className="border-t border-neutral-100" />
-
-          {/* Tooltips */}
-          <SettingsSection
-            title="Ayuda contextual"
-            icon={<HelpCircle className="w-5 h-5 text-blue-500" />}
+          {/* Ayuda contextual (Tooltips) */}
+          <VersionSelector
+            label="B.4 - Ayuda contextual"
             value={config.tooltipsVersion}
-            onChange={(v) => updateConfig('tooltipsVersion', v)}
+            options={[1, 2, 3]}
             descriptions={versionDescriptions.tooltips}
+            onChange={(v) => onConfigChange({ ...config, tooltipsVersion: v as 1 | 2 | 3 })}
           />
 
-          <div className="border-t border-neutral-100" />
-
-          {/* Limitaciones */}
-          <SettingsSection
-            title="Limitaciones del producto"
-            icon={<AlertCircle className="w-5 h-5 text-orange-500" />}
+          {/* Limitaciones del producto */}
+          <VersionSelector
+            label="B.5 - Limitaciones del producto"
             value={config.limitationsVersion}
-            onChange={(v) => updateConfig('limitationsVersion', v)}
+            options={[1, 2, 3]}
             descriptions={versionDescriptions.limitations}
+            onChange={(v) => onConfigChange({ ...config, limitationsVersion: v as 1 | 2 | 3 })}
           />
 
-          <div className="border-t border-neutral-100" />
-
-          {/* Similar Products */}
-          <SettingsSection
-            title="Productos similares"
-            icon={<Scale className="w-5 h-5 text-purple-500" />}
+          {/* Productos similares */}
+          <VersionSelector
+            label="B.6 - Productos similares"
             value={config.similarProductsVersion}
-            onChange={(v) => updateConfig('similarProductsVersion', v)}
+            options={[1, 2, 3]}
             descriptions={versionDescriptions.similarProducts}
+            onChange={(v) => onConfigChange({ ...config, similarProductsVersion: v as 1 | 2 | 3 })}
           />
-
-          <div className="border-t border-neutral-100" />
 
           {/* Certificaciones */}
-          <SettingsSection
-            title="Certificaciones"
-            icon={<Shield className="w-5 h-5 text-green-500" />}
+          <VersionSelector
+            label="B.7 - Certificaciones"
             value={config.certificationsVersion}
-            onChange={(v) => updateConfig('certificationsVersion', v)}
+            options={[1, 2, 3]}
             descriptions={versionDescriptions.certifications}
+            onChange={(v) => onConfigChange({ ...config, certificationsVersion: v as 1 | 2 | 3 })}
           />
 
-          <div className="border-t border-neutral-100" />
-
-          {/* Calculadora de precios */}
-          <SettingsSection
-            title="Calculadora de cuotas"
-            icon={<Calculator className="w-5 h-5 text-[#4654CD]" />}
+          {/* Calculadora de cuotas */}
+          <VersionSelector
+            label="B.8 - Calculadora de cuotas"
             value={config.pricingCalculatorVersion}
-            onChange={(v) => updateConfig('pricingCalculatorVersion', v)}
+            options={[1, 2, 3]}
             descriptions={versionDescriptions.pricingCalculator}
+            onChange={(v) => onConfigChange({ ...config, pricingCalculatorVersion: v as 1 | 2 | 3 })}
           />
         </ModalBody>
 
-        <ModalFooter className="border-t border-neutral-100">
+        <ModalFooter className="bg-white">
           <Button
-            variant="flat"
-            onPress={resetConfig}
+            variant="light"
             startContent={<RotateCcw className="w-4 h-4" />}
-            className="bg-neutral-100 text-neutral-600 cursor-pointer"
+            onPress={handleReset}
+            className="cursor-pointer"
           >
-            Restaurar
+            Restablecer
           </Button>
           <Button
+            className="bg-[#4654CD] text-white cursor-pointer"
             onPress={onClose}
-            className="bg-[#4654CD] text-white font-medium cursor-pointer"
           >
-            Aplicar cambios
+            Aplicar
           </Button>
         </ModalFooter>
       </ModalContent>

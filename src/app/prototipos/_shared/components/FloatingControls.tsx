@@ -49,7 +49,7 @@ export function FloatingControls({
     <>
       {/* Floating Buttons */}
       <motion.div
-        className={`fixed ${positionClasses[position]} z-50 flex flex-col gap-2`}
+        className={`fixed ${positionClasses[position]} z-[60] flex flex-col gap-2`}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20 }}
@@ -109,7 +109,7 @@ export function FloatingControls({
       <AnimatePresence>
         {showConfig && (
           <motion.div
-            className={`fixed ${position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6'} z-50 bg-white rounded-lg shadow-xl border border-neutral-200 p-4 w-72`}
+            className={`fixed ${position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6'} z-[60] bg-white rounded-lg shadow-xl border border-neutral-200 p-4 w-72`}
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}

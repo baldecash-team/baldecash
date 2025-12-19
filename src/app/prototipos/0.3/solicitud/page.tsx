@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { WizardContainer } from './components/wizard/WizardContainer';
 import { WizardSettingsModal } from './components/wizard/WizardSettingsModal';
@@ -35,26 +35,17 @@ export default function SolicitudPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      {/* Back link */}
-      <Link
-        href="/prototipos/0.3"
-        className="fixed top-4 left-4 z-50 flex items-center gap-2 text-sm text-white hover:text-white/80 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Volver a prototipos
-      </Link>
-
-      {/* Preview link */}
-      <div className="fixed top-4 right-4 z-50">
-        <Link href="/prototipos/0.3/solicitud/wizard-preview">
+    <div className="min-h-screen bg-neutral-50 relative">
+      {/* Back to prototypes */}
+      <div className="fixed top-4 left-4 z-[60]">
+        <Link href="/prototipos/0.3">
           <Button
-            variant="bordered"
+            variant="flat"
             size="sm"
-            startContent={<ExternalLink className="w-4 h-4" />}
-            className="bg-white cursor-pointer"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            className="bg-white shadow-md cursor-pointer"
           >
-            Preview
+            Prototipos
           </Button>
         </Link>
       </div>

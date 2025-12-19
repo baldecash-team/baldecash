@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { FloatingControls } from '@/app/prototipos/_shared/components/FloatingControls';
 
@@ -120,34 +120,31 @@ export default function WizardPreviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50 relative">
+      {/* Back to prototypes */}
+      <div className="fixed top-4 left-4 z-[60]">
+        <Link href="/prototipos/0.3">
+          <Button
+            variant="flat"
+            size="sm"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            className="bg-white shadow-md cursor-pointer"
+          >
+            Prototipos
+          </Button>
+        </Link>
+      </div>
+
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/prototipos/0.3" className="text-neutral-400 hover:text-neutral-600 cursor-pointer">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="font-semibold text-neutral-800">
-                Campos de Formulario
-              </h1>
-              <p className="text-xs text-neutral-500">
-                Seccion 09 - Form Campos v0.3
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link href="/prototipos/0.3">
-              <Button
-                isIconOnly
-                variant="light"
-                className="cursor-pointer"
-              >
-                <Home className="w-5 h-5" />
-              </Button>
-            </Link>
+          <div>
+            <h1 className="font-semibold text-neutral-800">
+              Campos de Formulario
+            </h1>
+            <p className="text-xs text-neutral-500">
+              Seccion 09 - Form Campos v0.3
+            </p>
           </div>
         </div>
       </header>

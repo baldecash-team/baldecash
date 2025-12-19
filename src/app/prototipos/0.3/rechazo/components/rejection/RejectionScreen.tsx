@@ -8,7 +8,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
-import { Home, ArrowLeft } from 'lucide-react';
 
 import {
   RejectionConfig,
@@ -264,39 +263,6 @@ export const RejectionScreen: React.FC<RejectionScreenProps> = ({
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-100">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <Button
-            isIconOnly
-            variant="light"
-            size="sm"
-            onPress={onGoBack}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-
-          <span className="text-sm text-neutral-500">
-            Solicitud #{data.applicationId}
-          </span>
-
-          <Button
-            isIconOnly
-            variant="light"
-            size="sm"
-            onPress={() => {
-              if (config.retentionVersion === 2) {
-                setShowExitModal(true);
-              } else {
-                onGoHome?.();
-              }
-            }}
-          >
-            <Home className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
-
       {/* Content */}
       <motion.div
         initial={{ opacity: 0 }}

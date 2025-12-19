@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * QuizSettingsModal - Modal de configuracion del quiz
+ * QuizSettingsModal - Modal de configuracion de versiones
  *
  * Permite seleccionar las versiones de cada componente
- * para pruebas A/B y demos.
+ * para pruebas A/B y demos
  */
 
 import React from 'react';
@@ -18,7 +18,6 @@ import {
 } from '@nextui-org/react';
 import { Settings, RotateCcw } from 'lucide-react';
 import {
-  QuizConfig,
   defaultQuizConfig,
   versionDescriptions,
   QuizSettingsModalProps,
@@ -44,18 +43,18 @@ const VersionSelector: React.FC<VersionSelectorProps> = ({
       <label className="text-sm font-medium text-neutral-700 mb-2 block">
         {label}
       </label>
-      <div className="flex gap-2 mb-2 flex-wrap">
+      <div className="flex gap-2 mb-2">
         {options.map((option) => (
           <button
             key={option}
             onClick={() => onChange(option)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-center ${
               value === option
                 ? 'bg-[#4654CD] text-white'
                 : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
             }`}
           >
-            {typeof option === 'number' && option > 3 ? option : `V${option}`}
+            V{option}
           </button>
         ))}
       </div>
@@ -87,7 +86,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
         wrapper: 'items-center justify-center py-8 min-h-full',
         backdrop: 'bg-black/50',
         header: 'border-b border-neutral-200 bg-white py-4 pr-12',
-        body: 'bg-white max-h-[60vh] overflow-y-auto',
+        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
         footer: 'border-t border-neutral-200 bg-white',
         closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
       }}
@@ -97,9 +96,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
           <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
             <Settings className="w-4 h-4 text-[#4654CD]" />
           </div>
-          <span className="text-lg font-semibold text-neutral-800">
-            Configuracion del Quiz
-          </span>
+          <span className="text-lg font-semibold text-neutral-800">Configuracion del Quiz</span>
         </ModalHeader>
 
         <ModalBody className="py-6 bg-white">
@@ -114,9 +111,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
             value={config.layoutVersion}
             options={[1, 2, 3]}
             descriptions={versionDescriptions.layout}
-            onChange={(v) =>
-              onConfigChange({ ...config, layoutVersion: v as 1 | 2 | 3 })
-            }
+            onChange={(v) => onConfigChange({ ...config, layoutVersion: v as 1 | 2 | 3 })}
           />
 
           {/* B.99 - Question Count */}
@@ -125,9 +120,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
             value={config.questionCount}
             options={[3, 5, 7]}
             descriptions={versionDescriptions.questionCount}
-            onChange={(v) =>
-              onConfigChange({ ...config, questionCount: v as 3 | 5 | 7 })
-            }
+            onChange={(v) => onConfigChange({ ...config, questionCount: v as 3 | 5 | 7 })}
           />
 
           {/* Question Style */}
@@ -136,9 +129,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
             value={config.questionStyle}
             options={[1, 2, 3]}
             descriptions={versionDescriptions.questionStyle}
-            onChange={(v) =>
-              onConfigChange({ ...config, questionStyle: v as 1 | 2 | 3 })
-            }
+            onChange={(v) => onConfigChange({ ...config, questionStyle: v as 1 | 2 | 3 })}
           />
 
           {/* B.101 - Results Version */}
@@ -147,9 +138,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
             value={config.resultsVersion}
             options={[1, 2, 3]}
             descriptions={versionDescriptions.results}
-            onChange={(v) =>
-              onConfigChange({ ...config, resultsVersion: v as 1 | 2 | 3 })
-            }
+            onChange={(v) => onConfigChange({ ...config, resultsVersion: v as 1 | 2 | 3 })}
           />
 
           {/* B.102 - Focus Version */}
@@ -158,9 +147,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
             value={config.focusVersion}
             options={[1, 2, 3]}
             descriptions={versionDescriptions.focus}
-            onChange={(v) =>
-              onConfigChange({ ...config, focusVersion: v as 1 | 2 | 3 })
-            }
+            onChange={(v) => onConfigChange({ ...config, focusVersion: v as 1 | 2 | 3 })}
           />
 
           <div className="mt-4 pt-4 border-t border-neutral-200">

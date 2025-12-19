@@ -9,12 +9,12 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, ArrowLeft, HelpCircle } from 'lucide-react';
-import Link from 'next/link';
+import { HelpCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // Components
 import { HelpQuiz, QuizSettingsModal } from '../components/quiz';
+import { FloatingControls } from '@/app/prototipos/_shared/components/FloatingControls';
 
 // Types
 import { QuizConfig, defaultQuizConfig } from '../types/quiz';
@@ -28,29 +28,12 @@ export default function QuizPreviewStandalonePage() {
   const [isQuizOpen, setIsQuizOpen] = useState(true); // Start open
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Floating controls */}
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-        <Button
-          variant="bordered"
-          size="sm"
-          startContent={<Settings className="w-4 h-4" />}
-          onPress={() => setIsSettingsOpen(true)}
-          className="cursor-pointer bg-white border-neutral-300 shadow-md"
-        >
-          Config
-        </Button>
-        <Link href="/prototipos/0.3/quiz">
-          <Button
-            variant="bordered"
-            size="sm"
-            startContent={<ArrowLeft className="w-4 h-4" />}
-            className="cursor-pointer bg-white border-neutral-300 shadow-md"
-          >
-            Salir
-          </Button>
-        </Link>
-      </div>
+    <div className="min-h-screen bg-white relative">
+      {/* Floating Controls */}
+      <FloatingControls
+        config={config}
+        onSettingsClick={() => setIsSettingsOpen(true)}
+      />
 
       {/* Quiz with V3 layout (fullpage) */}
       {isQuizOpen ? (

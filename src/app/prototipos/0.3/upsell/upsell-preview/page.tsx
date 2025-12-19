@@ -9,6 +9,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { Laptop, ArrowLeft, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import {
   AccessoriesSection,
   InsuranceSection,
@@ -133,6 +134,20 @@ export default function UpsellPreviewPage() {
 
   return (
     <div className="min-h-screen bg-white relative">
+      {/* Back to prototypes */}
+      <div className="fixed top-4 left-4 z-[60]">
+        <Link href="/prototipos/0.3">
+          <Button
+            variant="flat"
+            size="sm"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            className="bg-white shadow-md cursor-pointer"
+          >
+            Prototipos
+          </Button>
+        </Link>
+      </div>
+
       {/* Floating Controls */}
       <FloatingControls
         config={config}
