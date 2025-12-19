@@ -1,0 +1,46 @@
+{
+  "version": "0.4",
+  "createdAt": "2024-12-19T00:00:00.000Z",
+  "updatedAt": "2024-12-19T00:00:00.000Z",
+  "description": "Prototipo v0.4 - Sistema de A/B testing con 10 versiones por componente",
+  "status": "testing",
+  "sections": {
+    "hero": {
+      "lastUpdated": "2024-12-19T00:00:00.000Z",
+      "components": {
+        "heroBanner": {
+          "version": 1,
+          "variants": 10,
+          "notes": "V1-Foto Producto, V2-Lifestyle, V3-Ilustracion, V4-Abstracto, V5-Split, V6-Centrado, V7-Asimetrico, V8-Data-Driven, V9-Storytelling, V10-Interactivo"
+        },
+        "socialProof": {
+          "version": 1,
+          "variants": 10,
+          "notes": "V1-Marquee, V2-Grid, V3-Contador, V4-Carrusel, V5-Testimonios, V6-Mapa, V7-Timeline, V8-Stats, V9-Video, V10-Filtrable"
+        },
+        "navbar": {
+          "version": 1,
+          "variants": 10,
+          "notes": "V1-Sticky, V2-Hide Scroll, V3-Transparente, V4-Hamburger, V5-Bottom Nav, V6-Mega Menu, V7-Search, V8-Minimalista, V9-Notificacion, V10-Progreso"
+        },
+        "cta": {
+          "version": 1,
+          "variants": 10,
+          "notes": "V1-Simple, V2-Microcopy, V3-Icono, V4-Doble, V5-Sticky Mobile, V6-Urgencia, V7-Social Proof, V8-Preview, V9-Animado, V10-Confianza"
+        },
+        "footer": {
+          "version": 1,
+          "variants": 10,
+          "notes": "V1-Minimalista, V2-4 Columnas, V3-Newsletter, V4-App Download, V5-Mapa, V6-Chat Widget, V7-Social Feed, V8-FAQ, V9-Calculadora, V10-Trust Badges"
+        }
+      }
+    }
+  },
+  "testingNotes": [
+    {
+      "date": "2024-12-19",
+      "note": "Inicio de v0.4 con sistema de 10 versiones A/B testing para Hero section",
+      "author": "Claude"
+    }
+  ]
+}

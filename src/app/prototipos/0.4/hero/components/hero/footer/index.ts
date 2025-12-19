@@ -1,0 +1,10 @@
+export { FooterV1 } from './FooterV1';
+export { FooterV2 } from './FooterV2';
+export { FooterV3 } from './FooterV3';
+export { FooterV4 } from './FooterV4';
+export { FooterV5 } from './FooterV5';
+export { FooterV6 } from './FooterV6';
+export { FooterV7 } from './FooterV7';
+export { FooterV8 } from './FooterV8';
+export { FooterV9 } from './FooterV9';
+export { FooterV10 } from './FooterV10';

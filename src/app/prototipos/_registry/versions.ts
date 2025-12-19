@@ -96,7 +96,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
     badge: 'En desarrollo',
     status: 'in_progress',
     sections: [
-      { id: 'hero', name: 'Hero', path: '/prototipos/0.4/hero', status: 'pending', promptNumber: '01' },
+      { id: 'hero', name: 'Hero', path: '/prototipos/0.4/hero', status: 'done', promptNumber: '01' },
       { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.4/catalogo', status: 'pending', promptNumber: '02-03' },
       { id: 'detalle', name: 'Detalle', path: '/prototipos/0.4/detalle', status: 'pending', promptNumber: '04' },
       { id: 'comparador', name: 'Comparador', path: '/prototipos/0.4/comparador', status: 'pending', promptNumber: '05' },
