@@ -28,9 +28,10 @@ export const PriceRangeFilter: React.FC<PriceRangeFilterProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Slider
         label="Precio total"
+        size="sm"
         step={100}
         minValue={min}
         maxValue={max}
@@ -39,17 +40,17 @@ export const PriceRangeFilter: React.FC<PriceRangeFilterProps> = ({
         formatOptions={{ style: 'currency', currency: 'PEN' }}
         classNames={{
           base: 'max-w-full',
-          filler: 'bg-[#4654CD]',
-          thumb: 'bg-[#4654CD] border-[#4654CD]',
-          track: 'bg-neutral-200',
-          label: 'text-sm font-medium text-neutral-700',
-          value: 'text-sm text-neutral-500',
+          filler: 'bg-[#4654CD]/70',
+          thumb: 'bg-white border-2 border-[#4654CD] w-4 h-4 shadow-sm',
+          track: 'bg-neutral-200 h-1',
+          label: 'text-xs font-medium text-neutral-600',
+          value: 'text-xs text-neutral-500',
         }}
       />
-      <div className="flex justify-between text-sm">
-        <span className="text-neutral-600 font-medium">{formatPrice(value[0])}</span>
-        <span className="text-neutral-400">-</span>
-        <span className="text-neutral-600 font-medium">{formatPrice(value[1])}</span>
+      <div className="flex justify-between text-xs">
+        <span className="text-neutral-600">{formatPrice(value[0])}</span>
+        <span className="text-neutral-300">-</span>
+        <span className="text-neutral-600">{formatPrice(value[1])}</span>
       </div>
     </div>
   );

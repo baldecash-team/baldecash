@@ -15,27 +15,27 @@ import {
 
 export const filterTooltips: FilterTooltips = {
   ram: {
-    title: 'Que es la RAM?',
+    title: 'Memoria RAM',
     description:
       'Es la memoria que usa tu laptop para ejecutar programas. Mas RAM = mas programas abiertos simultaneamente.',
     recommendation: 'Minimo 8GB para estudiantes, 16GB para diseno/programacion.',
   },
   ssd: {
-    title: 'Que es SSD?',
+    title: 'Almacenamiento SSD',
     description:
       'Es el disco donde se guardan tus archivos. SSD es mas rapido que HDD tradicional.',
     recommendation: 'Minimo 256GB, ideal 512GB para estudiantes.',
   },
   gpu: {
-    title: 'GPU dedicada o integrada?',
+    title: 'Tarjeta de video (GPU)',
     description:
       'GPU dedicada es mejor para gaming y diseno. Integrada es suficiente para estudios y oficina.',
     recommendation: 'Dedicada solo si haces diseno 3D o gaming.',
   },
   processor: {
-    title: 'Intel o AMD?',
+    title: 'Procesador',
     description:
-      'Ambas marcas son excelentes. AMD suele tener mejor relacion precio-rendimiento.',
+      'Ambas marcas (Intel y AMD) son excelentes. AMD suele tener mejor relacion precio-rendimiento.',
     recommendation: 'i5/Ryzen 5 para uso general, i7/Ryzen 7 para trabajo pesado.',
   },
   displayType: {
@@ -167,10 +167,10 @@ export const displaySizeOptions: FilterOption[] = [
 // ============================================
 
 export const resolutionOptions: FilterOption[] = [
-  { value: 'hd', label: 'HD (1366x768)', count: 8 },
-  { value: 'fhd', label: 'Full HD (1920x1080)', count: 35 },
-  { value: 'qhd', label: 'QHD (2560x1440)', count: 6 },
-  { value: '4k', label: '4K (3840x2160)', count: 3 },
+  { value: 'hd', label: 'HD', count: 8 },
+  { value: 'fhd', label: 'Full HD', count: 35 },
+  { value: 'qhd', label: 'QHD', count: 6 },
+  { value: '4k', label: '4K', count: 3 },
 ];
 
 // ============================================
@@ -192,6 +192,38 @@ export const displayTypeOptions: FilterOption[] = [
   { value: 'tn', label: 'TN', count: 8 },
   { value: 'oled', label: 'OLED', count: 4 },
   { value: 'va', label: 'VA', count: 2 },
+];
+
+// ============================================
+// GPU Type Options
+// ============================================
+
+export const gpuTypeOptions: FilterOption[] = [
+  { value: 'integrated', label: 'Integrada', count: 35 },
+  { value: 'dedicated', label: 'Dedicada', count: 17 },
+];
+
+// ============================================
+// Feature Options (Características)
+// ============================================
+
+export const featureOptions: FilterOption[] = [
+  { value: 'touchScreen', label: 'Tactil', count: 8 },
+  { value: 'backlitKeyboard', label: 'Teclado luz', count: 32 },
+  { value: 'numericKeypad', label: 'Numerico', count: 28 },
+  { value: 'fingerprint', label: 'Huella', count: 22 },
+  { value: 'hasWindows', label: 'Windows', count: 45 },
+];
+
+// ============================================
+// Connectivity Options
+// ============================================
+
+export const connectivityOptions: FilterOption[] = [
+  { value: 'hasThunderbolt', label: 'Thunderbolt', count: 12 },
+  { value: 'hasEthernet', label: 'Ethernet', count: 28 },
+  { value: 'hasSDCard', label: 'Lector SD', count: 35 },
+  { value: 'hasHDMI', label: 'HDMI', count: 48 },
 ];
 
 // ============================================

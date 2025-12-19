@@ -856,37 +856,41 @@ Cada dato debe aparecer UNA sola vez por componente/seccion:
 El Switch de NextUI puede ser invisible por defecto si no tiene estilos de fondo explícitos:
 
 ```tsx
-// ❌ PROHIBIDO - Switch sin color="primary" ni estilos de wrapper
+// ❌ PROHIBIDO - Switch invisible (solo borde curvo visible)
 <Switch
   size="sm"
   isSelected={value}
   onValueChange={setValue}
-/>
-
-// ✅ CORRECTO - Switch con color="primary" y wrapper con color de marca
-<Switch
-  size="sm"
-  isSelected={value}
-  onValueChange={setValue}
-  color="primary"
   classNames={{
     wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
+  }}
+/>
+
+// ✅ CORRECTO - Switch con fondo visible en ambos estados
+<Switch
+  size="sm"
+  isSelected={value}
+  onValueChange={setValue}
+  classNames={{
+    wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+    thumb: 'bg-white shadow-md',
   }}
 />
 ```
 
 ### Configuración estándar de Switch:
 
-| Propiedad | Valor | Propósito |
+| Propiedad | Clase | Propósito |
 |-----------|-------|-----------|
-| `color` | `"primary"` | Activa estilos nativos de NextUI (fondo gris off, animaciones, thumb) |
-| `wrapper` (on) | `group-data-[selected=true]:bg-[#4654CD]` | Sobrescribe color ON con color de marca |
+| `wrapper` (off) | `bg-neutral-300` | Fondo gris visible cuando está apagado |
+| `wrapper` (on) | `group-data-[selected=true]:bg-[#4654CD]` | Color primario cuando está encendido |
+| `thumb` | `bg-white shadow-md` | Bolita del switch visible con sombra |
 
 ### Reglas para Switch:
-- **SIEMPRE** usar `color="primary"` para que NextUI maneje fondo off, animaciones y movimiento del thumb
-- **SIEMPRE** sobrescribir solo el color ON con `wrapper: 'group-data-[selected=true]:bg-[#4654CD]'`
-- **NUNCA** agregar estilos al `thumb` (interfiere con animaciones nativas de NextUI)
-- **NUNCA** agregar `bg-neutral-300` manualmente (NextUI lo maneja con `color="primary"`)
+- **SIEMPRE** incluir `bg-neutral-300` en el wrapper para estado off visible
+- **SIEMPRE** estilizar el thumb con `bg-white shadow-md` para contraste
+- **SIEMPRE** usar color primario `#4654CD` para estado on
+- **NUNCA** usar `color="primary"` sin estilos de wrapper (el fondo off puede ser invisible)
 - Envolver en `<label>` con texto descriptivo para accesibilidad
 
 ## Checkbox (NextUI)
@@ -934,6 +938,151 @@ El Checkbox de NextUI necesita estilos explícitos para que el borde sea visible
 - **SIEMPRE** incluir `before:transition-colors after:transition-all` para animaciones
 - **SIEMPRE** usar color primario `#4654CD` para estado seleccionado
 - Envolver en `<label>` para mejor área de click y accesibilidad
+
+## Sliders en Filtros (NextUI)
+
+### SIEMPRE usar estilos sutiles para sliders de filtro
+
+Los sliders de precio/cuota en filtros NO deben ser prominentes visualmente. Deben integrarse con el resto del UI sin llamar demasiado la atención:
+
+```tsx
+// ❌ PROHIBIDO - Slider muy prominente con colores brillantes
+<Slider
+  label="Cuota"
+  classNames={{
+    filler: 'bg-[#03DBD0]',          // Aqua brillante muy llamativo
+    thumb: 'bg-[#03DBD0] border-[#03DBD0]',  // Thumb del mismo color
+    label: 'text-sm font-medium',
+    value: 'text-sm',
+  }}
+/>
+<div className="text-sm">
+  <span className="text-[#02C3BA] font-bold">S/49/mes</span>  // Muy llamativo
+</div>
+
+// ✅ CORRECTO - Slider sutil e integrado
+<Slider
+  label="Cuota"
+  size="sm"
+  classNames={{
+    base: 'max-w-full',
+    filler: 'bg-[#4654CD]/70',           // Primario semi-transparente
+    thumb: 'bg-white border-2 border-[#4654CD] w-4 h-4 shadow-sm',  // Thumb blanco con borde
+    track: 'bg-neutral-200 h-1',         // Track delgado
+    label: 'text-xs font-medium text-neutral-600',   // Label pequeño
+    value: 'text-xs text-neutral-500',
+  }}
+/>
+<div className="flex justify-between text-xs">
+  <span className="text-neutral-700 font-medium">S/49/mes</span>  // Sutil
+  <span className="text-neutral-300">-</span>
+  <span className="text-neutral-700 font-medium">S/199/mes</span>
+</div>
+```
+
+### Configuración estándar de Slider en filtros:
+
+| Propiedad | Clase | Propósito |
+|-----------|-------|-----------|
+| `size` | `"sm"` | Slider más compacto |
+| `filler` | `bg-[#4654CD]/70` | Color primario semi-transparente |
+| `thumb` | `bg-white border-2 border-[#4654CD] w-4 h-4 shadow-sm` | Thumb blanco con borde |
+| `track` | `bg-neutral-200 h-1` | Track delgado y sutil |
+| `label` | `text-xs font-medium text-neutral-600` | Label pequeño |
+| `value` | `text-xs text-neutral-500` | Valores en gris |
+
+### Reglas para Sliders en filtros:
+- **SIEMPRE** usar `size="sm"` para compacidad
+- **SIEMPRE** usar colores neutros para valores mostrados (`text-neutral-700`)
+- **SIEMPRE** usar thumb blanco con borde en lugar de thumb sólido de color
+- **NUNCA** usar colores brillantes como aqua `#03DBD0` en filtros
+- **NUNCA** usar `font-bold` en valores del slider (usar `font-medium` máximo)
+- Track delgado con `h-1` para menor prominencia
+
+## Settings Modals Uniformes (Patrón Estándar)
+
+### SIEMPRE seguir el patrón de HeroSettingsModal para modales de configuración
+
+Todos los modales de settings deben ser uniformes en estructura, tamaño, y comportamiento:
+
+```tsx
+// ✅ CORRECTO - Estructura uniforme para Settings Modals
+<Modal
+  isOpen={isOpen}
+  onClose={onClose}
+  size="2xl"                           // Tamaño estándar para settings
+  scrollBehavior="outside"             // NUNCA usar "inside"
+  backdrop="blur"
+  placement="center"
+  classNames={{
+    base: 'bg-white my-8',
+    wrapper: 'items-center justify-center py-8 min-h-full',
+    backdrop: 'bg-black/50',
+    header: 'border-b border-neutral-200 bg-white py-4 pr-12',  // pr-12 para no colisionar con X
+    body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
+    footer: 'border-t border-neutral-200 bg-white',
+    closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+  }}
+>
+  <ModalContent>
+    {/* Header con icono y título */}
+    <ModalHeader className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
+        <Settings className="w-4 h-4 text-[#4654CD]" />
+      </div>
+      <span className="text-lg font-semibold text-neutral-800">Título del Modal</span>
+    </ModalHeader>
+
+    {/* Body con descripción + opciones */}
+    <ModalBody className="py-6 bg-white">
+      <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
+        Descripción introductoria del modal.
+      </p>
+      {/* VersionSelector components aquí */}
+    </ModalBody>
+
+    {/* Footer con botones */}
+    <ModalFooter className="bg-white">
+      <Button
+        variant="light"
+        startContent={<RotateCcw className="w-4 h-4" />}
+        onPress={handleReset}
+        className="cursor-pointer"
+      >
+        Restablecer
+      </Button>
+      <Button className="bg-[#4654CD] text-white cursor-pointer" onPress={onClose}>
+        Aplicar
+      </Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+```
+
+### Estructura del Header:
+
+| Elemento | Clase | Especificación |
+|----------|-------|----------------|
+| Contenedor icono | `w-8 h-8 rounded-lg bg-[#4654CD]/10` | 32x32px con fondo primario suave |
+| Icono | `w-4 h-4 text-[#4654CD]` | 16x16px en color primario |
+| Título | `text-lg font-semibold text-neutral-800` | 18px, semibold, gris oscuro |
+
+### Estructura del Footer:
+
+| Botón | Variante | Clase |
+|-------|----------|-------|
+| Restablecer | `variant="light"` | Con icono RotateCcw + `cursor-pointer` |
+| Aplicar/Cerrar | Primario | `bg-[#4654CD] text-white cursor-pointer` |
+
+### Reglas para Settings Modals:
+- **SIEMPRE** usar `size="2xl"` para modales de configuración
+- **SIEMPRE** usar `scrollBehavior="outside"` (nunca "inside")
+- **SIEMPRE** incluir `cursor-pointer` en TODOS los botones (incluyendo closeButton)
+- **SIEMPRE** usar `pr-12` en header para evitar colisión con botón X
+- **SIEMPRE** usar `scrollbar-hide` en body para scrollbar limpio
+- **SIEMPRE** estructura: Header con icono → Body con descripción + opciones → Footer con Restablecer + Aplicar
+- **SIEMPRE** icono del header en contenedor 8x8 con fondo `bg-[#4654CD]/10`
+- **NUNCA** usar tamaños diferentes entre modales de settings del mismo proyecto
 
 ## Imágenes con Fallback (Logos, Marcas, CDN externos)
 
@@ -998,6 +1147,54 @@ const BrandLogo: React.FC<{ logo?: string; label: string }> = ({ logo, label }) 
 | Wikipedia SVG | CORS / Hotlinking | Fallback a texto o usar CDN propio |
 | Unsplash | Puede fallar en export | `<img>` nativo con lazy loading |
 | URLs dinámicas | 404 frecuentes | Siempre implementar onError |
+
+## Section Status Tracking (Single Source of Truth)
+
+### NUNCA duplicar el tracking de status de secciones
+
+El status de secciones (habilitado/deshabilitado, pendiente/completado) debe tener UNA SOLA fuente de verdad:
+
+```
+✅ ÚNICA FUENTE DE VERDAD
+src/app/prototipos/_registry/versions.ts
+  → status: 'pending' | 'in_progress' | 'done'
+  → Controla navegación UI y progreso
+
+❌ NO USAR para status
+public/prototipos/X.X/config.json
+  → Solo versiones de componentes A/B
+  → NUNCA incluir "enabled: true/false"
+```
+
+### Archivos y sus responsabilidades:
+
+| Archivo | Propósito | Datos |
+|---------|-----------|-------|
+| `_registry/versions.ts` | Navegación, progreso, status | `sections[].status` |
+| `public/X.X/config.json` | Configuración A/B de componentes | `components[].version` |
+
+### Ejemplo correcto de config.json:
+
+```json
+{
+  "sections": {
+    "hero": {
+      "lastUpdated": "2024-12-17",
+      "components": {
+        "brandIdentity": { "version": 1, "notes": "..." },
+        "navbar": { "version": 2, "notes": "..." }
+      }
+    }
+  }
+}
+```
+
+### Reglas:
+- **NUNCA** agregar `enabled: true/false` en config.json
+- **SIEMPRE** usar `versions.ts` para status de secciones
+- **SIEMPRE** actualizar `versions.ts` cuando una sección pasa a `done`
+- El status determina si la card es clickeable en el índice de prototipos
+- config.json solo almacena qué versión de cada componente usar
 
 ## Component Versioning Pattern (A/B Testing)
 
@@ -1072,6 +1269,265 @@ export const versionDescriptions = {
 - **SIEMPRE** agregar selector en `CatalogSettingsModal` para poder probar versiones
 - **SIEMPRE** actualizar páginas standalone (catalog-v1, v2, v3) con nueva prop
 
+## Floating Action Buttons (FAB)
+
+### SIEMPRE incluir hover background en botones flotantes
+
+Los botones flotantes de preview (configuración, ver código) deben tener feedback visual claro al hover:
+
+```tsx
+// ❌ PROHIBIDO - Sin hover background visible
+<Button
+  isIconOnly
+  className="bg-[#4654CD] text-white shadow-lg"
+  onPress={onClick}
+>
+  <Settings className="w-5 h-5" />
+</Button>
+
+// ✅ CORRECTO - Con hover background y transiciones
+// Botón primario (configuración)
+<Button
+  isIconOnly
+  className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+  onPress={onClick}
+>
+  <Settings className="w-5 h-5" />
+</Button>
+
+// Botón secundario (ver código)
+<Button
+  isIconOnly
+  className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+  onPress={onClick}
+>
+  <Code className="w-5 h-5 text-neutral-600" />
+</Button>
+```
+
+### Configuración estándar de FABs:
+
+| Tipo | Background | Hover | Transición |
+|------|------------|-------|------------|
+| **Primario** | `bg-[#4654CD]` | `hover:bg-[#3a47b3]` | `transition-colors` |
+| **Secundario** | `bg-white border border-neutral-200` | `hover:bg-neutral-100` | `transition-colors` |
+
+### Reglas para Floating Action Buttons:
+- **SIEMPRE** incluir `cursor-pointer` en todos los FABs
+- **SIEMPRE** usar `hover:bg-[#3a47b3]` para botones primarios (tono más oscuro de #4654CD)
+- **SIEMPRE** usar `hover:bg-neutral-100` para botones secundarios/blancos
+- **SIEMPRE** incluir `transition-colors` o `transition-all` para animación suave
+- **SIEMPRE** usar `shadow-lg` para elevación visual
+- Agrupar FABs verticalmente con `gap-2` en el contenedor
+- Posicionar con `fixed bottom-6 right-6 z-50`
+
+## Section Landing Pages (Auto-Redirect Pattern)
+
+### SIEMPRE redirigir landing pages de sección al preview
+
+Las landing pages de cada sección (hero, catalogo, rechazo, etc.) NO deben mostrar una lista de versiones para elegir. Deben redirigir automáticamente al preview configurable:
+
+```tsx
+// ❌ PROHIBIDO - Landing page con lista de versiones
+export default function RechazoPage() {
+  const versions = [
+    { id: 'preview', href: '/rechazo/rechazado-preview' },
+    { id: 'v1', href: '/rechazo/rechazado-v1' },
+    // ...
+  ];
+
+  return (
+    <div>
+      <h1>Versiones Disponibles</h1>
+      {versions.map((v) => <Card key={v.id}>{v.name}</Card>)}
+    </div>
+  );
+}
+
+// ✅ CORRECTO - Auto-redirect al preview configurable
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function RechazoPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/prototipos/0.3/rechazo/rechazado-preview');
+  }, [router]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+      <div className="text-center">
+        <div className="w-8 h-8 border-2 border-[#4654CD] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-neutral-500">Redirigiendo a Rechazo Preview...</p>
+      </div>
+    </div>
+  );
+}
+```
+
+### Patrón de Loading Spinner:
+
+```tsx
+// Spinner estándar con colores de marca
+<div className="w-8 h-8 border-2 border-[#4654CD] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+<p className="text-neutral-500">Redirigiendo a [Sección] Preview...</p>
+```
+
+### Reglas para landing pages de sección:
+- **SIEMPRE** redirigir a `[seccion]-preview` usando `router.replace()`
+- **SIEMPRE** usar `'use client'` para el componente
+- **SIEMPRE** mostrar spinner de carga con mensaje descriptivo
+- **SIEMPRE** usar `bg-neutral-50` como fondo del loading state
+- **NUNCA** mostrar lista de versiones en la landing page
+- El usuario accede a versiones específicas (v1, v2, v3) directamente vía URL o desde el preview configurable
+
+## Fixed Navbar con Hero de Color (Evitar White Space)
+
+### SIEMPRE aplicar fondo del hero al main cuando navbar y hero comparten color
+
+Cuando un navbar fijo y un hero tienen el mismo color de fondo (ej: ambos `bg-[#4654CD]`), el padding-top del main crea un gap blanco visible:
+
+```tsx
+// ❌ PROHIBIDO - pt-16 crea gap blanco entre navbar y hero de mismo color
+<nav className="fixed top-0 bg-[#4654CD] h-16">...</nav>
+<main className="pt-16">
+  <div className="bg-[#4654CD]">Hero content</div>  {/* Gap blanco visible! */}
+</main>
+
+// ✅ CORRECTO - Aplicar fondo del hero al main cuando versión V3
+<nav className="fixed top-0 bg-[#4654CD] h-16">...</nav>
+<main className={`pt-16 ${config.brandIdentityVersion === 3 ? 'bg-[#4654CD]' : ''}`}>
+  <div className="bg-[#4654CD]">Hero content</div>  {/* Sin gap visible */}
+</main>
+```
+
+### Implementación en HeroSection wrapper:
+
+```tsx
+// HeroSection.tsx
+export const HeroSection: React.FC<HeroSectionProps> = ({ config }) => {
+  return (
+    <div className="min-h-screen">
+      {renderNavbar()}  {/* Fixed navbar */}
+
+      {/* Main content con fondo condicional para evitar white space */}
+      <main className={`pt-16 ${
+        config.brandIdentityVersion === 3 ? 'bg-[#4654CD]' : ''
+      }`}>
+        {renderBrandIdentity()}
+        {/* Resto del contenido */}
+      </main>
+
+      {renderFooter()}
+    </div>
+  );
+};
+```
+
+### Diagnóstico del problema:
+| Elemento | Valor | Resultado |
+|----------|-------|-----------|
+| Navbar fixed | `h-16` (64px) | Navbar ocupa 64px desde top |
+| Main padding | `pt-16` (64px) | Contenido empieza debajo del navbar |
+| BrandIdentity V3 | `bg-[#4654CD]` | Mismo color que navbar |
+| Gap visible | 64px de `pt-16` | Fondo blanco/transparente del main |
+
+### Reglas para navbar + hero del mismo color:
+- **SIEMPRE** aplicar `bg-[color]` al `<main>` cuando navbar y hero comparten color
+- **SIEMPRE** hacer la clase condicional basada en la versión del componente
+- **SIEMPRE** verificar visualmente con scroll hacia arriba/abajo
+- El pt-16 se mantiene para el espaciado, pero el fondo del main lo oculta
+- Este patrón aplica a cualquier combinación donde navbar y primera sección comparten fondo
+
+## Logos de Convenios (Fuente Centralizada)
+
+### SIEMPRE usar conveniosLogos.ts para logos de instituciones
+
+Los logos de universidades, institutos y socios están centralizados en un único archivo:
+
+```tsx
+// Importar logos de convenios
+import {
+  conveniosLogos,        // 35 instituciones educativas
+  membresiaLogos,        // 2 socios (ASBANC, Fintech Perú)
+  allPartnerLogos,       // Todos combinados (37 total)
+  getUniversidades,      // Helper: solo universidades
+  getInstitutos,         // Helper: solo institutos
+  getSocios,             // Helper: solo membresías
+  getLogoByShortName,    // Buscar por nombre corto
+  conveniosStats,        // Estadísticas { total: 37, ... }
+} from '@/app/prototipos/_shared/data/conveniosLogos';
+```
+
+### Estructura de cada logo:
+
+```tsx
+interface ConvenioLogo {
+  id: number;           // ID único (1-37)
+  name: string;         // Nombre completo de la institución
+  shortName: string;    // Nombre corto (ej: "UPC", "SENATI")
+  url: string;          // URL del CDN de Webflow
+  type: 'instituto' | 'universidad' | 'socio';
+}
+```
+
+### Ejemplo de uso en Hero Section:
+
+```tsx
+import { conveniosLogos } from '@/app/prototipos/_shared/data/conveniosLogos';
+
+// Mostrar primeros 10 logos en carrusel
+const LogoCarousel = () => (
+  <div className="flex gap-8 overflow-x-auto">
+    {conveniosLogos.slice(0, 10).map((logo) => (
+      <img
+        key={logo.id}
+        src={logo.url}
+        alt={logo.name}
+        className="h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all"
+        loading="lazy"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.style.display = 'none';
+        }}
+      />
+    ))}
+  </div>
+);
+```
+
+### Ejemplo de uso con filtros:
+
+```tsx
+import { getUniversidades, getInstitutos } from '@/app/prototipos/_shared/data/conveniosLogos';
+
+// Solo universidades (20 logos)
+const universidades = getUniversidades();
+
+// Solo institutos (15 logos)
+const institutos = getInstitutos();
+```
+
+### Reglas para logos de convenios:
+- **SIEMPRE** importar desde `conveniosLogos.ts` (nunca hardcodear URLs)
+- **SIEMPRE** incluir `onError` handler para fallback
+- **SIEMPRE** usar `loading="lazy"` para performance
+- **SIEMPRE** usar `grayscale` por defecto en carruseles (hover para color)
+- **NUNCA** duplicar la lista de logos en otros archivos
+- Los logos están en CDN de Webflow (no requieren next.config para dominios)
+
+### Estadísticas disponibles:
+
+| Tipo | Cantidad |
+|------|----------|
+| Universidades | 20 |
+| Institutos | 15 |
+| Socios/Membresías | 2 |
+| **Total** | **37** |
+
 ## Checklist de Calidad
 
 Antes de entregar cualquier componente, verificar:
@@ -1096,6 +1552,13 @@ Antes de entregar cualquier componente, verificar:
 - [ ] **Imágenes externas con `<img>` nativo (no NextUI Image en static export)**
 - [ ] **Badges/Chips con radius="sm" y classNames (nunca pill default)**
 - [ ] **Select: hover con `data-[selected=false]:data-[hover=true]:` (NO aplica hover cuando seleccionado)**
-- [ ] **Switch: usar color="primary" + wrapper con group-data-[selected=true]:bg-[#4654CD] (NO estilos en thumb)**
+- [ ] **Switch: wrapper con `bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]` + thumb `bg-white shadow-md`**
 - [ ] **Checkbox con before:border-2, transiciones y icon: 'text-white transition-opacity'**
+- [ ] **Sliders en filtros: size="sm", thumb blanco con borde, colores sutiles**
+- [ ] **Settings Modals: size="2xl", scrollBehavior="outside", cursor-pointer en TODOS los botones**
 - [ ] **Imágenes externas (logos, marcas) con fallback a texto usando onError + useState**
+- [ ] **FABs con hover background: primarios `hover:bg-[#3a47b3]`, secundarios `hover:bg-neutral-100`**
+- [ ] **Section status en `versions.ts` únicamente (NUNCA `enabled` en config.json)**
+- [ ] **Landing pages de sección redirigen automáticamente a [seccion]-preview**
+- [ ] **Navbar fijo + hero del mismo color: aplicar bg-[color] al main para evitar white space**
+- [ ] **Logos de convenios importados desde conveniosLogos.ts (nunca hardcodear URLs)**

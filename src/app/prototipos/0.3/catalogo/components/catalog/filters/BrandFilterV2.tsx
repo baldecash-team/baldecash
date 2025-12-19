@@ -1,14 +1,13 @@
 'use client';
 
 /**
- * BrandFilterV2 - Logo pequeno + texto con checkbox
+ * BrandFilterV2 - Grid de botones con logo pequeno
  *
  * Version con logos de marca para mejor reconocimiento visual
- * Balance entre informacion y espacio
+ * Usa formato grid buttons uniforme con UsageFilter
  */
 
-import React from 'react';
-import { Checkbox, Image } from '@nextui-org/react';
+import React, { useState } from 'react';
 import { FilterOption } from '../../../types/catalog';
 
 interface BrandFilterV2Props {
@@ -16,6 +15,35 @@ interface BrandFilterV2Props {
   selected: string[];
   onChange: (brands: string[]) => void;
 }
+
+// Brand logo component with fallback
+const BrandLogo: React.FC<{ logo?: string; label: string; isSelected: boolean }> = ({
+  logo,
+  label,
+  isSelected,
+}) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (!logo || hasError) {
+    return null;
+  }
+
+  return (
+    <div
+      className={`w-8 h-6 flex items-center justify-center rounded ${
+        isSelected ? 'bg-white/20' : 'bg-neutral-100'
+      }`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={logo}
+        alt={label}
+        className="max-w-full max-h-full object-contain"
+        onError={() => setHasError(true)}
+      />
+    </div>
+  );
+};
 
 export const BrandFilterV2: React.FC<BrandFilterV2Props> = ({
   options,
@@ -31,37 +59,33 @@ export const BrandFilterV2: React.FC<BrandFilterV2Props> = ({
   };
 
   return (
-    <div className="space-y-2">
-      {options.map((option) => (
-        <label
-          key={option.value}
-          className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Checkbox
-              isSelected={selected.includes(option.value)}
-              onValueChange={() => handleToggle(option.value)}
-              classNames={{
-                base: 'cursor-pointer',
-                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
-                icon: 'text-white transition-opacity',
-              }}
-            />
-            {option.logo && (
-              <div className="w-16 h-6 flex items-center justify-center bg-white rounded">
-                <Image
-                  src={option.logo}
-                  alt={option.label}
-                  className="max-w-full max-h-full object-contain"
-                  removeWrapper
-                />
-              </div>
-            )}
-            <span className="text-sm text-neutral-700">{option.label}</span>
-          </div>
-          <span className="text-xs text-neutral-400">({option.count})</span>
-        </label>
-      ))}
+    <div className="grid grid-cols-2 gap-2">
+      {options.map((option) => {
+        const isSelected = selected.includes(option.value);
+        return (
+          <button
+            key={option.value}
+            onClick={() => handleToggle(option.value)}
+            className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+              isSelected
+                ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+            }`}
+          >
+            <BrandLogo logo={option.logo} label={option.label} isSelected={isSelected} />
+            <div className="flex-1 text-left">
+              <span className="text-sm font-medium">{option.label}</span>
+              <span
+                className={`text-xs block ${
+                  isSelected ? 'text-white/80' : 'text-neutral-400'
+                }`}
+              >
+                ({option.count})
+              </span>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 };

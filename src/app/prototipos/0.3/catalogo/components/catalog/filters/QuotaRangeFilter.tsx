@@ -4,27 +4,34 @@
  * QuotaRangeFilter - Slider de rango de cuota
  *
  * Filtro principal para estudiantes que piensan en cuotas
- * Incluye selector de frecuencia (semanal, quincenal, mensual)
+ * Incluye selector de frecuencia multi-select (semanal, quincenal, mensual)
  */
 
 import React from 'react';
-import { Slider, ButtonGroup, Button } from '@nextui-org/react';
+import { Slider } from '@nextui-org/react';
+import { Calendar, CalendarDays, CalendarRange, LucideIcon } from 'lucide-react';
 import { QuotaFrequency } from '../../../types/catalog';
 
 interface QuotaRangeFilterProps {
   min: number;
   max: number;
   value: [number, number];
-  frequency: QuotaFrequency;
+  frequency: QuotaFrequency[];
   onChange: (range: [number, number]) => void;
-  onFrequencyChange: (frequency: QuotaFrequency) => void;
+  onFrequencyChange: (frequency: QuotaFrequency[]) => void;
 }
 
-const frequencyLabels: Record<QuotaFrequency, string> = {
-  weekly: 'Semanal',
-  biweekly: 'Quincenal',
-  monthly: 'Mensual',
-};
+interface FrequencyOption {
+  value: QuotaFrequency;
+  label: string;
+  icon: LucideIcon;
+}
+
+const frequencyOptions: FrequencyOption[] = [
+  { value: 'weekly', label: 'Semanal', icon: Calendar },
+  { value: 'biweekly', label: 'Quincenal', icon: CalendarDays },
+  { value: 'monthly', label: 'Mensual', icon: CalendarRange },
+];
 
 export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
   min,
@@ -38,31 +45,48 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
     return `S/${quota}`;
   };
 
+  const handleToggle = (freq: QuotaFrequency) => {
+    if (frequency.includes(freq)) {
+      onFrequencyChange(frequency.filter((f) => f !== freq));
+    } else {
+      onFrequencyChange([...frequency, freq]);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Frequency Selector */}
+      {/* Frequency Selector - Multi-select grid */}
       <div>
         <label className="text-xs text-neutral-500 mb-2 block">Frecuencia de pago</label>
-        <ButtonGroup size="sm" className="w-full">
-          {(Object.keys(frequencyLabels) as QuotaFrequency[]).map((freq) => (
-            <Button
-              key={freq}
-              className={`flex-1 cursor-pointer ${
-                frequency === freq
-                  ? 'bg-[#4654CD] text-white'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-              }`}
-              onPress={() => onFrequencyChange(freq)}
-            >
-              {frequencyLabels[freq]}
-            </Button>
-          ))}
-        </ButtonGroup>
+        <div className="grid grid-cols-3 gap-2">
+          {frequencyOptions.map((option) => {
+            const isSelected = frequency.includes(option.value);
+            const IconComponent = option.icon;
+
+            return (
+              <button
+                key={option.value}
+                onClick={() => handleToggle(option.value)}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                    : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                }`}
+              >
+                <IconComponent
+                  className={`w-4 h-4 ${isSelected ? 'text-white' : 'text-[#4654CD]'}`}
+                />
+                <span className="text-xs font-medium">{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Slider */}
       <Slider
         label="Cuota"
+        size="sm"
         step={10}
         minValue={min}
         maxValue={max}
@@ -70,17 +94,17 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
         onChange={(val) => onChange(val as [number, number])}
         classNames={{
           base: 'max-w-full',
-          filler: 'bg-[#03DBD0]',
-          thumb: 'bg-[#03DBD0] border-[#03DBD0]',
-          track: 'bg-neutral-200',
-          label: 'text-sm font-medium text-neutral-700',
-          value: 'text-sm text-neutral-500',
+          filler: 'bg-[#4654CD]/70',
+          thumb: 'bg-white border-2 border-[#4654CD] w-4 h-4 shadow-sm',
+          track: 'bg-neutral-200 h-1',
+          label: 'text-xs font-medium text-neutral-600',
+          value: 'text-xs text-neutral-500',
         }}
       />
-      <div className="flex justify-between text-sm">
-        <span className="text-[#02C3BA] font-bold">{formatQuota(value[0])}/mes</span>
-        <span className="text-neutral-400">-</span>
-        <span className="text-[#02C3BA] font-bold">{formatQuota(value[1])}/mes</span>
+      <div className="flex justify-between text-xs">
+        <span className="text-neutral-700 font-medium">{formatQuota(value[0])}/mes</span>
+        <span className="text-neutral-300">-</span>
+        <span className="text-neutral-700 font-medium">{formatQuota(value[1])}/mes</span>
       </div>
     </div>
   );

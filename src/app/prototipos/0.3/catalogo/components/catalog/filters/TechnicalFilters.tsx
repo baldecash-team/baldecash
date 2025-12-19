@@ -4,19 +4,34 @@
  * TechnicalFilters - Filtros de specs tecnicas
  *
  * Agrupa filtros de RAM, SSD, pantalla, procesador, GPU, etc.
+ * Usa formato de grid buttons uniforme con UsageFilter
  * Incluye tooltips explicativos para usuarios no tecnicos
  */
 
 import React from 'react';
-import { Checkbox, Switch } from '@nextui-org/react';
+import { Switch } from '@nextui-org/react';
 import { FilterSection } from './FilterSection';
-import { filterTooltips, ramOptions, storageOptions, displaySizeOptions, resolutionOptions, processorBrandOptions, displayTypeOptions } from '../../../data/mockCatalogData';
-import { FilterState } from '../../../types/catalog';
+import {
+  filterTooltips,
+  ramOptions,
+  storageOptions,
+  displaySizeOptions,
+  resolutionOptions,
+  processorBrandOptions,
+  gpuTypeOptions,
+  featureOptions,
+  connectivityOptions,
+} from '../../../data/mockCatalogData';
+import { FilterState, GpuType } from '../../../types/catalog';
 
 interface TechnicalFiltersProps {
   filters: FilterState;
   onChange: (filters: Partial<FilterState>) => void;
 }
+
+// Feature keys mapping
+type FeatureKey = 'touchScreen' | 'backlitKeyboard' | 'numericKeypad' | 'fingerprint' | 'hasWindows';
+type ConnectivityKey = 'hasThunderbolt' | 'hasEthernet' | 'hasSDCard' | 'hasHDMI';
 
 export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
   filters,
@@ -34,35 +49,60 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
     }
   };
 
+  // Check if a feature is selected
+  const isFeatureSelected = (key: FeatureKey): boolean => {
+    return filters[key] === true;
+  };
+
+  // Toggle a feature
+  const handleToggleFeature = (key: FeatureKey) => {
+    onChange({ [key]: filters[key] === true ? null : true });
+  };
+
+  // Check if connectivity option is selected
+  const isConnectivitySelected = (key: ConnectivityKey): boolean => {
+    return filters[key] === true;
+  };
+
+  // Toggle connectivity option
+  const handleToggleConnectivity = (key: ConnectivityKey) => {
+    onChange({ [key]: filters[key] === true ? null : true });
+  };
+
   return (
     <>
       {/* RAM */}
       <FilterSection title="RAM" tooltip={filterTooltips.ram}>
-        <div className="space-y-2">
-          {ramOptions.map((option) => (
-            <label
-              key={option.value}
-              className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  isSelected={filters.ram.includes(Number(option.value))}
-                  onValueChange={() =>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            {ramOptions.map((option) => {
+              const isSelected = filters.ram.includes(Number(option.value));
+              return (
+                <button
+                  key={option.value}
+                  onClick={() =>
                     handleToggleArray('ram', Number(option.value), filters.ram)
                   }
-                  classNames={{
-                    base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
-                    icon: 'text-white transition-opacity',
-                  }}
-                />
-                <span className="text-sm text-neutral-700">{option.label}</span>
-              </div>
-              <span className="text-xs text-neutral-400">({option.count})</span>
-            </label>
-          ))}
+                  className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                      : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                  }`}
+                >
+                  <span className="text-sm font-medium">{option.label}</span>
+                  <span
+                    className={`text-xs ${
+                      isSelected ? 'text-white/80' : 'text-neutral-400'
+                    }`}
+                  >
+                    ({option.count})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           <div className="pt-2 border-t border-neutral-100">
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
               <Switch
                 size="sm"
                 isSelected={filters.ramExpandable === true}
@@ -70,11 +110,12 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                   onChange({ ramExpandable: val ? true : null })
                 }
                 classNames={{
+                  base: 'flex-shrink-0',
                   wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
                   thumb: 'bg-white shadow-md',
                 }}
               />
-              <span className="text-sm text-neutral-600">RAM expandible</span>
+              <span className="text-sm text-neutral-600 truncate">Expandible</span>
             </label>
           </div>
         </div>
@@ -82,261 +123,238 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
 
       {/* Storage */}
       <FilterSection title="Almacenamiento" tooltip={filterTooltips.ssd}>
-        <div className="space-y-2">
-          {storageOptions.map((option) => (
-            <label
-              key={option.value}
-              className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  isSelected={filters.storage.includes(Number(option.value))}
-                  onValueChange={() =>
-                    handleToggleArray('storage', Number(option.value), filters.storage)
-                  }
-                  classNames={{
-                    base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
-                    icon: 'text-white transition-opacity',
-                  }}
-                />
-                <span className="text-sm text-neutral-700">{option.label}</span>
-              </div>
-              <span className="text-xs text-neutral-400">({option.count})</span>
-            </label>
-          ))}
+        <div className="grid grid-cols-2 gap-2">
+          {storageOptions.map((option) => {
+            const isSelected = filters.storage.includes(Number(option.value));
+            return (
+              <button
+                key={option.value}
+                onClick={() =>
+                  handleToggleArray('storage', Number(option.value), filters.storage)
+                }
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                    : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                }`}
+              >
+                <span className="text-sm font-medium">{option.label}</span>
+                <span
+                  className={`text-xs ${
+                    isSelected ? 'text-white/80' : 'text-neutral-400'
+                  }`}
+                >
+                  ({option.count})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
 
       {/* Display Size */}
-      <FilterSection title="Tamano de pantalla" defaultExpanded={false}>
-        <div className="space-y-2">
-          {displaySizeOptions.map((option) => (
-            <label
-              key={option.value}
-              className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  isSelected={filters.displaySize.includes(Number(option.value))}
-                  onValueChange={() =>
-                    handleToggleArray(
-                      'displaySize',
-                      Number(option.value),
-                      filters.displaySize
-                    )
-                  }
-                  classNames={{
-                    base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
-                    icon: 'text-white transition-opacity',
-                  }}
-                />
-                <span className="text-sm text-neutral-700">{option.label}</span>
-              </div>
-              <span className="text-xs text-neutral-400">({option.count})</span>
-            </label>
-          ))}
+      <FilterSection title="Pantalla" defaultExpanded={false}>
+        <div className="grid grid-cols-2 gap-2">
+          {displaySizeOptions.map((option) => {
+            const isSelected = filters.displaySize.includes(Number(option.value));
+            return (
+              <button
+                key={option.value}
+                onClick={() =>
+                  handleToggleArray(
+                    'displaySize',
+                    Number(option.value),
+                    filters.displaySize
+                  )
+                }
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                    : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                }`}
+              >
+                <span className="text-sm font-medium">{option.label}</span>
+                <span
+                  className={`text-xs ${
+                    isSelected ? 'text-white/80' : 'text-neutral-400'
+                  }`}
+                >
+                  ({option.count})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
 
       {/* Resolution */}
-      <FilterSection title="Resolucion" tooltip={filterTooltips.resolution} defaultExpanded={false}>
-        <div className="space-y-2">
-          {resolutionOptions.map((option) => (
-            <label
-              key={option.value}
-              className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  isSelected={filters.resolution.includes(option.value as any)}
-                  onValueChange={() =>
-                    handleToggleArray('resolution', option.value as any, filters.resolution)
-                  }
-                  classNames={{
-                    base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
-                    icon: 'text-white transition-opacity',
-                  }}
-                />
-                <span className="text-sm text-neutral-700">{option.label}</span>
-              </div>
-              <span className="text-xs text-neutral-400">({option.count})</span>
-            </label>
-          ))}
+      <FilterSection
+        title="Resolucion"
+        tooltip={filterTooltips.resolution}
+        defaultExpanded={false}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {resolutionOptions.map((option) => {
+            const isSelected = filters.resolution.includes(option.value as any);
+            return (
+              <button
+                key={option.value}
+                onClick={() =>
+                  handleToggleArray(
+                    'resolution',
+                    option.value as any,
+                    filters.resolution
+                  )
+                }
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                    : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                }`}
+              >
+                <span className="text-sm font-medium truncate">{option.label}</span>
+                <span
+                  className={`text-xs flex-shrink-0 ml-1 ${
+                    isSelected ? 'text-white/80' : 'text-neutral-400'
+                  }`}
+                >
+                  ({option.count})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
 
       {/* Processor */}
-      <FilterSection title="Procesador" tooltip={filterTooltips.processor} defaultExpanded={false}>
-        <div className="space-y-2">
-          {processorBrandOptions.map((option) => (
-            <label
-              key={option.value}
-              className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  isSelected={filters.processorBrand.includes(option.value as any)}
-                  onValueChange={() =>
-                    handleToggleArray(
-                      'processorBrand',
-                      option.value as any,
-                      filters.processorBrand
-                    )
-                  }
-                  classNames={{
-                    base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
-                    icon: 'text-white transition-opacity',
-                  }}
-                />
-                <span className="text-sm text-neutral-700">{option.label}</span>
-              </div>
-              <span className="text-xs text-neutral-400">({option.count})</span>
-            </label>
-          ))}
+      <FilterSection
+        title="Procesador"
+        tooltip={filterTooltips.processor}
+        defaultExpanded={false}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {processorBrandOptions.map((option) => {
+            const isSelected = filters.processorBrand.includes(option.value as any);
+            return (
+              <button
+                key={option.value}
+                onClick={() =>
+                  handleToggleArray(
+                    'processorBrand',
+                    option.value as any,
+                    filters.processorBrand
+                  )
+                }
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                    : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                }`}
+              >
+                <span className="text-sm font-medium">{option.label}</span>
+                <span
+                  className={`text-xs ${
+                    isSelected ? 'text-white/80' : 'text-neutral-400'
+                  }`}
+                >
+                  ({option.count})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
 
       {/* GPU */}
-      <FilterSection title="Tarjeta de video" tooltip={filterTooltips.gpu} defaultExpanded={false}>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.gpuType.includes('dedicated')}
-              onValueChange={(val) =>
-                onChange({ gpuType: val ? ['dedicated'] : [] })
-              }
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Solo con GPU dedicada</span>
-          </label>
+      <FilterSection
+        title="Tarjeta de video"
+        tooltip={filterTooltips.gpu}
+        defaultExpanded={false}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {gpuTypeOptions.map((option) => {
+            const isSelected = filters.gpuType.includes(option.value as GpuType);
+            return (
+              <button
+                key={option.value}
+                onClick={() =>
+                  handleToggleArray('gpuType', option.value as GpuType, filters.gpuType)
+                }
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                    : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                }`}
+              >
+                <span className="text-sm font-medium">{option.label}</span>
+                <span
+                  className={`text-xs ${
+                    isSelected ? 'text-white/80' : 'text-neutral-400'
+                  }`}
+                >
+                  ({option.count})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
 
       {/* Additional Features */}
       <FilterSection title="Caracteristicas" defaultExpanded={false}>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.touchScreen === true}
-              onValueChange={(val) => onChange({ touchScreen: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Pantalla tactil</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.backlitKeyboard === true}
-              onValueChange={(val) => onChange({ backlitKeyboard: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Teclado retroiluminado</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.numericKeypad === true}
-              onValueChange={(val) => onChange({ numericKeypad: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Teclado numerico</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.fingerprint === true}
-              onValueChange={(val) => onChange({ fingerprint: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Lector de huella</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.hasWindows === true}
-              onValueChange={(val) => onChange({ hasWindows: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Con Windows incluido</span>
-          </label>
+        <div className="grid grid-cols-2 gap-2">
+          {featureOptions.map((option) => {
+            const isSelected = isFeatureSelected(option.value as FeatureKey);
+            return (
+              <button
+                key={option.value}
+                onClick={() => handleToggleFeature(option.value as FeatureKey)}
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                    : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                }`}
+              >
+                <span className="text-sm font-medium truncate">{option.label}</span>
+                <span
+                  className={`text-xs flex-shrink-0 ml-1 ${
+                    isSelected ? 'text-white/80' : 'text-neutral-400'
+                  }`}
+                >
+                  ({option.count})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
 
       {/* Connectivity */}
       <FilterSection title="Conectividad" defaultExpanded={false}>
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.hasThunderbolt === true}
-              onValueChange={(val) => onChange({ hasThunderbolt: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Thunderbolt</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.hasEthernet === true}
-              onValueChange={(val) => onChange({ hasEthernet: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Puerto Ethernet</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.hasSDCard === true}
-              onValueChange={(val) => onChange({ hasSDCard: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Lector SD</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
-            <Switch
-              size="sm"
-              isSelected={filters.hasHDMI === true}
-              onValueChange={(val) => onChange({ hasHDMI: val ? true : null })}
-              color="primary"
-              classNames={{
-                wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
-              }}
-            />
-            <span className="text-sm text-neutral-600">Puerto HDMI</span>
-          </label>
+        <div className="grid grid-cols-2 gap-2">
+          {connectivityOptions.map((option) => {
+            const isSelected = isConnectivitySelected(option.value as ConnectivityKey);
+            return (
+              <button
+                key={option.value}
+                onClick={() => handleToggleConnectivity(option.value as ConnectivityKey)}
+                className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                    : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+                }`}
+              >
+                <span className="text-sm font-medium truncate">{option.label}</span>
+                <span
+                  className={`text-xs flex-shrink-0 ml-1 ${
+                    isSelected ? 'text-white/80' : 'text-neutral-400'
+                  }`}
+                >
+                  ({option.count})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
     </>

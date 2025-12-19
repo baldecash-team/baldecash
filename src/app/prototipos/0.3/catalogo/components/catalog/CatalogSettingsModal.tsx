@@ -89,7 +89,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
         wrapper: 'items-center justify-center py-8 min-h-full',
         backdrop: 'bg-black/50',
         header: 'border-b border-neutral-200 bg-white py-4 pr-12',
-        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
+        body: 'bg-white max-h-[60vh] overflow-y-auto overscroll-contain scrollbar-hide',
         footer: 'border-t border-neutral-200 bg-white',
         closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
       }}

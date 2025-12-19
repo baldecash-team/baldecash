@@ -182,7 +182,7 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutV1Props> = ({
         <div className="flex gap-6">
           {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-[280px] flex-shrink-0">
-            <div className="bg-white rounded-lg border border-neutral-200 p-4 sticky top-4">
+            <div className="bg-white rounded-lg border border-neutral-200 p-4 sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto overscroll-contain">
               <h2 className="text-lg font-semibold text-neutral-800 font-['Baloo_2'] mb-4 flex items-center gap-2">
                 <SlidersHorizontal className="w-5 h-5 text-[#4654CD]" />
                 Filtros

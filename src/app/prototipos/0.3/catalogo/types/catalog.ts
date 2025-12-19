@@ -64,7 +64,7 @@ export interface FilterState {
   brands: string[];
   priceRange: [number, number];
   quotaRange: [number, number];
-  quotaFrequency: QuotaFrequency;
+  quotaFrequency: QuotaFrequency[];
   usage: UsageType[];
   ram: number[];
   ramExpandable: boolean | null;
@@ -96,7 +96,7 @@ export const defaultFilterState: FilterState = {
   brands: [],
   priceRange: [1000, 5000],
   quotaRange: [40, 400],
-  quotaFrequency: 'monthly',
+  quotaFrequency: [],
   usage: [],
   ram: [],
   ramExpandable: null,
@@ -286,9 +286,9 @@ export interface QuotaRangeFilterProps {
   min: number;
   max: number;
   value: [number, number];
-  frequency: QuotaFrequency;
+  frequency: QuotaFrequency[];
   onChange: (range: [number, number]) => void;
-  onFrequencyChange: (frequency: QuotaFrequency) => void;
+  onFrequencyChange: (frequency: QuotaFrequency[]) => void;
 }
 
 export interface UsageFilterProps {

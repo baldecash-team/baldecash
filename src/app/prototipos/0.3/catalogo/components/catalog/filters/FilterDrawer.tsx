@@ -71,7 +71,7 @@ export const FilterDrawer: React.FC<FilterDrawerProps> = ({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4">{children}</div>
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4">{children}</div>
 
             {/* Footer */}
             <div className="p-4 border-t border-neutral-200 bg-white flex gap-3">

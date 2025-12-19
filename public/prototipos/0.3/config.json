@@ -6,7 +6,6 @@
   "status": "testing",
   "sections": {
     "hero": {
-      "enabled": true,
       "lastUpdated": "2024-12-17T00:00:00.000Z",
       "components": {
         "brandIdentity": {
@@ -36,7 +35,6 @@
       }
     },
     "catalogoLayout": {
-      "enabled": true,
       "lastUpdated": "2024-12-17T00:00:00.000Z",
       "components": {
         "layout": {
@@ -88,7 +86,6 @@
       }
     },
     "catalogoCards": {
-      "enabled": true,
       "lastUpdated": "2024-12-17T00:00:00.000Z",
       "components": {
         "cardEnfoque": {
@@ -130,11 +127,9 @@
       }
     },
     "detalleProducto": {
-      "enabled": false,
       "components": {}
     },
     "wizard": {
-      "enabled": true,
       "lastUpdated": "2024-12-18T00:00:00.000Z",
       "prompt": "PROMPT_08_FORM_ESTRUCTURA",
       "route": "/prototipos/0.3/solicitud",
@@ -183,7 +178,6 @@
       }
     },
     "wizardFields": {
-      "enabled": true,
       "lastUpdated": "2024-12-17T00:00:00.000Z",
       "components": {
         "labelStyle": {
@@ -244,7 +238,6 @@
       }
     },
     "wizardPersonal": {
-      "enabled": true,
       "lastUpdated": "2024-12-17T00:00:00.000Z",
       "components": {
         "dniLoading": {
@@ -275,7 +268,6 @@
       }
     },
     "results": {
-      "enabled": true,
       "lastUpdated": "2024-12-17T00:00:00.000Z",
       "components": {
         "approval": {
@@ -289,19 +281,15 @@
       }
     },
     "upsell": {
-      "enabled": false,
       "components": {}
     },
     "comparador": {
-      "enabled": false,
       "components": {}
     },
     "quiz": {
-      "enabled": false,
       "components": {}
     },
     "estadoVacio": {
-      "enabled": false,
       "components": {}
     }
   },

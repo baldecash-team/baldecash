@@ -36,7 +36,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
           aria-label="Ordenar por"
           selectedKeys={[value]}
           onChange={(e) => onChange(e.target.value as SortOption)}
-          startContent={<ArrowUpDown className="w-4 h-4 text-neutral-400" />}
+          selectorIcon={<ArrowUpDown className="w-4 h-4 text-neutral-400" />}
           classNames={{
             base: 'min-w-[200px]',
             trigger: 'h-10 min-h-10 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',

@@ -180,7 +180,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       {config.profileIdentificationVersion === 1 && renderProfileIdentification()}
 
       {/* Main Hero Content */}
-      <main className="pt-16">
+      <main className={`pt-16 ${config.brandIdentityVersion === 3 ? 'bg-[#4654CD]' : ''}`}>
         {/* Brand Identity / Hero Visual */}
         {renderBrandIdentity()}
 

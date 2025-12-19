@@ -1,14 +1,13 @@
 'use client';
 
 /**
- * BrandFilterV1 - Solo texto con checkbox
+ * BrandFilterV1 - Grid de botones de marca
  *
- * Version minimalista con checkboxes y conteo de productos
- * Mejor para listas largas de marcas
+ * Version con grid buttons uniforme con UsageFilter
+ * Mejor para mostrar marcas de forma visual y consistente
  */
 
 import React from 'react';
-import { Checkbox } from '@nextui-org/react';
 import { FilterOption } from '../../../types/catalog';
 
 interface BrandFilterV1Props {
@@ -31,27 +30,30 @@ export const BrandFilterV1: React.FC<BrandFilterV1Props> = ({
   };
 
   return (
-    <div className="space-y-2">
-      {options.map((option) => (
-        <label
-          key={option.value}
-          className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors"
-        >
-          <div className="flex items-center gap-2">
-            <Checkbox
-              isSelected={selected.includes(option.value)}
-              onValueChange={() => handleToggle(option.value)}
-              classNames={{
-                base: 'cursor-pointer',
-                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
-                icon: 'text-white transition-opacity',
-              }}
-            />
-            <span className="text-sm text-neutral-700">{option.label}</span>
-          </div>
-          <span className="text-xs text-neutral-400">({option.count})</span>
-        </label>
-      ))}
+    <div className="grid grid-cols-2 gap-2">
+      {options.map((option) => {
+        const isSelected = selected.includes(option.value);
+        return (
+          <button
+            key={option.value}
+            onClick={() => handleToggle(option.value)}
+            className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all cursor-pointer ${
+              isSelected
+                ? 'border-[#4654CD] bg-[#4654CD] text-white'
+                : 'border-neutral-200 bg-white hover:border-[#4654CD]/50 text-neutral-700'
+            }`}
+          >
+            <span className="text-sm font-medium">{option.label}</span>
+            <span
+              className={`text-xs ${
+                isSelected ? 'text-white/80' : 'text-neutral-400'
+              }`}
+            >
+              ({option.count})
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 };
