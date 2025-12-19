@@ -10,22 +10,24 @@
  */
 
 import React from 'react';
+import { Image } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { SocialProofProps } from '../../../types/hero';
 import { mockSocialProof } from '../../../data/mockHeroData';
+import { conveniosLogos, conveniosStats } from '@/app/prototipos/_shared/data/conveniosLogos';
 
 export const SocialProofV1: React.FC<SocialProofProps> = ({
   data = mockSocialProof,
 }) => {
-  // Duplicar instituciones para efecto infinito
-  const allInstitutions = [...data.institutions, ...data.institutions];
+  // Use convenios logos data directly for the marquee
+  const allLogos = [...conveniosLogos, ...conveniosLogos];
 
   return (
     <div className="py-8 bg-white border-y border-neutral-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <p className="text-center text-sm text-neutral-500 mb-6">
-          Convenios con <span className="font-semibold text-neutral-700">{data.institutionCount}+ instituciones educativas</span>
+          Convenios con <span className="font-semibold text-neutral-700">{conveniosStats.totalConvenios}+ instituciones educativas</span>
         </p>
 
         {/* Marquee container */}
@@ -37,24 +39,28 @@ export const SocialProofV1: React.FC<SocialProofProps> = ({
           {/* Scrolling logos */}
           <motion.div
             className="flex gap-12 items-center"
-            animate={{ x: [0, -50 * data.institutions.length] }}
+            animate={{ x: [0, -100 * conveniosLogos.length] }}
             transition={{
-              duration: 20,
+              duration: 30,
               repeat: Infinity,
               ease: 'linear',
             }}
           >
-            {allInstitutions.map((institution, index) => (
+            {allLogos.map((logo, index) => (
               <div
-                key={`${institution.id}-${index}`}
+                key={`${logo.id}-${index}`}
                 className="flex-shrink-0 flex items-center justify-center h-12 w-32 grayscale hover:grayscale-0 transition-all duration-300"
               >
-                {/* Placeholder for logo - in production use actual logos */}
-                <div className="bg-neutral-100 rounded-lg px-4 py-2 text-center">
-                  <span className="text-sm font-semibold text-neutral-600">
-                    {institution.shortName}
-                  </span>
-                </div>
+                <Image
+                  src={logo.url}
+                  alt={logo.name}
+                  className="max-h-10 max-w-28 object-contain"
+                  removeWrapper
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
               </div>
             ))}
           </motion.div>

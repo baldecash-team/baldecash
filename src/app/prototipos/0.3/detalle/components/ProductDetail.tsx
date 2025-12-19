@@ -50,7 +50,9 @@ import SpecsCardsV2 from './detail/specs/SpecsCardsV2';
 import SpecsListV3 from './detail/specs/SpecsListV3';
 
 // Pricing imports
-import PricingCalculator from './detail/pricing/PricingCalculator';
+import PricingCalculatorV1 from './detail/pricing/PricingCalculatorV1';
+import PricingCalculatorV2 from './detail/pricing/PricingCalculatorV2';
+import PricingCalculatorV3 from './detail/pricing/PricingCalculatorV3';
 import PaymentSchedule from './detail/pricing/PaymentSchedule';
 
 // Similar products imports
@@ -117,6 +119,13 @@ export const ProductDetailComponent: React.FC<ProductDetailProps> = ({
     2: CertificationsV2,
     3: CertificationsV3,
   }[config.certificationsVersion];
+
+  // Pricing Calculator component
+  const PricingCalculatorComponent = {
+    1: PricingCalculatorV1,
+    2: PricingCalculatorV2,
+    3: PricingCalculatorV3,
+  }[config.pricingCalculatorVersion];
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -228,7 +237,7 @@ export const ProductDetailComponent: React.FC<ProductDetailProps> = ({
             <p className="text-neutral-600">{product.shortDescription}</p>
 
             {/* Pricing Calculator */}
-            <PricingCalculator
+            <PricingCalculatorComponent
               basePrice={product.originalPrice || product.price}
               discount={product.discount}
               monthlyRate={0.012}

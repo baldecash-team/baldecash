@@ -10,10 +10,11 @@
  */
 
 import React from 'react';
-import { Button, Card, CardBody } from '@nextui-org/react';
+import { Button, Card, CardBody, Image } from '@nextui-org/react';
 import { Building, Gift, Percent, Clock, Shield, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { InstitutionalBannerProps } from '../../../types/hero';
+import { conveniosStats } from '@/app/prototipos/_shared/data/conveniosLogos';
 
 export const InstitutionalBannerV3: React.FC<InstitutionalBannerProps> = ({
   institution,
@@ -41,7 +42,7 @@ export const InstitutionalBannerV3: React.FC<InstitutionalBannerProps> = ({
                     </h3>
                   </div>
                   <p className="text-neutral-600 mb-6">
-                    Mas de 32 instituciones educativas confian en nosotros.
+                    Más de {conveniosStats.totalConvenios} instituciones educativas confían en nosotros.
                     Busca la tuya y accede a beneficios exclusivos.
                   </p>
                   <div className="grid grid-cols-2 gap-4 mb-6">
@@ -84,10 +85,19 @@ export const InstitutionalBannerV3: React.FC<InstitutionalBannerProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row items-center gap-8">
           <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-2xl font-bold text-[#4654CD]">
-                {institution.code.substring(0, 2)}
-              </span>
+            <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center shadow-lg p-2">
+              {institution.logo ? (
+                <Image
+                  src={institution.logo}
+                  alt={institution.name}
+                  className="w-full h-full object-contain"
+                  removeWrapper
+                />
+              ) : (
+                <span className="text-xl font-bold text-[#4654CD]">
+                  {institution.shortName?.substring(0, 4) || institution.code.substring(0, 2)}
+                </span>
+              )}
             </div>
             <div className="text-white">
               <p className="text-sm opacity-80">Convenio activo con</p>

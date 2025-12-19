@@ -61,7 +61,7 @@ export const DownPaymentCalculatorV1: React.FC<DownPaymentCalculatorV1Props> = (
           </p>
 
           <div className="mb-6">
-            <div className="flex justify-between mb-2">
+            <div className="flex justify-between mb-3">
               <span className="text-sm text-neutral-500">Inicial</span>
               <span className="text-lg font-bold text-[#4654CD]">
                 S/ {Math.round(downPayment).toLocaleString()}
@@ -76,12 +76,14 @@ export const DownPaymentCalculatorV1: React.FC<DownPaymentCalculatorV1Props> = (
               onChange={(value) => setDownPayment(value as number)}
               className="max-w-full"
               classNames={{
-                track: 'bg-neutral-200',
-                filler: 'bg-[#4654CD]',
-                thumb: 'bg-[#4654CD] border-2 border-white shadow-md',
+                base: 'px-1',
+                track: 'bg-neutral-200 h-2 border-none',
+                filler: 'bg-gradient-to-r from-[#4654CD] to-[#5B68D8]',
+                thumb: 'w-5 h-5 bg-white border-2 border-[#4654CD] shadow-lg after:bg-[#4654CD] after:w-2 after:h-2 cursor-pointer',
+                step: 'bg-neutral-300',
               }}
             />
-            <div className="flex justify-between text-xs text-neutral-400 mt-1">
+            <div className="flex justify-between text-xs text-neutral-400 mt-2">
               <span>S/ {Math.round(minDown).toLocaleString()}</span>
               <span>S/ {Math.round(maxDown).toLocaleString()}</span>
             </div>

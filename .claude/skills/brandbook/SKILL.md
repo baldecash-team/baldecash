@@ -58,6 +58,30 @@ Ser el aliado financiero preferido de los estudiantes latinoamericanos, brindand
 
 Versión preferida para la mayoría de aplicaciones.
 
+**URL del logo oficial:**
+```
+https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png
+```
+
+**Uso en código:**
+```tsx
+// Logo horizontal
+<img
+  src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+  alt="BaldeCash"
+  className="h-8 object-contain"
+/>
+
+// Con NextUI Image
+import { Image } from '@nextui-org/react';
+<Image
+  src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+  alt="BaldeCash"
+  className="h-8 object-contain"
+  removeWrapper
+/>
+```
+
 ### Isotipo
 
 Para espacios reducidos, íconos de app, y redes sociales.

@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, ArrowLeft, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { WizardContainer } from './components/wizard/WizardContainer';
 import { WizardSettingsModal } from './components/wizard/WizardSettingsModal';
+import { FloatingControls } from '@/app/prototipos/_shared/components/FloatingControls';
 import type { WizardConfig } from './types/wizard';
 
 const defaultConfig: WizardConfig = {
@@ -35,8 +36,17 @@ export default function SolicitudPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {/* Dev toolbar */}
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+      {/* Back link */}
+      <Link
+        href="/prototipos/0.3"
+        className="fixed top-4 left-4 z-50 flex items-center gap-2 text-sm text-neutral-500 hover:text-[#4654CD] transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Volver a prototipos
+      </Link>
+
+      {/* Preview link */}
+      <div className="fixed top-4 right-4 z-50">
         <Link href="/prototipos/0.3/solicitud/wizard-preview">
           <Button
             variant="bordered"
@@ -47,31 +57,19 @@ export default function SolicitudPage() {
             Preview
           </Button>
         </Link>
-        <Button
-          variant="bordered"
-          size="sm"
-          isIconOnly
-          onPress={() => setShowSettings(true)}
-          className="bg-white cursor-pointer"
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
       </div>
-
-      {/* Back link */}
-      <Link
-        href="/prototipos/0.3"
-        className="fixed top-4 left-4 z-50 flex items-center gap-2 text-sm text-neutral-500 hover:text-[#4654CD] transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Volver a prototipos
-      </Link>
 
       {/* Wizard */}
       <WizardContainer
         config={config}
         onComplete={handleComplete}
         onSave={handleSave}
+      />
+
+      {/* Floating Controls */}
+      <FloatingControls
+        config={config}
+        onSettingsClick={() => setShowSettings(true)}
       />
 
       {/* Settings Modal */}

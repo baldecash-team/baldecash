@@ -9,9 +9,10 @@
  * D.4: Limite de accesorios
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Users, Sparkles } from 'lucide-react';
+import { Package, Users, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button } from '@nextui-org/react';
 import { AccessoryCardV1 } from './AccessoryCardV1';
 import { AccessoryCardV2 } from './AccessoryCardV2';
 import { AccessoryCardV3 } from './AccessoryCardV3';
@@ -23,6 +24,142 @@ interface AccessoriesSectionProps {
   onToggleAccessory: (id: string) => void;
   config: UpsellConfig;
 }
+
+// Carousel with Navigation Component
+interface CarouselWithNavigationProps {
+  accessories: Accessory[];
+  selectedAccessories: string[];
+  onToggleAccessory: (id: string) => void;
+  showLimit: boolean;
+  limitReached: boolean;
+  CardComponent: React.ComponentType<{
+    accessory: Accessory;
+    isSelected: boolean;
+    onToggle: () => void;
+    showLimit: boolean;
+    limitReached: boolean;
+  }>;
+}
+
+const CarouselWithNavigation: React.FC<CarouselWithNavigationProps> = ({
+  accessories,
+  selectedAccessories,
+  onToggleAccessory,
+  showLimit,
+  limitReached,
+  CardComponent,
+}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    const ref = scrollRef.current;
+    if (ref) {
+      ref.addEventListener('scroll', checkScroll);
+      return () => ref.removeEventListener('scroll', checkScroll);
+    }
+  }, []);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 300;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
+
+  return (
+    <div className="relative">
+      {/* Left Arrow */}
+      {canScrollLeft && (
+        <Button
+          isIconOnly
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg border border-neutral-200 cursor-pointer"
+          size="sm"
+          onPress={() => scroll('left')}
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+      )}
+
+      {/* Carousel */}
+      <div
+        ref={scrollRef}
+        className="overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide"
+      >
+        <div className="flex gap-4">
+          {accessories.map((accessory) => (
+            <CardComponent
+              key={accessory.id}
+              accessory={accessory}
+              isSelected={selectedAccessories.includes(accessory.id)}
+              onToggle={() => onToggleAccessory(accessory.id)}
+              showLimit={showLimit}
+              limitReached={limitReached}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Right Arrow */}
+      {canScrollRight && (
+        <Button
+          isIconOnly
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg border border-neutral-200 cursor-pointer"
+          size="sm"
+          onPress={() => scroll('right')}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      )}
+
+      {/* Scroll Indicator - Enhanced */}
+      <div className="flex flex-col items-center gap-2 mt-4">
+        {/* Pagination dots */}
+        <div className="flex gap-2">
+          {accessories.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                if (scrollRef.current) {
+                  const cardWidth = 296; // 280px + 16px gap
+                  scrollRef.current.scrollTo({
+                    left: cardWidth * index,
+                    behavior: 'smooth',
+                  });
+                }
+              }}
+              className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
+                canScrollLeft && index === 0
+                  ? 'bg-neutral-300'
+                  : !canScrollRight && index === accessories.length - 1
+                    ? 'bg-[#4654CD]'
+                    : 'bg-neutral-200 hover:bg-neutral-300'
+              }`}
+            />
+          ))}
+        </div>
+        <span className="text-xs text-neutral-400 flex items-center gap-2">
+          <ChevronLeft className="w-3 h-3" />
+          <span>Desliza o usa las flechas para ver mas</span>
+          <ChevronRight className="w-3 h-3" />
+        </span>
+      </div>
+    </div>
+  );
+};
 
 const getIntroContent = (
   type: UpsellConfig['accessoriesIntro']
@@ -141,21 +278,15 @@ export const AccessoriesSection: React.FC<AccessoriesSectionProps> = ({
 
       {/* Cards Grid/Carousel */}
       {config.accessoryCardVersion === 3 ? (
-        // V3: Horizontal carousel
-        <div className="overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
-          <div className="flex gap-4">
-            {accessories.map((accessory) => (
-              <CardComponent
-                key={accessory.id}
-                accessory={accessory}
-                isSelected={selectedAccessories.includes(accessory.id)}
-                onToggle={() => onToggleAccessory(accessory.id)}
-                showLimit={config.accessoryLimit === 'max_three'}
-                limitReached={limitReached}
-              />
-            ))}
-          </div>
-        </div>
+        // V3: Horizontal carousel with navigation
+        <CarouselWithNavigation
+          accessories={accessories}
+          selectedAccessories={selectedAccessories}
+          onToggleAccessory={onToggleAccessory}
+          showLimit={config.accessoryLimit === 'max_three'}
+          limitReached={limitReached}
+          CardComponent={CardComponent}
+        />
       ) : (
         // V1 & V2: Grid layout
         <div

@@ -25,7 +25,7 @@ import {
   Radio,
   Chip,
 } from '@nextui-org/react';
-import { Settings, Image, Layers, List, HelpCircle, AlertCircle, Scale, Shield, RotateCcw } from 'lucide-react';
+import { Settings, Image, Layers, List, HelpCircle, AlertCircle, Scale, Shield, RotateCcw, Calculator } from 'lucide-react';
 import { DetailConfig, defaultDetailConfig, versionDescriptions } from '../types/detail';
 
 interface DetalleSettingsModalProps {
@@ -219,6 +219,17 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
             value={config.certificationsVersion}
             onChange={(v) => updateConfig('certificationsVersion', v)}
             descriptions={versionDescriptions.certifications}
+          />
+
+          <div className="border-t border-neutral-100" />
+
+          {/* Calculadora de precios */}
+          <SettingsSection
+            title="Calculadora de cuotas"
+            icon={<Calculator className="w-5 h-5 text-[#4654CD]" />}
+            value={config.pricingCalculatorVersion}
+            onChange={(v) => updateConfig('pricingCalculatorVersion', v)}
+            descriptions={versionDescriptions.pricingCalculator}
           />
         </ModalBody>
 

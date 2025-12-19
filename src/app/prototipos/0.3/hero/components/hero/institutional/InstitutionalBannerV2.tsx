@@ -13,6 +13,7 @@ import React from 'react';
 import { Chip } from '@nextui-org/react';
 import { Building, CheckCircle } from 'lucide-react';
 import { InstitutionalBannerProps } from '../../../types/hero';
+import { conveniosStats } from '@/app/prototipos/_shared/data/conveniosLogos';
 
 export const InstitutionalBannerV2: React.FC<InstitutionalBannerProps> = ({
   institution,
@@ -25,7 +26,7 @@ export const InstitutionalBannerV2: React.FC<InstitutionalBannerProps> = ({
         className="bg-[#4654CD]/10 text-[#4654CD]"
         size="sm"
       >
-        32+ convenios institucionales
+        {conveniosStats.totalConvenios}+ convenios institucionales
       </Chip>
     );
   }

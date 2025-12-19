@@ -10,10 +10,11 @@
  */
 
 import React from 'react';
-import { Button } from '@nextui-org/react';
+import { Button, Image } from '@nextui-org/react';
 import { Building, Gift, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { InstitutionalBannerProps } from '../../../types/hero';
+import { conveniosStats } from '@/app/prototipos/_shared/data/conveniosLogos';
 
 export const InstitutionalBannerV1: React.FC<InstitutionalBannerProps> = ({
   institution,
@@ -28,7 +29,7 @@ export const InstitutionalBannerV1: React.FC<InstitutionalBannerProps> = ({
               <Building className="w-5 h-5 text-[#4654CD]" />
               <span className="text-neutral-700">
                 Tenemos convenios con{' '}
-                <span className="font-semibold">32+ instituciones</span>
+                <span className="font-semibold">{conveniosStats.totalConvenios}+ instituciones</span>
               </span>
             </div>
             <Button
@@ -55,11 +56,20 @@ export const InstitutionalBannerV1: React.FC<InstitutionalBannerProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            {/* Institution logo placeholder */}
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-[#4654CD] font-bold">
-                {institution.code.substring(0, 2)}
-              </span>
+            {/* Institution logo */}
+            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center p-1.5">
+              {institution.logo ? (
+                <Image
+                  src={institution.logo}
+                  alt={institution.name}
+                  className="w-full h-full object-contain"
+                  removeWrapper
+                />
+              ) : (
+                <span className="text-[#4654CD] font-bold text-xs">
+                  {institution.shortName?.substring(0, 3) || institution.code.substring(0, 2)}
+                </span>
+              )}
             </div>
             <div>
               <p className="font-semibold">{institution.name}</p>

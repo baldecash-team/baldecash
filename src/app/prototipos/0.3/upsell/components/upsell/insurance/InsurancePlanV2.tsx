@@ -85,10 +85,10 @@ export const InsurancePlanV2: React.FC<InsurancePlanV2Props> = ({
       </Tabs>
 
       {activeTab === 'coverage' ? (
-        <Card className="border border-neutral-200 shadow-none">
+        <Card className="border border-neutral-200 shadow-none w-full">
           <CardBody className="p-0 overflow-x-auto">
             {/* Custom table implementation */}
-            <div className="min-w-[600px]">
+            <div className="min-w-full">
               {/* Header row */}
               <div className="flex bg-neutral-50 border-b border-neutral-200">
                 <div className="w-40 p-3 text-xs font-medium text-neutral-600 flex-shrink-0">

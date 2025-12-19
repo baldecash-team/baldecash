@@ -102,7 +102,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
             })}
           </div>
           <div className="pt-2 border-t border-neutral-100">
-            <label className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-neutral-50">
+            <div className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-neutral-50">
               <Switch
                 size="sm"
                 isSelected={filters.ramExpandable === true}
@@ -110,13 +110,14 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                   onChange({ ramExpandable: val ? true : null })
                 }
                 classNames={{
-                  base: 'flex-shrink-0',
+                  base: 'flex-shrink-0 cursor-pointer',
                   wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
                   thumb: 'bg-white shadow-md',
+                  hiddenInput: 'z-0',
                 }}
               />
               <span className="text-sm text-neutral-600 truncate">Expandible</span>
-            </label>
+            </div>
           </div>
         </div>
       </FilterSection>

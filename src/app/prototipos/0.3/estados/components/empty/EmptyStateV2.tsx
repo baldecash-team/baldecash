@@ -107,7 +107,7 @@ export const EmptyStateV2: React.FC<EmptyStateV2Props> = ({
           {activeFilters > 0 && (
             <Button
               size="lg"
-              className="bg-[#4654CD] text-white"
+              className="bg-[#4654CD] text-white cursor-pointer"
               startContent={<RefreshCw className="w-4 h-4" />}
               onPress={onClearFilters}
             >
@@ -117,7 +117,7 @@ export const EmptyStateV2: React.FC<EmptyStateV2Props> = ({
           <Button
             size="lg"
             variant="bordered"
-            className="border-neutral-300"
+            className="border-neutral-300 cursor-pointer"
             startContent={<SlidersHorizontal className="w-4 h-4" />}
             onPress={onExpandPriceRange}
           >

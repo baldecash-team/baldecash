@@ -226,7 +226,21 @@ Los Select de NextUI requieren estilos explícitos para el dropdown desplegado, 
 - **SIEMPRE** usar `cursor-pointer` en trigger e items
 - **SIEMPRE** usar `data-[selected=false]:data-[hover=true]:` para hover (NO aplica cuando seleccionado)
 - **SIEMPRE** estilizar selected con fondo primario sólido
+- **SIEMPRE** agregar `innerWrapper: 'pr-8'` y `selectorIcon: 'right-3'` para evitar overlap del icono con el texto
 - Usar `popoverProps` para control adicional del dropdown
+
+### Evitar overlap del icono con el texto:
+```tsx
+<Select
+  selectorIcon={<ArrowUpDown className="w-4 h-4 text-neutral-400" />}
+  classNames={{
+    value: 'text-sm text-neutral-700 pr-2',
+    selectorIcon: 'right-3 pointer-events-none',
+    innerWrapper: 'pr-8',
+    // ... otros estilos
+  }}
+>
+```
 
 ### IMPORTANTE: Fondo blanco en dropdowns
 
@@ -866,14 +880,16 @@ El Switch de NextUI puede ser invisible por defecto si no tiene estilos de fondo
   }}
 />
 
-// ✅ CORRECTO - Switch con fondo visible en ambos estados
+// ✅ CORRECTO - Switch con fondo visible en ambos estados y sin solapamiento
 <Switch
   size="sm"
   isSelected={value}
   onValueChange={setValue}
   classNames={{
+    base: 'cursor-pointer',
     wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
     thumb: 'bg-white shadow-md',
+    hiddenInput: 'z-0',
   }}
 />
 ```
@@ -882,16 +898,20 @@ El Switch de NextUI puede ser invisible por defecto si no tiene estilos de fondo
 
 | Propiedad | Clase | Propósito |
 |-----------|-------|-----------|
+| `base` | `cursor-pointer` | Cursor de mano al interactuar |
 | `wrapper` (off) | `bg-neutral-300` | Fondo gris visible cuando está apagado |
 | `wrapper` (on) | `group-data-[selected=true]:bg-[#4654CD]` | Color primario cuando está encendido |
 | `thumb` | `bg-white shadow-md` | Bolita del switch visible con sombra |
+| `hiddenInput` | `z-0` | **CRÍTICO**: Evita que el input oculto solape otros elementos |
 
 ### Reglas para Switch:
+- **SIEMPRE** incluir `hiddenInput: 'z-0'` para evitar solapamiento con otros elementos
+- **SIEMPRE** incluir `base: 'cursor-pointer'` para feedback visual
 - **SIEMPRE** incluir `bg-neutral-300` en el wrapper para estado off visible
 - **SIEMPRE** estilizar el thumb con `bg-white shadow-md` para contraste
 - **SIEMPRE** usar color primario `#4654CD` para estado on
 - **NUNCA** usar `color="primary"` sin estilos de wrapper (el fondo off puede ser invisible)
-- Envolver en `<label>` con texto descriptivo para accesibilidad
+- **NUNCA** envolver en `<label>` - usar `<div>` para evitar conflictos con hiddenInput
 
 ## Checkbox (NextUI)
 
@@ -1519,6 +1539,43 @@ const institutos = getInstitutos();
 - **NUNCA** duplicar la lista de logos en otros archivos
 - Los logos están en CDN de Webflow (no requieren next.config para dominios)
 
+### Ejemplo de Marquee/Slider infinito:
+
+```tsx
+import { conveniosLogos, conveniosStats } from '@/app/prototipos/_shared/data/conveniosLogos';
+
+const LogoMarquee = () => {
+  // Duplicar para efecto infinito
+  const allLogos = [...conveniosLogos, ...conveniosLogos];
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Gradient masks */}
+      <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10" />
+      <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10" />
+
+      <motion.div
+        className="flex gap-12 items-center"
+        animate={{ x: [0, -100 * conveniosLogos.length] }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+      >
+        {allLogos.map((logo, index) => (
+          <div key={`${logo.id}-${index}`} className="flex-shrink-0 h-12 w-32 grayscale hover:grayscale-0 transition-all">
+            <Image
+              src={logo.url}
+              alt={logo.name}
+              className="max-h-10 max-w-28 object-contain"
+              removeWrapper
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+};
+```
+
 ### Estadísticas disponibles:
 
 | Tipo | Cantidad |
@@ -1527,6 +1584,157 @@ const institutos = getInstitutos();
 | Institutos | 15 |
 | Socios/Membresías | 2 |
 | **Total** | **37** |
+
+## Tooltips con Background Sólido (NextUI)
+
+### SIEMPRE agregar classNames al Tooltip para fondo visible
+
+Los Tooltips de NextUI pueden tener fondo transparente por defecto. Siempre especificar fondo blanco:
+
+```tsx
+// ❌ PROHIBIDO - Tooltip con fondo transparente
+<Tooltip
+  content={
+    <div className="p-2">
+      <p className="font-semibold">{item.name}</p>
+      <p className="text-xs text-neutral-400">{item.description}</p>
+    </div>
+  }
+>
+
+// ✅ CORRECTO - Tooltip con fondo sólido y sombra
+<Tooltip
+  content={
+    <div className="p-2 max-w-xs">
+      <p className="font-semibold text-neutral-800">{item.name}</p>
+      <p className="text-xs text-neutral-500">{item.description}</p>
+    </div>
+  }
+  classNames={{
+    content: 'bg-white shadow-lg border border-neutral-200',
+  }}
+>
+```
+
+### Reglas para Tooltips:
+- **SIEMPRE** incluir `classNames={{ content: 'bg-white shadow-lg border border-neutral-200' }}`
+- **SIEMPRE** usar textos oscuros (`text-neutral-800`, `text-neutral-500`) para legibilidad
+- **SIEMPRE** incluir padding (`p-2`) y max-width para contenido largo
+- **NUNCA** dejar el Tooltip sin classNames de fondo
+
+## Indicadores de Navegación en Carruseles
+
+### SIEMPRE agregar indicadores visuales en carruseles de cards
+
+Los carruseles horizontales de accesorios, productos similares, etc. DEBEN tener indicadores claros de navegación:
+
+```tsx
+// ✅ CORRECTO - Carrusel con dots de paginación e instrucciones
+<div className="flex flex-col items-center gap-2 mt-4">
+  {/* Pagination dots clickeables */}
+  <div className="flex gap-2">
+    {items.map((_, index) => (
+      <button
+        key={index}
+        onClick={() => scrollToIndex(index)}
+        className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
+          currentIndex === index
+            ? 'bg-[#4654CD]'
+            : 'bg-neutral-200 hover:bg-neutral-300'
+        }`}
+      />
+    ))}
+  </div>
+  {/* Instrucción de navegación */}
+  <span className="text-xs text-neutral-400 flex items-center gap-2">
+    <ChevronLeft className="w-3 h-3" />
+    <span>Desliza o usa las flechas para ver mas</span>
+    <ChevronRight className="w-3 h-3" />
+  </span>
+</div>
+```
+
+### Reglas para carruseles:
+- **SIEMPRE** incluir dots de paginación clickeables
+- **SIEMPRE** incluir texto descriptivo de cómo navegar
+- **SIEMPRE** mostrar flechas de navegación en desktop cuando hay overflow
+- Los dots activos usan color primario `bg-[#4654CD]`
+
+## Desglose de Precio (PriceBreakdown)
+
+### SIEMPRE mostrar cuota mensual como valor principal, no el total
+
+En componentes de desglose de precio, el valor prominente debe ser la **cuota mensual**, no el total:
+
+```tsx
+// ❌ PROHIBIDO - Mostrar total como valor principal
+<div>
+  <p className="text-sm text-neutral-500">Total</p>
+  <p className="font-bold text-lg text-[#4654CD]">
+    S/{totalPrice.toLocaleString()}
+  </p>
+</div>
+
+// ✅ CORRECTO - Mostrar cuota mensual como valor principal
+<div>
+  <p className="text-sm text-neutral-500">Cuota mensual</p>
+  <p className="font-bold text-lg text-[#4654CD]">
+    S/{totalMonthlyQuota}<span className="text-sm font-normal text-neutral-500">/mes</span>
+  </p>
+</div>
+```
+
+### Reglas para desglose de precio:
+- **SIEMPRE** mostrar cuota mensual prominente con `/mes` sufijo
+- **SIEMPRE** usar `truncate` o `title` para textos largos de items
+- **SIEMPRE** usar gradiente sutil en la fila del total (`bg-gradient-to-r from-[#4654CD]/10 to-[#4654CD]/5`)
+- El total a pagar va en el desglose expandido, no como valor principal
+
+## Impacto en Cuota (QuotaImpact)
+
+### SIEMPRE destacar el total mensual con gradiente y sombra
+
+El componente de impacto en cuota debe hacer muy visible el total resultante:
+
+```tsx
+// ✅ CORRECTO - Total mensual prominente con gradiente
+<div className="px-5 py-3 bg-gradient-to-r from-[#4654CD] to-[#5B68D8] rounded-xl shadow-lg shadow-[#4654CD]/30 border-2 border-white/20">
+  <p className="text-[10px] text-white/90 uppercase tracking-wider font-medium">Total mensual</p>
+  <p className="font-bold text-2xl text-white font-['Baloo_2'] leading-tight">
+    S/{totalQuota}<span className="text-sm font-normal opacity-80">/mes</span>
+  </p>
+</div>
+```
+
+### Reglas para QuotaImpact:
+- **SIEMPRE** usar gradiente de primario a tono más claro
+- **SIEMPRE** incluir sombra con color (`shadow-[#4654CD]/30`)
+- **SIEMPRE** usar tipografía grande y bold para el monto
+- El total debe destacar visualmente de los items individuales
+
+## Punto y Coma en Español
+
+### NUNCA remover ni reemplazar el uso de punto y coma (;)
+
+En español, el punto y coma (;) tiene usos específicos y válidos que deben respetarse:
+
+```tsx
+// ✅ CORRECTO - Mantener punto y coma cuando corresponde
+<p className="text-sm text-neutral-600">
+  Incluye: cargador original; funda protectora; mouse inalámbrico.
+</p>
+
+// ❌ PROHIBIDO - Reemplazar ; por comas o puntos incorrectamente
+<p className="text-sm text-neutral-600">
+  Incluye: cargador original, funda protectora, mouse inalámbrico.  // Pierde énfasis
+</p>
+```
+
+### Uso correcto del punto y coma en español:
+- **Para separar elementos complejos** en una enumeración
+- **Para unir oraciones relacionadas** que podrían ir separadas por punto
+- **Antes de conectores** (sin embargo; no obstante; por lo tanto)
+- **NUNCA** reemplazar automáticamente por comas - respetar el estilo del autor
 
 ## Checklist de Calidad
 
@@ -1562,3 +1770,13 @@ Antes de entregar cualquier componente, verificar:
 - [ ] **Landing pages de sección redirigen automáticamente a [seccion]-preview**
 - [ ] **Navbar fijo + hero del mismo color: aplicar bg-[color] al main para evitar white space**
 - [ ] **Logos de convenios importados desde conveniosLogos.ts (nunca hardcodear URLs)**
+- [ ] **Tooltips con classNames={{ content: 'bg-white shadow-lg border border-neutral-200' }}**
+- [ ] **Carruseles con dots de paginación e instrucciones de navegación**
+- [ ] **Desglose de precio muestra cuota mensual prominente, no total**
+- [ ] **QuotaImpact con gradiente y sombra para destacar el total**
+- [ ] **Punto y coma (;) en español respetado, nunca reemplazado automáticamente**
+- [ ] **Switch: hiddenInput con z-0 para evitar solapamiento con otros elementos**
+- [ ] **Select: innerWrapper con pr-8 y selectorIcon con right-3 para evitar overlap con texto**
+- [ ] **Slider: thumb con bg-white, border-2 border-[#4654CD], shadow-lg, cursor-pointer**
+- [ ] **Grids de cards: motion.div con h-full + Card con h-full para alturas uniformes**
+- [ ] **Botones en estados vacíos con cursor-pointer explícito**

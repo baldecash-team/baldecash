@@ -14,6 +14,7 @@ export interface DetailConfig {
   limitationsVersion: 1 | 2 | 3;
   similarProductsVersion: 1 | 2 | 3;
   certificationsVersion: 1 | 2 | 3;
+  pricingCalculatorVersion: 1 | 2 | 3;
 }
 
 export const defaultDetailConfig: DetailConfig = {
@@ -25,6 +26,7 @@ export const defaultDetailConfig: DetailConfig = {
   limitationsVersion: 1,
   similarProductsVersion: 1,
   certificationsVersion: 1,
+  pricingCalculatorVersion: 1,
 };
 
 // ============================================
@@ -248,5 +250,10 @@ export const versionDescriptions = {
     1: 'Solo logos pequenos',
     2: 'Logos + nombre + tooltip',
     3: 'Cards expandibles con detalle',
+  },
+  pricingCalculator: {
+    1: 'Botones de plazo + desglose visible',
+    2: 'Slider interactivo + cards resumen',
+    3: 'Compacto con tabs de plazo',
   },
 } as const;

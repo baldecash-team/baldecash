@@ -184,7 +184,7 @@ export default function WizardPreviewPage() {
                 value={email}
                 onChange={setEmail}
                 onBlur={() => setTouched({ ...touched, email: true })}
-                error={touched.email && !email ? 'Ingresa tu correo' : undefined}
+                error={touched.email && !email ? 'Este campo es requerido' : undefined}
                 isValid={touched.email && !!email}
                 helpText="Usaremos este correo para enviarte informacion de tu solicitud"
               />
@@ -199,7 +199,7 @@ export default function WizardPreviewPage() {
                 value={telefono}
                 onChange={setTelefono}
                 onBlur={() => setTouched({ ...touched, telefono: true })}
-                error={touched.telefono && !telefono ? 'Ingresa tu numero de celular' : undefined}
+                error={touched.telefono && !telefono ? 'Este campo es requerido' : undefined}
                 isValid={touched.telefono && !!telefono}
                 maxLength={9}
               />
@@ -304,7 +304,7 @@ export default function WizardPreviewPage() {
                 error={showErrors && !aceptaTerminos ? 'Debes aceptar los terminos' : undefined}
               />
 
-              <CheckboxV2
+              <CheckboxV1
                 id="promo"
                 label="Quiero recibir promociones"
                 description="Acepto recibir ofertas y novedades por correo electronico"

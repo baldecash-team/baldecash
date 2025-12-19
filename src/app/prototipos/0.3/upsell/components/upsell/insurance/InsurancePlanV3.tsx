@@ -99,41 +99,64 @@ export const InsurancePlanV3: React.FC<InsurancePlanV3Props> = ({
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-2xl mx-auto"
     >
-      {/* Slider */}
-      <div className="mb-8">
-        <div className="flex justify-between mb-2">
+      {/* Visual Guide - Improved Slider */}
+      <div className="mb-8 p-4 bg-neutral-50 rounded-xl">
+        {/* Plan Cards Row */}
+        <div className="flex justify-between gap-2 mb-4">
           {plans.map((plan, index) => (
             <button
               key={plan.id}
               onClick={() => setSliderValue(index)}
-              className={`text-sm font-medium transition-colors cursor-pointer ${
+              className={`flex-1 p-3 rounded-lg transition-all cursor-pointer border-2 ${
                 sliderValue === index
-                  ? 'text-[#4654CD]'
-                  : 'text-neutral-400 hover:text-neutral-600'
+                  ? 'bg-[#4654CD]/10 border-[#4654CD] shadow-sm'
+                  : 'bg-white border-transparent hover:bg-neutral-100'
               }`}
             >
-              {plan.name}
+              <p className={`text-sm font-semibold ${
+                sliderValue === index ? 'text-[#4654CD]' : 'text-neutral-600'
+              }`}>
+                {plan.name}
+              </p>
+              <p className={`text-lg font-bold font-['Baloo_2'] mt-1 ${
+                sliderValue === index ? 'text-[#4654CD]' : 'text-neutral-400'
+              }`}>
+                S/{plan.monthlyPrice}/mes
+              </p>
+              {plan.isRecommended && (
+                <Chip size="sm" color="primary" variant="flat" className="mt-1">
+                  Popular
+                </Chip>
+              )}
             </button>
           ))}
         </div>
-        <Slider
-          value={sliderValue}
-          onChange={handleSliderChange}
-          minValue={0}
-          maxValue={plans.length - 1}
-          step={1}
-          showSteps
-          classNames={{
-            base: 'w-full',
-            track: 'bg-neutral-200 h-2',
-            filler: 'bg-[#4654CD]',
-            thumb: 'bg-[#4654CD] w-5 h-5 shadow-md',
-            step: 'bg-neutral-300 w-3 h-3',
-          }}
-        />
-        <div className="flex justify-between mt-1">
-          <span className="text-xs text-neutral-400">Menor cobertura</span>
-          <span className="text-xs text-neutral-400">Mayor cobertura</span>
+
+        {/* Slider Track */}
+        <div className="px-2">
+          <Slider
+            value={sliderValue}
+            onChange={handleSliderChange}
+            minValue={0}
+            maxValue={plans.length - 1}
+            step={1}
+            showSteps
+            classNames={{
+              base: 'w-full',
+              track: 'bg-neutral-200 h-2 rounded-full',
+              filler: 'bg-gradient-to-r from-[#4654CD] to-[#6B7AE8]',
+              thumb: 'bg-[#4654CD] w-6 h-6 shadow-lg border-2 border-white',
+              step: 'bg-neutral-300 w-3 h-3',
+            }}
+          />
+          <div className="flex justify-between mt-2">
+            <span className="text-xs text-neutral-500 flex items-center gap-1">
+              <Shield className="w-3 h-3" /> Basico
+            </span>
+            <span className="text-xs text-neutral-500 flex items-center gap-1">
+              <Shield className="w-3 h-3" /> Premium
+            </span>
+          </div>
         </div>
       </div>
 
@@ -194,18 +217,21 @@ export const InsurancePlanV3: React.FC<InsurancePlanV3Props> = ({
                       key={index}
                       content={
                         <div className="p-2 max-w-xs">
-                          <p className="font-semibold">{item.name}</p>
-                          <p className="text-xs text-neutral-400 mt-1">
+                          <p className="font-semibold text-neutral-800">{item.name}</p>
+                          <p className="text-xs text-neutral-500 mt-1">
                             {item.description}
                           </p>
                           {item.maxAmount && (
-                            <p className="text-xs text-[#4654CD] mt-1">
+                            <p className="text-xs text-[#4654CD] mt-1 font-medium">
                               Hasta S/{item.maxAmount}
                             </p>
                           )}
                         </div>
                       }
                       placement="top"
+                      classNames={{
+                        content: 'bg-white shadow-lg border border-neutral-200',
+                      }}
                     >
                       <div className="flex items-center gap-2 px-3 py-2 bg-green-50 rounded-lg cursor-help hover:bg-green-100 transition-colors">
                         <span className="text-green-600">

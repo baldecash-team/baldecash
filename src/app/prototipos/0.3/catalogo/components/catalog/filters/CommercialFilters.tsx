@@ -99,22 +99,23 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
 
       {/* Availability */}
       <FilterSection title="Disponibilidad">
-        <label className="flex items-center gap-3 cursor-pointer py-2 px-3 rounded-lg hover:bg-neutral-50 border border-neutral-200">
+        <div className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-neutral-50 border border-neutral-200">
           <Switch
             size="sm"
             isSelected={filters.availableNow}
             onValueChange={(val) => onChange({ availableNow: val })}
             classNames={{
-              base: 'flex-shrink-0 min-w-[40px]',
+              base: 'flex-shrink-0 min-w-[40px] cursor-pointer',
               wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
               thumb: 'bg-white shadow-md',
+              hiddenInput: 'z-0',
             }}
           />
           <div className="flex-1 min-w-0">
             <span className="text-sm text-neutral-700 font-medium block">Disponible ahora</span>
             <span className="text-xs text-neutral-400 block truncate">Stock para entrega inmediata</span>
           </div>
-        </label>
+        </div>
       </FilterSection>
     </>
   );

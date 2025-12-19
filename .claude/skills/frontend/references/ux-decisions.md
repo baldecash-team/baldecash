@@ -100,6 +100,7 @@ Referencia completa de las 285 preguntas respondidas, organizadas por módulo.
 | B.25 [T] | ¿Tabs o scroll? | V1: Tabs horizontales, V2: Acordeón, V3: Scroll con nav sticky |
 | B.26 [T] | ¿Galería con zoom? | V1: Thumbnails laterales, V2: Thumbnails abajo, V3: Carousel |
 | B.27 [T] | ¿Cronograma interactivo? | V1: Slider de plazo, V2: Botones de plazo, V3: Input libre |
+| B.27b [T] | ¿Calculadora de cuotas? | V1: Botones de plazo + desglose visible, V2: Slider interactivo + cards resumen, V3: Compacto con tabs de plazo |
 | B.28 [T] | ¿Productos similares? | V1: Carousel, V2: Grid 3 cols, V3: Panel lateral |
 | B.29 [T] | ¿Organización de specs? | V1: Tabla con secciones, V2: Cards por categoría, V3: Lista acordeón |
 | B.30 [T] | ¿Specs como tabla/cards/lista? | V1: Tabla, V2: Cards grid, V3: Lista con iconos |

@@ -44,7 +44,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, rank, onViewProduct }) 
       transition={{ delay: rank * 0.1 }}
     >
       <Card
-        className={`transition-all cursor-pointer ${
+        className={`transition-all cursor-pointer w-full ${
           isTop
             ? 'border-2 border-[#4654CD] shadow-lg'
             : 'border border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-md'
@@ -52,8 +52,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, rank, onViewProduct }) 
         isPressable
         onPress={() => onViewProduct(result.product.id)}
       >
-        <CardBody className="p-0">
-          <div className="flex gap-4 p-4">
+        <CardBody className="p-0 w-full">
+          <div className="flex gap-4 p-4 w-full">
             {/* Rank indicator */}
             <div className="flex flex-col items-center gap-1">
               <div
@@ -183,7 +183,7 @@ export const QuizResultsV2: React.FC<QuizResultsProps> = ({
       </motion.div>
 
       {/* Results list */}
-      <div className="space-y-3">
+      <div className="space-y-3 w-full">
         {results.slice(0, 3).map((result, index) => (
           <ResultCard
             key={result.product.id}

@@ -40,7 +40,9 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
           classNames={{
             base: 'min-w-[200px]',
             trigger: 'h-10 min-h-10 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
-            value: 'text-sm text-neutral-700',
+            value: 'text-sm text-neutral-700 pr-2',
+            selectorIcon: 'right-3 pointer-events-none',
+            innerWrapper: 'pr-8',
             popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
             listbox: 'p-1 bg-white',
             listboxWrapper: 'max-h-[300px] bg-white',

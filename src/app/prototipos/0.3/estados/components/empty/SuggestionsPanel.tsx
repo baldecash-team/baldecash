@@ -67,21 +67,30 @@ export const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
             initial={animationLevel !== 'none' ? { opacity: 0, y: 20 } : {}}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
+            className="h-full"
           >
             <Card
               isPressable
-              className="border border-neutral-200 hover:border-[#4654CD]/50 transition-all"
+              className="border border-neutral-200 hover:border-[#4654CD]/50 transition-all cursor-pointer h-full"
               onPress={() => onProductClick?.(product.id)}
             >
-              <CardBody className="p-3">
-                <div className="flex gap-3">
+              <CardBody className="p-3 flex flex-col h-full">
+                <div className="flex gap-3 flex-1">
                   {/* Image placeholder */}
-                  <div className="w-20 h-20 flex-shrink-0 bg-neutral-50 rounded-lg p-2 flex items-center justify-center">
-                    <div className="w-12 h-12 bg-neutral-200 rounded-lg" />
+                  <div className="w-20 h-20 flex-shrink-0 bg-neutral-100 rounded-lg p-2 flex items-center justify-center">
+                    <img
+                      src={`https://placehold.co/60x60/f5f5f5/a3a3a3?text=${encodeURIComponent(product.brand.charAt(0))}`}
+                      alt={product.displayName}
+                      className="w-14 h-14 object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://placehold.co/60x60/f5f5f5/a3a3a3?text=💻';
+                      }}
+                    />
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 flex flex-col">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs text-neutral-500 uppercase">
                         {product.brand}
@@ -97,7 +106,7 @@ export const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                         {getGamaLabel(product.gama)}
                       </Chip>
                     </div>
-                    <h5 className="font-medium text-sm text-neutral-800 line-clamp-2 mb-2">
+                    <h5 className="font-medium text-sm text-neutral-800 line-clamp-2 mb-2 flex-1">
                       {product.displayName}
                     </h5>
                     <div className="flex items-baseline gap-1">

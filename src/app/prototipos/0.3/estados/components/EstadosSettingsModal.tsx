@@ -209,8 +209,10 @@ export const EstadosSettingsModal: React.FC<EstadosSettingsModalProps> = ({
                   isSelected={config.showSuggestions}
                   onValueChange={(value) => onConfigChange({ ...config, showSuggestions: value })}
                   classNames={{
+                    base: 'cursor-pointer',
                     wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
                     thumb: 'bg-white shadow-md',
+                    hiddenInput: 'z-0',
                   }}
                 />
               </div>
@@ -224,8 +226,10 @@ export const EstadosSettingsModal: React.FC<EstadosSettingsModalProps> = ({
                   isSelected={config.showFilterActions}
                   onValueChange={(value) => onConfigChange({ ...config, showFilterActions: value })}
                   classNames={{
+                    base: 'cursor-pointer',
                     wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
                     thumb: 'bg-white shadow-md',
+                    hiddenInput: 'z-0',
                   }}
                 />
               </div>

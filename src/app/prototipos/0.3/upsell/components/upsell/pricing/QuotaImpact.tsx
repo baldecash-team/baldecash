@@ -76,10 +76,10 @@ export const QuotaImpact: React.FC<QuotaImpactProps> = ({
         {hasAdditions && (
           <>
             <ArrowRight className="w-4 h-4 text-neutral-300" />
-            <div className="px-3 py-1.5 bg-[#4654CD] rounded-lg">
-              <p className="text-[10px] text-white/70 uppercase">Total</p>
-              <p className="font-bold text-white font-['Baloo_2']">
-                S/{totalQuota}
+            <div className="px-5 py-3 bg-gradient-to-r from-[#4654CD] to-[#5B68D8] rounded-xl shadow-lg shadow-[#4654CD]/30 border-2 border-white/20">
+              <p className="text-[10px] text-white/90 uppercase tracking-wider font-medium">Total mensual</p>
+              <p className="font-bold text-2xl text-white font-['Baloo_2'] leading-tight">
+                S/{totalQuota}<span className="text-sm font-normal opacity-80">/mes</span>
               </p>
             </div>
           </>
