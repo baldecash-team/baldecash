@@ -39,47 +39,69 @@ const VersionSelector: React.FC<VersionSelectorProps> = ({
   value,
   onChange,
   descriptions,
-}) => (
-  <div className="mb-4">
-    <label className="block text-sm font-medium text-neutral-700 mb-2">{label}</label>
-    <Select
-      aria-label={label}
-      selectedKeys={[value.toString()]}
-      onChange={(e) => onChange(parseInt(e.target.value) as HeroVersion)}
-      classNames={{
-        base: 'w-full',
-        trigger: 'h-12 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
-        value: 'text-sm text-neutral-700',
-        popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
-        listbox: 'p-1 bg-white',
-        listboxWrapper: 'max-h-[300px] bg-white',
-      }}
-      popoverProps={{
-        classNames: {
-          base: 'bg-white',
-          content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
-        },
-      }}
-    >
-      {versionOptions.map((v) => (
-        <SelectItem
-          key={v.toString()}
-          value={v.toString()}
-          classNames={{
-            base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
-              text-neutral-700
-              data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
-              data-[selected=false]:data-[hover=true]:text-[#4654CD]
-              data-[selected=true]:bg-[#4654CD]
-              data-[selected=true]:text-white`,
-          }}
-        >
-          V{v}: {descriptions[v]}
-        </SelectItem>
-      ))}
-    </Select>
-  </div>
-);
+}) => {
+  // Create items array for renderValue lookup
+  const items = versionOptions.map((v) => ({
+    key: v.toString(),
+    label: `V${v}: ${descriptions[v]}`,
+  }));
+
+  return (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-neutral-700 mb-2">{label}</label>
+      <Select
+        aria-label={label}
+        selectedKeys={new Set([value.toString()])}
+        onSelectionChange={(keys) => {
+          const selectedKey = Array.from(keys)[0];
+          if (selectedKey) {
+            onChange(parseInt(selectedKey as string) as HeroVersion);
+          }
+        }}
+        renderValue={(items) => {
+          return items.map((item) => (
+            <span key={item.key} className="text-sm text-neutral-700">
+              {item.textValue}
+            </span>
+          ));
+        }}
+        classNames={{
+          base: 'w-full',
+          trigger: 'h-12 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
+          value: 'text-sm text-neutral-700',
+          innerWrapper: 'pr-8',
+          selectorIcon: 'right-3',
+          popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
+          listbox: 'p-1 bg-white',
+          listboxWrapper: 'max-h-[300px] bg-white',
+        }}
+        popoverProps={{
+          classNames: {
+            base: 'bg-white',
+            content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
+          },
+        }}
+      >
+        {versionOptions.map((v) => (
+          <SelectItem
+            key={v.toString()}
+            textValue={`V${v}: ${descriptions[v]}`}
+            classNames={{
+              base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
+                text-neutral-700
+                data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
+                data-[selected=false]:data-[hover=true]:text-[#4654CD]
+                data-[selected=true]:bg-[#4654CD]
+                data-[selected=true]:text-white`,
+            }}
+          >
+            V{v}: {descriptions[v]}
+          </SelectItem>
+        ))}
+      </Select>
+    </div>
+  );
+};
 
 export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
   isOpen,

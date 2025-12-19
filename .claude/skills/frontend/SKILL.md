@@ -262,6 +262,64 @@ popoverProps={{
 
 **NO es suficiente** aplicar `bg-white` solo en `popoverContent` - debe aplicarse en todos los niveles para garantizar que el fondo sea visible.
 
+### IMPORTANTE: Select controlado con valor visible (renderValue)
+
+Cuando el Select no muestra el valor seleccionado (aparece en blanco), es porque NextUI requiere configuración especial para Select controlado:
+
+```tsx
+// ❌ PROHIBIDO - Select controlado sin renderValue (valor no se muestra)
+<Select
+  selectedKeys={[value.toString()]}
+  onChange={(e) => setValue(e.target.value)}
+>
+  <SelectItem key="1">Opción 1</SelectItem>
+</Select>
+
+// ✅ CORRECTO - Select controlado con renderValue y textValue
+<Select
+  selectedKeys={new Set([value.toString()])}  // Usar Set, no array
+  onSelectionChange={(keys) => {              // Usar onSelectionChange, no onChange
+    const selectedKey = Array.from(keys)[0];
+    if (selectedKey) {
+      setValue(selectedKey as string);
+    }
+  }}
+  renderValue={(items) => {                   // Renderizar valor visible
+    return items.map((item) => (
+      <span key={item.key} className="text-sm text-neutral-700">
+        {item.textValue}
+      </span>
+    ));
+  }}
+  classNames={{
+    // ... estilos completos
+  }}
+>
+  <SelectItem
+    key="1"
+    textValue="Opción 1"  // OBLIGATORIO para que renderValue funcione
+  >
+    Opción 1
+  </SelectItem>
+</Select>
+```
+
+### Claves para Select controlado que muestre el valor:
+
+| Propiedad | Uso | Nota |
+|-----------|-----|------|
+| `selectedKeys` | `new Set([value])` | Usar Set, NO array |
+| `onSelectionChange` | Callback con keys | NO usar onChange |
+| `renderValue` | Renderiza el valor visible | Accede a `item.textValue` |
+| `SelectItem.textValue` | Texto plano del item | OBLIGATORIO para renderValue |
+
+### Reglas para Select controlado:
+- **SIEMPRE** usar `selectedKeys={new Set([value])}` (Set, no array)
+- **SIEMPRE** usar `onSelectionChange` en lugar de `onChange`
+- **SIEMPRE** agregar `renderValue` si el valor no se muestra
+- **SIEMPRE** agregar `textValue` a cada SelectItem
+- El `textValue` debe ser texto plano (sin JSX) que coincida con el contenido visible
+
 ## Badges y Chips (NextUI)
 
 ### SIEMPRE usar radius="sm" y padding explícito en Chips
