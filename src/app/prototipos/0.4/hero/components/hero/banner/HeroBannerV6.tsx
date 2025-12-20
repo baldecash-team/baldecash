@@ -81,12 +81,12 @@ export const HeroBannerV6: React.FC<HeroBannerProps> = ({
           </div>
         </div>
 
-        {/* Headline - Gradient underline variant */}
+        {/* Headline - Highlight marker variant */}
         <h1 className="font-['Baloo_2'] text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
           <span className="text-neutral-900">{headline.split(' ').slice(0, -1).join(' ')} </span>
           <span className="text-[#4654CD] relative inline-block">
             {headline.split(' ').slice(-1)[0]}
-            <span className="absolute -bottom-1 left-0 w-full h-3 bg-gradient-to-r from-[#03DBD0]/40 to-[#4654CD]/40 -skew-x-3 rounded-sm" />
+            <span className="absolute -bottom-1 left-0 w-full h-3 bg-[#03DBD0]/30 -skew-x-3 rounded-sm" />
           </span>
         </h1>
 
