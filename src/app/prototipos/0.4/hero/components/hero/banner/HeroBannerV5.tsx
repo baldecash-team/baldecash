@@ -38,7 +38,13 @@ export const HeroBannerV5: React.FC<HeroBannerProps> = ({
 
           {/* Headline */}
           <h1 className="font-['Baloo_2'] text-4xl md:text-5xl font-bold text-neutral-900 leading-tight mb-4">
-            {headline}
+            <span>{headline.split(' ').slice(0, -1).join(' ')} </span>
+            <span className="text-[#4654CD] relative inline-block">
+              {headline.split(' ').slice(-1)[0]}
+              <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
+                <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+              </svg>
+            </span>
           </h1>
 
           {/* Subheadline */}

@@ -107,7 +107,13 @@ export const HeroBannerV4: React.FC<HeroBannerProps> = ({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
             >
-              {headline}
+              <span>{headline.split(' ').slice(0, -1).join(' ')} </span>
+              <span className="relative inline-block">
+                {headline.split(' ').slice(-1)[0]}
+                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
+                  <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+                </svg>
+              </span>
             </motion.h1>
 
             {/* Subheadline */}

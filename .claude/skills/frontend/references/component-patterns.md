@@ -518,7 +518,77 @@ export const ApprovalResult = () => {
 
 ---
 
-## 14. Patrón: Espaciado y Composición
+## 14. Patrón: Subrayado Ondulado (Headlines)
+
+> **OBLIGATORIO**: Todos los títulos principales (H1) en Hero Banners y secciones CTA
+> deben usar el subrayado ondulado SVG en color Aqua (#03DBD0) para destacar
+> la última palabra clave.
+
+```tsx
+// Subrayado ondulado para headlines - ESTILO OFICIAL
+<h1 className="font-['Baloo_2'] text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+  <span className="text-neutral-900">{headline.split(' ').slice(0, -1).join(' ')} </span>
+  <span className="text-[#4654CD] relative inline-block">
+    {headline.split(' ').slice(-1)[0]}
+    <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
+      <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  </span>
+</h1>
+
+// Variante para texto estático (sin split dinámico)
+<h2 className="text-3xl md:text-4xl font-bold">
+  ¿Listo para tu{' '}
+  <span className="text-[#4654CD] relative inline-block">
+    nuevo equipo
+    <svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 200 12" fill="none">
+      <path d="M2 8C50 4 150 4 198 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  </span>
+  ?
+</h2>
+
+// Para fondos oscuros (mismo SVG, contraste natural)
+<h1 className="text-white">
+  Empieza tu carrera con la{' '}
+  <span className="relative inline-block">
+    herramienta correcta
+    <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none">
+      <path d="M2 8C50 4 150 4 198 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  </span>
+</h1>
+```
+
+### Especificaciones del SVG
+
+| Propiedad | Valor | Notas |
+|-----------|-------|-------|
+| `viewBox` | `0 0 100 12` (corto) o `0 0 200 12` (largo) | Ajustar según longitud del texto |
+| `stroke` | `#03DBD0` | Color Aqua de marca |
+| `strokeWidth` | `4` | Grosor consistente |
+| `strokeLinecap` | `round` | Extremos redondeados |
+| `position` | `absolute -bottom-2` | Debajo del texto |
+
+### ❌ NO usar estos estilos alternativos
+
+```tsx
+// ❌ NO: Subrayado punteado CSS
+<span className="border-b-[3px] border-dashed border-[#03DBD0]">texto</span>
+
+// ❌ NO: Marcador resaltador
+<span className="bg-[#03DBD0]/30 -skew-x-3">texto</span>
+
+// ❌ NO: Underline nativo
+<span className="underline decoration-[#03DBD0]">texto</span>
+
+// ❌ NO: Border sólido
+<span className="border-b-4 border-[#03DBD0]">texto</span>
+```
+
+---
+
+## 15. Patrón: Espaciado y Composición
 
 ```tsx
 // Layout con jerarquía clara - UN elemento dominante
