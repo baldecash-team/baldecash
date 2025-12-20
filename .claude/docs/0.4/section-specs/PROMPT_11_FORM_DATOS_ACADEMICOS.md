@@ -6,7 +6,8 @@
 |-------|-------|
 | **Segmento** | C.3 |
 | **Preguntas totales** | 14 |
-| **Iteraciones T (10 versiones)** | 0 |
+| **Versiones por componente** | 6 |
+| **Iteraciones ITERAR** | 0 |
 | **Prioridad** | Alta - MVP Core |
 
 ---
