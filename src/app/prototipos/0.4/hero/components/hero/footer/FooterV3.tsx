@@ -57,6 +57,7 @@ export const FooterV3: React.FC = () => {
                 }}
               />
               <Button
+                radius="lg"
                 className="bg-neutral-900 text-white font-semibold px-8 h-12 cursor-pointer hover:bg-neutral-800 transition-colors"
                 endContent={<Send className="w-4 h-4" />}
               >

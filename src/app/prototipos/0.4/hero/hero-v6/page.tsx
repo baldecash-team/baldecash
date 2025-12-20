@@ -14,6 +14,8 @@ const configV6: HeroConfig = {
   navbarVersion: 6,
   ctaVersion: 6,
   footerVersion: 6,
+  howItWorksVersion: 6,
+  faqVersion: 6,
 };
 
 export default function HeroV6Page() {

@@ -10,6 +10,8 @@ import {
   FooterData,
   Testimonial,
   TimelineStep,
+  HowItWorksData,
+  FaqData,
 } from '../types/hero';
 
 // ============================================
@@ -242,6 +244,100 @@ export const formatNumber = (num: number): string => {
 // Footer Data
 // ============================================
 
+// ============================================
+// How It Works Data
+// ============================================
+
+export const mockHowItWorksData: HowItWorksData = {
+  steps: [
+    {
+      id: 1,
+      title: 'Elige tu equipo',
+      description: 'Explora laptops, tablets y celulares en nuestro catalogo',
+      icon: 'Search',
+      color: '#4654CD',
+    },
+    {
+      id: 2,
+      title: 'Solicita en 5 min',
+      description: 'Completa tu solicitud 100% digital',
+      icon: 'FileText',
+      color: '#5B68D8',
+    },
+    {
+      id: 3,
+      title: 'Aprobacion en 24h',
+      description: 'Recibe respuesta en un dia habil',
+      icon: 'Clock',
+      color: '#03DBD0',
+    },
+    {
+      id: 4,
+      title: 'Empieza a estudiar',
+      description: 'Recibe tu equipo y comienza tu camino',
+      icon: 'GraduationCap',
+      color: '#22c55e',
+    },
+  ],
+  requirements: [
+    { id: 1, text: 'Ser estudiante universitario o tecnico', icon: 'GraduationCap' },
+    { id: 2, text: 'DNI vigente', icon: 'CreditCard' },
+    { id: 3, text: 'Correo institucional (opcional)', icon: 'Mail' },
+    { id: 4, text: 'Celular con WhatsApp', icon: 'Smartphone' },
+  ],
+  availableTerms: [6, 12, 18, 24],
+};
+
+// ============================================
+// FAQ Data - Basado en baldecash.com
+// ============================================
+
+export const mockFaqData: FaqData = {
+  items: [
+    {
+      id: '1',
+      question: 'Que tipo de financiamiento es este?',
+      answer: 'BaldeCash ofrece arrendamiento operativo con opcion de compra. Puedes usar tu laptop inmediatamente mientras pagas en cuotas, y al terminar de pagar, el equipo es tuyo.',
+      category: 'General',
+    },
+    {
+      id: '2',
+      question: 'Como y cuando recibo mi laptop?',
+      answer: 'Despues de la aprobacion, completas un contrato virtual con firma electronica. La entrega toma 3-5 dias habiles en Lima o 5-9 dias en provincias via courier.',
+      category: 'Envio',
+    },
+    {
+      id: '3',
+      question: 'Como pago mis cuotas?',
+      answer: 'Los pagos se realizan a traves de "Zona Estudiantes", nuestra plataforma. Puedes pagar con tarjeta de debito, agente bancario o ventanilla. Los pagos se registran inmediatamente.',
+      category: 'Pagos',
+    },
+    {
+      id: '4',
+      question: 'La laptop es de mi propiedad?',
+      answer: 'La laptop esta en tu entera posesion durante los pagos, pero pertenece a BaldeCash hasta que termines de pagar. Al completar todas las cuotas, la propiedad se transfiere a ti.',
+      category: 'General',
+    },
+    {
+      id: '5',
+      question: 'Puedo hacer pagos adelantados?',
+      answer: 'Si, puedes adelantar pagos a traves de Zona Estudiantes y recibir 20% de descuento por cancelacion anticipada de toda la deuda.',
+      category: 'Pagos',
+    },
+    {
+      id: '6',
+      question: 'La laptop cuenta con garantia?',
+      answer: 'Si, las laptops incluyen 12 meses de garantia del fabricante mas servicio tecnico de BaldeCash mientras estes al dia en tus pagos.',
+      category: 'Garantia',
+    },
+  ],
+  categories: ['General', 'Pagos', 'Envio', 'Garantia'],
+};
+
+// ============================================
+// Footer Data
+// ============================================
+
 export const mockFooterData: FooterData = {
   logo: { text: 'BaldeCash', tagline: 'Financiamiento estudiantil en Peru' },
   navigation: [
@@ -283,11 +379,11 @@ export const mockFooterData: FooterData = {
     { name: '5 anos', icon: 'Award', description: '5 anos en el mercado' },
   ],
   legal: {
-    copyright: '© 2025 BaldeCash. Todos los derechos reservados.',
+    copyright: '© 2025 Balde K S.A.C. Todos los derechos reservados.',
     links: [
-      { label: 'Terminos', href: '#terminos' },
-      { label: 'Privacidad', href: '#privacidad' },
-      { label: 'Libro de Reclamaciones', href: '#reclamaciones' },
+      { label: 'Terminos y Condiciones', href: '/prototipos/0.4/legal/terminos' },
+      { label: 'Politica de Privacidad', href: '/prototipos/0.4/legal/privacidad' },
+      { label: 'Libro de Reclamaciones', href: '/prototipos/0.4/legal/reclamaciones' },
     ],
   },
 };

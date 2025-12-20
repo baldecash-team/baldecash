@@ -47,6 +47,11 @@
 
 :root {
   --radius: 0.625rem;
+  /* NextUI radius variables */
+  --nextui-radius-small: 8px;
+  --nextui-radius-medium: 12px;
+  --nextui-radius-large: 14px;
+  --nextui-radius-full: 9999px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -121,6 +126,20 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Fix NextUI button radius */
+.rounded-large {
+  border-radius: 14px !important;
+}
+.rounded-medium {
+  border-radius: 12px !important;
+}
+.rounded-small {
+  border-radius: 8px !important;
+}
+.rounded-full {
+  border-radius: 9999px !important;
 }
 
 /* BaldeCash 0.2 - Custom animations for Hero Section components */

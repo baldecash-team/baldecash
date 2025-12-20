@@ -76,6 +76,7 @@ export const HeroBannerV3: React.FC<HeroBannerProps> = ({
             <div className="flex flex-wrap gap-3 pt-2">
               <Button
                 size="lg"
+                radius="lg"
                 className="bg-[#4654CD] text-white font-semibold px-8 cursor-pointer hover:bg-[#3a47b3] transition-colors"
                 endContent={<ArrowRight className="w-5 h-5" />}
               >
@@ -83,6 +84,7 @@ export const HeroBannerV3: React.FC<HeroBannerProps> = ({
               </Button>
               <Button
                 size="lg"
+                radius="lg"
                 variant="light"
                 className="text-[#4654CD] font-medium cursor-pointer"
               >

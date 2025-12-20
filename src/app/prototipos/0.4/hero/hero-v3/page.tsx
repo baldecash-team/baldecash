@@ -14,6 +14,8 @@ const configV3: HeroConfig = {
   navbarVersion: 3,
   ctaVersion: 3,
   footerVersion: 3,
+  howItWorksVersion: 3,
+  faqVersion: 3,
 };
 
 export default function HeroV3Page() {

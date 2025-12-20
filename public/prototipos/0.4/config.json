@@ -32,6 +32,16 @@
           "version": 1,
           "variants": 6,
           "notes": "V1-Minimalista, V2-Columnas, V3-WhatsApp CTA, V4-Mega Footer, V5-Compacto, V6-Trust Badges"
+        },
+        "howItWorks": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Timeline Horizontal, V2-Cards Grid, V3-Vertical Linea, V4-Minimal, V5-Con Requisitos, V6-Interactivo"
+        },
+        "faq": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Acordeon Simple, V2-Con Iconos, V3-Grid Cards, V4-Tabs Categoria, V5-Busqueda, V6-Chatbot Style"
         }
       }
     }
@@ -40,6 +50,11 @@
     {
       "date": "2024-12-19",
       "note": "Actualizado v0.4 a sistema de 6 versiones A/B testing para Hero section",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-19",
+      "note": "Agregados componentes HowItWorks (6 versiones) y FAQ (6 versiones) al Hero section",
       "author": "Claude"
     }
   ]

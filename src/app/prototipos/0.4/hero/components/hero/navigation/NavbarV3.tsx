@@ -70,6 +70,7 @@ export const NavbarV3: React.FC = () => {
           <div className="hidden md:flex items-center gap-3">
             <Button
               variant="light"
+              radius="lg"
               className={`font-medium cursor-pointer ${
                 isScrolled ? 'text-neutral-600' : 'text-white'
               }`}
@@ -78,6 +79,7 @@ export const NavbarV3: React.FC = () => {
               Mi cuenta
             </Button>
             <Button
+              radius="lg"
               className={`font-semibold cursor-pointer transition-colors ${
                 isScrolled
                   ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
@@ -118,6 +120,7 @@ export const NavbarV3: React.FC = () => {
             ))}
             <div className="pt-4 border-t border-neutral-100 space-y-2">
               <Button
+                radius="lg"
                 className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
               >
                 Solicitar ahora

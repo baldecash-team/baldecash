@@ -51,12 +51,14 @@ export const NavbarV1: React.FC = () => {
           <div className="hidden md:flex items-center gap-3">
             <Button
               variant="light"
+              radius="lg"
               className="text-neutral-600 font-medium cursor-pointer"
               startContent={<User className="w-4 h-4" />}
             >
               Mi cuenta
             </Button>
             <Button
+              radius="lg"
               className="bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] transition-colors"
             >
               Solicitar ahora
@@ -94,11 +96,13 @@ export const NavbarV1: React.FC = () => {
             <div className="pt-4 border-t border-neutral-100 space-y-2">
               <Button
                 variant="bordered"
+                radius="lg"
                 className="w-full border-neutral-300 text-neutral-700 font-medium cursor-pointer"
               >
                 Mi cuenta
               </Button>
               <Button
+                radius="lg"
                 className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
               >
                 Solicitar ahora

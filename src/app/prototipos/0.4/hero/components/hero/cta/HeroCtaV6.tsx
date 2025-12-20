@@ -51,6 +51,7 @@ export const HeroCtaV6: React.FC<HeroCtaV6Props> = ({ onCtaClick }) => {
 
       <Button
         size="lg"
+        radius="lg"
         className="bg-[#4654CD] text-white font-semibold px-12 py-6 text-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
         startContent={<Zap className="w-5 h-5" />}
         onPress={onCtaClick}

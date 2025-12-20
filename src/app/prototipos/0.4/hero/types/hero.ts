@@ -16,6 +16,8 @@ export interface HeroConfig {
   navbarVersion: HeroVersion;
   ctaVersion: HeroVersion;
   footerVersion: HeroVersion;
+  howItWorksVersion: HeroVersion;
+  faqVersion: HeroVersion;
 }
 
 export const defaultHeroConfig: HeroConfig = {
@@ -24,6 +26,8 @@ export const defaultHeroConfig: HeroConfig = {
   navbarVersion: 1,
   ctaVersion: 1,
   footerVersion: 1,
+  howItWorksVersion: 1,
+  faqVersion: 1,
 };
 
 // ============================================
@@ -213,6 +217,54 @@ export interface TimelineStep {
 }
 
 // ============================================
+// How It Works Types
+// ============================================
+
+export interface HowItWorksStep {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+  color?: string;
+}
+
+export interface Requirement {
+  id: number;
+  text: string;
+  icon?: string;
+}
+
+export interface HowItWorksData {
+  steps: HowItWorksStep[];
+  requirements: Requirement[];
+  availableTerms: number[];
+}
+
+export interface HowItWorksProps {
+  data?: HowItWorksData;
+}
+
+// ============================================
+// FAQ Types
+// ============================================
+
+export interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  category?: string;
+}
+
+export interface FaqData {
+  items: FaqItem[];
+  categories?: string[];
+}
+
+export interface FaqSectionProps {
+  data?: FaqData;
+}
+
+// ============================================
 // Version Descriptions (for Settings Modal)
 // ============================================
 
@@ -221,9 +273,9 @@ export const versionDescriptions = {
     1: 'Foto Producto (E-commerce Clasico)',
     2: 'Foto Lifestyle (Aspiracional)',
     3: 'Ilustracion Flat (Corporativo Moderno)',
-    4: 'Fintech/Data (Numeros y Estadisticas)',
-    5: 'Bold/Impact (Tipografia Oversized)',
-    6: 'Interactivo (Engagement Inmediato)',
+    4: 'Fintech/Data (Abstracto Flotante)',
+    5: 'Centrado Hero (Impacto Maximo)',
+    6: 'Storytelling (Narrativa Emocional)',
   },
   socialProof: {
     1: 'Marquee Continuo (logos en movimiento)',
@@ -231,7 +283,7 @@ export const versionDescriptions = {
     3: 'Contador + Logos (numero grande)',
     4: 'Carrusel Manual (flechas)',
     5: 'Testimonios con Logo (rotacion)',
-    6: 'Stats Cards (metricas grandes)',
+    6: 'Video Testimonial Thumbnail',
   },
   navbar: {
     1: 'Sticky Solido (siempre visible)',
@@ -239,10 +291,10 @@ export const versionDescriptions = {
     3: 'Transparente a Solido (scroll effect)',
     4: 'Hamburger Siempre (fullscreen menu)',
     5: 'Bottom Navigation (mobile app style)',
-    6: 'Minimalista (solo logo + CTA)',
+    6: 'Mega Menu + Badge Notificacion',
   },
   cta: {
-    1: 'Boton Simple (Ver laptops)',
+    1: 'Boton Simple (Ver equipos)',
     2: 'Precio en Boton (Desde S/49/mes)',
     3: 'Dual CTA (primario + secundario)',
     4: 'Con Urgencia (countdown timer)',
@@ -256,5 +308,21 @@ export const versionDescriptions = {
     4: 'Mega Footer (muchos links)',
     5: 'Compacto (una linea)',
     6: 'Con Trust Badges (certificaciones)',
+  },
+  howItWorks: {
+    1: 'Timeline Horizontal (iconos + pasos)',
+    2: 'Cards Grid (3 columnas)',
+    3: 'Vertical con Linea (scroll reveal)',
+    4: 'Minimal (solo iconos)',
+    5: 'Con Requisitos (expandido)',
+    6: 'Interactivo (hover reveal)',
+  },
+  faq: {
+    1: 'Acordeon Simple (basico)',
+    2: 'Acordeon con Iconos (categorizado)',
+    3: 'Grid de Cards (preview visible)',
+    4: 'Tabs por Categoria',
+    5: 'Busqueda + Acordeon',
+    6: 'Chatbot Style (conversacional)',
   },
 } as const;

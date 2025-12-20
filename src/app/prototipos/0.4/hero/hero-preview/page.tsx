@@ -25,6 +25,7 @@ export default function HeroPreviewPage() {
         <TokenCounter sectionId="PROMPT_01" version="0.4" />
         <Button
           isIconOnly
+          radius="md"
           className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
           onPress={() => setIsSettingsOpen(true)}
         >
@@ -32,6 +33,7 @@ export default function HeroPreviewPage() {
         </Button>
         <Button
           isIconOnly
+          radius="md"
           className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
           onPress={() => {
             const configString = JSON.stringify(config, null, 2);

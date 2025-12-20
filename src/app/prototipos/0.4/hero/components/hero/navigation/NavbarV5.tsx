@@ -60,6 +60,7 @@ export const NavbarV5: React.FC = () => {
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-3">
               <Button
+                radius="lg"
                 className="bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] transition-colors"
               >
                 Solicitar ahora

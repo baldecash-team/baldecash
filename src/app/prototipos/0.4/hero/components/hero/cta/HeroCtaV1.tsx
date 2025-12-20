@@ -19,6 +19,7 @@ export const HeroCtaV1: React.FC<HeroCtaV1Props> = ({ onCtaClick }) => {
     <div className="flex flex-col items-center gap-4">
       <Button
         size="lg"
+        radius="lg"
         className="bg-[#4654CD] text-white font-semibold px-12 py-6 text-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
         onPress={onCtaClick}
       >

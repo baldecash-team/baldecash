@@ -6,9 +6,13 @@ Patrones de código aprobados para componentes comunes.
 
 ## 1. Patrón: Botones
 
+> **IMPORTANTE**: Los botones NUNCA deben tener esquinas completamente rectas.
+> Usar siempre `radius="md"` en NextUI o `rounded-lg` en Tailwind.
+
 ```tsx
 // Botón Primario
-<Button 
+<Button
+  radius="md"
   className="bg-[#4654CD] text-white font-semibold hover:bg-[#3A45B0]"
   size="lg"
 >
@@ -16,7 +20,8 @@ Patrones de código aprobados para componentes comunes.
 </Button>
 
 // Botón Secundario
-<Button 
+<Button
+  radius="md"
   variant="bordered"
   className="border-[#4654CD] text-[#4654CD]"
 >
@@ -24,17 +29,23 @@ Patrones de código aprobados para componentes comunes.
 </Button>
 
 // Botón Ghost
-<Button variant="light" className="text-[#4654CD]">
+<Button radius="md" variant="light" className="text-[#4654CD]">
   Regresar
 </Button>
 
 // Botón con icono
-<Button 
+<Button
+  radius="md"
   className="bg-[#4654CD] text-white"
   startContent={<ShoppingCart className="w-4 h-4" />}
 >
   Agregar
 </Button>
+
+// Con Tailwind puro (si no usas NextUI)
+<button className="rounded-lg bg-[#4654CD] text-white px-6 py-3">
+  Botón
+</button>
 ```
 
 ---

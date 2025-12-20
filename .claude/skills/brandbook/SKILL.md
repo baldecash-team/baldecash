@@ -291,6 +291,7 @@ Tasa: 1.2% mensual | CAT: 14.4% anual | Sin cargos ocultos
 - ✅ Transiciones suaves: 150ms (micro), 300ms (layout)
 - ✅ Contraste mínimo 4.5:1 para texto
 - ✅ Touch targets mínimo 44x44px en móvil
+- ✅ Botones con esquinas redondeadas (radius="md" o rounded-lg, nunca totalmente rectos)
 
 ---
 

@@ -20,6 +20,7 @@ export const HeroCtaV3: React.FC<HeroCtaV3Props> = ({ onCtaClick }) => {
     <div className="flex flex-col sm:flex-row items-center gap-4">
       <Button
         size="lg"
+        radius="lg"
         className="bg-[#4654CD] text-white font-semibold px-8 py-6 text-lg cursor-pointer hover:bg-[#3a47b3] transition-colors group"
         endContent={
           <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -30,6 +31,7 @@ export const HeroCtaV3: React.FC<HeroCtaV3Props> = ({ onCtaClick }) => {
       </Button>
       <Button
         size="lg"
+        radius="lg"
         variant="bordered"
         className="border-[#4654CD] text-[#4654CD] font-semibold px-8 py-6 text-lg cursor-pointer hover:bg-[#4654CD]/5 transition-colors"
         startContent={<Laptop className="w-5 h-5" />}

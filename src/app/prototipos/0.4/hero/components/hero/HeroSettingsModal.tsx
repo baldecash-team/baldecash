@@ -179,6 +179,20 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
             descriptions={versionDescriptions.footer}
           />
 
+          <VersionSelector
+            label="Como Funciona"
+            value={config.howItWorksVersion}
+            onChange={(v) => onConfigChange({ ...config, howItWorksVersion: v })}
+            descriptions={versionDescriptions.howItWorks}
+          />
+
+          <VersionSelector
+            label="Tienes Dudas? (FAQ)"
+            value={config.faqVersion}
+            onChange={(v) => onConfigChange({ ...config, faqVersion: v })}
+            descriptions={versionDescriptions.faq}
+          />
+
           <div className="mt-2 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
             <p className="text-xs text-neutral-500">
               <strong>Nota:</strong> Cada combinación puede producir diferentes experiencias de usuario.

@@ -14,6 +14,8 @@ const configV5: HeroConfig = {
   navbarVersion: 5,
   ctaVersion: 5,
   footerVersion: 5,
+  howItWorksVersion: 5,
+  faqVersion: 5,
 };
 
 export default function HeroV5Page() {
