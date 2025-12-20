@@ -15,7 +15,7 @@ import { Tooltip, Button, Chip } from '@nextui-org/react';
 import { HelpCircle, ChevronDown, ChevronUp, Cpu, Battery, Monitor, HardDrive, Wifi } from 'lucide-react';
 import { SpecsProps } from '../../../types/detail';
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<string, React.ElementType> = {
   Cpu,
   Battery,
   Monitor,

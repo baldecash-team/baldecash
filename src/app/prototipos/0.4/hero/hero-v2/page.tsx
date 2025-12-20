@@ -10,10 +10,13 @@ import { HeroConfig } from '../types/hero';
 
 const configV2: HeroConfig = {
   heroBannerVersion: 2,
+  underlineStyle: 2,
   socialProofVersion: 2,
   navbarVersion: 2,
   ctaVersion: 2,
   footerVersion: 2,
+  howItWorksVersion: 2,
+  faqVersion: 2,
 };
 
 export default function HeroV2Page() {

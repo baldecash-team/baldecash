@@ -21,6 +21,7 @@ export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <Button
           size="lg"
+          radius="lg"
           className="bg-[#4654CD] text-white font-bold px-10 py-6 text-lg cursor-pointer hover:bg-[#3a47b3] transition-colors w-full sm:w-auto"
           startContent={<FileText className="w-5 h-5" />}
           onPress={onCtaClick}
@@ -29,6 +30,7 @@ export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
         </Button>
         <Button
           size="lg"
+          radius="lg"
           variant="flat"
           className="bg-neutral-100 text-neutral-700 font-semibold px-10 py-6 text-lg cursor-pointer hover:bg-neutral-200 transition-colors w-full sm:w-auto"
           startContent={<Calculator className="w-5 h-5" />}

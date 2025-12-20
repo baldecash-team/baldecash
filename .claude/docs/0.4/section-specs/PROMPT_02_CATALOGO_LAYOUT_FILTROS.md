@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | B (parcial) |
 | **Preguntas totales** | 36 |
-| **Iteraciones T (10 versiones)** | 4 |
+| **Iteraciones T (6 versiones)** | 4 |
 | **Iteraciones F (1 versión)** | 32 |
 | **Prioridad** | Alta - MVP Core |
 | **Productos de prueba** | 39 laptops |
@@ -78,30 +78,24 @@ font-family: 'Asap', sans-serif; /* Cuerpo */
 
 ---
 
-## 4. Estructura de Archivos a Generar (10 versiones)
+## 4. Estructura de Archivos a Generar (6 versiones)
 
 ```
 src/app/prototipos/0.4/catalogo/
 ├── page.tsx                              # Redirecciona a catalog-preview
 ├── catalog-preview/
-│   └── page.tsx                          # Preview con settings modal (10 opciones)
-├── catalog-v1/ ... catalog-v10/
-│   └── page.tsx                          # Demo versión X standalone
+│   └── page.tsx                          # Preview con modal de configuracion
 ├── components/
 │   └── catalog/
 │       ├── CatalogLayout.tsx             # Wrapper principal
-│       ├── CatalogSettingsModal.tsx      # Modal de configuración (10 opciones)
+│       ├── CatalogSettingsModal.tsx      # Modal de configuración (6 opciones)
 │       ├── layout/
 │       │   ├── CatalogLayoutV1.tsx       # Sidebar Clásico
 │       │   ├── CatalogLayoutV2.tsx       # Filtros Horizontales
 │       │   ├── CatalogLayoutV3.tsx       # Mobile-First Drawer
 │       │   ├── CatalogLayoutV4.tsx       # Split View Abstracto
 │       │   ├── CatalogLayoutV5.tsx       # Split 50/50 Preview
-│       │   ├── CatalogLayoutV6.tsx       # Centrado Sticky
-│       │   ├── CatalogLayoutV7.tsx       # Asimétrico Flotante
-│       │   ├── CatalogLayoutV8.tsx       # Data-Driven Stats
-│       │   ├── CatalogLayoutV9.tsx       # Storytelling Categorías
-│       │   └── CatalogLayoutV10.tsx      # Interactivo Comparador
+│       │   └── CatalogLayoutV6.tsx       # Centrado Sticky
 │       ├── filters/
 │       │   ├── FilterSection.tsx         # Wrapper de sección
 │       │   ├── FilterChips.tsx           # Chips de filtros aplicados
@@ -112,11 +106,7 @@ src/app/prototipos/0.4/catalogo/
 │       │   │   ├── BrandFilterV3.tsx     # Grid de logos
 │       │   │   ├── BrandFilterV4.tsx     # Carousel
 │       │   │   ├── BrandFilterV5.tsx     # Dropdown
-│       │   │   ├── BrandFilterV6.tsx     # Chips
-│       │   │   ├── BrandFilterV7.tsx     # Accordion
-│       │   │   ├── BrandFilterV8.tsx     # Stats
-│       │   │   ├── BrandFilterV9.tsx     # Favoritos
-│       │   │   └── BrandFilterV10.tsx    # Search
+│       │   │   └── BrandFilterV6.tsx     # Chips
 │       │   ├── PriceRangeFilter.tsx      # Slider precio total
 │       │   ├── QuotaRangeFilter.tsx      # Slider cuota mensual
 │       │   ├── UsageFilter.tsx           # Uso recomendado
@@ -138,7 +128,7 @@ src/app/prototipos/0.4/catalogo/
 
 ### 5.1 Layout General (4 preguntas)
 
-#### Pregunta B.1 [ITERAR - 10 versiones]
+#### Pregunta B.1 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Layout general |
@@ -146,7 +136,7 @@ src/app/prototipos/0.4/catalogo/
 | **Contexto** | Grid muestra más productos; lista permite más detalle por producto. |
 | **Respuesta** | No tenemos una idea clara, pero considerando que tendremos el doble de productos |
 
-**10 Versiones Detalladas:**
+**6 Versiones Detalladas:**
 
 ---
 
@@ -279,92 +269,9 @@ src/app/prototipos/0.4/catalogo/
 
 ---
 
-### V7: Asimétrico con Filtros Flotantes
-
-**Concepto**: Grid asimétrico con panel de filtros que flota sobre el contenido
-
-**Elementos visuales**:
-- Grid: Masonry o tamaños variados
-- Filtros: Panel flotante que se puede mover/minimizar
-- Diseño editorial, menos estructurado
-
-**Layout**:
-```
-[        GRID ASIMÉTRICO                      ]
-[  [Card Grande]  [Card]                      ]
-[  [Card]  [Card]  [Card]     [Filtros]       ]
-[  [Card]  [Card Grande]       flotante       ]
-```
-
-**Referencia**: Pinterest, Behance
-
 ---
 
-### V8: Data-Driven con Stats
-
-**Concepto**: Layout enfocado en datos, con estadísticas y métricas visibles
-
-**Elementos visuales**:
-- Header con stats: "39 laptops | S/49-S/299/mes | 6 marcas"
-- Filtros con contadores prominentes
-- Ordenamiento por métricas visibles
-
-**Layout**:
-```
-[39 laptops encontradas | Rango S/49-S/299    ]
-[[Marca (6)] [Precio ↕] [RAM (4)] [Más]]      ]
-[  [Card con stats]  [Card con stats]         ]
-[  [Card con stats]  [Card con stats]         ]
-```
-
-**Referencia**: Fintech dashboards, Kayak
-
----
-
-### V9: Storytelling con Categorías
-
-**Concepto**: Catálogo organizado por narrativas/historias de uso
-
-**Elementos visuales**:
-- Secciones: "Para estudiar", "Para crear", "Para jugar"
-- Cada sección con su mini-header
-- Scroll horizontal por categoría
-
-**Layout**:
-```
-[PARA ESTUDIAR - La mejor opción para clases  ]
-[ → [Card] [Card] [Card] [Card] →             ]
-[PARA CREAR - Diseño y programación           ]
-[ → [Card] [Card] [Card] [Card] →             ]
-```
-
-**Referencia**: Duolingo, Headspace, app stores
-
----
-
-### V10: Interactivo con Comparador Inline
-
-**Concepto**: Grid con funcionalidad de comparación integrada
-
-**Elementos visuales**:
-- Checkbox de comparación en cada card
-- Panel inferior que aparece al seleccionar 2+
-- Comparación side-by-side inline
-
-**Layout**:
-```
-[[Filtros horizontales]                       ]
-[  [☑Card]  [☑Card]  [Card]  [Card]           ]
-[  [Card]   [Card]   [Card]  [Card]           ]
-[=========== COMPARAR 2 PRODUCTOS ============]
-[ [Mini Card 1]  vs  [Mini Card 2]  [Comparar]]
-```
-
-**Referencia**: PCPartPicker, comparison tools
-
----
-
-#### Pregunta B.2 [ITERAR - 10 versiones]
+#### Pregunta B.2 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Layout general |
@@ -379,12 +286,8 @@ src/app/prototipos/0.4/catalogo/
 - **V4**: 4 productos (2×2), cards grandes con más detalle
 - **V5**: 6 productos split (3 izquierda, preview derecha)
 - **V6**: 12 productos (3×4), cards minimalistas
-- **V7**: Variable (masonry layout)
-- **V8**: 6 productos + stats header prominente
-- **V9**: Por sección (4 por categoría horizontal)
-- **V10**: 6 productos + comparador activo
 
-#### Pregunta B.3 [ITERAR - 10 versiones]
+#### Pregunta B.3 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Layout general |
@@ -399,10 +302,6 @@ src/app/prototipos/0.4/catalogo/
 - **V4**: Panel flotante con shapes decorativos
 - **V5**: Split 50/50 filtros + preview
 - **V6**: Barra sticky superior
-- **V7**: Panel flotante movible
-- **V8**: Filtros inline con contadores
-- **V9**: Filtros por sección/categoría
-- **V10**: Filtros + comparador integrado
 
 #### Pregunta B.4 [DEFINIDO - 1 versión]
 | Campo | Valor |
@@ -502,7 +401,7 @@ src/app/prototipos/0.4/catalogo/
 
 **Implementación:** Toggle o checkbox "Solo disponibles ahora"
 
-#### Pregunta B.13 [ITERAR - 10 versiones]
+#### Pregunta B.13 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Filtros - Contenido |
@@ -510,7 +409,7 @@ src/app/prototipos/0.4/catalogo/
 | **Contexto** | Logos son más reconocibles visualmente. |
 | **Respuesta** | No tenemos idea clara, mejores prácticas UX & UI |
 
-**10 Versiones Detalladas:**
+**6 Versiones Detalladas:**
 
 - **V1 - Solo Texto**: Checkboxes con nombre de marca + conteo "(12)"
 - **V2 - Logo + Texto**: Logo pequeño 24px + nombre + checkbox
@@ -518,10 +417,6 @@ src/app/prototipos/0.4/catalogo/
 - **V4 - Carousel de Logos**: Scroll horizontal de logos, selección múltiple
 - **V5 - Dropdown con Logos**: Select con logos en opciones
 - **V6 - Chips Seleccionables**: Chips con logo + nombre, toggle on/off
-- **V7 - Accordion por Marca**: Expandir marca muestra productos
-- **V8 - Stats por Marca**: Logo + barra de cantidad visual
-- **V9 - Favoritos Primero**: Logos ordenados por popularidad
-- **V10 - Search + Logos**: Input de búsqueda + grid filtrable
 
 ---
 
@@ -733,8 +628,8 @@ export interface FilterSectionProps {
 }
 
 export interface CatalogLayoutConfig {
-  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-  brandFilterVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  brandFilterVersion: 1 | 2 | 3 | 4 | 5 | 6;
   productsPerRow: {
     mobile: number;
     tablet: number;
@@ -917,28 +812,24 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
 | Ruta | Descripción |
 |------|-------------|
 | `/prototipos/0.4/catalogo` | Redirecciona a preview |
-| `/prototipos/0.4/catalogo/catalog-preview` | Comparador con settings modal (10 opciones) |
+| `/prototipos/0.4/catalogo/catalog-preview` | Comparador con settings modal (6 opciones) |
 | `/prototipos/0.4/catalogo/catalog-v1` | V1: Sidebar Clásico |
 | `/prototipos/0.4/catalogo/catalog-v2` | V2: Filtros Horizontales |
 | `/prototipos/0.4/catalogo/catalog-v3` | V3: Mobile-First Drawer |
 | `/prototipos/0.4/catalogo/catalog-v4` | V4: Split View Abstracto |
 | `/prototipos/0.4/catalogo/catalog-v5` | V5: Split 50/50 Preview |
 | `/prototipos/0.4/catalogo/catalog-v6` | V6: Centrado Sticky |
-| `/prototipos/0.4/catalogo/catalog-v7` | V7: Asimétrico Flotante |
-| `/prototipos/0.4/catalogo/catalog-v8` | V8: Data-Driven Stats |
-| `/prototipos/0.4/catalogo/catalog-v9` | V9: Storytelling Categorías |
-| `/prototipos/0.4/catalogo/catalog-v10` | V10: Interactivo Comparador |
 
 ---
 
 ## 10. Checklist de Entregables
 
-- [ ] `types/catalog.ts` - Tipos completos con 10 versiones
+- [ ] `types/catalog.ts` - Tipos completos con 6 versiones
 - [ ] `data/mockCatalogData.ts` - Datos y tooltips
 - [ ] `CatalogLayout.tsx` - Wrapper principal
-- [ ] `CatalogSettingsModal.tsx` - Modal configuración (10 opciones por componente)
-- [ ] `CatalogLayoutV1.tsx` a `V10.tsx` - 10 versiones de layout
-- [ ] `BrandFilterV1.tsx` a `V10.tsx` - 10 versiones de filtro de marca
+- [ ] `CatalogSettingsModal.tsx` - Modal configuración (6 opciones por componente)
+- [ ] `CatalogLayoutV1.tsx` a `V6.tsx` - 6 versiones de layout
+- [ ] `BrandFilterV1.tsx` a `V6.tsx` - 6 versiones de filtro de marca
 - [ ] `FilterSection.tsx` - Sección colapsable
 - [ ] `FilterChips.tsx` - Chips removibles
 - [ ] `FilterDrawer.tsx` - Drawer móvil
@@ -949,8 +840,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
 - [ ] `CommercialFilters.tsx` - Filtros comerciales
 - [ ] `FilterTooltip.tsx` - Tooltips explicativos
 - [ ] `SortDropdown.tsx` - Ordenamiento
-- [ ] `catalog-preview/page.tsx`
-- [ ] `catalog-v1/page.tsx` hasta `catalog-v10/page.tsx`
+- [ ] `catalog-preview/page.tsx` con modal de configuracion
 - [ ] `CATALOG_README.md`
 
 ---

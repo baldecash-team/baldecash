@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | B (parcial) |
 | **Preguntas totales** | 2 |
-| **Iteraciones T (10 versiones)** | 2 |
+| **Versiones por componente** | 6 |
 | **Prioridad** | Baja - Edge Case |
 
 ---
@@ -23,20 +23,20 @@ El estado vacío aparece cuando los filtros aplicados no devuelven resultados. E
 
 ---
 
-## 2. Estructura de Archivos (10 versiones)
+## 2. Estructura de Archivos (6 versiones)
 
 ```
 src/app/prototipos/0.4/catalogo/
 ├── components/
 │   └── empty/
 │       ├── EmptyState.tsx              # Wrapper principal
-│       ├── EmptyStateSettingsModal.tsx # Modal con 2 selectores (1-10)
+│       ├── EmptyStateSettingsModal.tsx # Modal con 2 selectores (1-6)
 │       ├── illustration/
-│       │   └── EmptyIllustrationV[1-10].tsx
+│       │   └── EmptyIllustrationV[1-6].tsx
 │       ├── actions/
-│       │   └── EmptyActionsV[1-10].tsx
+│       │   └── EmptyActionsV[1-6].tsx
 │       └── suggestions/
-│           └── SuggestionsPanelV[1-10].tsx
+│           └── SuggestionsPanelV[1-6].tsx
 ├── types/
 │   └── empty.ts
 ```
@@ -45,7 +45,7 @@ src/app/prototipos/0.4/catalogo/
 
 ## 3. Preguntas del Segmento B - Estado Vacío
 
-### Pregunta B.103 [ITERAR - 10 versiones]
+### Pregunta B.103 [ITERAR - 6 versiones]
 **¿Qué mostrar si los filtros no devuelven resultados?**
 - **V1**: Icono SearchX grande + mensaje simple centrado (producto)
 - **V2**: Ilustración de estudiante buscando + mensaje empático (lifestyle)
@@ -53,12 +53,8 @@ src/app/prototipos/0.4/catalogo/
 - **V4**: Shapes abstractos flotantes + mensaje con animación sutil (fintech)
 - **V5**: Split: ilustración izquierda + mensaje y acciones derecha
 - **V6**: Mensaje gigante centrado "0 resultados" con impacto visual
-- **V7**: Tipografía bold asimétrica "Hmm, no encontramos nada..."
-- **V8**: Mensaje + estadísticas de filtros aplicados (data-driven)
-- **V9**: Mini-historia: "Tu laptop perfecta existe, solo ajusta..." (storytelling)
-- **V10**: Asistente interactivo que pregunta cómo ayudar
 
-### Pregunta B.104 [ITERAR - 10 versiones]
+### Pregunta B.104 [ITERAR - 6 versiones]
 **¿Debe sugerirse automáticamente ampliar filtros?**
 - **V1**: Botones simples: Limpiar filtros, Ampliar precio (clásico)
 - **V2**: Cards con preview de qué cambia al expandir (lifestyle)
@@ -66,10 +62,6 @@ src/app/prototipos/0.4/catalogo/
 - **V4**: Floating pills con animación de hover (fintech)
 - **V5**: Panel split: filtros actuales vs. sugeridos
 - **V6**: 1 CTA grande "Ver todos los productos" centrado
-- **V7**: Opciones con tamaños variables según impacto (bold)
-- **V8**: "Si amplías precio +S/50, verás 12 productos más" (data)
-- **V9**: "¿Y si pruebas...?" con sugerencias narrativas
-- **V10**: Slider interactivo para ajustar filtros en tiempo real
 
 ---
 
@@ -80,10 +72,10 @@ src/app/prototipos/0.4/catalogo/
 
 export interface EmptyStateConfig {
   // B.103 - Visualización del estado vacío
-  illustrationVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  illustrationVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.104 - Sugerencias de acción
-  actionsVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  actionsVersion: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const defaultEmptyStateConfig: EmptyStateConfig = {
@@ -198,16 +190,16 @@ no tiene páginas independientes. Se activa cuando:
 ### Tipos y Configuración
 - [ ] `types/empty.ts` - EmptyStateConfig con 2 selectores
 - [ ] `EmptyState.tsx` - Wrapper principal
-- [ ] `EmptyStateSettingsModal.tsx` - Modal con 2 selectores (1-10)
+- [ ] `EmptyStateSettingsModal.tsx` - Modal con 2 selectores (1-6)
 
-### Ilustración (10 versiones)
-- [ ] `EmptyIllustrationV1.tsx` a `V10.tsx`
+### Ilustración (6 versiones)
+- [ ] `EmptyIllustrationV1.tsx` a `V6.tsx`
 
-### Acciones (10 versiones)
-- [ ] `EmptyActionsV1.tsx` a `V10.tsx`
+### Acciones (6 versiones)
+- [ ] `EmptyActionsV1.tsx` a `V6.tsx`
 
-### Sugerencias (10 versiones)
-- [ ] `SuggestionsPanelV1.tsx` a `V10.tsx`
+### Sugerencias (6 versiones)
+- [ ] `SuggestionsPanelV1.tsx` a `V6.tsx`
 
 ### Integración
 - [ ] Integración con CatalogLayout

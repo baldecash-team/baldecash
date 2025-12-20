@@ -16,7 +16,7 @@ import {
   SelectItem,
 } from '@nextui-org/react';
 import { Settings, RotateCcw } from 'lucide-react';
-import { HeroConfig, HeroVersion, defaultHeroConfig, versionDescriptions } from '../../types/hero';
+import { HeroConfig, HeroVersion, UnderlineStyle, defaultHeroConfig, versionDescriptions } from '../../types/hero';
 
 interface HeroSettingsModalProps {
   isOpen: boolean;
@@ -25,7 +25,7 @@ interface HeroSettingsModalProps {
   onConfigChange: (config: HeroConfig) => void;
 }
 
-const versionOptions: HeroVersion[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const versionOptions: HeroVersion[] = [1, 2, 3, 4, 5, 6];
 
 interface VersionSelectorProps {
   label: string;
@@ -145,10 +145,24 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
           </p>
 
           <VersionSelector
+            label="Navbar"
+            value={config.navbarVersion}
+            onChange={(v) => onConfigChange({ ...config, navbarVersion: v })}
+            descriptions={versionDescriptions.navbar}
+          />
+
+          <VersionSelector
             label="Hero Banner"
             value={config.heroBannerVersion}
             onChange={(v) => onConfigChange({ ...config, heroBannerVersion: v })}
             descriptions={versionDescriptions.heroBanner}
+          />
+
+          <VersionSelector
+            label="Estilo de Subrayado"
+            value={config.underlineStyle}
+            onChange={(v) => onConfigChange({ ...config, underlineStyle: v as UnderlineStyle })}
+            descriptions={versionDescriptions.underline}
           />
 
           <VersionSelector
@@ -159,10 +173,10 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
           />
 
           <VersionSelector
-            label="Navbar"
-            value={config.navbarVersion}
-            onChange={(v) => onConfigChange({ ...config, navbarVersion: v })}
-            descriptions={versionDescriptions.navbar}
+            label="¿Cómo Funciona?"
+            value={config.howItWorksVersion}
+            onChange={(v) => onConfigChange({ ...config, howItWorksVersion: v })}
+            descriptions={versionDescriptions.howItWorks}
           />
 
           <VersionSelector
@@ -170,6 +184,13 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
             value={config.ctaVersion}
             onChange={(v) => onConfigChange({ ...config, ctaVersion: v })}
             descriptions={versionDescriptions.cta}
+          />
+
+          <VersionSelector
+            label="¿Tienes Dudas? (FAQ)"
+            value={config.faqVersion}
+            onChange={(v) => onConfigChange({ ...config, faqVersion: v })}
+            descriptions={versionDescriptions.faq}
           />
 
           <VersionSelector

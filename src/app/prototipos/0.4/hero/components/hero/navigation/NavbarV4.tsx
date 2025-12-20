@@ -14,7 +14,7 @@ import { Menu, X, ArrowRight } from 'lucide-react';
 
 const navItems = [
   { label: 'Laptops', href: '#laptops' },
-  { label: 'Como funciona', href: '#como-funciona' },
+  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
   { label: 'Contacto', href: '#contacto' },
@@ -97,6 +97,7 @@ export const NavbarV4: React.FC = () => {
             <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-neutral-100">
               <Button
                 size="lg"
+                radius="lg"
                 className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
                 endContent={<ArrowRight className="w-5 h-5" />}
                 onPress={() => setIsMenuOpen(false)}

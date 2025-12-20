@@ -22,7 +22,7 @@ const categories = [
 ];
 
 const navItems = [
-  { label: 'Como funciona', href: '#como-funciona' },
+  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
 ];
@@ -113,6 +113,7 @@ export const NavbarV6: React.FC = () => {
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-3">
               <Button
+                radius="lg"
                 className="bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] transition-colors"
               >
                 Solicitar ahora
@@ -165,6 +166,7 @@ export const NavbarV6: React.FC = () => {
               </div>
               <div className="pt-4 border-t border-neutral-100 mt-4">
                 <Button
+                  radius="lg"
                   className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
                 >
                   Solicitar ahora

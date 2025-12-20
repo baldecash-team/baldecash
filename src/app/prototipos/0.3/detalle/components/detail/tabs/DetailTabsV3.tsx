@@ -63,7 +63,7 @@ export const DetailTabsV3: React.FC<DetailTabsProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  const iconMap: Record<string, React.ElementType> = {
     Cpu,
     Battery,
     Wifi,

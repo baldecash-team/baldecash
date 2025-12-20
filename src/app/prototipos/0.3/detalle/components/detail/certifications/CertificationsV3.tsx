@@ -15,7 +15,7 @@ import { Card, CardBody, Button, Accordion, AccordionItem } from '@nextui-org/re
 import { Shield, Award, Leaf, Zap, ExternalLink, ChevronRight, Check } from 'lucide-react';
 import { CertificationsProps } from '../../../types/detail';
 
-const certIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const certIconMap: Record<string, React.ElementType> = {
   'energy-star': Zap,
   epeat: Leaf,
   tco: Shield,

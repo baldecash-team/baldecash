@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | C.4 |
 | **Preguntas totales** | 15 |
-| **Iteraciones T (10 versiones)** | 4 |
+| **Versiones por componente** | 6 |
 | **Prioridad** | Alta - MVP Core |
 
 ---
@@ -17,7 +17,7 @@ El paso de datos económicos captura información sobre la fuente de ingresos de
 
 ---
 
-## 2. Estructura de Archivos (10 versiones)
+## 2. Estructura de Archivos (6 versiones)
 
 ```
 src/app/prototipos/0.4/solicitud/
@@ -26,13 +26,13 @@ src/app/prototipos/0.4/solicitud/
 │       ├── EconomicDataStep.tsx
 │       ├── components/
 │       │   ├── income/
-│       │   │   └── IncomeSourceSelectorV[1-10].tsx
+│       │   │   └── IncomeSourceSelectorV[1-6].tsx
 │       │   ├── description/
-│       │   │   └── OptionDescriptionV[1-10].tsx
+│       │   │   └── OptionDescriptionV[1-6].tsx
 │       │   ├── family/
-│       │   │   └── FamilySectionV[1-10].tsx
+│       │   │   └── FamilySectionV[1-6].tsx
 │       │   ├── verification/
-│       │   │   └── VerificationCheckboxV[1-10].tsx
+│       │   │   └── VerificationCheckboxV[1-6].tsx
 │       │   ├── EmploymentFields.tsx
 │       │   ├── BusinessFields.tsx
 │       │   ├── FamilyFields.tsx
@@ -46,7 +46,7 @@ src/app/prototipos/0.4/solicitud/
 
 ### 3.1 Selección de Fuente (3 preguntas)
 
-#### C4.1 [ITERAR - 10 versiones]
+#### C4.1 [ITERAR - 6 versiones]
 **¿Las opciones de fuente de ingreso deben ser cards grandes con iconos?**
 - **V1**: Cards grandes con icono prominente + descripción (e-commerce)
 - **V2**: Botones elegantes con iconos minimalistas (lifestyle)
@@ -54,12 +54,8 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Pills flotantes con iconos y animación de selección (fintech)
 - **V5**: Split grid: 2 opciones por fila en desktop, stack en mobile
 - **V6**: Cards gigantes una sobre otra con máximo impacto (hero)
-- **V7**: Cards con tamaños variables según frecuencia de selección (bold)
-- **V8**: Opciones con estadística "65% eligen esta opción" (data)
-- **V9**: Cards con mini-historias "Como Juan, que trabaja y estudia..." (story)
-- **V10**: Selector interactivo con preview de campos siguientes
 
-#### C4.2 [ITERAR - 10 versiones]
+#### C4.2 [ITERAR - 6 versiones]
 **¿Debe explicarse brevemente cada opción?**
 - **V1**: Descripción siempre visible debajo del label (e-commerce)
 - **V2**: Descripción en hover con tooltip elegante (lifestyle)
@@ -67,10 +63,6 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Descripción que aparece con animación al hover (fintech)
 - **V5**: Split: label izquierda + descripción derecha en fila
 - **V6**: Descripción grande prominente debajo de cada card (impacto)
-- **V7**: Descripción con tamaño variable según necesidad (bold)
-- **V8**: Descripción + dato "Tiempo promedio: 2 min" (data)
-- **V9**: Descripción como pregunta "¿Trabajas para una empresa?" (story)
-- **V10**: Descripción interactiva "¿No sabes cuál elegir? Te ayudamos"
 
 #### C4.3 [DEFINIDO]
 **¿Qué icono usar para cada fuente?**
@@ -120,7 +112,7 @@ src/app/prototipos/0.4/solicitud/
 
 ### 3.5 Datos de Familiar (3 preguntas)
 
-#### C4.11 [ITERAR - 10 versiones]
+#### C4.11 [ITERAR - 6 versiones]
 **¿La sección de datos del familiar debe tener diseño diferenciado?**
 - **V1**: Card con borde gris diferente al resto (e-commerce)
 - **V2**: Sección con fondo suave y título elegante (lifestyle)
@@ -128,10 +120,6 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Sección con borde animado al aparecer (fintech)
 - **V5**: Split: datos del familiar en panel separado
 - **V6**: Sección grande destacada con título prominente (impacto)
-- **V7**: Sección con borde de color variable según parentesco (bold)
-- **V8**: Sección con indicador "Última sección - 3 campos" (data)
-- **V9**: Sección con mensaje "Háblanos de quien te apoya" (story)
-- **V10**: Sección interactiva con preview de por qué necesitamos esto
 
 #### C4.12 [DEFINIDO]
 **¿Debe explicarse POR QUÉ se necesitan datos del familiar?**
@@ -145,7 +133,7 @@ src/app/prototipos/0.4/solicitud/
 
 ### 3.6 Verificación (2 preguntas)
 
-#### C4.14 [ITERAR - 10 versiones]
+#### C4.14 [ITERAR - 6 versiones]
 **¿El checkbox de verificación laboral debe estar al inicio o al final?**
 - **V1**: Al final de la sección de empleo (e-commerce)
 - **V2**: Integrado elegantemente con el último campo (lifestyle)
@@ -153,10 +141,6 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Flotante sticky al final del formulario (fintech)
 - **V5**: Split: checkbox izquierda + explicación derecha
 - **V6**: Checkbox grande centrado como confirmación final (impacto)
-- **V7**: Checkbox con tamaño adaptativo según importancia (bold)
-- **V8**: Checkbox con "El 95% acepta esta verificación" (data)
-- **V9**: Checkbox como compromiso "Me comprometo a..." (story)
-- **V10**: Checkbox interactivo con modal explicativo al hacer clic
 
 #### C4.15 [DEFINIDO]
 **¿Debe explicarse en qué consiste la verificación?**
@@ -171,16 +155,16 @@ src/app/prototipos/0.4/solicitud/
 
 export interface EconomicDataConfig {
   // C4.1 - Selector de fuente
-  incomeSelectorVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  incomeSelectorVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C4.2 - Descripción de opciones
-  optionDescriptionVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  optionDescriptionVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C4.11 - Sección familiar
-  familySectionVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  familySectionVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C4.14 - Checkbox verificación
-  verificationVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  verificationVersion: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const defaultEconomicDataConfig: EconomicDataConfig = {
@@ -324,17 +308,17 @@ export const IncomeSourceSelectorV1: React.FC<{
 ## 7. Checklist de Entregables
 
 ### Tipos y Configuración
-- [ ] `types/economic.ts` - EconomicDataConfig con 4 selectores (1-10)
+- [ ] `types/economic.ts` - EconomicDataConfig con 4 selectores (1-6)
 - [ ] `EconomicDataSettingsModal.tsx` - Modal con 4 selectores
 
 ### Paso Principal
 - [ ] `EconomicDataStep.tsx`
 
-### Selector de Fuente (10 versiones)
-- [ ] `IncomeSourceSelectorV1.tsx` a `V10.tsx`
+### Selector de Fuente (6 versiones)
+- [ ] `IncomeSourceSelectorV1.tsx` a `V6.tsx`
 
-### Descripción de Opciones (10 versiones)
-- [ ] `OptionDescriptionV1.tsx` a `V10.tsx`
+### Descripción de Opciones (6 versiones)
+- [ ] `OptionDescriptionV1.tsx` a `V6.tsx`
 
 ### Campos Condicionales
 - [ ] `EmploymentFields.tsx`
@@ -342,11 +326,11 @@ export const IncomeSourceSelectorV1: React.FC<{
 - [ ] `FamilyFields.tsx`
 - [ ] `IncomeAmountInput.tsx` con formato moneda
 
-### Sección Familiar (10 versiones)
-- [ ] `FamilySectionV1.tsx` a `V10.tsx`
+### Sección Familiar (6 versiones)
+- [ ] `FamilySectionV1.tsx` a `V6.tsx`
 
-### Verificación (10 versiones)
-- [ ] `VerificationCheckboxV1.tsx` a `V10.tsx`
+### Verificación (6 versiones)
+- [ ] `VerificationCheckboxV1.tsx` a `V6.tsx`
 
 ### Documentación
 - [ ] `ECONOMIC_README.md`

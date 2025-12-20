@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | B (parcial) |
 | **Preguntas totales** | 8 |
-| **Iteraciones T (10 versiones)** | 8 |
+| **Versiones por componente** | 6 |
 | **Prioridad** | Media - Fase 2 |
 
 ---
@@ -23,35 +23,25 @@ El comparador permite a los usuarios evaluar múltiples productos lado a lado, f
 
 ---
 
-## 2. Estructura de Archivos (10 versiones)
+## 2. Estructura de Archivos (6 versiones)
 
 ```
 src/app/prototipos/0.4/comparador/
 ├── page.tsx                              # Redirect a preview
 ├── comparator-preview/
-│   └── page.tsx                          # Preview con Settings Modal
-├── comparator-v1/page.tsx                # V1: Foto Producto
-├── comparator-v2/page.tsx                # V2: Foto Lifestyle
-├── comparator-v3/page.tsx                # V3: Ilustración Flat
-├── comparator-v4/page.tsx                # V4: Abstracto Flotante
-├── comparator-v5/page.tsx                # V5: Split 50/50
-├── comparator-v6/page.tsx                # V6: Centrado Hero
-├── comparator-v7/page.tsx                # V7: Asimétrico Bold
-├── comparator-v8/page.tsx                # V8: Data-Driven
-├── comparator-v9/page.tsx                # V9: Storytelling
-├── comparator-v10/page.tsx               # V10: Interactivo
+│   └── page.tsx                          # Preview con modal de configuracion
 ├── components/
 │   └── comparator/
 │       ├── ProductComparator.tsx
-│       ├── ComparatorSettingsModal.tsx   # Modal con 8 selectores (1-10)
+│       ├── ComparatorSettingsModal.tsx   # Modal con 8 selectores (1-6)
 │       ├── layout/
-│       │   └── ComparatorLayoutV[1-10].tsx
+│       │   └── ComparatorLayoutV[1-6].tsx
 │       ├── table/
-│       │   └── ComparisonTableV[1-10].tsx
+│       │   └── ComparisonTableV[1-6].tsx
 │       ├── highlights/
-│       │   └── DifferenceHighlightV[1-10].tsx
+│       │   └── DifferenceHighlightV[1-6].tsx
 │       ├── selection/
-│       │   └── ProductSelectorV[1-10].tsx
+│       │   └── ProductSelectorV[1-6].tsx
 │       └── actions/
 │           └── CompareActions.tsx
 ├── types/
@@ -63,7 +53,7 @@ src/app/prototipos/0.4/comparador/
 
 ## 3. Preguntas del Segmento B - Comparador
 
-### Pregunta B.90 [ITERAR - 10 versiones]
+### Pregunta B.90 [ITERAR - 6 versiones]
 **¿Debe haber funcionalidad de comparar productos lado a lado?**
 - **V1**: Checkbox en cards del catálogo (e-commerce clásico)
 - **V2**: Botón "Comparar" en página de detalle (intencional)
@@ -71,12 +61,8 @@ src/app/prototipos/0.4/comparador/
 - **V4**: Icono flotante con contador animado (fintech)
 - **V5**: Panel lateral fijo con productos seleccionados (split)
 - **V6**: Modal centralizado para iniciar comparación (impacto)
-- **V7**: Drag & drop de cards a zona de comparación (bold)
-- **V8**: Auto-sugerencia "Compara con..." con % match (data)
-- **V9**: "Otros compararon estos..." con stories (storytelling)
-- **V10**: Wizard interactivo de comparación paso a paso (interactivo)
 
-### Pregunta B.91 [ITERAR - 10 versiones]
+### Pregunta B.91 [ITERAR - 6 versiones]
 **¿Cuántos productos permitir comparar? (2, 3, 4)**
 - **V1**: Máximo 2 productos (simple, muy mobile-friendly)
 - **V2**: Máximo 3 productos (balance ideal)
@@ -84,12 +70,8 @@ src/app/prototipos/0.4/comparador/
 - **V4**: 2-3 con transiciones fluidas (fintech)
 - **V5**: 2 en móvil, 4 en desktop (split responsive)
 - **V6**: Solo 2, enfoque en decisión final (impacto)
-- **V7**: Variable con layout adaptativo (asimétrico)
-- **V8**: Ilimitado con scroll + favoritos (data-driven)
-- **V9**: 3 como "protagonista vs alternativas" (storytelling)
-- **V10**: Dinámico según selección del usuario (interactivo)
 
-### Pregunta B.92 [ITERAR - 10 versiones]
+### Pregunta B.92 [ITERAR - 6 versiones]
 **¿Qué campos incluir en la tabla comparativa?**
 - **V1**: Solo specs principales (CPU, RAM, SSD, Pantalla, Precio)
 - **V2**: Specs + key features + cuotas por plazo
@@ -97,12 +79,8 @@ src/app/prototipos/0.4/comparador/
 - **V4**: Campos con animaciones de revelado (fintech)
 - **V5**: Specs izquierda, features derecha (split)
 - **V6**: Solo 5 campos clave, muy prominentes (impacto)
-- **V7**: Categorías colapsables con pesos visuales (bold)
-- **V8**: Campos con scores/ratings comparativos (data)
-- **V9**: Campos como "Lo que importa para ti" (storytelling)
-- **V10**: Usuario elige qué campos comparar (interactivo)
 
-### Pregunta B.93 [ITERAR - 10 versiones]
+### Pregunta B.93 [ITERAR - 6 versiones]
 **¿Cómo visualizar 'mejor/peor' entre productos?**
 - **V1**: Verde = mejor, Rojo = peor (semántico clásico)
 - **V2**: Iconos ✓/✗ o crown para el mejor
@@ -110,12 +88,8 @@ src/app/prototipos/0.4/comparador/
 - **V4**: Gradientes sutiles + badges flotantes (fintech)
 - **V5**: Columna ganadora resaltada completa (split)
 - **V6**: Producto ganador centrado y destacado (impacto)
-- **V7**: Tamaños de texto variables según valor (bold)
-- **V8**: Scores numéricos + ranking (data-driven)
-- **V9**: "El favorito de estudiantes como tú" (storytelling)
-- **V10**: Selector de criterios para determinar ganador (interactivo)
 
-### Pregunta B.94 [ITERAR - 10 versiones]
+### Pregunta B.94 [ITERAR - 6 versiones]
 **¿Mostrar diferencia de precio y cuota entre productos?**
 - **V1**: "+S/200" o "-S/50" relativo al más barato
 - **V2**: Diferencia en cuota "+S/15/mes" prominente
@@ -123,12 +97,8 @@ src/app/prototipos/0.4/comparador/
 - **V4**: Badge flotante con diferencia animada (fintech)
 - **V5**: Panel de precios lado a lado (split)
 - **V6**: Diferencia gigante centrada (impacto)
-- **V7**: Diferencias en posiciones variadas (asimétrico)
-- **V8**: Gráfico de ahorro acumulado (data)
-- **V9**: "Con X ahorras para..." (storytelling)
-- **V10**: Calculadora de diferencia interactiva (interactivo)
 
-### Pregunta B.95 [ITERAR - 10 versiones]
+### Pregunta B.95 [ITERAR - 6 versiones]
 **¿El comparador debe ser modal, página nueva, o panel lateral?**
 - **V1**: Modal fullscreen con overlay oscuro
 - **V2**: Página dedicada /comparador
@@ -136,12 +106,8 @@ src/app/prototipos/0.4/comparador/
 - **V4**: Modal con animaciones fluidas (fintech)
 - **V5**: Split: catálogo izq + comparador der (50/50)
 - **V6**: Página fullscreen inmersiva (impacto)
-- **V7**: Drawer que empuja contenido (asimétrico)
-- **V8**: Dashboard con métricas de comparación (data)
-- **V9**: Experiencia tipo "story" swipeable (storytelling)
-- **V10**: Modo toggle que transforma la vista (interactivo)
 
-### Pregunta B.96 [ITERAR - 10 versiones]
+### Pregunta B.96 [ITERAR - 6 versiones]
 **¿Resaltar automáticamente las diferencias?**
 - **V1**: Highlight amarillo en celdas diferentes
 - **V2**: Toggle "Solo mostrar diferencias"
@@ -149,12 +115,8 @@ src/app/prototipos/0.4/comparador/
 - **V4**: Diferencias con glow sutil (fintech)
 - **V5**: Columna de diferencias separada (split)
 - **V6**: Solo diferencias visibles, resto oculto (impacto)
-- **V7**: Diferencias con tamaños exagerados (bold)
-- **V8**: % de diferencia numérico por campo (data)
-- **V9**: "Aquí es donde más difieren" con explicación (story)
-- **V10**: Filtro interactivo de nivel de diferencia (interactivo)
 
-### Pregunta B.97 [ITERAR - 10 versiones]
+### Pregunta B.97 [ITERAR - 6 versiones]
 **¿Permitir agregar al comparador desde card o solo detalle?**
 - **V1**: Solo desde cards (checkbox siempre visible)
 - **V2**: Solo desde detalle (más intencional)
@@ -162,10 +124,6 @@ src/app/prototipos/0.4/comparador/
 - **V4**: Cards + detalle con animación unificada (fintech)
 - **V5**: Card para añadir, detalle para confirmar (split flow)
 - **V6**: CTA prominente en ambos lugares (impacto)
-- **V7**: Gestos diferentes por ubicación (asimétrico UX)
-- **V8**: Auto-sugerencia basada en navegación (data)
-- **V9**: "Guarda para comparar después" (storytelling)
-- **V10**: Drag anywhere + zona de drop (interactivo)
 
 ---
 
@@ -176,28 +134,28 @@ src/app/prototipos/0.4/comparador/
 
 export interface ComparatorConfig {
   // B.90 - Funcionalidad de comparación
-  accessVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  accessVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.91 - Cantidad de productos
-  maxProductsVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  maxProductsVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.92 - Campos de comparación
-  fieldsVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  fieldsVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.93 - Visualización mejor/peor
-  highlightVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  highlightVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.94 - Diferencia de precio
-  priceDiffVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  priceDiffVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.95 - Layout del comparador
-  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.96 - Resaltado de diferencias
-  differenceHighlightVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  differenceHighlightVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.97 - Puntos de acceso
-  selectionVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  selectionVersion: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const defaultComparatorConfig: ComparatorConfig = {
@@ -315,19 +273,19 @@ export const ComparisonTableV1: React.FC<{ products: ComparisonProduct[] }> = ({
 ### Tipos y Configuración
 - [ ] `types/comparator.ts` - ComparatorConfig con 8 selectores
 - [ ] `ProductComparator.tsx` - Wrapper principal
-- [ ] `ComparatorSettingsModal.tsx` - Modal con 8 selectores (1-10)
+- [ ] `ComparatorSettingsModal.tsx` - Modal con 8 selectores (1-6)
 
-### Layout (10 versiones)
-- [ ] `ComparatorLayoutV1.tsx` a `V10.tsx`
+### Layout (6 versiones)
+- [ ] `ComparatorLayoutV1.tsx` a `V6.tsx`
 
-### Tabla de Comparación (10 versiones)
-- [ ] `ComparisonTableV1.tsx` a `V10.tsx`
+### Tabla de Comparación (6 versiones)
+- [ ] `ComparisonTableV1.tsx` a `V6.tsx`
 
-### Highlights (10 versiones)
-- [ ] `DifferenceHighlightV1.tsx` a `V10.tsx`
+### Highlights (6 versiones)
+- [ ] `DifferenceHighlightV1.tsx` a `V6.tsx`
 
-### Selección de Productos (10 versiones)
-- [ ] `ProductSelectorV1.tsx` a `V10.tsx`
+### Selección de Productos (6 versiones)
+- [ ] `ProductSelectorV1.tsx` a `V6.tsx`
 
 ### Acciones
 - [ ] `CompareActions.tsx`
@@ -335,8 +293,7 @@ export const ComparisonTableV1: React.FC<{ products: ComparisonProduct[] }> = ({
 
 ### Páginas
 - [ ] `page.tsx` - Redirect a preview
-- [ ] `comparator-preview/page.tsx` - Preview con Settings Modal
-- [ ] `comparator-v1/page.tsx` a `comparator-v10/page.tsx`
+- [ ] `comparator-preview/page.tsx` - Preview con modal de configuracion
 
 ### Documentación
 - [ ] `COMPARATOR_README.md`

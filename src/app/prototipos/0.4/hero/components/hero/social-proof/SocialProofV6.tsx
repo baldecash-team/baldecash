@@ -33,7 +33,7 @@ export const SocialProofV6: React.FC<SocialProofProps> = ({ data }) => {
             Presencia a nivel nacional
           </h2>
           <p className="text-neutral-600">
-            +{data.institutionCount} convenios en todo el Peru
+            +{data.institutionCount} convenios en todo el Perú
           </p>
         </div>
 

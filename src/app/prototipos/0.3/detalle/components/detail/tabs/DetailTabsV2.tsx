@@ -20,7 +20,7 @@ export const DetailTabsV2: React.FC<DetailTabsProps> = ({
   specsVersion,
   tooltipsVersion,
 }) => {
-  const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  const iconMap: Record<string, React.ElementType> = {
     Cpu,
     Battery,
     Wifi,

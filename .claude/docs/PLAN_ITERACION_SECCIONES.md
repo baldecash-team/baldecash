@@ -106,6 +106,7 @@ Repetir proceso de Fase 3 para cada sección:
 | 6 | Resultados | PROMPT_15 + PROMPT_16 | Alta |
 | 7 | Detalle Producto | PROMPT_04 | Media |
 | 8 | Upsell | PROMPT_14 | Media |
+| 9 | Landing Convenios | PROMPT_17 | Alta - Conversion |
 
 ### Fase 5: Testing y Validación
 

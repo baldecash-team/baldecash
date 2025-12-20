@@ -42,6 +42,7 @@ export const SocialProofV4: React.FC<SocialProofProps> = ({ data }) => {
           {/* Navigation Buttons */}
           <Button
             isIconOnly
+            radius="lg"
             variant="flat"
             className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-white shadow-md cursor-pointer hover:bg-neutral-50"
             onPress={prevPage}
@@ -51,6 +52,7 @@ export const SocialProofV4: React.FC<SocialProofProps> = ({ data }) => {
 
           <Button
             isIconOnly
+            radius="lg"
             variant="flat"
             className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-white shadow-md cursor-pointer hover:bg-neutral-50"
             onPress={nextPage}

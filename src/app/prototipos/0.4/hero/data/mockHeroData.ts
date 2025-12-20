@@ -10,6 +10,8 @@ import {
   FooterData,
   Testimonial,
   TimelineStep,
+  HowItWorksData,
+  FaqData,
 } from '../types/hero';
 
 // ============================================
@@ -19,7 +21,7 @@ import {
 export const mockNavItems: NavItem[] = [
   { label: 'Inicio', href: '/prototipos/0.4/hero', isActive: true },
   { label: 'Laptops', href: '/prototipos/0.4/catalogo' },
-  { label: 'Como funciona', href: '#como-funciona' },
+  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'FAQ', href: '#faq' },
 ];
 
@@ -50,7 +52,7 @@ export const mockInstitutions: Institution[] = [
   {
     id: '3',
     code: 'UTP',
-    name: 'Universidad Tecnologica del Peru',
+    name: 'Universidad Tecnológica del Perú',
     shortName: 'UTP',
     logo: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/677c97244b484a7cf98bd37a_Vector.png',
     hasAgreement: true,
@@ -59,7 +61,7 @@ export const mockInstitutions: Institution[] = [
   {
     id: '4',
     code: 'UCAL',
-    name: 'Universidad de Ciencias y Artes de America Latina',
+    name: 'Universidad de Ciencias y Artes de América Latina',
     shortName: 'UCAL',
     logo: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/677c9724ce86b4d16858024d_11%20UCAL%201.png',
     hasAgreement: true,
@@ -111,8 +113,8 @@ export const mockSocialProof: SocialProofData = {
   institutions: mockInstitutions,
   mediaLogos: [
     { name: 'RPP', logo: '/media/rpp.png', url: 'https://rpp.pe' },
-    { name: 'Gestion', logo: '/media/gestion.png', url: 'https://gestion.pe' },
-    { name: 'Forbes Peru', logo: '/media/forbes.png', url: 'https://forbes.pe' },
+    { name: 'Gestión', logo: '/media/gestion.png', url: 'https://gestion.pe' },
+    { name: 'Forbes Perú', logo: '/media/forbes.png', url: 'https://forbes.pe' },
     { name: 'El Comercio', logo: '/media/elcomercio.png', url: 'https://elcomercio.pe' },
   ],
 };
@@ -123,7 +125,7 @@ export const mockSocialProof: SocialProofData = {
 
 export const mockHeroContent: HeroContent = {
   headline: 'Tu laptop para estudiar',
-  subheadline: 'Sin historial crediticio. Sin aval ni garante. Aprobacion en 24 horas.',
+  subheadline: 'Sin historial crediticio. Sin aval ni garante. Aprobación en 24 horas.',
   primaryCta: {
     text: 'Ver laptops disponibles',
     href: '/prototipos/0.4/catalogo',
@@ -131,7 +133,7 @@ export const mockHeroContent: HeroContent = {
     variant: 'primary',
   },
   secondaryCta: {
-    text: 'Como funciona',
+    text: 'Cómo funciona',
     href: '#como-funciona',
     icon: 'HelpCircle',
     variant: 'outline',
@@ -139,7 +141,7 @@ export const mockHeroContent: HeroContent = {
   minQuota: 49,
   trustSignals: [
     { icon: 'Shield', text: 'Registrados en SBS', tooltip: 'Empresa regulada por la Superintendencia de Banca y Seguros' },
-    { icon: 'Clock', text: 'Aprobacion en 24h', tooltip: 'Respuesta garantizada en un dia habil' },
+    { icon: 'Clock', text: 'Aprobación en 24h', tooltip: 'Respuesta garantizada en un día hábil' },
     { icon: 'CreditCard', text: 'Sin historial crediticio', tooltip: 'No necesitas historial en bancos tradicionales' },
   ],
 };
@@ -153,7 +155,7 @@ export const mockTestimonials: Testimonial[] = [
     id: '1',
     name: 'Maria Garcia',
     institution: 'UPN',
-    quote: 'Gracias a BaldeCash pude terminar mi tesis a tiempo. El proceso fue super rapido.',
+    quote: 'Gracias a BaldeCash pude terminar mi tesis a tiempo. El proceso fue súper rápido.',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
     rating: 5,
   },
@@ -161,7 +163,7 @@ export const mockTestimonials: Testimonial[] = [
     id: '2',
     name: 'Carlos Rodriguez',
     institution: 'UPC',
-    quote: 'Nunca pense que podria tener mi propia laptop. BaldeCash lo hizo posible.',
+    quote: 'Nunca pensé que podría tener mi propia laptop. BaldeCash lo hizo posible.',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
     rating: 5,
   },
@@ -169,7 +171,7 @@ export const mockTestimonials: Testimonial[] = [
     id: '3',
     name: 'Ana Torres',
     institution: 'SENATI',
-    quote: 'El financiamiento me permitio concentrarme en mis estudios sin preocuparme.',
+    quote: 'El financiamiento me permitió concentrarme en mis estudios sin preocuparme.',
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
     rating: 5,
   },
@@ -180,10 +182,10 @@ export const mockTestimonials: Testimonial[] = [
 // ============================================
 
 export const mockTimelineSteps: TimelineStep[] = [
-  { id: 1, title: 'Elige tu laptop', description: 'Explora nuestro catalogo', icon: 'Monitor' },
+  { id: 1, title: 'Elige tu laptop', description: 'Explora nuestro catálogo', icon: 'Monitor' },
   { id: 2, title: 'Solicita en 5 min', description: 'Proceso 100% digital', icon: 'FileText' },
-  { id: 3, title: 'Aprobacion 24h', description: 'Respuesta garantizada', icon: 'Clock' },
-  { id: 4, title: 'Recibe y estudia', description: 'Envio a todo el Peru', icon: 'Package' },
+  { id: 3, title: 'Aprobación 24h', description: 'Respuesta garantizada', icon: 'Clock' },
+  { id: 4, title: 'Recibe y estudia', description: 'Envío a todo el Perú', icon: 'Package' },
 ];
 
 // ============================================
@@ -205,8 +207,8 @@ export const mockQuotaCalculator: QuotaCalculatorConfig = {
 export const mockStats = {
   laptops: { value: 10000, label: 'laptops financiadas', suffix: '+' },
   convenios: { value: 32, label: 'convenios educativos', suffix: '' },
-  aprobacion: { value: 24, label: 'horas de aprobacion', suffix: 'h' },
-  satisfaccion: { value: 98, label: 'satisfaccion', suffix: '%' },
+  aprobacion: { value: 24, label: 'horas de aprobación', suffix: 'h' },
+  satisfaccion: { value: 98, label: 'satisfacción', suffix: '%' },
 };
 
 // ============================================
@@ -242,8 +244,102 @@ export const formatNumber = (num: number): string => {
 // Footer Data
 // ============================================
 
+// ============================================
+// How It Works Data
+// ============================================
+
+export const mockHowItWorksData: HowItWorksData = {
+  steps: [
+    {
+      id: 1,
+      title: 'Elige tu equipo',
+      description: 'Explora laptops, tablets y celulares en nuestro catálogo',
+      icon: 'Search',
+      color: '#4654CD',
+    },
+    {
+      id: 2,
+      title: 'Solicita en 5 min',
+      description: 'Completa tu solicitud 100% digital',
+      icon: 'FileText',
+      color: '#5B68D8',
+    },
+    {
+      id: 3,
+      title: 'Aprobación en 24h',
+      description: 'Recibe respuesta en un día hábil',
+      icon: 'Clock',
+      color: '#03DBD0',
+    },
+    {
+      id: 4,
+      title: 'Empieza a estudiar',
+      description: 'Recibe tu equipo y comienza tu camino',
+      icon: 'GraduationCap',
+      color: '#22c55e',
+    },
+  ],
+  requirements: [
+    { id: 1, text: 'Ser estudiante universitario o técnico', icon: 'GraduationCap' },
+    { id: 2, text: 'DNI vigente', icon: 'CreditCard' },
+    { id: 3, text: 'Correo institucional (opcional)', icon: 'Mail' },
+    { id: 4, text: 'Celular con WhatsApp', icon: 'Smartphone' },
+  ],
+  availableTerms: [6, 12, 18, 24],
+};
+
+// ============================================
+// FAQ Data - Basado en baldecash.com
+// ============================================
+
+export const mockFaqData: FaqData = {
+  items: [
+    {
+      id: '1',
+      question: '¿Qué tipo de financiamiento es este?',
+      answer: 'BaldeCash ofrece arrendamiento operativo con opción de compra. Puedes usar tu laptop inmediatamente mientras pagas en cuotas, y al terminar de pagar, el equipo es tuyo.',
+      category: 'General',
+    },
+    {
+      id: '2',
+      question: '¿Cómo y cuándo recibo mi laptop?',
+      answer: 'Después de la aprobación, completas un contrato virtual con firma electrónica. La entrega toma 3-5 días hábiles en Lima o 5-9 días en provincias vía courier.',
+      category: 'Envío',
+    },
+    {
+      id: '3',
+      question: '¿Cómo pago mis cuotas?',
+      answer: 'Los pagos se realizan a través de "Zona Estudiantes", nuestra plataforma. Puedes pagar con tarjeta de débito, agente bancario o ventanilla. Los pagos se registran inmediatamente.',
+      category: 'Pagos',
+    },
+    {
+      id: '4',
+      question: '¿La laptop es de mi propiedad?',
+      answer: 'La laptop está en tu entera posesión durante los pagos, pero pertenece a BaldeCash hasta que termines de pagar. Al completar todas las cuotas, la propiedad se transfiere a ti.',
+      category: 'General',
+    },
+    {
+      id: '5',
+      question: '¿Puedo hacer pagos adelantados?',
+      answer: 'Sí, puedes adelantar pagos a través de Zona Estudiantes y recibir 20% de descuento por cancelación anticipada de toda la deuda.',
+      category: 'Pagos',
+    },
+    {
+      id: '6',
+      question: '¿La laptop cuenta con garantía?',
+      answer: 'Sí, las laptops incluyen 12 meses de garantía del fabricante más servicio técnico de BaldeCash mientras estés al día en tus pagos.',
+      category: 'Garantía',
+    },
+  ],
+  categories: ['General', 'Pagos', 'Envío', 'Garantía'],
+};
+
+// ============================================
+// Footer Data
+// ============================================
+
 export const mockFooterData: FooterData = {
-  logo: { text: 'BaldeCash', tagline: 'Financiamiento estudiantil en Peru' },
+  logo: { text: 'BaldeCash', tagline: 'Financiamiento estudiantil en Perú' },
   navigation: [
     {
       title: 'Productos',
@@ -279,15 +375,15 @@ export const mockFooterData: FooterData = {
   contact: { phone: '+51 1 234 5678', whatsapp: '+51 999 999 999', email: 'hola@baldecash.com' },
   certifications: [
     { name: 'SBS', icon: 'Shield', description: 'Regulados por la SBS' },
-    { name: 'SSL', icon: 'Lock', description: 'Conexion segura' },
-    { name: '5 anos', icon: 'Award', description: '5 anos en el mercado' },
+    { name: 'SSL', icon: 'Lock', description: 'Conexión segura' },
+    { name: '5 años', icon: 'Award', description: '5 años en el mercado' },
   ],
   legal: {
-    copyright: '© 2025 BaldeCash. Todos los derechos reservados.',
+    copyright: '© 2025 Balde K S.A.C. Todos los derechos reservados.',
     links: [
-      { label: 'Terminos', href: '#terminos' },
-      { label: 'Privacidad', href: '#privacidad' },
-      { label: 'Libro de Reclamaciones', href: '#reclamaciones' },
+      { label: 'Términos y Condiciones', href: '/prototipos/0.4/legal/terminos' },
+      { label: 'Política de Privacidad', href: '/prototipos/0.4/legal/privacidad' },
+      { label: 'Libro de Reclamaciones', href: '/prototipos/0.4/legal/reclamaciones' },
     ],
   },
 };

@@ -1,29 +1,38 @@
 // Hero Section Types - BaldeCash v0.4
 // Generated from PROMPT_01_HERO_LANDING.md
-// 10 versiones por componente para A/B testing
+// 6 versiones por componente para A/B testing
 
 import { ReactNode } from 'react';
 
 // ============================================
-// Configuration Types (10 versions each)
+// Configuration Types (6 versions each)
 // ============================================
 
-export type HeroVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type HeroVersion = 1 | 2 | 3 | 4 | 5 | 6;
+
+// Estilos de subrayado para headlines
+export type UnderlineStyle = 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface HeroConfig {
   heroBannerVersion: HeroVersion;
+  underlineStyle: UnderlineStyle;
   socialProofVersion: HeroVersion;
   navbarVersion: HeroVersion;
   ctaVersion: HeroVersion;
   footerVersion: HeroVersion;
+  howItWorksVersion: HeroVersion;
+  faqVersion: HeroVersion;
 }
 
 export const defaultHeroConfig: HeroConfig = {
   heroBannerVersion: 1,
+  underlineStyle: 1,
   socialProofVersion: 1,
   navbarVersion: 1,
   ctaVersion: 1,
   footerVersion: 1,
+  howItWorksVersion: 1,
+  faqVersion: 1,
 };
 
 // ============================================
@@ -129,6 +138,7 @@ export interface HeroBannerProps {
   primaryCta?: CtaConfig;
   secondaryCta?: CtaConfig;
   trustSignals?: TrustSignal[];
+  underlineStyle?: UnderlineStyle;
 }
 
 export interface SocialProofProps {
@@ -213,68 +223,120 @@ export interface TimelineStep {
 }
 
 // ============================================
+// How It Works Types
+// ============================================
+
+export interface HowItWorksStep {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+  color?: string;
+}
+
+export interface Requirement {
+  id: number;
+  text: string;
+  icon?: string;
+}
+
+export interface HowItWorksData {
+  steps: HowItWorksStep[];
+  requirements: Requirement[];
+  availableTerms: number[];
+}
+
+export interface HowItWorksProps {
+  data?: HowItWorksData;
+}
+
+// ============================================
+// FAQ Types
+// ============================================
+
+export interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  category?: string;
+}
+
+export interface FaqData {
+  items: FaqItem[];
+  categories?: string[];
+}
+
+export interface FaqSectionProps {
+  data?: FaqData;
+}
+
+// ============================================
 // Version Descriptions (for Settings Modal)
 // ============================================
 
 export const versionDescriptions = {
   heroBanner: {
-    1: 'Foto Producto (E-commerce Clasico)',
+    1: 'Foto Producto (E-commerce Clásico)',
     2: 'Foto Lifestyle (Aspiracional)',
-    3: 'Ilustracion Flat (Corporativo Moderno)',
-    4: 'Abstracto Flotante (Fintech Moderna)',
-    5: 'Split 50/50 (Equilibrado)',
-    6: 'Centrado Hero (Impacto Maximo)',
-    7: 'Asimetrico Bold (Disruptivo)',
-    8: 'Data-Driven (Confianza por Numeros)',
-    9: 'Storytelling (Narrativa Emocional)',
-    10: 'Interactivo (Engagement Inmediato)',
+    3: 'Ilustración Flat (Corporativo Moderno)',
+    4: 'Fintech/Data (Abstracto Flotante)',
+    5: 'Centrado Hero (Impacto Máximo)',
+    6: 'Storytelling (Narrativa Emocional)',
+  },
+  underline: {
+    1: 'Onda SVG (curva elegante)',
+    2: 'Línea Punteada (dashed)',
+    3: 'Línea Sólida (simple)',
+    4: 'Sin Subrayado (limpio)',
+    5: 'Marcador Resaltador (highlight)',
+    6: 'Doble Línea (énfasis)',
   },
   socialProof: {
     1: 'Marquee Continuo (logos en movimiento)',
-    2: 'Grid Estatico (todos los logos)',
-    3: 'Contador + Logos (numero grande)',
+    2: 'Grid Estático (todos los logos)',
+    3: 'Contador + Logos (número grande)',
     4: 'Carrusel Manual (flechas)',
-    5: 'Testimonios con Logo (rotacion)',
-    6: 'Mapa de Peru (visual geografico)',
-    7: 'Timeline de Convenios (crecimiento)',
-    8: 'Stats Cards (3 metricas grandes)',
-    9: 'Video Testimonial (thumbnail)',
-    10: 'Filtrable por Tipo (tabs)',
+    5: 'Testimonios con Logo (rotación)',
+    6: 'Video Testimonial Thumbnail',
   },
   navbar: {
-    1: 'Sticky Solido (siempre visible)',
+    1: 'Sticky Sólido (siempre visible)',
     2: 'Hide on Scroll Down (aparece al subir)',
-    3: 'Transparente a Solido (scroll effect)',
+    3: 'Transparente a Sólido (scroll effect)',
     4: 'Hamburger Siempre (fullscreen menu)',
-    5: 'Bottom Navigation (mobile app style)',
-    6: 'Con Mega Menu (categorias)',
-    7: 'Con Search Prominente (e-commerce)',
-    8: 'Minimalista (solo logo + CTA)',
-    9: 'Con Notificacion (badge ofertas)',
-    10: 'Con Progreso (barra de funnel)',
+    5: 'Search Prominente (e-commerce style)',
+    6: 'Mega Menu + Badge Notificación',
   },
   cta: {
-    1: 'Boton Simple (Ver laptops)',
-    2: 'Precio en Boton (Desde S/49/mes)',
+    1: 'Botón Simple (Ver equipos)',
+    2: 'Precio en Botón (Desde S/49/mes)',
     3: 'Dual CTA (primario + secundario)',
     4: 'Con Urgencia (countdown timer)',
-    5: 'Pre-calificacion (Descubre tu monto)',
-    6: 'WhatsApp Directo (boton verde)',
-    7: 'Sticky Bottom (fijo en mobile)',
-    8: 'Con Social Proof (X estudiantes)',
-    9: 'Animado (pulse effect)',
-    10: 'Contextual (cambia con scroll)',
+    5: 'Pre-calificación (Descubre tu monto)',
+    6: 'WhatsApp Directo (botón verde)',
   },
   footer: {
     1: 'Minimalista Oscuro (neutral-900)',
     2: 'Columnas Claro (neutral-100)',
     3: 'Con CTA WhatsApp (fondo primario)',
     4: 'Mega Footer (muchos links)',
-    5: 'Compacto (una linea)',
-    6: 'Con Mapa (ubicacion)',
-    7: 'Con App Download (badges)',
-    8: 'Con Trust Badges (certificaciones)',
-    9: 'Con FAQ Inline (acordeon)',
-    10: 'Con Chatbot (widget)',
+    5: 'Compacto (una línea)',
+    6: 'Con Trust Badges (certificaciones)',
+  },
+  howItWorks: {
+    1: 'Timeline Horizontal (iconos + pasos)',
+    2: 'Cards Grid (3 columnas)',
+    3: 'Vertical con Línea (scroll reveal)',
+    4: 'Minimal (solo iconos)',
+    5: 'Con Requisitos (expandido)',
+    6: 'Interactivo (hover reveal)',
+  },
+  faq: {
+    1: 'Acordeón Simple (básico)',
+    2: 'Acordeón con Iconos (categorizado)',
+    3: 'Grid de Cards (preview visible)',
+    4: 'Tabs por Categoría',
+    5: 'Búsqueda + Acordeón',
+    6: 'Chatbot Style (conversacional)',
   },
 } as const;

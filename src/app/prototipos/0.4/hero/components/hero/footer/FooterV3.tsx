@@ -13,7 +13,7 @@ import { Mail, Send, Facebook, Instagram, Linkedin } from 'lucide-react';
 
 const quickLinks = [
   { label: 'Laptops', href: '#laptops' },
-  { label: 'Como funciona', href: '#como-funciona' },
+  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
   { label: 'Contacto', href: '#contacto' },
@@ -57,6 +57,7 @@ export const FooterV3: React.FC = () => {
                 }}
               />
               <Button
+                radius="lg"
                 className="bg-neutral-900 text-white font-semibold px-8 h-12 cursor-pointer hover:bg-neutral-800 transition-colors"
                 endContent={<Send className="w-4 h-4" />}
               >

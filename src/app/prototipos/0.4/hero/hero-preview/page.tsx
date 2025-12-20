@@ -9,6 +9,7 @@ import { Button } from '@nextui-org/react';
 import { Settings, Code } from 'lucide-react';
 import { HeroSection, HeroSettingsModal } from '../components/hero';
 import { HeroConfig, defaultHeroConfig } from '../types/hero';
+import { TokenCounter } from '@/components/ui/TokenCounter';
 
 export default function HeroPreviewPage() {
   const [config, setConfig] = useState<HeroConfig>(defaultHeroConfig);
@@ -21,8 +22,10 @@ export default function HeroPreviewPage() {
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+        <TokenCounter sectionId="PROMPT_01" version="0.4" />
         <Button
           isIconOnly
+          radius="md"
           className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
           onPress={() => setIsSettingsOpen(true)}
         >
@@ -30,6 +33,7 @@ export default function HeroPreviewPage() {
         </Button>
         <Button
           isIconOnly
+          radius="md"
           className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
           onPress={() => {
             const configString = JSON.stringify(config, null, 2);

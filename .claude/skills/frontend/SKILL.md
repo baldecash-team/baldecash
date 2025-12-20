@@ -1837,6 +1837,152 @@ En español, el punto y coma (;) tiene usos específicos y válidos que deben re
 - **Antes de conectores** (sin embargo; no obstante; por lo tanto)
 - **NUNCA** reemplazar automáticamente por comas - respetar el estilo del autor
 
+## Reglas Generales de Iteraciones (0.4+)
+
+### Overlays en Previews
+- **SIEMPRE** incluir botón para ocultar/mostrar overlays de configuración
+- Los overlays incluyen: badges de versión, botones flotantes de settings, indicadores de componente
+- Usar estado `showOverlays` con toggle visible en la UI
+
+```tsx
+const [showOverlays, setShowOverlays] = useState(true);
+
+// Botón de toggle en FABs
+<Button
+  isIconOnly
+  className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100"
+  onPress={() => setShowOverlays(!showOverlays)}
+>
+  {showOverlays ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+</Button>
+```
+
+### URL con Parámetros de Versión
+- **SIEMPRE** sincronizar el estado de versiones con query params de la URL
+- Permitir compartir URLs que preserven la configuración seleccionada
+- Usar `useSearchParams` de Next.js para leer/escribir parámetros
+
+```tsx
+// Ejemplo de URL con parámetros
+// /prototipos/0.4/hero/hero-preview?navbar=2&brand=3&footer=1
+
+import { useSearchParams, useRouter } from 'next/navigation';
+
+const searchParams = useSearchParams();
+const router = useRouter();
+
+// Leer versión desde URL
+const navbarVersion = parseInt(searchParams.get('navbar') || '1');
+
+// Actualizar URL al cambiar versión
+const updateVersion = (component: string, version: number) => {
+  const params = new URLSearchParams(searchParams.toString());
+  params.set(component, version.toString());
+  router.replace(`?${params.toString()}`, { scroll: false });
+};
+```
+
+### Keyboard Shortcuts para Navegación Rápida
+- **SIEMPRE** implementar shortcuts para cambiar versiones sin abrir modal
+- Documentar shortcuts en el home de la versión (0.4, 0.5, etc.)
+
+| Shortcut | Acción |
+|----------|--------|
+| `1-6` | Cambiar versión del componente activo |
+| `Tab` | Siguiente subgrupo de componentes |
+| `Shift+Tab` | Subgrupo anterior |
+| `←` / `→` | Versión anterior / siguiente |
+| `O` | Toggle overlays (show/hide) |
+| `S` | Abrir modal de Settings |
+| `Esc` | Cerrar modal |
+
+```tsx
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Ignorar si está en input/textarea
+    if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+
+    switch (e.key) {
+      case '1': case '2': case '3': case '4': case '5': case '6':
+        setActiveVersion(parseInt(e.key));
+        break;
+      case 'ArrowRight':
+        setActiveVersion(v => Math.min(v + 1, 6));
+        break;
+      case 'ArrowLeft':
+        setActiveVersion(v => Math.max(v - 1, 1));
+        break;
+      case 'o':
+      case 'O':
+        setShowOverlays(prev => !prev);
+        break;
+      case 's':
+      case 'S':
+        if (!e.ctrlKey && !e.metaKey) setSettingsOpen(true);
+        break;
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+  return () => window.removeEventListener('keydown', handleKeyDown);
+}, []);
+```
+
+### Botones con Esquinas Redondeadas
+- **SIEMPRE** usar `rounded-lg` o `rounded-xl` en botones (nunca `rounded-none` ni `rounded-full` para CTAs)
+- Los botones rectangulares deben tener esquinas sutilmente redondeadas
+- Excepción: botones circulares (`isIconOnly`) pueden usar `rounded-full`
+
+```tsx
+// ❌ PROHIBIDO - Esquinas cuadradas o muy redondeadas
+<Button className="rounded-none">Enviar</Button>
+<Button className="rounded-full px-6">Continuar</Button>
+
+// ✅ CORRECTO - Esquinas sutilmente redondeadas
+<Button className="rounded-lg">Enviar</Button>
+<Button className="rounded-xl px-6">Continuar</Button>
+```
+
+### Ortografía y Gramática
+- **SIEMPRE** revisar ortografía y gramática antes de entregar
+- Usar tildes correctamente (solicitud, crédito, préstamo, información)
+- Verificar concordancia de género y número
+- Usar mayúsculas solo al inicio de oraciones y nombres propios
+
+### Contraste de Tipografía
+- **NUNCA** usar el mismo color de tipografía que el fondo
+- Asegurar contraste mínimo de 4.5:1 (WCAG AA)
+- Sobre fondos oscuros (#4654CD): usar `text-white` o `text-white/90`
+- Sobre fondos claros: usar `text-neutral-800` o `text-neutral-700`
+
+```tsx
+// ❌ PROHIBIDO - Mismo color o bajo contraste
+<div className="bg-[#4654CD]">
+  <p className="text-[#4654CD]">Invisible</p>
+  <p className="text-blue-400">Bajo contraste</p>
+</div>
+
+// ✅ CORRECTO - Alto contraste
+<div className="bg-[#4654CD]">
+  <p className="text-white">Visible y legible</p>
+  <p className="text-white/80">Secundario pero legible</p>
+</div>
+```
+
+### Terminología: "Equipos" en lugar de "Laptops"
+- **SIEMPRE** usar "equipos" en lugar de "laptops" en textos de UI
+- BaldeCash financia laptops, tablets Y celulares
+- Usar "equipos" para ser inclusivo con todos los productos
+
+| ❌ Incorrecto | ✅ Correcto |
+|---------------|-------------|
+| "Elige tu laptop" | "Elige tu equipo" |
+| "Laptops para estudiantes" | "Equipos para estudiantes" |
+| "Financia tu laptop" | "Financia tu equipo" |
+| "Ver todas las laptops" | "Ver todos los equipos" |
+
+**Excepción**: En especificaciones técnicas o filtros de categoría, se puede usar "Laptop", "Tablet", "Celular" como categorías específicas.
+
 ## Checklist de Calidad
 
 Antes de entregar cualquier componente, verificar:
@@ -1881,3 +2027,10 @@ Antes de entregar cualquier componente, verificar:
 - [ ] **Slider: thumb con bg-white, border-2 border-[#4654CD], shadow-lg, cursor-pointer**
 - [ ] **Grids de cards: motion.div con h-full + Card con h-full para alturas uniformes**
 - [ ] **Botones en estados vacíos con cursor-pointer explícito**
+- [ ] **Previews con botón para ocultar/mostrar overlays**
+- [ ] **URLs con parámetros de versión sincronizados**
+- [ ] **Keyboard shortcuts implementados en previews (1-6, flechas, O, S)**
+- [ ] **Botones rectangulares con rounded-lg o rounded-xl (nunca rounded-none)**
+- [ ] **Ortografía y gramática revisada (tildes, concordancia)**
+- [ ] **Contraste de tipografía vs fondo verificado (4.5:1 mínimo)**
+- [ ] **Terminología "equipos" en lugar de "laptops" en textos generales**

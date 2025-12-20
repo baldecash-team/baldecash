@@ -224,6 +224,62 @@ Usamos un lenguaje fresco y actual.
 - ✅ *"Dale click y empieza tu aventura tech."*
 - ❌ *"Proceda a completar el formulario."*
 
+### Ortografía en Español (OBLIGATORIO)
+
+El contenido de BaldeCash está en español. Verificar SIEMPRE:
+
+**Signos de interrogación y exclamación:**
+- ✅ "¿Cómo funciona?" (ambos signos)
+- ❌ "Como funciona?" (solo signo final)
+
+**Tildes obligatorias:**
+| Incorrecto | Correcto |
+|------------|----------|
+| Como | Cómo |
+| Peru | Perú |
+| Aprobacion | Aprobación |
+| Terminos | Términos |
+| Politica | Política |
+| rapido | rápido |
+| facil | fácil |
+| mas | más |
+| dias | días |
+| anos | años |
+| catalogo | catálogo |
+
+**Ñ donde corresponde:**
+- ✅ "5 años" (no "5 anos")
+- ✅ "diseño" (no "diseno")
+
+---
+
+### Terminología de Productos
+
+BaldeCash financia **equipos tecnológicos**, no solo laptops. Usar terminología inclusiva:
+
+| ❌ Evitar | ✅ Preferir |
+|-----------|-------------|
+| "Laptops" | "Equipos" |
+| "Tu laptop" | "Tu equipo" |
+| "Catálogo de laptops" | "Catálogo de equipos" |
+| "Financiamiento de laptops" | "Financiamiento de equipos" |
+
+**Productos que financiamos:**
+- Laptops
+- Tablets
+- Celulares
+
+**Cuándo usar términos específicos:**
+- En filtros de categoría: "Laptops", "Tablets", "Celulares"
+- En especificaciones técnicas del producto
+- Cuando el contexto requiere precisión
+
+**Cuándo usar "equipos":**
+- Headlines y copy general
+- CTAs y botones
+- Mensajes de marketing
+- Textos que aplican a todo el catálogo
+
 ### Mensajes según Perfil Crediticio
 
 Comunicar el límite como *oportunidad*, no como restricción:
@@ -264,6 +320,7 @@ Tasa: 1.2% mensual | CAT: 14.4% anual | Sin cargos ocultos
 - ✅ Transiciones suaves: 150ms (micro), 300ms (layout)
 - ✅ Contraste mínimo 4.5:1 para texto
 - ✅ Touch targets mínimo 44x44px en móvil
+- ✅ Botones con esquinas redondeadas (radius="md" o rounded-lg, nunca totalmente rectos)
 
 ---
 

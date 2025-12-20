@@ -13,7 +13,7 @@ import { MessageCircle, Phone, Mail, Facebook, Instagram, Linkedin } from 'lucid
 
 const quickLinks = [
   { label: 'Laptops', href: '#laptops' },
-  { label: 'Como funciona', href: '#como-funciona' },
+  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
   { label: 'Términos', href: '#terminos' },

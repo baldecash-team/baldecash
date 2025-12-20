@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { ProductLimitationsProps } from '../../../types/detail';
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<string, React.ElementType> = {
   Monitor,
   HardDrive,
   Gamepad2,

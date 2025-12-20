@@ -22,6 +22,7 @@ export const HeroCtaV5: React.FC<HeroCtaV5Props> = ({ onCtaClick }) => {
       <div className="hidden md:flex flex-col items-center gap-3">
         <Button
           size="lg"
+          radius="lg"
           className="bg-[#4654CD] text-white font-semibold px-12 py-6 text-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
           endContent={<ArrowRight className="w-5 h-5" />}
           onPress={onCtaClick}
@@ -52,6 +53,7 @@ export const HeroCtaV5: React.FC<HeroCtaV5Props> = ({ onCtaClick }) => {
           </div>
           <Button
             size="lg"
+            radius="lg"
             className="bg-[#4654CD] text-white font-semibold px-8 cursor-pointer hover:bg-[#3a47b3] transition-colors flex-shrink-0"
             endContent={<ArrowRight className="w-4 h-4" />}
             onPress={onCtaClick}

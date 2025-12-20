@@ -7,38 +7,46 @@
  */
 
 import React from 'react';
-import { HeroConfig, defaultHeroConfig } from '../../types/hero';
-import { mockHeroContent, mockSocialProof } from '../../data/mockHeroData';
+import { motion } from 'framer-motion';
+import { Chip } from '@nextui-org/react';
+import { Sparkles, ArrowRight, CheckCircle2, Clock, Shield } from 'lucide-react';
+import { HeroConfig, defaultHeroConfig, UnderlineStyle } from '../../types/hero';
+import { mockHeroContent, mockSocialProof, mockHowItWorksData, mockFaqData } from '../../data/mockHeroData';
 
 // Banner imports
 import {
-  HeroBannerV1, HeroBannerV2, HeroBannerV3, HeroBannerV4, HeroBannerV5,
-  HeroBannerV6, HeroBannerV7, HeroBannerV8, HeroBannerV9, HeroBannerV10,
+  HeroBannerV1, HeroBannerV2, HeroBannerV3, HeroBannerV4, HeroBannerV5, HeroBannerV6,
 } from './banner';
 
 // Social Proof imports
 import {
-  SocialProofV1, SocialProofV2, SocialProofV3, SocialProofV4, SocialProofV5,
-  SocialProofV6, SocialProofV7, SocialProofV8, SocialProofV9, SocialProofV10,
+  SocialProofV1, SocialProofV2, SocialProofV3, SocialProofV4, SocialProofV5, SocialProofV6,
 } from './social-proof';
 
 // Navbar imports
 import {
-  NavbarV1, NavbarV2, NavbarV3, NavbarV4, NavbarV5,
-  NavbarV6, NavbarV7, NavbarV8, NavbarV9, NavbarV10,
+  NavbarV1, NavbarV2, NavbarV3, NavbarV4, NavbarV5, NavbarV6,
 } from './navigation';
 
 // CTA imports
 import {
-  HeroCtaV1, HeroCtaV2, HeroCtaV3, HeroCtaV4, HeroCtaV5,
-  HeroCtaV6, HeroCtaV7, HeroCtaV8, HeroCtaV9, HeroCtaV10,
+  HeroCtaV1, HeroCtaV2, HeroCtaV3, HeroCtaV4, HeroCtaV5, HeroCtaV6,
 } from './cta';
 
 // Footer imports
 import {
-  FooterV1, FooterV2, FooterV3, FooterV4, FooterV5,
-  FooterV6, FooterV7, FooterV8, FooterV9, FooterV10,
+  FooterV1, FooterV2, FooterV3, FooterV4, FooterV5, FooterV6,
 } from './footer';
+
+// HowItWorks imports
+import {
+  HowItWorksV1, HowItWorksV2, HowItWorksV3, HowItWorksV4, HowItWorksV5, HowItWorksV6,
+} from './how-it-works';
+
+// FAQ imports
+import {
+  FaqSectionV1, FaqSectionV2, FaqSectionV3, FaqSectionV4, FaqSectionV5, FaqSectionV6,
+} from './faq';
 
 interface HeroSectionProps {
   config?: Partial<HeroConfig>;
@@ -49,8 +57,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
 
   const renderNavbar = () => {
     const navbarComponents = {
-      1: NavbarV1, 2: NavbarV2, 3: NavbarV3, 4: NavbarV4, 5: NavbarV5,
-      6: NavbarV6, 7: NavbarV7, 8: NavbarV8, 9: NavbarV9, 10: NavbarV10,
+      1: NavbarV1, 2: NavbarV2, 3: NavbarV3, 4: NavbarV4, 5: NavbarV5, 6: NavbarV6,
     };
     const NavbarComponent = navbarComponents[finalConfig.navbarVersion];
     return <NavbarComponent />;
@@ -58,8 +65,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
 
   const renderBanner = () => {
     const bannerComponents = {
-      1: HeroBannerV1, 2: HeroBannerV2, 3: HeroBannerV3, 4: HeroBannerV4, 5: HeroBannerV5,
-      6: HeroBannerV6, 7: HeroBannerV7, 8: HeroBannerV8, 9: HeroBannerV9, 10: HeroBannerV10,
+      1: HeroBannerV1, 2: HeroBannerV2, 3: HeroBannerV3, 4: HeroBannerV4, 5: HeroBannerV5, 6: HeroBannerV6,
     };
     const BannerComponent = bannerComponents[finalConfig.heroBannerVersion];
     return (
@@ -69,14 +75,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
         minQuota={mockHeroContent.minQuota}
         primaryCta={mockHeroContent.primaryCta}
         trustSignals={mockHeroContent.trustSignals}
+        underlineStyle={finalConfig.underlineStyle}
       />
     );
   };
 
   const renderSocialProof = () => {
     const socialProofComponents = {
-      1: SocialProofV1, 2: SocialProofV2, 3: SocialProofV3, 4: SocialProofV4, 5: SocialProofV5,
-      6: SocialProofV6, 7: SocialProofV7, 8: SocialProofV8, 9: SocialProofV9, 10: SocialProofV10,
+      1: SocialProofV1, 2: SocialProofV2, 3: SocialProofV3, 4: SocialProofV4, 5: SocialProofV5, 6: SocialProofV6,
     };
     const SocialProofComponent = socialProofComponents[finalConfig.socialProofVersion];
     return <SocialProofComponent data={mockSocialProof} />;
@@ -84,8 +90,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
 
   const renderCta = () => {
     const ctaComponents = {
-      1: HeroCtaV1, 2: HeroCtaV2, 3: HeroCtaV3, 4: HeroCtaV4, 5: HeroCtaV5,
-      6: HeroCtaV6, 7: HeroCtaV7, 8: HeroCtaV8, 9: HeroCtaV9, 10: HeroCtaV10,
+      1: HeroCtaV1, 2: HeroCtaV2, 3: HeroCtaV3, 4: HeroCtaV4, 5: HeroCtaV5, 6: HeroCtaV6,
     };
     const CtaComponent = ctaComponents[finalConfig.ctaVersion];
     // CTA components are self-contained with internal content
@@ -95,12 +100,27 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
 
   const renderFooter = () => {
     const footerComponents = {
-      1: FooterV1, 2: FooterV2, 3: FooterV3, 4: FooterV4, 5: FooterV5,
-      6: FooterV6, 7: FooterV7, 8: FooterV8, 9: FooterV9, 10: FooterV10,
+      1: FooterV1, 2: FooterV2, 3: FooterV3, 4: FooterV4, 5: FooterV5, 6: FooterV6,
     };
     const FooterComponent = footerComponents[finalConfig.footerVersion];
     // Footer components are self-contained with internal content
     return <FooterComponent />;
+  };
+
+  const renderHowItWorks = () => {
+    const howItWorksComponents = {
+      1: HowItWorksV1, 2: HowItWorksV2, 3: HowItWorksV3, 4: HowItWorksV4, 5: HowItWorksV5, 6: HowItWorksV6,
+    };
+    const HowItWorksComponent = howItWorksComponents[finalConfig.howItWorksVersion];
+    return <HowItWorksComponent data={mockHowItWorksData} />;
+  };
+
+  const renderFaq = () => {
+    const faqComponents = {
+      1: FaqSectionV1, 2: FaqSectionV2, 3: FaqSectionV3, 4: FaqSectionV4, 5: FaqSectionV5, 6: FaqSectionV6,
+    };
+    const FaqComponent = faqComponents[finalConfig.faqVersion];
+    return <FaqComponent data={mockFaqData} />;
   };
 
   // Check if NavbarV3 is used (transparent navbar that needs special handling)
@@ -123,19 +143,95 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
           {renderSocialProof()}
         </section>
 
-        {/* CTA Section */}
-        <section className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-neutral-900 mb-4 font-['Baloo_2']">
-                ¿Listo para empezar?
-              </h2>
-              <p className="text-neutral-600">
-                Solicita tu laptop en minutos, sin complicaciones
-              </p>
-            </div>
-            {renderCta()}
+        {/* How It Works Section */}
+        <section id="como-funciona">
+          {renderHowItWorks()}
+        </section>
+
+        {/* CTA Section - Enhanced UI/UX */}
+        <section className="py-20 bg-gradient-to-b from-white to-neutral-50 relative overflow-hidden">
+          {/* Background Elements */}
+          <div className="absolute inset-0 opacity-[0.02]">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="cta-dots" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <circle cx="2" cy="2" r="1.5" fill="#4654CD" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#cta-dots)" />
+            </svg>
           </div>
+
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              {/* Section Badge */}
+              <Chip
+                startContent={<Sparkles className="w-3.5 h-3.5" />}
+                classNames={{
+                  base: 'bg-[#4654CD]/10 px-4 py-2 h-auto mb-6',
+                  content: 'text-[#4654CD] text-sm font-medium',
+                }}
+              >
+                Comienza hoy
+              </Chip>
+
+              {/* Section Title */}
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-neutral-900 mb-4 font-['Baloo_2'] leading-tight">
+                ¿Listo para tu{' '}
+                <span className="text-[#4654CD] relative">
+                  nuevo equipo
+                  <svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 200 12" fill="none">
+                    <path d="M2 8C50 4 150 4 198 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
+                </span>
+                ?
+              </h2>
+
+              {/* Subtitle */}
+              <p className="text-lg text-neutral-600 mb-8 max-w-2xl mx-auto">
+                Solicita tu laptop en minutos. Sin filas, sin papeleos, todo 100% digital.
+              </p>
+
+              {/* Trust Indicators */}
+              <div className="flex flex-wrap justify-center gap-6 mb-10">
+                <div className="flex items-center gap-2 text-neutral-600">
+                  <CheckCircle2 className="w-5 h-5 text-[#22c55e]" />
+                  <span className="text-sm">Sin historial crediticio</span>
+                </div>
+                <div className="flex items-center gap-2 text-neutral-600">
+                  <Clock className="w-5 h-5 text-[#4654CD]" />
+                  <span className="text-sm">Respuesta en 24h</span>
+                </div>
+                <div className="flex items-center gap-2 text-neutral-600">
+                  <Shield className="w-5 h-5 text-[#03DBD0]" />
+                  <span className="text-sm">Regulados por SBS</span>
+                </div>
+              </div>
+
+              {/* CTA Component */}
+              <div className="flex justify-center">
+                {renderCta()}
+              </div>
+
+              {/* Microcopy */}
+              <p className="text-xs text-neutral-400 mt-6">
+                Al continuar, aceptas nuestros{' '}
+                <a href="/prototipos/0.4/legal/terminos" className="underline hover:text-neutral-600">términos y condiciones</a>
+                {' '}y{' '}
+                <a href="/prototipos/0.4/legal/privacidad" className="underline hover:text-neutral-600">política de privacidad</a>
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section id="faq">
+          {renderFaq()}
         </section>
       </main>
 

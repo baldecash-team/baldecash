@@ -5,7 +5,7 @@ import { Card, CardBody } from "@nextui-org/react";
 import { CheckCircle2, Clock, AlertCircle, Layers, Monitor, ShoppingCart, FileText, Search, HelpCircle, AlertTriangle, Trophy } from "lucide-react";
 import { SectionStatus } from "../../_registry";
 
-const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const sectionIcons: Record<string, React.ElementType> = {
   hero: Monitor,
   catalogo: ShoppingCart,
   detalle: Search,

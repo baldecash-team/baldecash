@@ -12,12 +12,14 @@ import React from 'react';
 import { Button, Chip } from '@nextui-org/react';
 import { Check, ArrowRight, Laptop, GraduationCap, Wallet } from 'lucide-react';
 import { HeroBannerProps } from '../../../types/hero';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 export const HeroBannerV3: React.FC<HeroBannerProps> = ({
   headline,
   subheadline,
   minQuota,
   primaryCta,
+  underlineStyle = 1,
 }) => {
   const benefits = [
     { icon: Wallet, text: 'Sin historial crediticio' },
@@ -40,17 +42,20 @@ export const HeroBannerV3: React.FC<HeroBannerProps> = ({
                 content: 'text-white text-xs font-medium',
               }}
             >
-              Nuevo en Peru
+              Nuevo en Perú
             </Chip>
 
             {/* Headline */}
             <h1 className="font-['Baloo_2'] text-4xl md:text-5xl font-bold text-[#4654CD] leading-tight">
-              Financiamiento estudiantil
+              Financiamiento{' '}
+              <UnderlinedText style={underlineStyle} color="primary">
+                estudiantil
+              </UnderlinedText>
             </h1>
 
             {/* Subheadline */}
             <p className="text-lg text-neutral-600 max-w-md">
-              Tu primera laptop sin necesidad de historial bancario. Aprobacion en 24 horas.
+              Tu primera laptop sin necesidad de historial bancario. Aprobación en 24 horas.
             </p>
 
             {/* Benefits List */}
@@ -76,6 +81,7 @@ export const HeroBannerV3: React.FC<HeroBannerProps> = ({
             <div className="flex flex-wrap gap-3 pt-2">
               <Button
                 size="lg"
+                radius="lg"
                 className="bg-[#4654CD] text-white font-semibold px-8 cursor-pointer hover:bg-[#3a47b3] transition-colors"
                 endContent={<ArrowRight className="w-5 h-5" />}
               >
@@ -83,6 +89,7 @@ export const HeroBannerV3: React.FC<HeroBannerProps> = ({
               </Button>
               <Button
                 size="lg"
+                radius="lg"
                 variant="light"
                 className="text-[#4654CD] font-medium cursor-pointer"
               >

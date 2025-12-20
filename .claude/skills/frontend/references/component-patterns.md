@@ -6,9 +6,13 @@ Patrones de código aprobados para componentes comunes.
 
 ## 1. Patrón: Botones
 
+> **IMPORTANTE**: Los botones NUNCA deben tener esquinas completamente rectas.
+> Usar siempre `radius="md"` en NextUI o `rounded-lg` en Tailwind.
+
 ```tsx
 // Botón Primario
-<Button 
+<Button
+  radius="md"
   className="bg-[#4654CD] text-white font-semibold hover:bg-[#3A45B0]"
   size="lg"
 >
@@ -16,7 +20,8 @@ Patrones de código aprobados para componentes comunes.
 </Button>
 
 // Botón Secundario
-<Button 
+<Button
+  radius="md"
   variant="bordered"
   className="border-[#4654CD] text-[#4654CD]"
 >
@@ -24,17 +29,23 @@ Patrones de código aprobados para componentes comunes.
 </Button>
 
 // Botón Ghost
-<Button variant="light" className="text-[#4654CD]">
+<Button radius="md" variant="light" className="text-[#4654CD]">
   Regresar
 </Button>
 
 // Botón con icono
-<Button 
+<Button
+  radius="md"
   className="bg-[#4654CD] text-white"
   startContent={<ShoppingCart className="w-4 h-4" />}
 >
   Agregar
 </Button>
+
+// Con Tailwind puro (si no usas NextUI)
+<button className="rounded-lg bg-[#4654CD] text-white px-6 py-3">
+  Botón
+</button>
 ```
 
 ---
@@ -507,7 +518,148 @@ export const ApprovalResult = () => {
 
 ---
 
-## 14. Patrón: Espaciado y Composición
+## 14. Patrón: Subrayado Ondulado (Headlines)
+
+> **OBLIGATORIO**: Todos los títulos principales (H1) en Hero Banners y secciones CTA
+> deben usar el subrayado ondulado SVG en color Aqua (#03DBD0) para destacar
+> la última palabra clave.
+
+```tsx
+// Subrayado ondulado para headlines - ESTILO OFICIAL
+<h1 className="font-['Baloo_2'] text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+  <span className="text-neutral-900">{headline.split(' ').slice(0, -1).join(' ')} </span>
+  <span className="text-[#4654CD] relative inline-block">
+    {headline.split(' ').slice(-1)[0]}
+    <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
+      <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  </span>
+</h1>
+
+// Variante para texto estático (sin split dinámico)
+<h2 className="text-3xl md:text-4xl font-bold">
+  ¿Listo para tu{' '}
+  <span className="text-[#4654CD] relative inline-block">
+    nuevo equipo
+    <svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 200 12" fill="none">
+      <path d="M2 8C50 4 150 4 198 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  </span>
+  ?
+</h2>
+
+// Para fondos oscuros (mismo SVG, contraste natural)
+<h1 className="text-white">
+  Empieza tu carrera con la{' '}
+  <span className="relative inline-block">
+    herramienta correcta
+    <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 12" fill="none">
+      <path d="M2 8C50 4 150 4 198 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+    </svg>
+  </span>
+</h1>
+```
+
+### Especificaciones del SVG
+
+| Propiedad | Valor | Notas |
+|-----------|-------|-------|
+| `viewBox` | `0 0 100 12` (corto) o `0 0 200 12` (largo) | Ajustar según longitud del texto |
+| `stroke` | `#03DBD0` | Color Aqua de marca |
+| `strokeWidth` | `4` | Grosor consistente |
+| `strokeLinecap` | `round` | Extremos redondeados |
+| `position` | `absolute -bottom-2` | Debajo del texto |
+
+### ❌ NO usar estos estilos alternativos
+
+```tsx
+// ❌ NO: Subrayado punteado CSS
+<span className="border-b-[3px] border-dashed border-[#03DBD0]">texto</span>
+
+// ❌ NO: Marcador resaltador
+<span className="bg-[#03DBD0]/30 -skew-x-3">texto</span>
+
+// ❌ NO: Underline nativo
+<span className="underline decoration-[#03DBD0]">texto</span>
+
+// ❌ NO: Border sólido
+<span className="border-b-4 border-[#03DBD0]">texto</span>
+```
+
+---
+
+## 15. Patrón: Ortografía en Español
+
+> **OBLIGATORIO**: Todo el contenido visible al usuario debe tener ortografía correcta en español.
+> Este es un checklist que debe ejecutarse en cada iteración (`/iterar`).
+
+### Reglas de Acentuación
+
+| Palabra sin tilde | Correcto | Ejemplo de uso |
+|-------------------|----------|----------------|
+| Como | Cómo | "¿Cómo funciona?" |
+| Peru | Perú | "Envío a todo el Perú" |
+| Aprobacion | Aprobación | "Aprobación en 24h" |
+| Terminos | Términos | "Términos y condiciones" |
+| Politica | Política | "Política de privacidad" |
+| rapido | rápido | "Proceso súper rápido" |
+| facil | fácil | "Así de fácil" |
+| numero | número | "Número grande" |
+| basico | básico | "Requisitos básicos" |
+| credito | crédito | "Sin historial crediticio" |
+| opcion | opción | "Opción de compra" |
+| electronica | electrónica | "Firma electrónica" |
+| garantia | garantía | "12 meses de garantía" |
+| mas | más | "Ver más" |
+| dias | días | "3-5 días hábiles" |
+| Tecnologica | Tecnológica | "Universidad Tecnológica" |
+| anos | años | "5 años en el mercado" |
+| catalogo | catálogo | "Explora nuestro catálogo" |
+
+### Signos de Interrogación y Exclamación
+
+> **OBLIGATORIO**: En español, las preguntas y exclamaciones requieren AMBOS signos.
+
+```tsx
+// ✅ CORRECTO - Ambos signos
+<h2>¿Cómo funciona?</h2>
+<h2>¿Tienes dudas?</h2>
+<p>¡Felicidades!</p>
+
+// ❌ INCORRECTO - Solo signo final
+<h2>Como funciona?</h2>
+<h2>Tienes dudas?</h2>
+<p>Felicidades!</p>
+```
+
+### Palabras con Ñ
+
+```tsx
+// ✅ CORRECTO
+"5 años en el mercado"
+"Diseño exclusivo"
+"Pequeño descuento"
+
+// ❌ INCORRECTO
+"5 anos en el mercado"
+"Diseno exclusivo"
+"Pequeno descuento"
+```
+
+### Checklist de Revisión para `/iterar`
+
+Antes de hacer commit, verificar:
+
+1. [ ] Todas las preguntas tienen ¿...?
+2. [ ] Todas las exclamaciones tienen ¡...!
+3. [ ] Nombres propios con tildes (Perú, Tecnológica)
+4. [ ] Palabras comunes con tildes (más, días, fácil, rápido)
+5. [ ] Palabras con ñ donde corresponde (años, diseño)
+6. [ ] Labels del modal de configuración en orden correcto
+
+---
+
+## 16. Patrón: Espaciado y Composición
 
 ```tsx
 // Layout con jerarquía clara - UN elemento dominante

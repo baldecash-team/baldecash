@@ -35,6 +35,7 @@ Cuando se genere una sección, leer el PROMPT correspondiente y:
 | 6 | `PROMPT_06_QUIZ_AYUDA.md` | Quiz "¿No te decides?" | 5 |
 | 7 | `PROMPT_07_ESTADO_VACIO.md` | Estado Vacío | 2 |
 | 14 | `PROMPT_14_UPSELL.md` | Upsell - Accesorios y Seguros | 16 |
+| 17 | `PROMPT_17_LANDING_CONVENIOS.md` | Landing de Convenios | 14 |
 
 ## Guía de Trabajo
 

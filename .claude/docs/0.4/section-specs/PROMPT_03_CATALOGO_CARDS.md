@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | B (parcial) |
 | **Preguntas totales** | 29 |
-| **Iteraciones T (10 versiones)** | 16 |
+| **Iteraciones T (6 versiones)** | 16 |
 | **Iteraciones F (1 versión)** | 13 |
 | **Prioridad** | Alta - MVP Core |
 
@@ -70,7 +70,7 @@ Las Product Cards son el elemento más importante del catálogo. Cada card debe 
 
 ---
 
-## 4. Estructura de Archivos a Generar (10 versiones)
+## 4. Estructura de Archivos a Generar (6 versiones)
 
 ```
 src/app/prototipos/0.4/catalogo/
@@ -119,7 +119,7 @@ src/app/prototipos/0.4/catalogo/
 
 ### 5.1 Cards - Información (5 preguntas)
 
-#### Pregunta B.37 [ITERAR - 10 versiones]
+#### Pregunta B.37 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Información |
@@ -127,7 +127,7 @@ src/app/prototipos/0.4/catalogo/
 | **Contexto** | Specs para técnicos; beneficios para usuarios generales. |
 | **Respuesta** | Información relevante para usuario estudiante (no experto), mejores prácticas UX & UI |
 
-**10 Versiones Detalladas:**
+**6 Versiones Detalladas:**
 
 ---
 
@@ -231,82 +231,6 @@ src/app/prototipos/0.4/catalogo/
 
 ---
 
-### V7: Asimétrico Bold - Disruptivo
-
-**Concepto**: Tipografía oversized, layout no convencional
-
-**Elementos visuales**:
-- Precio que sale del borde
-- Imagen con rotación sutil
-- Espacios negativos intencionales
-- Diseño editorial
-
-**Referencia**: Airbnb, Figma
-
----
-
-### V8: Data-Driven - Stats
-
-**Concepto**: Card enfocada en números y métricas
-
-**Elementos visuales**:
-- Cuota muy prominente
-- "Ahorra S/200" destacado
-- Rating visual (estrellas/barra)
-- Contador de stock
-
-**Referencia**: Fintech dashboards
-
----
-
-### V9: Storytelling - Narrativa
-
-**Concepto**: Card con historia del producto
-
-**Elementos visuales**:
-- Testimonio breve inline
-- "María la usa para..."
-- Timeline de beneficios
-- Copy emocional
-
-**Referencia**: Duolingo, Headspace
-
----
-
-### V10: Interactivo - Calculadora
-
-**Concepto**: Card con interacción inline
-
-**Elementos visuales**:
-- Selector de plazo inline
-- Cuota se actualiza en tiempo real
-- Slider o botones de plazo
-- Resultado instantáneo
-
-**Código clave**:
-```tsx
-const [plazo, setPlazo] = useState(24);
-const cuota = calculateQuota(product.price, plazo);
-
-<Card>
-  <img src={product.thumbnail} />
-  <div className="flex gap-2">
-    {[12, 18, 24, 36].map(p => (
-      <Button
-        key={p}
-        variant={plazo === p ? "solid" : "bordered"}
-        onPress={() => setPlazo(p)}
-      >
-        {p}m
-      </Button>
-    ))}
-  </div>
-  <p className="text-3xl font-bold">S/{cuota}/mes</p>
-</Card>
-```
-
-**Referencia**: Stripe Pricing, Kayak
-
 #### Pregunta B.38 [DEFINIDO - 1 versión]
 | Campo | Valor |
 |-------|-------|
@@ -375,7 +299,7 @@ const cuota = calculateQuota(product.price, plazo);
 
 ### 5.3 Cards - Key Features (1 pregunta)
 
-#### Pregunta B.44 [ITERAR - 10 versiones]
+#### Pregunta B.44 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Key features |
@@ -390,10 +314,6 @@ const cuota = calculateQuota(product.price, plazo);
 - **V4**: Features como iconos con tooltip (compacto)
 - **V5**: Features en acordeón expandible (interactivo)
 - **V6**: Features destacados con checkmarks verdes (confianza)
-- **V7**: Features como barra lateral vertical (split)
-- **V8**: Features con rating/puntuación (data-driven)
-- **V9**: Features como timeline vertical (storytelling)
-- **V10**: Features con selector "ver más" inline (interactivo)
 
 ---
 
@@ -427,7 +347,7 @@ const cuota = calculateQuota(product.price, plazo);
 
 ### 5.6 Cards - Target (1 pregunta)
 
-#### Pregunta B.47 [ITERAR - 10 versiones]
+#### Pregunta B.47 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Target |
@@ -442,16 +362,12 @@ const cuota = calculateQuota(product.price, plazo);
 - **V4**: Mostrar como badge con icono de carrera
 - **V5**: Mostrar como chip seleccionable (filtro inline)
 - **V6**: Mostrar en hover como tooltip
-- **V7**: Mostrar como etiqueta lateral (ribbon)
-- **V8**: Mostrar con porcentaje: "85% ingenieros lo eligieron"
-- **V9**: Mostrar como testimonio corto inline
-- **V10**: Mostrar con matching dinámico según perfil usuario
 
 ---
 
 ### 5.7 Cards - Badges (10 preguntas)
 
-#### Pregunta B.48 [ITERAR - 10 versiones]
+#### Pregunta B.48 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Badges |
@@ -471,7 +387,7 @@ const cuota = calculateQuota(product.price, plazo);
 - **V9**: Badge como etiqueta de timeline (storytelling)
 - **V10**: Badge interactivo expandible (más info on click)
 
-#### Pregunta B.49 [ITERAR - 10 versiones]
+#### Pregunta B.49 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Badges |
@@ -521,7 +437,7 @@ const cuota = calculateQuota(product.price, plazo);
 - Limitado: Badge amarillo "Últimas unidades"
 - Bajo pedido: Badge gris "Por encargo (5-7 días)"
 
-#### Pregunta B.59 [ITERAR - 10 versiones]
+#### Pregunta B.59 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Stock |
@@ -555,7 +471,7 @@ const cuota = calculateQuota(product.price, plazo);
 
 **Implementación:** Mostrar cuota mensual por defecto, cambiar en detalle
 
-#### Pregunta B.61 [ITERAR - 10 versiones]
+#### Pregunta B.61 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Interacción |
@@ -575,7 +491,7 @@ const cuota = calculateQuota(product.price, plazo);
 - **V9**: "María también lo guardó" con avatar pequeño (storytelling)
 - **V10**: Toggle interactivo con tooltip explicativo
 
-#### Pregunta B.62 [ITERAR - 10 versiones]
+#### Pregunta B.62 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Interacción |
@@ -609,7 +525,7 @@ const cuota = calculateQuota(product.price, plazo);
 
 ### 5.10 Cards - Visual (2 preguntas)
 
-#### Pregunta B.64 [ITERAR - 10 versiones]
+#### Pregunta B.64 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Visual |
@@ -629,7 +545,7 @@ const cuota = calculateQuota(product.price, plazo);
 - **V9**: Imagen en contexto real: estudiante en biblioteca (storytelling)
 - **V10**: Imagen interactiva: rotate on hover 3D sutil (interactivo)
 
-#### Pregunta B.65 [ITERAR - 10 versiones]
+#### Pregunta B.65 [ITERAR - 6 versiones]
 | Campo | Valor |
 |-------|-------|
 | **Tema** | Cards - Visual |
@@ -819,34 +735,34 @@ export type UsageType =
 
 export interface ProductCardConfig {
   // Version principal de la card (B.37)
-  cardVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  cardVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Key features display (B.44)
-  keyFeaturesVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  keyFeaturesVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Target audience display (B.47)
-  targetVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  targetVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Badge position (B.48)
-  badgePositionVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  badgePositionVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Badge colors (B.49)
-  badgeColorVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  badgeColorVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Stock urgency display (B.59)
-  stockDisplayVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  stockDisplayVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Favorite button (B.61)
-  favoriteButtonVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  favoriteButtonVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Hover behavior (B.62)
-  hoverBehaviorVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  hoverBehaviorVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Image background style (B.64)
-  imageStyleVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  imageStyleVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // Multiple images display (B.65)
-  multipleImagesVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  multipleImagesVersion: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const defaultProductCardConfig: ProductCardConfig = {
@@ -1335,7 +1251,7 @@ export const ProductCardV1: React.FC<ProductCardV1Props> = ({
 - [ ] `types/product.ts` - Tipos completos de producto + ProductCardConfig
 - [ ] `data/mockProducts.ts` - 6-12 productos de prueba variados
 
-### Card Principal (10 versiones)
+### Card Principal (6 versiones)
 - [ ] `ProductCard.tsx` - Wrapper con versión configurable (1-10)
 - [ ] `ProductCardV1.tsx` - Foto Producto (specs técnicas)
 - [ ] `ProductCardV2.tsx` - Foto Lifestyle (beneficios)
@@ -1349,32 +1265,31 @@ export const ProductCardV1: React.FC<ProductCardV1Props> = ({
 - [ ] `ProductCardV10.tsx` - Interactivo (calculadora)
 
 ### Componentes Compartidos
-- [ ] `CardImage.tsx` - Imagen con badges (10 versiones de estilo)
-- [ ] `CardBadges.tsx` - Sistema de badges (10 versiones posición + 10 colores)
+- [ ] `CardImage.tsx` - Imagen con badges (6 versiones de estilo)
+- [ ] `CardBadges.tsx` - Sistema de badges (6 versiones posición + 10 colores)
 - [ ] `CardSpecs.tsx` - Specs técnicas con iconos
 - [ ] `CardBenefits.tsx` - Beneficios/uso
 - [ ] `CardPricing.tsx` - Precio y cuota prominente
 - [ ] `CardActions.tsx` - Botones ver detalles, favorito
-- [ ] `CardHoverContent.tsx` - Contenido hover (10 versiones)
+- [ ] `CardHoverContent.tsx` - Contenido hover (6 versiones)
 - [ ] `CardSkeleton.tsx` - Loading state
 
 ### Badges Individuales
 - [ ] `DiscountBadge.tsx` - -S/200
-- [ ] `StockBadge.tsx` - Stock limitado (10 versiones)
+- [ ] `StockBadge.tsx` - Stock limitado (6 versiones)
 - [ ] `NewBadge.tsx` - Nuevo
 - [ ] `PopularBadge.tsx` - Popular
 - [ ] `ConditionBadge.tsx` - Nuevo/Reacondicionado
 - [ ] `FeatureBadge.tsx` - GPU, RAM expandible
 
 ### Interacciones
-- [ ] `FavoriteButton.tsx` - 10 versiones de favorito
+- [ ] `FavoriteButton.tsx` - 6 versiones de favorito
 - [ ] `CompareCheckbox.tsx` - Agregar a comparador
 - [ ] `QuickViewButton.tsx` - Vista rápida
 
 ### Páginas
 - [ ] `page.tsx` - Redirect a preview
-- [ ] `catalog-preview/page.tsx` - Preview con Settings Modal
-- [ ] `catalog-v1/page.tsx` a `catalog-v10/page.tsx` - 10 páginas standalone
+- [ ] `catalog-preview/page.tsx` - Preview con modal de configuracion
 
 ### Documentación
 - [ ] `CARDS_README.md` - Documentación del módulo

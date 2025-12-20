@@ -12,12 +12,14 @@ import React from 'react';
 import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Users, Building } from 'lucide-react';
 import { HeroBannerProps } from '../../../types/hero';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 export const HeroBannerV2: React.FC<HeroBannerProps> = ({
   headline,
   subheadline,
   minQuota,
   primaryCta,
+  underlineStyle = 1,
 }) => {
   return (
     <section className="relative min-h-[70vh] overflow-hidden">
@@ -48,12 +50,15 @@ export const HeroBannerV2: React.FC<HeroBannerProps> = ({
               content: 'text-white text-xs font-medium',
             }}
           >
-            +10,000 estudiantes confian en nosotros
+            +10,000 estudiantes confían en nosotros
           </Chip>
 
           {/* Headline */}
           <h1 className="font-['Baloo_2'] text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-            Empieza tu carrera con la herramienta correcta
+            Empieza tu carrera con la{' '}
+            <UnderlinedText style={underlineStyle} color="white">
+              herramienta correcta
+            </UnderlinedText>
           </h1>
 
           {/* Subheadline */}
@@ -72,6 +77,7 @@ export const HeroBannerV2: React.FC<HeroBannerProps> = ({
           <div className="flex flex-wrap gap-4 mb-8">
             <Button
               size="lg"
+              radius="lg"
               className="bg-[#03DBD0] text-neutral-900 font-semibold px-8 cursor-pointer hover:bg-[#02C3BA] transition-colors"
               endContent={<ArrowRight className="w-5 h-5" />}
             >
@@ -79,10 +85,11 @@ export const HeroBannerV2: React.FC<HeroBannerProps> = ({
             </Button>
             <Button
               size="lg"
+              radius="lg"
               variant="bordered"
               className="border-white/30 text-white font-medium cursor-pointer hover:bg-white/10 transition-colors"
             >
-              Como funciona
+              Cómo funciona
             </Button>
           </div>
 
