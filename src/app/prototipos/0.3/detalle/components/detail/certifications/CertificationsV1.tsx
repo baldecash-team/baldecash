@@ -16,7 +16,7 @@ import { Shield, Award, Leaf, Zap } from 'lucide-react';
 import { CertificationsProps } from '../../../types/detail';
 
 // Map de iconos para certificaciones
-const certIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const certIconMap: Record<string, React.ElementType> = {
   'energy-star': Zap,
   epeat: Leaf,
   tco: Shield,

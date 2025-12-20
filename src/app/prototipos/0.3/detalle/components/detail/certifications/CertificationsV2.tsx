@@ -15,7 +15,7 @@ import { Tooltip, Chip } from '@nextui-org/react';
 import { Shield, Award, Leaf, Zap, ExternalLink } from 'lucide-react';
 import { CertificationsProps } from '../../../types/detail';
 
-const certIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const certIconMap: Record<string, React.ElementType> = {
   'energy-star': Zap,
   epeat: Leaf,
   tco: Shield,

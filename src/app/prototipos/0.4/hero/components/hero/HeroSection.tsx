@@ -10,7 +10,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Chip } from '@nextui-org/react';
 import { Sparkles, ArrowRight, CheckCircle2, Clock, Shield } from 'lucide-react';
-import { HeroConfig, defaultHeroConfig } from '../../types/hero';
+import { HeroConfig, defaultHeroConfig, UnderlineStyle } from '../../types/hero';
 import { mockHeroContent, mockSocialProof, mockHowItWorksData, mockFaqData } from '../../data/mockHeroData';
 
 // Banner imports
@@ -75,6 +75,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
         minQuota={mockHeroContent.minQuota}
         primaryCta={mockHeroContent.primaryCta}
         trustSignals={mockHeroContent.trustSignals}
+        underlineStyle={finalConfig.underlineStyle}
       />
     );
   };

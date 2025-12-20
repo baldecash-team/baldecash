@@ -8,7 +8,7 @@ import { getVersionByNumber } from "../_registry";
 
 const version = getVersionByNumber("0.3")!;
 
-const sectionIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+const sectionIcons: Record<string, React.ElementType> = {
   hero: Monitor,
   catalogo: ShoppingCart,
   detalle: Search,

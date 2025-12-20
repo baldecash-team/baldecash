@@ -12,12 +12,14 @@ import React from 'react';
 import { Button, Chip } from '@nextui-org/react';
 import { Check, ArrowRight, Laptop, GraduationCap, Wallet } from 'lucide-react';
 import { HeroBannerProps } from '../../../types/hero';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 export const HeroBannerV3: React.FC<HeroBannerProps> = ({
   headline,
   subheadline,
   minQuota,
   primaryCta,
+  underlineStyle = 1,
 }) => {
   const benefits = [
     { icon: Wallet, text: 'Sin historial crediticio' },
@@ -46,12 +48,9 @@ export const HeroBannerV3: React.FC<HeroBannerProps> = ({
             {/* Headline */}
             <h1 className="font-['Baloo_2'] text-4xl md:text-5xl font-bold text-[#4654CD] leading-tight">
               Financiamiento{' '}
-              <span className="relative inline-block">
+              <UnderlinedText style={underlineStyle} color="primary">
                 estudiantil
-                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
-                  <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
-                </svg>
-              </span>
+              </UnderlinedText>
             </h1>
 
             {/* Subheadline */}

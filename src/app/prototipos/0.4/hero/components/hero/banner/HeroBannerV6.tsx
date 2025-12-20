@@ -12,12 +12,14 @@ import React from 'react';
 import { Button } from '@nextui-org/react';
 import { ArrowRight, Play, Shield, Clock, Users, CheckCircle2, GraduationCap } from 'lucide-react';
 import { HeroBannerProps } from '../../../types/hero';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 export const HeroBannerV6: React.FC<HeroBannerProps> = ({
   headline,
   subheadline,
   minQuota,
   primaryCta,
+  underlineStyle = 1,
 }) => {
   return (
     <section className="min-h-[90vh] flex flex-col items-center justify-center text-center px-4 bg-gradient-to-b from-white via-neutral-50 to-[#4654CD]/5 relative overflow-hidden">
@@ -84,12 +86,9 @@ export const HeroBannerV6: React.FC<HeroBannerProps> = ({
         {/* Headline */}
         <h1 className="font-['Baloo_2'] text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
           <span className="text-neutral-900">{headline.split(' ').slice(0, -1).join(' ')} </span>
-          <span className="text-[#4654CD] relative">
+          <UnderlinedText style={underlineStyle} color="primary">
             {headline.split(' ').slice(-1)[0]}
-            <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
-              <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
-            </svg>
-          </span>
+          </UnderlinedText>
         </h1>
 
         {/* Subheadline */}

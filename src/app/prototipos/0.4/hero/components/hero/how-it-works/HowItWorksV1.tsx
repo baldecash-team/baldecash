@@ -24,7 +24,7 @@ const iconMap: Record<string, React.ElementType> = {
 
 export const HowItWorksV1: React.FC<HowItWorksProps> = ({ data = mockHowItWorksData }) => {
   return (
-    <section className="py-24 bg-gradient-to-b from-white via-neutral-50/50 to-white relative overflow-hidden">
+    <section className="py-24 bg-gradient-to-b from-white via-neutral-50/50 to-white relative overflow-x-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-[0.015]">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -113,12 +113,7 @@ export const HowItWorksV1: React.FC<HowItWorksProps> = ({ data = mockHowItWorksD
                       <h3 className="font-bold text-lg text-neutral-800 mb-2">{step.title}</h3>
                       <p className="text-sm text-neutral-600 leading-relaxed">{step.description}</p>
 
-                      {/* Arrow for desktop - between cards */}
-                      {i < data.steps.length - 1 && (
-                        <div className="hidden lg:block absolute -right-4 top-1/2 transform -translate-y-1/2 z-20">
-                          <ChevronRight className="w-6 h-6 text-neutral-300" />
-                        </div>
-                      )}
+                      {/* Arrow indicator removed to prevent horizontal scroll */}
                     </CardBody>
                   </Card>
                 </motion.div>
@@ -148,7 +143,7 @@ export const HowItWorksV1: React.FC<HowItWorksProps> = ({ data = mockHowItWorksD
 
                   <div className="space-y-4">
                     {data.requirements.map((req, i) => {
-                      const ReqIcon = iconMap[req.icon] || Check;
+                      const ReqIcon = (req.icon && iconMap[req.icon]) || Check;
                       return (
                         <motion.div
                           key={req.id}

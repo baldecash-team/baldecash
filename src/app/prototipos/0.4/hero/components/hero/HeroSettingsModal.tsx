@@ -16,7 +16,7 @@ import {
   SelectItem,
 } from '@nextui-org/react';
 import { Settings, RotateCcw } from 'lucide-react';
-import { HeroConfig, HeroVersion, defaultHeroConfig, versionDescriptions } from '../../types/hero';
+import { HeroConfig, HeroVersion, UnderlineStyle, defaultHeroConfig, versionDescriptions } from '../../types/hero';
 
 interface HeroSettingsModalProps {
   isOpen: boolean;
@@ -156,6 +156,13 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
             value={config.heroBannerVersion}
             onChange={(v) => onConfigChange({ ...config, heroBannerVersion: v })}
             descriptions={versionDescriptions.heroBanner}
+          />
+
+          <VersionSelector
+            label="Estilo de Subrayado"
+            value={config.underlineStyle}
+            onChange={(v) => onConfigChange({ ...config, underlineStyle: v as UnderlineStyle })}
+            descriptions={versionDescriptions.underline}
           />
 
           <VersionSelector

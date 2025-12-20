@@ -10,8 +10,12 @@ import { ReactNode } from 'react';
 
 export type HeroVersion = 1 | 2 | 3 | 4 | 5 | 6;
 
+// Estilos de subrayado para headlines
+export type UnderlineStyle = 1 | 2 | 3 | 4 | 5 | 6;
+
 export interface HeroConfig {
   heroBannerVersion: HeroVersion;
+  underlineStyle: UnderlineStyle;
   socialProofVersion: HeroVersion;
   navbarVersion: HeroVersion;
   ctaVersion: HeroVersion;
@@ -22,6 +26,7 @@ export interface HeroConfig {
 
 export const defaultHeroConfig: HeroConfig = {
   heroBannerVersion: 1,
+  underlineStyle: 1,
   socialProofVersion: 1,
   navbarVersion: 1,
   ctaVersion: 1,
@@ -133,6 +138,7 @@ export interface HeroBannerProps {
   primaryCta?: CtaConfig;
   secondaryCta?: CtaConfig;
   trustSignals?: TrustSignal[];
+  underlineStyle?: UnderlineStyle;
 }
 
 export interface SocialProofProps {
@@ -277,6 +283,14 @@ export const versionDescriptions = {
     5: 'Centrado Hero (Impacto Máximo)',
     6: 'Storytelling (Narrativa Emocional)',
   },
+  underline: {
+    1: 'Onda SVG (curva elegante)',
+    2: 'Línea Punteada (dashed)',
+    3: 'Línea Sólida (simple)',
+    4: 'Sin Subrayado (limpio)',
+    5: 'Marcador Resaltador (highlight)',
+    6: 'Doble Línea (énfasis)',
+  },
   socialProof: {
     1: 'Marquee Continuo (logos en movimiento)',
     2: 'Grid Estático (todos los logos)',
@@ -290,7 +304,7 @@ export const versionDescriptions = {
     2: 'Hide on Scroll Down (aparece al subir)',
     3: 'Transparente a Sólido (scroll effect)',
     4: 'Hamburger Siempre (fullscreen menu)',
-    5: 'Bottom Navigation (mobile app style)',
+    5: 'Search Prominente (e-commerce style)',
     6: 'Mega Menu + Badge Notificación',
   },
   cta: {

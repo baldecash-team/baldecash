@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { SpecsProps, ProductSpec, SpecItem } from '../../../types/detail';
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<string, React.ElementType> = {
   Cpu,
   Battery,
   Monitor,

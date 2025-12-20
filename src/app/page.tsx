@@ -5,7 +5,7 @@ import { Card, CardBody, CardHeader } from "@nextui-org/react";
 import { Laptop, Wallet, LayoutDashboard, Palette, Sparkles, Layers, ArrowRight, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { VERSION_REGISTRY, LEGACY_PROTOTYPES, getVersionProgress, type VersionConfig } from "./prototipos/_registry";
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<string, React.ElementType> = {
   Laptop, Wallet, LayoutDashboard, Palette, Sparkles, Layers,
 };
 

@@ -10,6 +10,7 @@ import { HeroConfig } from '../types/hero';
 
 const configV4: HeroConfig = {
   heroBannerVersion: 4,
+  underlineStyle: 4,
   socialProofVersion: 4,
   navbarVersion: 4,
   ctaVersion: 4,

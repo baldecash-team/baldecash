@@ -13,12 +13,14 @@ import { motion } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Clock, CreditCard, Sparkles, CheckCircle2, GraduationCap, Star } from 'lucide-react';
 import { HeroBannerProps } from '../../../types/hero';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 export const HeroBannerV1: React.FC<HeroBannerProps> = ({
   headline,
   subheadline,
   minQuota,
   primaryCta,
+  underlineStyle = 1,
 }) => {
   return (
     <section className="relative bg-gradient-to-br from-neutral-50 via-white to-[#4654CD]/5 min-h-[85vh] overflow-hidden">
@@ -72,12 +74,9 @@ export const HeroBannerV1: React.FC<HeroBannerProps> = ({
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <span className="text-neutral-800">{headline.split(' ').slice(0, -1).join(' ')} </span>
-              <span className="text-[#4654CD] relative">
+              <UnderlinedText style={underlineStyle} color="primary">
                 {headline.split(' ').slice(-1)[0]}
-                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
-                  <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
-                </svg>
-              </span>
+              </UnderlinedText>
             </motion.h1>
 
             {/* Subheadline */}

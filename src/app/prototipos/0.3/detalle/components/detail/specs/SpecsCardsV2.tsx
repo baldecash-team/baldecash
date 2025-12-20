@@ -15,7 +15,7 @@ import { Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, Button } f
 import { HelpCircle, Cpu, Battery, Monitor, HardDrive, Wifi, X, Zap, MemoryStick } from 'lucide-react';
 import { SpecsProps, SpecItem } from '../../../types/detail';
 
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+const iconMap: Record<string, React.ElementType> = {
   Cpu,
   Battery,
   Monitor,
