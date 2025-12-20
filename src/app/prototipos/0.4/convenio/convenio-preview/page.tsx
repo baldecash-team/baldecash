@@ -3,23 +3,41 @@
 /**
  * Convenio Landing Preview Page - BaldeCash v0.4
  * Configurable preview for A/B testing convenio landing page versions
+ *
+ * Keyboard Shortcuts:
+ * - Tab / Shift+Tab: Navigate between components
+ * - 1-6: Change version of active component
+ * - ? / K: Open/close settings modal
+ * - Esc: Close modal
  */
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ConvenioLanding } from '../components/ConvenioLanding';
+import { Button } from '@nextui-org/react';
+import { Settings, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+
+// Components
+import { ConvenioLanding, ConvenioSettingsModal, ShortcutToast, ShortcutHelpBadge } from '../components';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+
+// Hooks
+import { useConvenioKeyboardShortcuts } from '../hooks';
+
+// Types & Data
 import {
   ConvenioConfig,
   ConvenioVersion,
   defaultConvenioConfig,
 } from '../types/convenio';
-import { conveniosList, getConvenioBySlug } from '../data/mockConvenioData';
+import { conveniosList, getConvenioBySlug, defaultConvenio } from '../data/mockConvenioData';
 
 function ConvenioPreviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selectedConvenio, setSelectedConvenio] = useState(defaultConvenio);
 
   // Parse config from URL params
   const getConfigFromParams = (): ConvenioConfig => {
@@ -40,54 +58,49 @@ function ConvenioPreviewContent() {
     };
   };
 
+  const [config, setConfig] = useState<ConvenioConfig>(getConfigFromParams);
+
+  // Sync config with URL params
+  const updateConfigAndUrl = (newConfig: ConvenioConfig) => {
+    setConfig(newConfig);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('navbar', String(newConfig.navbarVersion));
+    params.set('hero', String(newConfig.heroVersion));
+    params.set('benefits', String(newConfig.benefitsVersion));
+    params.set('testimonials', String(newConfig.testimonialsVersion));
+    params.set('faq', String(newConfig.faqVersion));
+    params.set('cta', String(newConfig.ctaVersion));
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
+
   // Get initial convenio from URL
-  const getInitialConvenio = () => {
+  useEffect(() => {
     const convenioSlug = searchParams.get('convenio');
     if (convenioSlug) {
       const found = getConvenioBySlug(convenioSlug);
-      if (found) return found;
+      if (found) setSelectedConvenio(found);
     }
-    return conveniosList[0];
-  };
-
-  const config = getConfigFromParams();
-  const initialConvenio = getInitialConvenio();
-
-  useEffect(() => {
     setIsClient(true);
-  }, []);
+  }, [searchParams]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if in input/textarea
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+  // Keyboard shortcuts hook
+  const { activeComponent, toast } = useConvenioKeyboardShortcuts({
+    config,
+    onConfigChange: updateConfigAndUrl,
+    onOpenSettings: () => setIsSettingsOpen(true),
+    onCloseSettings: () => setIsSettingsOpen(false),
+    isSettingsOpen,
+  });
 
-      const params = new URLSearchParams(searchParams.toString());
-
-      switch (e.key) {
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-          // Change all versions to the pressed number
-          const version = e.key;
-          params.set('navbar', version);
-          params.set('hero', version);
-          params.set('benefits', version);
-          params.set('testimonials', version);
-          params.set('faq', version);
-          params.set('cta', version);
-          router.replace(`?${params.toString()}`, { scroll: false });
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [searchParams, router]);
+  // Component labels for display
+  const componentLabels: Record<string, string> = {
+    navbar: 'Navbar',
+    hero: 'Hero',
+    benefits: 'Beneficios',
+    testimonials: 'Testimonios',
+    faq: 'FAQ',
+    cta: 'CTA',
+  };
 
   if (!isClient) {
     return (
@@ -101,25 +114,73 @@ function ConvenioPreviewContent() {
   }
 
   return (
-    <>
+    <div className="relative">
+      {/* Back button */}
+      <div className="fixed top-4 left-4 z-[60]">
+        <Link href="/prototipos/0.4">
+          <Button
+            variant="flat"
+            size="sm"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            className="bg-white shadow-md cursor-pointer"
+          >
+            Prototipos
+          </Button>
+        </Link>
+      </div>
+
+      {/* Keyboard shortcut toast */}
+      <ShortcutToast message={toast?.message || null} type={toast?.type} />
+
+      {/* Active component badge */}
+      <ShortcutHelpBadge activeComponent={componentLabels[activeComponent] || activeComponent} />
+
+      {/* Main content */}
       <ConvenioLanding
         initialConfig={config}
-        initialConvenio={initialConvenio}
+        initialConvenio={selectedConvenio}
         showOverlaysDefault={true}
       />
 
-      {/* Token Counter */}
-      <div className="fixed bottom-6 left-6 z-50">
+      {/* Floating controls */}
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
         <TokenCounter sectionId="PROMPT_17" version="0.4" />
+        <Button
+          isIconOnly
+          size="lg"
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer"
+          onPress={() => setIsSettingsOpen(true)}
+        >
+          <Settings className="w-5 h-5 text-neutral-600" />
+        </Button>
       </div>
 
       {/* Keyboard shortcuts hint */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
-        <div className="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur">
-          Presiona <kbd className="bg-white/20 px-1.5 py-0.5 rounded mx-1">1-6</kbd> para cambiar todas las versiones
+        <div className="bg-black/70 text-white text-xs px-4 py-2 rounded-full backdrop-blur flex items-center gap-3">
+          <span>
+            <kbd className="bg-white/20 px-1.5 py-0.5 rounded">Tab</kbd> navegar
+          </span>
+          <span>
+            <kbd className="bg-white/20 px-1.5 py-0.5 rounded">1-6</kbd> versión
+          </span>
+          <span>
+            <kbd className="bg-white/20 px-1.5 py-0.5 rounded">?</kbd> config
+          </span>
         </div>
       </div>
-    </>
+
+      {/* Settings Modal */}
+      <ConvenioSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        config={config}
+        onConfigChange={updateConfigAndUrl}
+        convenio={selectedConvenio}
+        onConvenioChange={setSelectedConvenio}
+        conveniosList={conveniosList}
+      />
+    </div>
   );
 }
 

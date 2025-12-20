@@ -97,27 +97,41 @@ Cuando se genere una seccion, leer el PROMPT correspondiente y:
 
 ### WIZARD + SOLICITUD (Iteracion Conjunta)
 
-**IMPORTANTE:** Los prompts 08-13 + la vista de solicitud se iteran JUNTOS como un flujo unificado.
+**IMPORTANTE:** Usar `/iterar 18 0.4` para iterar todo el flujo como un solo componente.
 
-| # | Archivo | Seccion | Iteraciones |
-|---|---------|---------|-------------|
-| B | `PROMPT_SOLICITUD.md` | Vista de Solicitud (Intro) | 6 |
-| 8 | `PROMPT_08_FORM_ESTRUCTURA.md` | Wizard - Estructura | 6 |
-| 9 | `PROMPT_09_FORM_CAMPOS.md` | Wizard - Componentes | - |
-| 10 | `PROMPT_10_FORM_DATOS_PERSONALES.md` | Wizard - Datos Personales | - |
-| 11 | `PROMPT_11_FORM_DATOS_ACADEMICOS.md` | Wizard - Datos Academicos | - |
-| 12 | `PROMPT_12_FORM_DATOS_ECONOMICOS.md` | Wizard - Datos Economicos | - |
-| 13 | `PROMPT_13_FORM_RESUMEN.md` | Wizard - Resumen | - |
+| # | Archivo | Seccion | Comando |
+|---|---------|---------|---------|
+| **18** | **`PROMPT_18_WIZARD_SOLICITUD_COMPLETO.md`** | **Flujo Completo** | **`/iterar 18 0.4`** |
 
-**Decisiones clave para Solicitud:**
-- **B.5 Hero**: Usar caricatura de Baldi (mascota BaldeCash)
-- **B.6 CTA**: Card con ilustracion Baldi + boton + tiempo
+Este meta-prompt incluye:
 
-**Flujo de iteracion:**
-1. Vista de Solicitud (B.x) -> Intro motivacional con Baldi
-2. Wizard Estructura (C.x) -> Navegacion y progreso
-3. Campos y Pasos (C1.x - C5.x) -> Formularios individuales
-4. Todos se prueban en conjunto como flujo completo
+| # | Archivo | Seccion |
+|---|---------|---------|
+| B | `PROMPT_SOLICITUD.md` | Vista de Solicitud (Intro) |
+| 8 | `PROMPT_08_FORM_ESTRUCTURA.md` | Wizard - Estructura |
+| 9 | `PROMPT_09_FORM_CAMPOS.md` | Wizard - Componentes |
+| 10 | `PROMPT_10_FORM_DATOS_PERSONALES.md` | Wizard - Datos Personales |
+| 11 | `PROMPT_11_FORM_DATOS_ACADEMICOS.md` | Wizard - Datos Academicos |
+| 12 | `PROMPT_12_FORM_DATOS_ECONOMICOS.md` | Wizard - Datos Economicos |
+| 13 | `PROMPT_13_FORM_RESUMEN.md` | Wizard - Resumen |
+
+**Decisiones aplicadas:**
+
+| ID | Componente | Version |
+|----|------------|---------|
+| B.5 | Hero | V3 - Caricatura Baldi |
+| B.6 | CTA | V3 - Card con Baldi |
+| C1.1 | Labels | V1 - Arriba |
+| C1.4 | Inputs | V3/V1 - Filled o bordes |
+| C1.13 | Opciones | V3 - Cards (si <= 6) |
+| C1.15 | Upload | V3 - Drag & drop |
+| C1.16 | Preview | CORREGIR |
+| C1.17 | Progreso | CORREGIR |
+
+**Flujo:**
+```
+[Intro con Baldi] -> [Paso 1] -> [Paso 2] -> [Paso 3] -> [Resumen]
+```
 
 ### Features Secundarios
 

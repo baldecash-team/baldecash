@@ -10,17 +10,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody } from '@nextui-org/react';
-import { FileText, Cpu, Award, Package, ChevronRight } from 'lucide-react';
+import { FileText, Cpu, Award, Package, ChevronRight, Calendar, Image, Calculator } from 'lucide-react';
 import { DetailTabsProps } from '../../../types/detail';
 
 export const DetailTabsV5: React.FC<DetailTabsProps> = () => {
   const [activeSection, setActiveSection] = useState('section-tabs');
 
   const navItems = [
-    { id: 'section-tabs', label: 'Descripción', icon: FileText },
-    { id: 'section-specs', label: 'Especificaciones', icon: Cpu },
-    { id: 'section-certifications', label: 'Certificaciones', icon: Award },
+    { id: 'section-gallery', label: 'Galería', icon: Image },
+    { id: 'section-pricing', label: 'Cuotas', icon: Calculator },
+    { id: 'section-specs', label: 'Specs', icon: Cpu },
+    { id: 'section-cronograma', label: 'Cronograma', icon: Calendar },
     { id: 'section-similar', label: 'Similares', icon: Package },
+    { id: 'section-certifications', label: 'Certificaciones', icon: Award },
   ];
 
   useEffect(() => {

@@ -713,3 +713,194 @@ Antes de hacer commit, verificar:
   <div className="col-span-5">Contenido secundario</div>
 </div>
 ```
+
+---
+
+## 17. Patrón: Keyboard Shortcuts para Preview Pages
+
+> **OBLIGATORIO**: Todas las páginas de preview (hero-preview, convenio-preview, etc.)
+> deben implementar atajos de teclado para navegación rápida entre componentes y versiones.
+
+### Atajos Estándar
+
+| Atajo | Acción |
+|-------|--------|
+| `Tab` | Siguiente componente |
+| `Shift + Tab` | Componente anterior |
+| `1-6` | Cambiar versión del componente activo |
+| `?` o `K` | Abrir/cerrar configuración |
+| `Esc` | Cerrar modal |
+
+### Hook de Keyboard Shortcuts
+
+```tsx
+// hooks/useKeyboardShortcuts.ts (o useConvenioKeyboardShortcuts.ts)
+'use client';
+
+import { useEffect, useCallback, useState } from 'react';
+
+const COMPONENT_ORDER = ['navbar', 'hero', 'benefits', 'testimonials', 'faq', 'cta'];
+
+export function useKeyboardShortcuts({
+  config,
+  onConfigChange,
+  onOpenSettings,
+  onCloseSettings,
+  isSettingsOpen,
+}) {
+  const [activeComponent, setActiveComponent] = useState('hero');
+  const [toast, setToast] = useState(null);
+
+  // Check if typing in input
+  const isInputActive = useCallback(() => {
+    const el = document.activeElement;
+    if (!el) return false;
+    const tag = el.tagName.toLowerCase();
+    return tag === 'input' || tag === 'textarea' || tag === 'select';
+  }, []);
+
+  // Show toast feedback
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (isInputActive()) return;
+
+      if (e.key === 'Escape') {
+        if (isSettingsOpen) {
+          e.preventDefault();
+          onCloseSettings();
+        }
+        return;
+      }
+
+      if (e.key === '?' || e.key === 'k') {
+        e.preventDefault();
+        isSettingsOpen ? onCloseSettings() : onOpenSettings();
+        return;
+      }
+
+      if (isSettingsOpen) return;
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        // Navigate components...
+        return;
+      }
+
+      if (/^[1-6]$/.test(e.key)) {
+        e.preventDefault();
+        // Change version...
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isInputActive, isSettingsOpen, onOpenSettings, onCloseSettings]);
+
+  return { activeComponent, setActiveComponent, toast };
+}
+```
+
+### Componentes de Feedback Visual
+
+```tsx
+// ShortcutToast - Feedback al usar atajo
+<AnimatePresence>
+  {message && (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="fixed top-20 left-1/2 -translate-x-1/2 z-[200]
+                 bg-[#4654CD] text-white px-4 py-2.5 rounded-xl shadow-lg"
+    >
+      {message}
+    </motion.div>
+  )}
+</AnimatePresence>
+
+// ShortcutHelpBadge - Indica componente activo
+<div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur
+                rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+  <div className="flex items-center gap-2 text-xs text-neutral-500">
+    <Keyboard className="w-3.5 h-3.5" />
+    <span>Press ? for help</span>
+  </div>
+  <div className="text-xs font-medium text-[#4654CD]">
+    Activo: {activeComponent}
+  </div>
+</div>
+
+// Hint bar - Recordatorio de atajos
+<div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+  <div className="bg-black/70 text-white text-xs px-4 py-2 rounded-full
+                  backdrop-blur flex items-center gap-3">
+    <span><kbd className="bg-white/20 px-1.5 py-0.5 rounded">Tab</kbd> navegar</span>
+    <span><kbd className="bg-white/20 px-1.5 py-0.5 rounded">1-6</kbd> versión</span>
+    <span><kbd className="bg-white/20 px-1.5 py-0.5 rounded">?</kbd> config</span>
+  </div>
+</div>
+```
+
+### Implementación Completa en Preview Page
+
+```tsx
+// convenio-preview/page.tsx
+import { useConvenioKeyboardShortcuts } from '../hooks';
+import { ShortcutToast, ShortcutHelpBadge } from '../components/common';
+
+function ConvenioPreviewContent() {
+  const [config, setConfig] = useState(defaultConfig);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const { activeComponent, toast } = useConvenioKeyboardShortcuts({
+    config,
+    onConfigChange: setConfig,
+    onOpenSettings: () => setIsSettingsOpen(true),
+    onCloseSettings: () => setIsSettingsOpen(false),
+    isSettingsOpen,
+  });
+
+  return (
+    <div>
+      <ShortcutToast message={toast?.message} type={toast?.type} />
+      <ShortcutHelpBadge activeComponent={activeComponent} />
+      <ConvenioLanding config={config} />
+      <ConvenioSettingsModal isOpen={isSettingsOpen} ... />
+    </div>
+  );
+}
+```
+
+### Section IDs para Scroll Automático
+
+Cada sección debe tener un ID para el scroll al navegar:
+
+```tsx
+// En el componente principal (ConvenioLanding, HeroSection, etc.)
+<div id="convenio-hero">{renderHero()}</div>
+<div id="convenio-benefits">{renderBenefits()}</div>
+<div id="convenio-testimonials">{renderTestimonials()}</div>
+<div id="convenio-faq">{renderFaq()}</div>
+<div id="convenio-cta">{renderCta()}</div>
+```
+
+### Archivos Necesarios por Sección
+
+```
+src/app/prototipos/0.4/{section}/
+├── hooks/
+│   ├── index.ts
+│   └── use{Section}KeyboardShortcuts.ts
+├── components/
+│   └── common/
+│       ├── index.ts
+│       └── ShortcutToast.tsx
+└── {section}-preview/
+    └── page.tsx
+```

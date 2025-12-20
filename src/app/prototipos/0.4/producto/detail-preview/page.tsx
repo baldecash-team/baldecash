@@ -40,6 +40,7 @@ function DetailPreviewContent() {
     const tabs = parseInt(searchParams.get('tabs') || '1') as DetailVersion;
     const specs = parseInt(searchParams.get('specs') || '1') as DetailVersion;
     const pricing = parseInt(searchParams.get('pricing') || '1') as DetailVersion;
+    const cronograma = parseInt(searchParams.get('cronograma') || '1') as DetailVersion;
     const similar = parseInt(searchParams.get('similar') || '1') as DetailVersion;
     const limitations = parseInt(searchParams.get('limitations') || '1') as DetailVersion;
     const certifications = parseInt(searchParams.get('certifications') || '1') as DetailVersion;
@@ -50,6 +51,7 @@ function DetailPreviewContent() {
       tabsVersion: tabs,
       specsVersion: specs,
       pricingVersion: pricing,
+      cronogramaVersion: cronograma,
       similarProductsVersion: similar,
       limitationsVersion: limitations,
       certificationsVersion: certifications,
@@ -73,6 +75,7 @@ function DetailPreviewContent() {
     params.set('tabs', config.tabsVersion.toString());
     params.set('specs', config.specsVersion.toString());
     params.set('pricing', config.pricingVersion.toString());
+    params.set('cronograma', config.cronogramaVersion.toString());
     params.set('similar', config.similarProductsVersion.toString());
     params.set('limitations', config.limitationsVersion.toString());
     params.set('certifications', config.certificationsVersion.toString());
@@ -138,6 +141,9 @@ function DetailPreviewContent() {
           </span>
           <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'specs' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
             Specs: V{config.specsVersion}
+          </span>
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'cronograma' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
+            Crono: V{config.cronogramaVersion}
           </span>
           <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'similarProducts' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
             Similar: V{config.similarProductsVersion}

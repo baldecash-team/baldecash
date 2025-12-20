@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Tooltip } from '@nextui-org/react';
-import { FileText, Cpu, Award, Package, Eye } from 'lucide-react';
+import { FileText, Cpu, Award, Package, Eye, Calendar, Image, Calculator } from 'lucide-react';
 import { DetailTabsProps } from '../../../types/detail';
 import { mockCertifications } from '../../../data/mockDetailData';
 
@@ -19,14 +19,20 @@ export const DetailTabsV6: React.FC<DetailTabsProps> = ({ product }) => {
 
   const navItems = [
     {
-      id: 'section-tabs',
-      label: 'Descripción',
-      icon: FileText,
-      preview: product.shortDescription || product.description.substring(0, 80) + '...',
+      id: 'section-gallery',
+      label: 'Galería',
+      icon: Image,
+      preview: `${product.images.length} imágenes del producto`,
+    },
+    {
+      id: 'section-pricing',
+      label: 'Cuotas',
+      icon: Calculator,
+      preview: `Desde S/${product.lowestQuota}/mes`,
     },
     {
       id: 'section-specs',
-      label: 'Especificaciones',
+      label: 'Specs',
       icon: Cpu,
       preview: `${product.specs.length} categorías · ${product.specs.reduce(
         (acc, cat) => acc + cat.specs.length,
@@ -34,16 +40,22 @@ export const DetailTabsV6: React.FC<DetailTabsProps> = ({ product }) => {
       )} especificaciones`,
     },
     {
-      id: 'section-certifications',
-      label: 'Certificaciones',
-      icon: Award,
-      preview: `${mockCertifications.length} certificaciones verificadas`,
+      id: 'section-cronograma',
+      label: 'Cronograma',
+      icon: Calendar,
+      preview: 'Ver cronograma de pagos',
     },
     {
       id: 'section-similar',
       label: 'Similares',
       icon: Package,
       preview: 'Ver productos similares',
+    },
+    {
+      id: 'section-certifications',
+      label: 'Certificaciones',
+      icon: Award,
+      preview: `${mockCertifications.length} certificaciones verificadas`,
     },
   ];
 

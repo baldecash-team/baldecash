@@ -266,21 +266,29 @@ export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({
       {/* Main content with padding for fixed navbar */}
       <main className="pt-16">
         {/* Hero Section */}
-        {renderHero()}
+        <div id="convenio-hero">
+          {renderHero()}
+        </div>
 
         {/* Benefits Section */}
-        <div id="beneficios">
+        <div id="convenio-benefits">
           {renderBenefits()}
         </div>
 
         {/* Testimonials Section */}
-        {renderTestimonials()}
+        <div id="convenio-testimonials">
+          {renderTestimonials()}
+        </div>
 
         {/* FAQ Section */}
-        {renderFaq()}
+        <div id="convenio-faq">
+          {renderFaq()}
+        </div>
 
         {/* CTA Section */}
-        {renderCta()}
+        <div id="convenio-cta">
+          {renderCta()}
+        </div>
       </main>
 
       {/* Footer */}

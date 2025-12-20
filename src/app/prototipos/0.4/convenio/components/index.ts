@@ -21,3 +21,6 @@ export * from './faq';
 
 // CTA versions
 export * from './cta';
+
+// Common components
+export * from './common';

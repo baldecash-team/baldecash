@@ -24,6 +24,9 @@ export interface ProductDetailConfig {
   // Pricing (all versions: no price, only quota)
   pricingVersion: DetailVersion;
 
+  // Cronograma (payment schedule visualization)
+  cronogramaVersion: DetailVersion;
+
   // Similar Products (focus on quota variation)
   similarProductsVersion: DetailVersion;
 
@@ -40,6 +43,7 @@ export const defaultDetailConfig: ProductDetailConfig = {
   tabsVersion: 1,
   specsVersion: 1,
   pricingVersion: 1,
+  cronogramaVersion: 1,
   similarProductsVersion: 1,
   limitationsVersion: 1,
   certificationsVersion: 1,
@@ -219,6 +223,16 @@ export interface CertificationsProps {
   certifications: Certification[];
 }
 
+export interface CronogramaProps {
+  monthlyQuota: number;
+  term?: number;
+  startDate?: Date;
+}
+
+export interface PortsDisplayProps {
+  ports: ProductPort[];
+}
+
 // ============================================
 // Version Descriptions (for Settings Modal)
 // V1 = PREFERRED from 0.3 feedback
@@ -262,8 +276,16 @@ export const versionDescriptions = {
     2: 'Slider de plazo visual',
     3: 'Botones de plazo + cuota inicial',
     4: 'Cards por plazo con animacion',
-    5: 'Timeline visual de cuotas',
+    5: 'Comparador visual de plazos',
     6: 'Calculadora gamificada con progreso',
+  },
+  cronograma: {
+    1: 'Timeline horizontal con marcadores',
+    2: 'Tabla de cuotas mensual colapsable',
+    3: 'Cards agrupadas por año',
+    4: 'Calendario visual con grid',
+    5: 'Progress bar con hitos gamificados',
+    6: 'Comparador de plazos side-by-side',
   },
   similarProducts: {
     1: 'Grid con variacion de cuota',

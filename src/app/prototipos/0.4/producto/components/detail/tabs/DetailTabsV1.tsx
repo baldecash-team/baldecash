@@ -1,37 +1,48 @@
 'use client';
 
 /**
- * DetailTabsV1 - Scroll Continuo + Nav Sticky Lateral
+ * DetailTabsV1 - Scroll Continuo + Nav Sticky Compacto
  *
- * Pure navigation component that provides sticky side navigation
- * to scroll to existing sections in the page. Does NOT render any content.
- * All content is rendered by dedicated components (Specs, Certifications, etc.)
+ * Pure navigation component with compact sticky sidebar.
+ * Fixed position on desktop, horizontal scroll on mobile.
+ * 6 navigation options for all page sections.
  */
 
 import React, { useState, useEffect } from 'react';
-import { Cpu, FileText, Award, Package, ChevronRight } from 'lucide-react';
+import {
+  Image,
+  Info,
+  Calculator,
+  Cpu,
+  Award,
+  Package,
+  AlertTriangle,
+  Calendar,
+} from 'lucide-react';
 import { DetailTabsProps } from '../../../types/detail';
 
 export const DetailTabsV1: React.FC<DetailTabsProps> = () => {
-  const [activeSection, setActiveSection] = useState('section-tabs');
+  const [activeSection, setActiveSection] = useState('section-gallery');
 
-  // Sections that exist in the page (rendered by ProductDetail)
+  // All 6 navigation sections
   const navItems = [
-    { id: 'section-tabs', label: 'Descripción', icon: FileText },
-    { id: 'section-specs', label: 'Especificaciones', icon: Cpu },
-    { id: 'section-certifications', label: 'Certificaciones', icon: Award },
+    { id: 'section-gallery', label: 'Galería', icon: Image },
+    { id: 'section-info', label: 'Info', icon: Info },
+    { id: 'section-pricing', label: 'Cuotas', icon: Calculator },
+    { id: 'section-specs', label: 'Specs', icon: Cpu },
+    { id: 'section-cronograma', label: 'Cronograma', icon: Calendar },
     { id: 'section-similar', label: 'Similares', icon: Package },
   ];
 
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY + 200;
+      const scrollPosition = window.scrollY + 150;
 
-      for (const item of navItems) {
+      for (const item of [...navItems].reverse()) {
         const element = document.getElementById(item.id);
         if (element) {
-          const { offsetTop, offsetHeight } = element;
-          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+          const { offsetTop } = element;
+          if (scrollPosition >= offsetTop) {
             setActiveSection(item.id);
             break;
           }
@@ -40,27 +51,25 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      const yOffset = -100;
+      const yOffset = -80;
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
 
   return (
-    <div className="w-full">
-      {/* Sticky Side Navigation - Pure Navigation Only */}
-      <div className="hidden lg:block">
-        <div className="sticky top-24">
-          <p className="text-xs font-medium text-neutral-400 uppercase tracking-wide mb-3 px-4">
-            Navegación
-          </p>
-          <nav className="space-y-1">
+    <>
+      {/* Desktop: Compact Sticky Sidebar */}
+      <div className="hidden lg:block fixed left-4 top-1/2 -translate-y-1/2 z-40">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-neutral-200 p-2">
+          <nav className="flex flex-col gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
@@ -68,15 +77,22 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = () => {
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                  className={`group relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-[#4654CD] text-white shadow-md'
+                      : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'
+                  }`}
+                  title={item.label}
+                >
+                  <Icon className="w-5 h-5" />
+                  {/* Tooltip on hover */}
+                  <span className={`absolute left-full ml-3 px-2 py-1 text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none ${
                     isActive
                       ? 'bg-[#4654CD] text-white'
-                      : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                  {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+                      : 'bg-neutral-800 text-white'
+                  }`}>
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
@@ -84,9 +100,9 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = () => {
         </div>
       </div>
 
-      {/* Mobile: Horizontal Tabs */}
-      <div className="lg:hidden border-b border-neutral-200">
-        <div className="flex gap-4 overflow-x-auto pb-1">
+      {/* Mobile: Horizontal Sticky Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-neutral-200 safe-area-inset-bottom">
+        <div className="flex justify-around py-2 px-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSection === item.id;
@@ -94,20 +110,20 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = () => {
               <button
                 key={item.id}
                 onClick={() => scrollToSection(item.id)}
-                className={`flex items-center gap-2 px-3 py-2 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all cursor-pointer ${
                   isActive
-                    ? 'border-[#4654CD] text-[#4654CD]'
-                    : 'border-transparent text-neutral-600'
+                    ? 'text-[#4654CD]'
+                    : 'text-neutral-400'
                 }`}
               >
-                <Icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{item.label}</span>
+                <Icon className={`w-5 h-5 ${isActive ? 'scale-110' : ''} transition-transform`} />
+                <span className="text-[10px] font-medium">{item.label}</span>
               </button>
             );
           })}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -90,6 +90,19 @@ import {
   CertificationsV6,
 } from './certifications';
 
+// Cronograma imports
+import {
+  CronogramaV1,
+  CronogramaV2,
+  CronogramaV3,
+  CronogramaV4,
+  CronogramaV5,
+  CronogramaV6,
+} from './cronograma';
+
+// Ports imports
+import { PortsDisplayV1 } from './ports';
+
 interface ProductDetailProps {
   config?: Partial<ProductDetailConfig>;
   product?: ProductDetailType;
@@ -211,6 +224,29 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return <CertificationsComponent certifications={mockCertifications} />;
   };
 
+  const renderCronograma = () => {
+    const cronogramaComponents = {
+      1: CronogramaV1,
+      2: CronogramaV2,
+      3: CronogramaV3,
+      4: CronogramaV4,
+      5: CronogramaV5,
+      6: CronogramaV6,
+    };
+    const CronogramaComponent = cronogramaComponents[finalConfig.cronogramaVersion];
+    return (
+      <CronogramaComponent
+        monthlyQuota={product.lowestQuota}
+        term={36}
+        startDate={new Date()}
+      />
+    );
+  };
+
+  const renderPorts = () => {
+    return <PortsDisplayV1 ports={product.ports} />;
+  };
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -262,6 +298,16 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         {/* Specs Section - Full Width */}
         <div id="section-specs" className="mt-12">
           {renderSpecs()}
+        </div>
+
+        {/* Ports Display - Full Width */}
+        <div id="section-ports" className="mt-12">
+          {renderPorts()}
+        </div>
+
+        {/* Cronograma Section - Full Width */}
+        <div id="section-cronograma" className="mt-12">
+          {renderCronograma()}
         </div>
 
         {/* Similar Products - Full Width */}

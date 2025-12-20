@@ -122,6 +122,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
     params.set('tabs', config.tabsVersion.toString());
     params.set('specs', config.specsVersion.toString());
     params.set('pricing', config.pricingVersion.toString());
+    params.set('cronograma', config.cronogramaVersion.toString());
     params.set('similar', config.similarProductsVersion.toString());
     params.set('limitations', config.limitationsVersion.toString());
     params.set('certifications', config.certificationsVersion.toString());
@@ -202,6 +203,13 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
             value={config.pricingVersion}
             onChange={(v) => onConfigChange({ ...config, pricingVersion: v })}
             descriptions={versionDescriptions.pricing}
+          />
+
+          <VersionSelector
+            label="Cronograma de Pagos"
+            value={config.cronogramaVersion}
+            onChange={(v) => onConfigChange({ ...config, cronogramaVersion: v })}
+            descriptions={versionDescriptions.cronograma}
           />
 
           <VersionSelector

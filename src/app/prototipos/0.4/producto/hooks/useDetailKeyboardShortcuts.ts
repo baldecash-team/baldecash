@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { ProductDetailConfig, DetailVersion, versionDescriptions } from '../types/detail';
 
-type ComponentKey = 'infoHeader' | 'gallery' | 'pricing' | 'certifications' | 'tabs' | 'specs' | 'similarProducts' | 'limitations';
+type ComponentKey = 'infoHeader' | 'gallery' | 'pricing' | 'certifications' | 'tabs' | 'specs' | 'cronograma' | 'similarProducts' | 'limitations';
 
 interface UseDetailKeyboardShortcutsOptions {
   config: ProductDetailConfig;
@@ -25,6 +25,7 @@ const COMPONENT_ORDER: ComponentKey[] = [
   'certifications',
   'tabs',
   'specs',
+  'cronograma',
   'similarProducts',
   'limitations',
 ];
@@ -35,6 +36,7 @@ const COMPONENT_CONFIG_MAP: Record<ComponentKey, keyof ProductDetailConfig> = {
   tabs: 'tabsVersion',
   specs: 'specsVersion',
   pricing: 'pricingVersion',
+  cronograma: 'cronogramaVersion',
   similarProducts: 'similarProductsVersion',
   limitations: 'limitationsVersion',
   certifications: 'certificationsVersion',
@@ -46,6 +48,7 @@ const COMPONENT_LABELS: Record<ComponentKey, string> = {
   tabs: 'Tabs',
   specs: 'Especificaciones',
   pricing: 'Calculadora',
+  cronograma: 'Cronograma',
   similarProducts: 'Similares',
   limitations: 'Limitaciones',
   certifications: 'Certificaciones',
@@ -58,6 +61,7 @@ const SECTION_IDS: Record<ComponentKey, string> = {
   certifications: 'section-certifications',
   tabs: 'section-tabs',
   specs: 'section-specs',
+  cronograma: 'section-cronograma',
   similarProducts: 'section-similar',
   limitations: 'section-limitations',
 };
