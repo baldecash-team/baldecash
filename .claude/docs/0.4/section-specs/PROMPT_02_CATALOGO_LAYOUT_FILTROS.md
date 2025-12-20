@@ -84,9 +84,7 @@ font-family: 'Asap', sans-serif; /* Cuerpo */
 src/app/prototipos/0.4/catalogo/
 ├── page.tsx                              # Redirecciona a catalog-preview
 ├── catalog-preview/
-│   └── page.tsx                          # Preview con settings modal (6 opciones)
-├── catalog-v1/ ... catalog-v6/
-│   └── page.tsx                          # Demo versión X standalone
+│   └── page.tsx                          # Preview con modal de configuracion
 ├── components/
 │   └── catalog/
 │       ├── CatalogLayout.tsx             # Wrapper principal
@@ -842,8 +840,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
 - [ ] `CommercialFilters.tsx` - Filtros comerciales
 - [ ] `FilterTooltip.tsx` - Tooltips explicativos
 - [ ] `SortDropdown.tsx` - Ordenamiento
-- [ ] `catalog-preview/page.tsx`
-- [ ] `catalog-v1/page.tsx` hasta `catalog-v6/page.tsx`
+- [ ] `catalog-preview/page.tsx` con modal de configuracion
 - [ ] `CATALOG_README.md`
 
 ---

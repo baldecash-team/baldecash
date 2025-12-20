@@ -29,13 +29,7 @@ El comparador permite a los usuarios evaluar múltiples productos lado a lado, f
 src/app/prototipos/0.4/comparador/
 ├── page.tsx                              # Redirect a preview
 ├── comparator-preview/
-│   └── page.tsx                          # Preview con Settings Modal
-├── comparator-v1/page.tsx                # V1: Foto Producto
-├── comparator-v2/page.tsx                # V2: Foto Lifestyle
-├── comparator-v3/page.tsx                # V3: Ilustración Flat
-├── comparator-v4/page.tsx                # V4: Abstracto Flotante
-├── comparator-v5/page.tsx                # V5: Split 50/50
-├── comparator-v6/page.tsx                # V6: Centrado Hero
+│   └── page.tsx                          # Preview con modal de configuracion
 ├── components/
 │   └── comparator/
 │       ├── ProductComparator.tsx
@@ -299,8 +293,7 @@ export const ComparisonTableV1: React.FC<{ products: ComparisonProduct[] }> = ({
 
 ### Páginas
 - [ ] `page.tsx` - Redirect a preview
-- [ ] `comparator-preview/page.tsx` - Preview con Settings Modal
-- [ ] `comparator-v1/page.tsx` a `comparator-v6/page.tsx`
+- [ ] `comparator-preview/page.tsx` - Preview con modal de configuracion
 
 ### Documentación
 - [ ] `COMPARATOR_README.md`

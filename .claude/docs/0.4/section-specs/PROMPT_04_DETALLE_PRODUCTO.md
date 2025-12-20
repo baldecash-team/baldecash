@@ -46,13 +46,7 @@ src/app/prototipos/0.4/producto/
 ├── [slug]/
 │   └── page.tsx                          # Detalle dinámico
 ├── detail-preview/
-│   └── page.tsx                          # Preview con Settings Modal (6 opciones)
-├── detail-v1/page.tsx                    # V1: Foto Producto
-├── detail-v2/page.tsx                    # V2: Foto Lifestyle
-├── detail-v3/page.tsx                    # V3: Ilustración Flat
-├── detail-v4/page.tsx                    # V4: Fintech/Data
-├── detail-v5/page.tsx                    # V5: Bold/Impact
-├── detail-v6/page.tsx                    # V6: Interactivo
+│   └── page.tsx                          # Preview con modal de configuracion
 ├── components/
 │   └── detail/
 │       ├── ProductDetail.tsx             # Wrapper principal

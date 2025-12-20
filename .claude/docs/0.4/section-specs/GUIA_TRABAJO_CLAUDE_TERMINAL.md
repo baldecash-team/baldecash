@@ -137,10 +137,7 @@ claude
 ```bash
 > Genera las páginas finales:
   1. src/app/prototipos/0.2/hero/page.tsx (redirect)
-  2. src/app/prototipos/0.2/hero/hero-preview/page.tsx
-  3. src/app/prototipos/0.2/hero/hero-v1/page.tsx
-  4. src/app/prototipos/0.2/hero/hero-v2/page.tsx
-  5. src/app/prototipos/0.2/hero/hero-v3/page.tsx
+  2. src/app/prototipos/0.2/hero/hero-preview/page.tsx (con modal de configuracion)
 ```
 
 ---
@@ -287,13 +284,7 @@ src/app/prototipos/0.2/
 ├── hero/
 │   ├── page.tsx
 │   ├── hero-preview/
-│   │   └── page.tsx
-│   ├── hero-v1/
-│   │   └── page.tsx
-│   ├── hero-v2/
-│   │   └── page.tsx
-│   ├── hero-v3/
-│   │   └── page.tsx
+│   │   └── page.tsx              # Con modal de configuracion
 │   ├── components/
 │   │   └── hero/
 │   │       ├── HeroSection.tsx

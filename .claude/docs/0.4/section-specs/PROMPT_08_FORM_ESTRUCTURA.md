@@ -30,13 +30,7 @@ El wizard de solicitud es el flujo crítico donde el usuario completa su solicit
 src/app/prototipos/0.4/solicitud/
 ├── page.tsx                              # Redirect a preview
 ├── wizard-preview/
-│   └── page.tsx                          # Preview con Settings Modal
-├── wizard-v1/page.tsx                    # V1: Foto Producto
-├── wizard-v2/page.tsx                    # V2: Foto Lifestyle
-├── wizard-v3/page.tsx                    # V3: Ilustración Flat
-├── wizard-v4/page.tsx                    # V4: Abstracto Flotante
-├── wizard-v5/page.tsx                    # V5: Split 50/50
-├── wizard-v6/page.tsx                    # V6: Centrado Hero
+│   └── page.tsx                          # Preview con modal de configuracion
 ├── components/
 │   └── wizard/
 │       ├── WizardContainer.tsx
@@ -527,8 +521,7 @@ export const ProgressIndicatorV1: React.FC<ProgressIndicatorV1Props> = ({
 
 ### Páginas
 - [ ] `page.tsx` - Redirect a preview
-- [ ] `wizard-preview/page.tsx` - Preview con Settings Modal
-- [ ] `wizard-v1/page.tsx` a `wizard-v6/page.tsx`
+- [ ] `wizard-preview/page.tsx` - Preview con modal de configuracion
 
 ### Documentación
 - [ ] `WIZARD_README.md`

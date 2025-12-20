@@ -146,8 +146,7 @@ src/app/
 │       └── page.tsx                    # Landing dinamica por convenio
 ├── prototipos/0.4/convenio/
 │   ├── page.tsx                        # Redirect a preview
-│   ├── convenio-preview/page.tsx       # Preview con settings
-│   ├── convenio-v1/ ... convenio-v6/   # Versiones standalone
+│   ├── convenio-preview/page.tsx       # Preview con modal de configuracion
 │   └── components/convenio/
 │       ├── ConvenioLanding.tsx
 │       ├── ConvenioSettingsModal.tsx
@@ -644,7 +643,6 @@ export interface ConvenioConfig {
 | `/convenio/[slug]` | Landing publica de convenio |
 | `/prototipos/0.4/convenio` | Redirect a preview |
 | `/prototipos/0.4/convenio/convenio-preview` | Comparador con settings |
-| `/prototipos/0.4/convenio/convenio-v1` ... `v6` | Versiones standalone |
 
 ---
 

@@ -1289,8 +1289,7 @@ export const ProductCardV1: React.FC<ProductCardV1Props> = ({
 
 ### Páginas
 - [ ] `page.tsx` - Redirect a preview
-- [ ] `catalog-preview/page.tsx` - Preview con Settings Modal
-- [ ] `catalog-v1/page.tsx` a `catalog-v10/page.tsx` - 10 páginas standalone
+- [ ] `catalog-preview/page.tsx` - Preview con modal de configuracion
 
 ### Documentación
 - [ ] `CARDS_README.md` - Documentación del módulo

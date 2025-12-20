@@ -44,8 +44,7 @@ BaldeCash es una fintech peruana que proporciona financiamiento de **equipos tec
 ```
 src/app/prototipos/0.4/hero/
 ├── page.tsx                    # Redirect a hero-preview
-├── hero-preview/page.tsx       # Preview con settings modal
-├── hero-v1/ ... hero-v6/       # Versiones standalone
+├── hero-preview/page.tsx       # Preview con modal de configuracion
 ├── components/hero/
 │   ├── HeroSection.tsx
 │   ├── HeroSettingsModal.tsx
@@ -531,8 +530,7 @@ export interface HeroConfig {
 | Ruta | Descripcion |
 |------|-------------|
 | `/prototipos/0.4/hero` | Redirect a preview |
-| `/prototipos/0.4/hero/hero-preview` | Comparador con settings |
-| `/prototipos/0.4/hero/hero-v1` ... `hero-v6` | Versiones standalone |
+| `/prototipos/0.4/hero/hero-preview` | Preview con modal de configuracion |
 | `/nosotros` | Pagina Sobre Nosotros (NUEVO) |
 | `/faq` | Pagina completa FAQs (NUEVO) |
 

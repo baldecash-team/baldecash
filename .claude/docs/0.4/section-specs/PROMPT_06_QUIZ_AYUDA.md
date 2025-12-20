@@ -29,13 +29,7 @@ El quiz de ayuda es una herramienta para usuarios indecisos que no saben qué la
 src/app/prototipos/0.4/quiz/
 ├── page.tsx                              # Redirect a preview
 ├── quiz-preview/
-│   └── page.tsx                          # Preview con Settings Modal
-├── quiz-v1/page.tsx                      # V1: Foto Producto
-├── quiz-v2/page.tsx                      # V2: Foto Lifestyle
-├── quiz-v3/page.tsx                      # V3: Ilustración Flat
-├── quiz-v4/page.tsx                      # V4: Abstracto Flotante
-├── quiz-v5/page.tsx                      # V5: Split 50/50
-├── quiz-v6/page.tsx                      # V6: Centrado Hero
+│   └── page.tsx                          # Preview con modal de configuracion
 ├── components/
 │   └── quiz/
 │       ├── HelpQuiz.tsx
@@ -297,8 +291,7 @@ export const QuizQuestionV1: React.FC<{ question: QuizQuestion; onAnswer: (optio
 
 ### Páginas
 - [ ] `page.tsx` - Redirect a preview
-- [ ] `quiz-preview/page.tsx` - Preview con Settings Modal
-- [ ] `quiz-v1/page.tsx` a `quiz-v6/page.tsx`
+- [ ] `quiz-preview/page.tsx` - Preview con modal de configuracion
 
 ### Documentación
 - [ ] `QUIZ_README.md`
