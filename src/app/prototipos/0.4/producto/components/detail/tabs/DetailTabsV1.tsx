@@ -16,7 +16,7 @@ import { mockCertifications } from '../../../data/mockDetailData';
 
 export const DetailTabsV1: React.FC<DetailTabsProps> = ({ product }) => {
   const [activeSection, setActiveSection] = useState('specs');
-  const sectionsRef = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const sectionsRef = useRef<{ [key: string]: HTMLElement | null }>({});
 
   useEffect(() => {
     const handleScroll = () => {
@@ -85,7 +85,7 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = ({ product }) => {
       <div className="flex-1 space-y-12">
         {/* Especificaciones Section */}
         <section
-          ref={(el) => (sectionsRef.current['specs'] = el)}
+          ref={(el) => { sectionsRef.current['specs'] = el; }}
           id="specs"
           className="scroll-mt-24"
         >
@@ -140,7 +140,7 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = ({ product }) => {
 
         {/* Descripción Section */}
         <section
-          ref={(el) => (sectionsRef.current['description'] = el)}
+          ref={(el) => { sectionsRef.current['description'] = el; }}
           id="description"
           className="scroll-mt-24"
         >
@@ -178,7 +178,7 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = ({ product }) => {
 
         {/* Certificaciones Section */}
         <section
-          ref={(el) => (sectionsRef.current['certifications'] = el)}
+          ref={(el) => { sectionsRef.current['certifications'] = el; }}
           id="certifications"
           className="scroll-mt-24"
         >

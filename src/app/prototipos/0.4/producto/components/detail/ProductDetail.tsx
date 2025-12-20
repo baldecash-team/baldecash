@@ -20,75 +20,75 @@ import {
   ProductInfoHeaderV6,
 } from './info';
 
-// Gallery imports - will be created by agent
-// import {
-//   ProductGalleryV1,
-//   ProductGalleryV2,
-//   ProductGalleryV3,
-//   ProductGalleryV4,
-//   ProductGalleryV5,
-//   ProductGalleryV6,
-// } from './gallery';
+// Gallery imports
+import {
+  ProductGalleryV1,
+  ProductGalleryV2,
+  ProductGalleryV3,
+  ProductGalleryV4,
+  ProductGalleryV5,
+  ProductGalleryV6,
+} from './gallery';
 
-// Tabs imports - will be created by agent
-// import {
-//   DetailTabsV1,
-//   DetailTabsV2,
-//   DetailTabsV3,
-//   DetailTabsV4,
-//   DetailTabsV5,
-//   DetailTabsV6,
-// } from './tabs';
+// Tabs imports
+import {
+  DetailTabsV1,
+  DetailTabsV2,
+  DetailTabsV3,
+  DetailTabsV4,
+  DetailTabsV5,
+  DetailTabsV6,
+} from './tabs';
 
-// Specs imports - will be created by agent
-// import {
-//   SpecsDisplayV1,
-//   SpecsDisplayV2,
-//   SpecsDisplayV3,
-//   SpecsDisplayV4,
-//   SpecsDisplayV5,
-//   SpecsDisplayV6,
-// } from './specs';
+// Specs imports
+import {
+  SpecsDisplayV1,
+  SpecsDisplayV2,
+  SpecsDisplayV3,
+  SpecsDisplayV4,
+  SpecsDisplayV5,
+  SpecsDisplayV6,
+} from './specs';
 
-// Pricing imports - will be created by agent
-// import {
-//   PricingCalculatorV1,
-//   PricingCalculatorV2,
-//   PricingCalculatorV3,
-//   PricingCalculatorV4,
-//   PricingCalculatorV5,
-//   PricingCalculatorV6,
-// } from './pricing';
+// Pricing imports
+import {
+  PricingCalculatorV1,
+  PricingCalculatorV2,
+  PricingCalculatorV3,
+  PricingCalculatorV4,
+  PricingCalculatorV5,
+  PricingCalculatorV6,
+} from './pricing';
 
-// Similar Products imports - will be created by agent
-// import {
-//   SimilarProductsV1,
-//   SimilarProductsV2,
-//   SimilarProductsV3,
-//   SimilarProductsV4,
-//   SimilarProductsV5,
-//   SimilarProductsV6,
-// } from './similar';
+// Similar Products imports
+import {
+  SimilarProductsV1,
+  SimilarProductsV2,
+  SimilarProductsV3,
+  SimilarProductsV4,
+  SimilarProductsV5,
+  SimilarProductsV6,
+} from './similar';
 
-// Limitations imports - will be created by agent
-// import {
-//   ProductLimitationsV1,
-//   ProductLimitationsV2,
-//   ProductLimitationsV3,
-//   ProductLimitationsV4,
-//   ProductLimitationsV5,
-//   ProductLimitationsV6,
-// } from './honesty';
+// Limitations imports
+import {
+  ProductLimitationsV1,
+  ProductLimitationsV2,
+  ProductLimitationsV3,
+  ProductLimitationsV4,
+  ProductLimitationsV5,
+  ProductLimitationsV6,
+} from './honesty';
 
-// Certifications imports - will be created by agent
-// import {
-//   CertificationsV1,
-//   CertificationsV2,
-//   CertificationsV3,
-//   CertificationsV4,
-//   CertificationsV5,
-//   CertificationsV6,
-// } from './certifications';
+// Certifications imports
+import {
+  CertificationsV1,
+  CertificationsV2,
+  CertificationsV3,
+  CertificationsV4,
+  CertificationsV5,
+  CertificationsV6,
+} from './certifications';
 
 interface ProductDetailProps {
   config?: Partial<ProductDetailConfig>;
@@ -115,110 +115,100 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   };
 
   const renderGallery = () => {
-    // Placeholder until gallery components are created
-    return (
-      <div className="aspect-square bg-neutral-100 rounded-xl flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-neutral-500 text-sm">Galería V{finalConfig.galleryVersion}</p>
-          <img
-            src={product.images[0]?.url}
-            alt={product.displayName}
-            className="max-w-full max-h-80 object-contain mt-4"
-            loading="lazy"
-          />
-        </div>
-      </div>
-    );
+    const galleryComponents = {
+      1: ProductGalleryV1,
+      2: ProductGalleryV2,
+      3: ProductGalleryV3,
+      4: ProductGalleryV4,
+      5: ProductGalleryV5,
+      6: ProductGalleryV6,
+    };
+    const GalleryComponent = galleryComponents[finalConfig.galleryVersion];
+    return <GalleryComponent images={product.images} productName={product.displayName} />;
   };
 
-  const renderPricing = () => {
-    // Placeholder until pricing components are created
-    return (
-      <div className="bg-white border border-neutral-200 rounded-xl p-6">
-        <p className="text-sm text-neutral-500 mb-2">Calculadora V{finalConfig.pricingVersion}</p>
-        {product.originalQuota && (
-          <p className="line-through text-neutral-400 text-lg">S/{product.originalQuota}/mes</p>
-        )}
-        <p className="text-4xl font-bold text-[#4654CD] font-['Baloo_2']">
-          S/{product.lowestQuota}<span className="text-lg font-normal text-neutral-500">/mes</span>
-        </p>
-        <p className="text-sm text-neutral-500 mt-1">x 36 meses</p>
-      </div>
-    );
+  const renderTabs = () => {
+    const tabsComponents = {
+      1: DetailTabsV1,
+      2: DetailTabsV2,
+      3: DetailTabsV3,
+      4: DetailTabsV4,
+      5: DetailTabsV5,
+      6: DetailTabsV6,
+    };
+    const TabsComponent = tabsComponents[finalConfig.tabsVersion];
+    return <TabsComponent product={product} />;
   };
 
   const renderSpecs = () => {
-    // Placeholder until specs components are created
+    const specsComponents = {
+      1: SpecsDisplayV1,
+      2: SpecsDisplayV2,
+      3: SpecsDisplayV3,
+      4: SpecsDisplayV4,
+      5: SpecsDisplayV5,
+      6: SpecsDisplayV6,
+    };
+    const SpecsComponent = specsComponents[finalConfig.specsVersion];
+    return <SpecsComponent specs={product.specs} />;
+  };
+
+  const renderPricing = () => {
+    const pricingComponents = {
+      1: PricingCalculatorV1,
+      2: PricingCalculatorV2,
+      3: PricingCalculatorV3,
+      4: PricingCalculatorV4,
+      5: PricingCalculatorV5,
+      6: PricingCalculatorV6,
+    };
+    const PricingComponent = pricingComponents[finalConfig.pricingVersion];
     return (
-      <div className="bg-neutral-50 rounded-xl p-4">
-        <p className="text-sm text-neutral-500 mb-3">Especificaciones V{finalConfig.specsVersion}</p>
-        <div className="space-y-2">
-          {product.specs.slice(0, 3).map((spec, idx) => (
-            <div key={idx} className="text-sm">
-              <span className="font-medium text-neutral-700">{spec.category}:</span>{' '}
-              <span className="text-neutral-600">{spec.specs[0]?.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <PricingComponent
+        monthlyQuota={product.lowestQuota}
+        originalQuota={product.originalQuota}
+        defaultTerm={36}
+      />
     );
   };
 
   const renderSimilarProducts = () => {
-    // Placeholder until similar products components are created
-    return (
-      <div className="bg-white border border-neutral-200 rounded-xl p-4">
-        <p className="text-sm font-medium text-neutral-700 mb-3">
-          Productos similares V{finalConfig.similarProductsVersion}
-        </p>
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {mockSimilarProducts.slice(0, 3).map((similar) => (
-            <div key={similar.id} className="flex-shrink-0 w-32 text-center">
-              <img
-                src={similar.thumbnail}
-                alt={similar.name}
-                className="w-full h-20 object-contain mb-2"
-                loading="lazy"
-              />
-              <p className="text-xs text-neutral-600 truncate">{similar.name}</p>
-              <p className={`text-sm font-bold ${similar.quotaDifference < 0 ? 'text-[#22c55e]' : 'text-amber-600'}`}>
-                {similar.quotaDifference > 0 ? '+' : ''}S/{similar.quotaDifference}/mes
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    const similarComponents = {
+      1: SimilarProductsV1,
+      2: SimilarProductsV2,
+      3: SimilarProductsV3,
+      4: SimilarProductsV4,
+      5: SimilarProductsV5,
+      6: SimilarProductsV6,
+    };
+    const SimilarComponent = similarComponents[finalConfig.similarProductsVersion];
+    return <SimilarComponent products={mockSimilarProducts} currentQuota={product.lowestQuota} />;
   };
 
   const renderLimitations = () => {
-    // Placeholder until limitations components are created
-    return (
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-        <p className="text-sm font-medium text-amber-700 mb-2">
-          Limitaciones V{finalConfig.limitationsVersion}
-        </p>
-        <ul className="text-xs text-amber-600 space-y-1">
-          {mockLimitations.map((lim, idx) => (
-            <li key={idx}>• {lim.description}</li>
-          ))}
-        </ul>
-      </div>
-    );
+    const limitationsComponents = {
+      1: ProductLimitationsV1,
+      2: ProductLimitationsV2,
+      3: ProductLimitationsV3,
+      4: ProductLimitationsV4,
+      5: ProductLimitationsV5,
+      6: ProductLimitationsV6,
+    };
+    const LimitationsComponent = limitationsComponents[finalConfig.limitationsVersion];
+    return <LimitationsComponent limitations={mockLimitations} />;
   };
 
   const renderCertifications = () => {
-    // Placeholder until certifications components are created
-    return (
-      <div className="flex items-center gap-3">
-        <p className="text-xs text-neutral-500">Certificaciones V{finalConfig.certificationsVersion}:</p>
-        {mockCertifications.map((cert) => (
-          <span key={cert.code} className="text-xs bg-neutral-100 px-2 py-1 rounded">
-            {cert.name}
-          </span>
-        ))}
-      </div>
-    );
+    const certificationsComponents = {
+      1: CertificationsV1,
+      2: CertificationsV2,
+      3: CertificationsV3,
+      4: CertificationsV4,
+      5: CertificationsV5,
+      6: CertificationsV6,
+    };
+    const CertificationsComponent = certificationsComponents[finalConfig.certificationsVersion];
+    return <CertificationsComponent certifications={mockCertifications} />;
   };
 
   return (
@@ -236,17 +226,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         {/* Main Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Gallery */}
-          <div>
+          <div id="section-gallery">
             {renderGallery()}
           </div>
 
           {/* Right Column - Product Info */}
           <div className="space-y-6">
             {/* Info Header */}
-            {renderInfoHeader()}
+            <div id="section-info">
+              {renderInfoHeader()}
+            </div>
 
             {/* Pricing Calculator */}
-            {renderPricing()}
+            <div id="section-pricing">
+              {renderPricing()}
+            </div>
 
             {/* CTA Button */}
             <button className="w-full bg-[#4654CD] text-white py-4 rounded-xl font-semibold text-lg hover:bg-[#3a47b3] transition-colors cursor-pointer">
@@ -254,25 +248,32 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             </button>
 
             {/* Certifications */}
-            {renderCertifications()}
+            <div id="section-certifications">
+              {renderCertifications()}
+            </div>
           </div>
+        </div>
+
+        {/* Tabs Section - Full Width */}
+        <div id="section-tabs" className="mt-12">
+          {renderTabs()}
         </div>
 
         {/* Bottom Section */}
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Specs - 2 columns */}
-          <div className="lg:col-span-2">
+          <div id="section-specs" className="lg:col-span-2">
             {renderSpecs()}
           </div>
 
           {/* Similar Products - 1 column */}
-          <div>
+          <div id="section-similar">
             {renderSimilarProducts()}
           </div>
         </div>
 
         {/* Limitations */}
-        <div className="mt-8">
+        <div id="section-limitations" className="mt-8">
           {renderLimitations()}
         </div>
       </div>

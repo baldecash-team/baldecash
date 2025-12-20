@@ -3,19 +3,28 @@
 /**
  * Product Detail Preview Page - BaldeCash v0.4
  *
- * Configurable preview with settings modal and TokenCounter
+ * Configurable preview with settings modal, TokenCounter, and keyboard shortcuts
+ *
+ * Keyboard Shortcuts:
+ * - 1-6: Change active component version
+ * - Tab / Shift+Tab: Navigate between components
+ * - S / K / ?: Open/close settings
+ * - O: Toggle overlays
+ * - Esc: Close modal
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { Settings, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Settings, Eye, EyeOff, ArrowLeft, Code, Keyboard } from 'lucide-react';
 import { ProductDetailConfig, defaultDetailConfig, DetailVersion } from '../types/detail';
 import { ProductDetail } from '../components/detail/ProductDetail';
 import { DetailSettingsModal } from '../components/detail/DetailSettingsModal';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+import { useDetailKeyboardShortcuts } from '../hooks';
+import { ShortcutToast, ShortcutHelpBadge } from '@/app/prototipos/0.4/hero/components/hero/common/ShortcutToast';
 
-export default function DetailPreviewPage() {
+function DetailPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -45,6 +54,15 @@ export default function DetailPreviewPage() {
     };
   });
 
+  // Use keyboard shortcuts hook
+  const { activeComponent, toast, COMPONENT_LABELS } = useDetailKeyboardShortcuts({
+    config,
+    onConfigChange: setConfig,
+    onOpenSettings: () => setIsSettingsOpen(true),
+    onCloseSettings: () => setIsSettingsOpen(false),
+    isSettingsOpen,
+  });
+
   // Update URL when config changes
   useEffect(() => {
     const params = new URLSearchParams();
@@ -59,30 +77,19 @@ export default function DetailPreviewPage() {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [config, router]);
 
-  // Keyboard shortcuts
+  // Toggle overlays with O key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
 
-      switch (e.key.toLowerCase()) {
-        case 'o':
-          setShowOverlays(prev => !prev);
-          break;
-        case 's':
-          if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
-            setIsSettingsOpen(true);
-          }
-          break;
-        case 'escape':
-          setIsSettingsOpen(false);
-          break;
+      if (e.key.toLowerCase() === 'o' && !isSettingsOpen) {
+        setShowOverlays(prev => !prev);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isSettingsOpen]);
 
   const handleConfigChange = (newConfig: ProductDetailConfig) => {
     setConfig(newConfig);
@@ -90,6 +97,14 @@ export default function DetailPreviewPage() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
+      {/* Keyboard Shortcut Toast */}
+      <ShortcutToast message={toast?.message || null} type={toast?.type} />
+
+      {/* Shortcut Help Badge */}
+      {showOverlays && (
+        <ShortcutHelpBadge activeComponent={COMPONENT_LABELS[activeComponent as keyof typeof COMPONENT_LABELS] || activeComponent} />
+      )}
+
       {/* Back button */}
       <div className="fixed top-4 left-4 z-50">
         <Button
@@ -103,30 +118,30 @@ export default function DetailPreviewPage() {
 
       {/* Version badges overlay */}
       {showOverlays && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-wrap justify-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border border-neutral-200">
-          <span className="text-xs bg-[#4654CD]/10 text-[#4654CD] px-2 py-1 rounded">
-            Info: V{config.infoHeaderVersion}
-          </span>
-          <span className="text-xs bg-[#4654CD]/10 text-[#4654CD] px-2 py-1 rounded">
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-wrap justify-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border border-neutral-200 max-w-[90vw]">
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'gallery' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
             Gallery: V{config.galleryVersion}
           </span>
-          <span className="text-xs bg-[#4654CD]/10 text-[#4654CD] px-2 py-1 rounded">
-            Tabs: V{config.tabsVersion}
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'infoHeader' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
+            Info: V{config.infoHeaderVersion}
           </span>
-          <span className="text-xs bg-[#4654CD]/10 text-[#4654CD] px-2 py-1 rounded">
-            Specs: V{config.specsVersion}
-          </span>
-          <span className="text-xs bg-[#4654CD]/10 text-[#4654CD] px-2 py-1 rounded">
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'pricing' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
             Pricing: V{config.pricingVersion}
           </span>
-          <span className="text-xs bg-[#4654CD]/10 text-[#4654CD] px-2 py-1 rounded">
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'certifications' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
+            Certs: V{config.certificationsVersion}
+          </span>
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'tabs' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
+            Tabs: V{config.tabsVersion}
+          </span>
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'specs' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
+            Specs: V{config.specsVersion}
+          </span>
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'similarProducts' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
             Similar: V{config.similarProductsVersion}
           </span>
-          <span className="text-xs bg-[#4654CD]/10 text-[#4654CD] px-2 py-1 rounded">
+          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'limitations' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
             Limits: V{config.limitationsVersion}
-          </span>
-          <span className="text-xs bg-[#4654CD]/10 text-[#4654CD] px-2 py-1 rounded">
-            Certs: V{config.certificationsVersion}
           </span>
         </div>
       )}
@@ -141,6 +156,17 @@ export default function DetailPreviewPage() {
             sectionId="PROMPT_04"
             version="0.4"
           />
+          <Button
+            isIconOnly
+            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+            onPress={() => {
+              const configString = JSON.stringify(config, null, 2);
+              navigator.clipboard.writeText(configString);
+            }}
+            aria-label="Copiar configuracion"
+          >
+            <Code className="w-5 h-5 text-neutral-600" />
+          </Button>
           <Button
             isIconOnly
             className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
@@ -182,11 +208,28 @@ export default function DetailPreviewPage() {
       {/* Keyboard shortcuts help */}
       {showOverlays && (
         <div className="fixed bottom-6 left-6 z-50 text-xs text-neutral-400 bg-white/80 backdrop-blur-sm px-3 py-2 rounded-lg shadow border border-neutral-200">
+          <div className="flex items-center gap-1.5 mb-1.5 text-neutral-500">
+            <Keyboard className="w-3.5 h-3.5" />
+            <span className="font-medium">Atajos</span>
+          </div>
+          <p><kbd className="bg-neutral-100 px-1 rounded">Tab</kbd> Siguiente componente</p>
+          <p><kbd className="bg-neutral-100 px-1 rounded">1-6</kbd> Cambiar version</p>
           <p><kbd className="bg-neutral-100 px-1 rounded">S</kbd> Settings</p>
           <p><kbd className="bg-neutral-100 px-1 rounded">O</kbd> Toggle overlays</p>
-          <p><kbd className="bg-neutral-100 px-1 rounded">Esc</kbd> Close modal</p>
         </div>
       )}
     </div>
+  );
+}
+
+export default function DetailPreviewPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-neutral-500">Cargando...</div>
+      </div>
+    }>
+      <DetailPreviewContent />
+    </Suspense>
   );
 }

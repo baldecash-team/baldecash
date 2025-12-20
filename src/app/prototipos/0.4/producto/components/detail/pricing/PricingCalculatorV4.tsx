@@ -76,7 +76,7 @@ export default function PricingCalculatorV4({
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {TERMS.map((term) => {
           const quota = calculateQuota(term);
-          const originalQuota = originalQuota
+          const termOriginalQuota = originalQuota
             ? originalQuota - ((originalQuota * parseInt(initialPayment)) / 100 / term)
             : undefined;
           const isSelected = selectedTerm === term;

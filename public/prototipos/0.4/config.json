@@ -1,7 +1,7 @@
 {
   "version": "0.4",
   "createdAt": "2024-12-19T00:00:00.000Z",
-  "updatedAt": "2024-12-19T00:00:00.000Z",
+  "updatedAt": "2024-12-20T00:00:00.000Z",
   "description": "Prototipo v0.4 - Sistema de A/B testing con 6 versiones por componente",
   "status": "testing",
   "sections": {
@@ -79,6 +79,51 @@
           "notes": "V1-Acordeon Simple, V2-Con Iconos, V3-Grid Cards, V4-Tabs Categoria, V5-Busqueda, V6-Chatbot Style"
         }
       }
+    },
+    "producto": {
+      "lastUpdated": "2024-12-20T00:00:00.000Z",
+      "components": {
+        "infoHeader": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Layout actual badges+info, V2-Compacto mobile, V3-Chips flotantes, V4-Hero prominente, V5-Split layout, V6-Badges expandibles"
+        },
+        "gallery": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Thumbnails inferiores+zoom (PREFERIDO), V2-Thumbnails laterales+modal, V3-Carousel swipeable, V4-Preview flotante, V5-Hero fullscreen, V6-Visor 360"
+        },
+        "tabs": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Scroll continuo+nav sticky (PREFERIDO), V2-Tabs horizontales, V3-Acordeon, V4-Tabs iconos animados, V5-Split layout, V6-Preview hover"
+        },
+        "specs": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Acordeon spacing corregido (PREFERIDO), V2-Cards grid, V3-Tabla 2 columnas, V4-Chips flotantes, V5-Grid filtrable, V6-Toggles expandibles"
+        },
+        "pricing": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Tabs plazo compactos, V2-Slider plazo, V3-Botones+cuota inicial, V4-Cards animados, V5-Timeline cuotas, V6-Calculadora gamificada"
+        },
+        "similarProducts": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Panel comparacion variacion cuota (PREFERIDO), V2-Carousel horizontal, V3-Grid 3 columnas, V4-Cards flotantes, V5-Collage+modal, V6-Quiz interactivo"
+        },
+        "limitations": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Collapsible (PREFERIDO), V2-Seccion visible, V3-Tooltips specs, V4-Badge flotante, V5-Panel lateral, V6-Checklist interactivo"
+        },
+        "certifications": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Logos inline, V2-Logos+nombre+tooltip, V3-Cards expandibles, V4-Logos flotantes hover, V5-Panel lateral, V6-Acordeon interactivo"
+        }
+      }
     }
   },
   "testingNotes": [
@@ -95,6 +140,11 @@
     {
       "date": "2024-12-20",
       "note": "Creada seccion Convenio Landing completa: Navbar, Hero, Benefits, Testimonials, FAQ, CTA (6 versiones cada uno, 36 componentes total)",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-20",
+      "note": "Creada seccion Producto Detail completa: InfoHeader, Gallery, Tabs, Specs, Pricing, SimilarProducts, Limitations, Certifications (6 versiones cada uno, 48 componentes total). CRITICO: Sin precio, solo cuota mensual",
       "author": "Claude"
     }
   ]
