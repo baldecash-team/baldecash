@@ -74,13 +74,13 @@ export const SocialProofV4: React.FC<SocialProofProps> = ({ data }) => {
                 {visibleLogos.map((logo) => (
                   <div
                     key={logo.id}
-                    className="bg-white rounded-xl p-6 border border-neutral-100 hover:border-[#4654CD]/30 transition-colors"
+                    className="bg-white rounded-2xl p-6 border-2 border-neutral-100 hover:border-[#4654CD]/40 hover:shadow-lg transition-all group"
                   >
-                    <div className="h-16 flex items-center justify-center">
+                    <div className="h-20 flex items-center justify-center bg-gradient-to-b from-[#4654CD]/5 to-transparent rounded-xl p-3">
                       <img
                         src={logo.url}
                         alt={logo.name}
-                        className="max-h-12 max-w-full object-contain"
+                        className="max-h-14 max-w-full object-contain group-hover:scale-105 transition-transform"
                         loading="lazy"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
@@ -88,7 +88,7 @@ export const SocialProofV4: React.FC<SocialProofProps> = ({ data }) => {
                         }}
                       />
                     </div>
-                    <p className="text-center text-neutral-500 text-xs mt-2 truncate">
+                    <p className="text-center text-neutral-700 text-sm font-medium mt-3 truncate">
                       {logo.shortName}
                     </p>
                   </div>

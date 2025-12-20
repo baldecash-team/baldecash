@@ -175,6 +175,46 @@ export const mockTestimonials: Testimonial[] = [
     avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
     rating: 5,
   },
+  {
+    id: '4',
+    name: 'Luis Mendoza',
+    institution: 'UTP',
+    quote: 'Excelente servicio. Mi laptop llegó en perfectas condiciones y las cuotas son muy accesibles.',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
+    rating: 5,
+  },
+  {
+    id: '5',
+    name: 'Fernanda Rios',
+    institution: 'CIBERTEC',
+    quote: 'El proceso de aprobación fue increíblemente rápido. En 24 horas ya tenía mi laptop.',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop',
+    rating: 5,
+  },
+  {
+    id: '6',
+    name: 'Diego Vargas',
+    institution: 'TECSUP',
+    quote: 'Sin historial crediticio y sin aval. BaldeCash confió en mí como estudiante.',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+    rating: 5,
+  },
+  {
+    id: '7',
+    name: 'Camila Fernandez',
+    institution: 'UCAL',
+    quote: 'La mejor decisión que tomé. Mi laptop es perfecta para diseño gráfico.',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop',
+    rating: 5,
+  },
+  {
+    id: '8',
+    name: 'Jorge Huaman',
+    institution: 'CERTUS',
+    quote: 'Atención personalizada y cuotas que se adaptan a mi presupuesto de estudiante.',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
+    rating: 5,
+  },
 ];
 
 // ============================================

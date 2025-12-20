@@ -7,10 +7,7 @@
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Chip } from '@nextui-org/react';
-import { Sparkles, ArrowRight, CheckCircle2, Clock, Shield } from 'lucide-react';
-import { HeroConfig, defaultHeroConfig, UnderlineStyle } from '../../types/hero';
+import { HeroConfig, defaultHeroConfig } from '../../types/hero';
 import { mockHeroContent, mockSocialProof, mockHowItWorksData, mockFaqData } from '../../data/mockHeroData';
 
 // Banner imports
@@ -148,84 +145,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
           {renderHowItWorks()}
         </section>
 
-        {/* CTA Section - Enhanced UI/UX */}
-        <section className="py-20 bg-gradient-to-b from-white to-neutral-50 relative overflow-hidden">
-          {/* Background Elements */}
-          <div className="absolute inset-0 opacity-[0.02]">
-            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="cta-dots" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <circle cx="2" cy="2" r="1.5" fill="#4654CD" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#cta-dots)" />
-            </svg>
-          </div>
+        {/* CTA Section */}
+        <section className="py-16 bg-neutral-50">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-3 font-['Baloo_2']">
+              ¿Listo para tu nuevo equipo?
+            </h2>
+            <p className="text-neutral-600 mb-8">
+              Solicita tu laptop en minutos. 100% digital.
+            </p>
 
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center"
-            >
-              {/* Section Badge */}
-              <Chip
-                startContent={<Sparkles className="w-3.5 h-3.5" />}
-                classNames={{
-                  base: 'bg-[#4654CD]/10 px-4 py-2 h-auto mb-6',
-                  content: 'text-[#4654CD] text-sm font-medium',
-                }}
-              >
-                Comienza hoy
-              </Chip>
+            {/* CTA Component */}
+            <div className="flex justify-center mb-6">
+              {renderCta()}
+            </div>
 
-              {/* Section Title */}
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-neutral-900 mb-4 font-['Baloo_2'] leading-tight">
-                ¿Listo para tu{' '}
-                <span className="text-[#4654CD] relative">
-                  nuevo equipo
-                  <svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 200 12" fill="none">
-                    <path d="M2 8C50 4 150 4 198 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
-                  </svg>
-                </span>
-                ?
-              </h2>
-
-              {/* Subtitle */}
-              <p className="text-lg text-neutral-600 mb-8 max-w-2xl mx-auto">
-                Solicita tu laptop en minutos. Sin filas, sin papeleos, todo 100% digital.
-              </p>
-
-              {/* Trust Indicators */}
-              <div className="flex flex-wrap justify-center gap-6 mb-10">
-                <div className="flex items-center gap-2 text-neutral-600">
-                  <CheckCircle2 className="w-5 h-5 text-[#22c55e]" />
-                  <span className="text-sm">Sin historial crediticio</span>
-                </div>
-                <div className="flex items-center gap-2 text-neutral-600">
-                  <Clock className="w-5 h-5 text-[#4654CD]" />
-                  <span className="text-sm">Respuesta en 24h</span>
-                </div>
-                <div className="flex items-center gap-2 text-neutral-600">
-                  <Shield className="w-5 h-5 text-[#03DBD0]" />
-                  <span className="text-sm">Regulados por SBS</span>
-                </div>
-              </div>
-
-              {/* CTA Component */}
-              <div className="flex justify-center">
-                {renderCta()}
-              </div>
-
-              {/* Microcopy */}
-              <p className="text-xs text-neutral-400 mt-6">
-                Al continuar, aceptas nuestros{' '}
-                <a href="/prototipos/0.4/legal/terminos" className="underline hover:text-neutral-600">términos y condiciones</a>
-                {' '}y{' '}
-                <a href="/prototipos/0.4/legal/privacidad" className="underline hover:text-neutral-600">política de privacidad</a>
-              </p>
-            </motion.div>
+            {/* Microcopy */}
+            <p className="text-xs text-neutral-400">
+              Al continuar, aceptas nuestros{' '}
+              <a href="/prototipos/0.4/legal/terminos" className="underline hover:text-neutral-600">términos</a>
+              {' '}y{' '}
+              <a href="/prototipos/0.4/legal/privacidad" className="underline hover:text-neutral-600">privacidad</a>
+            </p>
           </div>
         </section>
 
