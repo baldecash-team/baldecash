@@ -190,7 +190,7 @@ export const HeroBannerV4: React.FC<HeroBannerProps> = ({
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
                   <Clock className="w-4 h-4 text-[#03DBD0]" />
                 </div>
-                <span className="text-white/80 text-sm">Aprobacion en 24h</span>
+                <span className="text-white/80 text-sm">Aprobación en 24h</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">

@@ -13,7 +13,7 @@ import { Mail, Send, Facebook, Instagram, Linkedin } from 'lucide-react';
 
 const quickLinks = [
   { label: 'Laptops', href: '#laptops' },
-  { label: 'Como funciona', href: '#como-funciona' },
+  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
   { label: 'Contacto', href: '#contacto' },

@@ -20,7 +20,7 @@ const navItems = [
 
 const topNavItems = [
   { label: 'Laptops', href: '#laptops' },
-  { label: 'Como funciona', href: '#como-funciona' },
+  { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
 ];

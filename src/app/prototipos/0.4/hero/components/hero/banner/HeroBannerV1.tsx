@@ -60,7 +60,7 @@ export const HeroBannerV1: React.FC<HeroBannerProps> = ({
                   content: 'text-[#4654CD] text-sm font-medium',
                 }}
               >
-                Financiamiento estudiantil #1 en Peru
+                Financiamiento estudiantil #1 en Perú
               </Chip>
             </motion.div>
 
@@ -138,7 +138,7 @@ export const HeroBannerV1: React.FC<HeroBannerProps> = ({
                 variant="bordered"
                 className="border-2 border-neutral-200 text-neutral-700 font-semibold px-8 h-14 text-base cursor-pointer hover:bg-neutral-50 hover:border-neutral-300 transition-all"
               >
-                Como funciona
+                Cómo funciona
               </Button>
             </motion.div>
 
@@ -159,7 +159,7 @@ export const HeroBannerV1: React.FC<HeroBannerProps> = ({
                 <div className="w-9 h-9 rounded-xl bg-[#03DBD0]/10 flex items-center justify-center">
                   <Clock className="w-4 h-4 text-[#03DBD0]" />
                 </div>
-                <span className="text-neutral-600 text-sm">Aprobacion 24h</span>
+                <span className="text-neutral-600 text-sm">Aprobación 24h</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-[#22c55e]/10 flex items-center justify-center">

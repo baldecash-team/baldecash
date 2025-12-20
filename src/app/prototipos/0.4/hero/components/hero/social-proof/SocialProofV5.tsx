@@ -15,7 +15,7 @@ import { SocialProofProps } from '../../../types/hero';
 const testimonials = [
   {
     id: 1,
-    quote: 'Gracias a BaldeCash pude terminar mi tesis a tiempo. El proceso fue super rapido.',
+    quote: 'Gracias a BaldeCash pude terminar mi tesis a tiempo. El proceso fue súper rápido.',
     name: 'Maria Garcia',
     institution: 'UPN',
     institutionLogo: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/677c972324b38a6a21133bad_2%20UPN%202.png',
@@ -24,7 +24,7 @@ const testimonials = [
   },
   {
     id: 2,
-    quote: 'Nunca pense que podria tener mi propia laptop. BaldeCash lo hizo posible.',
+    quote: 'Nunca pensé que podría tener mi propia laptop. BaldeCash lo hizo posible.',
     name: 'Carlos Rodriguez',
     institution: 'UPC',
     institutionLogo: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/677c97232b703bfd964ee870_universidad-peruana-de-ciencias-aplicadas-upc-logo-B98C3A365C-seeklogo%201.png',
@@ -33,7 +33,7 @@ const testimonials = [
   },
   {
     id: 3,
-    quote: 'El financiamiento me permitio concentrarme en mis estudios sin preocuparme.',
+    quote: 'El financiamiento me permitió concentrarme en mis estudios sin preocuparme.',
     name: 'Ana Torres',
     institution: 'SENATI',
     institutionLogo: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/677c97241f715c1e9ac6dfcb_4%20Senati%201.png',

@@ -30,7 +30,7 @@ export const HowItWorksV2: React.FC<HowItWorksProps> = ({ data = mockHowItWorksD
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-neutral-800 font-['Baloo_2']">
-            Como funciona
+            ¿Cómo funciona?
           </h2>
           <p className="text-neutral-600 max-w-2xl mx-auto">
             4 pasos simples para obtener tu equipo

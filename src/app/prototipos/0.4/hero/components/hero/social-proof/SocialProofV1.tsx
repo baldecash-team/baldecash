@@ -43,11 +43,11 @@ export const SocialProofV1: React.FC<SocialProofProps> = ({ data }) => {
           <h3 className="text-2xl md:text-3xl font-bold text-neutral-800 font-['Baloo_2'] mb-3">
             +{data.institutionCount}{' '}
             <span className="text-[#4654CD]">instituciones</span>{' '}
-            confian en nosotros
+            confían en nosotros
           </h3>
 
           <p className="text-neutral-500 max-w-xl mx-auto">
-            Universidades, institutos y centros de formacion en todo el Peru
+            Universidades, institutos y centros de formación en todo el Perú
           </p>
 
           {/* Stats Row */}

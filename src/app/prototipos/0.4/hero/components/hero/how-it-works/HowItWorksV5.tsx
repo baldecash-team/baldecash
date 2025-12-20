@@ -47,7 +47,7 @@ export const HowItWorksV5: React.FC<HowItWorksProps> = ({ data = mockHowItWorksD
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-neutral-800 font-['Baloo_2']">
-            Asi de facil
+            Así de fácil
           </h2>
           <p className="text-neutral-600 max-w-2xl mx-auto">
             Todo lo que necesitas saber para obtener tu equipo

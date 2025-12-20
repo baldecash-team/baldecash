@@ -133,7 +133,7 @@ export const HeroBannerV6: React.FC<HeroBannerProps> = ({
             className="border-2 border-neutral-200 text-neutral-700 font-semibold h-14 cursor-pointer hover:bg-neutral-50 hover:border-neutral-300 transition-all"
             startContent={<Play className="w-4 h-4 fill-current" />}
           >
-            Ver como funciona
+            Ver cómo funciona
           </Button>
         </div>
 
@@ -149,7 +149,7 @@ export const HeroBannerV6: React.FC<HeroBannerProps> = ({
             <div className="w-8 h-8 rounded-lg bg-[#03DBD0]/10 flex items-center justify-center">
               <Clock className="w-4 h-4 text-[#03DBD0]" />
             </div>
-            <span className="text-neutral-700 text-sm font-medium">Aprobacion 24h</span>
+            <span className="text-neutral-700 text-sm font-medium">Aprobación 24h</span>
           </div>
           <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-neutral-100">
             <div className="w-8 h-8 rounded-lg bg-[#22c55e]/10 flex items-center justify-center">

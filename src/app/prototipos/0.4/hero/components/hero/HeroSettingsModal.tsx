@@ -145,6 +145,13 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
           </p>
 
           <VersionSelector
+            label="Navbar"
+            value={config.navbarVersion}
+            onChange={(v) => onConfigChange({ ...config, navbarVersion: v })}
+            descriptions={versionDescriptions.navbar}
+          />
+
+          <VersionSelector
             label="Hero Banner"
             value={config.heroBannerVersion}
             onChange={(v) => onConfigChange({ ...config, heroBannerVersion: v })}
@@ -159,10 +166,10 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
           />
 
           <VersionSelector
-            label="Navbar"
-            value={config.navbarVersion}
-            onChange={(v) => onConfigChange({ ...config, navbarVersion: v })}
-            descriptions={versionDescriptions.navbar}
+            label="¿Cómo Funciona?"
+            value={config.howItWorksVersion}
+            onChange={(v) => onConfigChange({ ...config, howItWorksVersion: v })}
+            descriptions={versionDescriptions.howItWorks}
           />
 
           <VersionSelector
@@ -173,24 +180,17 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
           />
 
           <VersionSelector
+            label="¿Tienes Dudas? (FAQ)"
+            value={config.faqVersion}
+            onChange={(v) => onConfigChange({ ...config, faqVersion: v })}
+            descriptions={versionDescriptions.faq}
+          />
+
+          <VersionSelector
             label="Footer"
             value={config.footerVersion}
             onChange={(v) => onConfigChange({ ...config, footerVersion: v })}
             descriptions={versionDescriptions.footer}
-          />
-
-          <VersionSelector
-            label="Como Funciona"
-            value={config.howItWorksVersion}
-            onChange={(v) => onConfigChange({ ...config, howItWorksVersion: v })}
-            descriptions={versionDescriptions.howItWorks}
-          />
-
-          <VersionSelector
-            label="Tienes Dudas? (FAQ)"
-            value={config.faqVersion}
-            onChange={(v) => onConfigChange({ ...config, faqVersion: v })}
-            descriptions={versionDescriptions.faq}
           />
 
           <div className="mt-2 p-3 bg-neutral-50 rounded-lg border border-neutral-200">

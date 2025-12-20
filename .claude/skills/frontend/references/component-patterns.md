@@ -588,7 +588,78 @@ export const ApprovalResult = () => {
 
 ---
 
-## 15. Patrón: Espaciado y Composición
+## 15. Patrón: Ortografía en Español
+
+> **OBLIGATORIO**: Todo el contenido visible al usuario debe tener ortografía correcta en español.
+> Este es un checklist que debe ejecutarse en cada iteración (`/iterar`).
+
+### Reglas de Acentuación
+
+| Palabra sin tilde | Correcto | Ejemplo de uso |
+|-------------------|----------|----------------|
+| Como | Cómo | "¿Cómo funciona?" |
+| Peru | Perú | "Envío a todo el Perú" |
+| Aprobacion | Aprobación | "Aprobación en 24h" |
+| Terminos | Términos | "Términos y condiciones" |
+| Politica | Política | "Política de privacidad" |
+| rapido | rápido | "Proceso súper rápido" |
+| facil | fácil | "Así de fácil" |
+| numero | número | "Número grande" |
+| basico | básico | "Requisitos básicos" |
+| credito | crédito | "Sin historial crediticio" |
+| opcion | opción | "Opción de compra" |
+| electronica | electrónica | "Firma electrónica" |
+| garantia | garantía | "12 meses de garantía" |
+| mas | más | "Ver más" |
+| dias | días | "3-5 días hábiles" |
+| Tecnologica | Tecnológica | "Universidad Tecnológica" |
+| anos | años | "5 años en el mercado" |
+| catalogo | catálogo | "Explora nuestro catálogo" |
+
+### Signos de Interrogación y Exclamación
+
+> **OBLIGATORIO**: En español, las preguntas y exclamaciones requieren AMBOS signos.
+
+```tsx
+// ✅ CORRECTO - Ambos signos
+<h2>¿Cómo funciona?</h2>
+<h2>¿Tienes dudas?</h2>
+<p>¡Felicidades!</p>
+
+// ❌ INCORRECTO - Solo signo final
+<h2>Como funciona?</h2>
+<h2>Tienes dudas?</h2>
+<p>Felicidades!</p>
+```
+
+### Palabras con Ñ
+
+```tsx
+// ✅ CORRECTO
+"5 años en el mercado"
+"Diseño exclusivo"
+"Pequeño descuento"
+
+// ❌ INCORRECTO
+"5 anos en el mercado"
+"Diseno exclusivo"
+"Pequeno descuento"
+```
+
+### Checklist de Revisión para `/iterar`
+
+Antes de hacer commit, verificar:
+
+1. [ ] Todas las preguntas tienen ¿...?
+2. [ ] Todas las exclamaciones tienen ¡...!
+3. [ ] Nombres propios con tildes (Perú, Tecnológica)
+4. [ ] Palabras comunes con tildes (más, días, fácil, rápido)
+5. [ ] Palabras con ñ donde corresponde (años, diseño)
+6. [ ] Labels del modal de configuración en orden correcto
+
+---
+
+## 16. Patrón: Espaciado y Composición
 
 ```tsx
 // Layout con jerarquía clara - UN elemento dominante

@@ -48,7 +48,7 @@ export const HeroBannerV2: React.FC<HeroBannerProps> = ({
               content: 'text-white text-xs font-medium',
             }}
           >
-            +10,000 estudiantes confian en nosotros
+            +10,000 estudiantes confían en nosotros
           </Chip>
 
           {/* Headline */}
@@ -90,7 +90,7 @@ export const HeroBannerV2: React.FC<HeroBannerProps> = ({
               variant="bordered"
               className="border-white/30 text-white font-medium cursor-pointer hover:bg-white/10 transition-colors"
             >
-              Como funciona
+              Cómo funciona
             </Button>
           </div>
 

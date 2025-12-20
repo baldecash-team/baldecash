@@ -34,7 +34,7 @@ export const HowItWorksV4: React.FC<HowItWorksProps> = ({ data = mockHowItWorksD
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-neutral-800 font-['Baloo_2']">
             4 pasos simples
           </h2>
-          <p className="text-neutral-600">Toca cada icono para ver mas</p>
+          <p className="text-neutral-600">Toca cada icono para ver más</p>
         </motion.div>
 
         {/* Iconos minimalistas */}
@@ -116,7 +116,7 @@ export const HowItWorksV4: React.FC<HowItWorksProps> = ({ data = mockHowItWorksD
 
         {/* Requisitos inline */}
         <div className="mt-16 text-center">
-          <p className="text-sm text-neutral-500 mb-4">Requisitos basicos</p>
+          <p className="text-sm text-neutral-500 mb-4">Requisitos básicos</p>
           <div className="flex flex-wrap justify-center gap-3">
             {data.requirements.slice(0, 3).map((req) => (
               <div

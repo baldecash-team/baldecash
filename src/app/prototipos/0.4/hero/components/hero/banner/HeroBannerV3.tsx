@@ -40,7 +40,7 @@ export const HeroBannerV3: React.FC<HeroBannerProps> = ({
                 content: 'text-white text-xs font-medium',
               }}
             >
-              Nuevo en Peru
+              Nuevo en Perú
             </Chip>
 
             {/* Headline */}
@@ -56,7 +56,7 @@ export const HeroBannerV3: React.FC<HeroBannerProps> = ({
 
             {/* Subheadline */}
             <p className="text-lg text-neutral-600 max-w-md">
-              Tu primera laptop sin necesidad de historial bancario. Aprobacion en 24 horas.
+              Tu primera laptop sin necesidad de historial bancario. Aprobación en 24 horas.
             </p>
 
             {/* Benefits List */}

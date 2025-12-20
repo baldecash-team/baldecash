@@ -220,9 +220,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
               {/* Microcopy */}
               <p className="text-xs text-neutral-400 mt-6">
                 Al continuar, aceptas nuestros{' '}
-                <a href="/prototipos/0.4/legal/terminos" className="underline hover:text-neutral-600">terminos y condiciones</a>
+                <a href="/prototipos/0.4/legal/terminos" className="underline hover:text-neutral-600">términos y condiciones</a>
                 {' '}y{' '}
-                <a href="/prototipos/0.4/legal/privacidad" className="underline hover:text-neutral-600">politica de privacidad</a>
+                <a href="/prototipos/0.4/legal/privacidad" className="underline hover:text-neutral-600">política de privacidad</a>
               </p>
             </motion.div>
           </div>

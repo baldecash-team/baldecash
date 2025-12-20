@@ -55,16 +55,16 @@ export const HowItWorksV1: React.FC<HowItWorksProps> = ({ data = mockHowItWorksD
             Proceso simple
           </Chip>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-neutral-800 font-['Baloo_2']">
-            Como{' '}
+            ¿Cómo{' '}
             <span className="text-[#4654CD] relative">
-              funciona
+              funciona?
               <svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 150 8" fill="none">
                 <path d="M2 6C40 2 110 2 148 6" stroke="#03DBD0" strokeWidth="3" strokeLinecap="round" />
               </svg>
             </span>
           </h2>
           <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-            Obtener tu equipo es mas facil de lo que piensas. Solo 4 pasos y listo.
+            Obtener tu equipo es más fácil de lo que piensas. Solo 4 pasos y listo.
           </p>
         </motion.div>
 

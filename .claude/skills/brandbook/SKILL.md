@@ -224,6 +224,35 @@ Usamos un lenguaje fresco y actual.
 - ✅ *"Dale click y empieza tu aventura tech."*
 - ❌ *"Proceda a completar el formulario."*
 
+### Ortografía en Español (OBLIGATORIO)
+
+El contenido de BaldeCash está en español. Verificar SIEMPRE:
+
+**Signos de interrogación y exclamación:**
+- ✅ "¿Cómo funciona?" (ambos signos)
+- ❌ "Como funciona?" (solo signo final)
+
+**Tildes obligatorias:**
+| Incorrecto | Correcto |
+|------------|----------|
+| Como | Cómo |
+| Peru | Perú |
+| Aprobacion | Aprobación |
+| Terminos | Términos |
+| Politica | Política |
+| rapido | rápido |
+| facil | fácil |
+| mas | más |
+| dias | días |
+| anos | años |
+| catalogo | catálogo |
+
+**Ñ donde corresponde:**
+- ✅ "5 años" (no "5 anos")
+- ✅ "diseño" (no "diseno")
+
+---
+
 ### Terminología de Productos
 
 BaldeCash financia **equipos tecnológicos**, no solo laptops. Usar terminología inclusiva:

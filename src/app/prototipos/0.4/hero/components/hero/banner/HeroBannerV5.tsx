@@ -84,7 +84,7 @@ export const HeroBannerV5: React.FC<HeroBannerProps> = ({
               variant="bordered"
               className="border-neutral-300 text-neutral-700 font-medium cursor-pointer hover:bg-neutral-50 transition-colors"
             >
-              Como funciona
+              Cómo funciona
             </Button>
           </div>
 
@@ -145,7 +145,7 @@ export const HeroBannerV5: React.FC<HeroBannerProps> = ({
               </div>
               <div className="text-center">
                 <p className="text-3xl font-bold text-white">24h</p>
-                <p className="text-white/70 text-sm">Aprobacion</p>
+                <p className="text-white/70 text-sm">Aprobación</p>
               </div>
             </div>
           </div>
