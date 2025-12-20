@@ -15,13 +15,14 @@ import {
   Select,
   SelectItem,
 } from '@nextui-org/react';
-import { Settings, RotateCcw } from 'lucide-react';
+import { Settings, RotateCcw, Link2, Check } from 'lucide-react';
 import {
   ProductDetailConfig,
   DetailVersion,
   defaultDetailConfig,
   versionDescriptions,
 } from '../../types/detail';
+import { useState } from 'react';
 
 interface DetailSettingsModalProps {
   isOpen: boolean;
@@ -108,8 +109,33 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
   config,
   onConfigChange,
 }) => {
+  const [copied, setCopied] = useState(false);
+
   const handleReset = () => {
     onConfigChange(defaultDetailConfig);
+  };
+
+  const handleGenerateUrl = () => {
+    const params = new URLSearchParams();
+    params.set('infoHeader', config.infoHeaderVersion.toString());
+    params.set('gallery', config.galleryVersion.toString());
+    params.set('tabs', config.tabsVersion.toString());
+    params.set('specs', config.specsVersion.toString());
+    params.set('pricing', config.pricingVersion.toString());
+    params.set('similar', config.similarProductsVersion.toString());
+    params.set('limitations', config.limitationsVersion.toString());
+    params.set('certifications', config.certificationsVersion.toString());
+
+    const baseUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/prototipos/0.4/producto/detail-preview`
+      : '/prototipos/0.4/producto/detail-preview';
+
+    const fullUrl = `${baseUrl}?${params.toString()}`;
+
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   return (
@@ -207,15 +233,25 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white">
-          <Button
-            variant="light"
-            startContent={<RotateCcw className="w-4 h-4" />}
-            onPress={handleReset}
-            className="cursor-pointer"
-          >
-            Restablecer
-          </Button>
+        <ModalFooter className="bg-white flex justify-between">
+          <div className="flex gap-2">
+            <Button
+              variant="light"
+              startContent={<RotateCcw className="w-4 h-4" />}
+              onPress={handleReset}
+              className="cursor-pointer"
+            >
+              Restablecer
+            </Button>
+            <Button
+              variant="flat"
+              startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
+              onPress={handleGenerateUrl}
+              className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
+            >
+              {copied ? 'Copiado!' : 'Generar URL'}
+            </Button>
+          </div>
           <Button
             className="bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3] transition-colors"
             onPress={onClose}
