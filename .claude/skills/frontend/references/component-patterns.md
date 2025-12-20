@@ -86,13 +86,17 @@ Patrones de código aprobados para componentes comunes.
 
 ## 3. Patrón: Inputs con Validación
 
+> **IMPORTANTE**: Los inputs de NextUI tienen un focus ring negro por defecto.
+> SIEMPRE agregar `focus-within:ring-0` al inputWrapper y `focus:outline-none` al input
+> para eliminar el borde negro al hacer click/focus.
+
 ```tsx
 <div className="space-y-1">
   <label className="block text-sm font-medium text-neutral-700">
     {label}
     {!required && <span className="text-neutral-400 ml-1">(Opcional)</span>}
   </label>
-  
+
   <Input
     value={value}
     onChange={onChange}
@@ -100,11 +104,13 @@ Patrones de código aprobados para componentes comunes.
     placeholder={placeholder}
     classNames={{
       inputWrapper: `
-        border-2 transition-colors
+        border-2 transition-colors focus-within:ring-0
         ${error ? 'border-[#ef4444] bg-[#ef4444]/5' : ''}
         ${isValid ? 'border-[#22c55e]' : ''}
         ${isFocused ? 'border-[#4654CD]' : 'border-neutral-300'}
       `,
+      input: 'focus:outline-none',
+      innerWrapper: 'focus-within:ring-0',
     }}
     endContent={
       <>
@@ -113,7 +119,7 @@ Patrones de código aprobados para componentes comunes.
       </>
     }
   />
-  
+
   {error && (
     <p className="text-sm text-[#ef4444] flex items-center gap-1">
       <AlertCircle className="w-4 h-4" />
@@ -121,6 +127,22 @@ Patrones de código aprobados para componentes comunes.
     </p>
   )}
 </div>
+
+// ❌ INCORRECTO - Deja borde negro al hacer click
+<Input
+  classNames={{
+    inputWrapper: 'border-2 border-neutral-200',
+  }}
+/>
+
+// ✅ CORRECTO - Sin borde negro al focus
+<Input
+  classNames={{
+    inputWrapper: 'border-2 border-neutral-200 focus-within:ring-0',
+    input: 'focus:outline-none',
+    innerWrapper: 'focus-within:ring-0',
+  }}
+/>
 ```
 
 ---

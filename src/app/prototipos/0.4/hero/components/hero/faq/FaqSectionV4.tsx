@@ -11,6 +11,7 @@ import { Tabs, Tab, Accordion, AccordionItem, Chip } from '@nextui-org/react';
 import { HelpCircle, FileText, CreditCard, Truck, ClipboardCheck } from 'lucide-react';
 import { FaqSectionProps } from '../../../types/hero';
 import { mockFaqData } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 const categoryIcons: Record<string, React.ElementType> = {
   Requisitos: ClipboardCheck,
@@ -19,7 +20,7 @@ const categoryIcons: Record<string, React.ElementType> = {
   Envio: Truck,
 };
 
-export const FaqSectionV4: React.FC<FaqSectionProps> = ({ data = mockFaqData }) => {
+export const FaqSectionV4: React.FC<FaqSectionProps> = ({ data = mockFaqData, underlineStyle = 4 }) => {
   const [selectedCategory, setSelectedCategory] = useState(data.categories?.[0] || 'Requisitos');
 
   const filteredItems = useMemo(() => {
@@ -40,7 +41,7 @@ export const FaqSectionV4: React.FC<FaqSectionProps> = ({ data = mockFaqData }) 
           className="text-center mb-10"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2'] mb-4">
-            Tienes dudas?
+            ¿Tienes dudas?
           </h2>
           <p className="text-neutral-600">Selecciona una categoria</p>
         </motion.div>

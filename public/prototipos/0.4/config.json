@@ -5,6 +5,41 @@
   "description": "Prototipo v0.4 - Sistema de A/B testing con 6 versiones por componente",
   "status": "testing",
   "sections": {
+    "convenio": {
+      "lastUpdated": "2024-12-20T00:00:00.000Z",
+      "components": {
+        "navbar": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Logos lado a lado, V2-Acento color convenio, V3-Banner flotante descuento, V4-Minimalista CTA, V5-Countdown timer, V6-Barra de cupos"
+        },
+        "hero": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Co-branded clasico, V2-Imagen campus, V3-Split con calculadora, V4-Logos grandes centrados, V5-Countdown urgencia, V6-Carrusel productos"
+        },
+        "benefits": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Cards grid iconos, V2-Lista vertical, V3-Cards horizontales, V4-Timeline, V5-Cards gradiente sutil, V6-Tabs categorias"
+        },
+        "testimonials": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Grid 3 columnas, V2-Carrusel horizontal, V3-Featured + miniaturas, V4-Video style, V5-Cards foto grande, V6-Masonry"
+        },
+        "faq": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Acordeon simple, V2-Con iconos categoria, V3-Grid expandible, V4-Tabs por tema, V5-Busqueda + acordeon, V6-Chatbot conversacional"
+        },
+        "cta": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Boton grande simple, V2-Con calculadora, V3-Countdown urgencia, V4-Split info + CTA, V5-Cupos limitados, V6-WhatsApp directo"
+        }
+      }
+    },
     "hero": {
       "lastUpdated": "2024-12-19T00:00:00.000Z",
       "components": {
@@ -55,6 +90,11 @@
     {
       "date": "2024-12-19",
       "note": "Agregados componentes HowItWorks (6 versiones) y FAQ (6 versiones) al Hero section",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-20",
+      "note": "Creada seccion Convenio Landing completa: Navbar, Hero, Benefits, Testimonials, FAQ, CTA (6 versiones cada uno, 36 componentes total)",
       "author": "Claude"
     }
   ]

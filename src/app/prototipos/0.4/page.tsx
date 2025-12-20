@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@nextui-org/react";
-import { AlertCircle, Layers, Rocket, ArrowLeft, CheckCircle } from "lucide-react";
+import { AlertCircle, Layers, Rocket, ArrowLeft, CheckCircle, Keyboard, Command } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
 
@@ -21,6 +21,7 @@ const sectionIcons: Record<string, React.ElementType> = {
   upsell: Layers,
   aprobacion: Layers,
   rechazo: Layers,
+  convenio: Layers,
 };
 
 const statusStyles = {
@@ -120,6 +121,129 @@ export default function Version04Page() {
                 </Card>
               );
             })}
+          </div>
+        </section>
+
+        {/* Keyboard Shortcuts Guide */}
+        <section className="max-w-4xl mx-auto mt-12">
+          <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm">
+            <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
+              <Keyboard className="w-5 h-5 text-[#4654CD]" />
+              Atajos de Teclado
+            </h2>
+            <p className="text-sm text-neutral-500 mb-6">
+              Usa estos atajos en el preview para cambiar versiones rápidamente sin abrir el modal.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Windows */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded bg-neutral-100 flex items-center justify-center">
+                    <span className="text-xs font-bold text-neutral-600">⊞</span>
+                  </div>
+                  <span className="text-sm font-medium text-neutral-700">Windows / Linux</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Cambiar versión componente</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">1</kbd>
+                      <span className="text-neutral-400">-</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">6</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Cambiar subrayado</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Shift</kbd>
+                      <span className="text-neutral-400">+</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">1-6</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Siguiente componente</span>
+                    <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Tab</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Componente anterior</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Shift</kbd>
+                      <span className="text-neutral-400">+</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Tab</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Abrir/cerrar config</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">?</kbd>
+                      <span className="text-neutral-400">o</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">K</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-neutral-600">Cerrar modal</span>
+                    <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Esc</kbd>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mac */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Command className="w-5 h-5 text-neutral-600" />
+                  <span className="text-sm font-medium text-neutral-700">macOS</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Cambiar versión componente</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">1</kbd>
+                      <span className="text-neutral-400">-</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">6</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Cambiar subrayado</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⇧</kbd>
+                      <span className="text-neutral-400">+</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">1-6</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Siguiente componente</span>
+                    <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⇥</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Componente anterior</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⇧</kbd>
+                      <span className="text-neutral-400">+</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⇥</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Abrir/cerrar config</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">?</kbd>
+                      <span className="text-neutral-400">o</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">K</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-neutral-600">Cerrar modal</span>
+                    <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⎋</kbd>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 p-3 bg-[#4654CD]/5 rounded-lg border border-[#4654CD]/10">
+              <p className="text-xs text-[#4654CD]">
+                <strong>Nota:</strong> Los atajos se desactivan automáticamente cuando escribes en campos de búsqueda o formularios.
+              </p>
+            </div>
           </div>
         </section>
 

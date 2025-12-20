@@ -11,8 +11,9 @@ import { Button, Avatar } from '@nextui-org/react';
 import { MessageCircle, Send, HelpCircle, ChevronLeft } from 'lucide-react';
 import { FaqSectionProps } from '../../../types/hero';
 import { mockFaqData } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
-export const FaqSectionV6: React.FC<FaqSectionProps> = ({ data = mockFaqData }) => {
+export const FaqSectionV6: React.FC<FaqSectionProps> = ({ data = mockFaqData, underlineStyle = 4 }) => {
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null);
   const [chatHistory, setChatHistory] = useState<
     { type: 'question' | 'answer'; content: string }[]
@@ -50,7 +51,7 @@ export const FaqSectionV6: React.FC<FaqSectionProps> = ({ data = mockFaqData }) 
             <span>Asistente BaldeCash</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2']">
-            Tienes dudas?
+            ¿Tienes dudas?
           </h2>
         </motion.div>
 

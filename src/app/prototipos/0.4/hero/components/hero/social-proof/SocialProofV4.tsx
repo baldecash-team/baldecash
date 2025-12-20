@@ -13,8 +13,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { SocialProofProps } from '../../../types/hero';
 import { conveniosLogos } from '@/app/prototipos/_shared/data/conveniosLogos';
+import { UnderlinedText } from '../common/UnderlinedText';
 
-export const SocialProofV4: React.FC<SocialProofProps> = ({ data }) => {
+export const SocialProofV4: React.FC<SocialProofProps> = ({ data, underlineStyle = 4 }) => {
   const [page, setPage] = useState(0);
   const logosPerPage = 4;
   const totalPages = Math.ceil(conveniosLogos.length / logosPerPage);

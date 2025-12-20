@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { FaqSectionProps } from '../../../types/hero';
 import { mockFaqData } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 const categoryIcons: Record<string, React.ElementType> = {
   Requisitos: ClipboardCheck,
@@ -32,7 +33,7 @@ const categoryColors: Record<string, string> = {
   Envio: '#22c55e',
 };
 
-export const FaqSectionV2: React.FC<FaqSectionProps> = ({ data = mockFaqData }) => {
+export const FaqSectionV2: React.FC<FaqSectionProps> = ({ data = mockFaqData, underlineStyle = 4 }) => {
   return (
     <section className="py-20 bg-neutral-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -43,7 +44,7 @@ export const FaqSectionV2: React.FC<FaqSectionProps> = ({ data = mockFaqData }) 
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2'] mb-4">
-            Tienes dudas?
+            ¿Tienes dudas?
           </h2>
           <p className="text-neutral-600">Respuestas a las preguntas mas comunes</p>
         </motion.div>

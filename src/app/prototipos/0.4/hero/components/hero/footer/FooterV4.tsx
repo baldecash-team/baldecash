@@ -11,11 +11,11 @@ import React from 'react';
 import { Smartphone, Facebook, Instagram, Linkedin } from 'lucide-react';
 
 const quickLinks = [
-  { label: 'Laptops', href: '#laptops' },
+  { label: 'Equipos', href: '#equipos' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
   { label: 'Términos', href: '#terminos' },
-  { label: 'Privacidad', href: '#privacidad' },
+  { label: 'Libro de reclamaciones', href: '#reclamos' },
 ];
 
 const socialLinks = [

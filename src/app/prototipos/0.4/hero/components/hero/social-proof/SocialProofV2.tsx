@@ -11,8 +11,9 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { SocialProofProps } from '../../../types/hero';
 import { conveniosLogos } from '@/app/prototipos/_shared/data/conveniosLogos';
+import { UnderlinedText } from '../common/UnderlinedText';
 
-export const SocialProofV2: React.FC<SocialProofProps> = ({ data }) => {
+export const SocialProofV2: React.FC<SocialProofProps> = ({ data, underlineStyle = 4 }) => {
   // Show first 16 logos
   const displayLogos = conveniosLogos.slice(0, 16);
 
@@ -22,7 +23,11 @@ export const SocialProofV2: React.FC<SocialProofProps> = ({ data }) => {
         {/* Header */}
         <div className="text-center mb-10">
           <h2 className="text-2xl font-bold text-neutral-900 mb-2">
-            Nuestros convenios educativos
+            Nuestros{' '}
+            <UnderlinedText style={underlineStyle} color="primary">
+              convenios
+            </UnderlinedText>{' '}
+            educativos
           </h2>
           <p className="text-neutral-600">
             Mas de {data.institutionCount} instituciones confian en nosotros
