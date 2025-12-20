@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Shield } from 'lucide-react';
+import { Shield, CheckCircle2, Award } from 'lucide-react';
+import { Tooltip } from '@nextui-org/react';
 
 export interface Certification {
   code: string;
@@ -21,34 +22,41 @@ export interface CertificationsProps {
  */
 export default function CertificationsV1({ certifications }: CertificationsProps) {
   return (
-    <div className="w-full py-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Shield className="w-5 h-5 text-[#4654CD]" />
-        <h3 className="text-lg font-semibold text-neutral-900">Certificaciones</h3>
+    <div className="w-full">
+      {/* Header with trust message */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+          <CheckCircle2 className="w-4 h-4 text-green-600" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-neutral-800">Producto certificado</h3>
+          <p className="text-xs text-neutral-500">Garantias verificadas</p>
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
+      {/* Certification badges */}
+      <div className="flex flex-wrap items-center gap-2">
         {certifications.map((cert) => (
-          <div
+          <Tooltip
             key={cert.code}
-            className="flex items-center justify-center w-20 h-20 bg-neutral-50 rounded-lg border border-neutral-200"
-            title={cert.name}
+            content={
+              <div className="max-w-[200px] p-2">
+                <p className="font-semibold text-sm">{cert.name}</p>
+                <p className="text-xs text-neutral-400 mt-1">{cert.description}</p>
+              </div>
+            }
+            placement="top"
+            classNames={{
+              content: 'bg-neutral-900 text-white rounded-lg',
+            }}
           >
-            <div className="text-center">
-              <div className="text-2xl font-bold text-[#4654CD]">
-                {cert.code.substring(0, 2).toUpperCase()}
-              </div>
-              <div className="text-[10px] text-neutral-600 mt-1">
-                {cert.code}
-              </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 rounded-full border border-neutral-200 transition-colors cursor-default">
+              <Award className="w-3.5 h-3.5 text-[#4654CD]" />
+              <span className="text-xs font-medium text-neutral-700">{cert.code}</span>
             </div>
-          </div>
+          </Tooltip>
         ))}
       </div>
-
-      <p className="text-sm text-neutral-500 mt-4">
-        Todas las certificaciones verificadas y vigentes
-      </p>
     </div>
   );
 }
