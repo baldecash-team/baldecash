@@ -259,17 +259,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           {renderTabs()}
         </div>
 
-        {/* Bottom Section */}
-        <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Specs - 2 columns */}
-          <div id="section-specs" className="lg:col-span-2">
-            {renderSpecs()}
-          </div>
+        {/* Specs Section - Full Width */}
+        <div id="section-specs" className="mt-12">
+          {renderSpecs()}
+        </div>
 
-          {/* Similar Products - 1 column */}
-          <div id="section-similar">
-            {renderSimilarProducts()}
-          </div>
+        {/* Similar Products - Full Width */}
+        <div id="section-similar" className="mt-12">
+          {renderSimilarProducts()}
         </div>
 
         {/* Limitations */}

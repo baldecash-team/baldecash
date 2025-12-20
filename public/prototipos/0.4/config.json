@@ -124,6 +124,33 @@
           "notes": "V1-Logos inline, V2-Logos+nombre+tooltip, V3-Cards expandibles, V4-Logos flotantes hover, V5-Panel lateral, V6-Acordeon interactivo"
         }
       }
+    },
+    "quiz": {
+      "lastUpdated": "2024-12-20T00:00:00.000Z",
+      "preferences": {
+        "B.98": "Layout V1 - Modal full screen mobile (integrado con catalogo)",
+        "B.99": "7 preguntas - Mayor precision",
+        "B.100": "Question Style V1 - Chips/pills con animaciones (basado en 0.3 V3)",
+        "B.101": "Results V1 - Categoria + productos con cards del catalogo (basado en 0.3 V3)",
+        "B.102": "Focus V1 - Solo por uso"
+      },
+      "components": {
+        "layout": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Modal full screen mobile (PREFERIDO), V2-Widget lateral, V3-Pagina dedicada, V4-Bottom sheet, V5-Wizard steps, V6-Chat conversacional"
+        },
+        "questions": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Chips/pills animados (PREFERIDO basado en 0.3 V3), V2-Cards iconos grandes, V3-Botones full-width, V4-Grid iconos compacto, V5-Slider escala, V6-Opciones con imagenes"
+        },
+        "results": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Categoria+cards catalogo (PREFERIDO basado en 0.3 V3), V2-Producto destacado, V3-Top 3 ranking, V4-Comparativa tabla, V5-Carrusel swipeable, V6-Lista con filtros"
+        }
+      }
     }
   },
   "testingNotes": [
@@ -145,6 +172,11 @@
     {
       "date": "2024-12-20",
       "note": "Creada seccion Producto Detail completa: InfoHeader, Gallery, Tabs, Specs, Pricing, SimilarProducts, Limitations, Certifications (6 versiones cada uno, 48 componentes total). CRITICO: Sin precio, solo cuota mensual",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-20",
+      "note": "Creada seccion Quiz completa con 6 versiones: Layout (B.98), Questions (B.100), Results (B.101). Preferencias consolidadas de 0.3: V1 Layout (full screen mobile), 7 preguntas (B.99), V1 Questions (chips/pills basado en 0.3 V3), V1 Results (categoria + cards catalogo basado en 0.3 V3), Focus V1 (solo por uso). 18 componentes total.",
       "author": "Claude"
     }
   ]

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Tabs, Tab, Select, SelectItem } from '@nextui-org/react';
+import { Select, SelectItem } from '@nextui-org/react';
 
 export interface PricingCalculatorProps {
   monthlyQuota: number;
@@ -45,25 +45,26 @@ export default function PricingCalculatorV1({
         Calcula tu cuota mensual
       </h3>
 
-      {/* Term Selection - Compact Tabs */}
+      {/* Term Selection - Button Grid */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-neutral-700 mb-3">
           Selecciona el plazo
         </label>
-        <Tabs
-          selectedKey={selectedTerm}
-          onSelectionChange={(key) => setSelectedTerm(key.toString())}
-          variant="bordered"
-          classNames={{
-            tabList: 'gap-2 w-full',
-            tab: 'h-10 cursor-pointer',
-            cursor: 'bg-[#4654CD]',
-          }}
-        >
+        <div className="grid grid-cols-5 gap-2">
           {TERMS.map((term) => (
-            <Tab key={term.toString()} title={`${term} meses`} />
+            <button
+              key={term}
+              onClick={() => setSelectedTerm(term.toString())}
+              className={`py-2.5 px-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+                selectedTerm === term.toString()
+                  ? 'bg-[#4654CD] text-white shadow-md'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
+              {term}m
+            </button>
           ))}
-        </Tabs>
+        </div>
       </div>
 
       {/* Quota Display */}
@@ -91,8 +92,11 @@ export default function PricingCalculatorV1({
             setInitialPayment(value);
           }}
           placeholder="Selecciona cuota inicial"
+          aria-label="Cuota inicial"
           classNames={{
-            trigger: 'cursor-pointer',
+            trigger: 'bg-neutral-100 border border-neutral-200 hover:bg-neutral-50 cursor-pointer',
+            value: 'text-neutral-800',
+            popoverContent: 'bg-white border border-neutral-200 shadow-lg',
           }}
         >
           {INITIAL_PAYMENT_OPTIONS.map((option) => (

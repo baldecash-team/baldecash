@@ -16,7 +16,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { Settings, Eye, EyeOff, ArrowLeft, Code, Keyboard } from 'lucide-react';
+import { Settings, Eye, EyeOff, ArrowLeft, Code, Keyboard, X } from 'lucide-react';
 import { ProductDetailConfig, defaultDetailConfig, DetailVersion } from '../types/detail';
 import { ProductDetail } from '../components/detail/ProductDetail';
 import { DetailSettingsModal } from '../components/detail/DetailSettingsModal';
@@ -30,6 +30,8 @@ function DetailPreviewContent() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
+  const [showBadges, setShowBadges] = useState(true);
+  const [showShortcuts, setShowShortcuts] = useState(true);
 
   // Initialize config from URL params or defaults
   const [config, setConfig] = useState<ProductDetailConfig>(() => {
@@ -117,8 +119,8 @@ function DetailPreviewContent() {
       </div>
 
       {/* Version badges overlay */}
-      {showOverlays && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-wrap justify-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg border border-neutral-200 max-w-[90vw]">
+      {showOverlays && showBadges && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-wrap justify-center items-center gap-2 bg-white/95 backdrop-blur-sm pl-4 pr-2 py-2 rounded-lg shadow-lg border border-neutral-200 max-w-[90vw]">
           <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'gallery' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
             Gallery: V{config.galleryVersion}
           </span>
@@ -143,6 +145,13 @@ function DetailPreviewContent() {
           <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'limitations' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
             Limits: V{config.limitationsVersion}
           </span>
+          <button
+            onClick={() => setShowBadges(false)}
+            className="ml-2 p-1 hover:bg-neutral-100 rounded transition-colors cursor-pointer"
+            aria-label="Cerrar badges"
+          >
+            <X className="w-4 h-4 text-neutral-400 hover:text-neutral-600" />
+          </button>
         </div>
       )}
 
@@ -206,16 +215,25 @@ function DetailPreviewContent() {
       />
 
       {/* Keyboard shortcuts help */}
-      {showOverlays && (
-        <div className="fixed bottom-6 left-6 z-50 text-xs text-neutral-400 bg-white/80 backdrop-blur-sm px-3 py-2 rounded-lg shadow border border-neutral-200">
-          <div className="flex items-center gap-1.5 mb-1.5 text-neutral-500">
-            <Keyboard className="w-3.5 h-3.5" />
-            <span className="font-medium">Atajos</span>
+      {showOverlays && showShortcuts && (
+        <div className="fixed bottom-6 left-6 z-50 text-xs text-neutral-500 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-neutral-200">
+          <div className="flex items-center justify-between gap-4 mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <Keyboard className="w-3.5 h-3.5" />
+              <span className="font-medium">Atajos</span>
+            </div>
+            <button
+              onClick={() => setShowShortcuts(false)}
+              className="p-0.5 hover:bg-neutral-100 rounded transition-colors cursor-pointer"
+              aria-label="Cerrar atajos"
+            >
+              <X className="w-3.5 h-3.5 text-neutral-400 hover:text-neutral-600" />
+            </button>
           </div>
-          <p><kbd className="bg-neutral-100 px-1 rounded">Tab</kbd> Siguiente componente</p>
-          <p><kbd className="bg-neutral-100 px-1 rounded">1-6</kbd> Cambiar version</p>
-          <p><kbd className="bg-neutral-100 px-1 rounded">S</kbd> Settings</p>
-          <p><kbd className="bg-neutral-100 px-1 rounded">O</kbd> Toggle overlays</p>
+          <p><kbd className="bg-neutral-100 px-1 rounded text-neutral-700">Tab</kbd> Siguiente</p>
+          <p><kbd className="bg-neutral-100 px-1 rounded text-neutral-700">1-6</kbd> Version</p>
+          <p><kbd className="bg-neutral-100 px-1 rounded text-neutral-700">S</kbd> Settings</p>
+          <p><kbd className="bg-neutral-100 px-1 rounded text-neutral-700">O</kbd> Overlays</p>
         </div>
       )}
     </div>

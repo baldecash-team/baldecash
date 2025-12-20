@@ -10,7 +10,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Accordion, AccordionItem } from '@nextui-org/react';
-import { Cpu, FileText, Award, ChevronRight } from 'lucide-react';
+import { Cpu, FileText, Award, ChevronRight, Zap, Battery, Feather, Shield, type LucideIcon } from 'lucide-react';
+
+// Icon mapping for features
+const featureIcons: Record<string, LucideIcon> = {
+  Zap,
+  Battery,
+  Feather,
+  Shield,
+};
 import { DetailTabsProps } from '../../../types/detail';
 import { mockCertifications } from '../../../data/mockDetailData';
 
@@ -155,22 +163,29 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = ({ product }) => {
 
             {product.features.length > 0 && (
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {product.features.map((feature, index) => (
-                  <div
-                    key={index}
-                    className="flex gap-3 p-4 rounded-lg bg-neutral-50 border border-neutral-200"
-                  >
-                    <div className="shrink-0 w-10 h-10 rounded-full bg-[#4654CD]/10 flex items-center justify-center">
-                      <span className="text-lg">{feature.icon}</span>
+                {product.features.map((feature, index) => {
+                  const IconComponent = featureIcons[feature.icon];
+                  return (
+                    <div
+                      key={index}
+                      className="flex gap-3 p-4 rounded-lg bg-neutral-50 border border-neutral-200"
+                    >
+                      <div className="shrink-0 w-10 h-10 rounded-full bg-[#4654CD]/10 flex items-center justify-center">
+                        {IconComponent ? (
+                          <IconComponent className="w-5 h-5 text-[#4654CD]" />
+                        ) : (
+                          <span className="text-lg">{feature.icon}</span>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-neutral-900 mb-1">
+                          {feature.title}
+                        </h3>
+                        <p className="text-xs text-neutral-600">{feature.description}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-neutral-900 mb-1">
-                        {feature.title}
-                      </h3>
-                      <p className="text-xs text-neutral-600">{feature.description}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

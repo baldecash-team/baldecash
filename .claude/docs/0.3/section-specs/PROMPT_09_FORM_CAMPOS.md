@@ -62,11 +62,14 @@ src/app/prototipos/0.2/solicitud/
 
 ### 3.1 Labels y Placeholders (3 preguntas)
 
-#### C1.1 [ITERAR - 3 versiones]
+#### C1.1 [ITERAR - 3 versiones] - PREFERIDO: V1
+
 **¿Los campos deben tener label arriba, label flotante, o solo placeholder?**
-- **V1**: Label arriba (siempre visible)
+- **V1**: Label arriba (siempre visible) **[PREFERIDO]**
 - **V2**: Label flotante (moderno, ahorra espacio)
 - **V3**: Solo placeholder (minimalista, menos accesible)
+
+> **Decision:** V1 preferido - Label siempre visible mejora accesibilidad y claridad.
 
 #### C1.2 [DEFINIDO]
 **¿El placeholder debe ser ejemplo de formato o instrucción?**
@@ -80,11 +83,14 @@ src/app/prototipos/0.2/solicitud/
 
 ### 3.2 Campos de Texto (4 preguntas)
 
-#### C1.4 [ITERAR - 3 versiones]
+#### C1.4 [ITERAR - 3 versiones] - PREFERIDO: V3 o V1 (mas iteraciones)
+
 **¿Los inputs deben tener bordes, solo línea inferior, o ser campos filled?**
-- **V1**: Bordes completos (clásico)
+- **V1**: Bordes completos (clásico) **[ALTERNATIVA]**
 - **V2**: Línea inferior (Material Design)
-- **V3**: Fondo filled sin bordes (moderno)
+- **V3**: Fondo filled sin bordes (moderno) **[PREFERIDO]**
+
+> **Decision:** V3 preferido (filled) o V1 (bordes). Se requieren mas iteraciones para decidir.
 
 #### C1.5 [DEFINIDO]
 **¿El campo activo (focus) debe tener color de marca o estándar?**
@@ -126,11 +132,14 @@ src/app/prototipos/0.2/solicitud/
 **¿Checkboxes deben ser estándar o custom con colores de marca?**
 → Custom con #4247d2
 
-#### C1.13 [ITERAR - 3 versiones]
+#### C1.13 [ITERAR - 3 versiones] - PREFERIDO: V3 (condicional)
+
 **¿Opciones mutuamente excluyentes deben ser radios, segmented, o cards?**
 - **V1**: Radio buttons tradicionales
 - **V2**: Segmented control (tabs)
-- **V3**: Cards clickeables
+- **V3**: Cards clickeables **[PREFERIDO si opciones <= 6]**
+
+> **Decision:** V3 preferido SOLO si las opciones son 6 o menos. Para mas opciones usar V1 o V2.
 
 #### C1.14 [DEFINIDO]
 **¿El área clickeable debe ser solo el checkbox o toda la fila?**
@@ -140,23 +149,32 @@ src/app/prototipos/0.2/solicitud/
 
 ### 3.5 Upload de Archivos (5 preguntas)
 
-#### C1.15 [ITERAR - 3 versiones]
+#### C1.15 [ITERAR - 3 versiones] - PREFERIDO: V3
+
 **¿El área de upload debe ser drag & drop, botón, o ambos?**
 - **V1**: Drag & drop prominente + botón
 - **V2**: Solo botón (más simple)
-- **V3**: Área drag & drop que también es botón
+- **V3**: Área drag & drop que también es botón **[PREFERIDO]**
 
-#### C1.16 [ITERAR - 3 versiones]
+> **Decision:** V3 preferido - Combina ambas funcionalidades en una sola area interactiva.
+
+#### C1.16 [ITERAR - 3 versiones] - REQUIERE CORRECCION
+
 **¿Debe mostrarse preview del archivo subido?**
 - **V1**: Thumbnail de imagen/PDF
 - **V2**: Solo nombre + tamaño + X
 - **V3**: Preview en modal al click
 
-#### C1.17 [ITERAR - 3 versiones]
+> **ALERTA:** Este componente no esta funcionando correctamente. Requiere revision y correccion de la implementacion.
+
+#### C1.17 [ITERAR - 3 versiones] - REQUIERE CORRECCION
+
 **¿Debe haber barra de progreso durante la subida?**
 - **V1**: Barra horizontal con porcentaje
 - **V2**: Spinner con porcentaje
 - **V3**: Sin barra (solo estado subiendo/completado)
+
+> **ALERTA:** Este componente no esta funcionando correctamente. Requiere revision y correccion de la implementacion.
 
 #### C1.18 [DEFINIDO]
 **¿Qué icono o ilustración usar para el área de upload vacía?**
@@ -174,11 +192,14 @@ src/app/prototipos/0.2/solicitud/
 **¿Validar en tiempo real o al salir del campo?**
 → Al salir del campo (onBlur) para no interrumpir
 
-#### C1.21 [ITERAR - 3 versiones]
+#### C1.21 [ITERAR - 3 versiones] - PREFERIDO: V1
+
 **¿Validar todo al hacer clic en Continuar?**
-- **V1**: Sí, mostrar todos los errores arriba
+- **V1**: Sí, mostrar todos los errores arriba **[PREFERIDO]**
 - **V2**: Scroll al primer error
 - **V3**: Shake en campos con error
+
+> **Decision:** V1 preferido - Mostrar todos los errores permite corregir todo de una vez.
 
 #### C1.22 [DEFINIDO]
 **¿Campos válidos deben mostrar checkmark verde?**
@@ -188,17 +209,23 @@ src/app/prototipos/0.2/solicitud/
 
 ### 3.7 Validación - Errores (4 preguntas)
 
-#### C1.23 [ITERAR - 3 versiones]
+#### C1.23 [ITERAR - 3 versiones] - PREFERIDO: V1
+
 **¿El mensaje de error debe estar debajo del campo, tooltip, o resumen?**
-- **V1**: Debajo del campo (inline)
+- **V1**: Debajo del campo (inline) **[PREFERIDO]**
 - **V2**: Tooltip al hover/focus
 - **V3**: Resumen arriba + inline
 
-#### C1.24 [ITERAR - 3 versiones]
+> **Decision:** V1 preferido - Error inline debajo del campo es mas claro y directo.
+
+#### C1.24 [ITERAR - 3 versiones] - PREFERIDO: V1
+
 **¿El campo con error debe tener borde rojo, fondo rojo suave, o solo mensaje?**
-- **V1**: Borde rojo
+- **V1**: Borde rojo **[PREFERIDO]**
 - **V2**: Borde rojo + fondo rojo suave
 - **V3**: Solo mensaje rojo (menos agresivo)
+
+> **Decision:** V1 preferido - Borde rojo es suficiente para indicar error sin ser demasiado agresivo.
 
 #### C1.25 [DEFINIDO]
 **¿El mensaje de error debe ser técnico o amigable?**
@@ -216,17 +243,23 @@ src/app/prototipos/0.2/solicitud/
 **¿Cada campo debe tener icono de ayuda (?)?**
 → Solo campos que generen dudas comunes
 
-#### C1.28 [ITERAR - 3 versiones]
+#### C1.28 [ITERAR - 3 versiones] - PREFERIDO: V1
+
 **¿La ayuda debe ser tooltip hover, click, o texto visible?**
-- **V1**: Tooltip al hover (desktop) / click (móvil)
+- **V1**: Tooltip al hover (desktop) / click (móvil) **[PREFERIDO]**
 - **V2**: Texto siempre visible debajo
 - **V3**: Expandible con link "¿Necesitas ayuda?"
 
-#### C1.29 [ITERAR - 3 versiones]
+> **Decision:** V1 preferido - Tooltip al hover/click es menos intrusivo y no ocupa espacio.
+
+#### C1.29 [ITERAR - 3 versiones] - PREFERIDO: V2
+
 **¿Debe haber ejemplos visuales de documentos aceptados?**
 - **V1**: Imagen de ejemplo en tooltip
-- **V2**: Gallery de ejemplos en modal
+- **V2**: Gallery de ejemplos en modal **[PREFERIDO]**
 - **V3**: Inline pequeño al lado del upload
+
+> **Decision:** V2 preferido - Gallery en modal permite mostrar ejemplos mas grandes y detallados.
 
 #### C1.30 [DEFINIDO]
 **¿Debe haber video tutorial para campos complejos?**
@@ -414,3 +447,29 @@ export const TextInputV1: React.FC<TextInputV1Props> = ({
 4. **Mobile-First**: Teclado numérico para números, email keyboard para emails
 5. **Sin gradientes**: Colores sólidos
 6. **Sin emojis**: Solo Lucide icons
+
+---
+
+## 8. Resumen de Decisiones Finales
+
+| Componente | Version | Notas |
+|------------|---------|-------|
+| C1.1 Labels | **V1** | Label arriba (siempre visible) |
+| C1.4 Inputs | **V3 o V1** | Filled o bordes - requiere mas iteraciones |
+| C1.13 Opciones | **V3** | Cards clickeables SOLO si <= 6 opciones |
+| C1.15 Upload | **V3** | Area drag & drop que es boton |
+| C1.16 Preview | **CORREGIR** | No funciona - requiere revision |
+| C1.17 Progreso | **CORREGIR** | No funciona - requiere revision |
+| C1.21 Validacion | **V1** | Mostrar todos los errores arriba |
+| C1.23 Errores | **V1** | Debajo del campo inline |
+| C1.24 Estilo error | **V1** | Borde rojo |
+| C1.28 Ayuda | **V1** | Tooltip hover/click |
+| C1.29 Ejemplos docs | **V2** | Gallery en modal |
+
+---
+
+## 9. Tareas Pendientes
+
+- [ ] **URGENTE:** Corregir C1.16 (preview de archivo) - no esta funcionando
+- [ ] **URGENTE:** Corregir C1.17 (barra de progreso upload) - no esta funcionando
+- [ ] Generar mas iteraciones para C1.4 (decidir entre V1 bordes o V3 filled)
