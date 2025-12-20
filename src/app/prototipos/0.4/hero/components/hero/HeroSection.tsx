@@ -179,12 +179,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
                 Comienza hoy
               </Chip>
 
-              {/* Section Title - Dotted underline variant */}
+              {/* Section Title */}
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-neutral-900 mb-4 font-['Baloo_2'] leading-tight">
                 ¿Listo para tu{' '}
-                <span className="text-[#4654CD] relative inline-block">
+                <span className="text-[#4654CD] relative">
                   nuevo equipo
-                  <span className="absolute -bottom-1 left-0 w-full border-b-[3px] border-dashed border-[#03DBD0]" />
+                  <svg className="absolute -bottom-1 left-0 w-full" viewBox="0 0 200 12" fill="none">
+                    <path d="M2 8C50 4 150 4 198 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+                  </svg>
                 </span>
                 ?
               </h2>

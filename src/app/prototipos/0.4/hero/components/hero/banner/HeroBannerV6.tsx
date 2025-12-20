@@ -81,12 +81,14 @@ export const HeroBannerV6: React.FC<HeroBannerProps> = ({
           </div>
         </div>
 
-        {/* Headline - Highlight marker variant */}
+        {/* Headline */}
         <h1 className="font-['Baloo_2'] text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
           <span className="text-neutral-900">{headline.split(' ').slice(0, -1).join(' ')} </span>
-          <span className="text-[#4654CD] relative inline-block">
+          <span className="text-[#4654CD] relative">
             {headline.split(' ').slice(-1)[0]}
-            <span className="absolute -bottom-1 left-0 w-full h-3 bg-[#03DBD0]/30 -skew-x-3 rounded-sm" />
+            <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
+              <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+            </svg>
           </span>
         </h1>
 
