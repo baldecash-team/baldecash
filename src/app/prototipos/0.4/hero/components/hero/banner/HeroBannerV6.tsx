@@ -9,8 +9,8 @@
  */
 
 import React from 'react';
-import { Button, Chip } from '@nextui-org/react';
-import { ArrowRight, Play, Shield, Clock, Users, Sparkles, CheckCircle2, GraduationCap } from 'lucide-react';
+import { Button } from '@nextui-org/react';
+import { ArrowRight, Play, Shield, Clock, Users, CheckCircle2, GraduationCap } from 'lucide-react';
 import { HeroBannerProps } from '../../../types/hero';
 
 export const HeroBannerV6: React.FC<HeroBannerProps> = ({
@@ -81,25 +81,12 @@ export const HeroBannerV6: React.FC<HeroBannerProps> = ({
           </div>
         </div>
 
-        {/* Badge */}
-        <Chip
-          startContent={<Sparkles className="w-3.5 h-3.5" />}
-          classNames={{
-            base: 'bg-[#4654CD]/10 border border-[#4654CD]/20 px-5 py-2.5 h-auto mb-6',
-            content: 'text-[#4654CD] text-sm font-semibold',
-          }}
-        >
-          Financiamiento estudiantil #1 en Peru
-        </Chip>
-
-        {/* Headline */}
+        {/* Headline - Gradient underline variant */}
         <h1 className="font-['Baloo_2'] text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
           <span className="text-neutral-900">{headline.split(' ').slice(0, -1).join(' ')} </span>
           <span className="text-[#4654CD] relative inline-block">
             {headline.split(' ').slice(-1)[0]}
-            <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
-              <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
-            </svg>
+            <span className="absolute -bottom-1 left-0 w-full h-3 bg-gradient-to-r from-[#03DBD0]/40 to-[#4654CD]/40 -skew-x-3 rounded-sm" />
           </span>
         </h1>
 
