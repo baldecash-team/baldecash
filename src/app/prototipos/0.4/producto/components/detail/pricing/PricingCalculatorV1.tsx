@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Select, SelectItem } from '@nextui-org/react';
 
 export interface PricingCalculatorProps {
   monthlyQuota: number;
@@ -82,29 +81,24 @@ export default function PricingCalculatorV1({
 
       {/* Initial Payment Selection */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-neutral-700 mb-2">
+        <label className="block text-sm font-medium text-neutral-700 mb-3">
           Cuota inicial (opcional)
         </label>
-        <Select
-          selectedKeys={[initialPayment]}
-          onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0] as string;
-            setInitialPayment(value);
-          }}
-          placeholder="Selecciona cuota inicial"
-          aria-label="Cuota inicial"
-          classNames={{
-            trigger: 'bg-neutral-100 border border-neutral-200 hover:bg-neutral-50 cursor-pointer',
-            value: 'text-neutral-800',
-            popoverContent: 'bg-white border border-neutral-200 shadow-lg',
-          }}
-        >
+        <div className="grid grid-cols-4 gap-2">
           {INITIAL_PAYMENT_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <button
+              key={option.value}
+              onClick={() => setInitialPayment(option.value)}
+              className={`py-2.5 px-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+                initialPayment === option.value
+                  ? 'bg-[#4654CD] text-white shadow-md'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
               {option.label}
-            </SelectItem>
+            </button>
           ))}
-        </Select>
+        </div>
       </div>
 
       {parseInt(initialPayment) > 0 && (

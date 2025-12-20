@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@nextui-org/react';
 
 export interface PricingCalculatorProps {
   monthlyQuota: number;
@@ -50,18 +49,17 @@ export default function PricingCalculatorV3({
         </label>
         <div className="grid grid-cols-5 gap-2">
           {TERMS.map((term) => (
-            <Button
+            <button
               key={term}
               onClick={() => setSelectedTerm(term)}
-              variant={selectedTerm === term ? 'solid' : 'bordered'}
-              className={`cursor-pointer ${
+              className={`py-2.5 px-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
                 selectedTerm === term
-                  ? 'bg-[#4654CD] text-white'
-                  : 'border-neutral-300 text-neutral-700 hover:border-[#4654CD]'
+                  ? 'bg-[#4654CD] text-white shadow-md'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-200'
               }`}
             >
               {term}
-            </Button>
+            </button>
           ))}
         </div>
         <p className="text-xs text-neutral-500 mt-2 text-center">meses</p>
@@ -74,18 +72,17 @@ export default function PricingCalculatorV3({
         </label>
         <div className="grid grid-cols-4 gap-2">
           {INITIAL_PAYMENT_OPTIONS.map((option) => (
-            <Button
+            <button
               key={option.value}
               onClick={() => setInitialPayment(option.value)}
-              variant={initialPayment === option.value ? 'solid' : 'bordered'}
-              className={`cursor-pointer ${
+              className={`py-2.5 px-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
                 initialPayment === option.value
-                  ? 'bg-[#4654CD] text-white'
-                  : 'border-neutral-300 text-neutral-700 hover:border-[#4654CD]'
+                  ? 'bg-[#4654CD] text-white shadow-md'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-200'
               }`}
             >
               {option.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>

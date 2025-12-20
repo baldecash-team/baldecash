@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Slider, Select, SelectItem } from '@nextui-org/react';
 
 export interface PricingCalculatorProps {
   monthlyQuota: number;
@@ -22,12 +21,8 @@ export default function PricingCalculatorV2({
   originalQuota,
   defaultTerm = 36,
 }: PricingCalculatorProps) {
-  const [selectedTermIndex, setSelectedTermIndex] = useState(
-    TERMS.indexOf(defaultTerm)
-  );
+  const [selectedTerm, setSelectedTerm] = useState(defaultTerm);
   const [initialPayment, setInitialPayment] = useState('0');
-
-  const selectedTerm = TERMS[selectedTermIndex];
 
   const calculateQuota = () => {
     const initialPercent = parseInt(initialPayment);
@@ -61,40 +56,32 @@ export default function PricingCalculatorV2({
         <p className="text-sm text-neutral-500 mt-2">x {selectedTerm} meses</p>
       </div>
 
-      {/* Term Selection - Slider */}
+      {/* Term Selection - Range Slider */}
       <div className="mb-8">
-        <label className="block text-sm font-medium text-neutral-700 mb-4">
-          Selecciona el plazo
-        </label>
-        <Slider
-          value={selectedTermIndex}
-          onChange={(value) => setSelectedTermIndex(value as number)}
-          step={1}
-          minValue={0}
-          maxValue={TERMS.length - 1}
-          marks={TERMS.map((term, index) => ({
-            value: index,
-            label: `${term}`,
-          }))}
-          showTooltip={true}
-          tooltipValueFormatOptions={{}}
-          renderThumb={(props) => (
-            <div
-              {...props}
-              className="group p-1 top-1/2 bg-[#4654CD] border-small border-white shadow-medium rounded-full cursor-pointer transition-transform data-[dragging=true]:scale-110"
-            >
-              <span className="transition-transform bg-white shadow-small rounded-full w-5 h-5 block group-data-[dragging=true]:scale-80" />
-            </div>
-          )}
-          classNames={{
-            track: 'bg-neutral-200',
-            filler: 'bg-[#4654CD]',
-            thumb: 'cursor-pointer',
-          }}
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-sm font-medium text-neutral-700">
+            Selecciona el plazo
+          </label>
+          <span className="text-sm font-bold text-[#4654CD] bg-[#4654CD]/10 px-3 py-1 rounded-full">
+            {selectedTerm} meses
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={TERMS.length - 1}
+          value={TERMS.indexOf(selectedTerm)}
+          onChange={(e) => setSelectedTerm(TERMS[parseInt(e.target.value)])}
+          className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-[#4654CD]"
         />
         <div className="flex justify-between mt-2 px-1">
           {TERMS.map((term) => (
-            <span key={term} className="text-xs text-neutral-500">
+            <span
+              key={term}
+              className={`text-xs transition-colors ${
+                selectedTerm === term ? 'text-[#4654CD] font-bold' : 'text-neutral-400'
+              }`}
+            >
               {term}m
             </span>
           ))}
@@ -103,26 +90,24 @@ export default function PricingCalculatorV2({
 
       {/* Initial Payment Selection */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-neutral-700 mb-2">
+        <label className="block text-sm font-medium text-neutral-700 mb-3">
           Cuota inicial (opcional)
         </label>
-        <Select
-          selectedKeys={[initialPayment]}
-          onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0] as string;
-            setInitialPayment(value);
-          }}
-          placeholder="Selecciona cuota inicial"
-          classNames={{
-            trigger: 'cursor-pointer',
-          }}
-        >
+        <div className="grid grid-cols-4 gap-2">
           {INITIAL_PAYMENT_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <button
+              key={option.value}
+              onClick={() => setInitialPayment(option.value)}
+              className={`py-2.5 px-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
+                initialPayment === option.value
+                  ? 'bg-[#4654CD] text-white shadow-md'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
               {option.label}
-            </SelectItem>
+            </button>
           ))}
-        </Select>
+        </div>
       </div>
 
       {parseInt(initialPayment) > 0 && (
