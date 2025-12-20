@@ -224,6 +224,33 @@ Usamos un lenguaje fresco y actual.
 - ✅ *"Dale click y empieza tu aventura tech."*
 - ❌ *"Proceda a completar el formulario."*
 
+### Terminología de Productos
+
+BaldeCash financia **equipos tecnológicos**, no solo laptops. Usar terminología inclusiva:
+
+| ❌ Evitar | ✅ Preferir |
+|-----------|-------------|
+| "Laptops" | "Equipos" |
+| "Tu laptop" | "Tu equipo" |
+| "Catálogo de laptops" | "Catálogo de equipos" |
+| "Financiamiento de laptops" | "Financiamiento de equipos" |
+
+**Productos que financiamos:**
+- Laptops
+- Tablets
+- Celulares
+
+**Cuándo usar términos específicos:**
+- En filtros de categoría: "Laptops", "Tablets", "Celulares"
+- En especificaciones técnicas del producto
+- Cuando el contexto requiere precisión
+
+**Cuándo usar "equipos":**
+- Headlines y copy general
+- CTAs y botones
+- Mensajes de marketing
+- Textos que aplican a todo el catálogo
+
 ### Mensajes según Perfil Crediticio
 
 Comunicar el límite como *oportunidad*, no como restricción:

@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | B (parcial) |
 | **Preguntas totales** | 5 |
-| **Iteraciones T (10 versiones)** | 4 |
+| **Versiones por componente** | 6 |
 | **Prioridad** | Baja - Fase 2 |
 
 ---
@@ -23,7 +23,7 @@ El quiz de ayuda es una herramienta para usuarios indecisos que no saben qué la
 
 ---
 
-## 2. Estructura de Archivos (10 versiones)
+## 2. Estructura de Archivos (6 versiones)
 
 ```
 src/app/prototipos/0.4/quiz/
@@ -36,22 +36,18 @@ src/app/prototipos/0.4/quiz/
 ├── quiz-v4/page.tsx                      # V4: Abstracto Flotante
 ├── quiz-v5/page.tsx                      # V5: Split 50/50
 ├── quiz-v6/page.tsx                      # V6: Centrado Hero
-├── quiz-v7/page.tsx                      # V7: Asimétrico Bold
-├── quiz-v8/page.tsx                      # V8: Data-Driven
-├── quiz-v9/page.tsx                      # V9: Storytelling
-├── quiz-v10/page.tsx                     # V10: Interactivo
 ├── components/
 │   └── quiz/
 │       ├── HelpQuiz.tsx
-│       ├── QuizSettingsModal.tsx         # Modal con 4 selectores (1-10)
+│       ├── QuizSettingsModal.tsx         # Modal con 4 selectores (1-6)
 │       ├── layout/
-│       │   └── QuizLayoutV[1-10].tsx
+│       │   └── QuizLayoutV[1-6].tsx
 │       ├── questions/
-│       │   └── QuizQuestionV[1-10].tsx
+│       │   └── QuizQuestionV[1-6].tsx
 │       ├── progress/
-│       │   └── QuizProgressV[1-10].tsx
+│       │   └── QuizProgressV[1-6].tsx
 │       └── results/
-│           └── QuizResultsV[1-10].tsx
+│           └── QuizResultsV[1-6].tsx
 ├── types/
 │   └── quiz.ts
 └── QUIZ_README.md
@@ -61,7 +57,7 @@ src/app/prototipos/0.4/quiz/
 
 ## 3. Preguntas del Segmento B - Quiz
 
-### Pregunta B.98 [ITERAR - 10 versiones]
+### Pregunta B.98 [ITERAR - 6 versiones]
 **¿El quiz debe ser modal, página separada, o widget lateral?**
 - **V1**: Modal overlay centrado clásico (foco total, producto hero)
 - **V2**: Widget lateral colapsable con preview de producto (lifestyle)
@@ -69,12 +65,8 @@ src/app/prototipos/0.4/quiz/
 - **V4**: Modal con shapes flotantes y animaciones fintech
 - **V5**: Split screen: preguntas izquierda + preview derecha
 - **V6**: Fullscreen immersivo centrado con transiciones suaves
-- **V7**: Drawer asimétrico que empuja contenido con tipografía bold
-- **V8**: Dashboard con progreso numérico y estadísticas de match
-- **V9**: Experiencia story-like swipeable estilo Instagram
-- **V10**: Wizard conversacional interactivo tipo chatbot
 
-### Pregunta B.99 [ITERAR - 10 versiones]
+### Pregunta B.99 [ITERAR - 6 versiones]
 **¿Cuántas preguntas debe tener el quiz?**
 - **V1**: 3 preguntas ultra rápidas con respuestas producto-céntricas
 - **V2**: 4 preguntas con contexto lifestyle (uso + ambiente)
@@ -82,16 +74,12 @@ src/app/prototipos/0.4/quiz/
 - **V4**: 3 preguntas con animaciones de transición fintech
 - **V5**: 4 preguntas split: uso izquierda + preferencias derecha
 - **V6**: 3 preguntas grandes centradas de alto impacto
-- **V7**: 5 preguntas con tipografía variable bold
-- **V8**: 7 preguntas con barra de progreso y % de precisión
-- **V9**: 4 preguntas como "capítulos" de historia
-- **V10**: Dinámico: 3-7 según respuestas previas (branching)
 
 ### B.100 [DEFINIDO]
 **¿Las preguntas deben ser con iconos/imágenes o solo texto?**
 → Con iconos ilustrativos para cada opción
 
-### Pregunta B.101 [ITERAR - 10 versiones]
+### Pregunta B.101 [ITERAR - 6 versiones]
 **¿El resultado debe ser 1 producto, top 3, o categoría?**
 - **V1**: 1 producto "Perfecto para ti" con foto hero destacada
 - **V2**: 1 producto con foto lifestyle en contexto de uso
@@ -99,12 +87,8 @@ src/app/prototipos/0.4/quiz/
 - **V4**: 1 producto con badge flotante de match % (fintech)
 - **V5**: Split: producto principal + 2 alternativas laterales
 - **V6**: 1 producto gigante centrado con impacto visual máximo
-- **V7**: Top 3 con tamaños variables según match (asimétrico)
-- **V8**: Ranking numérico detallado con scores por criterio
-- **V9**: "La historia de tu match perfecto" con producto como protagonista
-- **V10**: Resultados dinámicos con filtros para explorar más
 
-### Pregunta B.102 [ITERAR - 10 versiones]
+### Pregunta B.102 [ITERAR - 6 versiones]
 **¿El quiz debe preguntar por uso o por specs técnicas?**
 - **V1**: Solo uso básico ("¿Para qué la usarás?") - enfoque simple
 - **V2**: Uso + contexto ("¿Dónde estudias/trabajas?") - lifestyle
@@ -112,10 +96,6 @@ src/app/prototipos/0.4/quiz/
 - **V4**: Uso con micro-animaciones de retroalimentación (fintech)
 - **V5**: Split: uso directo vs. preferencias indirectas
 - **V6**: 1 pregunta clave de alto impacto + derivadas
-- **V7**: Preferencias con opciones bold visualmente destacadas
-- **V8**: Híbrido: uso + presupuesto + preferencias con scores
-- **V9**: Preguntas como "¿Cuál es tu historia?" (storytelling)
-- **V10**: Conversacional adaptativo según respuestas previas
 
 ---
 
@@ -126,16 +106,16 @@ src/app/prototipos/0.4/quiz/
 
 export interface QuizConfig {
   // B.98 - Layout del quiz
-  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.99 - Cantidad de preguntas
-  questionCountVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  questionCountVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.101 - Visualización de resultados
-  resultsVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  resultsVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // B.102 - Enfoque de preguntas
-  focusVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  focusVersion: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const defaultQuizConfig: QuizConfig = {
@@ -292,10 +272,6 @@ export const QuizQuestionV1: React.FC<{ question: QuizQuestion; onAnswer: (optio
 /prototipos/0.4/quiz/quiz-v4            → V4: Abstracto Flotante
 /prototipos/0.4/quiz/quiz-v5            → V5: Split 50/50
 /prototipos/0.4/quiz/quiz-v6            → V6: Centrado Hero
-/prototipos/0.4/quiz/quiz-v7            → V7: Asimétrico Bold
-/prototipos/0.4/quiz/quiz-v8            → V8: Data-Driven
-/prototipos/0.4/quiz/quiz-v9            → V9: Storytelling
-/prototipos/0.4/quiz/quiz-v10           → V10: Interactivo
 ```
 
 ---
@@ -305,24 +281,24 @@ export const QuizQuestionV1: React.FC<{ question: QuizQuestion; onAnswer: (optio
 ### Tipos y Configuración
 - [ ] `types/quiz.ts` - QuizConfig con 4 selectores
 - [ ] `HelpQuiz.tsx` - Wrapper principal
-- [ ] `QuizSettingsModal.tsx` - Modal con 4 selectores (1-10)
+- [ ] `QuizSettingsModal.tsx` - Modal con 4 selectores (1-6)
 
-### Layout (10 versiones)
-- [ ] `QuizLayoutV1.tsx` a `V10.tsx`
+### Layout (6 versiones)
+- [ ] `QuizLayoutV1.tsx` a `V6.tsx`
 
-### Preguntas (10 versiones)
-- [ ] `QuizQuestionV1.tsx` a `V10.tsx`
+### Preguntas (6 versiones)
+- [ ] `QuizQuestionV1.tsx` a `V6.tsx`
 
-### Progreso (10 versiones)
-- [ ] `QuizProgressV1.tsx` a `V10.tsx`
+### Progreso (6 versiones)
+- [ ] `QuizProgressV1.tsx` a `V6.tsx`
 
-### Resultados (10 versiones)
-- [ ] `QuizResultsV1.tsx` a `V10.tsx`
+### Resultados (6 versiones)
+- [ ] `QuizResultsV1.tsx` a `V6.tsx`
 
 ### Páginas
 - [ ] `page.tsx` - Redirect a preview
 - [ ] `quiz-preview/page.tsx` - Preview con Settings Modal
-- [ ] `quiz-v1/page.tsx` a `quiz-v10/page.tsx`
+- [ ] `quiz-v1/page.tsx` a `quiz-v6/page.tsx`
 
 ### Documentación
 - [ ] `QUIZ_README.md`
@@ -332,7 +308,7 @@ export const QuizQuestionV1: React.FC<{ question: QuizQuestion; onAnswer: (optio
 ## 8. Notas Importantes
 
 1. **Enfoque en uso**: Preguntas sobre necesidades, no specs técnicas
-2. **Rápido**: 3-5 preguntas máximo (excepto V8 y V10)
+2. **Rápido**: 3-5 preguntas máximo
 3. **Visual**: Iconos grandes y claros
 4. **Resultado inmediato**: Sin esperas ni loading extensos
 5. **CTA claro**: "Ver laptop recomendada"

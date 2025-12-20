@@ -1,14 +1,14 @@
 // Hero Section Types - BaldeCash v0.4
 // Generated from PROMPT_01_HERO_LANDING.md
-// 10 versiones por componente para A/B testing
+// 6 versiones por componente para A/B testing
 
 import { ReactNode } from 'react';
 
 // ============================================
-// Configuration Types (10 versions each)
+// Configuration Types (6 versions each)
 // ============================================
 
-export type HeroVersion = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export type HeroVersion = 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface HeroConfig {
   heroBannerVersion: HeroVersion;
@@ -221,13 +221,9 @@ export const versionDescriptions = {
     1: 'Foto Producto (E-commerce Clasico)',
     2: 'Foto Lifestyle (Aspiracional)',
     3: 'Ilustracion Flat (Corporativo Moderno)',
-    4: 'Abstracto Flotante (Fintech Moderna)',
-    5: 'Split 50/50 (Equilibrado)',
-    6: 'Centrado Hero (Impacto Maximo)',
-    7: 'Asimetrico Bold (Disruptivo)',
-    8: 'Data-Driven (Confianza por Numeros)',
-    9: 'Storytelling (Narrativa Emocional)',
-    10: 'Interactivo (Engagement Inmediato)',
+    4: 'Fintech/Data (Numeros y Estadisticas)',
+    5: 'Bold/Impact (Tipografia Oversized)',
+    6: 'Interactivo (Engagement Inmediato)',
   },
   socialProof: {
     1: 'Marquee Continuo (logos en movimiento)',
@@ -235,11 +231,7 @@ export const versionDescriptions = {
     3: 'Contador + Logos (numero grande)',
     4: 'Carrusel Manual (flechas)',
     5: 'Testimonios con Logo (rotacion)',
-    6: 'Mapa de Peru (visual geografico)',
-    7: 'Timeline de Convenios (crecimiento)',
-    8: 'Stats Cards (3 metricas grandes)',
-    9: 'Video Testimonial (thumbnail)',
-    10: 'Filtrable por Tipo (tabs)',
+    6: 'Stats Cards (metricas grandes)',
   },
   navbar: {
     1: 'Sticky Solido (siempre visible)',
@@ -247,11 +239,7 @@ export const versionDescriptions = {
     3: 'Transparente a Solido (scroll effect)',
     4: 'Hamburger Siempre (fullscreen menu)',
     5: 'Bottom Navigation (mobile app style)',
-    6: 'Con Mega Menu (categorias)',
-    7: 'Con Search Prominente (e-commerce)',
-    8: 'Minimalista (solo logo + CTA)',
-    9: 'Con Notificacion (badge ofertas)',
-    10: 'Con Progreso (barra de funnel)',
+    6: 'Minimalista (solo logo + CTA)',
   },
   cta: {
     1: 'Boton Simple (Ver laptops)',
@@ -260,10 +248,6 @@ export const versionDescriptions = {
     4: 'Con Urgencia (countdown timer)',
     5: 'Pre-calificacion (Descubre tu monto)',
     6: 'WhatsApp Directo (boton verde)',
-    7: 'Sticky Bottom (fijo en mobile)',
-    8: 'Con Social Proof (X estudiantes)',
-    9: 'Animado (pulse effect)',
-    10: 'Contextual (cambia con scroll)',
   },
   footer: {
     1: 'Minimalista Oscuro (neutral-900)',
@@ -271,10 +255,6 @@ export const versionDescriptions = {
     3: 'Con CTA WhatsApp (fondo primario)',
     4: 'Mega Footer (muchos links)',
     5: 'Compacto (una linea)',
-    6: 'Con Mapa (ubicacion)',
-    7: 'Con App Download (badges)',
-    8: 'Con Trust Badges (certificaciones)',
-    9: 'Con FAQ Inline (acordeon)',
-    10: 'Con Chatbot (widget)',
+    6: 'Con Trust Badges (certificaciones)',
   },
 } as const;

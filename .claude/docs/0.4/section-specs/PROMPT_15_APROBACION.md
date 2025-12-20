@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | F |
 | **Preguntas totales** | 13 |
-| **Iteraciones T (10 versiones)** | 7 |
+| **Versiones por componente** | 6 |
 | **Prioridad** | Alta - MVP Core |
 
 ---
@@ -22,7 +22,7 @@ La pantalla de aprobación es el momento de mayor emoción positiva del usuario.
 
 ---
 
-## 2. Estructura de Archivos (10 versiones)
+## 2. Estructura de Archivos (6 versiones)
 
 ```
 src/app/prototipos/0.4/resultado/
@@ -36,19 +36,19 @@ src/app/prototipos/0.4/resultado/
 │       ├── ApprovalScreen.tsx
 │       ├── ApprovalSettingsModal.tsx
 │       ├── celebration/
-│       │   └── CelebrationV[1-10].tsx
+│       │   └── CelebrationV[1-6].tsx
 │       ├── confetti/
-│       │   └── ConfettiV[1-10].tsx
+│       │   └── ConfettiV[1-6].tsx
 │       ├── sound/
-│       │   └── SoundConfigV[1-10].tsx
+│       │   └── SoundConfigV[1-6].tsx
 │       ├── summary/
-│       │   └── ApprovedSummaryV[1-10].tsx
+│       │   └── ApprovedSummaryV[1-6].tsx
 │       ├── next-steps/
-│       │   └── NextStepsV[1-10].tsx
+│       │   └── NextStepsV[1-6].tsx
 │       ├── share/
-│       │   └── ShareButtonsV[1-10].tsx
+│       │   └── ShareButtonsV[1-6].tsx
 │       ├── referral/
-│       │   └── ReferralCTAV[1-10].tsx
+│       │   └── ReferralCTAV[1-6].tsx
 │       └── actions/
 │           └── CreateAccountCTA.tsx
 ├── types/
@@ -62,7 +62,7 @@ src/app/prototipos/0.4/resultado/
 
 ### 3.1 Celebración Visual (3 preguntas)
 
-#### F.1 [ITERAR - 10 versiones]
+#### F.1 [ITERAR - 6 versiones]
 **¿Qué elementos de celebración usar?**
 - **V1**: Confetti animado colorido + ilustración de persona feliz
 - **V2**: Ilustración lifestyle grande de estudiante con laptop
@@ -70,12 +70,8 @@ src/app/prototipos/0.4/resultado/
 - **V4**: Partículas flotantes + gradiente animado estilo fintech
 - **V5**: Split: confetti izquierda + mensaje derecha
 - **V6**: Explosión visual de impacto: confetti + texto + icono
-- **V7**: Elementos de celebración con tamaños bold variables
-- **V8**: Animación minimalista + estadística "1 de 100 aprobados hoy"
-- **V9**: Escena storytelling: "Tu viaje comienza aquí" con ilustración
-- **V10**: Celebración interactiva: usuario puede "lanzar" más confetti
 
-#### F.2 [ITERAR - 10 versiones]
+#### F.2 [ITERAR - 6 versiones]
 **¿El confetti debe ser sutil o exuberante?**
 - **V1**: Exuberante: lluvia completa de confetti 3-5 segundos
 - **V2**: Elegante: burst corto y refinado 1-2 segundos
@@ -83,12 +79,8 @@ src/app/prototipos/0.4/resultado/
 - **V4**: Confetti con partículas que flotan suavemente (fintech)
 - **V5**: Confetti en un solo lado de la pantalla
 - **V6**: Confetti máximo: toda la pantalla con colores de marca
-- **V7**: Confetti con intensidad variable según monto aprobado
-- **V8**: Confetti minimalista: solo colores de marca, pocas piezas
-- **V9**: Confetti que forma un patrón (ej: lluvia → laptop)
-- **V10**: Confetti controlado por usuario: botón para más
 
-#### F.3 [ITERAR - 10 versiones]
+#### F.3 [ITERAR - 6 versiones]
 **¿Debe haber sonido de celebración?**
 - **V1**: Sí activo por defecto, botón para silenciar visible
 - **V2**: No, experiencia silenciosa por respeto al contexto
@@ -96,10 +88,6 @@ src/app/prototipos/0.4/resultado/
 - **V4**: Sonido sutil de "ding" de éxito estilo fintech
 - **V5**: Opción split: sonido en desktop, silencio en mobile
 - **V6**: Fanfarria completa con música de celebración
-- **V7**: Sonido cuya intensidad depende del monto aprobado
-- **V8**: Sonido corto + vibración en dispositivos móviles
-- **V9**: Sonido narrativo: "¡Felicidades!" en voz
-- **V10**: Selector interactivo de tipo de celebración sonora
 
 ---
 
@@ -121,7 +109,7 @@ src/app/prototipos/0.4/resultado/
 **¿Debe mostrarse número de solicitud?**
 → Sí, prominente: "Solicitud #BC-2024-12345"
 
-#### F.7 [ITERAR - 10 versiones]
+#### F.7 [ITERAR - 6 versiones]
 **¿Debe mostrarse resumen de lo solicitado?**
 - **V1**: Card completa con producto + imagen + cuota + plazo
 - **V2**: Texto resumen elegante sin imagen, datos esenciales
@@ -129,10 +117,6 @@ src/app/prototipos/0.4/resultado/
 - **V4**: Mini card animada que se expande al hover (fintech)
 - **V5**: Split: imagen izquierda + specs derecha
 - **V6**: Hero card gigante con producto prominente
-- **V7**: Card con tamaño variable según importancia de datos
-- **V8**: Resumen + comparación "vs promedio de aprobaciones"
-- **V9**: Resumen narrativo "Tu nueva laptop: [nombre]..."
-- **V10**: Expandible: mini preview + "Ver detalles completos"
 
 ---
 
@@ -142,7 +126,7 @@ src/app/prototipos/0.4/resultado/
 **¿Cómo visualizar qué sigue?**
 → Timeline o checklist numerado
 
-#### F.9 [ITERAR - 10 versiones]
+#### F.9 [ITERAR - 6 versiones]
 **¿Debe indicarse tiempo estimado de respuesta?**
 - **V1**: "Recibirás confirmación en 24-48 horas" (rango claro)
 - **V2**: "Te contactaremos hoy o mañana" (lenguaje casual)
@@ -150,10 +134,6 @@ src/app/prototipos/0.4/resultado/
 - **V4**: Countdown animado hasta próximo paso (fintech)
 - **V5**: Split: tiempo estimado + qué hacer mientras tanto
 - **V6**: Tiempo prominente gigante: "48h máximo"
-- **V7**: Tiempo con énfasis variable según urgencia
-- **V8**: "Promedio de respuesta: 18 horas" con datos reales
-- **V9**: "Mientras esperas, prepárate para..." (storytelling)
-- **V10**: Tracker interactivo de estado en tiempo real
 
 #### F.10 [DEFINIDO]
 **¿Por qué canales se notificará?**
@@ -167,7 +147,7 @@ src/app/prototipos/0.4/resultado/
 **¿Debe promoverse crear cuenta en Zona Estudiantes?**
 → Sí, CTA secundario
 
-#### F.12 [ITERAR - 10 versiones]
+#### F.12 [ITERAR - 6 versiones]
 **¿Debe haber opción de compartir en redes?**
 - **V1**: Botones de redes prominentes (WhatsApp, FB, Twitter)
 - **V2**: Link sutil "Compartir mi logro" con modal de opciones
@@ -175,12 +155,8 @@ src/app/prototipos/0.4/resultado/
 - **V4**: Botones animados que se expanden al hover (fintech)
 - **V5**: Split: compartir izquierda + referir derecha
 - **V6**: Sección de compartir grande y prominente
-- **V7**: Botones con tamaño variable según popularidad de red
-- **V8**: "X personas compartieron su aprobación hoy"
-- **V9**: "Cuéntales a tus amigos que ya eres BaldeCasher"
-- **V10**: Sin opción de compartir (enfoque en próximos pasos)
 
-#### F.13 [ITERAR - 10 versiones]
+#### F.13 [ITERAR - 6 versiones]
 **¿Debe pedirse referidos en este momento?**
 - **V1**: Sí prominente: "Invita amigos y gana S/50" con CTA
 - **V2**: Sutil: pequeño link "¿Conoces a alguien que necesite?"
@@ -188,10 +164,6 @@ src/app/prototipos/0.4/resultado/
 - **V4**: Banner animado de referidos que aparece después (fintech)
 - **V5**: Split: referidos en panel lateral no intrusivo
 - **V6**: CTA gigante de referidos como acción principal
-- **V7**: Incentivo de tamaño variable según monto de recompensa
-- **V8**: "El 35% de nuestros clientes refieren amigos"
-- **V9**: "Tu amigo también puede lograrlo, ayúdalo"
-- **V10**: No en este momento, mostrar después por email
 
 ---
 
@@ -202,25 +174,25 @@ src/app/prototipos/0.4/resultado/
 
 export interface ApprovalConfig {
   // F.1 - Elementos de celebración
-  celebrationVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  celebrationVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // F.2 - Intensidad del confetti
-  confettiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  confettiVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // F.3 - Sonido de celebración
-  soundVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  soundVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // F.7 - Resumen del producto
-  summaryVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  summaryVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // F.9 - Tiempo estimado
-  nextStepsVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  nextStepsVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // F.12 - Compartir en redes
-  shareVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  shareVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // F.13 - Referidos
-  referralVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  referralVersion: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const defaultApprovalConfig: ApprovalConfig = {
@@ -433,26 +405,26 @@ export const ApprovalScreen: React.FC<{ data: ApprovalData }> = ({ data }) => {
 ## 6. Checklist de Entregables
 
 ### Tipos y Configuración
-- [ ] `types/approval.ts` - ApprovalConfig con 7 selectores (1-10)
+- [ ] `types/approval.ts` - ApprovalConfig con 7 selectores (1-6)
 - [ ] `ApprovalSettingsModal.tsx` - Modal con 7 selectores
 
 ### Pantalla Principal
 - [ ] `ApprovalScreen.tsx`
 
-### Celebración (10 versiones cada uno)
-- [ ] `CelebrationV1.tsx` a `V10.tsx`
-- [ ] `ConfettiV1.tsx` a `V10.tsx`
-- [ ] `SoundConfigV1.tsx` a `V10.tsx`
+### Celebración (6 versiones cada uno)
+- [ ] `CelebrationV1.tsx` a `V6.tsx`
+- [ ] `ConfettiV1.tsx` a `V6.tsx`
+- [ ] `SoundConfigV1.tsx` a `V6.tsx`
 
-### Información (10 versiones)
-- [ ] `ApprovedSummaryV1.tsx` a `V10.tsx`
+### Información (6 versiones)
+- [ ] `ApprovedSummaryV1.tsx` a `V6.tsx`
 
-### Próximos Pasos (10 versiones)
-- [ ] `NextStepsV1.tsx` a `V10.tsx`
+### Próximos Pasos (6 versiones)
+- [ ] `NextStepsV1.tsx` a `V6.tsx`
 
-### Acciones (10 versiones cada uno)
-- [ ] `ShareButtonsV1.tsx` a `V10.tsx`
-- [ ] `ReferralCTAV1.tsx` a `V10.tsx`
+### Acciones (6 versiones cada uno)
+- [ ] `ShareButtonsV1.tsx` a `V6.tsx`
+- [ ] `ReferralCTAV1.tsx` a `V6.tsx`
 - [ ] `CreateAccountCTA.tsx`
 
 ### Recursos

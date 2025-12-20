@@ -25,7 +25,7 @@ interface HeroSettingsModalProps {
   onConfigChange: (config: HeroConfig) => void;
 }
 
-const versionOptions: HeroVersion[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+const versionOptions: HeroVersion[] = [1, 2, 3, 4, 5, 6];
 
 interface VersionSelectorProps {
   label: string;

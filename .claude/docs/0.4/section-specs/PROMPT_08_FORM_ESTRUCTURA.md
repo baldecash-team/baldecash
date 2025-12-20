@@ -6,7 +6,7 @@
 |-------|-------|
 | **Segmento** | C |
 | **Preguntas totales** | 22 |
-| **Iteraciones T (10 versiones)** | 15 |
+| **Versiones por componente** | 6 |
 | **Prioridad** | Alta - MVP Core |
 
 ---
@@ -24,7 +24,7 @@ El wizard de solicitud es el flujo crítico donde el usuario completa su solicit
 
 ---
 
-## 2. Estructura de Archivos (10 versiones)
+## 2. Estructura de Archivos (6 versiones)
 
 ```
 src/app/prototipos/0.4/solicitud/
@@ -37,26 +37,22 @@ src/app/prototipos/0.4/solicitud/
 ├── wizard-v4/page.tsx                    # V4: Abstracto Flotante
 ├── wizard-v5/page.tsx                    # V5: Split 50/50
 ├── wizard-v6/page.tsx                    # V6: Centrado Hero
-├── wizard-v7/page.tsx                    # V7: Asimétrico Bold
-├── wizard-v8/page.tsx                    # V8: Data-Driven
-├── wizard-v9/page.tsx                    # V9: Storytelling
-├── wizard-v10/page.tsx                   # V10: Interactivo
 ├── components/
 │   └── wizard/
 │       ├── WizardContainer.tsx
-│       ├── WizardSettingsModal.tsx       # Modal con 15 selectores (1-10)
+│       ├── WizardSettingsModal.tsx       # Modal con 15 selectores (1-6)
 │       ├── structure/
-│       │   └── WizardLayoutV[1-10].tsx
+│       │   └── WizardLayoutV[1-6].tsx
 │       ├── progress/
-│       │   └── ProgressIndicatorV[1-10].tsx
+│       │   └── ProgressIndicatorV[1-6].tsx
 │       ├── navigation/
-│       │   └── WizardButtonsV[1-10].tsx
+│       │   └── WizardButtonsV[1-6].tsx
 │       ├── motivation/
-│       │   └── MotivationalMessageV[1-10].tsx
+│       │   └── MotivationalMessageV[1-6].tsx
 │       ├── celebrations/
-│       │   └── StepCelebrationV[1-10].tsx
+│       │   └── StepCelebrationV[1-6].tsx
 │       └── layout/
-│           └── StepLayoutV[1-10].tsx
+│           └── StepLayoutV[1-6].tsx
 ├── types/
 │   └── wizard.ts
 ├── data/
@@ -70,7 +66,7 @@ src/app/prototipos/0.4/solicitud/
 
 ### 3.1 Estructura General (4 preguntas)
 
-#### Pregunta C.1 [ITERAR - 10 versiones]
+#### Pregunta C.1 [ITERAR - 6 versiones]
 **¿El wizard debe ser de página completa o mantener header/footer?**
 - **V1**: Página completa sin distracciones, foco en formulario (e-commerce)
 - **V2**: Header minimalista con logo, ambiente lifestyle
@@ -78,10 +74,6 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Página completa con shapes flotantes animados (fintech)
 - **V5**: Split: sidebar izquierdo con info + form derecho
 - **V6**: Fullscreen centrado con máximo impacto visual
-- **V7**: Header bold asimétrico con tipografía grande
-- **V8**: Header con progress bar + stats de tiempo (data-driven)
-- **V9**: Header con "Capítulo X de tu historia" (storytelling)
-- **V10**: Header interactivo que cambia según el paso
 
 #### C.2 [DEFINIDO]
 **¿Cada paso debe ser una URL diferente o todo en una página?**
@@ -90,7 +82,7 @@ src/app/prototipos/0.4/solicitud/
 - Guardar progreso
 - Analytics por paso
 
-#### Pregunta C.3 [ITERAR - 10 versiones]
+#### Pregunta C.3 [ITERAR - 6 versiones]
 **¿El usuario puede navegar libremente entre pasos o solo secuencial?**
 - **V1**: Solo secuencial estricto (más controlado)
 - **V2**: Secuencial con preview de pasos completados (lifestyle)
@@ -98,12 +90,8 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Secuencial con transiciones fluidas (fintech)
 - **V5**: Split: timeline clickeable + form secuencial
 - **V6**: Secuencial con enfoque máximo en paso actual
-- **V7**: Libre completo con navegación bold
-- **V8**: Libre con warning de campos incompletos (data)
-- **V9**: Navegación como "capítulos" de historia
-- **V10**: Dinámico según comportamiento del usuario
 
-#### Pregunta C.4 [ITERAR - 10 versiones]
+#### Pregunta C.4 [ITERAR - 6 versiones]
 **¿Debe guardarse el progreso automáticamente?**
 - **V1**: Autoguardado cada campo inmediato (clásico)
 - **V2**: Autoguardado + notificación visual sutil (lifestyle)
@@ -111,16 +99,12 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Autoguardado con badge flotante "Guardado" (fintech)
 - **V5**: Panel lateral con historial de guardados
 - **V6**: Autoguardado silencioso, solo feedback en error
-- **V7**: Indicador de guardado bold en esquina
-- **V8**: Autoguardado + timestamp visible (data-driven)
-- **V9**: "Tu progreso está a salvo" narrativo
-- **V10**: Control manual con opción de autoguardado
 
 ---
 
 ### 3.2 Indicador de Progreso (5 preguntas)
 
-#### Pregunta C.5 [ITERAR - 10 versiones]
+#### Pregunta C.5 [ITERAR - 6 versiones]
 **¿El indicador debe ser numérico, porcentaje, o visual?**
 - **V1**: "Paso 2 de 5" numérico clásico
 - **V2**: Círculos con fotos de estudiantes completando (lifestyle)
@@ -128,12 +112,8 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Barra con % animado + glow (fintech)
 - **V5**: Split: número izquierda + barra derecha
 - **V6**: Porcentaje gigante centrado con impacto
-- **V7**: Números bold con tamaño variable según progreso
-- **V8**: Progress bar + tiempo restante + % (data)
-- **V9**: "Parte 2 de tu historia" con progress narrativo
-- **V10**: Progress ring interactivo con detalles on hover
 
-#### Pregunta C.6 [ITERAR - 10 versiones]
+#### Pregunta C.6 [ITERAR - 6 versiones]
 **¿Deben verse los nombres de todos los pasos o solo el actual?**
 - **V1**: Todos visibles en barra horizontal simple
 - **V2**: Todos con thumbnails/avatares (lifestyle)
@@ -141,12 +121,8 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Dots con tooltip flotante al hover (fintech)
 - **V5**: Split: lista completa izquierda + actual derecha
 - **V6**: Solo paso actual gigante centrado
-- **V7**: Todos con tamaños variables según estado (bold)
-- **V8**: Todos + tiempo estimado por paso (data)
-- **V9**: Capítulos como índice de libro
-- **V10**: Expandible: click para ver/ocultar todos
 
-#### Pregunta C.7 [ITERAR - 10 versiones]
+#### Pregunta C.7 [ITERAR - 6 versiones]
 **¿Los pasos completados deben tener checkmark verde?**
 - **V1**: Checkmark verde sólido clásico
 - **V2**: Checkmark + badge de celebración (lifestyle)
@@ -154,12 +130,8 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Checkmark con glow y micro-animación (fintech)
 - **V5**: Checkmark + preview de datos completados
 - **V6**: Checkmark grande con efecto de impacto
-- **V7**: Checkmark bold con número tachado
-- **V8**: Checkmark + porcentaje de precisión (data)
-- **V9**: Estrella dorada como "capítulo completado"
-- **V10**: Checkmark interactivo con resumen on click
 
-#### Pregunta C.8 [ITERAR - 10 versiones]
+#### Pregunta C.8 [ITERAR - 6 versiones]
 **¿El paso actual debe destacarse con color, tamaño, o animación?**
 - **V1**: Color primario #4654CD sólido
 - **V2**: Color + foto contextual del paso (lifestyle)
@@ -167,10 +139,6 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Color + pulse glow animado (fintech)
 - **V5**: Color + panel expandido con detalles
 - **V6**: Tamaño gigante + color de alto impacto
-- **V7**: Tamaño variable bold + color
-- **V8**: Color + stats del paso (campos, tiempo)
-- **V9**: "Estás aquí" con spotlight narrativo
-- **V10**: Animación de entrada + color + sonido opcional
 
 #### C.9 [DEFINIDO]
 **¿Hacer clic en paso completado permite volver a editarlo?**
@@ -180,7 +148,7 @@ src/app/prototipos/0.4/solicitud/
 
 ### 3.3 Layout de Pasos (4 preguntas)
 
-#### Pregunta C.10 [ITERAR - 10 versiones]
+#### Pregunta C.10 [ITERAR - 6 versiones]
 **¿Los campos deben estar en una columna centrada o usar todo el ancho?**
 - **V1**: Columna centrada max-w-md clásica
 - **V2**: Columna centrada + contexto visual lateral (lifestyle)
@@ -188,12 +156,8 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Columna centrada con campos flotantes (fintech)
 - **V5**: Split 50/50: campos izquierda + info derecha
 - **V6**: Columna super estrecha, máximo foco
-- **V7**: Ancho variable según tipo de campo (bold)
-- **V8**: Dos columnas optimizadas + métricas (data)
-- **V9**: Un campo por "escena" de historia
-- **V10**: Layout adaptativo según dispositivo y campo
 
-#### Pregunta C.11 [ITERAR - 10 versiones]
+#### Pregunta C.11 [ITERAR - 6 versiones]
 **¿Debe haber panel lateral con resumen/ayuda?**
 - **V1**: Sin panel, todo en columna única
 - **V2**: Panel con foto del producto seleccionado (lifestyle)
@@ -201,12 +165,8 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Panel flotante con resumen + cuota (fintech)
 - **V5**: Panel fijo 30% con sticky summary
 - **V6**: Sin panel, información integrada en campos
-- **V7**: Panel collapsible bold al costado
-- **V8**: Panel con métricas en tiempo real (data)
-- **V9**: Panel con "Tu historia hasta ahora"
-- **V10**: Panel contextual que cambia según el campo
 
-#### Pregunta C.12 [ITERAR - 10 versiones]
+#### Pregunta C.12 [ITERAR - 6 versiones]
 **¿Las ilustraciones motivacionales deben estar a la derecha, arriba, o no?**
 - **V1**: Derecha en desktop, arriba en móvil (clásico)
 - **V2**: Arriba con foto de estudiante similar (lifestyle)
@@ -214,12 +174,8 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Flotantes con shapes abstractos (fintech)
 - **V5**: Izquierda fija en split layout
 - **V6**: Fondo sutil, no distrae del form
-- **V7**: Posición asimétrica variable por paso
-- **V8**: Infografías con datos motivacionales
-- **V9**: Escenas de historia arriba
-- **V10**: Posición dinámica según scroll/interacción
 
-#### Pregunta C.13 [ITERAR - 10 versiones]
+#### Pregunta C.13 [ITERAR - 6 versiones]
 **¿En móvil, las ilustraciones deben ocultarse?**
 - **V1**: Sí, ocultar para maximizar espacio
 - **V2**: Reducir a avatar pequeño (lifestyle)
@@ -227,16 +183,12 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Convertir en header decorativo (fintech)
 - **V5**: Mover arriba como banner compacto
 - **V6**: Ocultar completamente, máximo foco
-- **V7**: Iconos bold en inline con título
-- **V8**: Convertir en progress indicator visual
-- **V9**: Mantener como mini-escena arriba
-- **V10**: Toggle para mostrar/ocultar
 
 ---
 
 ### 3.4 Botones de Navegación (4 preguntas)
 
-#### Pregunta C.14 [ITERAR - 10 versiones]
+#### Pregunta C.14 [ITERAR - 6 versiones]
 **¿Los botones 'Continuar' y 'Regresar' deben estar fijos abajo o al final?**
 - **V1**: Fixed bottom siempre (clásico mobile)
 - **V2**: Fixed con preview del siguiente paso (lifestyle)
@@ -244,16 +196,12 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Fixed con animación de progreso (fintech)
 - **V5**: Split: regresar izquierda fijo, continuar derecha
 - **V6**: Fixed bottom con botón gigante centrado
-- **V7**: Posición asimétrica bold
-- **V8**: Fixed + indicador de campos restantes (data)
-- **V9**: "Continúa tu historia" narrativo
-- **V10**: Posición dinámica según scroll
 
 #### C.15 [DEFINIDO]
 **¿El botón 'Regresar' debe ser texto link o botón secundario?**
 → Texto link o botón ghost (menos prominente que Continuar)
 
-#### Pregunta C.16 [ITERAR - 10 versiones]
+#### Pregunta C.16 [ITERAR - 6 versiones]
 **¿Debe haber botón de 'Guardar y continuar después'?**
 - **V1**: Sí, visible como link secundario
 - **V2**: Icono de guardado con tooltip (lifestyle)
@@ -261,10 +209,6 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Floating pill discreto (fintech)
 - **V5**: En panel lateral junto al resumen
 - **V6**: No visible, autoguardado silencioso
-- **V7**: Texto bold en header
-- **V8**: Con timestamp del último guardado (data)
-- **V9**: "Guarda tu historia" narrativo
-- **V10**: Aparece tras X segundos de inactividad
 
 #### C.17 [DEFINIDO]
 **¿El botón 'Continuar' debe estar deshabilitado hasta completar campos?**
@@ -274,7 +218,7 @@ src/app/prototipos/0.4/solicitud/
 
 ### 3.5 Mensajes Motivacionales (3 preguntas)
 
-#### Pregunta C.18 [ITERAR - 10 versiones]
+#### Pregunta C.18 [ITERAR - 6 versiones]
 **¿Cada paso debe tener un mensaje de ánimo diferente?**
 - **V1**: Sí, mensajes únicos por paso ("¡Ya casi!")
 - **V2**: Mensajes + foto de estudiante celebrando (lifestyle)
@@ -282,16 +226,12 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Mensajes con animación de texto (fintech)
 - **V5**: Mensaje en panel lateral
 - **V6**: Mensaje gigante centrado antes del form
-- **V7**: Mensajes con tipografía bold variable
-- **V8**: Mensajes + estadística motivacional (data)
-- **V9**: "Capítulo X: [Nombre del paso]" narrativo
-- **V10**: Mensajes personalizados según respuestas previas
 
 #### C.19 [DEFINIDO]
 **¿El mensaje debe personalizarse con el nombre del usuario?**
 → Sí, si está disponible: "¡Vas muy bien, María!"
 
-#### Pregunta C.20 [ITERAR - 10 versiones]
+#### Pregunta C.20 [ITERAR - 6 versiones]
 **¿Debe haber micro-celebraciones al completar cada paso?**
 - **V1**: Checkmark animado simple
 - **V2**: Confetti + mensaje de celebración (lifestyle)
@@ -299,10 +239,6 @@ src/app/prototipos/0.4/solicitud/
 - **V4**: Glow + particles sutiles (fintech)
 - **V5**: Animación en panel lateral + form
 - **V6**: Transición de impacto fullscreen
-- **V7**: Número bold con efecto de completado
-- **V8**: +X% completado con counter animado (data)
-- **V9**: "Capítulo completado" con transición de página
-- **V10**: Celebración personalizada según tiempo/precisión
 
 ---
 
@@ -325,49 +261,49 @@ src/app/prototipos/0.4/solicitud/
 
 export interface WizardConfig {
   // C.1 - Layout general
-  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.3 - Navegación
-  navigationMode: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  navigationMode: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.4 - Autoguardado
-  autoSaveVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  autoSaveVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.5 - Indicador de progreso
-  progressVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  progressVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.6 - Visibilidad de pasos
-  stepsVisibilityVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  stepsVisibilityVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.7 - Checkmark de completado
-  checkmarkVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  checkmarkVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.8 - Destacado del paso actual
-  currentStepVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  currentStepVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.10 - Layout de campos
-  fieldsLayoutVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  fieldsLayoutVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.11 - Panel lateral
-  sidePanelVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  sidePanelVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.12 - Posición de ilustraciones
-  illustrationVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  illustrationVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.13 - Ilustraciones en móvil
-  mobileIllustrationVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  mobileIllustrationVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.14 - Posición de botones
-  buttonsVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  buttonsVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.16 - Botón guardar
-  saveButtonVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  saveButtonVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.18 - Mensajes motivacionales
-  motivationVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  motivationVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
   // C.20 - Celebraciones
-  celebrationVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  celebrationVersion: 1 | 2 | 3 | 4 | 5 | 6;
 }
 
 export const defaultWizardConfig: WizardConfig = {
@@ -559,10 +495,6 @@ export const ProgressIndicatorV1: React.FC<ProgressIndicatorV1Props> = ({
 /prototipos/0.4/solicitud/wizard-v4          → V4: Abstracto Flotante
 /prototipos/0.4/solicitud/wizard-v5          → V5: Split 50/50
 /prototipos/0.4/solicitud/wizard-v6          → V6: Centrado Hero
-/prototipos/0.4/solicitud/wizard-v7          → V7: Asimétrico Bold
-/prototipos/0.4/solicitud/wizard-v8          → V8: Data-Driven
-/prototipos/0.4/solicitud/wizard-v9          → V9: Storytelling
-/prototipos/0.4/solicitud/wizard-v10         → V10: Interactivo
 ```
 
 ---
@@ -573,30 +505,30 @@ export const ProgressIndicatorV1: React.FC<ProgressIndicatorV1Props> = ({
 - [ ] `types/wizard.ts` - WizardConfig con 16 selectores
 - [ ] `data/wizardSteps.ts`
 - [ ] `WizardContainer.tsx` - Wrapper principal
-- [ ] `WizardSettingsModal.tsx` - Modal con 16 selectores (1-10)
+- [ ] `WizardSettingsModal.tsx` - Modal con 16 selectores (1-6)
 
-### Layout (10 versiones)
-- [ ] `WizardLayoutV1.tsx` a `V10.tsx`
+### Layout (6 versiones)
+- [ ] `WizardLayoutV1.tsx` a `V6.tsx`
 
-### Progress (10 versiones)
-- [ ] `ProgressIndicatorV1.tsx` a `V10.tsx`
+### Progress (6 versiones)
+- [ ] `ProgressIndicatorV1.tsx` a `V6.tsx`
 
-### Navigation (10 versiones)
-- [ ] `WizardButtonsV1.tsx` a `V10.tsx`
+### Navigation (6 versiones)
+- [ ] `WizardButtonsV1.tsx` a `V6.tsx`
 
-### Motivation (10 versiones)
-- [ ] `MotivationalMessageV1.tsx` a `V10.tsx`
+### Motivation (6 versiones)
+- [ ] `MotivationalMessageV1.tsx` a `V6.tsx`
 
-### Step Layout (10 versiones)
-- [ ] `StepLayoutV1.tsx` a `V10.tsx`
+### Step Layout (6 versiones)
+- [ ] `StepLayoutV1.tsx` a `V6.tsx`
 
-### Celebrations (10 versiones)
-- [ ] `StepCelebrationV1.tsx` a `V10.tsx`
+### Celebrations (6 versiones)
+- [ ] `StepCelebrationV1.tsx` a `V6.tsx`
 
 ### Páginas
 - [ ] `page.tsx` - Redirect a preview
 - [ ] `wizard-preview/page.tsx` - Preview con Settings Modal
-- [ ] `wizard-v1/page.tsx` a `wizard-v10/page.tsx`
+- [ ] `wizard-v1/page.tsx` a `wizard-v6/page.tsx`
 
 ### Documentación
 - [ ] `WIZARD_README.md`
