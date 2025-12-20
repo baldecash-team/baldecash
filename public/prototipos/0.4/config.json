@@ -44,6 +44,61 @@
           "notes": "V1-Acordeon Simple, V2-Con Iconos, V3-Grid Cards, V4-Tabs Categoria, V5-Busqueda, V6-Chatbot Style"
         }
       }
+    },
+    "catalogo": {
+      "lastUpdated": "2024-12-20T00:00:00.000Z",
+      "components": {
+        "catalogLayout": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Sidebar Clasico, V2-Filtros Horizontales, V3-Mobile-First Drawer, V4-Split View Abstracto, V5-Split 50/50 Preview, V6-Centrado Sticky"
+        },
+        "brandFilter": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Solo Texto, V2-Logo+Texto, V3-Grid Logos, V4-Carousel, V5-Dropdown, V6-Chips"
+        },
+        "filterSection": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Seccion colapsable con tooltip"
+        },
+        "priceFilter": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Slider de precio total"
+        },
+        "quotaFilter": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Slider de cuota con selector de frecuencia"
+        },
+        "usageFilter": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Checkboxes con iconos de uso recomendado"
+        },
+        "technicalFilters": {
+          "version": 1,
+          "variants": 1,
+          "notes": "RAM, SSD, Pantalla, Procesador, GPU, Teclado, Seguridad"
+        },
+        "commercialFilters": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Gama, Condicion, Disponibilidad"
+        },
+        "sortDropdown": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Ordenamiento con 6 opciones"
+        },
+        "productCard": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Card de producto con cuota prominente"
+        }
+      }
     }
   },
   "testingNotes": [
@@ -55,6 +110,11 @@
     {
       "date": "2024-12-19",
       "note": "Agregados componentes HowItWorks (6 versiones) y FAQ (6 versiones) al Hero section",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-20",
+      "note": "Agregada seccion Catalogo con Layout (6 versiones), BrandFilter (6 versiones), y componentes de filtros",
       "author": "Claude"
     }
   ]

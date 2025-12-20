@@ -6,14 +6,17 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, Code } from 'lucide-react';
+import { Settings, Code, ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { HeroSection, HeroSettingsModal } from '../components/hero';
 import { HeroConfig, defaultHeroConfig } from '../types/hero';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 
 export default function HeroPreviewPage() {
+  const router = useRouter();
   const [config, setConfig] = useState<HeroConfig>(defaultHeroConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showConfigBadge, setShowConfigBadge] = useState(false);
 
   return (
     <div className="relative">
@@ -35,13 +38,17 @@ export default function HeroPreviewPage() {
           isIconOnly
           radius="md"
           className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => {
-            const configString = JSON.stringify(config, null, 2);
-            navigator.clipboard.writeText(configString);
-            alert('Configuración copiada al portapapeles');
-          }}
+          onPress={() => setShowConfigBadge(!showConfigBadge)}
         >
           <Code className="w-5 h-5 text-neutral-600" />
+        </Button>
+        <Button
+          isIconOnly
+          radius="md"
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => router.push('/prototipos/0.4')}
+        >
+          <ArrowLeft className="w-5 h-5 text-neutral-600" />
         </Button>
       </div>
 
@@ -54,12 +61,14 @@ export default function HeroPreviewPage() {
       />
 
       {/* Current Config Badge */}
-      <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
-        <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
-        <p className="text-xs font-mono text-neutral-700">
-          Banner: V{config.heroBannerVersion} | Social: V{config.socialProofVersion} | Nav: V{config.navbarVersion} | CTA: V{config.ctaVersion} | Footer: V{config.footerVersion}
-        </p>
-      </div>
+      {showConfigBadge && (
+        <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
+          <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+          <p className="text-xs font-mono text-neutral-700">
+            Banner: V{config.heroBannerVersion} | Social: V{config.socialProofVersion} | Nav: V{config.navbarVersion} | CTA: V{config.ctaVersion} | Footer: V{config.footerVersion}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

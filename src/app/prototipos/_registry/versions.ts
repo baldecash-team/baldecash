@@ -97,7 +97,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
     status: 'in_progress',
     sections: [
       { id: 'hero', name: 'Hero', path: '/prototipos/0.4/hero', status: 'done', promptNumber: '01' },
-      { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.4/catalogo', status: 'pending', promptNumber: '02-03' },
+      { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.4/catalogo', status: 'done', promptNumber: '02-03' },
       { id: 'detalle', name: 'Detalle', path: '/prototipos/0.4/detalle', status: 'pending', promptNumber: '04' },
       { id: 'comparador', name: 'Comparador', path: '/prototipos/0.4/comparador', status: 'pending', promptNumber: '05' },
       { id: 'quiz', name: 'Quiz', path: '/prototipos/0.4/quiz', status: 'pending', promptNumber: '06' },
@@ -109,7 +109,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'rechazo', name: 'Rechazo', path: '/prototipos/0.4/rechazo', status: 'pending', promptNumber: '16' },
     ],
     createdAt: '2025-12-19',
-    updatedAt: '2025-12-19',
+    updatedAt: '2025-12-20',
   },
 ];
 
