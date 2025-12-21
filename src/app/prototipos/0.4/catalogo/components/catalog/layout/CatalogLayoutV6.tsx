@@ -348,12 +348,14 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                 </div>
               </FilterDropdown>
 
-              {/* Usage Dropdown */}
+              {/* Usage Dropdown - usa TechnicalFiltersStyled según versión */}
               <FilterDropdown id="usage" label="Uso" count={filters.usage.length}>
-                <UsageFilter
-                  options={usageOptions}
-                  selected={filters.usage}
-                  onChange={(usage) => updateFilter('usage', usage)}
+                <TechnicalFiltersStyled
+                  version={config.technicalFiltersVersion}
+                  showFilters="main"
+                  usageOptions={usageOptions}
+                  selectedUsage={filters.usage}
+                  onUsageChange={(usage) => updateFilter('usage', usage)}
                   showCounts={config.showFilterCounts}
                 />
               </FilterDropdown>
@@ -385,30 +387,16 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                 </div>
               </FilterDropdown>
 
-              {/* Condición Dropdown */}
+              {/* Condición Dropdown - usa TechnicalFiltersStyled según versión */}
               <FilterDropdown id="condition" label="Condición" count={filters.condition.length}>
-                <div className="space-y-2">
-                  {conditionOptions.map((opt) => (
-                    <label key={opt.value} className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer">
-                      <Checkbox
-                        isSelected={filters.condition.includes(opt.value as ProductCondition)}
-                        onValueChange={() => {
-                          const cond = opt.value as ProductCondition;
-                          if (filters.condition.includes(cond)) {
-                            updateFilter('condition', filters.condition.filter((c) => c !== cond));
-                          } else {
-                            updateFilter('condition', [...filters.condition, cond]);
-                          }
-                        }}
-                        classNames={{
-                          wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
-                          icon: 'text-white',
-                        }}
-                      />
-                      <span className="text-sm text-neutral-700">{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
+                <TechnicalFiltersStyled
+                  version={config.technicalFiltersVersion}
+                  showFilters="main"
+                  conditionOptions={conditionOptions}
+                  selectedCondition={filters.condition}
+                  onConditionChange={(condition) => updateFilter('condition', condition)}
+                  showCounts={config.showFilterCounts}
+                />
               </FilterDropdown>
 
               {/* Más Filtros Dropdown - usa TechnicalFiltersStyled según versión */}
