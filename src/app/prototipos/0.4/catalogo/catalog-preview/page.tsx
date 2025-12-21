@@ -141,9 +141,16 @@ function CatalogPreviewContent() {
     params.set('gallery', config.imageGalleryVersion.toString());
     params.set('gallerysize', config.gallerySizeVersion.toString());
     params.set('tags', config.tagDisplayVersion.toString());
-    params.set('pricingmode', config.pricingMode);
-    params.set('term', config.defaultTerm.toString());
-    params.set('initial', config.defaultInitial.toString());
+    // Only include pricing params when they differ from defaults
+    if (config.pricingMode !== 'interactive') {
+      params.set('pricingmode', config.pricingMode);
+    }
+    if (config.defaultTerm !== 24) {
+      params.set('term', config.defaultTerm.toString());
+    }
+    if (config.defaultInitial !== 10) {
+      params.set('initial', config.defaultInitial.toString());
+    }
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [config, router]);
 

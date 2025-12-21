@@ -11,7 +11,7 @@ const version = getVersionByNumber("0.4")!;
 
 // Custom paths for sections with predefined variations
 const customPaths: Record<string, string> = {
-  catalogo: "/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3",
+  catalogo: "/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3",
 };
 
 const sectionIcons: Record<string, React.ElementType> = {
