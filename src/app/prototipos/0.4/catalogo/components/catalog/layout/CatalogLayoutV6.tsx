@@ -1,8 +1,52 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { ChevronDown, Trash2, SlidersHorizontal } from 'lucide-react';
+
+// Componente separado con estado local para evitar re-renders
+const FilterPopover = memo(({
+  label,
+  count,
+  children,
+}: {
+  label: string;
+  count: number;
+  children: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Popover
+      isOpen={isOpen}
+      onOpenChange={setIsOpen}
+      placement="bottom-start"
+      offset={8}
+    >
+      <PopoverTrigger>
+        <Button
+          size="sm"
+          variant="bordered"
+          endContent={<ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
+          className={`cursor-pointer border-neutral-200 hover:border-[#4654CD]/50 ${
+            count > 0 ? 'border-[#4654CD] bg-[#4654CD]/5 text-[#4654CD]' : ''
+          }`}
+        >
+          {label}
+          {count > 0 && (
+            <span className="ml-1 w-4 h-4 bg-[#4654CD] text-white rounded-full text-[10px] flex items-center justify-center">
+              {count}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="min-w-[280px] p-4 bg-white shadow-lg border border-neutral-200 rounded-lg">
+        {children}
+      </PopoverContent>
+    </Popover>
+  );
+});
+FilterPopover.displayName = 'FilterPopover';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps } from '../../../types/catalog';
 import { FilterChips } from '../filters/FilterChips';
@@ -48,8 +92,6 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
   children,
 }) => {
   const [isSticky, setIsSticky] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const isInteractingRef = React.useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -59,23 +101,6 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Close popover when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (openDropdown && !isInteractingRef.current) {
-        const target = e.target as HTMLElement;
-        const isInsidePopover = target.closest('[data-slot="content"]') || target.closest('[data-slot="trigger"]');
-        if (!isInsidePopover) {
-          setOpenDropdown(null);
-        }
-      }
-      isInteractingRef.current = false;
-    };
-
-    document.addEventListener('click', handleClickOutside, true);
-    return () => document.removeEventListener('click', handleClickOutside, true);
-  }, [openDropdown]);
 
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -266,51 +291,6 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
     }
   };
 
-  const FilterDropdown = ({
-    id,
-    label,
-    count,
-    children: dropdownContent
-  }: {
-    id: string;
-    label: string;
-    count: number;
-    children: React.ReactNode;
-  }) => (
-    <Popover
-      isOpen={openDropdown === id}
-      onOpenChange={(open) => setOpenDropdown(open ? id : null)}
-      placement="bottom-start"
-      offset={8}
-      shouldCloseOnBlur={false}
-      triggerScaleOnOpen={false}
-    >
-      <PopoverTrigger>
-        <Button
-          size="sm"
-          variant="bordered"
-          endContent={<ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === id ? 'rotate-180' : ''}`} />}
-          className={`cursor-pointer border-neutral-200 hover:border-[#4654CD]/50 ${
-            count > 0 ? 'border-[#4654CD] bg-[#4654CD]/5 text-[#4654CD]' : ''
-          }`}
-        >
-          {label}
-          {count > 0 && (
-            <span className="ml-1 w-4 h-4 bg-[#4654CD] text-white rounded-full text-[10px] flex items-center justify-center">
-              {count}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="min-w-[280px] p-4 bg-white shadow-lg border border-neutral-200 rounded-lg"
-        onMouseDown={() => { isInteractingRef.current = true; }}
-      >
-        {dropdownContent}
-      </PopoverContent>
-    </Popover>
-  );
-
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Hero Header */}
@@ -351,12 +331,12 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
               </span>
 
               {/* Brand Dropdown */}
-              <FilterDropdown id="brand" label="Marca" count={filters.brands.length}>
+              <FilterPopover label="Marca" count={filters.brands.length}>
                 {renderBrandFilter()}
-              </FilterDropdown>
+              </FilterPopover>
 
               {/* Quota Dropdown */}
-              <FilterDropdown id="quota" label="Cuota" count={0}>
+              <FilterPopover label="Cuota" count={0}>
                 <div>
                   <p className="text-sm font-medium text-neutral-700 mb-2">Cuota mensual</p>
                   <QuotaRangeFilter
@@ -364,10 +344,10 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                     onChange={(val) => updateFilter('quotaRange', val)}
                   />
                 </div>
-              </FilterDropdown>
+              </FilterPopover>
 
               {/* Usage Dropdown - usa TechnicalFiltersStyled según versión */}
-              <FilterDropdown id="usage" label="Uso" count={filters.usage.length}>
+              <FilterPopover label="Uso" count={filters.usage.length}>
                 <TechnicalFiltersStyled
                   version={config.technicalFiltersVersion}
                   showFilters="main"
@@ -376,10 +356,10 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                   onUsageChange={(usage) => updateFilter('usage', usage)}
                   showCounts={config.showFilterCounts}
                 />
-              </FilterDropdown>
+              </FilterPopover>
 
               {/* Gama Dropdown */}
-              <FilterDropdown id="gama" label="Gama" count={filters.gama.length}>
+              <FilterPopover label="Gama" count={filters.gama.length}>
                 <div className="flex flex-wrap gap-2">
                   {gamaOptions.map((opt) => {
                     const isSelected = filters.gama.includes(opt.value as GamaTier);
@@ -403,10 +383,10 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                     );
                   })}
                 </div>
-              </FilterDropdown>
+              </FilterPopover>
 
               {/* Condición Dropdown - usa TechnicalFiltersStyled según versión */}
-              <FilterDropdown id="condition" label="Condición" count={filters.condition.length}>
+              <FilterPopover label="Condición" count={filters.condition.length}>
                 <TechnicalFiltersStyled
                   version={config.technicalFiltersVersion}
                   showFilters="main"
@@ -415,11 +395,10 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                   onConditionChange={(condition) => updateFilter('condition', condition)}
                   showCounts={config.showFilterCounts}
                 />
-              </FilterDropdown>
+              </FilterPopover>
 
               {/* Más Filtros Dropdown - usa TechnicalFiltersStyled según versión */}
-              <FilterDropdown
-                id="advanced"
+              <FilterPopover
                 label="Más filtros"
                 count={filters.ram.length + filters.storage.length + filters.processorModel.length + filters.displaySize.length + filters.resolution.length + filters.displayType.length}
               >
@@ -448,7 +427,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                     showCounts={config.showFilterCounts}
                   />
                 </div>
-              </FilterDropdown>
+              </FilterPopover>
 
               {/* Clear All */}
               {appliedFilters.length > 0 && (
