@@ -288,7 +288,13 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
           base: "bg-white shadow-lg border border-neutral-200 rounded-lg",
         }}
       >
-        <DropdownItem key="content" className="cursor-default bg-white hover:bg-white" isReadOnly>
+        <DropdownItem
+          key="content"
+          isReadOnly
+          classNames={{
+            base: "cursor-default bg-white hover:bg-white data-[hover=true]:bg-white data-[selectable=true]:focus:bg-white p-0",
+          }}
+        >
           {dropdownContent}
         </DropdownItem>
       </DropdownMenu>
