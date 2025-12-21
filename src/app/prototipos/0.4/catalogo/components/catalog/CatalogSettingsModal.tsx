@@ -11,8 +11,8 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick } from 'lucide-react';
-import { CatalogLayoutConfig, SkeletonVersion, LoadMoreVersion, LoadingDuration, layoutVersionDescriptions, brandFilterVersionDescriptions, loadingDurationLabels, loadMoreVersionLabels } from '../../types/catalog';
+import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal } from 'lucide-react';
+import { CatalogLayoutConfig, SkeletonVersion, LoadMoreVersion, LoadingDuration, ImageGalleryVersion, GallerySizeVersion, TechnicalFiltersVersion, layoutVersionDescriptions, brandFilterVersionDescriptions, loadingDurationLabels, loadMoreVersionLabels, imageGalleryVersionLabels, gallerySizeVersionLabels, technicalFiltersVersionLabels } from '../../types/catalog';
 import { skeletonVersionLabels } from './ProductCardSkeleton';
 
 interface CatalogSettingsModalProps {
@@ -32,9 +32,12 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
     onConfigChange({
       layoutVersion: 1,
       brandFilterVersion: 1,
+      technicalFiltersVersion: 1,
       skeletonVersion: 1,
       loadMoreVersion: 1,
       loadingDuration: 'default',
+      imageGalleryVersion: 1,
+      gallerySizeVersion: 2,
       productsPerRow: {
         mobile: 1,
         tablet: 2,
@@ -82,7 +85,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
 
         <ModalBody className="py-6 bg-white">
           <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
-            Personaliza el diseno del catalogo seleccionando diferentes versiones de layout y componentes.
+            Personaliza el diseño del catálogo seleccionando diferentes versiones de layout y componentes.
           </p>
 
           {/* Layout Version */}
@@ -152,6 +155,42 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   description={brandFilterVersionDescriptions[version as keyof typeof brandFilterVersionDescriptions]}
                 >
                   Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Technical Filters Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <SlidersHorizontal className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Filtros Técnicos</h3>
+            </div>
+            <RadioGroup
+              value={config.technicalFiltersVersion.toString()}
+              onValueChange={(val) => updateConfig('technicalFiltersVersion', parseInt(val) as TechnicalFiltersVersion)}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {([1, 2, 3] as TechnicalFiltersVersion[]).map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.technicalFiltersVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={technicalFiltersVersionLabels[version].description}
+                >
+                  V{version} - {technicalFiltersVersionLabels[version].name}
                 </Radio>
               ))}
             </RadioGroup>
@@ -251,6 +290,78 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   description={loadMoreVersionLabels[version].description}
                 >
                   V{version} - {loadMoreVersionLabels[version].name}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Image Gallery Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Images className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Galería de Imágenes</h3>
+            </div>
+            <RadioGroup
+              value={config.imageGalleryVersion.toString()}
+              onValueChange={(val) => updateConfig('imageGalleryVersion', parseInt(val) as ImageGalleryVersion)}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {([1, 2, 3] as ImageGalleryVersion[]).map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.imageGalleryVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={imageGalleryVersionLabels[version].description}
+                >
+                  V{version} - {imageGalleryVersionLabels[version].name}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Gallery Size Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Maximize2 className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Tamaño de Galería</h3>
+            </div>
+            <RadioGroup
+              value={config.gallerySizeVersion.toString()}
+              onValueChange={(val) => updateConfig('gallerySizeVersion', parseInt(val) as GallerySizeVersion)}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {([1, 2, 3] as GallerySizeVersion[]).map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.gallerySizeVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={gallerySizeVersionLabels[version].description}
+                >
+                  V{version} - {gallerySizeVersionLabels[version].name}
                 </Radio>
               ))}
             </RadioGroup>

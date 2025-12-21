@@ -2,14 +2,13 @@
 
 import React, { useState } from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
-import { Trash2, Eye } from 'lucide-react';
+import { Trash2, Eye, ChevronDown, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CatalogLayoutProps, CatalogProduct } from '../../../types/catalog';
 import { FilterSection } from '../filters/FilterSection';
-import { PriceRangeFilter } from '../filters/PriceRangeFilter';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
-import { UsageFilter } from '../filters/UsageFilter';
 import { CommercialFilters } from '../filters/CommercialFilters';
+import { TechnicalFiltersStyled } from '../filters/TechnicalFiltersStyled';
 import { SortDropdown } from '../sorting/SortDropdown';
 import {
   BrandFilterV1,
@@ -22,9 +21,14 @@ import {
 import {
   brandOptions,
   usageOptions,
+  ramOptions,
+  storageOptions,
+  displaySizeOptions,
   gamaOptions,
   conditionOptions,
-  filterTooltips,
+  resolutionOptions,
+  displayTypeOptions,
+  processorModelOptions,
 } from '../../../data/mockCatalogData';
 
 /**
@@ -44,6 +48,7 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
   const [previewProduct, setPreviewProduct] = useState<CatalogProduct | null>(
     products.length > 0 ? products[0] : null
   );
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -56,6 +61,21 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
       usage: [],
       gama: [],
       condition: [],
+      ram: [],
+      storage: [],
+      processorModel: [],
+      displaySize: [],
+      resolution: [],
+      displayType: [],
+      gpuType: [],
+      touchScreen: false,
+      backlitKeyboard: false,
+      numericKeypad: false,
+      fingerprint: false,
+      hasWindows: false,
+      hasThunderbolt: false,
+      hasEthernet: false,
+      ramExpandable: false,
       priceRange: [1000, 8000],
       quotaRange: [40, 400],
     });
@@ -65,7 +85,22 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
     filters.brands.length +
     filters.usage.length +
     filters.gama.length +
-    filters.condition.length;
+    filters.condition.length +
+    filters.ram.length +
+    filters.storage.length +
+    filters.processorModel.length +
+    filters.displaySize.length +
+    filters.resolution.length +
+    filters.displayType.length +
+    (filters.gpuType.includes('dedicated') ? 1 : 0) +
+    (filters.touchScreen ? 1 : 0) +
+    (filters.backlitKeyboard ? 1 : 0) +
+    (filters.numericKeypad ? 1 : 0) +
+    (filters.fingerprint ? 1 : 0) +
+    (filters.hasWindows ? 1 : 0) +
+    (filters.hasThunderbolt ? 1 : 0) +
+    (filters.hasEthernet ? 1 : 0) +
+    (filters.ramExpandable ? 1 : 0);
 
   const renderBrandFilter = () => {
     const props = {
@@ -87,8 +122,8 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
-      {/* Left Panel - Filters + Preview */}
-      <aside className="hidden lg:flex lg:flex-col w-[400px] bg-white border-r border-neutral-200">
+      {/* Left Panel - Filters + Preview (Sticky) */}
+      <aside className="hidden lg:flex lg:flex-col w-[400px] bg-white border-r border-neutral-200 sticky top-0 h-screen overflow-y-auto">
         {/* Filters Section */}
         <div className="flex-1 p-4 overflow-y-auto border-b border-neutral-200 max-h-[50vh]">
           {/* Header */}
@@ -112,45 +147,76 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
             {renderBrandFilter()}
           </FilterSection>
 
-          {/* Price Filters */}
-          <FilterSection title="Precio" defaultExpanded={true}>
-            <PriceRangeFilter
-              value={filters.priceRange}
-              onChange={(val) => updateFilter('priceRange', val)}
-            />
-          </FilterSection>
-
-          <FilterSection title="Cuota" defaultExpanded={false}>
+          {/* Quota Filter */}
+          <FilterSection title="Cuota mensual" defaultExpanded={true}>
             <QuotaRangeFilter
               value={filters.quotaRange}
               onChange={(val) => updateFilter('quotaRange', val)}
-              frequency={filters.quotaFrequency}
-              onFrequencyChange={(freq) => updateFilter('quotaFrequency', freq)}
             />
           </FilterSection>
 
-          {/* Usage Filter */}
-          <FilterSection title="Uso" tooltip={filterTooltips.ram} defaultExpanded={false}>
-            <UsageFilter
-              options={usageOptions}
-              selected={filters.usage}
-              onChange={(usage) => updateFilter('usage', usage)}
-              showCounts={config.showFilterCounts}
-            />
-          </FilterSection>
-
-          {/* Commercial Filters */}
+          {/* Commercial Filters - Solo Gama */}
           <CommercialFilters
             gamaOptions={gamaOptions}
             selectedGama={filters.gama}
             onGamaChange={(gama) => updateFilter('gama', gama)}
+            showCounts={config.showFilterCounts}
+          />
+
+          {/* Main Filters (Uso recomendado, Condición) - styled based on version */}
+          <TechnicalFiltersStyled
+            version={config.technicalFiltersVersion}
+            showFilters="main"
+            usageOptions={usageOptions}
+            selectedUsage={filters.usage}
+            onUsageChange={(usage) => updateFilter('usage', usage)}
             conditionOptions={conditionOptions}
             selectedCondition={filters.condition}
             onConditionChange={(condition) => updateFilter('condition', condition)}
-            onlyAvailable={filters.stock.includes('available')}
-            onAvailableChange={(val) => updateFilter('stock', val ? ['available'] : [])}
             showCounts={config.showFilterCounts}
           />
+
+          {/* Advanced Technical Filters */}
+          <div className="border-t border-neutral-200 mt-4 pt-4">
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Settings2 className="w-4 h-4" />
+                <span>Filtros Avanzados</span>
+              </div>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showAdvancedFilters && (
+              <div className="mt-2">
+                <TechnicalFiltersStyled
+                  version={config.technicalFiltersVersion}
+                  showFilters="advanced"
+                  ramOptions={ramOptions}
+                  selectedRam={filters.ram}
+                  onRamChange={(ram) => updateFilter('ram', ram)}
+                  storageOptions={storageOptions}
+                  selectedStorage={filters.storage}
+                  onStorageChange={(storage) => updateFilter('storage', storage)}
+                  displaySizeOptions={displaySizeOptions}
+                  selectedDisplaySize={filters.displaySize}
+                  onDisplaySizeChange={(sizes) => updateFilter('displaySize', sizes)}
+                  resolutionOptions={resolutionOptions}
+                  selectedResolution={filters.resolution}
+                  onResolutionChange={(res) => updateFilter('resolution', res)}
+                  displayTypeOptions={displayTypeOptions}
+                  selectedDisplayType={filters.displayType}
+                  onDisplayTypeChange={(types) => updateFilter('displayType', types)}
+                  processorOptions={processorModelOptions}
+                  selectedProcessor={filters.processorModel}
+                  onProcessorChange={(models) => updateFilter('processorModel', models)}
+                  showCounts={config.showFilterCounts}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Preview Section */}
@@ -255,12 +321,34 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
         >
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
-              return React.cloneElement(child as React.ReactElement<{ onMouseEnter?: () => void }>, {
-                onMouseEnter: () => {
-                  const product = products.find((p) => p.id === (child as React.ReactElement<{ product?: CatalogProduct }>).props.product?.id);
-                  if (product) setPreviewProduct(product);
-                },
-              });
+              // Check if child is a Fragment - if so, process its children
+              if (child.type === React.Fragment) {
+                return React.Children.map(child.props.children, (fragmentChild) => {
+                  if (React.isValidElement(fragmentChild)) {
+                    // Only add onMouseEnter if the element has a product prop (ProductCard)
+                    const productId = (fragmentChild as React.ReactElement<{ product?: CatalogProduct }>).props.product?.id;
+                    if (productId) {
+                      return React.cloneElement(fragmentChild as React.ReactElement<{ onMouseEnter?: () => void }>, {
+                        onMouseEnter: () => {
+                          const product = products.find((p) => p.id === productId);
+                          if (product) setPreviewProduct(product);
+                        },
+                      });
+                    }
+                  }
+                  return fragmentChild;
+                });
+              }
+              // For non-Fragment elements, only add onMouseEnter if it has a product prop
+              const productId = (child as React.ReactElement<{ product?: CatalogProduct }>).props.product?.id;
+              if (productId) {
+                return React.cloneElement(child as React.ReactElement<{ onMouseEnter?: () => void }>, {
+                  onMouseEnter: () => {
+                    const product = products.find((p) => p.id === productId);
+                    if (product) setPreviewProduct(product);
+                  },
+                });
+              }
             }
             return child;
           })}

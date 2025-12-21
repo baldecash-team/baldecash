@@ -4,7 +4,7 @@ import React from 'react';
 import { Checkbox, Switch } from '@nextui-org/react';
 import { FilterSection } from './FilterSection';
 import { filterTooltips } from '../../../data/mockCatalogData';
-import { FilterOption, Resolution, DisplayType, ProcessorBrand } from '../../../types/catalog';
+import { FilterOption, Resolution, DisplayType, ProcessorModel } from '../../../types/catalog';
 
 interface TechnicalFiltersProps {
   // RAM
@@ -34,8 +34,8 @@ interface TechnicalFiltersProps {
   onTouchScreenChange: (value: boolean | null) => void;
   // Processor
   processorOptions: FilterOption[];
-  selectedProcessor: ProcessorBrand[];
-  onProcessorChange: (brands: ProcessorBrand[]) => void;
+  selectedProcessor: ProcessorModel[];
+  onProcessorChange: (models: ProcessorModel[]) => void;
   // GPU
   gpuDedicated: boolean | null;
   onGpuDedicatedChange: (value: boolean | null) => void;
@@ -109,7 +109,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
   return (
     <div className="space-y-0">
       {/* RAM */}
-      <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={true}>
+      <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
         <div className="space-y-2">
           {ramOptions.map((opt) => (
             <label
@@ -147,7 +147,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
       </FilterSection>
 
       {/* Storage */}
-      <FilterSection title="Almacenamiento" tooltip={filterTooltips.ssd} defaultExpanded={true}>
+      <FilterSection title="Almacenamiento" tooltip={filterTooltips.ssd} defaultExpanded={false}>
         <div className="space-y-2">
           {storageOptions.map((opt) => (
             <label
@@ -171,7 +171,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
       </FilterSection>
 
       {/* Display Size */}
-      <FilterSection title="Tamano de pantalla" tooltip={filterTooltips.display} defaultExpanded={false}>
+      <FilterSection title="Tamaño de pantalla" tooltip={filterTooltips.display} defaultExpanded={false}>
         <div className="space-y-2">
           {displaySizeOptions.map((opt) => (
             <label
@@ -195,7 +195,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
       </FilterSection>
 
       {/* Resolution */}
-      <FilterSection title="Resolucion" tooltip={filterTooltips.resolution} defaultExpanded={false}>
+      <FilterSection title="Resolución" tooltip={filterTooltips.resolution} defaultExpanded={false}>
         <div className="space-y-2">
           {resolutionOptions.map((opt) => (
             <label
@@ -240,7 +240,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
             </label>
           ))}
           <div className="flex items-center justify-between p-2 mt-2 border-t border-neutral-100">
-            <span className="text-sm text-neutral-600">Pantalla tactil</span>
+            <span className="text-sm text-neutral-600">Pantalla táctil</span>
             <Switch
               size="sm"
               isSelected={touchScreen === true}
@@ -265,8 +265,8 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
             >
               <Checkbox
-                isSelected={selectedProcessor.includes(opt.value as ProcessorBrand)}
-                onValueChange={() => toggleArrayValue(selectedProcessor, opt.value as ProcessorBrand, onProcessorChange)}
+                isSelected={selectedProcessor.includes(opt.value as ProcessorModel)}
+                onValueChange={() => toggleArrayValue(selectedProcessor, opt.value as ProcessorModel, onProcessorChange)}
                 classNames={{
                   base: 'cursor-pointer',
                   wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',

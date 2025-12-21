@@ -1,31 +1,29 @@
 'use client';
 
 import React from 'react';
-import { Checkbox, Switch, Chip } from '@nextui-org/react';
+import { Checkbox, Chip } from '@nextui-org/react';
 import { FilterSection } from './FilterSection';
-import { FilterOption, GamaTier, ProductCondition, StockStatus } from '../../../types/catalog';
+import { FilterOption, GamaTier, ProductCondition } from '../../../types/catalog';
 
 interface CommercialFiltersProps {
   // Gama
   gamaOptions: FilterOption[];
   selectedGama: GamaTier[];
   onGamaChange: (gama: GamaTier[]) => void;
-  // Condition
-  conditionOptions: FilterOption[];
-  selectedCondition: ProductCondition[];
-  onConditionChange: (condition: ProductCondition[]) => void;
-  // Stock
-  onlyAvailable: boolean;
-  onAvailableChange: (value: boolean) => void;
+  // Condition (optional - can be rendered via TechnicalFiltersStyled instead)
+  conditionOptions?: FilterOption[];
+  selectedCondition?: ProductCondition[];
+  onConditionChange?: (condition: ProductCondition[]) => void;
   // Counts
   showCounts?: boolean;
 }
 
 const gamaColors: Record<GamaTier, { bg: string; text: string; border: string }> = {
-  entry: { bg: 'bg-neutral-100', text: 'text-neutral-700', border: 'border-neutral-300' },
-  media: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-300' },
-  alta: { bg: 'bg-[#4654CD]/10', text: 'text-[#4654CD]', border: 'border-[#4654CD]' },
-  premium: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
+  economica: { bg: 'bg-neutral-100', text: 'text-neutral-700', border: 'border-neutral-300' },
+  estudiante: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-300' },
+  profesional: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300' },
+  creativa: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-300' },
+  gamer: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-300' },
 };
 
 export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
@@ -35,8 +33,6 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
   conditionOptions,
   selectedCondition,
   onConditionChange,
-  onlyAvailable,
-  onAvailableChange,
   showCounts = true,
 }) => {
   const toggleGama = (gama: GamaTier) => {
@@ -48,6 +44,7 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
   };
 
   const toggleCondition = (condition: ProductCondition) => {
+    if (!selectedCondition || !onConditionChange) return;
     if (selectedCondition.includes(condition)) {
       onConditionChange(selectedCondition.filter((c) => c !== condition));
     } else {
@@ -55,10 +52,12 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
     }
   };
 
+  const showCondition = conditionOptions && selectedCondition && onConditionChange;
+
   return (
     <div className="space-y-0">
       {/* Gama */}
-      <FilterSection title="Gama" defaultExpanded={true}>
+      <FilterSection title="Gama" defaultExpanded={false}>
         <div className="flex flex-wrap gap-2">
           {gamaOptions.map((opt) => {
             const isSelected = selectedGama.includes(opt.value as GamaTier);
@@ -89,50 +88,31 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
         </div>
       </FilterSection>
 
-      {/* Condition */}
-      <FilterSection title="Condicion" defaultExpanded={true}>
-        <div className="space-y-2">
-          {conditionOptions.map((opt) => (
-            <label
-              key={opt.value}
-              className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
-            >
-              <Checkbox
-                isSelected={selectedCondition.includes(opt.value as ProductCondition)}
-                onValueChange={() => toggleCondition(opt.value as ProductCondition)}
-                classNames={{
-                  base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
-                  icon: 'text-white transition-opacity',
-                }}
-              />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-              {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
-            </label>
-          ))}
-        </div>
-      </FilterSection>
-
-      {/* Stock */}
-      <FilterSection title="Disponibilidad" defaultExpanded={true}>
-        <div className="flex items-center justify-between p-2">
-          <div>
-            <span className="text-sm text-neutral-700">Solo disponibles ahora</span>
-            <p className="text-xs text-neutral-400">Envio inmediato</p>
+      {/* Condition - only show if props are provided */}
+      {showCondition && (
+        <FilterSection title="Condición" defaultExpanded={false}>
+          <div className="space-y-2">
+            {conditionOptions.map((opt) => (
+              <label
+                key={opt.value}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+              >
+                <Checkbox
+                  isSelected={selectedCondition.includes(opt.value as ProductCondition)}
+                  onValueChange={() => toggleCondition(opt.value as ProductCondition)}
+                  classNames={{
+                    base: 'cursor-pointer',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
+                    icon: 'text-white transition-opacity',
+                  }}
+                />
+                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
+                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+              </label>
+            ))}
           </div>
-          <Switch
-            size="sm"
-            isSelected={onlyAvailable}
-            onValueChange={onAvailableChange}
-            classNames={{
-              base: 'cursor-pointer',
-              wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-              thumb: 'bg-white shadow-md',
-              hiddenInput: 'z-0',
-            }}
-          />
-        </div>
-      </FilterSection>
+        </FilterSection>
+      )}
     </div>
   );
 };

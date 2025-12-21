@@ -23,7 +23,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="border-b border-neutral-200 py-4">
+    <div className="border-b border-neutral-200 py-4 bg-white">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between text-left cursor-pointer group"
@@ -67,7 +67,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
       </button>
 
       {expanded && (
-        <div className="mt-3 space-y-2 animate-in slide-in-from-top-2 duration-200">
+        <div className="mt-3 space-y-2 animate-in slide-in-from-top-2 duration-200 bg-white">
           {children}
         </div>
       )}

@@ -2,36 +2,45 @@
 
 import React from 'react';
 import { Card, CardBody, Button, Chip } from '@nextui-org/react';
-import { ShoppingCart, Heart, Cpu, HardDrive, Monitor } from 'lucide-react';
+import { ShoppingCart, Heart, Cpu, HardDrive, Monitor, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { CatalogProduct } from '../../types/catalog';
+import { CatalogProduct, ImageGalleryVersion, GallerySizeVersion } from '../../types/catalog';
+import { ImageGallery } from './ImageGallery';
 
 interface ProductCardProps {
   product: CatalogProduct;
   onAddToCart?: () => void;
   onFavorite?: () => void;
+  onViewDetail?: () => void;
   onMouseEnter?: () => void;
+  imageGalleryVersion?: ImageGalleryVersion;
+  gallerySizeVersion?: GallerySizeVersion;
 }
 
 const gamaColors: Record<string, { bg: string; text: string }> = {
-  entry: { bg: 'bg-neutral-100', text: 'text-neutral-700' },
-  media: { bg: 'bg-blue-100', text: 'text-blue-700' },
-  alta: { bg: 'bg-[#4654CD]/10', text: 'text-[#4654CD]' },
-  premium: { bg: 'bg-amber-100', text: 'text-amber-700' },
+  economica: { bg: 'bg-neutral-100', text: 'text-neutral-700' },
+  estudiante: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  profesional: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  creativa: { bg: 'bg-purple-100', text: 'text-purple-700' },
+  gamer: { bg: 'bg-red-100', text: 'text-red-700' },
 };
 
 const gamaLabels: Record<string, string> = {
-  entry: 'Básica',
-  media: 'Recomendada',
-  alta: 'Avanzada',
-  premium: 'Premium',
+  economica: 'Económica',
+  estudiante: 'Estudiante',
+  profesional: 'Profesional',
+  creativa: 'Creativa',
+  gamer: 'Gamer',
 };
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onAddToCart,
   onFavorite,
+  onViewDetail,
   onMouseEnter,
+  imageGalleryVersion = 1,
+  gallerySizeVersion = 2,
 }) => {
   const gamaColor = gamaColors[product.gama] || gamaColors.entry;
 
@@ -84,13 +93,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </Chip>
           </div>
 
-          {/* Image */}
+          {/* Image Gallery */}
           <div className="relative mb-4">
-            <img
-              src={product.thumbnail}
+            <ImageGallery
+              images={[product.thumbnail, ...product.images.slice(0, 3)]}
               alt={product.displayName}
-              className="w-full h-40 object-contain"
-              loading="lazy"
+              version={imageGalleryVersion}
+              sizeVersion={gallerySizeVersion}
             />
             {/* Favorite button */}
             <button
@@ -98,7 +107,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 e.stopPropagation();
                 onFavorite?.();
               }}
-              className="absolute top-0 right-0 p-2 rounded-full bg-white/80 hover:bg-white shadow-sm cursor-pointer transition-all"
+              className="absolute top-0 right-0 p-2 rounded-full bg-white/80 hover:bg-white shadow-sm cursor-pointer transition-all z-10"
             >
               <Heart className="w-4 h-4 text-neutral-400 hover:text-red-500" />
             </button>
@@ -161,13 +170,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
 
           {/* Actions */}
-          <Button
-            className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] transition-colors"
-            startContent={<ShoppingCart className="w-4 h-4" />}
-            onPress={onAddToCart}
-          >
-            Lo quiero
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="bordered"
+              className="flex-1 border-[#4654CD] text-[#4654CD] font-medium cursor-pointer hover:bg-[#4654CD]/5 transition-colors"
+              startContent={<Eye className="w-4 h-4" />}
+              onPress={onViewDetail}
+            >
+              Ver detalle
+            </Button>
+            <Button
+              className="flex-1 bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] transition-colors"
+              startContent={<ShoppingCart className="w-4 h-4" />}
+              onPress={onAddToCart}
+            >
+              Lo quiero
+            </Button>
+          </div>
         </CardBody>
       </Card>
     </motion.div>

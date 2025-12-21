@@ -9,7 +9,7 @@ import { ReactNode } from 'react';
 export type UsageType =
   | 'estudios'
   | 'gaming'
-  | 'diseno'
+  | 'diseño'
   | 'oficina'
   | 'programacion';
 
@@ -23,15 +23,26 @@ export type SortOption =
 
 export type QuotaFrequency = 'weekly' | 'biweekly' | 'monthly';
 
-export type ProductCondition = 'nuevo' | 'reacondicionado' | 'open_box';
+export type ProductCondition = 'nuevo' | 'reacondicionado';
 
 export type StockStatus = 'available' | 'limited' | 'on_demand' | 'out_of_stock';
 
-export type GamaTier = 'entry' | 'media' | 'alta' | 'premium';
+export type GamaTier = 'economica' | 'estudiante' | 'profesional' | 'creativa' | 'gamer';
 
 export type StorageType = 'ssd' | 'hdd' | 'emmc';
 
 export type ProcessorBrand = 'intel' | 'amd' | 'apple';
+
+export type ProcessorModel =
+  | 'intel-celeron'
+  | 'intel-core-i3'
+  | 'intel-core-i5'
+  | 'intel-core-i7'
+  | 'intel-core-i9'
+  | 'amd-ryzen-3'
+  | 'amd-ryzen-5'
+  | 'amd-ryzen-7'
+  | 'amd-ryzen-9';
 
 export type GpuType = 'integrated' | 'dedicated';
 
@@ -54,6 +65,7 @@ export interface FilterState {
   storage: number[];
   storageType: StorageType[];
   processorBrand: ProcessorBrand[];
+  processorModel: ProcessorModel[];
   gpuType: GpuType[];
   displaySize: number[];
   displayType: DisplayType[];
@@ -85,6 +97,7 @@ export const defaultFilterState: FilterState = {
   storage: [],
   storageType: [],
   processorBrand: [],
+  processorModel: [],
   gpuType: [],
   displaySize: [],
   displayType: [],
@@ -166,6 +179,30 @@ export const loadMoreVersionLabels: Record<LoadMoreVersion, { name: string; desc
 
 export type LoadingDuration = 'default' | '30s' | '60s';
 
+export type ImageGalleryVersion = 1 | 2 | 3;
+
+export const imageGalleryVersionLabels: Record<ImageGalleryVersion, { name: string; description: string }> = {
+  1: { name: 'Dots Carousel', description: 'Indicadores de puntos, click para cambiar imagen' },
+  2: { name: 'Thumbnails', description: 'Miniaturas debajo de la imagen principal' },
+  3: { name: 'Arrow Navigation', description: 'Flechas izquierda/derecha al hacer hover + contador' },
+};
+
+export type GallerySizeVersion = 1 | 2 | 3;
+
+export const gallerySizeVersionLabels: Record<GallerySizeVersion, { name: string; description: string; height: string }> = {
+  1: { name: 'Compact', description: 'Galería compacta, más cards visibles', height: 'h-32' },
+  2: { name: 'Standard', description: 'Tamaño balanceado entre imagen e info', height: 'h-40' },
+  3: { name: 'Expanded', description: 'Galería grande, enfoque en imágenes', height: 'h-52' },
+};
+
+export type TechnicalFiltersVersion = 1 | 2 | 3;
+
+export const technicalFiltersVersionLabels: Record<TechnicalFiltersVersion, { name: string; description: string }> = {
+  1: { name: 'Checkboxes Clásicos', description: 'Lista vertical con checkboxes tradicionales' },
+  2: { name: 'Chips Compactos', description: 'Pills seleccionables en grid compacto' },
+  3: { name: 'Cards con Iconos', description: 'Tarjetas visuales con iconos descriptivos' },
+};
+
 export const loadingDurationMs: Record<LoadingDuration, number> = {
   default: 800,
   '30s': 30000,
@@ -181,9 +218,12 @@ export const loadingDurationLabels: Record<LoadingDuration, { name: string; desc
 export interface CatalogLayoutConfig {
   layoutVersion: 1 | 2 | 3 | 4 | 5 | 6;
   brandFilterVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  technicalFiltersVersion: TechnicalFiltersVersion;
   skeletonVersion: SkeletonVersion;
   loadMoreVersion: LoadMoreVersion;
   loadingDuration: LoadingDuration;
+  imageGalleryVersion: ImageGalleryVersion;
+  gallerySizeVersion: GallerySizeVersion;
   productsPerRow: {
     mobile: 1 | 2;
     tablet: 2 | 3;
@@ -196,9 +236,12 @@ export interface CatalogLayoutConfig {
 export const defaultCatalogConfig: CatalogLayoutConfig = {
   layoutVersion: 1,
   brandFilterVersion: 1,
+  technicalFiltersVersion: 1,
   skeletonVersion: 1,
   loadMoreVersion: 1,
   loadingDuration: 'default',
+  imageGalleryVersion: 1,
+  gallerySizeVersion: 2,
   productsPerRow: {
     mobile: 1,
     tablet: 2,
@@ -314,9 +357,9 @@ export interface ProductSpecs {
 
 export const layoutVersionDescriptions = {
   1: 'Sidebar Clásico - Panel izquierdo 280px con filtros expandidos',
-  2: 'Filtros Horizontales - Dropdowns colapsables arriba del grid',
+  2: 'Panel Flotante - Botón flotante draggable con panel de filtros expandible',
   3: 'Mobile-First Drawer - FAB flotante que abre drawer de filtros',
-  4: 'Split View Abstracto - Filtros flotantes con shapes geométricos',
+  4: 'Quick Cards + Sidebar - Header con tarjetas de uso y sidebar flotante',
   5: 'Split 50/50 Preview - Filtros + preview hover a la izquierda',
   6: 'Centrado Sticky - Barra de filtros fija superior, grid centrado',
 } as const;

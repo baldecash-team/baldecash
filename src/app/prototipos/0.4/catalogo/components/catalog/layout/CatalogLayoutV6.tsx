@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import { CatalogLayoutProps } from '../../../types/catalog';
 import { FilterChips } from '../filters/FilterChips';
 import { SortDropdown } from '../sorting/SortDropdown';
-import { PriceRangeFilter } from '../filters/PriceRangeFilter';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
 import { UsageFilter } from '../filters/UsageFilter';
 import {
@@ -18,12 +17,18 @@ import {
   BrandFilterV5,
   BrandFilterV6,
 } from '../filters/brand';
+import { Checkbox, Switch, Chip } from '@nextui-org/react';
 import {
   brandOptions,
   usageOptions,
   ramOptions,
+  storageOptions,
+  displaySizeOptions,
   gamaOptions,
+  conditionOptions,
+  processorModelOptions,
 } from '../../../data/mockCatalogData';
+import { GamaTier, ProductCondition, ProcessorModel } from '../../../types/catalog';
 
 /**
  * CatalogLayoutV6 - Centrado con Filtros Sticky
@@ -68,14 +73,72 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
       applied.push({ id: `usage-${usage}`, category: 'Uso', label: opt?.label || usage, value: usage });
     });
 
-    filters.ram.forEach((ram) => {
-      applied.push({ id: `ram-${ram}`, category: 'RAM', label: `${ram} GB`, value: ram });
-    });
-
     filters.gama.forEach((gama) => {
       const opt = gamaOptions.find((o) => o.value === gama);
       applied.push({ id: `gama-${gama}`, category: 'Gama', label: opt?.label || gama, value: gama });
     });
+
+    filters.condition.forEach((condition) => {
+      const opt = conditionOptions.find((o) => o.value === condition);
+      applied.push({ id: `condition-${condition}`, category: 'Condición', label: opt?.label || condition, value: condition });
+    });
+
+    // Technical filters
+    filters.ram.forEach((ram) => {
+      const opt = ramOptions.find((o) => parseInt(o.value) === ram);
+      applied.push({ id: `ram-${ram}`, category: 'RAM', label: opt?.label || `${ram} GB`, value: ram });
+    });
+
+    filters.storage.forEach((storage) => {
+      const opt = storageOptions.find((o) => parseInt(o.value) === storage);
+      applied.push({ id: `storage-${storage}`, category: 'Almacenamiento', label: opt?.label || `${storage} GB`, value: storage });
+    });
+
+    filters.processorModel.forEach((processor) => {
+      const opt = processorModelOptions.find((o) => o.value === processor);
+      applied.push({ id: `processor-${processor}`, category: 'Procesador', label: opt?.label || processor, value: processor });
+    });
+
+    filters.displaySize.forEach((size) => {
+      const opt = displaySizeOptions.find((o) => parseFloat(o.value) === size);
+      applied.push({ id: `displaySize-${size}`, category: 'Pantalla', label: opt?.label || `${size}"`, value: size });
+    });
+
+    if (filters.gpuType.includes('dedicated')) {
+      applied.push({ id: 'gpu-dedicated', category: 'GPU', label: 'GPU Dedicada', value: 'dedicated' });
+    }
+
+    if (filters.touchScreen) {
+      applied.push({ id: 'touch-true', category: 'Pantalla', label: 'Táctil', value: true });
+    }
+
+    if (filters.backlitKeyboard) {
+      applied.push({ id: 'backlit-true', category: 'Teclado', label: 'Retroiluminado', value: true });
+    }
+
+    if (filters.numericKeypad) {
+      applied.push({ id: 'numeric-true', category: 'Teclado', label: 'Numérico', value: true });
+    }
+
+    if (filters.fingerprint) {
+      applied.push({ id: 'fingerprint-true', category: 'Seguridad', label: 'Huella Digital', value: true });
+    }
+
+    if (filters.hasWindows) {
+      applied.push({ id: 'windows-true', category: 'SO', label: 'Windows', value: true });
+    }
+
+    if (filters.hasThunderbolt) {
+      applied.push({ id: 'thunderbolt-true', category: 'Puertos', label: 'Thunderbolt', value: true });
+    }
+
+    if (filters.hasEthernet) {
+      applied.push({ id: 'ethernet-true', category: 'Puertos', label: 'Ethernet', value: true });
+    }
+
+    if (filters.ramExpandable) {
+      applied.push({ id: 'ramExpandable-true', category: 'RAM', label: 'Expandible', value: true });
+    }
 
     return applied;
   }, [filters]);
@@ -89,11 +152,50 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
       case 'usage':
         updateFilter('usage', filters.usage.filter((u) => u !== value));
         break;
+      case 'gama':
+        updateFilter('gama', filters.gama.filter((g) => g !== value));
+        break;
+      case 'condition':
+        updateFilter('condition', filters.condition.filter((c) => c !== value));
+        break;
       case 'ram':
         updateFilter('ram', filters.ram.filter((r) => r !== parseInt(value)));
         break;
-      case 'gama':
-        updateFilter('gama', filters.gama.filter((g) => g !== value));
+      case 'storage':
+        updateFilter('storage', filters.storage.filter((s) => s !== parseInt(value)));
+        break;
+      case 'processor':
+        updateFilter('processorModel', filters.processorModel.filter((p) => p !== value));
+        break;
+      case 'displaySize':
+        updateFilter('displaySize', filters.displaySize.filter((d) => d !== parseFloat(value)));
+        break;
+      case 'gpu':
+        updateFilter('gpuType', []);
+        break;
+      case 'touch':
+        updateFilter('touchScreen', false);
+        break;
+      case 'backlit':
+        updateFilter('backlitKeyboard', false);
+        break;
+      case 'numeric':
+        updateFilter('numericKeypad', false);
+        break;
+      case 'fingerprint':
+        updateFilter('fingerprint', false);
+        break;
+      case 'windows':
+        updateFilter('hasWindows', false);
+        break;
+      case 'thunderbolt':
+        updateFilter('hasThunderbolt', false);
+        break;
+      case 'ethernet':
+        updateFilter('hasEthernet', false);
+        break;
+      case 'ramExpandable':
+        updateFilter('ramExpandable', false);
         break;
     }
   };
@@ -103,9 +205,23 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
       ...filters,
       brands: [],
       usage: [],
-      ram: [],
       gama: [],
       condition: [],
+      ram: [],
+      storage: [],
+      processorModel: [],
+      displaySize: [],
+      resolution: [],
+      displayType: [],
+      gpuType: [],
+      touchScreen: false,
+      backlitKeyboard: false,
+      numericKeypad: false,
+      fingerprint: false,
+      hasWindows: false,
+      hasThunderbolt: false,
+      hasEthernet: false,
+      ramExpandable: false,
       priceRange: [1000, 8000],
       quotaRange: [40, 400],
     });
@@ -164,9 +280,12 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
       <DropdownMenu
         aria-label={label}
         closeOnSelect={false}
-        className="min-w-[280px] p-4"
+        className="min-w-[280px] p-4 bg-white"
+        classNames={{
+          base: "bg-white shadow-lg border border-neutral-200 rounded-lg",
+        }}
       >
-        <DropdownItem key="content" className="cursor-default" isReadOnly>
+        <DropdownItem key="content" className="cursor-default bg-white hover:bg-white" isReadOnly>
           {dropdownContent}
         </DropdownItem>
       </DropdownMenu>
@@ -217,25 +336,14 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                 {renderBrandFilter()}
               </FilterDropdown>
 
-              {/* Price Dropdown */}
-              <FilterDropdown id="price" label="Precio" count={0}>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-neutral-700 mb-2">Precio total</p>
-                    <PriceRangeFilter
-                      value={filters.priceRange}
-                      onChange={(val) => updateFilter('priceRange', val)}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-neutral-700 mb-2">Cuota mensual</p>
-                    <QuotaRangeFilter
-                      value={filters.quotaRange}
-                      onChange={(val) => updateFilter('quotaRange', val)}
-                      frequency={filters.quotaFrequency}
-                      onFrequencyChange={(freq) => updateFilter('quotaFrequency', freq)}
-                    />
-                  </div>
+              {/* Quota Dropdown */}
+              <FilterDropdown id="quota" label="Cuota" count={0}>
+                <div>
+                  <p className="text-sm font-medium text-neutral-700 mb-2">Cuota mensual</p>
+                  <QuotaRangeFilter
+                    value={filters.quotaRange}
+                    onChange={(val) => updateFilter('quotaRange', val)}
+                  />
                 </div>
               </FilterDropdown>
 
@@ -249,33 +357,187 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                 />
               </FilterDropdown>
 
-              {/* RAM Dropdown */}
-              <FilterDropdown id="ram" label="RAM" count={filters.ram.length}>
-                <div className="space-y-2">
-                  {ramOptions.map((opt) => (
-                    <label
-                      key={opt.value}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filters.ram.includes(parseInt(opt.value))}
-                        onChange={() => {
-                          const ramVal = parseInt(opt.value);
-                          if (filters.ram.includes(ramVal)) {
-                            updateFilter('ram', filters.ram.filter((r) => r !== ramVal));
+              {/* Gama Dropdown */}
+              <FilterDropdown id="gama" label="Gama" count={filters.gama.length}>
+                <div className="flex flex-wrap gap-2">
+                  {gamaOptions.map((opt) => {
+                    const isSelected = filters.gama.includes(opt.value as GamaTier);
+                    return (
+                      <Chip
+                        key={opt.value}
+                        size="sm"
+                        variant={isSelected ? 'solid' : 'bordered'}
+                        className={`cursor-pointer ${isSelected ? 'bg-[#4654CD] text-white' : ''}`}
+                        onClick={() => {
+                          const gama = opt.value as GamaTier;
+                          if (filters.gama.includes(gama)) {
+                            updateFilter('gama', filters.gama.filter((g) => g !== gama));
                           } else {
-                            updateFilter('ram', [...filters.ram, ramVal]);
+                            updateFilter('gama', [...filters.gama, gama]);
                           }
                         }}
-                        className="w-4 h-4 accent-[#4654CD]"
+                      >
+                        {opt.label}
+                      </Chip>
+                    );
+                  })}
+                </div>
+              </FilterDropdown>
+
+              {/* Condición Dropdown */}
+              <FilterDropdown id="condition" label="Condición" count={filters.condition.length}>
+                <div className="space-y-2">
+                  {conditionOptions.map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer">
+                      <Checkbox
+                        isSelected={filters.condition.includes(opt.value as ProductCondition)}
+                        onValueChange={() => {
+                          const cond = opt.value as ProductCondition;
+                          if (filters.condition.includes(cond)) {
+                            updateFilter('condition', filters.condition.filter((c) => c !== cond));
+                          } else {
+                            updateFilter('condition', [...filters.condition, cond]);
+                          }
+                        }}
+                        classNames={{
+                          wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                          icon: 'text-white',
+                        }}
                       />
                       <span className="text-sm text-neutral-700">{opt.label}</span>
-                      {config.showFilterCounts && (
-                        <span className="text-xs text-neutral-400 ml-auto">({opt.count})</span>
-                      )}
                     </label>
                   ))}
+                </div>
+              </FilterDropdown>
+
+              {/* Más Filtros Dropdown */}
+              <FilterDropdown
+                id="advanced"
+                label="Más filtros"
+                count={filters.ram.length + filters.storage.length + filters.processorModel.length}
+              >
+                <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                  {/* RAM */}
+                  <div>
+                    <p className="text-sm font-medium text-neutral-700 mb-2">RAM</p>
+                    <div className="space-y-1">
+                      {ramOptions.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-3 p-1 rounded hover:bg-neutral-50 cursor-pointer">
+                          <Checkbox
+                            size="sm"
+                            isSelected={filters.ram.includes(parseInt(opt.value))}
+                            onValueChange={() => {
+                              const ramVal = parseInt(opt.value);
+                              if (filters.ram.includes(ramVal)) {
+                                updateFilter('ram', filters.ram.filter((r) => r !== ramVal));
+                              } else {
+                                updateFilter('ram', [...filters.ram, ramVal]);
+                              }
+                            }}
+                            classNames={{
+                              wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                              icon: 'text-white',
+                            }}
+                          />
+                          <span className="text-sm text-neutral-700">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Storage */}
+                  <div>
+                    <p className="text-sm font-medium text-neutral-700 mb-2">Almacenamiento</p>
+                    <div className="space-y-1">
+                      {storageOptions.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-3 p-1 rounded hover:bg-neutral-50 cursor-pointer">
+                          <Checkbox
+                            size="sm"
+                            isSelected={filters.storage.includes(parseInt(opt.value))}
+                            onValueChange={() => {
+                              const storageVal = parseInt(opt.value);
+                              if (filters.storage.includes(storageVal)) {
+                                updateFilter('storage', filters.storage.filter((s) => s !== storageVal));
+                              } else {
+                                updateFilter('storage', [...filters.storage, storageVal]);
+                              }
+                            }}
+                            classNames={{
+                              wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                              icon: 'text-white',
+                            }}
+                          />
+                          <span className="text-sm text-neutral-700">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Processor */}
+                  <div>
+                    <p className="text-sm font-medium text-neutral-700 mb-2">Procesador</p>
+                    <div className="space-y-1">
+                      {processorModelOptions.map((opt) => (
+                        <label key={opt.value} className="flex items-center gap-3 p-1 rounded hover:bg-neutral-50 cursor-pointer">
+                          <Checkbox
+                            size="sm"
+                            isSelected={filters.processorModel.includes(opt.value as ProcessorModel)}
+                            onValueChange={() => {
+                              const proc = opt.value as ProcessorModel;
+                              if (filters.processorModel.includes(proc)) {
+                                updateFilter('processorModel', filters.processorModel.filter((p) => p !== proc));
+                              } else {
+                                updateFilter('processorModel', [...filters.processorModel, proc]);
+                              }
+                            }}
+                            classNames={{
+                              wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                              icon: 'text-white',
+                            }}
+                          />
+                          <span className="text-sm text-neutral-700">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* GPU */}
+                  <div className="flex items-center justify-between p-2 border-t border-neutral-100">
+                    <span className="text-sm text-neutral-600">GPU dedicada</span>
+                    <Switch
+                      size="sm"
+                      isSelected={filters.gpuType.includes('dedicated')}
+                      onValueChange={(val) => updateFilter('gpuType', val ? ['dedicated'] : [])}
+                      classNames={{
+                        wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                      }}
+                    />
+                  </div>
+
+                  {/* Display Size */}
+                  <div>
+                    <p className="text-sm font-medium text-neutral-700 mb-2">Tamaño de pantalla</p>
+                    <div className="flex flex-wrap gap-2">
+                      {displaySizeOptions.map((opt) => (
+                        <Chip
+                          key={opt.value}
+                          size="sm"
+                          variant={filters.displaySize.includes(parseFloat(opt.value)) ? 'solid' : 'bordered'}
+                          className={`cursor-pointer ${filters.displaySize.includes(parseFloat(opt.value)) ? 'bg-[#4654CD] text-white' : ''}`}
+                          onClick={() => {
+                            const size = parseFloat(opt.value);
+                            if (filters.displaySize.includes(size)) {
+                              updateFilter('displaySize', filters.displaySize.filter((s) => s !== size));
+                            } else {
+                              updateFilter('displaySize', [...filters.displaySize, size]);
+                            }
+                          }}
+                        >
+                          {opt.label}
+                        </Chip>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </FilterDropdown>
 

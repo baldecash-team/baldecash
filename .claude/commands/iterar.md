@@ -6,77 +6,213 @@
 
 Ejemplo: `/iterar 01 0.4` o `/iterar 02 0.4`
 
+---
+
+## Flujo de Ejecución
+
+```
+/iterar {PROMPT_NUMBER} {VERSION}
+    │
+    ├─1→ Lee CONVENTIONS.md (reglas GLOBALES - siempre)
+    │
+    ├─2→ Lee section-specs/PROMPT_{NUMBER}_*.md (SPEC de la sección)
+    │
+    ├─3→ Lee section-learnings/LEARNINGS_{SECCION}.md (si existe)
+    │
+    ├─4→ Aplica skills: brandbook + frontend
+    │
+    └─5→ Genera código aplicando las 3 capas
+```
+
+---
+
 ## Instrucciones
 
-1. Lee `.claude/docs/{VERSION}/section-specs/PROMPT_{PROMPT_NUMBER}_*.md`
-2. Usa los skills brandbook y frontend (ya cargados arriba)
-3. Genera componentes según marcadores:
-   - **[ITERAR - 6 versiones]** = 6 versiones (V1, V2, V3, V4, V5, V6)
-   - **[DEFINIDO]** = 1 versión fija aplicada a todas las variantes
-4. Guarda en `src/app/prototipos/{VERSION}/{seccion}/`
-5. Actualiza `public/prototipos/{VERSION}/config.json`
-6. Crea `{Seccion}SettingsModal.tsx` para la sección
-7. Incluye `TokenCounter` flotante en page.tsx (ver sección Token Counter)
+### Paso 1: Cargar Convenciones Globales (OBLIGATORIO)
+
+Lee `.claude/docs/{VERSION}/CONVENTIONS.md` y aplica:
+- Reglas ortográficas (tildes en español)
+- Componentes compartidos (Floating Controls Pattern)
+- TypeScript patterns (tipos union, Suspense)
+- Estilos y colores de marca
+
+### Paso 2: Cargar Spec de la Sección
+
+Lee `.claude/docs/{VERSION}/section-specs/PROMPT_{PROMPT_NUMBER}_*.md`
+
+### Paso 3: Cargar Aprendizajes Específicos (si existen)
+
+Busca `.claude/docs/{VERSION}/section-learnings/LEARNINGS_{SECCION}.md`
+- Si existe: aplica patrones específicos de esa sección
+- Si no existe: continúa solo con convenciones globales
+
+### Paso 4: Generar Componentes
+
+Usa los skills brandbook y frontend (ya cargados arriba)
+
+Genera componentes según marcadores en el PROMPT:
+- **[ITERAR - 6 versiones]** = 6 versiones (V1, V2, V3, V4, V5, V6)
+- **[DEFINIDO]** = 1 versión fija aplicada a todas las variantes
+
+### Paso 5: Guardar y Configurar
+
+1. Guarda en `src/app/prototipos/{VERSION}/{seccion}/`
+2. Actualiza `public/prototipos/{VERSION}/config.json`
+3. Crea `{Seccion}SettingsModal.tsx` para la sección
+4. Incluye Floating Controls Pattern en page.tsx (ver sección abajo)
+
+---
 
 ## Mapeo de PROMPTs
 
-| # | Sección | Carpeta |
-|---|---------|---------|
-| 01 | Hero Landing | hero/ |
-| 02 | Catálogo Layout | catalogo/ |
-| 03 | Catálogo Cards | catalogo/ |
-| 04 | Detalle Producto | detalle/ |
-| 05 | Comparador | comparador/ |
-| 06 | Quiz Ayuda | quiz/ |
-| 07 | Estado Vacío | estados/ |
-| 08-13 | Wizard/Form | wizard/ |
-| 14 | Upsell | resultados/ |
-| 15 | Aprobación | resultados/ |
-| 16 | Rechazo | resultados/ |
+| # | Sección | Carpeta | Learnings |
+|---|---------|---------|-----------|
+| 01 | Hero Landing | hero/ | LEARNINGS_HERO.md |
+| 02 | Catálogo Layout | catalogo/ | LEARNINGS_CATALOGO.md ✓ |
+| 03 | Catálogo Cards | catalogo/ | LEARNINGS_CATALOGO.md ✓ |
+| 04 | Detalle Producto | detalle/ | LEARNINGS_DETALLE.md |
+| 05 | Comparador | comparador/ | LEARNINGS_COMPARADOR.md |
+| 06 | Quiz Ayuda | quiz/ | LEARNINGS_QUIZ.md |
+| 07 | Estado Vacío | estados/ | LEARNINGS_ESTADOS.md |
+| 08-13 | Wizard/Form | wizard/ | LEARNINGS_WIZARD.md |
+| 14 | Upsell | resultados/ | LEARNINGS_RESULTADOS.md |
+| 15 | Aprobación | resultados/ | LEARNINGS_RESULTADOS.md |
+| 16 | Rechazo | resultados/ | LEARNINGS_RESULTADOS.md |
 
-## Estructura de salida
+✓ = Archivo de learnings ya existe
+
+---
+
+## Estructura de Archivos de Documentación
+
+```
+.claude/docs/{VERSION}/
+├── CONVENTIONS.md                    # 🌐 Reglas GLOBALES (siempre se carga)
+├── section-specs/
+│   ├── PROMPT_01_HERO_LANDING.md
+│   ├── PROMPT_02_CATALOGO_LAYOUT.md
+│   └── ...
+└── section-learnings/                # 📦 Específicos por sección
+    ├── LEARNINGS_HERO.md
+    ├── LEARNINGS_CATALOGO.md         # ✓ Ya existe
+    └── ...
+```
+
+---
+
+## Estructura de Salida
 
 ```
 src/app/prototipos/{VERSION}/{seccion}/
+├── {seccion}-preview/
+│   └── page.tsx                      # Preview con Floating Controls
 ├── components/
-│   ├── {ComponenteV1}.tsx
-│   ├── {ComponenteV2}.tsx
-│   ├── {ComponenteV3}.tsx
-│   ├── {ComponenteV4}.tsx
-│   ├── {ComponenteV5}.tsx
-│   ├── {ComponenteV6}.tsx
-│   └── {Seccion}SettingsModal.tsx
+│   └── {seccion}/
+│       ├── {ComponenteV1}.tsx
+│       ├── {ComponenteV2}.tsx
+│       ├── {ComponenteV3}.tsx
+│       ├── {ComponenteV4}.tsx
+│       ├── {ComponenteV5}.tsx
+│       ├── {ComponenteV6}.tsx
+│       ├── {Seccion}SettingsModal.tsx
+│       └── index.ts                  # Barrel exports
 ├── types/{seccion}.ts
 ├── data/mock{Seccion}Data.ts
-└── page.tsx (preview con TokenCounter)
+└── page.tsx                          # Redirect a preview
 ```
 
-## Token Counter (OBLIGATORIO)
+---
 
-Cada página de preview DEBE incluir el componente `TokenCounter` como botón flotante encima del botón de configuración.
+## Floating Controls Pattern (OBLIGATORIO)
+
+Cada página de preview DEBE incluir los controles flotantes según CONVENTIONS.md:
 
 ### Implementación en page.tsx:
 
 ```tsx
-// Importar el componente
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@nextui-org/react';
+import { Settings, Code, ArrowLeft } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 
-// En el JSX, agregar encima del botón de Settings:
+// Estados
+const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+const [showConfigBadge, setShowConfigBadge] = useState(false); // Default: OCULTO
+
+// JSX - Floating Action Buttons (bottom-right)
 <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
-  <TokenCounter
-    sectionId="PROMPT_{NUMBER}"
-    version="{VERSION}"
-  />
-  <Button isIconOnly onPress={() => setIsSettingsOpen(true)}>
+  <TokenCounter sectionId="PROMPT_{NUMBER}" version="{VERSION}" />
+  <Button
+    isIconOnly
+    radius="md"
+    className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+    onPress={() => setIsSettingsOpen(true)}
+  >
     <Settings className="w-5 h-5" />
   </Button>
-  {/* otros botones */}
+  <Button
+    isIconOnly
+    radius="md"
+    className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+    onPress={() => setShowConfigBadge(!showConfigBadge)}
+  >
+    <Code className="w-5 h-5 text-neutral-600" />
+  </Button>
+  <Button
+    isIconOnly
+    radius="md"
+    className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+    onPress={() => router.push('/prototipos/{VERSION}')}
+  >
+    <ArrowLeft className="w-5 h-5 text-neutral-600" />
+  </Button>
 </div>
+
+// JSX - Config Badge (bottom-left, condicional)
+{showConfigBadge && (
+  <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
+    <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+    <p className="text-xs font-mono text-neutral-700">
+      {/* Info específica de la sección */}
+    </p>
+  </div>
+)}
 ```
 
-### Actualización del contador:
+---
 
-Al finalizar la ejecución de `/iterar`, se debe actualizar el archivo:
+## Checklist de Validación (de CONVENTIONS.md)
+
+Antes de finalizar, verificar:
+
+### Ortografía
+- [ ] Títulos con tildes correctas (Catálogo, Configuración, etc.)
+- [ ] Labels y placeholders revisados
+- [ ] Tooltips y descripciones
+- [ ] Comentarios de código en español
+
+### UI Consistency
+- [ ] Floating controls implementados (4 botones)
+- [ ] Config badge funcional (oculto por default)
+- [ ] TokenCounter incluido
+- [ ] Botón de regreso a índice
+
+### TypeScript
+- [ ] Tipos union definidos (no `string[]` genéricos)
+- [ ] Props tipadas correctamente
+- [ ] Config interface con defaults
+
+### Next.js
+- [ ] Suspense boundary si usa useSearchParams
+- [ ] 'use client' donde corresponde
+- [ ] Router imports de next/navigation
+
+---
+
+## Actualización del Token Counter
+
+Al finalizar la ejecución de `/iterar`, actualizar:
 `public/prototipos/{VERSION}/token-usage.json`
 
 ```json
@@ -92,30 +228,47 @@ Al finalizar la ejecución de `/iterar`, se debe actualizar el archivo:
         "total": 40000
       },
       "filesGenerated": 24,
-      "componentsCreated": ["NavbarV1-V6", "HeroBannerV1-V6", "..."]
+      "componentsCreated": ["NavbarV1-V6", "HeroBannerV1-V6", "..."],
+      "conventionsApplied": true,
+      "learningsApplied": "LEARNINGS_HERO.md"
     }
   ],
   "totalTokensUsed": 40000
 }
 ```
 
+---
+
 ## Reporte Final (OBLIGATORIO)
 
 Al terminar cada iteración, mostrar resumen:
 
 ```
-═══════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════
   ITERACIÓN COMPLETADA - PROMPT_{NUMBER} v{VERSION}
-═══════════════════════════════════════════════════════
-  Sección: {nombre_seccion}
-  Archivos generados: {count}
-  Componentes creados: {lista}
+═══════════════════════════════════════════════════════════════════
 
-  TOKENS ESTIMADOS:
+  📋 DOCUMENTOS CARGADOS:
+  ├─ CONVENTIONS.md ✓
+  ├─ PROMPT_{NUMBER}_*.md ✓
+  └─ LEARNINGS_{SECCION}.md {✓ o "No existe"}
+
+  📁 ARCHIVOS:
+  ├─ Sección: {nombre_seccion}
+  ├─ Archivos generados: {count}
+  └─ Componentes creados: {lista}
+
+  ✅ VALIDACIONES:
+  ├─ Ortografía: ✓
+  ├─ Floating Controls: ✓
+  ├─ TypeScript: ✓
+  └─ Next.js Patterns: ✓
+
+  📊 TOKENS ESTIMADOS:
   ├─ Input:  ~{input_tokens} tokens
   ├─ Output: ~{output_tokens} tokens
   └─ Total:  ~{total_tokens} tokens
 
-  Archivo actualizado: public/prototipos/{VERSION}/token-usage.json
-═══════════════════════════════════════════════════════
+  📄 Archivo actualizado: public/prototipos/{VERSION}/token-usage.json
+═══════════════════════════════════════════════════════════════════
 ```

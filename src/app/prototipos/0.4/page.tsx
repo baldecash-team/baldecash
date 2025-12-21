@@ -9,6 +9,11 @@ import { getVersionByNumber } from "../_registry";
 
 const version = getVersionByNumber("0.4")!;
 
+// Custom paths for sections with predefined variations
+const customPaths: Record<string, string> = {
+  catalogo: "/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3",
+};
+
 const sectionIcons: Record<string, React.ElementType> = {
   hero: Rocket,
   catalogo: Layers,
@@ -31,6 +36,10 @@ const statusStyles = {
 
 export default function Version04Page() {
   const router = useRouter();
+
+  const getSectionPath = (section: { id: string; path: string }) => {
+    return customPaths[section.id] || section.path;
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -103,7 +112,7 @@ export default function Version04Page() {
                   <Card
                     key={section.id}
                     isPressable
-                    onPress={() => router.push(section.path)}
+                    onPress={() => router.push(getSectionPath(section))}
                     className="bg-white border border-neutral-100 hover:border-[#4654CD]/50 hover:shadow-md transition-all cursor-pointer h-full"
                   >
                     {cardContent}

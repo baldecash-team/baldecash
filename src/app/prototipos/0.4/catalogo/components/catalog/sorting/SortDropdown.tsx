@@ -19,7 +19,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
 }) => {
   return (
     <div className="flex items-center gap-4">
-      <span className="text-sm text-neutral-600">
+      <span className="text-sm text-neutral-600 whitespace-nowrap">
         <span className="font-semibold text-neutral-800">{totalProducts}</span> equipos
       </span>
 

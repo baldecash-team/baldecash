@@ -41,7 +41,7 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 bg-white">
       {options.map((option) => {
         const isSelected = selected.includes(option.value as UsageType);
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef } from 'react';
 import { Button, Spinner } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft } from 'lucide-react';
+import { Settings, Code, ArrowLeft, ArrowUp } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CatalogLayout } from '../components/catalog/CatalogLayout';
 import { CatalogSettingsModal } from '../components/catalog/CatalogSettingsModal';
@@ -17,6 +17,11 @@ import {
   defaultFilterState,
   SortOption,
   SkeletonVersion,
+  LoadingDuration,
+  LoadMoreVersion,
+  ImageGalleryVersion,
+  GallerySizeVersion,
+  TechnicalFiltersVersion,
   loadingDurationMs,
 } from '../types/catalog';
 import { sortProducts, getFilteredProducts } from '../data/mockCatalogData';
@@ -45,12 +50,24 @@ function CatalogPreviewContent() {
   const [config, setConfig] = useState<CatalogLayoutConfig>(() => {
     const layoutVersion = parseInt(searchParams.get('layout') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
     const brandFilterVersion = parseInt(searchParams.get('brand') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
+    const technicalFiltersVersion = parseInt(searchParams.get('techfilters') || '1') as TechnicalFiltersVersion;
     const cols = parseInt(searchParams.get('cols') || '3') as 3 | 4 | 5;
+    const skeletonVersion = parseInt(searchParams.get('skeleton') || '1') as SkeletonVersion;
+    const loadingDuration = (searchParams.get('duration') || 'default') as LoadingDuration;
+    const loadMoreVersion = parseInt(searchParams.get('loadmore') || '1') as LoadMoreVersion;
+    const imageGalleryVersion = parseInt(searchParams.get('gallery') || '1') as ImageGalleryVersion;
+    const gallerySizeVersion = parseInt(searchParams.get('gallerysize') || '2') as GallerySizeVersion;
 
     return {
       ...defaultCatalogConfig,
       layoutVersion: [1, 2, 3, 4, 5, 6].includes(layoutVersion) ? layoutVersion : 1,
       brandFilterVersion: [1, 2, 3, 4, 5, 6].includes(brandFilterVersion) ? brandFilterVersion : 1,
+      technicalFiltersVersion: [1, 2, 3].includes(technicalFiltersVersion) ? technicalFiltersVersion : 1,
+      skeletonVersion: [1, 2, 3].includes(skeletonVersion) ? skeletonVersion : 1,
+      loadingDuration: ['default', '30s', '60s'].includes(loadingDuration) ? loadingDuration : 'default',
+      loadMoreVersion: [1, 2, 3].includes(loadMoreVersion) ? loadMoreVersion : 1,
+      imageGalleryVersion: [1, 2, 3].includes(imageGalleryVersion) ? imageGalleryVersion : 1,
+      gallerySizeVersion: [1, 2, 3].includes(gallerySizeVersion) ? gallerySizeVersion : 2,
       productsPerRow: {
         ...defaultCatalogConfig.productsPerRow,
         desktop: [3, 4, 5].includes(cols) ? cols : 3,
@@ -65,20 +82,45 @@ function CatalogPreviewContent() {
   // UI state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading state
+  const [isLoadingMore, setIsLoadingMore] = useState(false); // Loading state for "load more"
+  const [showScrollTop, setShowScrollTop] = useState(false); // Show scroll to top button
   const isFirstRender = useRef(true);
+
+  // Scroll detection for "scroll to top" button
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show button when scrolled down more than 400px
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Scroll to top function
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Pagination state - 4 rows initially, 2 rows per load
   const INITIAL_ROWS = 4;
   const ROWS_PER_LOAD = 2;
   const [visibleRows, setVisibleRows] = useState(INITIAL_ROWS);
+  const [pendingRows, setPendingRows] = useState(0); // Rows being loaded
 
   // Update URL when config changes
   useEffect(() => {
     const params = new URLSearchParams();
     params.set('layout', config.layoutVersion.toString());
     params.set('brand', config.brandFilterVersion.toString());
+    params.set('techfilters', config.technicalFiltersVersion.toString());
     params.set('cols', config.productsPerRow.desktop.toString());
+    params.set('skeleton', config.skeletonVersion.toString());
+    params.set('duration', config.loadingDuration);
+    params.set('loadmore', config.loadMoreVersion.toString());
+    params.set('gallery', config.imageGalleryVersion.toString());
+    params.set('gallerysize', config.gallerySizeVersion.toString());
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [config, router]);
 
@@ -127,16 +169,15 @@ function CatalogPreviewContent() {
     return sortProducts(products, sort);
   }, [filters, sort]);
 
-  // Reset pagination and show loading state when filters change
+  // Reset pagination and show loading state when filters change (including initial load)
   useEffect(() => {
-    // Skip loading on first render
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
+    // On first render, just start the loading timer (isLoading already true)
+    // On subsequent renders, set loading state
+    if (!isFirstRender.current) {
+      setIsLoading(true);
+      setVisibleRows(INITIAL_ROWS);
     }
-
-    setIsLoading(true);
-    setVisibleRows(INITIAL_ROWS);
+    isFirstRender.current = false;
 
     const loadingTime = loadingDurationMs[config.loadingDuration];
     const timer = setTimeout(() => {
@@ -154,8 +195,18 @@ function CatalogPreviewContent() {
   const remainingProducts = filteredProducts.length - visibleProductsCount;
 
   const handleLoadMore = useCallback(() => {
-    setVisibleRows((prev) => prev + ROWS_PER_LOAD);
-  }, []);
+    // Start loading animation
+    setIsLoadingMore(true);
+    setPendingRows(ROWS_PER_LOAD);
+
+    // Simulate loading time based on config
+    const loadingTime = loadingDurationMs[config.loadingDuration];
+    setTimeout(() => {
+      setVisibleRows((prev) => prev + ROWS_PER_LOAD);
+      setPendingRows(0);
+      setIsLoadingMore(false);
+    }, loadingTime);
+  }, [config.loadingDuration]);
 
   return (
     <div className="min-h-screen relative">
@@ -169,7 +220,7 @@ function CatalogPreviewContent() {
         config={config}
       >
         {isLoading
-          ? // Show skeletons while loading
+          ? // Show skeletons while initial loading
             Array.from({ length: visibleProductsCount }).map((_, index) => (
               <ProductCardSkeleton
                 key={`skeleton-${index}`}
@@ -177,22 +228,41 @@ function CatalogPreviewContent() {
                 index={index}
               />
             ))
-          : // Show actual products
-            visibleProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onAddToCart={() => {
-                  console.log('Add to cart:', product.id);
-                }}
-                onFavorite={() => {
-                  console.log('Toggle favorite:', product.id);
-                }}
-              />
-            ))}
+          : // Show actual products + loading skeletons for "load more"
+            <>
+              {visibleProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  imageGalleryVersion={config.imageGalleryVersion}
+                  gallerySizeVersion={config.gallerySizeVersion}
+                  onAddToCart={() => {
+                    console.log('Add to cart:', product.id);
+                  }}
+                  onFavorite={() => {
+                    console.log('Toggle favorite:', product.id);
+                  }}
+                  onViewDetail={() => {
+                    console.log('View detail:', product.id);
+                    // TODO: Navigate to product detail page
+                  }}
+                />
+              ))}
+              {/* Show skeletons for products being loaded */}
+              {isLoadingMore && pendingRows > 0 &&
+                Array.from({ length: pendingRows * columnsCount }).map((_, index) => (
+                  <ProductCardSkeleton
+                    key={`loading-more-skeleton-${index}`}
+                    version={config.skeletonVersion}
+                    index={index}
+                  />
+                ))
+              }
+            </>
+        }
 
-        {/* Load More Button */}
-        {!isLoading && hasMoreProducts && (
+        {/* Load More Button - hidden while loading more */}
+        {!isLoading && !isLoadingMore && hasMoreProducts && (
           <LoadMoreButton
             version={config.loadMoreVersion}
             remainingProducts={remainingProducts}
@@ -227,6 +297,17 @@ function CatalogPreviewContent() {
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+        {/* Scroll to Top Button - appears on scroll */}
+        {showScrollTop && (
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-110"
+            onPress={scrollToTop}
+          >
+            <ArrowUp className="w-5 h-5" />
+          </Button>
+        )}
         <TokenCounter sectionId="PROMPT_02" version="0.4" />
         <Button
           isIconOnly
@@ -259,7 +340,7 @@ function CatalogPreviewContent() {
         <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
           <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
           <p className="text-xs font-mono text-neutral-700">
-            Layout: V{config.layoutVersion} | Marca: V{config.brandFilterVersion} | Skeleton: V{config.skeletonVersion} | LoadMore: V{config.loadMoreVersion}
+            Layout: V{config.layoutVersion} | Marca: V{config.brandFilterVersion} | Filtros: V{config.technicalFiltersVersion} | Skeleton: V{config.skeletonVersion} | LoadMore: V{config.loadMoreVersion} | Gallery: V{config.imageGalleryVersion} | Size: V{config.gallerySizeVersion}
           </p>
         </div>
       )}

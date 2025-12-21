@@ -1,17 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronDown, Settings2 } from 'lucide-react';
 import { CatalogLayoutProps } from '../../../types/catalog';
 import { FilterSection } from '../filters/FilterSection';
-import { PriceRangeFilter } from '../filters/PriceRangeFilter';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
-import { UsageFilter } from '../filters/UsageFilter';
 import { CommercialFilters } from '../filters/CommercialFilters';
-import { TechnicalFilters } from '../filters/TechnicalFilters';
+import { TechnicalFiltersStyled } from '../filters/TechnicalFiltersStyled';
 import { FilterChips } from '../filters/FilterChips';
 import { SortDropdown } from '../sorting/SortDropdown';
+import { QuickUsageCards } from '../QuickUsageCards';
 import {
   BrandFilterV1,
   BrandFilterV2,
@@ -30,8 +29,7 @@ import {
   conditionOptions,
   resolutionOptions,
   displayTypeOptions,
-  processorBrandOptions,
-  filterTooltips,
+  processorModelOptions,
 } from '../../../data/mockCatalogData';
 
 /**
@@ -48,6 +46,8 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
   config,
   children,
 }) => {
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
   };
@@ -65,14 +65,82 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
       applied.push({ id: `usage-${usage}`, category: 'Uso', label: opt?.label || usage, value: usage });
     });
 
-    filters.ram.forEach((ram) => {
-      applied.push({ id: `ram-${ram}`, category: 'RAM', label: `${ram} GB`, value: ram });
-    });
-
     filters.gama.forEach((gama) => {
       const opt = gamaOptions.find((o) => o.value === gama);
       applied.push({ id: `gama-${gama}`, category: 'Gama', label: opt?.label || gama, value: gama });
     });
+
+    filters.condition.forEach((condition) => {
+      const opt = conditionOptions.find((o) => o.value === condition);
+      applied.push({ id: `condition-${condition}`, category: 'Condición', label: opt?.label || condition, value: condition });
+    });
+
+    // Technical filters
+    filters.ram.forEach((ram) => {
+      const opt = ramOptions.find((o) => parseInt(o.value) === ram);
+      applied.push({ id: `ram-${ram}`, category: 'RAM', label: opt?.label || `${ram} GB`, value: ram });
+    });
+
+    filters.storage.forEach((storage) => {
+      const opt = storageOptions.find((o) => parseInt(o.value) === storage);
+      applied.push({ id: `storage-${storage}`, category: 'Almacenamiento', label: opt?.label || `${storage} GB`, value: storage });
+    });
+
+    filters.processorModel.forEach((processor) => {
+      const opt = processorModelOptions.find((o) => o.value === processor);
+      applied.push({ id: `processor-${processor}`, category: 'Procesador', label: opt?.label || processor, value: processor });
+    });
+
+    filters.displaySize.forEach((size) => {
+      const opt = displaySizeOptions.find((o) => parseFloat(o.value) === size);
+      applied.push({ id: `displaySize-${size}`, category: 'Pantalla', label: opt?.label || `${size}"`, value: size });
+    });
+
+    filters.resolution.forEach((res) => {
+      const opt = resolutionOptions.find((o) => o.value === res);
+      applied.push({ id: `resolution-${res}`, category: 'Resolución', label: opt?.label || res, value: res });
+    });
+
+    filters.displayType.forEach((type) => {
+      const opt = displayTypeOptions.find((o) => o.value === type);
+      applied.push({ id: `displayType-${type}`, category: 'Tipo Pantalla', label: opt?.label || type, value: type });
+    });
+
+    if (filters.gpuType.includes('dedicated')) {
+      applied.push({ id: 'gpu-dedicated', category: 'GPU', label: 'GPU Dedicada', value: 'dedicated' });
+    }
+
+    if (filters.touchScreen) {
+      applied.push({ id: 'touch-true', category: 'Pantalla', label: 'Táctil', value: true });
+    }
+
+    if (filters.backlitKeyboard) {
+      applied.push({ id: 'backlit-true', category: 'Teclado', label: 'Retroiluminado', value: true });
+    }
+
+    if (filters.numericKeypad) {
+      applied.push({ id: 'numeric-true', category: 'Teclado', label: 'Numérico', value: true });
+    }
+
+    if (filters.fingerprint) {
+      applied.push({ id: 'fingerprint-true', category: 'Seguridad', label: 'Huella Digital', value: true });
+    }
+
+    if (filters.hasWindows) {
+      applied.push({ id: 'windows-true', category: 'SO', label: 'Windows', value: true });
+    }
+
+    if (filters.hasThunderbolt) {
+      applied.push({ id: 'thunderbolt-true', category: 'Puertos', label: 'Thunderbolt', value: true });
+    }
+
+    if (filters.hasEthernet) {
+      applied.push({ id: 'ethernet-true', category: 'Puertos', label: 'Ethernet', value: true });
+    }
+
+    if (filters.ramExpandable) {
+      applied.push({ id: 'ramExpandable-true', category: 'RAM', label: 'Expandible', value: true });
+    }
 
     return applied;
   }, [filters]);
@@ -86,11 +154,56 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
       case 'usage':
         updateFilter('usage', filters.usage.filter((u) => u !== value));
         break;
+      case 'gama':
+        updateFilter('gama', filters.gama.filter((g) => g !== value));
+        break;
+      case 'condition':
+        updateFilter('condition', filters.condition.filter((c) => c !== value));
+        break;
       case 'ram':
         updateFilter('ram', filters.ram.filter((r) => r !== parseInt(value)));
         break;
-      case 'gama':
-        updateFilter('gama', filters.gama.filter((g) => g !== value));
+      case 'storage':
+        updateFilter('storage', filters.storage.filter((s) => s !== parseInt(value)));
+        break;
+      case 'processor':
+        updateFilter('processorModel', filters.processorModel.filter((p) => p !== value));
+        break;
+      case 'displaySize':
+        updateFilter('displaySize', filters.displaySize.filter((d) => d !== parseFloat(value)));
+        break;
+      case 'resolution':
+        updateFilter('resolution', filters.resolution.filter((r) => r !== value));
+        break;
+      case 'displayType':
+        updateFilter('displayType', filters.displayType.filter((t) => t !== value));
+        break;
+      case 'gpu':
+        updateFilter('gpuType', []);
+        break;
+      case 'touch':
+        updateFilter('touchScreen', false);
+        break;
+      case 'backlit':
+        updateFilter('backlitKeyboard', false);
+        break;
+      case 'numeric':
+        updateFilter('numericKeypad', false);
+        break;
+      case 'fingerprint':
+        updateFilter('fingerprint', false);
+        break;
+      case 'windows':
+        updateFilter('hasWindows', false);
+        break;
+      case 'thunderbolt':
+        updateFilter('hasThunderbolt', false);
+        break;
+      case 'ethernet':
+        updateFilter('hasEthernet', false);
+        break;
+      case 'ramExpandable':
+        updateFilter('ramExpandable', false);
         break;
     }
   };
@@ -100,9 +213,23 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
       ...filters,
       brands: [],
       usage: [],
-      ram: [],
       gama: [],
       condition: [],
+      ram: [],
+      storage: [],
+      processorModel: [],
+      displaySize: [],
+      resolution: [],
+      displayType: [],
+      gpuType: [],
+      touchScreen: false,
+      backlitKeyboard: false,
+      numericKeypad: false,
+      fingerprint: false,
+      hasWindows: false,
+      hasThunderbolt: false,
+      hasEthernet: false,
+      ramExpandable: false,
       priceRange: [1000, 8000],
       quotaRange: [40, 400],
     });
@@ -151,86 +278,76 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
           {renderBrandFilter()}
         </FilterSection>
 
-        {/* Price Filters */}
-        <FilterSection title="Precio total" defaultExpanded={true}>
-          <PriceRangeFilter
-            value={filters.priceRange}
-            onChange={(val) => updateFilter('priceRange', val)}
-          />
-        </FilterSection>
-
+        {/* Quota Filter */}
         <FilterSection title="Cuota mensual" defaultExpanded={true}>
           <QuotaRangeFilter
             value={filters.quotaRange}
             onChange={(val) => updateFilter('quotaRange', val)}
-            frequency={filters.quotaFrequency}
-            onFrequencyChange={(freq) => updateFilter('quotaFrequency', freq)}
           />
         </FilterSection>
 
-        {/* Usage Filter */}
-        <FilterSection title="Uso recomendado" tooltip={filterTooltips.ram} defaultExpanded={true}>
-          <UsageFilter
-            options={usageOptions}
-            selected={filters.usage}
-            onChange={(usage) => updateFilter('usage', usage)}
-            showCounts={config.showFilterCounts}
-          />
-        </FilterSection>
-
-        {/* Commercial Filters */}
+        {/* Commercial Filters - Solo Gama */}
         <CommercialFilters
           gamaOptions={gamaOptions}
           selectedGama={filters.gama}
           onGamaChange={(gama) => updateFilter('gama', gama)}
-          conditionOptions={conditionOptions}
-          selectedCondition={filters.condition}
-          onConditionChange={(condition) => updateFilter('condition', condition)}
-          onlyAvailable={filters.stock.includes('available')}
-          onAvailableChange={(val) => updateFilter('stock', val ? ['available'] : [])}
           showCounts={config.showFilterCounts}
         />
 
-        {/* Technical Filters */}
-        <TechnicalFilters
-          ramOptions={ramOptions}
-          selectedRam={filters.ram}
-          onRamChange={(ram) => updateFilter('ram', ram)}
-          ramExpandable={filters.ramExpandable}
-          onRamExpandableChange={(val) => updateFilter('ramExpandable', val)}
-          storageOptions={storageOptions}
-          selectedStorage={filters.storage}
-          onStorageChange={(storage) => updateFilter('storage', storage)}
-          displaySizeOptions={displaySizeOptions}
-          selectedDisplaySize={filters.displaySize}
-          onDisplaySizeChange={(sizes) => updateFilter('displaySize', sizes)}
-          resolutionOptions={resolutionOptions}
-          selectedResolution={filters.resolution}
-          onResolutionChange={(res) => updateFilter('resolution', res)}
-          displayTypeOptions={displayTypeOptions}
-          selectedDisplayType={filters.displayType}
-          onDisplayTypeChange={(types) => updateFilter('displayType', types)}
-          touchScreen={filters.touchScreen}
-          onTouchScreenChange={(val) => updateFilter('touchScreen', val)}
-          processorOptions={processorBrandOptions}
-          selectedProcessor={filters.processorBrand}
-          onProcessorChange={(brands) => updateFilter('processorBrand', brands)}
-          gpuDedicated={filters.gpuType.includes('dedicated')}
-          onGpuDedicatedChange={(val) => updateFilter('gpuType', val ? ['dedicated'] : [])}
-          backlitKeyboard={filters.backlitKeyboard}
-          onBacklitChange={(val) => updateFilter('backlitKeyboard', val)}
-          numericKeypad={filters.numericKeypad}
-          onNumericChange={(val) => updateFilter('numericKeypad', val)}
-          fingerprint={filters.fingerprint}
-          onFingerprintChange={(val) => updateFilter('fingerprint', val)}
-          hasWindows={filters.hasWindows}
-          onWindowsChange={(val) => updateFilter('hasWindows', val)}
-          hasThunderbolt={filters.hasThunderbolt}
-          onThunderboltChange={(val) => updateFilter('hasThunderbolt', val)}
-          hasEthernet={filters.hasEthernet}
-          onEthernetChange={(val) => updateFilter('hasEthernet', val)}
+        {/* Main Filters (Uso recomendado, Condición) - styled based on version */}
+        <TechnicalFiltersStyled
+          version={config.technicalFiltersVersion}
+          showFilters="main"
+          usageOptions={usageOptions}
+          selectedUsage={filters.usage}
+          onUsageChange={(usage) => updateFilter('usage', usage)}
+          conditionOptions={conditionOptions}
+          selectedCondition={filters.condition}
+          onConditionChange={(condition) => updateFilter('condition', condition)}
           showCounts={config.showFilterCounts}
         />
+
+        {/* Advanced Technical Filters */}
+        <div className="border-t border-neutral-200 mt-4 pt-4">
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Settings2 className="w-4 h-4" />
+              <span>Filtros Avanzados</span>
+            </div>
+            <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showAdvancedFilters && (
+            <div className="mt-2">
+              <TechnicalFiltersStyled
+                version={config.technicalFiltersVersion}
+                showFilters="advanced"
+                ramOptions={ramOptions}
+                selectedRam={filters.ram}
+                onRamChange={(ram) => updateFilter('ram', ram)}
+                storageOptions={storageOptions}
+                selectedStorage={filters.storage}
+                onStorageChange={(storage) => updateFilter('storage', storage)}
+                displaySizeOptions={displaySizeOptions}
+                selectedDisplaySize={filters.displaySize}
+                onDisplaySizeChange={(sizes) => updateFilter('displaySize', sizes)}
+                resolutionOptions={resolutionOptions}
+                selectedResolution={filters.resolution}
+                onResolutionChange={(res) => updateFilter('resolution', res)}
+                displayTypeOptions={displayTypeOptions}
+                selectedDisplayType={filters.displayType}
+                onDisplayTypeChange={(types) => updateFilter('displayType', types)}
+                processorOptions={processorModelOptions}
+                selectedProcessor={filters.processorModel}
+                onProcessorChange={(models) => updateFilter('processorModel', models)}
+                showCounts={config.showFilterCounts}
+              />
+            </div>
+          )}
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -252,6 +369,12 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
             totalProducts={products.length}
           />
         </div>
+
+        {/* Quick Usage Cards - "Encuentra tu laptop ideal" */}
+        <QuickUsageCards
+          selected={filters.usage}
+          onChange={(usage) => updateFilter('usage', usage)}
+        />
 
         {/* Applied Filters Chips */}
         <FilterChips

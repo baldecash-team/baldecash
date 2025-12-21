@@ -1,0 +1,286 @@
+# Aprendizajes Específicos - Catálogo v0.4
+
+> Lecciones aprendidas específicas del módulo de Catálogo.
+> Para reglas globales, ver `../CONVENTIONS.md`
+
+---
+
+## 1. Paginación por Filas (No por Items)
+
+### Problema
+Paginar por items fijos (ej: 12 productos) causa grids incompletos cuando el número de columnas cambia.
+
+### Solución Implementada
+
+```typescript
+const INITIAL_ROWS = 4;      // Filas iniciales visibles
+const ROWS_PER_LOAD = 2;     // Filas por cada "Cargar más"
+
+const columnsCount = config.productsPerRow.desktop; // 3, 4, o 5
+const visibleProductsCount = visibleRows * columnsCount;
+const visibleProducts = filteredProducts.slice(0, visibleProductsCount);
+const hasMoreProducts = visibleProductsCount < filteredProducts.length;
+```
+
+### Beneficio
+El grid siempre se ve completo independientemente del número de columnas seleccionado.
+
+---
+
+## 2. Estados de Carga con Skeleton Configurables
+
+### Versiones Implementadas
+
+| Versión | Nombre | Técnica |
+|---------|--------|---------|
+| V1 | Glow Gradient | CSS gradient animado con colores de marca (#4654CD) |
+| V2 | Shimmer Sweep | Barrido horizontal con pseudo-elemento |
+| V3 | Wave Stagger | Framer Motion con delay escalonado por índice |
+
+### Código de Referencia - Wave Stagger (V3)
+
+```tsx
+<motion.div
+  initial={{ opacity: 0.5, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{
+    duration: 0.6,
+    delay: index * 0.1,  // Escalonado por índice
+    repeat: Infinity,
+    repeatType: 'reverse',
+  }}
+/>
+```
+
+### Duraciones Configurables
+
+```typescript
+export type LoadingDuration = 'default' | '30s' | '60s';
+
+export const loadingDurationMs: Record<LoadingDuration, number> = {
+  default: 800,   // Producción
+  '30s': 30000,   // Testing de animaciones
+  '60s': 60000,   // Debugging/demos
+};
+```
+
+### Uso
+- **800ms**: Producción real
+- **30s/60s**: Testing para validar que animaciones no cansan al usuario
+
+---
+
+## 3. Botón "Cargar Más" - 3 Versiones
+
+### Versiones Implementadas
+
+| Versión | Nombre | Descripción |
+|---------|--------|-------------|
+| V1 | Minimal Line | Línea sutil con texto centrado |
+| V2 | Progress Bar | Barra de progreso visual mostrando % cargado |
+| V3 | Gradient CTA | Botón prominente con animación hover |
+
+### Props del Componente
+
+```typescript
+interface LoadMoreButtonProps {
+  version: 1 | 2 | 3;
+  remainingProducts: number;
+  totalProducts: number;
+  visibleProducts: number;
+  onLoadMore: () => void;
+}
+```
+
+---
+
+## 4. Filtros Técnicos con Tooltips Educativos
+
+### Contexto del Usuario
+- Estudiantes universitarios (18-28 años)
+- Sin conocimiento técnico de hardware
+- Necesitan explicaciones simples
+
+### Patrón de Tooltip Prescriptivo
+
+```typescript
+// ✅ Correcto: Prescriptivo (recomienda)
+filterTooltips.ram = {
+  title: '¿Qué es la RAM?',
+  description: 'Más RAM = más programas abiertos simultáneamente.',
+  recommendation: 'Mínimo 8GB para estudiantes, 16GB para diseño/programación.',
+};
+
+// ❌ Incorrecto: Solo descriptivo
+filterTooltips.ram = {
+  title: '¿Qué es la RAM?',
+  description: 'La RAM es memoria volátil de acceso aleatorio.',
+  // Sin recomendación = usuario no sabe qué elegir
+};
+```
+
+### Tooltips Implementados
+
+| Spec | Recomendación |
+|------|---------------|
+| RAM | Mínimo 8GB estudiantes, 16GB diseño/programación |
+| SSD | Mínimo 256GB, ideal 512GB |
+| GPU | Dedicada solo para diseño 3D o gaming |
+| Procesador | i5/Ryzen 5 uso general, i7/Ryzen 7 trabajo pesado |
+| Pantalla | IPS uso general, OLED diseño/entretenimiento |
+| Resolución | FHD estándar recomendado |
+
+---
+
+## 5. Tipos Específicos para Filtros
+
+### Tipos Union Definidos
+
+```typescript
+export type Resolution = 'hd' | 'fhd' | 'qhd' | '4k';
+export type DisplayType = 'ips' | 'tn' | 'oled' | 'va';
+export type ProcessorBrand = 'intel' | 'amd' | 'apple';
+export type GamaTier = 'entry' | 'media' | 'alta' | 'premium';
+export type StorageType = 'ssd' | 'hdd' | 'emmc';
+export type GpuType = 'integrated' | 'dedicated';
+export type ProductCondition = 'nuevo' | 'reacondicionado' | 'open_box';
+export type StockStatus = 'available' | 'limited' | 'on_demand' | 'out_of_stock';
+```
+
+### Uso en FilterState
+
+```typescript
+export interface FilterState {
+  brands: string[];
+  priceRange: [number, number];
+  quotaRange: [number, number];
+  resolution: Resolution[];      // ✅ Tipo específico
+  displayType: DisplayType[];    // ✅ Tipo específico
+  processorBrand: ProcessorBrand[];
+  // ...
+}
+```
+
+---
+
+## 6. Arquitectura de Layout Versionado
+
+### Patrón de Switch de Versiones
+
+```typescript
+// CatalogLayout.tsx - Wrapper principal
+export const CatalogLayout: React.FC<CatalogLayoutProps> = (props) => {
+  switch (props.config.layoutVersion) {
+    case 1: return <CatalogLayoutV1 {...props} />;
+    case 2: return <CatalogLayoutV2 {...props} />;
+    case 3: return <CatalogLayoutV3 {...props} />;
+    case 4: return <CatalogLayoutV4 {...props} />;
+    case 5: return <CatalogLayoutV5 {...props} />;
+    case 6: return <CatalogLayoutV6 {...props} />;
+    default: return <CatalogLayoutV1 {...props} />;
+  }
+};
+```
+
+### Versiones de Layout
+
+| Versión | Nombre | Referencia |
+|---------|--------|------------|
+| V1 | Sidebar Clásico | Amazon, Mercado Libre |
+| V2 | Filtros Horizontales | Apple Store, Nike |
+| V3 | Mobile-First Drawer | Airbnb, Booking |
+| V4 | Split View Abstracto | Nubank, Revolut |
+| V5 | Split 50/50 Preview | Notion, Figma |
+| V6 | Centrado Sticky | Spotify, Netflix |
+
+---
+
+## 7. Mock Data - Distribución Realista
+
+### Por Marca (39 productos)
+
+| Marca | Cantidad |
+|-------|----------|
+| Lenovo | 9 |
+| HP | 8 |
+| ASUS | 7 |
+| Acer | 6 |
+| Dell | 5 |
+| MSI | 4 |
+
+### Por Gama
+
+| Gama | Cantidad | Precio | Cuota/mes |
+|------|----------|--------|-----------|
+| Entry | 10 | S/1,200 - S/2,000 | S/50-90 |
+| Media | 13 | S/2,000 - S/3,500 | S/90-150 |
+| Alta | 10 | S/3,500 - S/5,500 | S/150-250 |
+| Premium | 6 | S/5,500 - S/8,000 | S/250-400 |
+
+### Edge Cases Cubiertos
+- Combinaciones de filtros que dan 0 resultados
+- Marca con pocos productos (MSI: 4)
+- Productos con/sin descuento
+- Diferentes estados de stock
+
+---
+
+## 8. Configuración Completa del Catálogo
+
+```typescript
+export interface CatalogLayoutConfig {
+  layoutVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  brandFilterVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  skeletonVersion: 1 | 2 | 3;
+  loadMoreVersion: 1 | 2 | 3;
+  loadingDuration: 'default' | '30s' | '60s';
+  productsPerRow: {
+    mobile: 1 | 2;
+    tablet: 2 | 3;
+    desktop: 3 | 4 | 5;
+  };
+  showFilterCounts: boolean;
+  showTooltips: boolean;
+}
+
+export const defaultCatalogConfig: CatalogLayoutConfig = {
+  layoutVersion: 1,
+  brandFilterVersion: 1,
+  skeletonVersion: 1,
+  loadMoreVersion: 1,
+  loadingDuration: 'default',
+  productsPerRow: { mobile: 1, tablet: 2, desktop: 3 },
+  showFilterCounts: true,
+  showTooltips: true,
+};
+```
+
+---
+
+## 9. Próximos Pasos Sugeridos
+
+### Para el Catálogo
+- [ ] Server-side filtering para catálogos grandes
+- [ ] Infinite scroll como alternativa a "Cargar más"
+- [ ] Filtros guardados/favoritos por usuario
+- [ ] Comparador de productos desde el catálogo
+
+### Métricas a Implementar
+- Versión de layout más usada
+- Tiempo promedio con filtros activos
+- Conversión por versión de botón "Cargar más"
+
+---
+
+## 10. Referencias
+
+- **Spec**: `../section-specs/PROMPT_02_CATALOGO_LAYOUT_FILTROS.md`
+- **Código**: `src/app/prototipos/0.4/catalogo/`
+- **Preview**: `http://localhost:3000/prototipos/0.4/catalogo/catalog-preview`
+
+---
+
+| Versión | Fecha | Cambios |
+|---------|-------|---------|
+| 1.0 | 2025-12-20 | Versión inicial |
+| 1.1 | 2025-12-20 | Refactorizado - reglas globales movidas a CONVENTIONS.md |

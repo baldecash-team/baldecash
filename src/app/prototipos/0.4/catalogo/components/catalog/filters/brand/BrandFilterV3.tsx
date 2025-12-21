@@ -7,7 +7,7 @@ import { Check } from 'lucide-react';
 /**
  * BrandFilterV3 - Grid de Logos
  * Grid 3x2 de logos clickeables sin texto
- * Maximo impacto visual, minimo espacio
+ * Máximo impacto visual, mínimo espacio
  */
 export const BrandFilterV3: React.FC<BrandFilterProps> = ({
   options,
