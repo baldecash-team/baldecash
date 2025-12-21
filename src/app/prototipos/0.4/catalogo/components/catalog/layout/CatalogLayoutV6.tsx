@@ -28,8 +28,10 @@ import {
   gamaOptions,
   conditionOptions,
   processorModelOptions,
+  resolutionOptions,
+  displayTypeOptions,
 } from '../../../data/mockCatalogData';
-import { GamaTier, ProductCondition, ProcessorModel } from '../../../types/catalog';
+import { GamaTier, ProductCondition, ProcessorModel, Resolution, DisplayType } from '../../../types/catalog';
 
 /**
  * CatalogLayoutV6 - Centrado con Filtros Sticky
@@ -403,7 +405,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
               <FilterDropdown
                 id="advanced"
                 label="Más filtros"
-                count={filters.ram.length + filters.storage.length + filters.processorModel.length + filters.displaySize.length}
+                count={filters.ram.length + filters.storage.length + filters.processorModel.length + filters.displaySize.length + filters.resolution.length + filters.displayType.length}
               >
                 <div className="max-h-[450px] overflow-y-auto">
                   <TechnicalFiltersStyled
@@ -418,6 +420,12 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                     displaySizeOptions={displaySizeOptions}
                     selectedDisplaySize={filters.displaySize}
                     onDisplaySizeChange={(sizes) => updateFilter('displaySize', sizes)}
+                    resolutionOptions={resolutionOptions}
+                    selectedResolution={filters.resolution}
+                    onResolutionChange={(res) => updateFilter('resolution', res)}
+                    displayTypeOptions={displayTypeOptions}
+                    selectedDisplayType={filters.displayType}
+                    onDisplayTypeChange={(types) => updateFilter('displayType', types)}
                     processorOptions={processorModelOptions}
                     selectedProcessor={filters.processorModel}
                     onProcessorChange={(models) => updateFilter('processorModel', models)}
