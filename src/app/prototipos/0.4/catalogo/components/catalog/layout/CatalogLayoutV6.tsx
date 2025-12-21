@@ -49,6 +49,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
 }) => {
   const [isSticky, setIsSticky] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const isInteractingRef = React.useRef(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,6 +59,23 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (openDropdown && !isInteractingRef.current) {
+        const target = e.target as HTMLElement;
+        const isInsidePopover = target.closest('[data-slot="content"]') || target.closest('[data-slot="trigger"]');
+        if (!isInsidePopover) {
+          setOpenDropdown(null);
+        }
+      }
+      isInteractingRef.current = false;
+    };
+
+    document.addEventListener('click', handleClickOutside, true);
+    return () => document.removeEventListener('click', handleClickOutside, true);
+  }, [openDropdown]);
 
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -264,6 +282,8 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
       onOpenChange={(open) => setOpenDropdown(open ? id : null)}
       placement="bottom-start"
       offset={8}
+      shouldCloseOnBlur={false}
+      triggerScaleOnOpen={false}
     >
       <PopoverTrigger>
         <Button
@@ -282,7 +302,10 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="min-w-[280px] p-4 bg-white shadow-lg border border-neutral-200 rounded-lg">
+      <PopoverContent
+        className="min-w-[280px] p-4 bg-white shadow-lg border border-neutral-200 rounded-lg"
+        onMouseDown={() => { isInteractingRef.current = true; }}
+      >
         {dropdownContent}
       </PopoverContent>
     </Popover>
