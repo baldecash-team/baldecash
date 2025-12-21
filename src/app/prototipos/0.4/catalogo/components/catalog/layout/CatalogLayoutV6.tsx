@@ -333,8 +333,8 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
 
               {/* Quota Dropdown */}
               <FilterPopover label="Cuota" count={0}>
-                <div>
-                  <p className="text-sm font-medium text-neutral-700 mb-2">Cuota mensual</p>
+                <div className="w-full min-w-[240px]">
+                  <p className="text-sm font-medium text-neutral-700 mb-3">Cuota mensual</p>
                   <QuotaRangeFilter
                     value={filters.quotaRange}
                     onChange={(val) => updateFilter('quotaRange', val)}
