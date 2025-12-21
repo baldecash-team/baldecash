@@ -272,7 +272,182 @@ export const defaultCatalogConfig: CatalogLayoutConfig = {
 
 ---
 
-## 10. Referencias
+## 10. Filtros Booleanos: `null` vs `false`
+
+### Problema
+Al limpiar filtros con `handleClearAll`, los filtros booleanos se reseteaban a `false`, causando que el catálogo mostrara "No encontramos equipos".
+
+### Causa Raíz
+```typescript
+// ❌ Incorrecto: false = filtrar por productos SIN esa característica
+touchScreen: false,  // Busca laptops SIN touchscreen (muy pocos resultados)
+
+// ✅ Correcto: null = no aplicar filtro (mostrar todos)
+touchScreen: null,   // No filtra por touchscreen
+```
+
+### Semántica de Valores
+
+| Valor | Significado | Productos Mostrados |
+|-------|-------------|---------------------|
+| `null` | No filtrar | Todos |
+| `true` | Con característica | Solo los que tienen |
+| `false` | Sin característica | Solo los que NO tienen |
+
+### Solución Implementada
+
+```typescript
+const handleClearAll = () => {
+  onFiltersChange({
+    ...filters,
+    brands: [],           // Arrays vacíos
+    usage: [],
+    // ...
+    touchScreen: null,    // ✅ Booleans a null
+    backlitKeyboard: null,
+    fingerprint: null,
+    hasWindows: null,
+    // ...
+    priceRange: [1000, 8000],  // Rangos a defaults
+    quotaRange: [40, 400],
+  });
+};
+```
+
+---
+
+## 11. Conteos Dinámicos de Filtros
+
+### Problema
+Los conteos de filtros estaban hardcodeados, mostrando números incorrectos después de filtrar.
+
+### Solución Implementada
+
+```typescript
+// mockCatalogData.ts
+export function getFilterCounts(products: CatalogProduct[]) {
+  return {
+    brands: countBy(products, p => p.brand),
+    ram: countBy(products, p => p.specs.ram.size),
+    storage: countBy(products, p => p.specs.storage.size),
+    // ... todos los filtros
+  };
+}
+
+export function applyDynamicCounts(
+  options: FilterOption[],
+  counts: Record<string, number>
+): FilterOption[] {
+  return options.map(opt => ({
+    ...opt,
+    count: counts[opt.value] || 0,
+  }));
+}
+```
+
+### Uso en Layouts
+
+```typescript
+// Calcular conteos dinámicos
+const dynamicBrandOptions = React.useMemo(() =>
+  filterCounts ? applyDynamicCounts(brandOptions, filterCounts.brands) : brandOptions,
+  [filterCounts]
+);
+```
+
+---
+
+## 12. URL Query Params - Omitir Defaults
+
+### Problema
+La URL mostraba parámetros innecesarios cuando tenían valores por defecto:
+```
+?layout=1&brand=1&pricingmode=interactive&term=24&initial=10
+```
+
+### Solución
+Solo incluir parámetros cuando difieren del valor por defecto:
+
+```typescript
+// ❌ Antes: Siempre incluir
+params.set('pricingmode', config.pricingMode);
+params.set('term', config.defaultTerm.toString());
+params.set('initial', config.defaultInitial.toString());
+
+// ✅ Después: Solo si difiere del default
+if (config.pricingMode !== 'interactive') {
+  params.set('pricingmode', config.pricingMode);
+}
+if (config.defaultTerm !== 24) {
+  params.set('term', config.defaultTerm.toString());
+}
+if (config.defaultInitial !== 10) {
+  params.set('initial', config.defaultInitial.toString());
+}
+```
+
+### Beneficio
+URLs más limpias y compartibles:
+```
+?layout=4&brand=3&card=6  // Sin defaults innecesarios
+```
+
+---
+
+## 13. Anti-patrón: Componentes Definidos Dentro de Funciones
+
+### Problema
+Las secciones de filtros se colapsaban automáticamente al seleccionar una opción.
+
+### Causa Raíz
+Componentes definidos DENTRO de la función padre:
+
+```typescript
+// ❌ INCORRECTO: Componente definido dentro
+const TechnicalFiltersV2 = () => {
+  // Este componente se RE-CREA en cada render del padre
+  const ChipFilter = ({ options, selected, onToggle }) => (
+    <div>{/* ... */}</div>
+  );
+
+  return (
+    <FilterSection title="RAM">
+      <ChipFilter options={ramOptions} />  {/* Se desmonta/monta */}
+    </FilterSection>
+  );
+};
+```
+
+### Por Qué Falla
+1. Cada render del padre crea una NUEVA función `ChipFilter`
+2. React compara referencias: `ChipFilter !== ChipFilter` (nueva referencia)
+3. React desmonta el componente anterior y monta uno nuevo
+4. `FilterSection` pierde su estado interno (`isExpanded`)
+
+### Solución
+
+```typescript
+// ✅ CORRECTO: Componente definido FUERA
+const ChipFilterContent: React.FC<ChipFilterProps> = ({ options, selected, onToggle }) => (
+  <div>{/* ... */}</div>
+);
+
+const TechnicalFiltersV2 = () => {
+  return (
+    <FilterSection title="RAM">
+      <ChipFilterContent options={ramOptions} />  {/* Referencia estable */}
+    </FilterSection>
+  );
+};
+```
+
+### Regla General
+> **Nunca definir componentes dentro de otros componentes.**
+> Siempre extraerlos al nivel del módulo o a archivos separados.
+
+---
+
+## 14. Referencias
 
 - **Spec**: `../section-specs/PROMPT_02_CATALOGO_LAYOUT_FILTROS.md`
 - **Código**: `src/app/prototipos/0.4/catalogo/`
@@ -284,3 +459,4 @@ export const defaultCatalogConfig: CatalogLayoutConfig = {
 |---------|-------|---------|
 | 1.0 | 2025-12-20 | Versión inicial |
 | 1.1 | 2025-12-20 | Refactorizado - reglas globales movidas a CONVENTIONS.md |
+| 1.2 | 2025-12-21 | Agregado: null vs false, conteos dinámicos, URL params, anti-patrón componentes |
