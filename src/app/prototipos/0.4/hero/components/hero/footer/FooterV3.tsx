@@ -12,11 +12,11 @@ import { Button, Input } from '@nextui-org/react';
 import { Mail, Send, Facebook, Instagram, Linkedin } from 'lucide-react';
 
 const quickLinks = [
-  { label: 'Laptops', href: '#laptops' },
+  { label: 'Equipos', href: '#equipos' },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
-  { label: 'Contacto', href: '#contacto' },
+  { label: 'Libro de reclamaciones', href: '#reclamos' },
 ];
 
 const socialLinks = [
@@ -52,8 +52,9 @@ export const FooterV3: React.FC = () => {
                 startContent={<Mail className="w-4 h-4 text-neutral-400" />}
                 classNames={{
                   base: 'w-full sm:w-80',
-                  inputWrapper: 'bg-white border-0 h-12',
-                  input: 'text-neutral-800',
+                  inputWrapper: 'bg-white border-0 h-12 focus-within:ring-0',
+                  input: 'text-neutral-800 focus:outline-none',
+                  innerWrapper: 'focus-within:ring-0',
                 }}
               />
               <Button

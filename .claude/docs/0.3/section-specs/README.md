@@ -18,14 +18,30 @@ Cuando se genere una sección, leer el PROMPT correspondiente y:
 | 2 | `PROMPT_02_CATALOGO_LAYOUT_FILTROS.md` | Catálogo - Layout y Filtros | 36 | 4 |
 | 3 | `PROMPT_03_CATALOGO_CARDS.md` | Catálogo - Product Cards | 29 | 16 |
 | 4 | `PROMPT_04_DETALLE_PRODUCTO.md` | Detalle de Producto | 24 | - |
-| 8 | `PROMPT_08_FORM_ESTRUCTURA.md` | Wizard - Estructura | 22 | 15 |
-| 9 | `PROMPT_09_FORM_CAMPOS.md` | Wizard - Componentes | 30 | - |
-| 10 | `PROMPT_10_FORM_DATOS_PERSONALES.md` | Wizard - Datos Personales | 13 | - |
-| 11 | `PROMPT_11_FORM_DATOS_ACADEMICOS.md` | Wizard - Datos Académicos | 14 | - |
-| 12 | `PROMPT_12_FORM_DATOS_ECONOMICOS.md` | Wizard - Datos Económicos | 15 | - |
-| 13 | `PROMPT_13_FORM_RESUMEN.md` | Wizard - Resumen | 20 | - |
 | 15 | `PROMPT_15_APROBACION.md` | Pantalla Aprobación | 13 | - |
 | 16 | `PROMPT_16_RECHAZO.md` | Pantalla Rechazo | 19 | - |
+
+---
+
+### WIZARD + SOLICITUD (Iteración Conjunta)
+
+**IMPORTANTE:** Los prompts 08-13 + la vista de solicitud se iteran JUNTOS como un flujo unificado.
+
+| # | Archivo | Sección | Preguntas |
+|---|---------|---------|-----------|
+| 8 | `PROMPT_08_FORM_ESTRUCTURA.md` | Wizard - Estructura | 22 |
+| 9 | `PROMPT_09_FORM_CAMPOS.md` | Wizard - Componentes de Campos | 30 |
+| 10 | `PROMPT_10_FORM_DATOS_PERSONALES.md` | Wizard - Datos Personales | 13 |
+| 11 | `PROMPT_11_FORM_DATOS_ACADEMICOS.md` | Wizard - Datos Académicos | 14 |
+| 12 | `PROMPT_12_FORM_DATOS_ECONOMICOS.md` | Wizard - Datos Económicos | 15 |
+| 13 | `PROMPT_13_FORM_RESUMEN.md` | Wizard - Resumen | 20 |
+| B | `PROMPT_SOLICITUD.md` | Vista de Solicitud (Intro) | 6 |
+
+**Flujo de iteración:**
+1. Vista de Solicitud (B.x) → Intro motivacional antes del wizard
+2. Wizard Estructura (C.x) → Navegación y progreso
+3. Campos y Pasos (C1.x - C5.x) → Formularios individuales
+4. Todos se prueban en conjunto como flujo completo
 
 ### Features Secundarios (Prioridad Media/Baja)
 

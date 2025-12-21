@@ -5,494 +5,355 @@
 | Campo | Valor |
 |-------|-------|
 | **Segmento** | B (parcial) |
-| **Preguntas totales** | 24 |
 | **Versiones por componente** | 6 |
-| **Preguntas DEFINIDO** | 12 |
 | **Prioridad** | Alta - MVP Core |
+| **Basado en** | Feedback de 0.3 |
 
 ---
 
-## 1. Contexto
+## 1. Preferencias Confirmadas (desde 0.3)
 
-El detalle de producto es la página donde el usuario toma la decisión final antes de iniciar la solicitud. Debe mostrar toda la información relevante de forma clara, organizada y persuasiva, sin abrumar.
+Estas son las versiones preferidas que se convierten en **V1** para 0.4:
 
-### Insights UX/UI
-- **Página completa** (no modal): permite más espacio para información
-- **Galería con zoom**: esencial para laptops
-- **Cronograma interactivo**: cambiar plazo y ver cuota en tiempo real
-- **Productos similares**: cross-sell y comparación
-- **Transparencia**: mostrar limitaciones de forma honesta pero positiva
+| Componente | V preferida 0.3 | Notas |
+|------------|-----------------|-------|
+| **Galería** | V2 (Thumbnails inferiores) | Zoom hover inline |
+| **Layout/Tabs** | V3 (Scroll continuo + nav sticky) | Revisar comportamiento mobile |
+| **Limitaciones** | V2 (Collapsible) | Menos prominente, expandible |
+| **Similar Products** | V3 (Panel comparación) | Enfoque en variación de cuota |
+| **Specs** | V3 (Acordeón) | Corregir spacing entre subelementos |
+| **Pricing** | V1 + V3 híbrido | Sin precio, solo cuota |
 
 ---
 
-## 2. Stack Tecnológico
+## 2. Nuevo Componente: ProductInfoHeader
 
-```json
-{
-  "framework": "Next.js 14+",
-  "ui_library": "@nextui-org/react v2.6.11",
-  "icons": "lucide-react",
-  "styling": "Tailwind CSS v4"
-}
+### Descripción
+Componente configurable para mostrar la información básica del producto:
+- Badges (Windows, batería, stock)
+- Marca
+- Nombre del producto
+- Rating y reviews
+- Descripción corta
+
+### Versiones (6)
+
+#### V1 - Layout Actual (Badges + Info vertical)
+```
+[Con Windows 11 Home] [Hasta 6 horas] [15 disponibles]
+Lenovo
+Laptop Lenovo 15.6" para estudios - Ryzen 5
+★★★★☆ 4.5 (128 opiniones)
+Laptop ideal para estudios universitarios con Ryzen 5, 8GB RAM...
+```
+
+#### V2 - Layout Compacto (Mobile-optimized)
+```
+Lenovo • 15 disponibles
+Laptop Lenovo 15.6" para estudios - Ryzen 5
+[Windows 11] [6h batería]
+★★★★☆ 4.5 (128)
+```
+
+#### V3 - Layout con Chips Flotantes
+```
+                        [Windows 11 Home ✓]
+Lenovo                  [Hasta 6 horas ⚡]
+Laptop Lenovo 15.6"...  [15 disponibles 📦]
+★★★★☆ 4.5 (128 opiniones)
+```
+
+#### V4 - Layout Hero (Nombre prominente)
+```
+LENOVO
+━━━━━━━━━━━━━━━━━━━━━━━━
+Laptop 15.6" para estudios
+Ryzen 5 • 8GB RAM • 256GB SSD
+━━━━━━━━━━━━━━━━━━━━━━━━
+★★★★☆ 4.5 (128) | Windows 11 | 6h batería | 15 disp.
+```
+
+#### V5 - Layout Split (Info izquierda, badges derecha)
+```
+Lenovo                          | [Windows 11 Home]
+Laptop 15.6" para estudios      | [Hasta 6 horas]
+★★★★☆ 4.5 (128 opiniones)      | [15 disponibles]
+```
+
+#### V6 - Layout Interactivo (Badges expandibles)
+```
+Lenovo • Laptop 15.6" para estudios - Ryzen 5
+★★★★☆ 4.5 (128 opiniones)
+[+ Ver especificaciones rápidas] → expande badges
 ```
 
 ---
 
-## 3. Estructura de Archivos (6 versiones)
+## 3. Cambios en Pricing Calculator
+
+### Cambios Obligatorios (todas las versiones):
+1. **NO mostrar precio del equipo** - Solo enfocarse en la cuota
+2. **Mostrar cuota tachada** cuando hay descuento aplicado
+3. **Permitir elegir cuota inicial** (inicial 0%, 10%, 20%, 30%)
+4. **Quitar monto total pagado** - No mostrar "Total: S/X,XXX"
+5. **Quitar sección "Financiamiento"** - No mostrar costo de financiamiento
+
+### Estructura Nueva:
+
+```tsx
+// ❌ PROHIBIDO (versión anterior)
+<div>
+  <p>Precio: S/2,499</p>
+  <p>Cuota: S/89/mes</p>
+  <p>Total: S/4,272</p>
+  <p>Financiamiento: S/573</p>
+</div>
+
+// ✅ CORRECTO (versión 0.4)
+<div>
+  <p className="line-through text-neutral-400">S/99/mes</p>
+  <p className="text-4xl font-bold text-[#4654CD]">S/89/mes</p>
+  <p className="text-sm text-neutral-500">x 36 meses</p>
+
+  <div>
+    <label>Cuota inicial (opcional)</label>
+    <select>0% | 10% | 20% | 30%</select>
+  </div>
+</div>
+```
+
+---
+
+## 4. Cambios en Similar Products
+
+### Cambios Obligatorios:
+1. **Enfocarse en variación de cuota**: Mostrar "+S/15/mes" o "-S/10/mes" en vez de precio
+2. **Quitar precio del equipo** - Solo mostrar cuota mensual
+3. **Mejor uso del espacio en blanco en desktop**
+
+### Ejemplo:
+
+```tsx
+// ❌ PROHIBIDO
+<p>Precio: S/2,199</p>
+<p>Cuota: S/79/mes</p>
+
+// ✅ CORRECTO
+<p className="text-[#22c55e] font-bold">-S/10/mes</p>
+<p className="text-neutral-600">S/79/mes vs S/89/mes actual</p>
+```
+
+---
+
+## 5. Cambios en Specs (Acordeón)
+
+### Cambios Obligatorios:
+1. **Corregir spacing** entre subelementos del acordeón
+2. **Padding consistente** en items expandidos
+
+```tsx
+// Espaciado correcto
+<AccordionItem>
+  <div className="space-y-2 py-2">  // Era space-y-3 py-3 (muy espaciado)
+    {specs.map(spec => (
+      <div className="flex justify-between py-1.5">  // Era py-2
+        <span>{spec.label}</span>
+        <span>{spec.value}</span>
+      </div>
+    ))}
+  </div>
+</AccordionItem>
+```
+
+---
+
+## 6. Estructura de Archivos (0.4)
 
 ```
 src/app/prototipos/0.4/producto/
 ├── page.tsx                              # Redirect a preview
-├── [slug]/
-│   └── page.tsx                          # Detalle dinámico
 ├── detail-preview/
-│   └── page.tsx                          # Preview con modal de configuracion
+│   └── page.tsx                          # Preview con Settings Modal
 ├── components/
 │   └── detail/
 │       ├── ProductDetail.tsx             # Wrapper principal
-│       ├── DetailSettingsModal.tsx       # Modal configuración (10 selectores)
+│       ├── DetailSettingsModal.tsx       # Modal configuración
+│       ├── info/
+│       │   ├── ProductInfoHeaderV1.tsx   # NUEVO - 6 versiones
+│       │   ├── ProductInfoHeaderV2.tsx
+│       │   ├── ProductInfoHeaderV3.tsx
+│       │   ├── ProductInfoHeaderV4.tsx
+│       │   ├── ProductInfoHeaderV5.tsx
+│       │   ├── ProductInfoHeaderV6.tsx
+│       │   └── index.ts
 │       ├── gallery/
-│       │   └── ProductGalleryV[1-6].tsx  # 6 versiones de galería
+│       │   └── ProductGalleryV[1-6].tsx  # V1 = thumbnails inferiores
 │       ├── tabs/
-│       │   └── DetailTabsV[1-6].tsx      # 6 versiones de tabs
+│       │   └── DetailTabsV[1-6].tsx      # V1 = scroll continuo
 │       ├── specs/
-│       │   └── SpecsDisplayV[1-6].tsx    # 6 versiones de specs
+│       │   └── SpecsDisplayV[1-6].tsx    # V1 = acordeón con spacing corregido
 │       ├── pricing/
-│       │   ├── PricingCalculatorV[1-6].tsx
-│       │   ├── PaymentSchedule.tsx
-│       │   └── PriceComparison.tsx
+│       │   └── PricingCalculatorV[1-6].tsx # Sin precio, solo cuota
 │       ├── similar/
-│       │   └── SimilarProductsV[1-6].tsx
+│       │   └── SimilarProductsV[1-6].tsx # Enfoque en variación cuota
 │       ├── honesty/
-│       │   └── ProductLimitationsV[1-6].tsx
+│       │   └── ProductLimitationsV[1-6].tsx # V1 = collapsible
 │       └── certifications/
 │           └── CertificationsV[1-6].tsx
 ├── types/
 │   └── detail.ts
-└── DETAIL_README.md
+└── data/
+    └── mockDetailData.ts
 ```
 
 ---
 
-## 4. Preguntas del Segmento B - Detalle
-
-### 4.1 Layout (5 preguntas)
-
-#### B.66 [DEFINIDO]
-**¿El detalle debe abrirse en modal, página nueva, o expandir la card?**
-→ **Página nueva** para ver todo el detalle del producto
-
-#### B.67 [ITERAR - 6 versiones]
-**¿Qué tabs/secciones debe tener el detalle?**
-- **V1**: Tabs horizontales clásicos (Specs | Descripción | Cronograma | Reviews) - Foto Producto
-- **V2**: Acordeón colapsable (todo visible, expandible) - Foto Lifestyle
-- **V3**: Scroll continuo con navegación sticky lateral - Ilustración Flat
-- **V4**: Tabs con iconos animados y transiciones suaves, badges de cantidad - Fintech/Data
-- **V5**: Layout split: info izquierda, tabs derecha, tabs verticales - Bold/Impact
-- **V6**: Tabs con preview on hover, contenido interactivo - Interactivo
-
-#### B.68 [ITERAR - 6 versiones]
-**¿Debe haber galería de fotos con zoom?**
-- **V1**: Thumbnails laterales + zoom en modal lightbox - Foto Producto
-- **V2**: Thumbnails inferiores + zoom inline (hover) - Foto Lifestyle
-- **V3**: Carousel swipeable + pinch-to-zoom (mobile-first) - Ilustración Flat
-- **V4**: Galería con preview flotante + stats overlay (vistas, favoritos) - Fintech/Data
-- **V5**: Hero fullscreen + masonry grid asimétrica + galería overlay - Bold/Impact
-- **V6**: Visor 360° interactivo + hotspots clickeables + captions - Interactivo
-
-#### B.69 [ITERAR - 6 versiones]
-**¿El cronograma de pagos debe ser interactivo?**
-- **V1**: Slider de plazo + tabla de cuotas tradicional - Foto Producto
-- **V2**: Botones de plazo (6/12/18/24) + calendario visual - Foto Lifestyle
-- **V3**: Input libre + cálculo instantáneo minimalista - Ilustración Flat
-- **V4**: Cards flotantes por plazo con animación + gráficos amortización - Fintech/Data
-- **V5**: Timeline visual con cuotas asimétricas, cronograma prominente - Bold/Impact
-- **V6**: Calculadora gamificada con progreso visual, slider interactivo - Interactivo
-
-#### B.70 [ITERAR - 6 versiones]
-**¿Debe mostrarse 'Productos similares'?**
-- **V1**: Carousel horizontal (4 productos, arrows) - Foto Producto
-- **V2**: Grid 3 columnas debajo del detalle - Foto Lifestyle
-- **V3**: Panel lateral flotante "Compara con..." - Ilustración Flat
-- **V4**: Cards flotantes con hover preview + tabla comparativa con scores - Fintech/Data
-- **V5**: Productos como collage visual + modal comparación lado a lado - Bold/Impact
-- **V6**: Quiz interactivo "¿Es este el indicado?" + testimonios - Interactivo
-
----
-
-### 4.2 Specs (4 preguntas)
-
-#### B.71 [ITERAR - 6 versiones]
-**¿Cómo organizar las specs por categorías?**
-- **V1**: Tabla con headers de sección (Procesador, Memoria, Pantalla...) - Foto Producto
-- **V2**: Cards individuales por categoría con iconos - Foto Lifestyle
-- **V3**: Lista colapsable tipo acordeón - Ilustración Flat
-- **V4**: Grid de chips flotantes por categoría - Fintech/Data
-- **V5**: Split: categorías izq, specs der (50/50) - Bold/Impact
-- **V6**: Filtro interactivo por categoría - Interactivo
-
-#### B.72 [ITERAR - 6 versiones]
-**¿Las specs como tabla, lista, o cards?**
-- **V1**: Tabla 2 columnas clásica (Spec | Valor) - Foto Producto
-- **V2**: Cards grid con icono + label + valor - Foto Lifestyle
-- **V3**: Lista con iconos inline minimalista - Ilustración Flat
-- **V4**: Chips flotantes con valores - Fintech/Data
-- **V5**: Tabla dividida en 2 columnas de contenido - Bold/Impact
-- **V6**: Tabla con toggles de detalle expandible - Interactivo
-
-#### B.73 [ITERAR - 6 versiones]
-**¿Mostrar todos los campos de specs o solo relevantes?**
-- **V1**: Todos los campos organizados (50+) - Foto Producto
-- **V2**: Top 15 + "Ver todas las especificaciones" - Foto Lifestyle
-- **V3**: Agrupados por relevancia (Esencial / Avanzado / Técnico) - Ilustración Flat
-- **V4**: Specs destacados flotantes + resto colapsado - Fintech/Data
-- **V5**: Esenciales izq, avanzados der - Bold/Impact
-- **V6**: Filtros para ver specs por nivel técnico - Interactivo
-
-#### B.74 [ITERAR - 6 versiones]
-**¿Los campos técnicos deben tener tooltips?**
-- **V1**: Icono (?) con tooltip al hover - Foto Producto
-- **V2**: Link "¿Qué significa?" abre modal - Foto Lifestyle
-- **V3**: Texto explicativo siempre visible debajo - Ilustración Flat
-- **V4**: Tooltip flotante con animación suave - Fintech/Data
-- **V5**: Panel de ayuda lateral fijo - Bold/Impact
-- **V6**: Chat inline "Pregúntame sobre esta spec" - Interactivo
-
----
-
-### 4.3 Puertos (2 preguntas)
-
-#### B.75 [DEFINIDO]
-**¿Diagrama visual de puertos disponibles?**
-→ Ilustración mostrando ubicación de puertos (izq/der/posterior)
-
-#### B.76 [DEFINIDO]
-**¿Listar puertos con iconos representativos?**
-→ Sí, iconos de USB-C, HDMI, SD, Ethernet, etc.
-
----
-
-### 4.4 Honestidad (2 preguntas)
-
-#### B.77 [ITERAR - 6 versiones]
-**¿Mostrar puntos_debiles (limitaciones honestas)?**
-- **V1**: Sección "Considera que..." con lista visible - Foto Producto
-- **V2**: Collapsible "Ver limitaciones" (menos prominente) - Foto Lifestyle
-- **V3**: Tooltips en specs afectados (ej: "RAM no expandible") - Ilustración Flat
-- **V4**: Badge flotante "Info importante" - Fintech/Data
-- **V5**: Panel lateral fijo con consideraciones - Bold/Impact
-- **V6**: Checklist interactivo "¿Es para ti?" - Interactivo
-
-#### B.78 [DEFINIDO]
-**¿Cómo presentar limitaciones sin sonar negativo?**
-→ Framing positivo: "Optimizado para..." en vez de "No tiene..."
-
----
-
-### 4.5 Comparables (2 preguntas)
-
-#### B.79 [ITERAR - 6 versiones]
-**¿Mostrar productos comparables de la competencia?**
-- **V1**: Solo productos BaldeCash similares - Foto Producto
-- **V2**: Mención texto "Similar a Dell XPS" sin link - Foto Lifestyle
-- **V3**: Comparativa con productos externos (más transparente) - Ilustración Flat
-- **V4**: Badge flotante "Equivalente a..." - Fintech/Data
-- **V5**: Panel lateral con alternativas internas/externas - Bold/Impact
-- **V6**: Selector interactivo de comparación - Interactivo
-
-#### B.80 [ITERAR - 6 versiones]
-**¿Comparables de BaldeCash o mencionar competencia?**
-- **V1**: Solo BaldeCash (enfoque interno) - Foto Producto
-- **V2**: BaldeCash + referencia a equivalentes del mercado - Foto Lifestyle
-- **V3**: Tabla comparativa con competidores externos - Ilustración Flat
-- **V4**: Cards BaldeCash + badges "como [marca]" - Fintech/Data
-- **V5**: Split: nuestros productos vs mercado (50/50) - Bold/Impact
-- **V6**: Quiz "¿Qué buscas?" con resultados - Interactivo
-
----
-
-### 4.6 Marketing (2 preguntas)
-
-#### B.81 [DEFINIDO]
-**¿Mostrar descripcion_larga completa o resumida?**
-→ Resumida con "Ver más" para expandir
-
-#### B.82 [DEFINIDO]
-**¿Los key_features deben tener iconos asociados?**
-→ Sí, iconos ilustrativos para cada feature
-
----
-
-### 4.7 Imágenes (2 preguntas)
-
-#### B.83 [ITERAR - 6 versiones]
-**¿Cuántas imágenes mostrar en la galería?**
-- **V1**: Todas las disponibles (scroll horizontal) - Foto Producto
-- **V2**: 5 principales + "Ver más fotos" - Foto Lifestyle
-- **V3**: Hero grande + thumbnails bajo demanda - Ilustración Flat
-- **V4**: 3 flotantes + galería en modal - Fintech/Data
-- **V5**: Split: 2 principales + resto lateral (50/50) - Bold/Impact
-- **V6**: Galería interactiva con zoom por áreas - Interactivo
-
-#### B.84 [ITERAR - 6 versiones]
-**¿La imagen hero más grande que las de galería?**
-- **V1**: Hero 60% ancho, thumbnails pequeños lateral - Foto Producto
-- **V2**: Hero 50/50 con info lado derecho - Foto Lifestyle
-- **V3**: Hero fullwidth, thumbnails overlay inferior - Ilustración Flat
-- **V4**: Hero con sombra flotante, thumbnails dots - Fintech/Data
-- **V5**: Hero izq 50% + info + thumbs der - Bold/Impact
-- **V6**: Hero con hotspots + thumbs como selector - Interactivo
-
----
-
-### 4.8 Software (2 preguntas)
-
-#### B.85 [DEFINIDO]
-**¿Mostrar software preinstalado?**
-→ Sí, en sección "Software incluido" con iconos
-
-#### B.86 [DEFINIDO]
-**¿Indicar claramente si incluye Windows o FreeDOS?**
-→ Prominente: badge "Con Windows 11" o "Sin sistema operativo"
-
----
-
-### 4.9 Batería (2 preguntas)
-
-#### B.87 [DEFINIDO]
-**¿Mostrar duración estimada de batería?**
-→ Prominente: "Hasta 8 horas de uso"
-
-#### B.88 [DEFINIDO]
-**¿Indicar carga rápida y watts?**
-→ Sí, "Carga rápida 65W (50% en 30 min)"
-
----
-
-### 4.10 Certificaciones (1 pregunta)
-
-#### B.89 [ITERAR - 6 versiones]
-**¿Mostrar certificaciones con logos o solo texto?**
-- **V1**: Solo logos pequeños (Energy Star, EPEAT, MIL-STD) - Foto Producto
-- **V2**: Logos + nombre + tooltip con descripción - Foto Lifestyle
-- **V3**: Cards expandibles con detalle de certificación - Ilustración Flat
-- **V4**: Logos flotantes con hover info - Fintech/Data
-- **V5**: Panel lateral con certificaciones - Bold/Impact
-- **V6**: Certificaciones interactivas expandibles - Interactivo
-
----
-
-## 5. Tipos TypeScript
+## 7. Tipos TypeScript
 
 ```typescript
 // types/detail.ts
 
+export type DetailVersion = 1 | 2 | 3 | 4 | 5 | 6;
+
 export interface ProductDetailConfig {
-  // B.67 - Tabs/secciones
-  tabsVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // NUEVO - Info Header
+  infoHeaderVersion: DetailVersion;
 
-  // B.68 - Galería de fotos
-  galleryVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // Galería (V1 = thumbnails inferiores)
+  galleryVersion: DetailVersion;
 
-  // B.69 - Cronograma de pagos
-  pricingVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // Tabs/Layout (V1 = scroll continuo)
+  tabsVersion: DetailVersion;
 
-  // B.70 - Productos similares
-  similarProductsVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // Specs (V1 = acordeón)
+  specsVersion: DetailVersion;
 
-  // B.71 - Organización de specs
-  specsOrganizationVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // Pricing (todas sin precio, solo cuota)
+  pricingVersion: DetailVersion;
 
-  // B.72 - Display de specs
-  specsDisplayVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // Similar Products (enfoque cuota)
+  similarProductsVersion: DetailVersion;
 
-  // B.73 - Cantidad de specs
-  specsAmountVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // Limitaciones (V1 = collapsible)
+  limitationsVersion: DetailVersion;
 
-  // B.74 - Tooltips técnicos
-  tooltipsVersion: 1 | 2 | 3 | 4 | 5 | 6;
-
-  // B.77 - Limitaciones
-  limitationsVersion: 1 | 2 | 3 | 4 | 5 | 6;
-
-  // B.79/B.80 - Comparables
-  comparablesVersion: 1 | 2 | 3 | 4 | 5 | 6;
-
-  // B.83 - Cantidad de imágenes
-  imagesAmountVersion: 1 | 2 | 3 | 4 | 5 | 6;
-
-  // B.84 - Tamaño de imagen hero
-  heroSizeVersion: 1 | 2 | 3 | 4 | 5 | 6;
-
-  // B.89 - Certificaciones
-  certificationsVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // Certificaciones
+  certificationsVersion: DetailVersion;
 }
 
-export const defaultProductDetailConfig: ProductDetailConfig = {
-  tabsVersion: 1,
+export const defaultDetailConfig: ProductDetailConfig = {
+  infoHeaderVersion: 1,
   galleryVersion: 1,
+  tabsVersion: 1,
+  specsVersion: 1,
   pricingVersion: 1,
   similarProductsVersion: 1,
-  specsOrganizationVersion: 1,
-  specsDisplayVersion: 1,
-  specsAmountVersion: 1,
-  tooltipsVersion: 1,
   limitationsVersion: 1,
-  comparablesVersion: 1,
-  imagesAmountVersion: 1,
-  heroSizeVersion: 1,
   certificationsVersion: 1,
 };
 
-export interface ProductDetailTabs {
-  id: string;
-  label: string;
-  icon: string;
-  content: React.ReactNode;
-}
-
-export interface PaymentScheduleRow {
-  cuotaNumber: number;
-  dueDate: string;
-  amount: number;
-  principal: number;
-  interest: number;
-  balance: number;
-}
-
-export interface SimilarProduct {
-  id: string;
-  name: string;
-  thumbnail: string;
-  price: number;
-  lowestQuota: number;
-  matchScore: number; // 0-100%
-  differentiators: string[];
-}
-
-export interface ProductLimitation {
-  category: string;
-  description: string;
-  severity: 'info' | 'warning';
-  alternative?: string;
-}
-
-export interface Certification {
-  code: string;
-  name: string;
-  logo: string;
-  description: string;
-  learnMoreUrl?: string;
-}
-```
-
----
-
-## 6. Componente de Referencia
-
-```typescript
-'use client';
-
-import React, { useState } from 'react';
-import { Tabs, Tab, Card, CardBody } from '@nextui-org/react';
-import { Cpu, Monitor, Battery, HardDrive } from 'lucide-react';
-
-/**
- * DetailTabsV1 - Tabs Horizontales
- *
- * Características:
- * - Tabs tradicionales arriba del contenido
- * - Transición suave entre secciones
- * - Ideal para: navegación clara entre categorías
- */
-
-export const DetailTabsV1: React.FC<{ product: Product }> = ({ product }) => {
-  const [activeTab, setActiveTab] = useState('specs');
-
-  return (
-    <Tabs
-      selectedKey={activeTab}
-      onSelectionChange={(key) => setActiveTab(key as string)}
-      classNames={{
-        tabList: 'bg-neutral-100 p-1 rounded-lg',
-        tab: 'px-6 py-2',
-        tabContent: 'text-neutral-600 group-data-[selected=true]:text-[#4247d2]',
-      }}
-    >
-      <Tab key="specs" title="Especificaciones">
-        <Card className="mt-4">
-          <CardBody>
-            {/* Contenido de specs */}
-          </CardBody>
-        </Card>
-      </Tab>
-      <Tab key="description" title="Descripción">
-        <Card className="mt-4">
-          <CardBody>
-            {/* Contenido de descripción */}
-          </CardBody>
-        </Card>
-      </Tab>
-      <Tab key="schedule" title="Cronograma">
-        <Card className="mt-4">
-          <CardBody>
-            {/* Cronograma de pagos */}
-          </CardBody>
-        </Card>
-      </Tab>
-    </Tabs>
-  );
+export const versionDescriptions = {
+  infoHeader: {
+    1: 'Layout actual (badges + info vertical)',
+    2: 'Layout compacto (mobile-optimized)',
+    3: 'Layout con chips flotantes',
+    4: 'Layout hero (nombre prominente)',
+    5: 'Layout split (info izq, badges der)',
+    6: 'Layout interactivo (badges expandibles)',
+  },
+  gallery: {
+    1: 'Thumbnails inferiores + zoom hover (PREFERIDO)',
+    2: 'Thumbnails laterales + zoom modal',
+    3: 'Carousel swipeable + pinch-to-zoom',
+    4: 'Preview flotante + stats overlay',
+    5: 'Hero fullscreen + masonry grid',
+    6: 'Visor 360° interactivo + hotspots',
+  },
+  tabs: {
+    1: 'Scroll continuo + nav sticky lateral (PREFERIDO)',
+    2: 'Tabs horizontales clásicos',
+    3: 'Acordeón colapsable',
+    4: 'Tabs con iconos animados',
+    5: 'Split layout (info izq, tabs der)',
+    6: 'Tabs con preview on hover',
+  },
+  specs: {
+    1: 'Acordeón con spacing corregido (PREFERIDO)',
+    2: 'Cards grid por categoría',
+    3: 'Tabla 2 columnas clásica',
+    4: 'Chips flotantes con valores',
+    5: 'Grid filtrable por nivel técnico',
+    6: 'Tabla con toggles expandibles',
+  },
+  pricing: {
+    1: 'Tabs de plazo compactos, solo cuota',
+    2: 'Slider de plazo, solo cuota',
+    3: 'Botones de plazo + cuota inicial',
+    4: 'Cards por plazo con animación',
+    5: 'Timeline visual de cuotas',
+    6: 'Calculadora gamificada con progreso',
+  },
+  similarProducts: {
+    1: 'Panel comparación con variación cuota (PREFERIDO)',
+    2: 'Carousel horizontal con cuotas',
+    3: 'Grid 3 columnas con delta cuota',
+    4: 'Cards flotantes con hover preview',
+    5: 'Collage visual + modal comparación',
+    6: 'Quiz interactivo "¿Es este el indicado?"',
+  },
+  limitations: {
+    1: 'Collapsible "Ver limitaciones" (PREFERIDO)',
+    2: 'Sección visible "Considera que..."',
+    3: 'Tooltips en specs afectados',
+    4: 'Badge flotante "Info importante"',
+    5: 'Panel lateral con consideraciones',
+    6: 'Checklist interactivo "¿Es para ti?"',
+  },
+  certifications: {
+    1: 'Logos pequeños inline',
+    2: 'Logos + nombre + tooltip',
+    3: 'Cards expandibles con detalle',
+    4: 'Logos flotantes con hover info',
+    5: 'Panel lateral con certificaciones',
+    6: 'Certificaciones interactivas expandibles',
+  },
 };
 ```
-
----
-
-## 7. Checklist de Entregables
-
-### Tipos y Configuración
-- [ ] `types/detail.ts` - ProductDetailConfig con 13 selectores de versión (1-6)
-- [ ] `ProductDetail.tsx` - Wrapper principal
-- [ ] `DetailSettingsModal.tsx` - Modal con 13 selectores (1-6)
-
-### Galería (6 versiones)
-- [ ] `ProductGalleryV1.tsx` a `ProductGalleryV6.tsx`
-
-### Tabs/Secciones (6 versiones)
-- [ ] `DetailTabsV1.tsx` a `DetailTabsV6.tsx`
-
-### Specs (6 versiones)
-- [ ] `SpecsDisplayV1.tsx` a `V6.tsx`
-
-### Pricing (6 versiones)
-- [ ] `PricingCalculatorV1.tsx` a `V6.tsx`
-- [ ] `PaymentSchedule.tsx` (compartido)
-
-### Productos Similares (6 versiones)
-- [ ] `SimilarProductsV1.tsx` a `V6.tsx`
-
-### Honestidad/Limitaciones (6 versiones)
-- [ ] `ProductLimitationsV1.tsx` a `V6.tsx`
-
-### Certificaciones (6 versiones)
-- [ ] `CertificationsV1.tsx` a `V6.tsx`
-
-### Páginas
-- [ ] `page.tsx` - Redirect a preview
-- [ ] `detail-preview/page.tsx` - Preview con Settings Modal
-- [ ] `detail-v1/page.tsx` a `detail-v6/page.tsx` - 6 páginas standalone
-- [ ] `[slug]/page.tsx` - Detalle dinámico
-
-### Documentación
-- [ ] `DETAIL_README.md`
 
 ---
 
 ## 8. Notas Importantes
 
-1. **Cronograma interactivo**: Cambiar plazo actualiza cuota en tiempo real
-2. **Zoom obligatorio**: Galería debe permitir ver detalles del producto
-3. **Transparencia**: Mostrar limitaciones genera confianza
-4. **Cross-sell**: Productos similares aumentan engagement
-5. **Mobile-First**: Galería swipeable, tabs como acordeón
-6. **Sin gradientes**: Colores sólidos
-7. **Sin emojis**: Solo Lucide icons
+1. **V1 siempre es la preferida** - Las otras versiones son variaciones para A/B testing
+2. **Sin precio del equipo** - Solo mostrar cuota mensual
+3. **Cuota tachada** - Mostrar descuento como cuota anterior tachada
+4. **Cuota inicial opcional** - Selector 0%, 10%, 20%, 30%
+5. **Variación de cuota** - Similar products muestra "+S/X" o "-S/X" vs producto actual
+6. **Mobile-first** - Revisar comportamiento de nav sticky en mobile
+7. **Modal de galería centrado** - Ver skill frontend para configuración correcta
+
+---
+
+## 9. Checklist de Entregables
+
+### Componentes Nuevos
+- [ ] `ProductInfoHeaderV1.tsx` a `V6.tsx` (6 versiones)
+
+### Componentes Actualizados (de 3 a 6 versiones)
+- [ ] `ProductGalleryV1.tsx` a `V6.tsx` - V1 = thumbnails inferiores
+- [ ] `DetailTabsV1.tsx` a `V6.tsx` - V1 = scroll continuo
+- [ ] `SpecsDisplayV1.tsx` a `V6.tsx` - V1 = acordeón
+- [ ] `PricingCalculatorV1.tsx` a `V6.tsx` - SIN precio, solo cuota
+- [ ] `SimilarProductsV1.tsx` a `V6.tsx` - Variación de cuota
+- [ ] `ProductLimitationsV1.tsx` a `V6.tsx` - V1 = collapsible
+- [ ] `CertificationsV1.tsx` a `V6.tsx`
+
+### Infraestructura
+- [ ] `types/detail.ts` - Con ProductInfoHeaderVersion
+- [ ] `DetailSettingsModal.tsx` - 8 selectores de versión
+- [ ] `ProductDetail.tsx` - Wrapper principal
+- [ ] `page.tsx` - Preview con TokenCounter
+
+### Documentación
+- [ ] Actualizar `config.json`
+- [ ] Actualizar `token-usage.json`

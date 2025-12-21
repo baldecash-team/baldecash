@@ -11,7 +11,7 @@ export default function CatalogoPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/prototipos/0.4/catalogo/catalog-preview');
+    router.replace('/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3');
   }, [router]);
 
   return (

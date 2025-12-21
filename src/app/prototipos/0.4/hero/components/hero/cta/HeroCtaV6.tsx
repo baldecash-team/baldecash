@@ -1,14 +1,15 @@
 'use client';
 
 /**
- * HeroCtaV6 - Boton con Urgencia
+ * HeroCtaV6 - Con Urgencia
  *
- * Concepto: "Solo hoy" o contador sutil
- * Estilo: FOMO moderado, sin agresividad
+ * Concepto: Botón con contador de tiempo u oferta limitada
+ * Estilo: FOMO moderado, incentiva acción inmediata
+ * Uso: Para campañas con ofertas por tiempo limitado
  */
 
 import React, { useState, useEffect } from 'react';
-import { Button, Chip } from '@nextui-org/react';
+import { Button } from '@nextui-org/react';
 import { Clock, Zap } from 'lucide-react';
 
 interface HeroCtaV6Props {
@@ -34,43 +35,36 @@ export const HeroCtaV6: React.FC<HeroCtaV6Props> = ({ onCtaClick }) => {
     return () => clearInterval(timer);
   }, []);
 
-  const formatTime = (num: number) => num.toString().padStart(2, '0');
+  const pad = (n: number) => n.toString().padStart(2, '0');
 
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Urgency Badge */}
-      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-2">
+      {/* Contador */}
+      <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-full px-4 py-2">
         <Clock className="w-4 h-4 text-amber-600" />
         <span className="text-sm text-amber-700">
           Oferta termina en{' '}
           <span className="font-mono font-bold">
-            {formatTime(timeLeft.hours)}:{formatTime(timeLeft.minutes)}:{formatTime(timeLeft.seconds)}
+            {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
           </span>
         </span>
       </div>
 
+      {/* Botón */}
       <Button
         size="lg"
         radius="lg"
-        className="bg-[#4654CD] text-white font-semibold px-12 py-6 text-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+        className="bg-[#4654CD] text-white font-semibold px-10 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
         startContent={<Zap className="w-5 h-5" />}
         onPress={onCtaClick}
       >
-        Solicitar ahora
+        Aprovechar oferta
       </Button>
 
-      <div className="flex items-center gap-2">
-        <Chip
-          size="sm"
-          radius="sm"
-          classNames={{
-            base: 'bg-[#03DBD0]/20 px-2 py-0.5 h-auto',
-            content: 'text-xs font-semibold text-[#02C3BA]',
-          }}
-        >
-          0% interés primera cuota
-        </Chip>
-      </div>
+      {/* Beneficio */}
+      <p className="text-sm text-[#03DBD0] font-medium">
+        0% interés en tu primera cuota
+      </p>
     </div>
   );
 };

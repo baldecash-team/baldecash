@@ -677,6 +677,62 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }
 - `closeButton: 'cursor-pointer'` - El boton X de NextUI NO tiene cursor por defecto
 - **NUNCA** usar `scrollBehavior="inside"` con modales que requieren centrado
 
+### Modales de Galería/Lightbox (Fullscreen Images)
+
+Los modales de galería para mostrar imágenes en fullscreen requieren configuración específica para centrado vertical y fondo oscuro:
+
+```tsx
+// ❌ PROHIBIDO - Modal de galería sin centrado (queda pegado abajo)
+<Modal
+  isOpen={isZoomOpen}
+  onClose={() => setIsZoomOpen(false)}
+  size="5xl"
+  backdrop="blur"
+  classNames={{
+    backdrop: 'bg-black/80',
+    base: 'bg-white',
+    closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+  }}
+>
+
+// ✅ CORRECTO - Modal de galería centrado vertical y horizontalmente
+<Modal
+  isOpen={isZoomOpen}
+  onClose={() => setIsZoomOpen(false)}
+  size="5xl"
+  backdrop="blur"
+  scrollBehavior="outside"
+  placement="center"
+  classNames={{
+    backdrop: 'bg-black/90',
+    base: 'bg-transparent shadow-none my-4',
+    wrapper: 'items-center justify-center py-4 min-h-full',
+    body: 'p-0 bg-transparent',
+    closeButton: 'top-2 right-2 bg-white/90 hover:bg-white rounded-full cursor-pointer text-neutral-600 z-50',
+  }}
+>
+  <ModalContent className="bg-transparent shadow-none max-w-[90vw] max-h-[90vh]">
+    <ModalBody className="p-0 flex items-center justify-center">
+      <img
+        src={selectedImage.url}
+        alt={selectedImage.alt}
+        className="max-w-full max-h-[85vh] object-contain"
+      />
+      {/* Navegación de thumbnails/dots */}
+    </ModalBody>
+  </ModalContent>
+</Modal>
+```
+
+### Claves para modales de galería:
+- `scrollBehavior="outside"` + `placement="center"` - Centrado vertical correcto
+- `base: 'bg-transparent shadow-none my-4'` - Sin fondo blanco visible
+- `wrapper: 'items-center justify-center py-4 min-h-full'` - Flexbox centrado
+- `backdrop: 'bg-black/90'` - Fondo oscuro para resaltar imagen
+- `max-h-[85vh]` en imagen - Deja espacio para navegación
+- `closeButton` con `bg-white/90` - Visible sobre fondo oscuro
+- **NUNCA** usar `size="full"` - Usar `5xl` + `max-w-[90vw]` para mejor control
+
 ## Tipografia con Contraste Extremo
 
 Usar extremos de peso y tamano para crear jerarquia clara:

@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Quote, Star } from 'lucide-react';
 import { SocialProofProps } from '../../../types/hero';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 const testimonials = [
   {

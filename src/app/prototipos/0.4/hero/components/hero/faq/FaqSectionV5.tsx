@@ -11,8 +11,9 @@ import { Input, Accordion, AccordionItem, Chip } from '@nextui-org/react';
 import { Search, HelpCircle, X } from 'lucide-react';
 import { FaqSectionProps } from '../../../types/hero';
 import { mockFaqData } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
-export const FaqSectionV5: React.FC<FaqSectionProps> = ({ data = mockFaqData }) => {
+export const FaqSectionV5: React.FC<FaqSectionProps> = ({ data = mockFaqData, underlineStyle = 4 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredItems = useMemo(() => {
@@ -54,7 +55,7 @@ export const FaqSectionV5: React.FC<FaqSectionProps> = ({ data = mockFaqData }) 
           className="text-center mb-10"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2'] mb-4">
-            Tienes dudas?
+            ¿Tienes dudas?
           </h2>
           <p className="text-neutral-600 mb-8">Busca lo que necesitas saber</p>
 
@@ -79,8 +80,9 @@ export const FaqSectionV5: React.FC<FaqSectionProps> = ({ data = mockFaqData }) 
               classNames={{
                 base: 'bg-white',
                 inputWrapper:
-                  'bg-neutral-50 border-2 border-neutral-200 hover:border-[#4654CD]/50 focus-within:border-[#4654CD] shadow-sm',
-                input: 'text-neutral-800',
+                  'bg-neutral-50 border-2 border-neutral-200 hover:border-[#4654CD]/50 focus-within:border-[#4654CD] shadow-sm focus-within:ring-0',
+                input: 'text-neutral-800 focus:outline-none',
+                innerWrapper: 'focus-within:ring-0',
               }}
             />
           </div>

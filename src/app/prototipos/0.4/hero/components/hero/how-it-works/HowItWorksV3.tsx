@@ -11,6 +11,7 @@ import { Card, CardBody, Chip } from '@nextui-org/react';
 import { Search, FileText, Clock, GraduationCap, Check, ArrowDown } from 'lucide-react';
 import { HowItWorksProps } from '../../../types/hero';
 import { mockHowItWorksData } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 const iconMap: Record<string, React.ElementType> = {
   Search,
@@ -19,7 +20,7 @@ const iconMap: Record<string, React.ElementType> = {
   GraduationCap,
 };
 
-export const HowItWorksV3: React.FC<HowItWorksProps> = ({ data = mockHowItWorksData }) => {
+export const HowItWorksV3: React.FC<HowItWorksProps> = ({ data = mockHowItWorksData, underlineStyle = 4 }) => {
   return (
     <section className="py-20 bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

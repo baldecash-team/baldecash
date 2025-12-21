@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Building, Users, Award } from 'lucide-react';
 import { SocialProofProps } from '../../../types/hero';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 const regions = [
   { id: 'lima', name: 'Lima', x: 28, y: 52, count: 18, institutions: ['UPN', 'UPC', 'UCAL', 'ISIL'] },
@@ -21,7 +22,7 @@ const regions = [
   { id: 'junin', name: 'Junín', x: 40, y: 50, count: 2, institutions: ['UNCP'] },
 ];
 
-export const SocialProofV6: React.FC<SocialProofProps> = ({ data }) => {
+export const SocialProofV6: React.FC<SocialProofProps> = ({ data, underlineStyle = 4 }) => {
   const [activeRegion, setActiveRegion] = useState<string | null>(null);
 
   return (

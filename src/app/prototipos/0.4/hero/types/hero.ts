@@ -26,7 +26,7 @@ export interface HeroConfig {
 
 export const defaultHeroConfig: HeroConfig = {
   heroBannerVersion: 1,
-  underlineStyle: 1,
+  underlineStyle: 4,
   socialProofVersion: 1,
   navbarVersion: 1,
   ctaVersion: 1,
@@ -143,6 +143,7 @@ export interface HeroBannerProps {
 
 export interface SocialProofProps {
   data: SocialProofData;
+  underlineStyle?: UnderlineStyle;
 }
 
 export interface HeroCtaProps {
@@ -248,6 +249,7 @@ export interface HowItWorksData {
 
 export interface HowItWorksProps {
   data?: HowItWorksData;
+  underlineStyle?: UnderlineStyle;
 }
 
 // ============================================
@@ -268,6 +270,7 @@ export interface FaqData {
 
 export interface FaqSectionProps {
   data?: FaqData;
+  underlineStyle?: UnderlineStyle;
 }
 
 // ============================================
@@ -292,7 +295,7 @@ export const versionDescriptions = {
     6: 'Doble Línea (énfasis)',
   },
   socialProof: {
-    1: 'Marquee Continuo (logos en movimiento)',
+    1: 'Marquee Edge-to-Edge (CSS animation, mobile optimizado)',
     2: 'Grid Estático (todos los logos)',
     3: 'Contador + Logos (número grande)',
     4: 'Carrusel Manual (flechas)',
@@ -305,15 +308,15 @@ export const versionDescriptions = {
     3: 'Transparente a Sólido (scroll effect)',
     4: 'Hamburger Siempre (fullscreen menu)',
     5: 'Search Prominente (e-commerce style)',
-    6: 'Mega Menu + Badge Notificación',
+    6: 'Banner Promocional (dismissible con X)',
   },
   cta: {
-    1: 'Botón Simple (Ver equipos)',
-    2: 'Precio en Botón (Desde S/49/mes)',
-    3: 'Dual CTA (primario + secundario)',
-    4: 'Con Urgencia (countdown timer)',
-    5: 'Pre-calificación (Descubre tu monto)',
-    6: 'WhatsApp Directo (botón verde)',
+    1: 'Botón Simple (acción única)',
+    2: 'Con Beneficios (lista de ventajas)',
+    3: 'Doble Acción (primario + secundario)',
+    4: 'WhatsApp Directo (botón verde)',
+    5: 'Sticky Mobile (fijo en móvil)',
+    6: 'Con Urgencia (countdown timer)',
   },
   footer: {
     1: 'Minimalista Oscuro (neutral-900)',
@@ -324,7 +327,7 @@ export const versionDescriptions = {
     6: 'Con Trust Badges (certificaciones)',
   },
   howItWorks: {
-    1: 'Timeline Horizontal (iconos + pasos)',
+    1: 'Timeline Premium (círculos + línea animada)',
     2: 'Cards Grid (3 columnas)',
     3: 'Vertical con Línea (scroll reveal)',
     4: 'Minimal (solo iconos)',

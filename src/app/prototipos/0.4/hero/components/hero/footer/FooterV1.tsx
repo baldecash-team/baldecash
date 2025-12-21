@@ -12,6 +12,7 @@ import React from 'react';
 const essentialLinks = [
   { label: 'Términos', href: '#terminos' },
   { label: 'Privacidad', href: '#privacidad' },
+  { label: 'Libro de reclamaciones', href: '#reclamos' },
   { label: 'Contacto', href: '#contacto' },
 ];
 

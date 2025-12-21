@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * HeroCtaV1 - Boton Simple
+ * HeroCtaV1 - Botón Simple
  *
- * Concepto: Solo texto claro y directo
- * Estilo: Minimalista, sin distracciones
+ * Concepto: Un solo botón minimalista sin distracciones
+ * Estilo: Limpio, directo, máxima claridad
+ * Uso: Cuando se quiere una llamada a la acción sin ruido visual
  */
 
 import React from 'react';
@@ -16,16 +17,14 @@ interface HeroCtaV1Props {
 
 export const HeroCtaV1: React.FC<HeroCtaV1Props> = ({ onCtaClick }) => {
   return (
-    <div className="flex flex-col items-center gap-4">
-      <Button
-        size="lg"
-        radius="lg"
-        className="bg-[#4654CD] text-white font-semibold px-12 py-6 text-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
-        onPress={onCtaClick}
-      >
-        Solicitar mi laptop
-      </Button>
-    </div>
+    <Button
+      size="lg"
+      radius="lg"
+      className="bg-[#4654CD] text-white font-semibold px-10 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
+      onPress={onCtaClick}
+    >
+      Solicitar mi laptop
+    </Button>
   );
 };
 

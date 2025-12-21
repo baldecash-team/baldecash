@@ -11,6 +11,7 @@ import { Card, CardBody, Chip, Button } from '@nextui-org/react';
 import { Search, FileText, Clock, GraduationCap, Check, ChevronRight } from 'lucide-react';
 import { HowItWorksProps } from '../../../types/hero';
 import { mockHowItWorksData } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 const iconMap: Record<string, React.ElementType> = {
   Search,
@@ -19,7 +20,7 @@ const iconMap: Record<string, React.ElementType> = {
   GraduationCap,
 };
 
-export const HowItWorksV6: React.FC<HowItWorksProps> = ({ data = mockHowItWorksData }) => {
+export const HowItWorksV6: React.FC<HowItWorksProps> = ({ data = mockHowItWorksData, underlineStyle = 4 }) => {
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
   const [showRequirements, setShowRequirements] = useState(false);
 

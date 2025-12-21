@@ -1,10 +1,45 @@
 {
   "version": "0.4",
   "createdAt": "2024-12-19T00:00:00.000Z",
-  "updatedAt": "2024-12-19T00:00:00.000Z",
+  "updatedAt": "2024-12-20T00:00:00.000Z",
   "description": "Prototipo v0.4 - Sistema de A/B testing con 6 versiones por componente",
   "status": "testing",
   "sections": {
+    "convenio": {
+      "lastUpdated": "2024-12-20T00:00:00.000Z",
+      "components": {
+        "navbar": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Logos lado a lado, V2-Acento color convenio, V3-Banner flotante descuento, V4-Minimalista CTA, V5-Countdown timer, V6-Barra de cupos"
+        },
+        "hero": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Co-branded clasico, V2-Imagen campus, V3-Split con calculadora, V4-Logos grandes centrados, V5-Countdown urgencia, V6-Carrusel productos"
+        },
+        "benefits": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Cards grid iconos, V2-Lista vertical, V3-Cards horizontales, V4-Timeline, V5-Cards gradiente sutil, V6-Tabs categorias"
+        },
+        "testimonials": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Grid 3 columnas, V2-Carrusel horizontal, V3-Featured + miniaturas, V4-Video style, V5-Cards foto grande, V6-Masonry"
+        },
+        "faq": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Acordeon simple, V2-Con iconos categoria, V3-Grid expandible, V4-Tabs por tema, V5-Busqueda + acordeon, V6-Chatbot conversacional"
+        },
+        "cta": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Boton grande simple, V2-Con calculadora, V3-Countdown urgencia, V4-Split info + CTA, V5-Cupos limitados, V6-WhatsApp directo"
+        }
+      }
+    },
     "hero": {
       "lastUpdated": "2024-12-19T00:00:00.000Z",
       "components": {
@@ -99,6 +134,88 @@
           "notes": "Card de producto con cuota prominente"
         }
       }
+    },
+    "producto": {
+      "lastUpdated": "2024-12-20T00:00:00.000Z",
+      "components": {
+        "infoHeader": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Layout actual badges+info, V2-Compacto mobile, V3-Chips flotantes, V4-Hero prominente, V5-Split layout, V6-Badges expandibles"
+        },
+        "gallery": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Thumbnails inferiores+zoom (PREFERIDO), V2-Thumbnails laterales+modal, V3-Carousel swipeable, V4-Preview flotante, V5-Hero fullscreen, V6-Visor 360"
+        },
+        "tabs": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Scroll continuo+nav sticky (PREFERIDO), V2-Tabs horizontales, V3-Acordeon, V4-Tabs iconos animados, V5-Split layout, V6-Preview hover"
+        },
+        "specs": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Acordeon spacing corregido (PREFERIDO), V2-Cards grid, V3-Tabla 2 columnas, V4-Chips flotantes, V5-Grid filtrable, V6-Toggles expandibles"
+        },
+        "pricing": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Tabs plazo compactos, V2-Slider plazo, V3-Botones+cuota inicial, V4-Cards animados, V5-Comparador visual plazos, V6-Calculadora gamificada"
+        },
+        "cronograma": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Timeline horizontal marcadores, V2-Tabla cuotas mensual colapsable, V3-Cards por año, V4-Calendario visual grid, V5-Progress bar hitos gamificados, V6-Comparador plazos side-by-side"
+        },
+        "ports": {
+          "version": 1,
+          "variants": 1,
+          "notes": "V1-Layout visual puertos izquierda/derecha con laptop esquema"
+        },
+        "similarProducts": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Panel comparacion variacion cuota (PREFERIDO), V2-Carousel horizontal, V3-Grid 3 columnas, V4-Cards flotantes, V5-Collage+modal, V6-Quiz interactivo"
+        },
+        "limitations": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Collapsible (PREFERIDO), V2-Seccion visible, V3-Tooltips specs, V4-Badge flotante, V5-Panel lateral, V6-Checklist interactivo"
+        },
+        "certifications": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Logos inline, V2-Logos+nombre+tooltip, V3-Cards expandibles, V4-Logos flotantes hover, V5-Panel lateral, V6-Acordeon interactivo"
+        }
+      }
+    },
+    "quiz": {
+      "lastUpdated": "2024-12-20T00:00:00.000Z",
+      "preferences": {
+        "B.98": "Layout V1 - Modal full screen mobile (integrado con catalogo)",
+        "B.99": "7 preguntas - Mayor precision",
+        "B.100": "Question Style V1 - Chips/pills con animaciones (basado en 0.3 V3)",
+        "B.101": "Results V1 - Categoria + productos con cards del catalogo (basado en 0.3 V3)",
+        "B.102": "Focus V1 - Solo por uso"
+      },
+      "components": {
+        "layout": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Modal full screen mobile (PREFERIDO), V2-Widget lateral, V3-Pagina dedicada, V4-Bottom sheet, V5-Wizard steps, V6-Chat conversacional"
+        },
+        "questions": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Chips/pills animados (PREFERIDO basado en 0.3 V3), V2-Cards iconos grandes, V3-Botones full-width, V4-Grid iconos compacto, V5-Slider escala, V6-Opciones con imagenes"
+        },
+        "results": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Categoria+cards catalogo (PREFERIDO basado en 0.3 V3), V2-Producto destacado, V3-Top 3 ranking, V4-Comparativa tabla, V5-Carrusel swipeable, V6-Lista con filtros"
+        }
+      }
     }
   },
   "testingNotes": [
@@ -114,7 +231,22 @@
     },
     {
       "date": "2024-12-20",
-      "note": "Agregada seccion Catalogo con Layout (6 versiones), BrandFilter (6 versiones), y componentes de filtros",
+      "note": "Creada seccion Convenio Landing completa: Navbar, Hero, Benefits, Testimonials, FAQ, CTA (6 versiones cada uno, 36 componentes total)",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-20",
+      "note": "Creada seccion Producto Detail completa: InfoHeader, Gallery, Tabs, Specs, Pricing, SimilarProducts, Limitations, Certifications (6 versiones cada uno, 48 componentes total). CRITICO: Sin precio, solo cuota mensual",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-20",
+      "note": "Creada seccion Quiz completa con 6 versiones: Layout (B.98), Questions (B.100), Results (B.101). Preferencias consolidadas de 0.3: V1 Layout (full screen mobile), 7 preguntas (B.99), V1 Questions (chips/pills basado en 0.3 V3), V1 Results (categoria + cards catalogo basado en 0.3 V3), Focus V1 (solo por uso). 18 componentes total.",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-20",
+      "note": "Agregado componente Cronograma (6 versiones): Timeline, Tabla, Cards año, Calendario, Progress bar gamificado, Comparador. Agregado PortsDisplay visual mostrando puertos izquierda/derecha. DetailTabsV1 ahora sticky compacto con 6 secciones navegables. Total 55 componentes producto.",
       "author": "Claude"
     }
   ]
