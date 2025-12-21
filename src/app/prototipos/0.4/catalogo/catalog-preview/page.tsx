@@ -22,7 +22,14 @@ import {
   ImageGalleryVersion,
   GallerySizeVersion,
   TechnicalFiltersVersion,
+  ProductCardVersion,
   loadingDurationMs,
+  PricingMode,
+  TermMonths,
+  InitialPaymentPercent,
+  termOptions,
+  initialOptions,
+  pricingModeLabels,
 } from '../types/catalog';
 import { sortProducts, getFilteredProducts } from '../data/mockCatalogData';
 
@@ -50,6 +57,7 @@ function CatalogPreviewContent() {
   const [config, setConfig] = useState<CatalogLayoutConfig>(() => {
     const layoutVersion = parseInt(searchParams.get('layout') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
     const brandFilterVersion = parseInt(searchParams.get('brand') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
+    const cardVersion = parseInt(searchParams.get('card') || '1') as ProductCardVersion;
     const technicalFiltersVersion = parseInt(searchParams.get('techfilters') || '1') as TechnicalFiltersVersion;
     const cols = parseInt(searchParams.get('cols') || '3') as 3 | 4 | 5;
     const skeletonVersion = parseInt(searchParams.get('skeleton') || '1') as SkeletonVersion;
@@ -57,17 +65,24 @@ function CatalogPreviewContent() {
     const loadMoreVersion = parseInt(searchParams.get('loadmore') || '1') as LoadMoreVersion;
     const imageGalleryVersion = parseInt(searchParams.get('gallery') || '1') as ImageGalleryVersion;
     const gallerySizeVersion = parseInt(searchParams.get('gallerysize') || '2') as GallerySizeVersion;
+    const pricingMode = (searchParams.get('pricingmode') || 'interactive') as PricingMode;
+    const defaultTerm = parseInt(searchParams.get('term') || '24') as TermMonths;
+    const defaultInitial = parseInt(searchParams.get('initial') || '10') as InitialPaymentPercent;
 
     return {
       ...defaultCatalogConfig,
       layoutVersion: [1, 2, 3, 4, 5, 6].includes(layoutVersion) ? layoutVersion : 1,
       brandFilterVersion: [1, 2, 3, 4, 5, 6].includes(brandFilterVersion) ? brandFilterVersion : 1,
+      cardVersion: [1, 2, 3, 4, 5, 6].includes(cardVersion) ? cardVersion : 1,
       technicalFiltersVersion: [1, 2, 3].includes(technicalFiltersVersion) ? technicalFiltersVersion : 1,
       skeletonVersion: [1, 2, 3].includes(skeletonVersion) ? skeletonVersion : 1,
       loadingDuration: ['default', '30s', '60s'].includes(loadingDuration) ? loadingDuration : 'default',
       loadMoreVersion: [1, 2, 3].includes(loadMoreVersion) ? loadMoreVersion : 1,
       imageGalleryVersion: [1, 2, 3].includes(imageGalleryVersion) ? imageGalleryVersion : 1,
       gallerySizeVersion: [1, 2, 3].includes(gallerySizeVersion) ? gallerySizeVersion : 2,
+      pricingMode: ['static', 'interactive'].includes(pricingMode) ? pricingMode : 'interactive',
+      defaultTerm: (termOptions as readonly number[]).includes(defaultTerm) ? defaultTerm : 24,
+      defaultInitial: (initialOptions as readonly number[]).includes(defaultInitial) ? defaultInitial : 10,
       productsPerRow: {
         ...defaultCatalogConfig.productsPerRow,
         desktop: [3, 4, 5].includes(cols) ? cols : 3,
@@ -114,6 +129,7 @@ function CatalogPreviewContent() {
     const params = new URLSearchParams();
     params.set('layout', config.layoutVersion.toString());
     params.set('brand', config.brandFilterVersion.toString());
+    params.set('card', config.cardVersion.toString());
     params.set('techfilters', config.technicalFiltersVersion.toString());
     params.set('cols', config.productsPerRow.desktop.toString());
     params.set('skeleton', config.skeletonVersion.toString());
@@ -121,6 +137,9 @@ function CatalogPreviewContent() {
     params.set('loadmore', config.loadMoreVersion.toString());
     params.set('gallery', config.imageGalleryVersion.toString());
     params.set('gallerysize', config.gallerySizeVersion.toString());
+    params.set('pricingmode', config.pricingMode);
+    params.set('term', config.defaultTerm.toString());
+    params.set('initial', config.defaultInitial.toString());
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [config, router]);
 
@@ -234,8 +253,12 @@ function CatalogPreviewContent() {
                 <ProductCard
                   key={product.id}
                   product={product}
+                  cardVersion={config.cardVersion}
                   imageGalleryVersion={config.imageGalleryVersion}
                   gallerySizeVersion={config.gallerySizeVersion}
+                  pricingMode={config.pricingMode}
+                  defaultTerm={config.defaultTerm}
+                  defaultInitial={config.defaultInitial}
                   onAddToCart={() => {
                     console.log('Add to cart:', product.id);
                   }}
@@ -340,7 +363,7 @@ function CatalogPreviewContent() {
         <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
           <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
           <p className="text-xs font-mono text-neutral-700">
-            Layout: V{config.layoutVersion} | Marca: V{config.brandFilterVersion} | Filtros: V{config.technicalFiltersVersion} | Skeleton: V{config.skeletonVersion} | LoadMore: V{config.loadMoreVersion} | Gallery: V{config.imageGalleryVersion} | Size: V{config.gallerySizeVersion}
+            Layout: V{config.layoutVersion} | Marca: V{config.brandFilterVersion} | Filtros: V{config.technicalFiltersVersion} | Card: V{config.cardVersion} | Skeleton: V{config.skeletonVersion} | LoadMore: V{config.loadMoreVersion} | Gallery: V{config.imageGalleryVersion} | Size: V{config.gallerySizeVersion} | Precio: {config.pricingMode} ({config.defaultTerm}m, {config.defaultInitial}%)
           </p>
         </div>
       )}

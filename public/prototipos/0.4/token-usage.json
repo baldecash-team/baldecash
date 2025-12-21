@@ -579,13 +579,58 @@
         "ConvenioLanding"
       ],
       "notes": "Complete Convenio Landing section with 6 components x 6 versions = 36 component variants for A/B testing university partnerships landing pages"
+    },
+    {
+      "promptNumber": "03",
+      "section": "catalogo",
+      "timestamp": "2024-12-20T00:00:00.000Z",
+      "action": "add_components",
+      "components": [
+        {
+          "name": "ProductCard",
+          "versions": 6,
+          "files": [
+            "ProductCardV1.tsx",
+            "ProductCardV2.tsx",
+            "ProductCardV3.tsx",
+            "ProductCardV4.tsx",
+            "ProductCardV5.tsx",
+            "ProductCardV6.tsx",
+            "ProductCard.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 950,
+          "estimatedTokens": 7125
+        }
+      ],
+      "updatedFiles": [
+        "types/catalog.ts",
+        "CatalogSettingsModal.tsx",
+        "catalog-preview/page.tsx"
+      ],
+      "filesGenerated": 8,
+      "totalLinesAdded": 1050,
+      "estimatedTokens": {
+        "input": 8000,
+        "output": 7875,
+        "total": 15875
+      },
+      "componentsCreated": [
+        "ProductCardV1 - Enfoque Tecnico (specs con iconos)",
+        "ProductCardV2 - Enfoque Beneficios (lifestyle)",
+        "ProductCardV3 - Hibrido Flat (2 specs + 2 usos)",
+        "ProductCardV4 - Abstracto Flotante (fintech)",
+        "ProductCardV5 - Split 50/50 (horizontal)",
+        "ProductCardV6 - Centrado Impacto (cuota gigante)"
+      ],
+      "notes": "6 ProductCard versions with different visual approaches: Technical (Amazon/Best Buy), Benefits (Apple/Samsung), Hybrid (Notion/Stripe), Fintech (Nubank/Revolut), Split (Webflow/Framer), Centered (Spotify/Apple). All versions use ImageGallery component and support gallery version switching."
     }
   ],
-  "totalTokensUsed": 250254,
+  "totalTokensUsed": 266129,
   "summary": {
-    "componentsCreated": 156,
-    "filesCreated": 185,
-    "filesUpdated": 19,
-    "totalLinesOfCode": 27350
+    "componentsCreated": 162,
+    "filesCreated": 193,
+    "filesUpdated": 22,
+    "totalLinesOfCode": 28400
   }
 }

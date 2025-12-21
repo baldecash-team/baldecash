@@ -23,6 +23,81 @@ export type SortOption =
 
 export type QuotaFrequency = 'weekly' | 'biweekly' | 'monthly';
 
+// Plazos disponibles para financiamiento
+export type TermMonths = 12 | 18 | 24 | 36 | 48;
+
+export const termOptions: TermMonths[] = [12, 18, 24, 36, 48];
+
+export const termLabels: Record<TermMonths, string> = {
+  12: '12 meses',
+  18: '18 meses',
+  24: '24 meses',
+  36: '36 meses',
+  48: '48 meses',
+};
+
+// Calcula la cuota mensual segun el plazo seleccionado
+// Usa el precio base y aplica una tasa de interes implícita
+export function calculateQuotaForTerm(price: number, term: TermMonths): number {
+  // Factor de ajuste por plazo (simula interes)
+  const interestFactors: Record<TermMonths, number> = {
+    12: 1.08,  // 8% total
+    18: 1.12,  // 12% total
+    24: 1.15,  // 15% total (base)
+    36: 1.22,  // 22% total
+    48: 1.30,  // 30% total
+  };
+
+  const totalWithInterest = price * interestFactors[term];
+  return Math.round(totalWithInterest / term);
+}
+
+// ============================================
+// Modo de Precio y Cuota Inicial
+// ============================================
+
+export type PricingMode = 'static' | 'interactive';
+
+export const pricingModeLabels: Record<PricingMode, { name: string; description: string }> = {
+  static: { name: 'Estático', description: 'Muestra plazo e inicial fijos, sin interacción' },
+  interactive: { name: 'Interactivo', description: 'Usuario puede cambiar plazo e inicial' },
+};
+
+export type InitialPaymentPercent = 0 | 10 | 15 | 20;
+
+export const initialOptions: InitialPaymentPercent[] = [0, 10, 15, 20];
+
+export const initialLabels: Record<InitialPaymentPercent, string> = {
+  0: 'Sin inicial',
+  10: '10%',
+  15: '15%',
+  20: '20%',
+};
+
+// Calcula la cuota mensual considerando el pago inicial
+export function calculateQuotaWithInitial(
+  price: number,
+  term: TermMonths,
+  initialPercent: InitialPaymentPercent
+): { quota: number; initialAmount: number; financedAmount: number } {
+  const initialAmount = Math.round(price * (initialPercent / 100));
+  const financedAmount = price - initialAmount;
+
+  // Factor de ajuste por plazo (simula interes)
+  const interestFactors: Record<TermMonths, number> = {
+    12: 1.08,  // 8% total
+    18: 1.12,  // 12% total
+    24: 1.15,  // 15% total (base)
+    36: 1.22,  // 22% total
+    48: 1.30,  // 30% total
+  };
+
+  const totalWithInterest = financedAmount * interestFactors[term];
+  const quota = Math.round(totalWithInterest / term);
+
+  return { quota, initialAmount, financedAmount };
+}
+
 export type ProductCondition = 'nuevo' | 'reacondicionado';
 
 export type StockStatus = 'available' | 'limited' | 'on_demand' | 'out_of_stock';
@@ -218,12 +293,16 @@ export const loadingDurationLabels: Record<LoadingDuration, { name: string; desc
 export interface CatalogLayoutConfig {
   layoutVersion: 1 | 2 | 3 | 4 | 5 | 6;
   brandFilterVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  cardVersion: 1 | 2 | 3 | 4 | 5 | 6;
   technicalFiltersVersion: TechnicalFiltersVersion;
   skeletonVersion: SkeletonVersion;
   loadMoreVersion: LoadMoreVersion;
   loadingDuration: LoadingDuration;
   imageGalleryVersion: ImageGalleryVersion;
   gallerySizeVersion: GallerySizeVersion;
+  pricingMode: PricingMode;
+  defaultTerm: TermMonths;
+  defaultInitial: InitialPaymentPercent;
   productsPerRow: {
     mobile: 1 | 2;
     tablet: 2 | 3;
@@ -236,12 +315,16 @@ export interface CatalogLayoutConfig {
 export const defaultCatalogConfig: CatalogLayoutConfig = {
   layoutVersion: 1,
   brandFilterVersion: 1,
+  cardVersion: 1,
   technicalFiltersVersion: 1,
   skeletonVersion: 1,
   loadMoreVersion: 1,
   loadingDuration: 'default',
   imageGalleryVersion: 1,
   gallerySizeVersion: 2,
+  pricingMode: 'interactive',
+  defaultTerm: 24,
+  defaultInitial: 10,
   productsPerRow: {
     mobile: 1,
     tablet: 2,
@@ -413,4 +496,31 @@ export interface FilterChipsProps {
   filters: AppliedFilter[];
   onRemove: (id: string) => void;
   onClearAll: () => void;
+}
+
+// ============================================
+// Product Card Versions (PROMPT_03)
+// ============================================
+
+export type ProductCardVersion = 1 | 2 | 3 | 4 | 5 | 6;
+
+export const productCardVersionLabels: Record<ProductCardVersion, { name: string; description: string }> = {
+  1: { name: 'Enfoque Técnico', description: 'Specs con iconos: CPU, RAM, SSD, Pantalla - Estilo Amazon/Best Buy' },
+  2: { name: 'Enfoque Beneficios', description: 'Uso recomendado prominente - Estilo Apple/Samsung' },
+  3: { name: 'Híbrido Flat', description: '2 specs + 2 beneficios con fondo sutil - Estilo Notion/Stripe' },
+  4: { name: 'Abstracto Flotante', description: 'Elementos flotantes, micro-animaciones - Estilo Nubank/Revolut' },
+  5: { name: 'Split 50/50', description: 'Layout horizontal: imagen izq, info der - Estilo Webflow/Framer' },
+  6: { name: 'Centrado Impacto', description: 'Todo centrado, cuota gigante, CTA full-width - Estilo Spotify/Apple' },
+};
+
+export interface ProductCardProps {
+  product: CatalogProduct;
+  cardVersion?: ProductCardVersion;
+  imageGalleryVersion?: ImageGalleryVersion;
+  gallerySizeVersion?: GallerySizeVersion;
+  onAddToCart?: () => void;
+  onFavorite?: () => void;
+  onViewDetail?: () => void;
+  onMouseEnter?: () => void;
+  isFavorite?: boolean;
 }

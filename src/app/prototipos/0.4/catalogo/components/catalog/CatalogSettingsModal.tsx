@@ -11,8 +11,8 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal } from 'lucide-react';
-import { CatalogLayoutConfig, SkeletonVersion, LoadMoreVersion, LoadingDuration, ImageGalleryVersion, GallerySizeVersion, TechnicalFiltersVersion, layoutVersionDescriptions, brandFilterVersionDescriptions, loadingDurationLabels, loadMoreVersionLabels, imageGalleryVersionLabels, gallerySizeVersionLabels, technicalFiltersVersionLabels } from '../../types/catalog';
+import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal, CreditCard } from 'lucide-react';
+import { CatalogLayoutConfig, SkeletonVersion, LoadMoreVersion, LoadingDuration, ImageGalleryVersion, GallerySizeVersion, TechnicalFiltersVersion, ProductCardVersion, layoutVersionDescriptions, brandFilterVersionDescriptions, loadingDurationLabels, loadMoreVersionLabels, imageGalleryVersionLabels, gallerySizeVersionLabels, technicalFiltersVersionLabels, productCardVersionLabels } from '../../types/catalog';
 import { skeletonVersionLabels } from './ProductCardSkeleton';
 
 interface CatalogSettingsModalProps {
@@ -32,12 +32,16 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
     onConfigChange({
       layoutVersion: 1,
       brandFilterVersion: 1,
+      cardVersion: 1,
       technicalFiltersVersion: 1,
       skeletonVersion: 1,
       loadMoreVersion: 1,
       loadingDuration: 'default',
       imageGalleryVersion: 1,
       gallerySizeVersion: 2,
+      pricingMode: 'interactive',
+      defaultTerm: 24,
+      defaultInitial: 10,
       productsPerRow: {
         mobile: 1,
         tablet: 2,
@@ -155,6 +159,42 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   description={brandFilterVersionDescriptions[version as keyof typeof brandFilterVersionDescriptions]}
                 >
                   Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Card Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <CreditCard className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Estilo de Product Card</h3>
+            </div>
+            <RadioGroup
+              value={config.cardVersion.toString()}
+              onValueChange={(val) => updateConfig('cardVersion', parseInt(val) as ProductCardVersion)}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {([1, 2, 3, 4, 5, 6] as ProductCardVersion[]).map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.cardVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={productCardVersionLabels[version].description}
+                >
+                  V{version} - {productCardVersionLabels[version].name}
                 </Radio>
               ))}
             </RadioGroup>
