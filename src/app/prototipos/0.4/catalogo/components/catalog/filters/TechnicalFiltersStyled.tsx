@@ -328,6 +328,48 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
 // ============================================
 // VERSION 2: Chips Compactos
 // ============================================
+
+// ChipFilter extracted outside to prevent re-mounting on parent re-render
+const ChipFilterContent: React.FC<{
+  options: FilterOption[];
+  selected: any[];
+  onToggle: (value: any) => void;
+  parseValue: (v: string) => any;
+  showCounts: boolean;
+}> = ({ options, selected, onToggle, parseValue, showCounts }) => (
+  <div className="flex flex-wrap gap-2 bg-white">
+    {options.map((opt) => {
+      const value = parseValue(opt.value);
+      const isSelected = selected.includes(value);
+      return (
+        <Chip
+          key={opt.value}
+          size="sm"
+          radius="md"
+          variant={isSelected ? 'solid' : 'bordered'}
+          className={`cursor-pointer transition-all duration-200 ${
+            isSelected
+              ? 'bg-[#4654CD] text-white border-[#4654CD] shadow-sm'
+              : 'bg-white text-neutral-600 border-neutral-200 hover:border-[#4654CD] hover:text-[#4654CD]'
+          }`}
+          classNames={{
+            base: 'px-3 py-1.5 h-auto',
+            content: 'text-xs font-medium',
+          }}
+          onClick={() => onToggle(value)}
+        >
+          {opt.label}
+          {showCounts && (
+            <span className={`ml-1 ${isSelected ? 'opacity-80' : 'opacity-50'}`}>
+              ({opt.count})
+            </span>
+          )}
+        </Chip>
+      );
+    })}
+  </div>
+);
+
 const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
   showFilters = 'all',
   usageOptions = [],
@@ -359,134 +401,97 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
   const showMain = showFilters === 'all' || showFilters === 'main';
   const showAdvanced = showFilters === 'all' || showFilters === 'advanced';
 
-  const ChipFilter = ({
-    title,
-    tooltip,
-    options,
-    selected,
-    onToggle,
-    parseValue = (v: string) => v
-  }: {
-    title: string;
-    tooltip?: any;
-    options: FilterOption[];
-    selected: any[];
-    onToggle: (value: any) => void;
-    parseValue?: (v: string) => any;
-  }) => (
-    <FilterSection title={title} tooltip={tooltip} defaultExpanded={false}>
-      <div className="flex flex-wrap gap-2 bg-white">
-        {options.map((opt) => {
-          const value = parseValue(opt.value);
-          const isSelected = selected.includes(value);
-          return (
-            <Chip
-              key={opt.value}
-              size="sm"
-              radius="md"
-              variant={isSelected ? 'solid' : 'bordered'}
-              className={`cursor-pointer transition-all duration-200 ${
-                isSelected
-                  ? 'bg-[#4654CD] text-white border-[#4654CD] shadow-sm'
-                  : 'bg-white text-neutral-600 border-neutral-200 hover:border-[#4654CD] hover:text-[#4654CD]'
-              }`}
-              classNames={{
-                base: 'px-3 py-1.5 h-auto',
-                content: 'text-xs font-medium',
-              }}
-              onClick={() => onToggle(value)}
-            >
-              {opt.label}
-              {showCounts && (
-                <span className={`ml-1 ${isSelected ? 'opacity-80' : 'opacity-50'}`}>
-                  ({opt.count})
-                </span>
-              )}
-            </Chip>
-          );
-        })}
-      </div>
-    </FilterSection>
-  );
-
   return (
     <div className="space-y-0 bg-white">
       {/* Main Filters */}
       {showMain && usageOptions.length > 0 && onUsageChange && (
-        <ChipFilter
-          title="Uso recomendado"
-          tooltip={filterTooltips.usage}
-          options={usageOptions}
-          selected={selectedUsage}
-          onToggle={(val) => toggleArrayValue(selectedUsage, val as UsageType, onUsageChange)}
-        />
+        <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>
+          <ChipFilterContent
+            options={usageOptions}
+            selected={selectedUsage}
+            onToggle={(val) => toggleArrayValue(selectedUsage, val as UsageType, onUsageChange)}
+            parseValue={(v) => v}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showMain && conditionOptions.length > 0 && onConditionChange && (
-        <ChipFilter
-          title="Condición"
-          tooltip={filterTooltips.condition}
-          options={conditionOptions}
-          selected={selectedCondition}
-          onToggle={(val) => toggleArrayValue(selectedCondition, val as ProductCondition, onConditionChange)}
-        />
+        <FilterSection title="Condición" tooltip={filterTooltips.condition} defaultExpanded={false}>
+          <ChipFilterContent
+            options={conditionOptions}
+            selected={selectedCondition}
+            onToggle={(val) => toggleArrayValue(selectedCondition, val as ProductCondition, onConditionChange)}
+            parseValue={(v) => v}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {/* Advanced Filters */}
       {showAdvanced && ramOptions.length > 0 && onRamChange && (
-        <ChipFilter
-          title="RAM"
-          tooltip={filterTooltips.ram}
-          options={ramOptions}
-          selected={selectedRam}
-          onToggle={(val) => toggleArrayValue(selectedRam, val, onRamChange)}
-          parseValue={(v) => parseInt(v)}
-        />
+        <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
+          <ChipFilterContent
+            options={ramOptions}
+            selected={selectedRam}
+            onToggle={(val) => toggleArrayValue(selectedRam, val, onRamChange)}
+            parseValue={(v) => parseInt(v)}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && storageOptions.length > 0 && onStorageChange && (
-        <ChipFilter
-          title="Almacenamiento"
-          tooltip={filterTooltips.ssd}
-          options={storageOptions}
-          selected={selectedStorage}
-          onToggle={(val) => toggleArrayValue(selectedStorage, val, onStorageChange)}
-          parseValue={(v) => parseInt(v)}
-        />
+        <FilterSection title="Almacenamiento" tooltip={filterTooltips.ssd} defaultExpanded={false}>
+          <ChipFilterContent
+            options={storageOptions}
+            selected={selectedStorage}
+            onToggle={(val) => toggleArrayValue(selectedStorage, val, onStorageChange)}
+            parseValue={(v) => parseInt(v)}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && displaySizeOptions.length > 0 && onDisplaySizeChange && (
-        <ChipFilter
-          title="Tamaño de pantalla"
-          tooltip={filterTooltips.display}
-          options={displaySizeOptions}
-          selected={selectedDisplaySize}
-          onToggle={(val) => toggleArrayValue(selectedDisplaySize, val, onDisplaySizeChange)}
-          parseValue={(v) => parseFloat(v)}
-        />
+        <FilterSection title="Tamaño de pantalla" tooltip={filterTooltips.display} defaultExpanded={false}>
+          <ChipFilterContent
+            options={displaySizeOptions}
+            selected={selectedDisplaySize}
+            onToggle={(val) => toggleArrayValue(selectedDisplaySize, val, onDisplaySizeChange)}
+            parseValue={(v) => parseFloat(v)}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && resolutionOptions.length > 0 && onResolutionChange && (
-        <ChipFilter
-          title="Resolución"
-          tooltip={filterTooltips.resolution}
-          options={resolutionOptions}
-          selected={selectedResolution}
-          onToggle={(val) => toggleArrayValue(selectedResolution, val as Resolution, onResolutionChange)}
-        />
+        <FilterSection title="Resolución" tooltip={filterTooltips.resolution} defaultExpanded={false}>
+          <ChipFilterContent
+            options={resolutionOptions}
+            selected={selectedResolution}
+            onToggle={(val) => toggleArrayValue(selectedResolution, val as Resolution, onResolutionChange)}
+            parseValue={(v) => v}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && displayTypeOptions.length > 0 && onDisplayTypeChange && (
-        <ChipFilter
-          title="Tipo de pantalla"
-          tooltip={filterTooltips.displayType}
-          options={displayTypeOptions.map(o => ({ ...o, label: o.label.toUpperCase() }))}
-          selected={selectedDisplayType}
-          onToggle={(val) => toggleArrayValue(selectedDisplayType, val as DisplayType, onDisplayTypeChange)}
-        />
+        <FilterSection title="Tipo de pantalla" tooltip={filterTooltips.displayType} defaultExpanded={false}>
+          <ChipFilterContent
+            options={displayTypeOptions.map(o => ({ ...o, label: o.label.toUpperCase() }))}
+            selected={selectedDisplayType}
+            onToggle={(val) => toggleArrayValue(selectedDisplayType, val as DisplayType, onDisplayTypeChange)}
+            parseValue={(v) => v}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && processorOptions.length > 0 && onProcessorChange && (
-        <ChipFilter
-          title="Procesador"
-          tooltip={filterTooltips.processor}
-          options={processorOptions}
-          selected={selectedProcessor}
-          onToggle={(val) => toggleArrayValue(selectedProcessor, val as ProcessorModel, onProcessorChange)}
-        />
+        <FilterSection title="Procesador" tooltip={filterTooltips.processor} defaultExpanded={false}>
+          <ChipFilterContent
+            options={processorOptions}
+            selected={selectedProcessor}
+            onToggle={(val) => toggleArrayValue(selectedProcessor, val as ProcessorModel, onProcessorChange)}
+            parseValue={(v) => v}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
     </div>
   );
@@ -510,6 +515,95 @@ const conditionIconMap: Record<string, React.ElementType> = {
   nuevo: Package,
   reacondicionado: CheckCircle2,
 };
+
+// IconCardFilterContent extracted outside to prevent re-mounting
+const IconCardFilterWithMappingContent: React.FC<{
+  iconMap: Record<string, React.ElementType>;
+  defaultIcon: React.ElementType;
+  options: FilterOption[];
+  selected: any[];
+  onToggle: (value: any) => void;
+  parseValue: (v: string) => any;
+  columns: number;
+  showCounts: boolean;
+}> = ({ iconMap, defaultIcon, options, selected, onToggle, parseValue, columns, showCounts }) => (
+  <div className={`grid gap-2 bg-white ${columns === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+    {options.map((opt) => {
+      const value = parseValue(opt.value);
+      const isSelected = selected.includes(value);
+      const Icon = iconMap[opt.value] || defaultIcon;
+      return (
+        <button
+          key={opt.value}
+          onClick={() => onToggle(value)}
+          className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
+            isSelected
+              ? 'bg-[#4654CD]/10 border-[#4654CD] shadow-sm'
+              : 'bg-white border-neutral-200 hover:border-[#4654CD]/50 hover:bg-neutral-50'
+          }`}
+        >
+          {isSelected && (
+            <div className="absolute top-1.5 right-1.5">
+              <CheckCircle2 className="w-4 h-4 text-[#4654CD]" />
+            </div>
+          )}
+          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
+          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
+            {opt.label}
+          </span>
+          {showCounts && (
+            <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
+              {opt.count} equipos
+            </span>
+          )}
+        </button>
+      );
+    })}
+  </div>
+);
+
+const IconCardFilterContent: React.FC<{
+  icon: React.ElementType;
+  options: FilterOption[];
+  selected: any[];
+  onToggle: (value: any) => void;
+  parseValue: (v: string) => any;
+  columns: number;
+  showCounts: boolean;
+}> = ({ icon: Icon, options, selected, onToggle, parseValue, columns, showCounts }) => (
+  <div className={`grid gap-2 bg-white ${columns === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+    {options.map((opt) => {
+      const value = parseValue(opt.value);
+      const isSelected = selected.includes(value);
+      return (
+        <button
+          key={opt.value}
+          onClick={() => onToggle(value)}
+          className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
+            isSelected
+              ? 'bg-[#4654CD]/10 border-[#4654CD] shadow-sm'
+              : 'bg-white border-neutral-200 hover:border-[#4654CD]/50 hover:bg-neutral-50'
+          }`}
+        >
+          {isSelected && (
+            <div className="absolute top-1.5 right-1.5">
+              <CheckCircle2 className="w-4 h-4 text-[#4654CD]" />
+            </div>
+          )}
+          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
+          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
+            {opt.label}
+          </span>
+          {showCounts && (
+            <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
+              {opt.count} equipos
+            </span>
+          )}
+        </button>
+      );
+    })}
+  </div>
+);
 
 const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
   showFilters = 'all',
@@ -542,210 +636,115 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
   const showMain = showFilters === 'all' || showFilters === 'main';
   const showAdvanced = showFilters === 'all' || showFilters === 'advanced';
 
-  // Special card filter with per-option icons
-  const IconCardFilterWithMapping = ({
-    title,
-    tooltip,
-    iconMap,
-    defaultIcon,
-    options,
-    selected,
-    onToggle,
-    parseValue = (v: string) => v,
-    columns = 2
-  }: {
-    title: string;
-    tooltip?: any;
-    iconMap: Record<string, React.ElementType>;
-    defaultIcon: React.ElementType;
-    options: FilterOption[];
-    selected: any[];
-    onToggle: (value: any) => void;
-    parseValue?: (v: string) => any;
-    columns?: number;
-  }) => (
-    <FilterSection title={title} tooltip={tooltip} defaultExpanded={false}>
-      <div className={`grid gap-2 bg-white ${columns === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-        {options.map((opt) => {
-          const value = parseValue(opt.value);
-          const isSelected = selected.includes(value);
-          const Icon = iconMap[opt.value] || defaultIcon;
-          return (
-            <button
-              key={opt.value}
-              onClick={() => onToggle(value)}
-              className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
-                isSelected
-                  ? 'bg-[#4654CD]/10 border-[#4654CD] shadow-sm'
-                  : 'bg-white border-neutral-200 hover:border-[#4654CD]/50 hover:bg-neutral-50'
-              }`}
-            >
-              {isSelected && (
-                <div className="absolute top-1.5 right-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#4654CD]" />
-                </div>
-              )}
-              <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
-              <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
-                {opt.label}
-              </span>
-              {showCounts && (
-                <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
-                  {opt.count} equipos
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </FilterSection>
-  );
-
-  const IconCardFilter = ({
-    title,
-    tooltip,
-    icon: Icon,
-    options,
-    selected,
-    onToggle,
-    parseValue = (v: string) => v,
-    columns = 2
-  }: {
-    title: string;
-    tooltip?: any;
-    icon: React.ElementType;
-    options: FilterOption[];
-    selected: any[];
-    onToggle: (value: any) => void;
-    parseValue?: (v: string) => any;
-    columns?: number;
-  }) => (
-    <FilterSection title={title} tooltip={tooltip} defaultExpanded={false}>
-      <div className={`grid gap-2 bg-white ${columns === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-        {options.map((opt) => {
-          const value = parseValue(opt.value);
-          const isSelected = selected.includes(value);
-          return (
-            <button
-              key={opt.value}
-              onClick={() => onToggle(value)}
-              className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
-                isSelected
-                  ? 'bg-[#4654CD]/10 border-[#4654CD] shadow-sm'
-                  : 'bg-white border-neutral-200 hover:border-[#4654CD]/50 hover:bg-neutral-50'
-              }`}
-            >
-              {isSelected && (
-                <div className="absolute top-1.5 right-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#4654CD]" />
-                </div>
-              )}
-              <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
-              <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
-                {opt.label}
-              </span>
-              {showCounts && (
-                <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
-                  {opt.count} equipos
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </FilterSection>
-  );
-
   return (
     <div className="space-y-0 bg-white">
       {/* Main Filters */}
       {showMain && usageOptions.length > 0 && onUsageChange && (
-        <IconCardFilterWithMapping
-          title="Uso recomendado"
-          tooltip={filterTooltips.usage}
-          iconMap={usageIconMap}
-          defaultIcon={Briefcase}
-          options={usageOptions}
-          selected={selectedUsage}
-          onToggle={(val) => toggleArrayValue(selectedUsage, val as UsageType, onUsageChange)}
-        />
+        <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>
+          <IconCardFilterWithMappingContent
+            iconMap={usageIconMap}
+            defaultIcon={Briefcase}
+            options={usageOptions}
+            selected={selectedUsage}
+            onToggle={(val) => toggleArrayValue(selectedUsage, val as UsageType, onUsageChange)}
+            parseValue={(v) => v}
+            columns={2}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showMain && conditionOptions.length > 0 && onConditionChange && (
-        <IconCardFilterWithMapping
-          title="Condición"
-          tooltip={filterTooltips.condition}
-          iconMap={conditionIconMap}
-          defaultIcon={Package}
-          options={conditionOptions}
-          selected={selectedCondition}
-          onToggle={(val) => toggleArrayValue(selectedCondition, val as ProductCondition, onConditionChange)}
-        />
+        <FilterSection title="Condición" tooltip={filterTooltips.condition} defaultExpanded={false}>
+          <IconCardFilterWithMappingContent
+            iconMap={conditionIconMap}
+            defaultIcon={Package}
+            options={conditionOptions}
+            selected={selectedCondition}
+            onToggle={(val) => toggleArrayValue(selectedCondition, val as ProductCondition, onConditionChange)}
+            parseValue={(v) => v}
+            columns={2}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {/* Advanced Filters */}
       {showAdvanced && ramOptions.length > 0 && onRamChange && (
-        <IconCardFilter
-          title="RAM"
-          tooltip={filterTooltips.ram}
-          icon={MemoryStick}
-          options={ramOptions}
-          selected={selectedRam}
-          onToggle={(val) => toggleArrayValue(selectedRam, val, onRamChange)}
-          parseValue={(v) => parseInt(v)}
-        />
+        <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
+          <IconCardFilterContent
+            icon={MemoryStick}
+            options={ramOptions}
+            selected={selectedRam}
+            onToggle={(val) => toggleArrayValue(selectedRam, val, onRamChange)}
+            parseValue={(v) => parseInt(v)}
+            columns={2}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && storageOptions.length > 0 && onStorageChange && (
-        <IconCardFilter
-          title="Almacenamiento"
-          tooltip={filterTooltips.ssd}
-          icon={HardDrive}
-          options={storageOptions}
-          selected={selectedStorage}
-          onToggle={(val) => toggleArrayValue(selectedStorage, val, onStorageChange)}
-          parseValue={(v) => parseInt(v)}
-        />
+        <FilterSection title="Almacenamiento" tooltip={filterTooltips.ssd} defaultExpanded={false}>
+          <IconCardFilterContent
+            icon={HardDrive}
+            options={storageOptions}
+            selected={selectedStorage}
+            onToggle={(val) => toggleArrayValue(selectedStorage, val, onStorageChange)}
+            parseValue={(v) => parseInt(v)}
+            columns={2}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && displaySizeOptions.length > 0 && onDisplaySizeChange && (
-        <IconCardFilter
-          title="Tamaño de pantalla"
-          tooltip={filterTooltips.display}
-          icon={Monitor}
-          options={displaySizeOptions}
-          selected={selectedDisplaySize}
-          onToggle={(val) => toggleArrayValue(selectedDisplaySize, val, onDisplaySizeChange)}
-          parseValue={(v) => parseFloat(v)}
-          columns={3}
-        />
+        <FilterSection title="Tamaño de pantalla" tooltip={filterTooltips.display} defaultExpanded={false}>
+          <IconCardFilterContent
+            icon={Monitor}
+            options={displaySizeOptions}
+            selected={selectedDisplaySize}
+            onToggle={(val) => toggleArrayValue(selectedDisplaySize, val, onDisplaySizeChange)}
+            parseValue={(v) => parseFloat(v)}
+            columns={3}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && resolutionOptions.length > 0 && onResolutionChange && (
-        <IconCardFilter
-          title="Resolución"
-          tooltip={filterTooltips.resolution}
-          icon={Maximize}
-          options={resolutionOptions}
-          selected={selectedResolution}
-          onToggle={(val) => toggleArrayValue(selectedResolution, val as Resolution, onResolutionChange)}
-        />
+        <FilterSection title="Resolución" tooltip={filterTooltips.resolution} defaultExpanded={false}>
+          <IconCardFilterContent
+            icon={Maximize}
+            options={resolutionOptions}
+            selected={selectedResolution}
+            onToggle={(val) => toggleArrayValue(selectedResolution, val as Resolution, onResolutionChange)}
+            parseValue={(v) => v}
+            columns={2}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && displayTypeOptions.length > 0 && onDisplayTypeChange && (
-        <IconCardFilter
-          title="Tipo de pantalla"
-          tooltip={filterTooltips.displayType}
-          icon={Layers}
-          options={displayTypeOptions.map(o => ({ ...o, label: o.label.toUpperCase() }))}
-          selected={selectedDisplayType}
-          onToggle={(val) => toggleArrayValue(selectedDisplayType, val as DisplayType, onDisplayTypeChange)}
-        />
+        <FilterSection title="Tipo de pantalla" tooltip={filterTooltips.displayType} defaultExpanded={false}>
+          <IconCardFilterContent
+            icon={Layers}
+            options={displayTypeOptions.map(o => ({ ...o, label: o.label.toUpperCase() }))}
+            selected={selectedDisplayType}
+            onToggle={(val) => toggleArrayValue(selectedDisplayType, val as DisplayType, onDisplayTypeChange)}
+            parseValue={(v) => v}
+            columns={2}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
       {showAdvanced && processorOptions.length > 0 && onProcessorChange && (
-        <IconCardFilter
-          title="Procesador"
-          tooltip={filterTooltips.processor}
-          icon={Cpu}
-          options={processorOptions}
-          selected={selectedProcessor}
-          onToggle={(val) => toggleArrayValue(selectedProcessor, val as ProcessorModel, onProcessorChange)}
-          columns={2}
-        />
+        <FilterSection title="Procesador" tooltip={filterTooltips.processor} defaultExpanded={false}>
+          <IconCardFilterContent
+            icon={Cpu}
+            options={processorOptions}
+            selected={selectedProcessor}
+            onToggle={(val) => toggleArrayValue(selectedProcessor, val as ProcessorModel, onProcessorChange)}
+            parseValue={(v) => v}
+            columns={2}
+            showCounts={showCounts}
+          />
+        </FilterSection>
       )}
     </div>
   );
