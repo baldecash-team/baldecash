@@ -344,14 +344,16 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
 
               {/* Usage Dropdown - usa TechnicalFiltersStyled según versión */}
               <FilterPopover label="Uso" count={filters.usage.length}>
-                <TechnicalFiltersStyled
-                  version={config.technicalFiltersVersion}
-                  showFilters="main"
-                  usageOptions={usageOptions}
-                  selectedUsage={filters.usage}
-                  onUsageChange={(usage) => updateFilter('usage', usage)}
-                  showCounts={config.showFilterCounts}
-                />
+                <div className="w-full min-w-[240px]">
+                  <TechnicalFiltersStyled
+                    version={config.technicalFiltersVersion}
+                    showFilters="main"
+                    usageOptions={usageOptions}
+                    selectedUsage={filters.usage}
+                    onUsageChange={(usage) => updateFilter('usage', usage)}
+                    showCounts={config.showFilterCounts}
+                  />
+                </div>
               </FilterPopover>
 
               {/* Gama Dropdown */}
@@ -383,14 +385,16 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
 
               {/* Condición Dropdown - usa TechnicalFiltersStyled según versión */}
               <FilterPopover label="Condición" count={filters.condition.length}>
-                <TechnicalFiltersStyled
-                  version={config.technicalFiltersVersion}
-                  showFilters="main"
-                  conditionOptions={conditionOptions}
-                  selectedCondition={filters.condition}
-                  onConditionChange={(condition) => updateFilter('condition', condition)}
-                  showCounts={config.showFilterCounts}
-                />
+                <div className="w-full min-w-[240px]">
+                  <TechnicalFiltersStyled
+                    version={config.technicalFiltersVersion}
+                    showFilters="main"
+                    conditionOptions={conditionOptions}
+                    selectedCondition={filters.condition}
+                    onConditionChange={(condition) => updateFilter('condition', condition)}
+                    showCounts={config.showFilterCounts}
+                  />
+                </div>
               </FilterPopover>
 
               {/* Más Filtros Dropdown - usa TechnicalFiltersStyled según versión */}
@@ -398,7 +402,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                 label="Más filtros"
                 count={filters.ram.length + filters.storage.length + filters.processorModel.length + filters.displaySize.length + filters.resolution.length + filters.displayType.length}
               >
-                <div className="max-h-[450px] overflow-y-auto">
+                <div className="w-full min-w-[280px] max-h-[450px] overflow-y-auto">
                   <TechnicalFiltersStyled
                     version={config.technicalFiltersVersion}
                     showFilters="advanced"
