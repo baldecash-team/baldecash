@@ -6,6 +6,7 @@ import {
   FilterTooltipContent,
   GamaTier,
   ProductCondition,
+  ProductTagType,
   StockStatus,
   UsageType,
 } from '../types/catalog';
@@ -314,6 +315,29 @@ function generateProducts(): CatalogProduct[] {
       const discountPercent = hasDiscount ? Math.floor(seededRandom() * 15) + 5 : 0;
       const originalPrice = hasDiscount ? Math.floor(price / (1 - discountPercent / 100)) : price;
 
+      // Generate 1-4 tags per product based on properties
+      const productTags: ProductTagType[] = [];
+
+      // "Más vendido" - for popular/featured items
+      if (seededRandom() > 0.7) {
+        productTags.push('mas_vendido');
+      }
+
+      // "Recomendado" - for good value products (estudiante/profesional gama)
+      if ((gamaInfo.gama === 'estudiante' || gamaInfo.gama === 'profesional') && seededRandom() > 0.6) {
+        productTags.push('recomendado');
+      }
+
+      // "Cuota baja" - for products with low monthly quota
+      if (quota < 120 && seededRandom() > 0.5) {
+        productTags.push('cuota_baja');
+      }
+
+      // "Oferta" - for products with discount
+      if (hasDiscount) {
+        productTags.push('oferta');
+      }
+
       const product: CatalogProduct = {
         id: `prod-${id}`,
         slug: `${brand.name.toLowerCase()}-laptop-${id}`,
@@ -340,6 +364,7 @@ function generateProducts(): CatalogProduct[] {
         usage: usages[i % usages.length],
         isFeatured: seededRandom() > 0.8,
         isNew: seededRandom() > 0.7,
+        tags: productTags,
         specs: {
           processor: {
             brand: processorInfo.brand,
@@ -443,33 +468,268 @@ export function getFilteredProducts(filters: Partial<{
   quotaRange: [number, number];
   usage: UsageType[];
   ram: number[];
+  storage: number[];
+  storageType: string[];
+  processorBrand: string[];
+  displaySize: number[];
+  displayType: string[];
+  resolution: string[];
+  refreshRate: number[];
+  gpuType: string[];
+  touchScreen: boolean | null;
+  ramExpandable: boolean | null;
+  backlitKeyboard: boolean | null;
+  numericKeypad: boolean | null;
+  fingerprint: boolean | null;
+  hasWindows: boolean | null;
+  hasThunderbolt: boolean | null;
+  hasEthernet: boolean | null;
+  hasSDCard: boolean | null;
+  hasHDMI: boolean | null;
+  minUSBPorts: number | null;
   gama: GamaTier[];
+  condition: ProductCondition[];
+  stock: StockStatus[];
 }>): CatalogProduct[] {
   return mockProducts.filter((product) => {
+    // Brand filter
     if (filters.brands?.length && !filters.brands.includes(product.brand)) {
       return false;
     }
+    // Price range filter
     if (filters.priceRange) {
       if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
         return false;
       }
     }
+    // Quota range filter
     if (filters.quotaRange) {
       if (product.quotaMonthly < filters.quotaRange[0] || product.quotaMonthly > filters.quotaRange[1]) {
         return false;
       }
     }
+    // Usage filter
     if (filters.usage?.length && !filters.usage.some((u) => product.usage.includes(u))) {
       return false;
     }
+    // RAM filter
     if (filters.ram?.length && !filters.ram.includes(product.specs.ram.size)) {
       return false;
     }
+    // Storage filter
+    if (filters.storage?.length && !filters.storage.includes(product.specs.storage.size)) {
+      return false;
+    }
+    // Storage type filter
+    if (filters.storageType?.length && !filters.storageType.includes(product.specs.storage.type)) {
+      return false;
+    }
+    // Processor brand filter
+    if (filters.processorBrand?.length && !filters.processorBrand.includes(product.specs.processor.brand)) {
+      return false;
+    }
+    // Display size filter
+    if (filters.displaySize?.length && !filters.displaySize.includes(product.specs.display.size)) {
+      return false;
+    }
+    // Display type filter
+    if (filters.displayType?.length && !filters.displayType.includes(product.specs.display.type)) {
+      return false;
+    }
+    // Resolution filter
+    if (filters.resolution?.length && !filters.resolution.includes(product.specs.display.resolution)) {
+      return false;
+    }
+    // Refresh rate filter
+    if (filters.refreshRate?.length && !filters.refreshRate.includes(product.specs.display.refreshRate)) {
+      return false;
+    }
+    // GPU type filter
+    if (filters.gpuType?.length && !filters.gpuType.includes(product.specs.gpu.type)) {
+      return false;
+    }
+    // Touch screen filter
+    if (filters.touchScreen !== null && filters.touchScreen !== undefined) {
+      if (product.specs.display.touchScreen !== filters.touchScreen) {
+        return false;
+      }
+    }
+    // RAM expandable filter
+    if (filters.ramExpandable !== null && filters.ramExpandable !== undefined) {
+      if (product.specs.ram.expandable !== filters.ramExpandable) {
+        return false;
+      }
+    }
+    // Backlit keyboard filter
+    if (filters.backlitKeyboard !== null && filters.backlitKeyboard !== undefined) {
+      if (product.specs.keyboard.backlit !== filters.backlitKeyboard) {
+        return false;
+      }
+    }
+    // Numeric keypad filter
+    if (filters.numericKeypad !== null && filters.numericKeypad !== undefined) {
+      if (product.specs.keyboard.numericPad !== filters.numericKeypad) {
+        return false;
+      }
+    }
+    // Fingerprint filter
+    if (filters.fingerprint !== null && filters.fingerprint !== undefined) {
+      if (product.specs.security.fingerprint !== filters.fingerprint) {
+        return false;
+      }
+    }
+    // Windows filter
+    if (filters.hasWindows !== null && filters.hasWindows !== undefined) {
+      if (product.specs.os.hasWindows !== filters.hasWindows) {
+        return false;
+      }
+    }
+    // Thunderbolt filter
+    if (filters.hasThunderbolt !== null && filters.hasThunderbolt !== undefined) {
+      if (product.specs.ports.thunderbolt !== filters.hasThunderbolt) {
+        return false;
+      }
+    }
+    // Ethernet filter
+    if (filters.hasEthernet !== null && filters.hasEthernet !== undefined) {
+      if (product.specs.connectivity.hasEthernet !== filters.hasEthernet) {
+        return false;
+      }
+    }
+    // SD Card filter
+    if (filters.hasSDCard !== null && filters.hasSDCard !== undefined) {
+      if (product.specs.ports.sdCard !== filters.hasSDCard) {
+        return false;
+      }
+    }
+    // HDMI filter
+    if (filters.hasHDMI !== null && filters.hasHDMI !== undefined) {
+      if (product.specs.ports.hdmi !== filters.hasHDMI) {
+        return false;
+      }
+    }
+    // Min USB ports filter
+    if (filters.minUSBPorts !== null && filters.minUSBPorts !== undefined) {
+      const totalUSB = product.specs.ports.usb + product.specs.ports.usbC;
+      if (totalUSB < filters.minUSBPorts) {
+        return false;
+      }
+    }
+    // Gama filter
     if (filters.gama?.length && !filters.gama.includes(product.gama)) {
+      return false;
+    }
+    // Condition filter
+    if (filters.condition?.length && !filters.condition.includes(product.condition)) {
+      return false;
+    }
+    // Stock filter
+    if (filters.stock?.length && !filters.stock.includes(product.stock)) {
       return false;
     }
     return true;
   });
+}
+
+// ============================================
+// Dynamic Filter Counts
+// ============================================
+
+export interface FilterCounts {
+  brands: Record<string, number>;
+  usage: Record<string, number>;
+  ram: Record<number, number>;
+  storage: Record<number, number>;
+  storageType: Record<string, number>;
+  processorBrand: Record<string, number>;
+  displaySize: Record<number, number>;
+  displayType: Record<string, number>;
+  resolution: Record<string, number>;
+  refreshRate: Record<number, number>;
+  gpuType: Record<string, number>;
+  gama: Record<string, number>;
+  condition: Record<string, number>;
+  stock: Record<string, number>;
+}
+
+export function getFilterCounts(products: CatalogProduct[]): FilterCounts {
+  const counts: FilterCounts = {
+    brands: {},
+    usage: {},
+    ram: {},
+    storage: {},
+    storageType: {},
+    processorBrand: {},
+    displaySize: {},
+    displayType: {},
+    resolution: {},
+    refreshRate: {},
+    gpuType: {},
+    gama: {},
+    condition: {},
+    stock: {},
+  };
+
+  products.forEach((product) => {
+    // Brand
+    counts.brands[product.brand] = (counts.brands[product.brand] || 0) + 1;
+
+    // Usage (multiple values)
+    product.usage.forEach((u) => {
+      counts.usage[u] = (counts.usage[u] || 0) + 1;
+    });
+
+    // RAM
+    counts.ram[product.specs.ram.size] = (counts.ram[product.specs.ram.size] || 0) + 1;
+
+    // Storage
+    counts.storage[product.specs.storage.size] = (counts.storage[product.specs.storage.size] || 0) + 1;
+
+    // Storage type
+    counts.storageType[product.specs.storage.type] = (counts.storageType[product.specs.storage.type] || 0) + 1;
+
+    // Processor brand
+    counts.processorBrand[product.specs.processor.brand] = (counts.processorBrand[product.specs.processor.brand] || 0) + 1;
+
+    // Display size
+    counts.displaySize[product.specs.display.size] = (counts.displaySize[product.specs.display.size] || 0) + 1;
+
+    // Display type
+    counts.displayType[product.specs.display.type] = (counts.displayType[product.specs.display.type] || 0) + 1;
+
+    // Resolution
+    counts.resolution[product.specs.display.resolution] = (counts.resolution[product.specs.display.resolution] || 0) + 1;
+
+    // Refresh rate
+    counts.refreshRate[product.specs.display.refreshRate] = (counts.refreshRate[product.specs.display.refreshRate] || 0) + 1;
+
+    // GPU type
+    counts.gpuType[product.specs.gpu.type] = (counts.gpuType[product.specs.gpu.type] || 0) + 1;
+
+    // Gama
+    counts.gama[product.gama] = (counts.gama[product.gama] || 0) + 1;
+
+    // Condition
+    counts.condition[product.condition] = (counts.condition[product.condition] || 0) + 1;
+
+    // Stock
+    counts.stock[product.stock] = (counts.stock[product.stock] || 0) + 1;
+  });
+
+  return counts;
+}
+
+/**
+ * Apply dynamic counts to static filter options
+ */
+export function applyDynamicCounts(
+  options: FilterOption[],
+  counts: Record<string | number, number>
+): FilterOption[] {
+  return options.map((opt) => ({
+    ...opt,
+    count: counts[opt.value] || 0,
+  }));
 }
 
 export function sortProducts(products: CatalogProduct[], sortBy: string): CatalogProduct[] {

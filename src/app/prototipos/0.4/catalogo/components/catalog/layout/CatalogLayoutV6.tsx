@@ -70,6 +70,7 @@ import {
   processorModelOptions,
   resolutionOptions,
   displayTypeOptions,
+  applyDynamicCounts,
 } from '../../../data/mockCatalogData';
 import { GamaTier, ProductCondition, ProcessorModel, Resolution, DisplayType } from '../../../types/catalog';
 
@@ -85,6 +86,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
   sort,
   onSortChange,
   config,
+  filterCounts,
   children,
 }) => {
   const [isSticky, setIsSticky] = useState(false);
@@ -97,6 +99,44 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Apply dynamic counts to options
+  const dynamicBrandOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(brandOptions, filterCounts.brands) : brandOptions,
+    [filterCounts]
+  );
+  const dynamicUsageOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(usageOptions, filterCounts.usage) : usageOptions,
+    [filterCounts]
+  );
+  const dynamicGamaOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(gamaOptions, filterCounts.gama) : gamaOptions,
+    [filterCounts]
+  );
+  const dynamicConditionOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(conditionOptions, filterCounts.condition) : conditionOptions,
+    [filterCounts]
+  );
+  const dynamicRamOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(ramOptions, filterCounts.ram) : ramOptions,
+    [filterCounts]
+  );
+  const dynamicStorageOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(storageOptions, filterCounts.storage) : storageOptions,
+    [filterCounts]
+  );
+  const dynamicDisplaySizeOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(displaySizeOptions, filterCounts.displaySize) : displaySizeOptions,
+    [filterCounts]
+  );
+  const dynamicResolutionOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(resolutionOptions, filterCounts.resolution) : resolutionOptions,
+    [filterCounts]
+  );
+  const dynamicDisplayTypeOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(displayTypeOptions, filterCounts.displayType) : displayTypeOptions,
+    [filterCounts]
+  );
 
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -271,7 +311,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
 
   const renderBrandFilter = () => {
     const props = {
-      options: brandOptions,
+      options: dynamicBrandOptions,
       selected: filters.brands,
       onChange: (brands: string[]) => updateFilter('brands', brands),
       showCounts: config.showFilterCounts,
@@ -348,7 +388,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                   <TechnicalFiltersStyled
                     version={config.technicalFiltersVersion}
                     showFilters="main"
-                    usageOptions={usageOptions}
+                    usageOptions={dynamicUsageOptions}
                     selectedUsage={filters.usage}
                     onUsageChange={(usage) => updateFilter('usage', usage)}
                     showCounts={config.showFilterCounts}
@@ -359,7 +399,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
               {/* Gama Dropdown */}
               <FilterPopover label="Gama" count={filters.gama.length}>
                 <div className="flex flex-wrap gap-2">
-                  {gamaOptions.map((opt) => {
+                  {dynamicGamaOptions.map((opt) => {
                     const isSelected = filters.gama.includes(opt.value as GamaTier);
                     return (
                       <Chip
@@ -389,7 +429,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                   <TechnicalFiltersStyled
                     version={config.technicalFiltersVersion}
                     showFilters="main"
-                    conditionOptions={conditionOptions}
+                    conditionOptions={dynamicConditionOptions}
                     selectedCondition={filters.condition}
                     onConditionChange={(condition) => updateFilter('condition', condition)}
                     showCounts={config.showFilterCounts}
@@ -406,19 +446,19 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                   <TechnicalFiltersStyled
                     version={config.technicalFiltersVersion}
                     showFilters="advanced"
-                    ramOptions={ramOptions}
+                    ramOptions={dynamicRamOptions}
                     selectedRam={filters.ram}
                     onRamChange={(ram) => updateFilter('ram', ram)}
-                    storageOptions={storageOptions}
+                    storageOptions={dynamicStorageOptions}
                     selectedStorage={filters.storage}
                     onStorageChange={(storage) => updateFilter('storage', storage)}
-                    displaySizeOptions={displaySizeOptions}
+                    displaySizeOptions={dynamicDisplaySizeOptions}
                     selectedDisplaySize={filters.displaySize}
                     onDisplaySizeChange={(sizes) => updateFilter('displaySize', sizes)}
-                    resolutionOptions={resolutionOptions}
+                    resolutionOptions={dynamicResolutionOptions}
                     selectedResolution={filters.resolution}
                     onResolutionChange={(res) => updateFilter('resolution', res)}
-                    displayTypeOptions={displayTypeOptions}
+                    displayTypeOptions={dynamicDisplayTypeOptions}
                     selectedDisplayType={filters.displayType}
                     onDisplayTypeChange={(types) => updateFilter('displayType', types)}
                     processorOptions={processorModelOptions}

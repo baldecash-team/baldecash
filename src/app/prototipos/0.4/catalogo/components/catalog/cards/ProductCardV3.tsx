@@ -8,6 +8,7 @@ import {
   CatalogProduct,
   ImageGalleryVersion,
   GallerySizeVersion,
+  TagDisplayVersion,
   UsageType,
   TermMonths,
   termOptions,
@@ -18,6 +19,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { ImageGallery } from '../ImageGallery';
+import { ProductTags } from '../ProductTags';
 
 interface ProductCardV3Props {
   product: CatalogProduct;
@@ -28,6 +30,7 @@ interface ProductCardV3Props {
   isFavorite?: boolean;
   imageGalleryVersion?: ImageGalleryVersion;
   gallerySizeVersion?: GallerySizeVersion;
+  tagDisplayVersion?: TagDisplayVersion;
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
@@ -64,6 +67,7 @@ export const ProductCardV3: React.FC<ProductCardV3Props> = ({
   isFavorite = false,
   imageGalleryVersion = 1,
   gallerySizeVersion = 2,
+  tagDisplayVersion = 1,
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
@@ -106,33 +110,10 @@ export const ProductCardV3: React.FC<ProductCardV3Props> = ({
               sizeVersion={gallerySizeVersion}
             />
 
-            {/* Badges flotantes */}
-            {(product.isNew || product.discount) && (
-              <div className="absolute top-2 right-2 flex flex-col gap-1">
-                {product.isNew && (
-                  <Chip
-                    size="sm"
-                    radius="sm"
-                    classNames={{
-                      base: 'bg-[#3b82f6] px-2 py-0.5 h-auto shadow-sm',
-                      content: 'text-white text-[10px] font-medium',
-                    }}
-                  >
-                    Nuevo
-                  </Chip>
-                )}
-                {product.discount && (
-                  <Chip
-                    size="sm"
-                    radius="sm"
-                    classNames={{
-                      base: 'bg-[#22c55e] px-2 py-0.5 h-auto shadow-sm',
-                      content: 'text-white text-[10px] font-medium',
-                    }}
-                  >
-                    -S/{Math.floor(product.originalPrice! - product.price)}
-                  </Chip>
-                )}
+            {/* Product Tags */}
+            {product.tags && product.tags.length > 0 && (
+              <div className="absolute top-2 left-2 z-10">
+                <ProductTags tags={product.tags} version={tagDisplayVersion} />
               </div>
             )}
           </div>

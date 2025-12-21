@@ -6,6 +6,7 @@ import {
   ProductCardVersion,
   ImageGalleryVersion,
   GallerySizeVersion,
+  TagDisplayVersion,
   PricingMode,
   TermMonths,
   InitialPaymentPercent,
@@ -24,6 +25,7 @@ export interface ProductCardProps {
   cardVersion?: ProductCardVersion;
   imageGalleryVersion?: ImageGalleryVersion;
   gallerySizeVersion?: GallerySizeVersion;
+  tagDisplayVersion?: TagDisplayVersion;
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
@@ -50,6 +52,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   cardVersion = 1,
   imageGalleryVersion = 1,
   gallerySizeVersion = 2,
+  tagDisplayVersion = 1,
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
@@ -68,6 +71,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     isFavorite,
     imageGalleryVersion,
     gallerySizeVersion,
+    tagDisplayVersion,
     pricingMode,
     defaultTerm,
     defaultInitial,

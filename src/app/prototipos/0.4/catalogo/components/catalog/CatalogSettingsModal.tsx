@@ -11,8 +11,8 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal, CreditCard } from 'lucide-react';
-import { CatalogLayoutConfig, SkeletonVersion, LoadMoreVersion, LoadingDuration, ImageGalleryVersion, GallerySizeVersion, TechnicalFiltersVersion, ProductCardVersion, layoutVersionDescriptions, brandFilterVersionDescriptions, loadingDurationLabels, loadMoreVersionLabels, imageGalleryVersionLabels, gallerySizeVersionLabels, technicalFiltersVersionLabels, productCardVersionLabels } from '../../types/catalog';
+import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal, CreditCard, Tags } from 'lucide-react';
+import { CatalogLayoutConfig, SkeletonVersion, LoadMoreVersion, LoadingDuration, ImageGalleryVersion, GallerySizeVersion, TechnicalFiltersVersion, ProductCardVersion, TagDisplayVersion, layoutVersionDescriptions, brandFilterVersionDescriptions, loadingDurationLabels, loadMoreVersionLabels, imageGalleryVersionLabels, gallerySizeVersionLabels, technicalFiltersVersionLabels, productCardVersionLabels, tagDisplayVersionLabels } from '../../types/catalog';
 import { skeletonVersionLabels } from './ProductCardSkeleton';
 
 interface CatalogSettingsModalProps {
@@ -39,6 +39,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
       loadingDuration: 'default',
       imageGalleryVersion: 1,
       gallerySizeVersion: 2,
+      tagDisplayVersion: 1,
       pricingMode: 'interactive',
       defaultTerm: 24,
       defaultInitial: 10,
@@ -402,6 +403,42 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   description={gallerySizeVersionLabels[version].description}
                 >
                   V{version} - {gallerySizeVersionLabels[version].name}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Tag Display Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Tags className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Estilo de Tags</h3>
+            </div>
+            <RadioGroup
+              value={config.tagDisplayVersion.toString()}
+              onValueChange={(val) => updateConfig('tagDisplayVersion', parseInt(val) as TagDisplayVersion)}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {([1, 2, 3] as TagDisplayVersion[]).map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.tagDisplayVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={tagDisplayVersionLabels[version].description}
+                >
+                  V{version} - {tagDisplayVersionLabels[version].name}
                 </Radio>
               ))}
             </RadioGroup>

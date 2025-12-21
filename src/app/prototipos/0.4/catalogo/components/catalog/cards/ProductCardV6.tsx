@@ -8,6 +8,7 @@ import {
   CatalogProduct,
   ImageGalleryVersion,
   GallerySizeVersion,
+  TagDisplayVersion,
   TermMonths,
   termOptions,
   PricingMode,
@@ -17,6 +18,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { ImageGallery } from '../ImageGallery';
+import { ProductTags } from '../ProductTags';
 
 interface ProductCardV6Props {
   product: CatalogProduct;
@@ -27,6 +29,7 @@ interface ProductCardV6Props {
   isFavorite?: boolean;
   imageGalleryVersion?: ImageGalleryVersion;
   gallerySizeVersion?: GallerySizeVersion;
+  tagDisplayVersion?: TagDisplayVersion;
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
@@ -47,6 +50,7 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
   isFavorite = false,
   imageGalleryVersion = 1,
   gallerySizeVersion = 3, // Larger by default for impact
+  tagDisplayVersion = 1,
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
@@ -86,33 +90,10 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
               <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-[#4654CD] text-[#4654CD]' : 'text-neutral-300 hover:text-[#4654CD]'}`} />
             </button>
 
-            {/* Badges - centered */}
-            {(product.isNew || product.discount) && (
-              <div className="absolute top-3 left-3 flex gap-1.5">
-                {product.isNew && (
-                  <Chip
-                    size="sm"
-                    radius="full"
-                    classNames={{
-                      base: 'bg-[#3b82f6] px-3 py-1 h-auto shadow-md',
-                      content: 'text-white text-xs font-medium',
-                    }}
-                  >
-                    Nuevo
-                  </Chip>
-                )}
-                {product.discount && (
-                  <Chip
-                    size="sm"
-                    radius="full"
-                    classNames={{
-                      base: 'bg-[#22c55e] px-3 py-1 h-auto shadow-md',
-                      content: 'text-white text-xs font-medium',
-                    }}
-                  >
-                    -S/{Math.floor(product.originalPrice! - product.price)}
-                  </Chip>
-                )}
+            {/* Product Tags */}
+            {product.tags && product.tags.length > 0 && (
+              <div className="absolute top-3 left-3 z-10">
+                <ProductTags tags={product.tags} version={tagDisplayVersion} />
               </div>
             )}
           </div>

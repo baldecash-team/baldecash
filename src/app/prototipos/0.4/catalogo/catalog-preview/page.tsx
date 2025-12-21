@@ -23,6 +23,7 @@ import {
   GallerySizeVersion,
   TechnicalFiltersVersion,
   ProductCardVersion,
+  TagDisplayVersion,
   loadingDurationMs,
   PricingMode,
   TermMonths,
@@ -31,7 +32,7 @@ import {
   initialOptions,
   pricingModeLabels,
 } from '../types/catalog';
-import { sortProducts, getFilteredProducts } from '../data/mockCatalogData';
+import { sortProducts, getFilteredProducts, getFilterCounts, mockProducts } from '../data/mockCatalogData';
 
 /**
  * Catalog Preview Page
@@ -68,6 +69,7 @@ function CatalogPreviewContent() {
     const pricingMode = (searchParams.get('pricingmode') || 'interactive') as PricingMode;
     const defaultTerm = parseInt(searchParams.get('term') || '24') as TermMonths;
     const defaultInitial = parseInt(searchParams.get('initial') || '10') as InitialPaymentPercent;
+    const tagDisplayVersion = parseInt(searchParams.get('tags') || '1') as TagDisplayVersion;
 
     return {
       ...defaultCatalogConfig,
@@ -80,6 +82,7 @@ function CatalogPreviewContent() {
       loadMoreVersion: [1, 2, 3].includes(loadMoreVersion) ? loadMoreVersion : 1,
       imageGalleryVersion: [1, 2, 3].includes(imageGalleryVersion) ? imageGalleryVersion : 1,
       gallerySizeVersion: [1, 2, 3].includes(gallerySizeVersion) ? gallerySizeVersion : 2,
+      tagDisplayVersion: [1, 2, 3].includes(tagDisplayVersion) ? tagDisplayVersion : 1,
       pricingMode: ['static', 'interactive'].includes(pricingMode) ? pricingMode : 'interactive',
       defaultTerm: (termOptions as readonly number[]).includes(defaultTerm) ? defaultTerm : 24,
       defaultInitial: (initialOptions as readonly number[]).includes(defaultInitial) ? defaultInitial : 10,
@@ -137,6 +140,7 @@ function CatalogPreviewContent() {
     params.set('loadmore', config.loadMoreVersion.toString());
     params.set('gallery', config.imageGalleryVersion.toString());
     params.set('gallerysize', config.gallerySizeVersion.toString());
+    params.set('tags', config.tagDisplayVersion.toString());
     params.set('pricingmode', config.pricingMode);
     params.set('term', config.defaultTerm.toString());
     params.set('initial', config.defaultInitial.toString());
@@ -182,11 +186,38 @@ function CatalogPreviewContent() {
       quotaRange: filters.quotaRange,
       usage: filters.usage,
       ram: filters.ram,
+      storage: filters.storage,
+      storageType: filters.storageType,
+      processorBrand: filters.processorBrand,
+      displaySize: filters.displaySize,
+      displayType: filters.displayType,
+      resolution: filters.resolution,
+      refreshRate: filters.refreshRate,
+      gpuType: filters.gpuType,
+      touchScreen: filters.touchScreen,
+      ramExpandable: filters.ramExpandable,
+      backlitKeyboard: filters.backlitKeyboard,
+      numericKeypad: filters.numericKeypad,
+      fingerprint: filters.fingerprint,
+      hasWindows: filters.hasWindows,
+      hasThunderbolt: filters.hasThunderbolt,
+      hasEthernet: filters.hasEthernet,
+      hasSDCard: filters.hasSDCard,
+      hasHDMI: filters.hasHDMI,
+      minUSBPorts: filters.minUSBPorts,
       gama: filters.gama,
+      condition: filters.condition,
+      stock: filters.stock,
     });
 
     return sortProducts(products, sort);
   }, [filters, sort]);
+
+  // Calculate dynamic filter counts based on all products (not filtered)
+  // This shows how many products WOULD match if we added that filter
+  const filterCounts = useMemo(() => {
+    return getFilterCounts(mockProducts);
+  }, []);
 
   // Reset pagination and show loading state when filters change (including initial load)
   useEffect(() => {
@@ -237,6 +268,7 @@ function CatalogPreviewContent() {
         sort={sort}
         onSortChange={setSort}
         config={config}
+        filterCounts={filterCounts}
       >
         {isLoading
           ? // Show skeletons while initial loading
@@ -256,6 +288,7 @@ function CatalogPreviewContent() {
                   cardVersion={config.cardVersion}
                   imageGalleryVersion={config.imageGalleryVersion}
                   gallerySizeVersion={config.gallerySizeVersion}
+                  tagDisplayVersion={config.tagDisplayVersion}
                   pricingMode={config.pricingMode}
                   defaultTerm={config.defaultTerm}
                   defaultInitial={config.defaultInitial}
@@ -363,7 +396,7 @@ function CatalogPreviewContent() {
         <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
           <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
           <p className="text-xs font-mono text-neutral-700">
-            Layout: V{config.layoutVersion} | Marca: V{config.brandFilterVersion} | Filtros: V{config.technicalFiltersVersion} | Card: V{config.cardVersion} | Skeleton: V{config.skeletonVersion} | LoadMore: V{config.loadMoreVersion} | Gallery: V{config.imageGalleryVersion} | Size: V{config.gallerySizeVersion} | Precio: {config.pricingMode} ({config.defaultTerm}m, {config.defaultInitial}%)
+            Layout: V{config.layoutVersion} | Marca: V{config.brandFilterVersion} | Filtros: V{config.technicalFiltersVersion} | Card: V{config.cardVersion} | Tags: V{config.tagDisplayVersion} | Skeleton: V{config.skeletonVersion} | LoadMore: V{config.loadMoreVersion} | Gallery: V{config.imageGalleryVersion} | Size: V{config.gallerySizeVersion} | Precio: {config.pricingMode} ({config.defaultTerm}m, {config.defaultInitial}%)
           </p>
         </div>
       )}

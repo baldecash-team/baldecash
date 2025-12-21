@@ -8,6 +8,7 @@ import {
   CatalogProduct,
   ImageGalleryVersion,
   GallerySizeVersion,
+  TagDisplayVersion,
   TermMonths,
   termOptions,
   PricingMode,
@@ -17,6 +18,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { ImageGallery } from '../ImageGallery';
+import { ProductTags } from '../ProductTags';
 
 interface ProductCardV5Props {
   product: CatalogProduct;
@@ -27,6 +29,7 @@ interface ProductCardV5Props {
   isFavorite?: boolean;
   imageGalleryVersion?: ImageGalleryVersion;
   gallerySizeVersion?: GallerySizeVersion;
+  tagDisplayVersion?: TagDisplayVersion;
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
@@ -55,6 +58,7 @@ export const ProductCardV5: React.FC<ProductCardV5Props> = ({
   isFavorite = false,
   imageGalleryVersion = 1,
   gallerySizeVersion = 2,
+  tagDisplayVersion = 1,
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
@@ -84,33 +88,12 @@ export const ProductCardV5: React.FC<ProductCardV5Props> = ({
                 sizeVersion={gallerySizeVersion}
               />
 
-              {/* Badges */}
-              <div className="absolute top-3 left-3 flex flex-col gap-1">
-                {product.isNew && (
-                  <Chip
-                    size="sm"
-                    radius="sm"
-                    classNames={{
-                      base: 'bg-[#3b82f6] px-2 py-0.5 h-auto',
-                      content: 'text-white text-[10px] font-medium',
-                    }}
-                  >
-                    Nuevo
-                  </Chip>
-                )}
-                {product.discount && (
-                  <Chip
-                    size="sm"
-                    radius="sm"
-                    classNames={{
-                      base: 'bg-[#22c55e] px-2 py-0.5 h-auto',
-                      content: 'text-white text-[10px] font-medium',
-                    }}
-                  >
-                    -S/{Math.floor(product.originalPrice! - product.price)}
-                  </Chip>
-                )}
-              </div>
+              {/* Product Tags */}
+              {product.tags && product.tags.length > 0 && (
+                <div className="absolute top-3 left-3 z-10">
+                  <ProductTags tags={product.tags} version={tagDisplayVersion} />
+                </div>
+              )}
 
               {/* Favorite */}
               <button

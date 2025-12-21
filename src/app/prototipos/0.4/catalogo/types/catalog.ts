@@ -98,6 +98,54 @@ export function calculateQuotaWithInitial(
   return { quota, initialAmount, financedAmount };
 }
 
+// ============================================
+// Product Tags
+// ============================================
+
+export type ProductTagType = 'mas_vendido' | 'recomendado' | 'cuota_baja' | 'oferta';
+
+export interface ProductTagConfig {
+  type: ProductTagType;
+  label: string;
+  color: string;
+  bgColor: string;
+}
+
+export const productTagsConfig: Record<ProductTagType, ProductTagConfig> = {
+  mas_vendido: {
+    type: 'mas_vendido',
+    label: 'Más vendido',
+    color: '#ffffff',
+    bgColor: '#f59e0b', // Amber
+  },
+  recomendado: {
+    type: 'recomendado',
+    label: 'Recomendado',
+    color: '#ffffff',
+    bgColor: '#8b5cf6', // Violet
+  },
+  cuota_baja: {
+    type: 'cuota_baja',
+    label: 'Cuota baja',
+    color: '#ffffff',
+    bgColor: '#06b6d4', // Cyan
+  },
+  oferta: {
+    type: 'oferta',
+    label: 'Oferta',
+    color: '#ffffff',
+    bgColor: '#ef4444', // Red
+  },
+};
+
+export type TagDisplayVersion = 1 | 2 | 3;
+
+export const tagDisplayVersionLabels: Record<TagDisplayVersion, { name: string; description: string }> = {
+  1: { name: 'Chips Apilados', description: 'Tags apilados verticalmente en esquina superior izquierda' },
+  2: { name: 'Fila Horizontal', description: 'Tags en línea horizontal, tamaño compacto' },
+  3: { name: 'Dots Minimal', description: 'Solo círculos de color con tooltip al hover' },
+};
+
 export type ProductCondition = 'nuevo' | 'reacondicionado';
 
 export type StockStatus = 'available' | 'limited' | 'on_demand' | 'out_of_stock';
@@ -300,6 +348,7 @@ export interface CatalogLayoutConfig {
   loadingDuration: LoadingDuration;
   imageGalleryVersion: ImageGalleryVersion;
   gallerySizeVersion: GallerySizeVersion;
+  tagDisplayVersion: TagDisplayVersion;
   pricingMode: PricingMode;
   defaultTerm: TermMonths;
   defaultInitial: InitialPaymentPercent;
@@ -322,6 +371,7 @@ export const defaultCatalogConfig: CatalogLayoutConfig = {
   loadingDuration: 'default',
   imageGalleryVersion: 1,
   gallerySizeVersion: 2,
+  tagDisplayVersion: 1,
   pricingMode: 'interactive',
   defaultTerm: 24,
   defaultInitial: 10,
@@ -361,6 +411,7 @@ export interface CatalogProduct {
   usage: UsageType[];
   isFeatured: boolean;
   isNew: boolean;
+  tags: ProductTagType[]; // New: 1-4 tags per product
   specs: ProductSpecs;
   createdAt: string;
 }
@@ -460,6 +511,23 @@ export const brandFilterVersionDescriptions = {
 // Props de Componentes
 // ============================================
 
+export interface FilterCounts {
+  brands: Record<string, number>;
+  usage: Record<string, number>;
+  ram: Record<number, number>;
+  storage: Record<number, number>;
+  storageType: Record<string, number>;
+  processorBrand: Record<string, number>;
+  displaySize: Record<number, number>;
+  displayType: Record<string, number>;
+  resolution: Record<string, number>;
+  refreshRate: Record<number, number>;
+  gpuType: Record<string, number>;
+  gama: Record<string, number>;
+  condition: Record<string, number>;
+  stock: Record<string, number>;
+}
+
 export interface CatalogLayoutProps {
   products: CatalogProduct[];
   filters: FilterState;
@@ -467,6 +535,7 @@ export interface CatalogLayoutProps {
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
   config: CatalogLayoutConfig;
+  filterCounts?: FilterCounts;
   children?: ReactNode;
 }
 

@@ -8,6 +8,7 @@ import {
   CatalogProduct,
   ImageGalleryVersion,
   GallerySizeVersion,
+  TagDisplayVersion,
   TermMonths,
   termOptions,
   PricingMode,
@@ -17,6 +18,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { ImageGallery } from '../ImageGallery';
+import { ProductTags } from '../ProductTags';
 
 interface ProductCardV1Props {
   product: CatalogProduct;
@@ -27,6 +29,7 @@ interface ProductCardV1Props {
   isFavorite?: boolean;
   imageGalleryVersion?: ImageGalleryVersion;
   gallerySizeVersion?: GallerySizeVersion;
+  tagDisplayVersion?: TagDisplayVersion;
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
@@ -63,6 +66,7 @@ export const ProductCardV1: React.FC<ProductCardV1Props> = ({
   isFavorite = false,
   imageGalleryVersion = 1,
   gallerySizeVersion = 2,
+  tagDisplayVersion = 1,
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
@@ -84,31 +88,12 @@ export const ProductCardV1: React.FC<ProductCardV1Props> = ({
       <Card className="h-full border border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-md transition-all">
         <CardBody className="p-4">
           {/* Badges */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {product.isNew && (
-              <Chip
-                size="sm"
-                radius="sm"
-                classNames={{
-                  base: 'bg-[#3b82f6] px-2 py-0.5 h-auto',
-                  content: 'text-white text-[10px] font-medium',
-                }}
-              >
-                Nuevo
-              </Chip>
+          <div className="flex flex-wrap items-start gap-1.5 mb-3">
+            {/* Product Tags */}
+            {product.tags && product.tags.length > 0 && (
+              <ProductTags tags={product.tags} version={tagDisplayVersion} />
             )}
-            {product.discount && (
-              <Chip
-                size="sm"
-                radius="sm"
-                classNames={{
-                  base: 'bg-[#ef4444] px-2 py-0.5 h-auto',
-                  content: 'text-white text-[10px] font-medium',
-                }}
-              >
-                Ahorras S/{Math.floor(product.originalPrice! - product.price)}
-              </Chip>
-            )}
+            {/* Gama Badge */}
             <Chip
               size="sm"
               radius="sm"

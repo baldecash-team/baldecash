@@ -8,6 +8,7 @@ import {
   CatalogProduct,
   ImageGalleryVersion,
   GallerySizeVersion,
+  TagDisplayVersion,
   TermMonths,
   termOptions,
   PricingMode,
@@ -17,6 +18,7 @@ import {
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { ImageGallery } from '../ImageGallery';
+import { ProductTags } from '../ProductTags';
 
 interface ProductCardV4Props {
   product: CatalogProduct;
@@ -27,6 +29,7 @@ interface ProductCardV4Props {
   isFavorite?: boolean;
   imageGalleryVersion?: ImageGalleryVersion;
   gallerySizeVersion?: GallerySizeVersion;
+  tagDisplayVersion?: TagDisplayVersion;
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
@@ -48,6 +51,7 @@ export const ProductCardV4: React.FC<ProductCardV4Props> = ({
   isFavorite = false,
   imageGalleryVersion = 1,
   gallerySizeVersion = 2,
+  tagDisplayVersion = 1,
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
@@ -127,46 +131,17 @@ export const ProductCardV4: React.FC<ProductCardV4Props> = ({
               </p>
             </motion.div>
 
-            {/* Badges row */}
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {product.isNew && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: 'spring' }}
-                >
-                  <Chip
-                    size="sm"
-                    radius="full"
-                    startContent={<Sparkles className="w-3 h-3" />}
-                    classNames={{
-                      base: 'bg-[#3b82f6]/10 px-3 py-1 h-auto',
-                      content: 'text-[#3b82f6] text-[10px] font-medium',
-                    }}
-                  >
-                    Nuevo
-                  </Chip>
-                </motion.div>
-              )}
-              {product.discount && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.35, type: 'spring' }}
-                >
-                  <Chip
-                    size="sm"
-                    radius="full"
-                    classNames={{
-                      base: 'bg-[#22c55e]/10 px-3 py-1 h-auto',
-                      content: 'text-[#22c55e] text-[10px] font-medium',
-                    }}
-                  >
-                    Ahorras S/{Math.floor(product.originalPrice! - product.price)}
-                  </Chip>
-                </motion.div>
-              )}
-            </div>
+            {/* Product Tags */}
+            {product.tags && product.tags.length > 0 && (
+              <motion.div
+                className="mb-3"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.3, type: 'spring' }}
+              >
+                <ProductTags tags={product.tags} version={tagDisplayVersion} />
+              </motion.div>
+            )}
 
             {/* Title */}
             <motion.h3
