@@ -17,6 +17,7 @@ import {
   BrandFilterV5,
   BrandFilterV6,
 } from '../filters/brand';
+import { TechnicalFiltersStyled } from '../filters/TechnicalFiltersStyled';
 import { Checkbox, Switch, Chip } from '@nextui-org/react';
 import {
   brandOptions,
@@ -410,134 +411,30 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                 </div>
               </FilterDropdown>
 
-              {/* Más Filtros Dropdown */}
+              {/* Más Filtros Dropdown - usa TechnicalFiltersStyled según versión */}
               <FilterDropdown
                 id="advanced"
                 label="Más filtros"
-                count={filters.ram.length + filters.storage.length + filters.processorModel.length}
+                count={filters.ram.length + filters.storage.length + filters.processorModel.length + filters.displaySize.length}
               >
-                <div className="space-y-4 max-h-[400px] overflow-y-auto">
-                  {/* RAM */}
-                  <div>
-                    <p className="text-sm font-medium text-neutral-700 mb-2">RAM</p>
-                    <div className="space-y-1">
-                      {ramOptions.map((opt) => (
-                        <label key={opt.value} className="flex items-center gap-3 p-1 rounded hover:bg-neutral-50 cursor-pointer">
-                          <Checkbox
-                            size="sm"
-                            isSelected={filters.ram.includes(parseInt(opt.value))}
-                            onValueChange={() => {
-                              const ramVal = parseInt(opt.value);
-                              if (filters.ram.includes(ramVal)) {
-                                updateFilter('ram', filters.ram.filter((r) => r !== ramVal));
-                              } else {
-                                updateFilter('ram', [...filters.ram, ramVal]);
-                              }
-                            }}
-                            classNames={{
-                              wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
-                              icon: 'text-white',
-                            }}
-                          />
-                          <span className="text-sm text-neutral-700">{opt.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Storage */}
-                  <div>
-                    <p className="text-sm font-medium text-neutral-700 mb-2">Almacenamiento</p>
-                    <div className="space-y-1">
-                      {storageOptions.map((opt) => (
-                        <label key={opt.value} className="flex items-center gap-3 p-1 rounded hover:bg-neutral-50 cursor-pointer">
-                          <Checkbox
-                            size="sm"
-                            isSelected={filters.storage.includes(parseInt(opt.value))}
-                            onValueChange={() => {
-                              const storageVal = parseInt(opt.value);
-                              if (filters.storage.includes(storageVal)) {
-                                updateFilter('storage', filters.storage.filter((s) => s !== storageVal));
-                              } else {
-                                updateFilter('storage', [...filters.storage, storageVal]);
-                              }
-                            }}
-                            classNames={{
-                              wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
-                              icon: 'text-white',
-                            }}
-                          />
-                          <span className="text-sm text-neutral-700">{opt.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Processor */}
-                  <div>
-                    <p className="text-sm font-medium text-neutral-700 mb-2">Procesador</p>
-                    <div className="space-y-1">
-                      {processorModelOptions.map((opt) => (
-                        <label key={opt.value} className="flex items-center gap-3 p-1 rounded hover:bg-neutral-50 cursor-pointer">
-                          <Checkbox
-                            size="sm"
-                            isSelected={filters.processorModel.includes(opt.value as ProcessorModel)}
-                            onValueChange={() => {
-                              const proc = opt.value as ProcessorModel;
-                              if (filters.processorModel.includes(proc)) {
-                                updateFilter('processorModel', filters.processorModel.filter((p) => p !== proc));
-                              } else {
-                                updateFilter('processorModel', [...filters.processorModel, proc]);
-                              }
-                            }}
-                            classNames={{
-                              wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
-                              icon: 'text-white',
-                            }}
-                          />
-                          <span className="text-sm text-neutral-700">{opt.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* GPU */}
-                  <div className="flex items-center justify-between p-2 border-t border-neutral-100">
-                    <span className="text-sm text-neutral-600">GPU dedicada</span>
-                    <Switch
-                      size="sm"
-                      isSelected={filters.gpuType.includes('dedicated')}
-                      onValueChange={(val) => updateFilter('gpuType', val ? ['dedicated'] : [])}
-                      classNames={{
-                        wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
-                      }}
-                    />
-                  </div>
-
-                  {/* Display Size */}
-                  <div>
-                    <p className="text-sm font-medium text-neutral-700 mb-2">Tamaño de pantalla</p>
-                    <div className="flex flex-wrap gap-2">
-                      {displaySizeOptions.map((opt) => (
-                        <Chip
-                          key={opt.value}
-                          size="sm"
-                          variant={filters.displaySize.includes(parseFloat(opt.value)) ? 'solid' : 'bordered'}
-                          className={`cursor-pointer ${filters.displaySize.includes(parseFloat(opt.value)) ? 'bg-[#4654CD] text-white' : ''}`}
-                          onClick={() => {
-                            const size = parseFloat(opt.value);
-                            if (filters.displaySize.includes(size)) {
-                              updateFilter('displaySize', filters.displaySize.filter((s) => s !== size));
-                            } else {
-                              updateFilter('displaySize', [...filters.displaySize, size]);
-                            }
-                          }}
-                        >
-                          {opt.label}
-                        </Chip>
-                      ))}
-                    </div>
-                  </div>
+                <div className="max-h-[450px] overflow-y-auto">
+                  <TechnicalFiltersStyled
+                    version={config.technicalFiltersVersion}
+                    showFilters="advanced"
+                    ramOptions={ramOptions}
+                    selectedRam={filters.ram}
+                    onRamChange={(ram) => updateFilter('ram', ram)}
+                    storageOptions={storageOptions}
+                    selectedStorage={filters.storage}
+                    onStorageChange={(storage) => updateFilter('storage', storage)}
+                    displaySizeOptions={displaySizeOptions}
+                    selectedDisplaySize={filters.displaySize}
+                    onDisplaySizeChange={(sizes) => updateFilter('displaySize', sizes)}
+                    processorOptions={processorModelOptions}
+                    selectedProcessor={filters.processorModel}
+                    onProcessorChange={(models) => updateFilter('processorModel', models)}
+                    showCounts={config.showFilterCounts}
+                  />
                 </div>
               </FilterDropdown>
 

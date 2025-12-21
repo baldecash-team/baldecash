@@ -142,7 +142,7 @@ export const brandOptions: FilterOption[] = [
     value: 'msi',
     label: 'MSI',
     count: 5,
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/MSI_Logo.svg/150px-MSI_Logo.svg.png',
+    logo: 'https://asset.msi.com/global/picture/image/feature/nb/2022-B12-Katana/msi-logo.svg',
   },
 ];
 

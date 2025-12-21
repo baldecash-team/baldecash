@@ -323,7 +323,8 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
             if (React.isValidElement(child)) {
               // Check if child is a Fragment - if so, process its children
               if (child.type === React.Fragment) {
-                return React.Children.map(child.props.children, (fragmentChild) => {
+                const fragmentProps = child.props as { children?: React.ReactNode };
+                return React.Children.map(fragmentProps.children, (fragmentChild) => {
                   if (React.isValidElement(fragmentChild)) {
                     // Only add onMouseEnter if the element has a product prop (ProductCard)
                     const productId = (fragmentChild as React.ReactElement<{ product?: CatalogProduct }>).props.product?.id;
