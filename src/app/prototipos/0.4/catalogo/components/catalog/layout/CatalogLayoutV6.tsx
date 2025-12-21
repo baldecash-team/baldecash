@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from '@nextui-org/react';
+import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { ChevronDown, Trash2, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps } from '../../../types/catalog';
@@ -259,15 +259,17 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
     count: number;
     children: React.ReactNode;
   }) => (
-    <Dropdown
+    <Popover
       isOpen={openDropdown === id}
       onOpenChange={(open) => setOpenDropdown(open ? id : null)}
+      placement="bottom-start"
+      offset={8}
     >
-      <DropdownTrigger>
+      <PopoverTrigger>
         <Button
           size="sm"
           variant="bordered"
-          endContent={<ChevronDown className="w-3 h-3" />}
+          endContent={<ChevronDown className={`w-3 h-3 transition-transform ${openDropdown === id ? 'rotate-180' : ''}`} />}
           className={`cursor-pointer border-neutral-200 hover:border-[#4654CD]/50 ${
             count > 0 ? 'border-[#4654CD] bg-[#4654CD]/5 text-[#4654CD]' : ''
           }`}
@@ -279,26 +281,11 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
             </span>
           )}
         </Button>
-      </DropdownTrigger>
-      <DropdownMenu
-        aria-label={label}
-        closeOnSelect={false}
-        className="min-w-[280px] p-4 bg-white"
-        classNames={{
-          base: "bg-white shadow-lg border border-neutral-200 rounded-lg",
-        }}
-      >
-        <DropdownItem
-          key="content"
-          isReadOnly
-          classNames={{
-            base: "cursor-default bg-white hover:bg-white data-[hover=true]:bg-white data-[selectable=true]:focus:bg-white p-0",
-          }}
-        >
-          {dropdownContent}
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
+      </PopoverTrigger>
+      <PopoverContent className="min-w-[280px] p-4 bg-white shadow-lg border border-neutral-200 rounded-lg">
+        {dropdownContent}
+      </PopoverContent>
+    </Popover>
   );
 
   return (
