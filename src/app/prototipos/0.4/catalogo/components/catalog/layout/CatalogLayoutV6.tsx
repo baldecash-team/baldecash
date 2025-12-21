@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { ChevronDown, Trash2, SlidersHorizontal } from 'lucide-react';
 
-// Componente separado con estado local para evitar re-renders
-const FilterPopover = memo(({
+// Componente Popover no controlado para evitar re-renders que afecten el estado
+const FilterPopover = ({
   label,
   count,
   children,
@@ -14,20 +14,17 @@ const FilterPopover = memo(({
   count: number;
   children: React.ReactNode;
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
   return (
     <Popover
-      isOpen={isOpen}
-      onOpenChange={setIsOpen}
       placement="bottom-start"
       offset={8}
+      showArrow={false}
     >
       <PopoverTrigger>
         <Button
           size="sm"
           variant="bordered"
-          endContent={<ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />}
+          endContent={<ChevronDown className="w-3 h-3" />}
           className={`cursor-pointer border-neutral-200 hover:border-[#4654CD]/50 ${
             count > 0 ? 'border-[#4654CD] bg-[#4654CD]/5 text-[#4654CD]' : ''
           }`}
@@ -45,8 +42,7 @@ const FilterPopover = memo(({
       </PopoverContent>
     </Popover>
   );
-});
-FilterPopover.displayName = 'FilterPopover';
+};
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps } from '../../../types/catalog';
 import { FilterChips } from '../filters/FilterChips';
