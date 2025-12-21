@@ -624,13 +624,142 @@
         "ProductCardV6 - Centrado Impacto (cuota gigante)"
       ],
       "notes": "6 ProductCard versions with different visual approaches: Technical (Amazon/Best Buy), Benefits (Apple/Samsung), Hybrid (Notion/Stripe), Fintech (Nubank/Revolut), Split (Webflow/Framer), Centered (Spotify/Apple). All versions use ImageGallery component and support gallery version switching."
+    },
+    {
+      "promptNumber": "05",
+      "section": "comparador",
+      "timestamp": "2024-12-21T00:00:00.000Z",
+      "action": "create_section",
+      "preferences": {
+        "B.90": "Access V1 - Checkbox en card de catálogo",
+        "B.91": "Max Products V2 - 4 productos máximo",
+        "B.92": "Fields V1 - Especificaciones técnicas básicas",
+        "B.93": "Highlight V1 - Verde/Rojo semántico",
+        "B.94": "Price Diff V1 - Texto simple (+S/X)",
+        "B.95": "Layout V1 - Modal fullscreen",
+        "B.96": "Difference Highlight V1 - Resaltado amarillo",
+        "B.97": "Selection V1 - Checkbox card selector"
+      },
+      "components": [
+        {
+          "name": "ComparatorLayout",
+          "versions": 6,
+          "files": [
+            "ComparatorLayoutV1.tsx",
+            "ComparatorLayoutV2.tsx",
+            "ComparatorLayoutV3.tsx",
+            "ComparatorLayoutV4.tsx",
+            "ComparatorLayoutV5.tsx",
+            "ComparatorLayoutV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1800,
+          "estimatedTokens": 13500
+        },
+        {
+          "name": "ComparisonTable",
+          "versions": 6,
+          "files": [
+            "ComparisonTableV1.tsx",
+            "ComparisonTableV2.tsx",
+            "ComparisonTableV3.tsx",
+            "ComparisonTableV4.tsx",
+            "ComparisonTableV5.tsx",
+            "ComparisonTableV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1500,
+          "estimatedTokens": 11250
+        },
+        {
+          "name": "DifferenceHighlight",
+          "versions": 6,
+          "files": [
+            "DifferenceHighlightV1.tsx"
+          ],
+          "linesOfCode": 450,
+          "estimatedTokens": 3375
+        },
+        {
+          "name": "ProductSelector",
+          "versions": 6,
+          "files": [
+            "ProductSelectorV1.tsx"
+          ],
+          "linesOfCode": 280,
+          "estimatedTokens": 2100
+        },
+        {
+          "name": "CompareActions",
+          "versions": 3,
+          "files": [
+            "CompareActions.tsx"
+          ],
+          "linesOfCode": 320,
+          "estimatedTokens": 2400
+        }
+      ],
+      "supportingFiles": [
+        {
+          "name": "types/comparator.ts",
+          "linesOfCode": 380,
+          "estimatedTokens": 2850
+        },
+        {
+          "name": "data/mockComparatorData.ts",
+          "linesOfCode": 250,
+          "estimatedTokens": 1875
+        },
+        {
+          "name": "ProductComparator.tsx",
+          "linesOfCode": 45,
+          "estimatedTokens": 338
+        },
+        {
+          "name": "ComparatorSettingsModal.tsx",
+          "linesOfCode": 253,
+          "estimatedTokens": 1898
+        },
+        {
+          "name": "page.tsx (redirect)",
+          "linesOfCode": 26,
+          "estimatedTokens": 195
+        },
+        {
+          "name": "comparator-preview/page.tsx",
+          "linesOfCode": 284,
+          "estimatedTokens": 2130
+        }
+      ],
+      "filesGenerated": 25,
+      "totalLinesAdded": 5000,
+      "estimatedTokens": {
+        "input": 15000,
+        "output": 35000,
+        "total": 50000
+      },
+      "componentsCreated": [
+        "ComparatorLayoutV1 - Modal Fullscreen",
+        "ComparatorLayoutV2 - Página dedicada",
+        "ComparatorLayoutV3 - Panel sticky lateral",
+        "ComparatorLayoutV4 - Modal fluido fintech",
+        "ComparatorLayoutV5 - Split 50/50",
+        "ComparatorLayoutV6 - Fullscreen inmersivo",
+        "ComparisonTableV1-V6",
+        "DifferenceHighlightV1-V6",
+        "ProductSelectorV1",
+        "CompareActions + FAB + Tray",
+        "ComparatorSettingsModal",
+        "ProductComparator"
+      ],
+      "notes": "Complete Comparator section with 8 configurable options (B.90-B.97). Layouts: 6 versions (modal, page, sticky, fluido, split, fullscreen). Tables: 6 versions (traditional, icons, bars, gradients, highlighted column, giant specs). Highlights: 6 versions (yellow, toggle, pulsing, glow, column, differences only). Selection UI with checkbox cards and floating action bar."
     }
   ],
-  "totalTokensUsed": 266129,
+  "totalTokensUsed": 316129,
   "summary": {
-    "componentsCreated": 162,
-    "filesCreated": 193,
-    "filesUpdated": 22,
-    "totalLinesOfCode": 28400
+    "componentsCreated": 192,
+    "filesCreated": 218,
+    "filesUpdated": 23,
+    "totalLinesOfCode": 33400
   }
 }
