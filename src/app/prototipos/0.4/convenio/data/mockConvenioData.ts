@@ -419,3 +419,6 @@ export const calcularAhorroTotal = (cuotaOriginal: number, descuento: number, pl
   const cuotaDescuento = calcularCuotaConDescuento(cuotaOriginal, descuento);
   return (cuotaOriginal - cuotaDescuento) * plazo;
 };
+
+// Alias for backwards compatibility
+export const conveniosList = convenios;

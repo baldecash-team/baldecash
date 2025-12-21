@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { HowItWorksProps } from '../../../types/hero';
 import { mockHowItWorksData } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
 const stepIconMap: Record<string, React.ElementType> = {
   Search,
@@ -37,7 +38,7 @@ const reqIconMap: Record<string, React.ElementType> = {
   Smartphone,
 };
 
-export const HowItWorksV5: React.FC<HowItWorksProps> = ({ data = mockHowItWorksData }) => {
+export const HowItWorksV5: React.FC<HowItWorksProps> = ({ data = mockHowItWorksData, underlineStyle = 4 }) => {
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
   const [hoveredReq, setHoveredReq] = useState<number | null>(null);
 

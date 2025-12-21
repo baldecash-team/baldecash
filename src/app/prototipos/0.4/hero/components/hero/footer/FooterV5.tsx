@@ -34,9 +34,10 @@ const contactInfo = [
 ];
 
 const quickLinks = [
-  { label: 'Laptops', href: '#laptops' },
+  { label: 'Equipos', href: '#equipos' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
+  { label: 'Libro de reclamaciones', href: '#reclamos' },
 ];
 
 const socialLinks = [

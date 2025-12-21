@@ -11,8 +11,9 @@ import { Accordion, AccordionItem } from '@nextui-org/react';
 import { HelpCircle } from 'lucide-react';
 import { FaqSectionProps } from '../../../types/hero';
 import { mockFaqData } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
-export const FaqSectionV1: React.FC<FaqSectionProps> = ({ data = mockFaqData }) => {
+export const FaqSectionV1: React.FC<FaqSectionProps> = ({ data = mockFaqData, underlineStyle = 4 }) => {
   return (
     <section className="py-20 bg-white">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -24,10 +25,13 @@ export const FaqSectionV1: React.FC<FaqSectionProps> = ({ data = mockFaqData }) 
         >
           <div className="inline-flex items-center gap-2 bg-[#4654CD]/10 text-[#4654CD] px-4 py-2 rounded-full text-sm font-medium mb-4">
             <HelpCircle className="w-4 h-4" />
-            <span>Tienes dudas?</span>
+            <span>¿Tienes dudas?</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2']">
-            Preguntas frecuentes
+            Preguntas{' '}
+            <UnderlinedText style={underlineStyle} color="primary">
+              frecuentes
+            </UnderlinedText>
           </h2>
         </motion.div>
 

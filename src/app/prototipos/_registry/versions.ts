@@ -34,6 +34,7 @@ export const SECTION_MAP: Record<string, { name: string; promptNumber: string }>
   upsell: { name: 'Upsell', promptNumber: '14' },
   aprobacion: { name: 'Aprobación', promptNumber: '15' },
   rechazo: { name: 'Rechazo', promptNumber: '16' },
+  convenio: { name: 'Convenio Landing', promptNumber: '17' },
 };
 
 // Registro de todas las versiones
@@ -98,7 +99,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
     sections: [
       { id: 'hero', name: 'Hero', path: '/prototipos/0.4/hero', status: 'done', promptNumber: '01' },
       { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.4/catalogo', status: 'pending', promptNumber: '02-03' },
-      { id: 'detalle', name: 'Detalle', path: '/prototipos/0.4/detalle', status: 'pending', promptNumber: '04' },
+      { id: 'detalle', name: 'Detalle', path: '/prototipos/0.4/producto/detail-preview', status: 'done', promptNumber: '04' },
       { id: 'comparador', name: 'Comparador', path: '/prototipos/0.4/comparador', status: 'pending', promptNumber: '05' },
       { id: 'quiz', name: 'Quiz', path: '/prototipos/0.4/quiz', status: 'pending', promptNumber: '06' },
       { id: 'estados', name: 'Estados Vacíos', path: '/prototipos/0.4/estados', status: 'pending', promptNumber: '07' },
@@ -107,6 +108,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'upsell', name: 'Upsell', path: '/prototipos/0.4/upsell', status: 'pending', promptNumber: '14' },
       { id: 'aprobacion', name: 'Aprobación', path: '/prototipos/0.4/aprobacion', status: 'pending', promptNumber: '15' },
       { id: 'rechazo', name: 'Rechazo', path: '/prototipos/0.4/rechazo', status: 'pending', promptNumber: '16' },
+      { id: 'convenio', name: 'Convenio', path: '/prototipos/0.4/convenio', status: 'done', promptNumber: '17' },
     ],
     createdAt: '2025-12-19',
     updatedAt: '2025-12-19',

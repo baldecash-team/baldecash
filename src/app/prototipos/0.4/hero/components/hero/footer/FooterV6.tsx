@@ -12,12 +12,12 @@ import { motion } from 'framer-motion';
 import { MessageCircle, Phone, Mail, Facebook, Instagram, Linkedin } from 'lucide-react';
 
 const quickLinks = [
-  { label: 'Laptops', href: '#laptops' },
+  { label: 'Equipos', href: '#equipos' },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },
   { label: 'Términos', href: '#terminos' },
-  { label: 'Privacidad', href: '#privacidad' },
+  { label: 'Libro de reclamaciones', href: '#reclamos' },
 ];
 
 const socialLinks = [

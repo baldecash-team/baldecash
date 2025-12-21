@@ -9,6 +9,7 @@
 import React from 'react';
 import { HeroConfig, defaultHeroConfig } from '../../types/hero';
 import { mockHeroContent, mockSocialProof, mockHowItWorksData, mockFaqData } from '../../data/mockHeroData';
+import { UnderlinedText } from './common/UnderlinedText';
 
 // Banner imports
 import {
@@ -82,7 +83,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
       1: SocialProofV1, 2: SocialProofV2, 3: SocialProofV3, 4: SocialProofV4, 5: SocialProofV5, 6: SocialProofV6,
     };
     const SocialProofComponent = socialProofComponents[finalConfig.socialProofVersion];
-    return <SocialProofComponent data={mockSocialProof} />;
+    return <SocialProofComponent data={mockSocialProof} underlineStyle={finalConfig.underlineStyle} />;
   };
 
   const renderCta = () => {
@@ -109,7 +110,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
       1: HowItWorksV1, 2: HowItWorksV2, 3: HowItWorksV3, 4: HowItWorksV4, 5: HowItWorksV5, 6: HowItWorksV6,
     };
     const HowItWorksComponent = howItWorksComponents[finalConfig.howItWorksVersion];
-    return <HowItWorksComponent data={mockHowItWorksData} />;
+    return <HowItWorksComponent data={mockHowItWorksData} underlineStyle={finalConfig.underlineStyle} />;
   };
 
   const renderFaq = () => {
@@ -117,7 +118,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
       1: FaqSectionV1, 2: FaqSectionV2, 3: FaqSectionV3, 4: FaqSectionV4, 5: FaqSectionV5, 6: FaqSectionV6,
     };
     const FaqComponent = faqComponents[finalConfig.faqVersion];
-    return <FaqComponent data={mockFaqData} />;
+    return <FaqComponent data={mockFaqData} underlineStyle={finalConfig.underlineStyle} />;
   };
 
   // Check if NavbarV3 is used (transparent navbar that needs special handling)
@@ -149,7 +150,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ config = {} }) => {
         <section className="py-16 bg-neutral-50">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-3 font-['Baloo_2']">
-              ¿Listo para tu nuevo equipo?
+              ¿Listo para tu nuevo{' '}
+              <UnderlinedText style={finalConfig.underlineStyle} color="primary">
+                equipo
+              </UnderlinedText>
+              ?
             </h2>
             <p className="text-neutral-600 mb-8">
               Solicita tu laptop en minutos. 100% digital.

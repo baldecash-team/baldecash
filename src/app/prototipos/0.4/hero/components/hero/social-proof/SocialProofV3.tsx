@@ -13,8 +13,9 @@ import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { SocialProofProps } from '../../../types/hero';
 import { mockTestimonials, mockInstitutions } from '../../../data/mockHeroData';
+import { UnderlinedText } from '../common/UnderlinedText';
 
-export const SocialProofV3: React.FC<SocialProofProps> = ({ data }) => {
+export const SocialProofV3: React.FC<SocialProofProps> = ({ data, underlineStyle = 4 }) => {
   const [page, setPage] = useState(0);
   const testimonialsPerPage = 2;
   const totalPages = Math.ceil(mockTestimonials.length / testimonialsPerPage);

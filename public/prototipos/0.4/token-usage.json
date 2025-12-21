@@ -49,13 +49,459 @@
       "totalLinesAdded": 1650,
       "estimatedTokensUsed": 12500,
       "notes": "Added HowItWorks and FAQ components with 6 versions each for A/B testing"
+    },
+    {
+      "promptNumber": "17",
+      "section": "convenio",
+      "timestamp": "2024-12-20T00:00:00.000Z",
+      "action": "create_section",
+      "components": [
+        {
+          "name": "ConvenioNavbar",
+          "versions": 6,
+          "files": [
+            "ConvenioNavbarV1.tsx",
+            "ConvenioNavbarV2.tsx",
+            "ConvenioNavbarV3.tsx",
+            "ConvenioNavbarV4.tsx",
+            "ConvenioNavbarV5.tsx",
+            "ConvenioNavbarV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 850,
+          "estimatedTokens": 6375
+        },
+        {
+          "name": "ConvenioHero",
+          "versions": 6,
+          "files": [
+            "ConvenioHeroV1.tsx",
+            "ConvenioHeroV2.tsx",
+            "ConvenioHeroV3.tsx",
+            "ConvenioHeroV4.tsx",
+            "ConvenioHeroV5.tsx",
+            "ConvenioHeroV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1100,
+          "estimatedTokens": 8250
+        },
+        {
+          "name": "ConvenioBenefits",
+          "versions": 6,
+          "files": [
+            "ConvenioBenefitsV1.tsx",
+            "ConvenioBenefitsV2.tsx",
+            "ConvenioBenefitsV3.tsx",
+            "ConvenioBenefitsV4.tsx",
+            "ConvenioBenefitsV5.tsx",
+            "ConvenioBenefitsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 900,
+          "estimatedTokens": 6750
+        },
+        {
+          "name": "ConvenioTestimonials",
+          "versions": 6,
+          "files": [
+            "ConvenioTestimonialsV1.tsx",
+            "ConvenioTestimonialsV2.tsx",
+            "ConvenioTestimonialsV3.tsx",
+            "ConvenioTestimonialsV4.tsx",
+            "ConvenioTestimonialsV5.tsx",
+            "ConvenioTestimonialsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1000,
+          "estimatedTokens": 7500
+        },
+        {
+          "name": "ConvenioFaq",
+          "versions": 6,
+          "files": [
+            "ConvenioFaqV1.tsx",
+            "ConvenioFaqV2.tsx",
+            "ConvenioFaqV3.tsx",
+            "ConvenioFaqV4.tsx",
+            "ConvenioFaqV5.tsx",
+            "ConvenioFaqV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1050,
+          "estimatedTokens": 7875
+        },
+        {
+          "name": "ConvenioCta",
+          "versions": 6,
+          "files": [
+            "ConvenioCtaV1.tsx",
+            "ConvenioCtaV2.tsx",
+            "ConvenioCtaV3.tsx",
+            "ConvenioCtaV4.tsx",
+            "ConvenioCtaV5.tsx",
+            "ConvenioCtaV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 800,
+          "estimatedTokens": 6000
+        }
+      ],
+      "supportingFiles": [
+        {
+          "name": "types/convenio.ts",
+          "linesOfCode": 120,
+          "estimatedTokens": 900
+        },
+        {
+          "name": "data/mockConvenioData.ts",
+          "linesOfCode": 280,
+          "estimatedTokens": 2100
+        },
+        {
+          "name": "hooks/useConvenio.ts",
+          "linesOfCode": 75,
+          "estimatedTokens": 563
+        },
+        {
+          "name": "ConvenioSettingsModal.tsx",
+          "linesOfCode": 295,
+          "estimatedTokens": 2213
+        },
+        {
+          "name": "ConvenioLanding.tsx",
+          "linesOfCode": 310,
+          "estimatedTokens": 2325
+        },
+        {
+          "name": "page.tsx (redirect)",
+          "linesOfCode": 25,
+          "estimatedTokens": 188
+        },
+        {
+          "name": "convenio-preview/page.tsx",
+          "linesOfCode": 130,
+          "estimatedTokens": 975
+        }
+      ],
+      "filesGenerated": 49,
+      "totalLinesAdded": 6935,
+      "estimatedTokens": {
+        "input": 15000,
+        "output": 52014,
+        "total": 67014
+      },
+      "componentsCreated": [
+        "ConvenioNavbarV1-V6",
+        "ConvenioHeroV1-V6",
+        "ConvenioBenefitsV1-V6",
+        "ConvenioTestimonialsV1-V6",
+        "ConvenioFaqV1-V6",
+        "ConvenioCtaV1-V6",
+        "ConvenioSettingsModal",
+        "ConvenioLanding"
+      ],
+      "notes": "Complete Convenio Landing section with 6 components x 6 versions = 36 component variants for A/B testing university partnerships landing pages"
+    },
+    {
+      "promptNumber": "04",
+      "section": "producto",
+      "timestamp": "2024-12-20T00:00:00.000Z",
+      "action": "create_section",
+      "components": [
+        {
+          "name": "ProductInfoHeader",
+          "versions": 6,
+          "files": [
+            "ProductInfoHeaderV1.tsx",
+            "ProductInfoHeaderV2.tsx",
+            "ProductInfoHeaderV3.tsx",
+            "ProductInfoHeaderV4.tsx",
+            "ProductInfoHeaderV5.tsx",
+            "ProductInfoHeaderV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 850,
+          "estimatedTokens": 6375
+        },
+        {
+          "name": "ProductGallery",
+          "versions": 6,
+          "files": [
+            "ProductGalleryV1.tsx",
+            "ProductGalleryV2.tsx",
+            "ProductGalleryV3.tsx",
+            "ProductGalleryV4.tsx",
+            "ProductGalleryV5.tsx",
+            "ProductGalleryV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1200,
+          "estimatedTokens": 9000
+        },
+        {
+          "name": "DetailTabs",
+          "versions": 6,
+          "files": [
+            "DetailTabsV1.tsx",
+            "DetailTabsV2.tsx",
+            "DetailTabsV3.tsx",
+            "DetailTabsV4.tsx",
+            "DetailTabsV5.tsx",
+            "DetailTabsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1100,
+          "estimatedTokens": 8250
+        },
+        {
+          "name": "SpecsDisplay",
+          "versions": 6,
+          "files": [
+            "SpecsDisplayV1.tsx",
+            "SpecsDisplayV2.tsx",
+            "SpecsDisplayV3.tsx",
+            "SpecsDisplayV4.tsx",
+            "SpecsDisplayV5.tsx",
+            "SpecsDisplayV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 950,
+          "estimatedTokens": 7125
+        },
+        {
+          "name": "PricingCalculator",
+          "versions": 6,
+          "files": [
+            "PricingCalculatorV1.tsx",
+            "PricingCalculatorV2.tsx",
+            "PricingCalculatorV3.tsx",
+            "PricingCalculatorV4.tsx",
+            "PricingCalculatorV5.tsx",
+            "PricingCalculatorV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1050,
+          "estimatedTokens": 7875
+        },
+        {
+          "name": "SimilarProducts",
+          "versions": 6,
+          "files": [
+            "SimilarProductsV1.tsx",
+            "SimilarProductsV2.tsx",
+            "SimilarProductsV3.tsx",
+            "SimilarProductsV4.tsx",
+            "SimilarProductsV5.tsx",
+            "SimilarProductsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1100,
+          "estimatedTokens": 8250
+        },
+        {
+          "name": "ProductLimitations",
+          "versions": 6,
+          "files": [
+            "ProductLimitationsV1.tsx",
+            "ProductLimitationsV2.tsx",
+            "ProductLimitationsV3.tsx",
+            "ProductLimitationsV4.tsx",
+            "ProductLimitationsV5.tsx",
+            "ProductLimitationsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 900,
+          "estimatedTokens": 6750
+        },
+        {
+          "name": "Certifications",
+          "versions": 6,
+          "files": [
+            "CertificationsV1.tsx",
+            "CertificationsV2.tsx",
+            "CertificationsV3.tsx",
+            "CertificationsV4.tsx",
+            "CertificationsV5.tsx",
+            "CertificationsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 850,
+          "estimatedTokens": 6375
+        }
+      ],
+      "supportingFiles": [
+        {
+          "name": "types/detail.ts",
+          "linesOfCode": 293,
+          "estimatedTokens": 2198
+        },
+        {
+          "name": "data/mockDetailData.ts",
+          "linesOfCode": 350,
+          "estimatedTokens": 2625
+        },
+        {
+          "name": "ProductDetail.tsx",
+          "linesOfCode": 279,
+          "estimatedTokens": 2093
+        },
+        {
+          "name": "DetailSettingsModal.tsx",
+          "linesOfCode": 232,
+          "estimatedTokens": 1740
+        },
+        {
+          "name": "page.tsx (redirect)",
+          "linesOfCode": 22,
+          "estimatedTokens": 165
+        },
+        {
+          "name": "detail-preview/page.tsx",
+          "linesOfCode": 193,
+          "estimatedTokens": 1448
+        }
+      ],
+      "filesGenerated": 62,
+      "totalLinesAdded": 9369,
+      "estimatedTokens": {
+        "input": 18000,
+        "output": 70268,
+        "total": 88268
+      },
+      "componentsCreated": [
+        "ProductInfoHeaderV1-V6",
+        "ProductGalleryV1-V6",
+        "DetailTabsV1-V6",
+        "SpecsDisplayV1-V6",
+        "PricingCalculatorV1-V6",
+        "SimilarProductsV1-V6",
+        "ProductLimitationsV1-V6",
+        "CertificationsV1-V6",
+        "ProductDetail",
+        "DetailSettingsModal"
+      ],
+      "notes": "Complete Product Detail section with 8 components x 6 versions = 48 component variants. CRITICAL: No price display, only monthly quota (cuota). Similar products show quota variation (+S/X/mes or -S/X/mes)"
+    },
+    {
+      "promptNumber": "06",
+      "section": "quiz",
+      "timestamp": "2024-12-20T00:00:00.000Z",
+      "action": "create_section",
+      "preferences": {
+        "B.98": "Layout V1 - Modal full screen mobile",
+        "B.99": "7 preguntas - Mayor precision",
+        "B.100": "Question Style V1 - Chips/pills (basado en 0.3 V3)",
+        "B.101": "Results V1 - Categoria + cards catalogo (basado en 0.3 V3)",
+        "B.102": "Focus V1 - Solo por uso"
+      },
+      "components": [
+        {
+          "name": "QuizLayout",
+          "versions": 6,
+          "files": [
+            "QuizLayoutV1.tsx",
+            "QuizLayoutV2.tsx",
+            "QuizLayoutV3.tsx",
+            "QuizLayoutV4.tsx",
+            "QuizLayoutV5.tsx",
+            "QuizLayoutV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 650,
+          "estimatedTokens": 4875
+        },
+        {
+          "name": "QuizQuestion",
+          "versions": 6,
+          "files": [
+            "QuizQuestionV1.tsx",
+            "QuizQuestionV2.tsx",
+            "QuizQuestionV3.tsx",
+            "QuizQuestionV4.tsx",
+            "QuizQuestionV5.tsx",
+            "QuizQuestionV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 850,
+          "estimatedTokens": 6375
+        },
+        {
+          "name": "QuizResults",
+          "versions": 6,
+          "files": [
+            "QuizResultsV1.tsx",
+            "QuizResultsV2.tsx",
+            "QuizResultsV3.tsx",
+            "QuizResultsV4.tsx",
+            "QuizResultsV5.tsx",
+            "QuizResultsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1450,
+          "estimatedTokens": 10875
+        }
+      ],
+      "supportingFiles": [
+        {
+          "name": "types/quiz.ts",
+          "linesOfCode": 155,
+          "estimatedTokens": 1163
+        },
+        {
+          "name": "data/mockQuizData.ts",
+          "linesOfCode": 378,
+          "estimatedTokens": 2835
+        },
+        {
+          "name": "components/quiz/HelpQuiz.tsx",
+          "linesOfCode": 286,
+          "estimatedTokens": 2145
+        },
+        {
+          "name": "components/quiz/QuizSettingsModal.tsx",
+          "linesOfCode": 165,
+          "estimatedTokens": 1238
+        },
+        {
+          "name": "components/quiz/progress/QuizProgress.tsx",
+          "linesOfCode": 45,
+          "estimatedTokens": 338
+        },
+        {
+          "name": "page.tsx",
+          "linesOfCode": 195,
+          "estimatedTokens": 1463
+        },
+        {
+          "name": "quiz-preview/page.tsx",
+          "linesOfCode": 22,
+          "estimatedTokens": 165
+        }
+      ],
+      "filesGenerated": 28,
+      "totalLinesAdded": 4196,
+      "estimatedTokens": {
+        "input": 12000,
+        "output": 31472,
+        "total": 43472
+      },
+      "componentsCreated": [
+        "QuizLayoutV1-V6",
+        "QuizQuestionV1-V6",
+        "QuizResultsV1-V6",
+        "QuizProgress",
+        "HelpQuiz",
+        "QuizSettingsModal"
+      ],
+      "notes": "Quiz section with consolidated preferences from 0.3: Layout V1 (full screen mobile), 7 questions, Question Style V1 (chips/pills), Results V1 (category + catalog cards), Focus V1 (usage only). 3 components x 6 versions = 18 component variants for A/B testing"
     }
   ],
-  "totalTokensUsed": 12500,
+  "totalTokensUsed": 211254,
   "summary": {
-    "componentsCreated": 14,
-    "filesCreated": 14,
-    "filesUpdated": 5,
-    "totalLinesOfCode": 1650
+    "componentsCreated": 118,
+    "filesCreated": 153,
+    "filesUpdated": 12,
+    "totalLinesOfCode": 22150
   }
 }

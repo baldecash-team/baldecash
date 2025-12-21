@@ -1,0 +1,1 @@
+export { useDetailKeyboardShortcuts } from './useDetailKeyboardShortcuts';

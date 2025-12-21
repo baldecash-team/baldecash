@@ -14,7 +14,7 @@ const columns = [
   {
     title: 'Productos',
     links: [
-      { label: 'Laptops', href: '#laptops' },
+      { label: 'Equipos', href: '#equipos' },
       { label: 'Accesorios', href: '#accesorios' },
       { label: 'Seguros', href: '#seguros' },
       { label: 'Promociones', href: '#promos' },
