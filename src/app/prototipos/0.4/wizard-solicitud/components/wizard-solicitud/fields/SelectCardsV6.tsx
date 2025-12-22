@@ -71,8 +71,8 @@ export const SelectCardsV6: React.FC<SelectCardsV6Props> = ({
       </div>
   );
 
-  // V5: Layout horizontal con label a la izquierda
-  if (labelVersion === 5) {
+  // V5/V6: Layout horizontal con label a la izquierda
+  if (labelVersion === 5 || labelVersion === 6) {
     return (
       <div className="flex items-start gap-3">
         <LabelComponent field={field} hasError={!!error} />

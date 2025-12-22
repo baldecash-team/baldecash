@@ -16,12 +16,12 @@
 
 Este prompt es un **meta-prompt** que combina todo el flujo de solicitud en una sola iteracion:
 
-1. **Vista de Solicitud (Intro)** - Pantalla motivacional con Baldi antes del wizard
-2. **Wizard Estructura** - Navegacion, progreso, layout
-3. **Paso 1: Datos Personales** - DNI, nombres, contacto
-4. **Paso 2: Datos Academicos** - Institucion, carrera, ciclo
-5. **Paso 3: Datos Economicos** - Ingresos, empleo
-6. **Paso 4: Resumen** - Confirmacion final
+1. **Paso 1: Datos Personales** - DNI, nombres, contacto (inicia directamente aqui)
+2. **Paso 2: Datos Academicos** - Institucion, carrera, ciclo
+3. **Paso 3: Datos Economicos** - Ingresos, empleo
+4. **Paso 4: Resumen** - Confirmacion final
+
+> **Nota:** La vista de intro fue removida. El wizard inicia directamente con Datos Personales.
 
 **Objetivo:** Generar el flujo completo de solicitud como un solo componente integrado, similar a `/prototipos/0.3/solicitud/` pero con 6 versiones iterables.
 
@@ -31,7 +31,6 @@ Este prompt es un **meta-prompt** que combina todo el flujo de solicitud en una 
 
 | Prompt | Seccion | Decisiones Aplicadas |
 |--------|---------|----------------------|
-| PROMPT_SOLICITUD | Vista Intro | B.1=V2, B.2=V2/V3, B.3=V1, B.5=V3(Baldi), B.6=V3 |
 | PROMPT_08 | Wizard Estructura | C.x (estructura general) |
 | PROMPT_09 | Campos/Componentes | C1.x (ver decisiones abajo) |
 | PROMPT_10 | Datos Personales | Campos especificos |
@@ -39,26 +38,18 @@ Este prompt es un **meta-prompt** que combina todo el flujo de solicitud en una 
 | PROMPT_12 | Datos Economicos | Campos especificos |
 | PROMPT_13 | Resumen | Confirmacion |
 
+> **Nota:** PROMPT_SOLICITUD (Vista Intro) fue removido del flujo.
+
 ---
 
 ## 3. Decisiones Finales Aplicadas
 
-### 3.1 Vista de Solicitud (B.x)
-
-| ID | Componente | Version | Implementacion |
-|----|------------|---------|----------------|
-| B.1 | Header | **V2** | Con producto seleccionado (thumbnail + nombre) |
-| B.2 | Titulo | **V2/V3** | V2 desktop ("Ahora..."), V3 mobile (sin "Ahora") |
-| B.3 | Mensaje | **V1** | Beneficios del financiamiento |
-| B.5 | Hero | **V3** | Caricatura de Baldi como imagen hero |
-| B.6 | CTA | **V3** | Card con Baldi + boton + tiempo |
-
-### 3.2 Wizard - Campos (C1.x) - 6 versiones cada uno
+### 3.1 Wizard - Campos (C1.x) - 6 versiones cada uno
 
 | ID | Componente | Preferido | Implementacion |
 |----|------------|-----------|----------------|
-| C1.1 | Labels | **V1** | Label arriba (siempre visible) |
-| C1.4 | Inputs | **V3** | Filled background (V1=bordes como alternativa) |
+| C1.1 | Labels | **UNIFIED** | Integrado en InputFieldUnified |
+| C1.4 | Inputs | **UNIFIED** | InputFieldUnified con 6 versiones |
 | C1.13 | Opciones | **V3** | Cards grid SOLO si <= 6 opciones |
 | C1.15 | Upload | **V3** | Area drag & drop combinado con boton |
 | C1.16 | Preview | **V1** | Thumbnail simple (6 versiones disponibles) |
@@ -68,6 +59,17 @@ Este prompt es un **meta-prompt** que combina todo el flujo de solicitud en una 
 | C1.24 | Estilo error | **V1** | Borde rojo |
 | C1.28 | Ayuda | **V1** | Tooltip hover/click |
 | C1.29 | Ejemplos docs | **V2** | Gallery en modal |
+
+### 3.2 InputFieldUnified - Versiones
+
+| Version | Estilo | Descripcion |
+|---------|--------|-------------|
+| V1 | Label arriba clasico | Label siempre visible arriba del input |
+| V2 | Material Design | Label flotante animado (sube al enfocar) |
+| V3 | Label lateral izquierdo | Label a la izquierda, input a la derecha |
+| V4 | Label lateral con badge | Label izquierdo + badge requerido/opcional |
+| V5 | Label lateral compacto | Label inline compacto |
+| V6 | Label grande hero | Label grande, input prominente |
 
 ---
 
@@ -80,17 +82,8 @@ src/app/prototipos/0.4/wizard-solicitud/
 │   └── page.tsx                          # Preview con Settings Modal
 ├── components/
 │   └── wizard-solicitud/
-│       ├── WizardSolicitudContainer.tsx  # Container principal
+│       ├── WizardSolicitudContainer.tsx  # Container principal (sin intro)
 │       ├── WizardSolicitudSettingsModal.tsx
-│       │
-│       ├── intro/                        # Vista de Solicitud (B.x) - 6 versiones
-│       │   ├── SolicitudIntroV1.tsx      # Clasico con foto producto
-│       │   ├── SolicitudIntroV2.tsx      # Lifestyle estudiante
-│       │   ├── SolicitudIntroV3.tsx      # Con Baldi [PREFERIDO]
-│       │   ├── SolicitudIntroV4.tsx      # Fintech/abstracto
-│       │   ├── SolicitudIntroV5.tsx      # Split layout
-│       │   ├── SolicitudIntroV6.tsx      # Interactivo/animado
-│       │   └── index.ts
 │       │
 │       ├── wizard/                       # Estructura Wizard (C.x) - 6 versiones
 │       │   ├── WizardLayoutV1.tsx        # Layout clasico vertical
@@ -113,14 +106,16 @@ src/app/prototipos/0.4/wizard-solicitud/
 │       │   ├── WizardNavigationV6.tsx    # Swipe gestures
 │       │   └── index.ts
 │       │
-│       ├── fields/                       # Componentes de campos (C1.x) - 6 versiones
-│       │   ├── InputFieldV1.tsx          # Bordes clasicos
-│       │   ├── InputFieldV2.tsx          # Underline only
-│       │   ├── InputFieldV3.tsx          # Filled background [PREFERIDO]
-│       │   ├── InputFieldV4.tsx          # Floating label
-│       │   ├── InputFieldV5.tsx          # Card style
-│       │   ├── InputFieldV6.tsx          # Inline compact
-│       │   ├── LabelV1.tsx               # Label arriba [PREFERIDO]
+│       ├── fields/                       # Componentes de campos (C1.x)
+│       │   ├── InputFieldUnified.tsx     # [NUEVO] Label+Input combinados - 6 versiones
+│       │   │   # V1: Label arriba clasico
+│       │   │   # V2: Material Design (label flotante)
+│       │   │   # V3: Label lateral izquierdo
+│       │   │   # V4: Label lateral con badge
+│       │   │   # V5: Label lateral compacto
+│       │   │   # V6: Label grande hero
+│       │   ├── InputFieldV1-V6.tsx       # [LEGACY] Inputs separados
+│       │   ├── labels/                   # [LEGACY] Labels separados
 │       │   ├── LabelV2.tsx               # Label izquierda
 │       │   ├── LabelV3.tsx               # Label flotante
 │       │   ├── LabelV4.tsx               # Label bold grande
@@ -615,15 +610,35 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 
 ## 11. Descripcion de Versiones por Componente
 
-### SolicitudIntro (B.x)
+### Headers (B.1) - Implementados en SolicitudIntroV1.tsx
 | Version | Descripcion | Estilo |
 |---------|-------------|--------|
-| V1 | Clasico con foto de producto laptop | E-commerce tradicional |
-| V2 | Foto lifestyle de estudiante usando laptop | Aspiracional |
-| V3 | Caricatura de Baldi saludando **[PREFERIDO]** | Identidad de marca |
-| V4 | Shapes abstractos, datos destacados | Fintech moderno |
-| V5 | Split: Baldi izquierda + info derecha | Balanceado |
-| V6 | Baldi grande centrado con micro-animaciones | Impactante |
+| V1 | Ultra minimalista - Solo texto "Solicitud de financiamiento" centrado | Minimal |
+| V2 | Producto prominente con fondo gradiente azul, thumbnail + precio | E-commerce |
+| V3 | Steps progress con iconos numerados + producto en card | Progress-focused |
+| V4 | Dark mode con acento neon, icono Zap, timer | Fintech premium |
+| V5 | Split moderno - Logo "B" izquierda, producto derecha en card | Balanceado |
+| V6 | Bold gigante centrado - "BaldeCash" con animacion scale | Impactante |
+
+### Heroes (B.5) - Implementados en SolicitudIntroV1.tsx
+| Version | Descripcion | Estilo |
+|---------|-------------|--------|
+| V1 | Foto del producto simple en card blanca con sombra | E-commerce clasico |
+| V2 | Dashboard fintech con metricas animadas (0% inicial, 12 cuotas, 24h) | Data-driven |
+| V3 | Baldi mascota con burbuja de chat **[PREFERIDO]** | Identidad de marca |
+| V4 | Timeline de proceso dark mode con pasos animados | Process-focused |
+| V5 | Card con producto destacado + Baldi como asistente | Informativo |
+| V6 | Reward unlocked - Card celebration con confetti animado y producto | Gamificado |
+
+### CTAs (B.6) - Implementados en SolicitudIntroV1.tsx
+| Version | Descripcion | Estilo |
+|---------|-------------|--------|
+| V1 | Boton simple con icono flecha | Minimal |
+| V2 | Boton full-width + badges de confianza horizontales | Trustworthy |
+| V3 | Card completa con Baldi, tiempo estimado y beneficios **[PREFERIDO]** | Informativo |
+| V4 | Boton gigante con shadow de color y efecto hover scale | Impactante |
+| V5 | Fixed bottom sticky bar con gradiente y trust text | Mobile-first |
+| V6 | Boton XL fullwidth con animacion de brillo deslizante | Premium |
 
 ### WizardLayout (C.x)
 | Version | Descripcion | Uso |
@@ -644,6 +659,16 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 | V4 | Porcentaje numerico grande | Data-driven |
 | V5 | Timeline vertical con descripciones | Detallado |
 | V6 | Chips clickeables con iconos | Interactivo |
+
+### WizardNavigation (C.14) - Implementados en wizard/
+| Version | Descripcion | Estilo |
+|---------|-------------|--------|
+| V1 | Botones clasicos con texto "Atras" / "Siguiente" | Default |
+| V2 | Botones con iconos prominentes | Icon-focused |
+| V3 | FAB flotante circular con animacion | Minimal |
+| V4 | Bottom bar con progress bar animado integrado y trust badge | Fintech moderno |
+| V5 | Pills flotantes en esquinas con AnimatePresence | Minimal elegante |
+| V6 | Full branded bar gradiente con CTA XL y onda neon animada | Premium impactante |
 
 ### InputField (C1.4)
 | Version | Descripcion | Estilo |
