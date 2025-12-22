@@ -10,6 +10,7 @@ import { Laptop, ArrowRight } from 'lucide-react';
  */
 
 interface ProductAlternativesProps {
+  products?: unknown[];
   onViewAll?: () => void;
 }
 

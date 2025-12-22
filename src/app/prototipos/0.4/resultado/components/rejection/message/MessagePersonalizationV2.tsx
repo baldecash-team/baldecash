@@ -8,7 +8,11 @@ import React from 'react';
  * Profesional y neutro
  */
 
-export const MessagePersonalizationV2: React.FC = () => {
+interface MessagePersonalizationProps {
+  userName?: string;
+}
+
+export const MessagePersonalizationV2: React.FC<MessagePersonalizationProps> = () => {
   return (
     <div className="text-center mb-6">
       <h1 className="text-2xl md:text-3xl font-bold text-neutral-800 mb-3">
