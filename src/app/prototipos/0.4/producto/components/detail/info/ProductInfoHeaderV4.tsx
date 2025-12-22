@@ -1,80 +1,97 @@
 'use client';
 
 /**
- * ProductInfoHeaderV4 - Layout Hero (Nombre prominente)
+ * ProductInfoHeaderV4 - Mobile Compact Layout
  *
- * Hero-style layout with large brand name, horizontal separator,
- * product name split into main and specs, and inline features.
+ * Ultra-minimal design optimized for mobile.
+ * Single column with swipeable spec pills.
+ * No price section (shown in PricingCalculator).
  */
 
-import React from 'react';
-import { Star, Monitor, Battery, Package } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Star, ChevronRight, Cpu, MemoryStick, HardDrive, Monitor, Package } from 'lucide-react';
 import { ProductInfoHeaderProps } from '../../../types/detail';
 
 export const ProductInfoHeaderV4: React.FC<ProductInfoHeaderProps> = ({ product }) => {
-  // Extract key specs from display name if possible
-  const mainName = product.displayName.split(' - ')[0] || product.displayName;
-  const specsSuffix = product.displayName.split(' - ')[1] || '';
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const quickSpecs = [
+    { icon: Cpu, label: 'Ryzen 5', color: 'bg-amber-100 text-amber-700' },
+    { icon: MemoryStick, label: '8GB RAM', color: 'bg-blue-100 text-blue-700' },
+    { icon: HardDrive, label: '256GB SSD', color: 'bg-purple-100 text-purple-700' },
+    { icon: Monitor, label: '15.6" FHD', color: 'bg-cyan-100 text-cyan-700' },
+  ];
 
   return (
     <div className="space-y-4">
-      {/* Brand - Large */}
-      <h2 className="text-2xl md:text-3xl font-black text-[#4654CD] uppercase tracking-tight font-['Baloo_2']">
-        {product.brand}
-      </h2>
+      {/* Top Row: Brand + Stock */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-1 bg-[#4654CD] text-white text-xs font-bold rounded-lg">
+            {product.brand}
+          </span>
+          <div className="flex items-center gap-1">
+            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+            <span className="text-sm font-semibold text-neutral-700">{product.rating}</span>
+          </div>
+        </div>
 
-      {/* Separator */}
-      <div className="h-0.5 bg-gradient-to-r from-[#4654CD] to-[#4654CD]/20 w-full" />
-
-      {/* Product Name - Split */}
-      <div className="space-y-1">
-        <h1 className="text-lg md:text-xl font-bold text-neutral-900 leading-tight">
-          {mainName}
-        </h1>
-        {specsSuffix && (
-          <p className="text-sm text-neutral-600 font-medium">
-            {specsSuffix}
-          </p>
-        )}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-lg">
+          <Package className="w-4 h-4 text-emerald-600" />
+          <span className="text-xs font-medium text-emerald-700">{product.stock} disp.</span>
+        </div>
       </div>
 
-      {/* Separator */}
-      <div className="h-0.5 bg-gradient-to-r from-[#4654CD]/20 to-[#4654CD] w-full" />
+      {/* Product Name - Compact */}
+      <h1 className="text-xl font-bold text-neutral-900 font-['Baloo_2'] leading-snug">
+        {product.displayName}
+      </h1>
 
-      {/* Features Row - Compact */}
-      <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-600">
-        {/* Rating */}
-        <div className="flex items-center gap-1">
-          <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-          <span className="font-medium text-neutral-700">{product.rating}</span>
-          <span>({product.reviewCount})</span>
+      {/* Swipeable Specs Row */}
+      <div className="relative -mx-4 px-4">
+        <div
+          ref={scrollRef}
+          className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
+          style={{ scrollSnapType: 'x mandatory' }}
+        >
+          {quickSpecs.map((spec, idx) => {
+            const Icon = spec.icon;
+            return (
+              <div
+                key={idx}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl flex-shrink-0 ${spec.color}`}
+                style={{ scrollSnapAlign: 'start' }}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="text-sm font-medium whitespace-nowrap">{spec.label}</span>
+              </div>
+            );
+          })}
+
+          {/* See More */}
+          <button className="flex items-center gap-1 px-3 py-2 rounded-xl bg-neutral-100 text-neutral-600 flex-shrink-0 cursor-pointer hover:bg-neutral-200 transition-colors">
+            <span className="text-sm font-medium">Más</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
-        <span className="text-neutral-300">|</span>
+        {/* Fade indicator */}
+        <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+      </div>
 
-        {/* OS */}
-        {product.hasOS && (
-          <>
-            <div className="flex items-center gap-1">
-              <Monitor className="w-4 h-4 text-neutral-500" />
-              <span>{product.osName}</span>
-            </div>
-            <span className="text-neutral-300">|</span>
-          </>
-        )}
-
-        {/* Battery */}
-        <div className="flex items-center gap-1">
-          <Battery className="w-4 h-4 text-neutral-500" />
-          <span>{product.batteryLife}</span>
+      {/* Trust Row - Minimal */}
+      <div className="flex items-center justify-center gap-6 py-2 text-neutral-500">
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+          <span className="text-xs">Garantía</span>
         </div>
-
-        <span className="text-neutral-300">|</span>
-
-        {/* Stock */}
-        <div className="flex items-center gap-1">
-          <Package className="w-4 h-4 text-neutral-500" />
-          <span>{product.stock} disp.</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+          <span className="text-xs">Envío gratis</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
+          <span className="text-xs">Sin tarjeta</span>
         </div>
       </div>
     </div>
