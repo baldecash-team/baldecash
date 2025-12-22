@@ -5,10 +5,10 @@
  * Configurable preview for A/B testing convenio landing page versions
  *
  * Keyboard Shortcuts:
- * - Tab / Shift+Tab: Navigate between components
- * - 1-6: Change version of active component
- * - ? / K: Open/close settings modal
- * - Esc: Close modal
+ * - Tab / Shift+Tab: Navegar entre componentes
+ * - 1-6: Cambiar versión del componente activo
+ * - ? o K: Abrir/cerrar configuración
+ * - Esc: Cerrar modal
  */
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -165,7 +165,7 @@ function ConvenioPreviewContent() {
             <kbd className="bg-white/20 px-1.5 py-0.5 rounded">1-6</kbd> versión
           </span>
           <span>
-            <kbd className="bg-white/20 px-1.5 py-0.5 rounded">?</kbd> config
+            <kbd className="bg-white/20 px-1.5 py-0.5 rounded">?</kbd> o <kbd className="bg-white/20 px-1.5 py-0.5 rounded">K</kbd> config
           </span>
         </div>
       </div>

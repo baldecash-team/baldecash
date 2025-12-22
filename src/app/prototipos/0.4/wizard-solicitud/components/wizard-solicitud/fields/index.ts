@@ -3,13 +3,25 @@
  * Exporta todas las versiones de componentes de campos
  */
 
-// InputField - 6 versiones
+// InputField - 6 versiones (legacy)
 export { InputFieldV1 } from './InputFieldV1';
 export { InputFieldV2 } from './InputFieldV2';
 export { InputFieldV3 } from './InputFieldV3';
 export { InputFieldV4 } from './InputFieldV4';
 export { InputFieldV5 } from './InputFieldV5';
 export { InputFieldV6 } from './InputFieldV6';
+
+// InputFieldUnified - 6 versiones (label+input combinados)
+export {
+  InputFieldUnified,
+  InputFieldUnifiedV1,
+  InputFieldUnifiedV2,
+  InputFieldUnifiedV3,
+  InputFieldUnifiedV4,
+  InputFieldUnifiedV5,
+  InputFieldUnifiedV6,
+  getInputFieldUnified,
+} from './InputFieldUnified';
 
 // SelectCards - 6 versiones
 export { SelectCardsV1 } from './SelectCardsV1';

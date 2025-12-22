@@ -5,7 +5,7 @@
  * PROMPT_18: Integra Intro + Wizard en un solo componente
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type {
   WizardSolicitudConfig,
@@ -14,9 +14,6 @@ import type {
 } from '../../types/wizard-solicitud';
 import { defaultWizardSolicitudConfig } from '../../types/wizard-solicitud';
 import { WIZARD_STEPS, getRemainingMinutes, MOCK_PRODUCT } from '../../data/wizardSolicitudSteps';
-
-// Intro components
-import { getIntroComponent } from './intro';
 
 // Wizard components con mapeo de versiones
 import { getWizardLayout, getProgressIndicator, getWizardNavigation } from './wizard';
@@ -46,30 +43,68 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
     [customConfig]
   );
 
-  // Estado del wizard
+  // Referencia para detectar cambios en versiones de input
+  const previousVersions = useRef({
+    inputVersion: config.inputVersion,
+    labelVersion: config.labelVersion,
+    datePickerVersion: config.datePickerVersion,
+    selectCardsVersion: config.selectCardsVersion,
+    uploadVersion: config.uploadVersion,
+  });
+
+  // Estado del wizard - inicia directamente en wizard (sin intro)
   const [state, setState] = useState<WizardState>({
-    phase: 'intro',
+    phase: 'wizard',
     currentStep: 0,
     completedSteps: [],
     formData: {},
     isSubmitting: false,
     isSaving: false,
     errors: {},
-    startedAt: undefined,
+    startedAt: new Date(),
   });
 
   // Estado para celebracion
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationStep, setCelebrationStep] = useState(0);
 
+  // Limpiar campos al cambiar versiones de input
+  useEffect(() => {
+    const currentVersions = {
+      inputVersion: config.inputVersion,
+      labelVersion: config.labelVersion,
+      datePickerVersion: config.datePickerVersion,
+      selectCardsVersion: config.selectCardsVersion,
+      uploadVersion: config.uploadVersion,
+    };
+
+    // Verificar si alguna version cambio
+    const hasVersionChanged = Object.keys(currentVersions).some(
+      (key) =>
+        currentVersions[key as keyof typeof currentVersions] !==
+        previousVersions.current[key as keyof typeof previousVersions.current]
+    );
+
+    if (hasVersionChanged) {
+      // Limpiar formData y errores
+      setState((prev) => ({
+        ...prev,
+        formData: {},
+        errors: {},
+      }));
+
+      // Actualizar referencia
+      previousVersions.current = currentVersions;
+    }
+  }, [
+    config.inputVersion,
+    config.labelVersion,
+    config.datePickerVersion,
+    config.selectCardsVersion,
+    config.uploadVersion,
+  ]);
+
   // Handlers de navegacion
-  const handleStartWizard = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      phase: 'wizard',
-      startedAt: new Date(),
-    }));
-  }, []);
 
   // Callback para cuando termina la celebracion
   const handleCelebrationComplete = useCallback(() => {
@@ -150,18 +185,6 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
       errors: { ...prev.errors, [name]: '' },
     }));
   }, []);
-
-  // Renderizar fase Intro
-  if (state.phase === 'intro') {
-    const IntroComponent = getIntroComponent();
-    return (
-      <IntroComponent
-        config={config}
-        selectedProduct={selectedProduct}
-        onStart={handleStartWizard}
-      />
-    );
-  }
 
   // Datos del paso actual
   const currentStepData = WIZARD_STEPS[state.currentStep];
