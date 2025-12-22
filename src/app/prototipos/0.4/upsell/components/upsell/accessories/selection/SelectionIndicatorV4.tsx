@@ -47,3 +47,5 @@ export const SelectionIndicatorV4: React.FC<SelectionIndicatorProps> = ({
     </AnimatePresence>
   );
 };
+
+export default SelectionIndicatorV4;

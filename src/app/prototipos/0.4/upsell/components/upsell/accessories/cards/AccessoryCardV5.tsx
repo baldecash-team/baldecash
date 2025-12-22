@@ -139,3 +139,5 @@ export const AccessoryCardV5: React.FC<AccessoryCardProps> = ({
     </Card>
   );
 };
+
+export default AccessoryCardV5;

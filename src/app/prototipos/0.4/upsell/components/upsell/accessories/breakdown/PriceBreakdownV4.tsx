@@ -101,3 +101,5 @@ export const PriceBreakdownV4: React.FC<PriceBreakdownProps> = ({
     </div>
   );
 };
+
+export default PriceBreakdownV4;

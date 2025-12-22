@@ -25,3 +25,5 @@ export const SelectionIndicatorV5: React.FC<SelectionIndicatorProps> = ({
     </div>
   );
 };
+
+export default SelectionIndicatorV5;

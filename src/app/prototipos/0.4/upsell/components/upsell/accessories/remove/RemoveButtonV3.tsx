@@ -32,3 +32,5 @@ export const RemoveButtonV3: React.FC<RemoveButtonProps> = ({
     </AnimatePresence>
   );
 };
+
+export default RemoveButtonV3;

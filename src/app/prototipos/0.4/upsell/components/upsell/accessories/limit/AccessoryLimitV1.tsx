@@ -13,3 +13,5 @@ interface AccessoryLimitProps {
 export const AccessoryLimitV1: React.FC<AccessoryLimitProps> = () => {
   return null;
 };
+
+export default AccessoryLimitV1;

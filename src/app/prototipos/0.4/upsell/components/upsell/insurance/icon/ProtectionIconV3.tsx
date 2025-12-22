@@ -31,3 +31,5 @@ export const ProtectionIconV3: React.FC<ProtectionIconProps> = ({
     </div>
   );
 };
+
+export default ProtectionIconV3;

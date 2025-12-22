@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -11,7 +11,7 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, FileText, Image, MousePointerClick, Layout, BarChart3, Navigation2, PartyPopper, Tag, FormInput, ListChecks, Upload, Calendar, CheckCircle, AlertCircle, HelpCircle, BookOpen, ToggleLeft } from 'lucide-react';
+import { Settings, RotateCcw, FileText, Image, MousePointerClick, Layout, BarChart3, Navigation2, PartyPopper, Tag, FormInput, ListChecks, Upload, Calendar, CheckCircle, AlertCircle, HelpCircle, BookOpen, ToggleLeft, Link2, Check } from 'lucide-react';
 import { CustomSwitch } from '@/app/prototipos/_shared/components/CustomSwitch';
 import type { WizardSolicitudConfig } from '../../types/wizard-solicitud';
 import { defaultWizardSolicitudConfig, versionDescriptions } from '../../types/wizard-solicitud';
@@ -23,7 +23,7 @@ interface WizardSolicitudSettingsModalProps {
   onConfigChange: (config: WizardSolicitudConfig) => void;
 }
 
-const versionOptions = [1, 2, 3, 4, 5, 6];
+const versionOptions = [1, 2, 3, 4, 5, 6] as const;
 
 export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModalProps> = ({
   isOpen,
@@ -31,8 +31,29 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
   config,
   onConfigChange,
 }) => {
+  const [copied, setCopied] = useState(false);
+
   const handleReset = () => {
     onConfigChange(defaultWizardSolicitudConfig);
+  };
+
+  const handleGenerateUrl = () => {
+    const params = new URLSearchParams();
+    params.set('header', config.headerVersion.toString());
+    params.set('title', config.titleVersion.toString());
+    params.set('message', config.messageVersion.toString());
+    params.set('hero', config.heroVersion.toString());
+    params.set('cta', config.ctaVersion.toString());
+    params.set('wizardLayout', config.wizardLayoutVersion.toString());
+    params.set('progress', config.progressVersion.toString());
+    params.set('navigation', config.navigationVersion.toString());
+    params.set('stepLayout', config.stepLayoutVersion.toString());
+    params.set('input', config.inputVersion.toString());
+    params.set('label', config.labelVersion.toString());
+    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const updateConfig = (key: string, value: number | boolean) => {
@@ -678,21 +699,31 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white">
+        <ModalFooter className="bg-white justify-between">
           <Button
-            variant="light"
-            startContent={<RotateCcw className="w-4 h-4" />}
-            onPress={handleReset}
-            className="cursor-pointer"
+            variant="flat"
+            startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
+            onPress={handleGenerateUrl}
+            className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
           >
-            Restablecer
+            {copied ? 'Copiado!' : 'Generar URL'}
           </Button>
-          <Button
-            className="bg-[#4654CD] text-white cursor-pointer"
-            onPress={onClose}
-          >
-            Aplicar
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="light"
+              startContent={<RotateCcw className="w-4 h-4" />}
+              onPress={handleReset}
+              className="cursor-pointer"
+            >
+              Restablecer
+            </Button>
+            <Button
+              className="bg-[#4654CD] text-white cursor-pointer"
+              onPress={onClose}
+            >
+              Aplicar
+            </Button>
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>

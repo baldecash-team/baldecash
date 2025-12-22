@@ -44,3 +44,5 @@ export const ProtectionIconV4: React.FC<ProtectionIconProps> = ({
     </motion.div>
   );
 };
+
+export default ProtectionIconV4;

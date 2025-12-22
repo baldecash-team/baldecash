@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -11,7 +11,7 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal, CreditCard, Tags } from 'lucide-react';
+import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal, CreditCard, Tags, Link2, Check } from 'lucide-react';
 import { CatalogLayoutConfig, SkeletonVersion, LoadMoreVersion, LoadingDuration, ImageGalleryVersion, GallerySizeVersion, TechnicalFiltersVersion, ProductCardVersion, TagDisplayVersion, layoutVersionDescriptions, brandFilterVersionDescriptions, loadingDurationLabels, loadMoreVersionLabels, imageGalleryVersionLabels, gallerySizeVersionLabels, technicalFiltersVersionLabels, productCardVersionLabels, tagDisplayVersionLabels } from '../../types/catalog';
 import { skeletonVersionLabels } from './ProductCardSkeleton';
 
@@ -28,6 +28,8 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
   config,
   onConfigChange,
 }) => {
+  const [copied, setCopied] = useState(false);
+
   const handleReset = () => {
     onConfigChange({
       layoutVersion: 1,
@@ -51,6 +53,25 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
       showFilterCounts: true,
       showTooltips: true,
     });
+  };
+
+  const handleGenerateUrl = () => {
+    const params = new URLSearchParams();
+    params.set('layout', config.layoutVersion.toString());
+    params.set('brandFilter', config.brandFilterVersion.toString());
+    params.set('card', config.cardVersion.toString());
+    params.set('technicalFilters', config.technicalFiltersVersion.toString());
+    params.set('skeleton', config.skeletonVersion.toString());
+    params.set('loadMore', config.loadMoreVersion.toString());
+    params.set('loadingDuration', config.loadingDuration);
+    params.set('imageGallery', config.imageGalleryVersion.toString());
+    params.set('gallerySize', config.gallerySizeVersion.toString());
+    params.set('tagDisplay', config.tagDisplayVersion.toString());
+    params.set('desktopCols', config.productsPerRow.desktop.toString());
+    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const updateConfig = <K extends keyof CatalogLayoutConfig>(
@@ -195,7 +216,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={productCardVersionLabels[version].description}
                 >
-                  V{version} - {productCardVersionLabels[version].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -231,7 +252,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={technicalFiltersVersionLabels[version].description}
                 >
-                  V{version} - {technicalFiltersVersionLabels[version].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -267,7 +288,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={skeletonVersionLabels[version].description}
                 >
-                  V{version} - {skeletonVersionLabels[version].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -330,7 +351,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={loadMoreVersionLabels[version].description}
                 >
-                  V{version} - {loadMoreVersionLabels[version].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -366,7 +387,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={imageGalleryVersionLabels[version].description}
                 >
-                  V{version} - {imageGalleryVersionLabels[version].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -402,7 +423,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={gallerySizeVersionLabels[version].description}
                 >
-                  V{version} - {gallerySizeVersionLabels[version].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -438,7 +459,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={tagDisplayVersionLabels[version].description}
                 >
-                  V{version} - {tagDisplayVersionLabels[version].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -474,21 +495,31 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white">
+        <ModalFooter className="bg-white justify-between">
           <Button
-            variant="light"
-            startContent={<RotateCcw className="w-4 h-4" />}
-            onPress={handleReset}
-            className="cursor-pointer"
+            variant="flat"
+            startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
+            onPress={handleGenerateUrl}
+            className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
           >
-            Restablecer
+            {copied ? 'Copiado!' : 'Generar URL'}
           </Button>
-          <Button
-            className="bg-[#4654CD] text-white cursor-pointer"
-            onPress={onClose}
-          >
-            Aplicar
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="light"
+              startContent={<RotateCcw className="w-4 h-4" />}
+              onPress={handleReset}
+              className="cursor-pointer"
+            >
+              Restablecer
+            </Button>
+            <Button
+              className="bg-[#4654CD] text-white cursor-pointer"
+              onPress={onClose}
+            >
+              Aplicar
+            </Button>
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>

@@ -98,3 +98,5 @@ export const PriceBreakdownV5: React.FC<PriceBreakdownProps> = ({
     </Card>
   );
 };
+
+export default PriceBreakdownV5;

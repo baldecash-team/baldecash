@@ -422,7 +422,15 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white flex justify-between">
+        <ModalFooter className="bg-white justify-between">
+          <Button
+            variant="flat"
+            startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
+            onPress={handleGenerateUrl}
+            className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
+          >
+            {copied ? 'Copiado!' : 'Generar URL'}
+          </Button>
           <div className="flex gap-2">
             <Button
               variant="light"
@@ -433,20 +441,12 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
               Restablecer
             </Button>
             <Button
-              variant="flat"
-              startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
-              onPress={handleGenerateUrl}
-              className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
+              className="bg-[#4654CD] text-white cursor-pointer"
+              onPress={onClose}
             >
-              {copied ? 'Copiado!' : 'Generar URL'}
+              Aplicar
             </Button>
           </div>
-          <Button
-            className="bg-[#4654CD] text-white cursor-pointer"
-            onPress={onClose}
-          >
-            Aplicar
-          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

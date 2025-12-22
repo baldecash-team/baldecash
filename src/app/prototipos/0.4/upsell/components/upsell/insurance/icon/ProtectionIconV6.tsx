@@ -47,3 +47,5 @@ export const ProtectionIconV6: React.FC<ProtectionIconProps> = ({ className = ''
     </div>
   );
 };
+
+export default ProtectionIconV6;

@@ -65,3 +65,5 @@ export const CoverageDisplayV6: React.FC<CoverageDisplayProps> = ({
     </div>
   );
 };
+
+export default CoverageDisplayV6;

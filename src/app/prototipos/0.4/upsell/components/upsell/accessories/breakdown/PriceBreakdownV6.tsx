@@ -83,3 +83,5 @@ export const PriceBreakdownV6: React.FC<PriceBreakdownProps> = ({
     </div>
   );
 };
+
+export default PriceBreakdownV6;

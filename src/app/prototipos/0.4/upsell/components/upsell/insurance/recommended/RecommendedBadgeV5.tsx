@@ -36,3 +36,5 @@ export const RecommendedBadgeV5: React.FC<RecommendedBadgeProps> = ({
     </div>
   );
 };
+
+export default RecommendedBadgeV5;

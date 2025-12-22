@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -11,7 +11,7 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Package, Shield } from 'lucide-react';
+import { Settings, RotateCcw, Package, Shield, Link2, Check } from 'lucide-react';
 import { UpsellConfig, defaultUpsellConfig, versionDescriptions } from '../../types/upsell';
 
 interface UpsellSettingsModalProps {
@@ -31,6 +31,8 @@ export const UpsellSettingsModal: React.FC<UpsellSettingsModalProps> = ({
   config,
   onConfigChange,
 }) => {
+  const [copied, setCopied] = useState(false);
+
   const updateConfig = <K extends keyof UpsellConfig>(
     key: K,
     value: UpsellConfig[K]
@@ -40,6 +42,20 @@ export const UpsellSettingsModal: React.FC<UpsellSettingsModalProps> = ({
 
   const handleReset = () => {
     onConfigChange(defaultUpsellConfig);
+  };
+
+  const handleGenerateUrl = () => {
+    const params = new URLSearchParams();
+    params.set('accessoryIntro', config.accessoryIntroVersion.toString());
+    params.set('accessoryCard', config.accessoryCardVersion.toString());
+    params.set('accessoryLimit', config.accessoryLimitVersion.toString());
+    params.set('priceBreakdown', config.priceBreakdownVersion.toString());
+    params.set('insuranceIntro', config.insuranceIntroVersion.toString());
+    params.set('planComparison', config.planComparisonVersion.toString());
+    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const renderVersionSelector = (
@@ -75,7 +91,7 @@ export const UpsellSettingsModal: React.FC<UpsellSettingsModalProps> = ({
             }}
             description={descriptions[version]}
           >
-            V{version}
+            Versión {version}
           </Radio>
         ))}
       </RadioGroup>
@@ -221,21 +237,31 @@ export const UpsellSettingsModal: React.FC<UpsellSettingsModalProps> = ({
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white">
+        <ModalFooter className="bg-white justify-between">
           <Button
-            variant="light"
-            startContent={<RotateCcw className="w-4 h-4" />}
-            onPress={handleReset}
-            className="cursor-pointer"
+            variant="flat"
+            startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
+            onPress={handleGenerateUrl}
+            className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
           >
-            Restablecer
+            {copied ? 'Copiado!' : 'Generar URL'}
           </Button>
-          <Button
-            className="bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3] transition-colors"
-            onPress={onClose}
-          >
-            Aplicar
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="light"
+              startContent={<RotateCcw className="w-4 h-4" />}
+              onPress={handleReset}
+              className="cursor-pointer"
+            >
+              Restablecer
+            </Button>
+            <Button
+              className="bg-[#4654CD] text-white cursor-pointer"
+              onPress={onClose}
+            >
+              Aplicar
+            </Button>
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>

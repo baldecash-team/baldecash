@@ -58,3 +58,5 @@ export const AccessoryLimitV6: React.FC<AccessoryLimitProps> = ({
     </AnimatePresence>
   );
 };
+
+export default AccessoryLimitV6;

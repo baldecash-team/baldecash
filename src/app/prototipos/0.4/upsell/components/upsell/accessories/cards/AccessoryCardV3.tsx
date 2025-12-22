@@ -81,3 +81,5 @@ export const AccessoryCardV3: React.FC<AccessoryCardProps> = ({
     </Card>
   );
 };
+
+export default AccessoryCardV3;

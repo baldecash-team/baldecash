@@ -40,3 +40,5 @@ export const RecommendedBadgeV4: React.FC<RecommendedBadgeProps> = ({
     </motion.div>
   );
 };
+
+export default RecommendedBadgeV4;

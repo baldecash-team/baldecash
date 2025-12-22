@@ -64,3 +64,5 @@ export const RemoveButtonV4: React.FC<RemoveButtonProps> = ({
     </motion.button>
   );
 };
+
+export default RemoveButtonV4;

@@ -33,3 +33,5 @@ export const RemoveButtonV5: React.FC<RemoveButtonProps> = ({
     </div>
   );
 };
+
+export default RemoveButtonV5;

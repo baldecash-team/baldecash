@@ -139,10 +139,8 @@ export const InsuranceSection: React.FC<InsuranceSectionProps> = ({
       {/* Plan comparison */}
       <ComparisonComponent
         plans={plans}
-        selectedPlanId={selectedPlanId}
-        onSelectPlan={onSelectPlan}
-        onViewDetails={handleViewDetails}
-        config={config}
+        selectedPlan={selectedPlanId}
+        onSelect={(planId) => onSelectPlan(planId)}
       />
 
       {/* Skip button/link */}

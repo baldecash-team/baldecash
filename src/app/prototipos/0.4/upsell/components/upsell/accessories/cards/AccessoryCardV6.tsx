@@ -99,3 +99,5 @@ export const AccessoryCardV6: React.FC<AccessoryCardProps> = ({
     </motion.div>
   );
 };
+
+export default AccessoryCardV6;

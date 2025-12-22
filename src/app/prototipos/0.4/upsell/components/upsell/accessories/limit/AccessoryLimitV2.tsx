@@ -21,3 +21,5 @@ export const AccessoryLimitV2: React.FC<AccessoryLimitProps> = ({
     </div>
   );
 };
+
+export default AccessoryLimitV2;

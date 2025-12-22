@@ -25,7 +25,7 @@ export const mockAccessories: Accessory[] = [
     price: 59,
     monthlyQuota: 3,
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
-    category: 'proteccion',
+    category: 'protección',
     isRecommended: true,
     compatibleWith: ['all'],
   },
@@ -58,7 +58,7 @@ export const mockAccessories: Accessory[] = [
     price: 69,
     monthlyQuota: 3,
     image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=400&h=400&fit=crop',
-    category: 'proteccion',
+    category: 'protección',
     isRecommended: false,
     compatibleWith: ['all'],
   },
@@ -191,7 +191,7 @@ export const mockProduct = {
 // ============================================
 
 export const accessoryCategories = [
-  { id: 'proteccion', name: 'Protección', icon: 'Shield' },
+  { id: 'protección', name: 'Protección', icon: 'Shield' },
   { id: 'audio', name: 'Audio', icon: 'Headphones' },
   { id: 'almacenamiento', name: 'Almacenamiento', icon: 'HardDrive' },
   { id: 'conectividad', name: 'Conectividad', icon: 'Usb' },

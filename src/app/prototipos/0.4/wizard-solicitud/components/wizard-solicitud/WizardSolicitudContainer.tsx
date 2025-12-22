@@ -48,7 +48,7 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
     inputVersion: config.inputVersion,
     labelVersion: config.labelVersion,
     datePickerVersion: config.datePickerVersion,
-    selectCardsVersion: config.selectCardsVersion,
+    optionsVersion: config.optionsVersion,
     uploadVersion: config.uploadVersion,
   });
 
@@ -74,7 +74,7 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
       inputVersion: config.inputVersion,
       labelVersion: config.labelVersion,
       datePickerVersion: config.datePickerVersion,
-      selectCardsVersion: config.selectCardsVersion,
+      optionsVersion: config.optionsVersion,
       uploadVersion: config.uploadVersion,
     };
 
@@ -100,7 +100,7 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
     config.inputVersion,
     config.labelVersion,
     config.datePickerVersion,
-    config.selectCardsVersion,
+    config.optionsVersion,
     config.uploadVersion,
   ]);
 

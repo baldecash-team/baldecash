@@ -141,9 +141,8 @@ export const AccessoriesSection: React.FC<AccessoriesSectionProps> = ({
 
       {/* Limit indicator */}
       <LimitComponent
-        current={selectedAccessoryIds.length}
+        selected={selectedAccessoryIds.length}
         max={maxAccessories}
-        isAtLimit={isAtLimit}
       />
 
       {/* Cards */}
@@ -173,13 +172,12 @@ export const AccessoriesSection: React.FC<AccessoriesSectionProps> = ({
           </>
         ) : (
           // Standard grid/carousel for other versions
-          accessories.map((accessory, index) => (
+          accessories.map((accessory) => (
             <CardComponent
               key={accessory.id}
               accessory={accessory}
               isSelected={selectedAccessoryIds.includes(accessory.id)}
               onToggle={() => onToggleAccessory(accessory.id)}
-              index={index}
             />
           ))
         )}
@@ -188,11 +186,10 @@ export const AccessoriesSection: React.FC<AccessoriesSectionProps> = ({
       {/* Price breakdown */}
       <BreakdownComponent
         productPrice={productPrice}
-        accessoriesTotal={accessoriesTotal}
-        accessoriesMonthlyTotal={accessoriesMonthlyTotal}
-        selectedAccessories={selectedAccessories}
-        isExpanded={showBreakdown}
-        onToggle={() => setShowBreakdown(!showBreakdown)}
+        productQuota={0}
+        accessories={accessories}
+        selectedAccessoryIds={selectedAccessoryIds}
+        insurancePlan={null}
       />
     </section>
   );

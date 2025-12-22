@@ -71,3 +71,5 @@ export const AccessoryCardV4: React.FC<AccessoryCardProps> = ({
     </Card>
   );
 };
+
+export default AccessoryCardV4;

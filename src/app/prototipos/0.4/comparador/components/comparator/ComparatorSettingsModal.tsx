@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -11,7 +11,7 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Scale, Layout, Table, Sparkles, DollarSign, Columns, Eye, MousePointer, CreditCard } from 'lucide-react';
+import { Settings, RotateCcw, Scale, Layout, Table, Sparkles, DollarSign, Columns, Eye, MousePointer, CreditCard, Link2, Check } from 'lucide-react';
 import {
   ComparatorSettingsModalProps,
   defaultComparatorConfig,
@@ -32,8 +32,26 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
   config,
   onConfigChange,
 }) => {
+  const [copied, setCopied] = useState(false);
+
   const handleReset = () => {
     onConfigChange(defaultComparatorConfig);
+  };
+
+  const handleGenerateUrl = () => {
+    const params = new URLSearchParams();
+    params.set('layout', config.layoutVersion.toString());
+    params.set('access', config.accessVersion.toString());
+    params.set('maxProducts', config.maxProductsVersion.toString());
+    params.set('fields', config.fieldsVersion.toString());
+    params.set('highlight', config.highlightVersion.toString());
+    params.set('priceDiff', config.priceDiffVersion.toString());
+    params.set('differenceHighlight', config.differenceHighlightVersion.toString());
+    params.set('cardSelection', config.cardSelectionVersion.toString());
+    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const updateConfig = <K extends keyof ComparatorConfig>(
@@ -106,7 +124,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   }}
                   description={layoutVersionLabels[version as keyof typeof layoutVersionLabels].description}
                 >
-                  V{version} - {layoutVersionLabels[version as keyof typeof layoutVersionLabels].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -142,7 +160,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   }}
                   description={accessVersionLabels[version as keyof typeof accessVersionLabels].description}
                 >
-                  V{version} - {accessVersionLabels[version as keyof typeof accessVersionLabels].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -178,7 +196,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   }}
                   description={maxProductsVersionLabels[version as keyof typeof maxProductsVersionLabels].description}
                 >
-                  V{version} - {maxProductsVersionLabels[version as keyof typeof maxProductsVersionLabels].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -214,7 +232,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   }}
                   description={fieldsVersionLabels[version as keyof typeof fieldsVersionLabels].description}
                 >
-                  V{version} - {fieldsVersionLabels[version as keyof typeof fieldsVersionLabels].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -250,7 +268,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   }}
                   description={highlightVersionLabels[version as keyof typeof highlightVersionLabels].description}
                 >
-                  V{version} - {highlightVersionLabels[version as keyof typeof highlightVersionLabels].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -286,7 +304,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   }}
                   description={priceDiffVersionLabels[version as keyof typeof priceDiffVersionLabels].description}
                 >
-                  V{version} - {priceDiffVersionLabels[version as keyof typeof priceDiffVersionLabels].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -322,7 +340,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   }}
                   description={differenceHighlightVersionLabels[version as keyof typeof differenceHighlightVersionLabels].description}
                 >
-                  V{version} - {differenceHighlightVersionLabels[version as keyof typeof differenceHighlightVersionLabels].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -358,28 +376,38 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   }}
                   description={cardSelectionVersionLabels[version as keyof typeof cardSelectionVersionLabels].description}
                 >
-                  V{version} - {cardSelectionVersionLabels[version as keyof typeof cardSelectionVersionLabels].name}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white">
+        <ModalFooter className="bg-white justify-between">
           <Button
-            variant="light"
-            startContent={<RotateCcw className="w-4 h-4" />}
-            onPress={handleReset}
-            className="cursor-pointer"
+            variant="flat"
+            startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
+            onPress={handleGenerateUrl}
+            className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
           >
-            Restablecer
+            {copied ? 'Copiado!' : 'Generar URL'}
           </Button>
-          <Button
-            className="bg-[#4654CD] text-white cursor-pointer"
-            onPress={onClose}
-          >
-            Aplicar
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="light"
+              startContent={<RotateCcw className="w-4 h-4" />}
+              onPress={handleReset}
+              className="cursor-pointer"
+            >
+              Restablecer
+            </Button>
+            <Button
+              className="bg-[#4654CD] text-white cursor-pointer"
+              onPress={onClose}
+            >
+              Aplicar
+            </Button>
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>
