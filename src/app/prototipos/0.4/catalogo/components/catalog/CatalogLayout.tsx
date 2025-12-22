@@ -13,7 +13,7 @@ import {
 
 /**
  * CatalogLayout - Wrapper principal
- * Selecciona la version de layout segun configuracion
+ * Selecciona la versión de layout según configuración
  */
 export const CatalogLayout: React.FC<CatalogLayoutProps> = (props) => {
   const { config } = props;

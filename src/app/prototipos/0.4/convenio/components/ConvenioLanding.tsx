@@ -378,30 +378,6 @@ export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({
         </div>
       )}
 
-      {/* Version badges */}
-      {showOverlays && (
-        <div className="fixed top-20 left-4 z-40 flex flex-col gap-1">
-          <span className="px-2 py-1 bg-[#4654CD] text-white text-xs rounded font-medium">
-            Nav: V{config.navbarVersion}
-          </span>
-          <span className="px-2 py-1 bg-[#4654CD] text-white text-xs rounded font-medium">
-            Hero: V{config.heroVersion}
-          </span>
-          <span className="px-2 py-1 bg-[#4654CD] text-white text-xs rounded font-medium">
-            Benefits: V{config.benefitsVersion}
-          </span>
-          <span className="px-2 py-1 bg-[#4654CD] text-white text-xs rounded font-medium">
-            Testimonials: V{config.testimonialsVersion}
-          </span>
-          <span className="px-2 py-1 bg-[#4654CD] text-white text-xs rounded font-medium">
-            FAQ: V{config.faqVersion}
-          </span>
-          <span className="px-2 py-1 bg-[#4654CD] text-white text-xs rounded font-medium">
-            CTA: V{config.ctaVersion}
-          </span>
-        </div>
-      )}
-
       {/* Settings Modal */}
       <ConvenioSettingsModal
         isOpen={isSettingsOpen}

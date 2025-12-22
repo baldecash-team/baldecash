@@ -97,7 +97,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
                   }}
                   description={desc}
                 >
-                  Version {key}
+                  Versión {key}
                 </Radio>
               ))}
             </RadioGroup>
@@ -179,7 +179,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
                   }}
                   description={desc}
                 >
-                  Version {key}
+                  Versión {key}
                 </Radio>
               ))}
             </RadioGroup>
@@ -220,7 +220,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
                   }}
                   description={desc}
                 >
-                  Version {key}
+                  Versión {key}
                 </Radio>
               ))}
             </RadioGroup>
@@ -261,7 +261,7 @@ export const QuizSettingsModal: React.FC<QuizSettingsModalProps> = ({
                   }}
                   description={desc}
                 >
-                  Version {key}
+                  Versión {key}
                 </Radio>
               ))}
             </RadioGroup>

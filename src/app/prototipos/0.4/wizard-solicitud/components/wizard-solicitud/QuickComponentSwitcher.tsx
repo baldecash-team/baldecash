@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * QuickComponentSwitcher - Modal rapido para cambiar componentes
- * Permite seleccionar componente y version con un click
+ * QuickComponentSwitcher - Modal rápido para cambiar componentes
+ * Permite seleccionar componente y versión con un click
  */
 
 import React from 'react';

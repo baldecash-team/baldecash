@@ -123,7 +123,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={layoutVersionDescriptions[version as keyof typeof layoutVersionDescriptions]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -159,7 +159,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                   }}
                   description={brandFilterVersionDescriptions[version as keyof typeof brandFilterVersionDescriptions]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>

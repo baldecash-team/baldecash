@@ -16,7 +16,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { Settings, Eye, ArrowLeft, Code, X } from 'lucide-react';
+import { Settings, Eye, ArrowLeft, Code } from 'lucide-react';
 import { ProductDetailConfig, defaultDetailConfig, DetailVersion } from '../types/detail';
 import { ProductDetail } from '../components/detail/ProductDetail';
 import { DetailSettingsModal } from '../components/detail/DetailSettingsModal';
@@ -30,7 +30,6 @@ function DetailPreviewContent() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
-  const [showBadges, setShowBadges] = useState(true);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
 
   // Initialize config from URL params or defaults
@@ -108,46 +107,6 @@ function DetailPreviewContent() {
       {/* Shortcut Help Badge */}
       {showOverlays && (
         <ShortcutHelpBadge activeComponent={COMPONENT_LABELS[activeComponent as keyof typeof COMPONENT_LABELS] || activeComponent} />
-      )}
-
-      {/* Version badges overlay */}
-      {showOverlays && showBadges && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-wrap justify-center items-center gap-2 bg-white/95 backdrop-blur-sm pl-4 pr-2 py-2 rounded-lg shadow-lg border border-neutral-200 max-w-[90vw]">
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'gallery' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Gallery: V{config.galleryVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'infoHeader' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Info: V{config.infoHeaderVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'pricing' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Pricing: V{config.pricingVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'certifications' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Certs: V{config.certificationsVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'tabs' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Tabs: V{config.tabsVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'specs' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Specs: V{config.specsVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'cronograma' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Crono: V{config.cronogramaVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'similarProducts' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Similar: V{config.similarProductsVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'limitations' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Limits: V{config.limitationsVersion}
-          </span>
-          <button
-            onClick={() => setShowBadges(false)}
-            className="ml-2 p-1 hover:bg-neutral-100 rounded transition-colors cursor-pointer"
-            aria-label="Cerrar badges"
-          >
-            <X className="w-4 h-4 text-neutral-400 hover:text-neutral-600" />
-          </button>
-        </div>
       )}
 
       {/* Main content */}

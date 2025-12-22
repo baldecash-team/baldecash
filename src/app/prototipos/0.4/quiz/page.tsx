@@ -3,14 +3,14 @@
 /**
  * Quiz Preview Page - BaldeCash v0.4
  *
- * Pagina de preview para el Quiz de Ayuda
- * con controles de configuracion A/B.
+ * Página de preview para el Quiz de Ayuda
+ * con controles de configuración A/B.
  *
  * Versiones preferidas consolidadas de 0.3:
  * - B.98: Layout V1 (modal full screen mobile)
  * - B.99: 7 preguntas
  * - B.100: Question Style V1 (chips/pills)
- * - B.101: Results V1 (categoria + cards catalogo)
+ * - B.101: Results V1 (categoría + cards catálogo)
  * - B.102: Focus V1 (solo por uso)
  */
 
@@ -105,7 +105,7 @@ export default function QuizPreviewPage() {
             </div>
             <div>
               <h2 className="font-semibold text-neutral-800">
-                Configuracion Actual
+                Configuración Actual
               </h2>
               <p className="text-sm text-neutral-500">
                 Ajusta las versiones para probar diferentes combinaciones
@@ -236,10 +236,10 @@ export default function QuizPreviewPage() {
               </div>
             </div>
             <h4 className="font-semibold text-neutral-800 text-sm mb-1">
-              V3 - Pagina Dedicada
+              V3 - Página Dedicada
             </h4>
             <p className="text-xs text-neutral-500">
-              Pagina completa para el quiz
+              Página completa para el quiz
             </p>
           </div>
         </div>
@@ -252,7 +252,7 @@ export default function QuizPreviewPage() {
             startContent={<Play className="w-5 h-5" />}
             onPress={() => setIsQuizOpen(true)}
           >
-            Probar Quiz con esta Configuracion
+            Probar Quiz con esta Configuración
           </Button>
         </div>
       </main>

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Spinner, Tabs, Tab } from '@nextui-org/react';
 import { Settings, Code, ArrowLeft, Package, Shield } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { VersionNav, useKeyboardShortcuts } from '@/app/prototipos/_shared';
+import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
 import { UpsellConfig, defaultUpsellConfig, mockAccessories, mockInsurancePlans, mockProductContext } from '../types/upsell';
 import { UpsellSettingsModal } from '../components/upsell/UpsellSettingsModal';
 
@@ -127,15 +127,12 @@ function UpsellPreviewContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Top navigation */}
-      <VersionNav currentVersion="0.4" showSections={true} />
-
       {/* Main content */}
       <main className="pt-16 pb-24 px-4 md:px-8 max-w-5xl mx-auto">
         {/* Page header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-neutral-800 mb-2">
-            Upsell Preview
+            Upsell - Preview
           </h1>
           <p className="text-neutral-600">
             Prueba las diferentes versiones de accesorios y seguros.

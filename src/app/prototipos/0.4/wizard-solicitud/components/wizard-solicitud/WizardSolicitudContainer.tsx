@@ -78,7 +78,7 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
       uploadVersion: config.uploadVersion,
     };
 
-    // Verificar si alguna version cambio
+    // Verificar si alguna versión cambió
     const hasVersionChanged = Object.keys(currentVersions).some(
       (key) =>
         currentVersions[key as keyof typeof currentVersions] !==

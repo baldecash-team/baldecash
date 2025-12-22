@@ -96,7 +96,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.navbar[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -132,7 +132,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.heroBanner[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -168,7 +168,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.underline[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -204,7 +204,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.socialProof[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -240,7 +240,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.howItWorks[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -276,7 +276,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.cta[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -312,7 +312,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.faq[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -348,7 +348,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.footer[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>

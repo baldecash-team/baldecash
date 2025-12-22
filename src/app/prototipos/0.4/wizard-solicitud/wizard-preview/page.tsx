@@ -5,7 +5,7 @@
  * Preview con Settings Modal para configurar versiones
  *
  * Keyboard Shortcuts:
- * - 1-6: Cambiar version del componente activo
+ * - 1-6: Cambiar versión del componente activo
  * - Tab: Siguiente componente
  * - Shift+Tab: Componente anterior
  * - S: Abrir/cerrar settings

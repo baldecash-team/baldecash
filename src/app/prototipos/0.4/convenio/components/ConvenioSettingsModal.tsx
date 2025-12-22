@@ -175,7 +175,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.navbar[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -211,7 +211,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.hero[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -247,7 +247,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.benefits[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -283,7 +283,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.testimonials[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -319,7 +319,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.faq[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -355,7 +355,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.cta[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>

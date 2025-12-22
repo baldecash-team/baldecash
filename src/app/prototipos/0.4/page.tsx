@@ -53,7 +53,7 @@ export default function Version04Page() {
         <header className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#4654CD]/10 text-[#4654CD] rounded-full text-sm mb-4">
             <Rocket className="w-4 h-4" />
-            <span>Version {version.version}</span>
+            <span>Versión {version.version}</span>
           </div>
           <h1 className="text-4xl font-black text-neutral-900 mb-4">{version.title}</h1>
           <p className="text-lg text-neutral-500 max-w-2xl mx-auto">{version.description}</p>

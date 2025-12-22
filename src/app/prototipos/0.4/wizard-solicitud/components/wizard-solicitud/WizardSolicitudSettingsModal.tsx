@@ -107,7 +107,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.header[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -141,7 +141,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.hero[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -175,7 +175,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.cta[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -217,7 +217,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.wizardLayout[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -251,7 +251,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.progress[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -285,7 +285,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.navigation[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -319,7 +319,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.celebration[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -361,7 +361,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.label[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -395,7 +395,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.input[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -429,7 +429,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.options[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -463,7 +463,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.upload[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -497,7 +497,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.datePicker[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -531,7 +531,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.validation[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -565,7 +565,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.error[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -599,7 +599,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.help[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>
@@ -633,7 +633,7 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                     }}
                     description={versionDescriptions.docExamples[version]}
                   >
-                    Version {version}
+                    Versión {version}
                   </Radio>
                 ))}
               </RadioGroup>

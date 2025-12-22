@@ -127,7 +127,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.infoHeader[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -163,7 +163,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.gallery[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -199,7 +199,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.tabs[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -235,7 +235,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.specs[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -271,7 +271,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.pricing[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -307,7 +307,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.cronograma[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -343,7 +343,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.similarProducts[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -379,7 +379,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.limitations[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>
@@ -415,7 +415,7 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
                   }}
                   description={versionDescriptions.certifications[version]}
                 >
-                  Version {version}
+                  Versión {version}
                 </Radio>
               ))}
             </RadioGroup>

@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Spinner } from '@nextui-org/react';
 import { Settings, Code, ArrowLeft } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { VersionNav } from '@/app/prototipos/_shared';
 import {
   EmptyState,
   EmptyStateSettingsModal,
@@ -71,9 +70,6 @@ function EmptyStatePreviewContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Version Nav */}
-      <VersionNav currentVersion="0.4" showSections={true} />
-
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 py-6">
         <div className="container mx-auto px-4">
