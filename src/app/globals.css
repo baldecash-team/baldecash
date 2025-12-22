@@ -121,7 +121,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
@@ -181,4 +181,57 @@
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ============================================
+   BaldeCash - Focus States (NO borde negro)
+   ============================================
+   IMPORTANTE: Ningún input debe mostrar borde negro al hacer focus.
+   El color de focus debe ser el primario de marca (#4654CD).
+*/
+
+/* Quitar outline por defecto en TODOS los elementos */
+*:focus,
+*:focus-visible {
+  outline: none !important;
+}
+
+/* NextUI - Quitar focus ring negro en inputs */
+[data-focus-visible="true"],
+[data-focused="true"],
+[data-focus="true"] {
+  outline: none !important;
+  --tw-ring-color: transparent !important;
+}
+
+/* NextUI Input wrappers */
+.group[data-focus-visible="true"],
+.group[data-focus="true"] {
+  --tw-ring-shadow: none !important;
+  outline: none !important;
+}
+
+/* Inputs nativos - sin outline */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: none !important;
+}
+
+/* Focus visible accesible - usar color de marca */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none !important;
+  border-color: #4654CD !important;
+}
+
+/* NextUI Select/Autocomplete triggers */
+[data-slot="trigger"]:focus,
+[data-slot="trigger"]:focus-visible,
+[data-slot="input-wrapper"]:focus,
+[data-slot="input-wrapper"]:focus-within {
+  outline: none !important;
+  --tw-ring-shadow: none !important;
 }

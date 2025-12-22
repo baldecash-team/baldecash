@@ -47,44 +47,65 @@ Laptop Lenovo 15.6" para estudios - Ryzen 5
 Laptop ideal para estudios universitarios con Ryzen 5, 8GB RAM...
 ```
 
-#### V2 - Layout Compacto (Mobile-optimized)
+#### V2 - Hero Card con Gradiente
 ```
-Lenovo • 15 disponibles
+┌─────────────────────────────────────────────┐
+│  [LENOVO] [⚡ Verificado]     [📦 15 disp.] │  ← Fondo gradiente azul
+│                                             │
+│  Laptop Lenovo 15.6" para estudios          │
+│  ★★★★☆ 4.5 (128 opiniones)                 │
+│                                             │
+│  [🛡 Garantía] [🚚 Envío gratis] [💳 Sin tarjeta] │
+└─────────────────────────────────────────────┘
+```
+
+#### V3 - Horizontal Split Layout
+```
+┌─────────────────────────────────────────────┐
+│  [LENOVO] ★ 4.5 (128)          [📦 15 en stock] │
+│  Laptop Lenovo 15.6" para estudios - Ryzen 5    │
+├─────────────────────────────────────────────┤
+│  ● Ryzen 5 | ● 8GB RAM | ● 256GB SSD | ● 15.6" FHD  [Ver todo →] │
+└─────────────────────────────────────────────┘
+```
+
+#### V4 - Mobile Compact Layout
+```
+[LENOVO] ★ 4.5                    [📦 15 disp.]
 Laptop Lenovo 15.6" para estudios - Ryzen 5
-[Windows 11] [6h batería]
-★★★★☆ 4.5 (128)
+
+[Ryzen 5] [8GB RAM] [256GB SSD] [15.6" FHD] [Más →]  ← Swipeable
+
+● Garantía  ● Envío gratis  ● Sin tarjeta
 ```
 
-#### V3 - Layout con Chips Flotantes
+#### V5 - Comparador Visual de Precios
 ```
-                        [Windows 11 Home ✓]
-Lenovo                  [Hasta 6 horas ⚡]
-Laptop Lenovo 15.6"...  [15 disponibles 📦]
-★★★★☆ 4.5 (128 opiniones)
+[LENOVO] ★ 4.5                    [📦 15 en stock]
+Laptop Lenovo 15.6" para estudios
+
+┌─[Contado]──[Tarjeta]──[Otra financiera]─┐
+│  Ellos: S/250/mes (tachado)  │  BaldeCash: S/89/mes  │
+│  ─────────────────────────────────────── │
+│  💚 Ahorras S/161/mes  │  -64%           │
+└─────────────────────────────────────────┘
+
+[✓ Sin inicial] [✓ Sin tarjeta] [✓ Cuota fija]
 ```
 
-#### V4 - Layout Hero (Nombre prominente)
+#### V6 - Stacked Cards (Acordeones)
 ```
-LENOVO
-━━━━━━━━━━━━━━━━━━━━━━━━
-Laptop 15.6" para estudios
-Ryzen 5 • 8GB RAM • 256GB SSD
-━━━━━━━━━━━━━━━━━━━━━━━━
-★★★★☆ 4.5 (128) | Windows 11 | 6h batería | 15 disp.
-```
-
-#### V5 - Layout Split (Info izquierda, badges derecha)
-```
-Lenovo                          | [Windows 11 Home]
-Laptop 15.6" para estudios      | [Hasta 6 horas]
-★★★★☆ 4.5 (128 opiniones)      | [15 disponibles]
-```
-
-#### V6 - Layout Interactivo (Badges expandibles)
-```
-Lenovo • Laptop 15.6" para estudios - Ryzen 5
-★★★★☆ 4.5 (128 opiniones)
-[+ Ver especificaciones rápidas] → expande badges
+┌─────────────────────────────────────────┐
+│  [LENOVO] ★ 4.5 (128)                   │
+│  Laptop Lenovo 15.6" para estudios      │
+│  ● 15 disponibles                       │
+└─────────────────────────────────────────┘
+┌─[🔧 Especificaciones]────────────[▼]────┐  ← Expandible
+└─────────────────────────────────────────┘
+┌─[S/ Cuota mensual desde S/89]────[▼]────┐  ← Expandible (gradiente)
+└─────────────────────────────────────────┘
+┌─[🛡 Beneficios incluidos]────────[▼]────┐  ← Expandible
+└─────────────────────────────────────────┘
 ```
 
 ---
@@ -167,7 +188,95 @@ Lenovo • Laptop 15.6" para estudios - Ryzen 5
 
 ---
 
-## 6. Estructura de Archivos (0.4)
+## 6. Cronograma de Pagos (NUEVO)
+
+### Descripción
+Componente para visualizar el cronograma de pagos mensuales.
+Muestra cuotas, fechas y progreso de manera visual.
+
+### Versiones (6)
+
+#### V1 - Timeline Vertical Clásico
+```
+○───── Cuota 1: S/89 - Ene 2025
+│
+○───── Cuota 2: S/89 - Feb 2025
+│
+○───── Cuota 3: S/89 - Mar 2025
+│
+⋮
+```
+
+#### V2 - Progress Bar Horizontal
+```
+[12m] [18m] [24m] [36m] [48m]
+
+━━━━━━━━━━━━━━━━━━━━━━━ 100%
+│     │     │     │
+25%  50%   75%  100%
+```
+
+#### V3 - Cards de Milestone
+```
+┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐
+│ 25%  │  │ 50%  │  │ 75%  │  │ 100% │
+│ C#9  │  │ C#18 │  │ C#27 │  │ C#36 │
+└──────┘  └──────┘  └──────┘  └──────┘
+```
+
+#### V4 - Calendario Paginado (Touch-friendly) ⭐ ACTUALIZADO
+```
+[← Anterior]  [1] [2] [3] [4]  [Siguiente →]
+
+┌────┬────┬────┬────┬────┬────┐
+│ 1  │ 2  │ 3  │ 4  │ 5  │ 6  │
+│Ene │Feb │Mar │Abr │May │Jun │
+├────┼────┼────┼────┼────┼────┤
+│ 7  │ 8  │ 9  │ 10 │ 11 │ 12 │
+│Jul │Ago │Sep │Oct │Nov │Dic │
+└────┴────┴────┴────┴────┴────┘
+
+[Click en cuota → Panel de detalle]
+```
+- Solo muestra meses con pago (no calendario completo)
+- Paginación para 48 meses (12 por página)
+- Click en lugar de hover (mobile-friendly)
+
+#### V5 - Gamificado con Simulador ⭐ ACTUALIZADO
+```
+🏆 Tu Aventura de Pagos ✨     [12m][18m][24m][36m][48m]
+
+┌─────────────────────────────────────────┐
+│  [▶]  Simula tu progreso               │
+│  Cuota 15 de 36        ████████░░ 42%  │
+│  ════════════════════════════════════  │
+│                                        │
+│  [Slider interactivo]                  │
+└─────────────────────────────────────────┘
+
+┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
+│ ⭐ 25%  │ │ 🏆 50%  │ │ 🥈 75%  │ │ 👑 100% │
+│ 🔓DONE │ │ 🎯NEXT  │ │ 🔒      │ │ 🔒      │
+└─────────┘ └─────────┘ └─────────┘ └─────────┘
+```
+- Slider para simular cuotas pagadas
+- Botón play para auto-animación
+- Estados de milestone: desbloqueado/próximo/bloqueado
+
+#### V6 - Tabla Compacta
+```
+┌──────────┬────────┬──────────┬──────────┐
+│ Cuota    │ Monto  │ Fecha    │ Acumulado│
+├──────────┼────────┼──────────┼──────────┤
+│ 1        │ S/89   │ Ene 2025 │ S/89     │
+│ 2        │ S/89   │ Feb 2025 │ S/178    │
+│ ...      │ ...    │ ...      │ ...      │
+└──────────┴────────┴──────────┴──────────┘
+```
+
+---
+
+## 7. Estructura de Archivos (0.4)
 
 ```
 src/app/prototipos/0.4/producto/
@@ -179,12 +288,20 @@ src/app/prototipos/0.4/producto/
 │       ├── ProductDetail.tsx             # Wrapper principal
 │       ├── DetailSettingsModal.tsx       # Modal configuración
 │       ├── info/
-│       │   ├── ProductInfoHeaderV1.tsx   # NUEVO - 6 versiones
-│       │   ├── ProductInfoHeaderV2.tsx
-│       │   ├── ProductInfoHeaderV3.tsx
-│       │   ├── ProductInfoHeaderV4.tsx
-│       │   ├── ProductInfoHeaderV5.tsx
-│       │   ├── ProductInfoHeaderV6.tsx
+│       │   ├── ProductInfoHeaderV1.tsx   # 6 versiones
+│       │   ├── ProductInfoHeaderV2.tsx   # Hero card gradiente
+│       │   ├── ProductInfoHeaderV3.tsx   # Horizontal split
+│       │   ├── ProductInfoHeaderV4.tsx   # Mobile compact
+│       │   ├── ProductInfoHeaderV5.tsx   # Comparador precios
+│       │   ├── ProductInfoHeaderV6.tsx   # Stacked cards
+│       │   └── index.ts
+│       ├── cronograma/                   # NUEVO
+│       │   ├── CronogramaV1.tsx          # Timeline vertical
+│       │   ├── CronogramaV2.tsx          # Progress bar
+│       │   ├── CronogramaV3.tsx          # Cards milestone
+│       │   ├── CronogramaV4.tsx          # Calendario paginado
+│       │   ├── CronogramaV5.tsx          # Gamificado con slider
+│       │   ├── CronogramaV6.tsx          # Tabla compacta
 │       │   └── index.ts
 │       ├── gallery/
 │       │   └── ProductGalleryV[1-6].tsx  # V1 = thumbnails inferiores
@@ -208,7 +325,7 @@ src/app/prototipos/0.4/producto/
 
 ---
 
-## 7. Tipos TypeScript
+## 8. Tipos TypeScript
 
 ```typescript
 // types/detail.ts
@@ -255,11 +372,19 @@ export const defaultDetailConfig: ProductDetailConfig = {
 export const versionDescriptions = {
   infoHeader: {
     1: 'Layout actual (badges + info vertical)',
-    2: 'Layout compacto (mobile-optimized)',
-    3: 'Layout con chips flotantes',
-    4: 'Layout hero (nombre prominente)',
-    5: 'Layout split (info izq, badges der)',
-    6: 'Layout interactivo (badges expandibles)',
+    2: 'Hero card con gradiente y trust badges',
+    3: 'Horizontal split con specs inline',
+    4: 'Mobile compact con specs swipeables',
+    5: 'Comparador visual de precios',
+    6: 'Stacked cards expandibles (acordeones)',
+  },
+  cronograma: {
+    1: 'Timeline vertical clásico',
+    2: 'Progress bar horizontal',
+    3: 'Cards de milestone',
+    4: 'Calendario con paginación (touch-friendly)',
+    5: 'Gamificado con simulador de progreso',
+    6: 'Tabla compacta',
   },
   gallery: {
     1: 'Thumbnails inferiores + zoom hover (PREFERIDO)',
@@ -322,7 +447,7 @@ export const versionDescriptions = {
 
 ---
 
-## 8. Notas Importantes
+## 9. Notas Importantes
 
 1. **V1 siempre es la preferida** - Las otras versiones son variaciones para A/B testing
 2. **Sin precio del equipo** - Solo mostrar cuota mensual
@@ -334,10 +459,11 @@ export const versionDescriptions = {
 
 ---
 
-## 9. Checklist de Entregables
+## 10. Checklist de Entregables
 
 ### Componentes Nuevos
-- [ ] `ProductInfoHeaderV1.tsx` a `V6.tsx` (6 versiones)
+- [x] `ProductInfoHeaderV1.tsx` a `V6.tsx` (6 versiones) ✅
+- [x] `CronogramaV1.tsx` a `V6.tsx` (6 versiones) ✅
 
 ### Componentes Actualizados (de 3 a 6 versiones)
 - [ ] `ProductGalleryV1.tsx` a `V6.tsx` - V1 = thumbnails inferiores

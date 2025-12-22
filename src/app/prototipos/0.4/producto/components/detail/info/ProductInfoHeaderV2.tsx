@@ -1,73 +1,84 @@
 'use client';
 
 /**
- * ProductInfoHeaderV2 - Layout Compacto (Mobile-optimized)
+ * ProductInfoHeaderV2 - Hero Card con Gradiente
  *
- * Compact layout optimized for mobile with inline brand and stock,
- * badges as small chips below name.
+ * Bold hero-style card with gradient background,
+ * prominent branding, and floating badges.
+ * No image - focused on product info only.
  */
 
 import React from 'react';
-import { Chip } from '@nextui-org/react';
-import { Star, Monitor, Battery } from 'lucide-react';
+import { Star, Shield, Truck, CreditCard, Zap, Package } from 'lucide-react';
 import { ProductInfoHeaderProps } from '../../../types/detail';
 
 export const ProductInfoHeaderV2: React.FC<ProductInfoHeaderProps> = ({ product }) => {
-  // Only show OS and battery badges in this compact version
-  const compactBadges = product.badges.filter(b => b.type === 'os' || b.type === 'battery');
-
   return (
-    <div className="space-y-2">
-      {/* Brand + Stock inline */}
-      <div className="flex items-center gap-2 text-sm">
-        <span className="font-medium text-neutral-700">{product.brand}</span>
-        <span className="text-neutral-300">•</span>
-        <span className="text-neutral-500">{product.stock} disponibles</span>
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#4654CD] via-[#5B6AD9] to-[#7B88E5] p-6 text-white">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
       </div>
 
-      {/* Product Name */}
-      <h1 className="text-lg font-bold text-neutral-900 font-['Baloo_2'] leading-snug">
-        {product.displayName}
-      </h1>
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Top Row: Brand + Stock */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1 bg-white/20 backdrop-blur-sm text-xs font-bold uppercase tracking-wider rounded-full">
+              {product.brand}
+            </span>
+            <div className="flex items-center gap-1">
+              <Zap className="w-4 h-4 text-amber-300" />
+              <span className="text-xs text-white/80">Verificado</span>
+            </div>
+          </div>
 
-      {/* Compact Badges */}
-      <div className="flex flex-wrap gap-1.5">
-        {compactBadges.map((badge, index) => (
-          <Chip
-            key={index}
-            size="sm"
-            radius="sm"
-            startContent={
-              badge.type === 'os'
-                ? <Monitor className="w-3 h-3" />
-                : <Battery className="w-3 h-3" />
-            }
-            classNames={{
-              base: 'bg-neutral-100 px-2 py-0.5 h-auto',
-              content: 'text-xs text-neutral-600',
-            }}
-          >
-            {badge.type === 'os' ? 'Windows 11' : badge.text.replace('Hasta ', '')}
-          </Chip>
-        ))}
-      </div>
-
-      {/* Rating - Compact */}
-      <div className="flex items-center gap-1.5">
-        <div className="flex items-center gap-0.5">
-          {[...Array(5)].map((_, i) => (
-            <Star
-              key={i}
-              className={`w-3.5 h-3.5 ${
-                i < Math.floor(product.rating)
-                  ? 'text-amber-400 fill-amber-400'
-                  : 'text-neutral-300'
-              }`}
-            />
-          ))}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 backdrop-blur-sm rounded-full">
+            <Package className="w-4 h-4 text-emerald-300" />
+            <span className="text-xs font-medium">{product.stock} disponibles</span>
+          </div>
         </div>
-        <span className="text-sm font-medium text-neutral-700">{product.rating}</span>
-        <span className="text-xs text-neutral-500">({product.reviewCount})</span>
+
+        {/* Product Name */}
+        <h1 className="text-2xl md:text-3xl font-bold font-['Baloo_2'] leading-tight mb-4">
+          {product.displayName}
+        </h1>
+
+        {/* Rating */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-1">
+            {[...Array(5)].map((_, i) => (
+              <Star
+                key={i}
+                className={`w-4 h-4 ${
+                  i < Math.floor(product.rating)
+                    ? 'text-amber-300 fill-amber-300'
+                    : 'text-white/30'
+                }`}
+              />
+            ))}
+          </div>
+          <span className="text-sm font-medium">{product.rating}</span>
+          <span className="text-sm text-white/60">({product.reviewCount} opiniones)</span>
+        </div>
+
+        {/* Trust Badges */}
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl">
+            <Shield className="w-4 h-4 text-emerald-300" />
+            <span className="text-xs font-medium">Garantía 1 año</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl">
+            <Truck className="w-4 h-4 text-blue-300" />
+            <span className="text-xs font-medium">Envío gratis</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-white/10 backdrop-blur-sm rounded-xl">
+            <CreditCard className="w-4 h-4 text-purple-300" />
+            <span className="text-xs font-medium">Sin tarjeta</span>
+          </div>
+        </div>
       </div>
     </div>
   );

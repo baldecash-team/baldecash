@@ -272,3 +272,107 @@ Al terminar cada iteración, mostrar resumen:
   📄 Archivo actualizado: public/prototipos/{VERSION}/token-usage.json
 ═══════════════════════════════════════════════════════════════════
 ```
+
+## SettingsModal (OBLIGATORIO)
+
+El modal de configuración DEBE seguir el patrón de HeroSettingsModal:
+
+```tsx
+import { Settings, RotateCcw } from 'lucide-react';
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Select, SelectItem } from '@nextui-org/react';
+
+// Estructura del modal:
+<Modal
+  isOpen={isOpen}
+  onClose={onClose}
+  size="2xl"
+  scrollBehavior="outside"
+  backdrop="blur"
+  placement="center"
+  classNames={{
+    base: 'bg-white my-8',
+    wrapper: 'items-center justify-center py-8 min-h-full',
+    backdrop: 'bg-black/50',
+    header: 'border-b border-neutral-200 bg-white py-4 pr-12',
+    body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
+    footer: 'border-t border-neutral-200 bg-white',
+    closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+  }}
+>
+  <ModalContent>
+    <ModalHeader className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
+        <Settings className="w-4 h-4 text-[#4654CD]" />
+      </div>
+      <span className="text-lg font-semibold text-neutral-800">Configurar {Sección}</span>
+    </ModalHeader>
+    {/* Usar Select para versiones, NO RadioGroup */}
+  </ModalContent>
+</Modal>
+```
+
+### Reglas del SettingsModal:
+- **USAR Select** en lugar de RadioGroup (más compacto)
+- **Icono en header** con fondo bg-[#4654CD]/10
+- **cursor-pointer** en todos los botones
+- **scrollbar-hide** en el body
+- **Sin bordes internos** en el contenido
+
+## Keyboard Shortcuts (OBLIGATORIO)
+
+Implementar shortcuts en TODAS las páginas de preview:
+
+```tsx
+import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
+
+// En el componente:
+useKeyboardShortcuts({
+  componentOrder: ['navbar', 'hero', 'socialProof', 'howItWorks', 'cta', 'faq', 'footer'],
+  onVersionChange: (componentId, version) => {
+    setConfig(prev => ({ ...prev, [`${componentId}Version`]: version }));
+  },
+  onToggleSettings: () => setIsSettingsOpen(prev => !prev),
+  getCurrentVersion: (componentId) => config[`${componentId}Version`] || 1,
+  isModalOpen: isSettingsOpen,
+});
+```
+
+### Atajos disponibles:
+- `1-6`: Cambiar versión del componente actual
+- `Tab`: Siguiente componente
+- `Shift+Tab`: Componente anterior  
+- `?` o `K`: Abrir/cerrar modal
+- `Escape`: Cerrar modal
+
+## Focus States (CRÍTICO)
+
+**NUNCA** mostrar borde negro en focus de inputs. El CSS global ya está configurado, pero verificar que:
+
+1. NO hay `outline-ring/50` en base styles
+2. Inputs NextUI tienen `data-[focus-visible=true]:ring-0`
+3. Border cambia a primario en focus: `data-[focus=true]:border-[#4654CD]`
+
+```tsx
+// ✅ CORRECTO - Input sin borde negro en focus
+<Input
+  classNames={{
+    inputWrapper: `
+      border border-neutral-200 bg-white
+      data-[focus=true]:border-[#4654CD]
+      data-[focus-visible=true]:ring-0
+      data-[focus-visible=true]:ring-offset-0
+    `,
+  }}
+/>
+```
+
+## VersionNav (OBLIGATORIO)
+
+Incluir VersionNav en todas las páginas de preview para navegación entre versiones:
+
+```tsx
+import { VersionNav } from '@/app/prototipos/_shared';
+
+// En el componente de preview:
+<VersionNav currentVersion="{VERSION}" showSections={true} />
+```

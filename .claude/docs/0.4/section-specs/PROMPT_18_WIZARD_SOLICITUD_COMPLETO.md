@@ -53,16 +53,16 @@ Este prompt es un **meta-prompt** que combina todo el flujo de solicitud en una 
 | B.5 | Hero | **V3** | Caricatura de Baldi como imagen hero |
 | B.6 | CTA | **V3** | Card con Baldi + boton + tiempo |
 
-### 3.2 Wizard - Campos (C1.x)
+### 3.2 Wizard - Campos (C1.x) - 6 versiones cada uno
 
-| ID | Componente | Version | Implementacion |
-|----|------------|---------|----------------|
+| ID | Componente | Preferido | Implementacion |
+|----|------------|-----------|----------------|
 | C1.1 | Labels | **V1** | Label arriba (siempre visible) |
-| C1.4 | Inputs | **V3 o V1** | Filled (V3) o bordes (V1) - iterar ambos |
-| C1.13 | Opciones | **V3** | Cards clickeables SOLO si <= 6 opciones |
-| C1.15 | Upload | **V3** | Area drag & drop que es boton |
-| C1.16 | Preview | **CORREGIR** | Preview de archivo - NO FUNCIONA |
-| C1.17 | Progreso upload | **CORREGIR** | Barra de progreso - NO FUNCIONA |
+| C1.4 | Inputs | **V3** | Filled background (V1=bordes como alternativa) |
+| C1.13 | Opciones | **V3** | Cards grid SOLO si <= 6 opciones |
+| C1.15 | Upload | **V3** | Area drag & drop combinado con boton |
+| C1.16 | Preview | **V1** | Thumbnail simple (6 versiones disponibles) |
+| C1.17 | Progreso | **V1** | Barra horizontal (6 versiones disponibles) |
 | C1.21 | Validacion | **V1** | Mostrar todos los errores arriba |
 | C1.23 | Errores | **V1** | Debajo del campo inline |
 | C1.24 | Estilo error | **V1** | Borde rojo |
@@ -83,29 +83,101 @@ src/app/prototipos/0.4/wizard-solicitud/
 │       ├── WizardSolicitudContainer.tsx  # Container principal
 │       ├── WizardSolicitudSettingsModal.tsx
 │       │
-│       ├── intro/                        # Vista de Solicitud (B.x)
-│       │   ├── SolicitudIntroV[1-6].tsx
-│       │   ├── BaldiHeroV[1-6].tsx       # Con caricatura Baldi
-│       │   └── SolicitudCtaV[1-6].tsx
+│       ├── intro/                        # Vista de Solicitud (B.x) - 6 versiones
+│       │   ├── SolicitudIntroV1.tsx      # Clasico con foto producto
+│       │   ├── SolicitudIntroV2.tsx      # Lifestyle estudiante
+│       │   ├── SolicitudIntroV3.tsx      # Con Baldi [PREFERIDO]
+│       │   ├── SolicitudIntroV4.tsx      # Fintech/abstracto
+│       │   ├── SolicitudIntroV5.tsx      # Split layout
+│       │   ├── SolicitudIntroV6.tsx      # Interactivo/animado
+│       │   └── index.ts
 │       │
-│       ├── wizard/                       # Estructura Wizard (C.x)
-│       │   ├── WizardLayoutV[1-6].tsx
-│       │   ├── ProgressIndicatorV[1-6].tsx
-│       │   └── WizardNavigationV[1-6].tsx
+│       ├── wizard/                       # Estructura Wizard (C.x) - 6 versiones
+│       │   ├── WizardLayoutV1.tsx        # Layout clasico vertical
+│       │   ├── WizardLayoutV2.tsx        # Layout con sidebar
+│       │   ├── WizardLayoutV3.tsx        # Layout minimalista
+│       │   ├── WizardLayoutV4.tsx        # Layout fintech/cards
+│       │   ├── WizardLayoutV5.tsx        # Layout split
+│       │   ├── WizardLayoutV6.tsx        # Layout conversacional
+│       │   ├── ProgressIndicatorV1.tsx   # Steps numerados
+│       │   ├── ProgressIndicatorV2.tsx   # Barra de progreso
+│       │   ├── ProgressIndicatorV3.tsx   # Dots/circles
+│       │   ├── ProgressIndicatorV4.tsx   # Porcentaje numerico
+│       │   ├── ProgressIndicatorV5.tsx   # Timeline vertical
+│       │   ├── ProgressIndicatorV6.tsx   # Chips clickeables
+│       │   ├── WizardNavigationV1.tsx    # Botones clasicos
+│       │   ├── WizardNavigationV2.tsx    # Botones con iconos
+│       │   ├── WizardNavigationV3.tsx    # FAB flotante
+│       │   ├── WizardNavigationV4.tsx    # Bottom bar fixed
+│       │   ├── WizardNavigationV5.tsx    # Inline con form
+│       │   ├── WizardNavigationV6.tsx    # Swipe gestures
+│       │   └── index.ts
 │       │
-│       ├── fields/                       # Componentes de campos (C1.x)
-│       │   ├── InputFieldV[1-6].tsx      # C1.4
-│       │   ├── LabelV[1-6].tsx           # C1.1
-│       │   ├── SelectCardsV[1-6].tsx     # C1.13
-│       │   ├── UploadFieldV[1-6].tsx     # C1.15
-│       │   ├── UploadPreviewV[1-6].tsx   # C1.16 [CORREGIR]
-│       │   ├── UploadProgressV[1-6].tsx  # C1.17 [CORREGIR]
-│       │   ├── ValidationSummaryV[1-6].tsx # C1.21
-│       │   ├── FieldErrorV[1-6].tsx      # C1.23, C1.24
-│       │   ├── HelpTooltipV[1-6].tsx     # C1.28
-│       │   └── DocExamplesModalV[1-6].tsx # C1.29
+│       ├── fields/                       # Componentes de campos (C1.x) - 6 versiones
+│       │   ├── InputFieldV1.tsx          # Bordes clasicos
+│       │   ├── InputFieldV2.tsx          # Underline only
+│       │   ├── InputFieldV3.tsx          # Filled background [PREFERIDO]
+│       │   ├── InputFieldV4.tsx          # Floating label
+│       │   ├── InputFieldV5.tsx          # Card style
+│       │   ├── InputFieldV6.tsx          # Inline compact
+│       │   ├── LabelV1.tsx               # Label arriba [PREFERIDO]
+│       │   ├── LabelV2.tsx               # Label izquierda
+│       │   ├── LabelV3.tsx               # Label flotante
+│       │   ├── LabelV4.tsx               # Label bold grande
+│       │   ├── LabelV5.tsx               # Label con icono
+│       │   ├── LabelV6.tsx               # Label minimal
+│       │   ├── SelectCardsV1.tsx         # Cards verticales
+│       │   ├── SelectCardsV2.tsx         # Cards horizontales
+│       │   ├── SelectCardsV3.tsx         # Cards grid [PREFERIDO]
+│       │   ├── SelectCardsV4.tsx         # Cards con iconos grandes
+│       │   ├── SelectCardsV5.tsx         # Chips inline
+│       │   ├── SelectCardsV6.tsx         # Cards expandibles
+│       │   ├── UploadFieldV1.tsx         # Boton simple
+│       │   ├── UploadFieldV2.tsx         # Dropzone basico
+│       │   ├── UploadFieldV3.tsx         # Drag & drop + boton [PREFERIDO]
+│       │   ├── UploadFieldV4.tsx         # Card con preview
+│       │   ├── UploadFieldV5.tsx         # Camera + gallery
+│       │   ├── UploadFieldV6.tsx         # Multi-file grid
+│       │   ├── UploadPreviewV1.tsx       # Thumbnail simple
+│       │   ├── UploadPreviewV2.tsx       # Thumbnail + nombre
+│       │   ├── UploadPreviewV3.tsx       # Preview grande modal
+│       │   ├── UploadPreviewV4.tsx       # Card con acciones
+│       │   ├── UploadPreviewV5.tsx       # Gallery carousel
+│       │   ├── UploadPreviewV6.tsx       # List view detallado
+│       │   ├── UploadProgressV1.tsx      # Barra horizontal
+│       │   ├── UploadProgressV2.tsx      # Circular spinner
+│       │   ├── UploadProgressV3.tsx      # Porcentaje numerico
+│       │   ├── UploadProgressV4.tsx      # Skeleton loading
+│       │   ├── UploadProgressV5.tsx      # Steps de procesamiento
+│       │   ├── UploadProgressV6.tsx      # Minimal dots
+│       │   ├── ValidationSummaryV1.tsx   # Lista errores arriba [PREFERIDO]
+│       │   ├── ValidationSummaryV2.tsx   # Toast/snackbar
+│       │   ├── ValidationSummaryV3.tsx   # Banner dismissible
+│       │   ├── ValidationSummaryV4.tsx   # Modal bloqueante
+│       │   ├── ValidationSummaryV5.tsx   # Sidebar de errores
+│       │   ├── ValidationSummaryV6.tsx   # Inline por seccion
+│       │   ├── FieldErrorV1.tsx          # Texto rojo debajo [PREFERIDO]
+│       │   ├── FieldErrorV2.tsx          # Tooltip error
+│       │   ├── FieldErrorV3.tsx          # Badge lateral
+│       │   ├── FieldErrorV4.tsx          # Shake + borde
+│       │   ├── FieldErrorV5.tsx          # Icon + texto
+│       │   ├── FieldErrorV6.tsx          # Highlight campo
+│       │   ├── HelpTooltipV1.tsx         # Tooltip hover [PREFERIDO]
+│       │   ├── HelpTooltipV2.tsx         # Popover click
+│       │   ├── HelpTooltipV3.tsx         # Texto inline
+│       │   ├── HelpTooltipV4.tsx         # Modal ayuda
+│       │   ├── HelpTooltipV5.tsx         # Drawer lateral
+│       │   ├── HelpTooltipV6.tsx         # Expandible accordion
+│       │   ├── DocExamplesModalV1.tsx    # Lista simple
+│       │   ├── DocExamplesModalV2.tsx    # Gallery modal [PREFERIDO]
+│       │   ├── DocExamplesModalV3.tsx    # Carousel fullscreen
+│       │   ├── DocExamplesModalV4.tsx    # Grid con zoom
+│       │   ├── DocExamplesModalV5.tsx    # Tabs por tipo
+│       │   ├── DocExamplesModalV6.tsx    # Inline expandible
+│       │   └── index.ts
 │       │
 │       ├── steps/                        # Pasos del wizard
+│       │   ├── StepContent.tsx           # Renderizador dinamico
 │       │   ├── Step1DatosPersonales.tsx
 │       │   ├── Step2DatosAcademicos.tsx
 │       │   ├── Step3DatosEconomicos.tsx
@@ -478,29 +550,42 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 
 ## 10. Checklist de Entregables
 
-### Componentes Intro (B.x)
-- [ ] `SolicitudIntroV[1-6].tsx`
-- [ ] `BaldiHeroV3.tsx` **[PRIORITARIO - con caricatura]**
-- [ ] `SolicitudCtaV3.tsx` **[PRIORITARIO - card con Baldi]**
+### Componentes Intro (B.x) - 6 versiones cada uno
+| Componente | V1 | V2 | V3 | V4 | V5 | V6 | Preferido |
+|------------|----|----|----|----|----|----|-----------|
+| SolicitudIntro | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V3 (Baldi) |
 
-### Componentes Wizard (C.x)
-- [ ] `WizardLayoutV[1-6].tsx`
-- [ ] `ProgressIndicatorV[1-6].tsx`
-- [ ] `WizardNavigationV[1-6].tsx`
+### Componentes Wizard (C.x) - 6 versiones cada uno
+| Componente | V1 | V2 | V3 | V4 | V5 | V6 | Preferido |
+|------------|----|----|----|----|----|----|-----------|
+| WizardLayout | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 |
+| ProgressIndicator | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 |
+| WizardNavigation | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 |
 
-### Componentes Campos (C1.x)
-- [ ] `LabelV1.tsx` **[Label arriba]**
-- [ ] `InputFieldV1.tsx` y `V3.tsx` **[Bordes y Filled]**
-- [ ] `SelectCardsV3.tsx` **[Cards para <= 6 opciones]**
-- [ ] `UploadFieldV3.tsx` **[Drag & drop + boton]**
-- [ ] `UploadPreviewV[1-6].tsx` **[CORREGIR - no funciona]**
-- [ ] `UploadProgressV[1-6].tsx` **[CORREGIR - no funciona]**
-- [ ] `ValidationSummaryV1.tsx` **[Errores arriba]**
-- [ ] `FieldErrorV1.tsx` **[Inline + borde rojo]**
-- [ ] `HelpTooltipV1.tsx` **[Tooltip hover/click]**
-- [ ] `DocExamplesModalV2.tsx` **[Gallery modal]**
+### Componentes Campos (C1.x) - 6 versiones cada uno
+| Componente | V1 | V2 | V3 | V4 | V5 | V6 | Preferido |
+|------------|----|----|----|----|----|----|-----------|
+| InputField | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V3 (Filled) |
+| Label | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 (Arriba) |
+| SelectCards | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V3 (Grid) |
+| UploadField | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V3 (Drag&Drop) |
+| UploadPreview | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 |
+| UploadProgress | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 |
+| ValidationSummary | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 (Arriba) |
+| FieldError | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 (Inline) |
+| HelpTooltip | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 (Hover) |
+| DocExamplesModal | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V2 (Gallery) |
 
-### Pasos
+### Resumen de Componentes
+| Categoria | Componentes | Versiones | Total Archivos |
+|-----------|-------------|-----------|----------------|
+| Intro | 1 | 6 | 6 |
+| Wizard | 3 | 6 | 18 |
+| Fields | 10 | 6 | 60 |
+| **Total** | **14** | **6** | **84** |
+
+### Pasos del Wizard
+- [ ] `StepContent.tsx` (renderizador dinamico)
 - [ ] `Step1DatosPersonales.tsx`
 - [ ] `Step2DatosAcademicos.tsx`
 - [ ] `Step3DatosEconomicos.tsx`
@@ -511,6 +596,11 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 - [ ] `WizardSolicitudSettingsModal.tsx`
 - [ ] `types/wizard-solicitud.ts`
 - [ ] `data/wizardSolicitudSteps.ts`
+
+### Index Files (exports)
+- [ ] `intro/index.ts`
+- [ ] `wizard/index.ts`
+- [ ] `fields/index.ts`
 
 ### Assets
 - [ ] `baldi-wave.svg`
@@ -523,17 +613,127 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 
 ---
 
-## 11. Bugs a Corregir
+## 11. Descripcion de Versiones por Componente
 
-### C1.16 - Preview de archivo
-**Estado:** NO FUNCIONA
-**Problema:** El preview del archivo subido no se muestra correctamente
-**Accion:** Revisar componente UploadPreview y corregir renderizado
+### SolicitudIntro (B.x)
+| Version | Descripcion | Estilo |
+|---------|-------------|--------|
+| V1 | Clasico con foto de producto laptop | E-commerce tradicional |
+| V2 | Foto lifestyle de estudiante usando laptop | Aspiracional |
+| V3 | Caricatura de Baldi saludando **[PREFERIDO]** | Identidad de marca |
+| V4 | Shapes abstractos, datos destacados | Fintech moderno |
+| V5 | Split: Baldi izquierda + info derecha | Balanceado |
+| V6 | Baldi grande centrado con micro-animaciones | Impactante |
 
-### C1.17 - Barra de progreso de upload
-**Estado:** NO FUNCIONA
-**Problema:** La barra de progreso no actualiza durante la subida
-**Accion:** Revisar logica de progreso y conexion con estado de upload
+### WizardLayout (C.x)
+| Version | Descripcion | Uso |
+|---------|-------------|-----|
+| V1 | Layout vertical clasico, progreso arriba | Default |
+| V2 | Layout con sidebar de progreso lateral | Desktop |
+| V3 | Layout minimalista, sin distracciones | Focus |
+| V4 | Layout con cards por seccion | Fintech |
+| V5 | Split: progreso izq + form derecha | Wide screens |
+| V6 | Layout conversacional (chat-like) | Mobile-first |
+
+### ProgressIndicator (C.x)
+| Version | Descripcion | Estilo |
+|---------|-------------|--------|
+| V1 | Steps numerados con linea conectora | Clasico |
+| V2 | Barra de progreso horizontal | Minimal |
+| V3 | Dots/circles clickeables | Moderno |
+| V4 | Porcentaje numerico grande | Data-driven |
+| V5 | Timeline vertical con descripciones | Detallado |
+| V6 | Chips clickeables con iconos | Interactivo |
+
+### InputField (C1.4)
+| Version | Descripcion | Estilo |
+|---------|-------------|--------|
+| V1 | Bordes clasicos rectangulares | Tradicional |
+| V2 | Solo linea inferior (underline) | Material |
+| V3 | Fondo filled gris claro **[PREFERIDO]** | Moderno |
+| V4 | Floating label animado | Elegante |
+| V5 | Estilo card con sombra | Prominente |
+| V6 | Inline compacto para formularios densos | Eficiente |
+
+### SelectCards (C1.13)
+| Version | Descripcion | Uso |
+|---------|-------------|-----|
+| V1 | Cards apiladas verticalmente | Listas largas |
+| V2 | Cards horizontales en fila | Pocas opciones |
+| V3 | Grid responsive 2-3 columnas **[PREFERIDO]** | <= 6 opciones |
+| V4 | Cards con iconos grandes prominentes | Visual |
+| V5 | Chips inline horizontales | Compacto |
+| V6 | Cards expandibles con detalles | Informativo |
+
+### UploadField (C1.15)
+| Version | Descripcion | Interaccion |
+|---------|-------------|-------------|
+| V1 | Boton simple "Seleccionar archivo" | Basico |
+| V2 | Dropzone con borde punteado | Desktop |
+| V3 | Drag & drop + boton combinado **[PREFERIDO]** | Hibrido |
+| V4 | Card con preview integrado | Todo-en-uno |
+| V5 | Selector camara + galeria (mobile) | Mobile-first |
+| V6 | Grid multi-archivo | Multiples docs |
+
+### UploadPreview (C1.16)
+| Version | Descripcion | Visualizacion |
+|---------|-------------|---------------|
+| V1 | Thumbnail pequeno simple | Compacto |
+| V2 | Thumbnail + nombre archivo | Informativo |
+| V3 | Preview grande en modal | Detallado |
+| V4 | Card con acciones (eliminar, ver) | Interactivo |
+| V5 | Gallery carousel deslizable | Multi-archivo |
+| V6 | Lista detallada con metadata | Tecnico |
+
+### UploadProgress (C1.17)
+| Version | Descripcion | Feedback |
+|---------|-------------|----------|
+| V1 | Barra horizontal animada | Clasico |
+| V2 | Spinner circular | Compacto |
+| V3 | Porcentaje numerico grande | Preciso |
+| V4 | Skeleton loading del preview | Contextual |
+| V5 | Steps: subiendo > procesando > listo | Detallado |
+| V6 | Tres dots animados minimal | Sutil |
+
+### ValidationSummary (C1.21)
+| Version | Descripcion | Ubicacion |
+|---------|-------------|-----------|
+| V1 | Lista de errores arriba del form **[PREFERIDO]** | Top |
+| V2 | Toast/snackbar temporal | Overlay |
+| V3 | Banner dismissible | Top sticky |
+| V4 | Modal bloqueante | Obligatorio |
+| V5 | Sidebar lateral con errores | Side |
+| V6 | Inline colapsado por seccion | Contextual |
+
+### FieldError (C1.23/24)
+| Version | Descripcion | Estilo |
+|---------|-------------|--------|
+| V1 | Texto rojo debajo del campo **[PREFERIDO]** | Clasico |
+| V2 | Tooltip de error al hover | Compacto |
+| V3 | Badge rojo al lado del label | Visible |
+| V4 | Shake animation + borde rojo | Impactante |
+| V5 | Icono de error + texto | Iconico |
+| V6 | Highlight completo del campo | Prominente |
+
+### HelpTooltip (C1.28)
+| Version | Descripcion | Activacion |
+|---------|-------------|------------|
+| V1 | Tooltip al hover **[PREFERIDO]** | Hover |
+| V2 | Popover al click | Click |
+| V3 | Texto de ayuda inline siempre visible | Visible |
+| V4 | Modal de ayuda completo | Extenso |
+| V5 | Drawer lateral con guia | Contextual |
+| V6 | Accordion expandible | Progressive |
+
+### DocExamplesModal (C1.29)
+| Version | Descripcion | Layout |
+|---------|-------------|--------|
+| V1 | Lista simple de ejemplos | Basico |
+| V2 | Gallery modal con thumbnails **[PREFERIDO]** | Visual |
+| V3 | Carousel fullscreen swipeable | Inmersivo |
+| V4 | Grid con zoom on click | Interactivo |
+| V5 | Tabs organizados por tipo | Categorizado |
+| V6 | Inline expandible sin modal | In-place |
 
 ---
 
@@ -546,4 +746,5 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 5. **Cards condicionales:** Solo si <= 6 opciones (C1.13)
 6. **Sin gradientes:** Colores solidos
 7. **Sin emojis:** Solo Lucide icons
-8. **Corregir bugs:** C1.16 y C1.17 antes de iterar
+8. **84 componentes total:** 14 componentes x 6 versiones
+9. **Decisiones 0.3 aplicadas:** V3 preferido para Baldi, V1 para estructura basica

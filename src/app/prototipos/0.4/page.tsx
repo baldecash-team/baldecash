@@ -21,8 +21,7 @@ const sectionIcons: Record<string, React.ElementType> = {
   comparador: Layers,
   quiz: Layers,
   estados: Layers,
-  wizard: Layers,
-  solicitud: Layers,
+  'wizard-solicitud': Layers,
   upsell: Layers,
   aprobacion: Layers,
   rechazo: Layers,
@@ -87,7 +86,7 @@ export default function Version04Page() {
               const IconComponent = sectionIcons[section.id] || Layers;
               const status = statusStyles[section.status];
               const StatusIcon = status.icon;
-              const isDone = section.status === 'done';
+              const isClickable = section.status === 'done' || section.status === 'in_progress';
 
               const cardContent = (
                 <CardBody className="p-4 flex flex-col">
@@ -108,7 +107,7 @@ export default function Version04Page() {
                 </CardBody>
               );
 
-              if (isDone) {
+              if (isClickable) {
                 return (
                   <Card
                     key={section.id}

@@ -1,25 +1,17 @@
 'use client';
 
-import { Card, CardBody, Button } from '@nextui-org/react';
-import { useState, useRef } from 'react';
+/**
+ * SimilarProductsV2 - Carousel Horizontal Premium
+ *
+ * Smooth horizontal carousel with swipe support,
+ * large cards, and quota-focused design.
+ */
 
-export interface SimilarProduct {
-  id: string;
-  name: string;
-  thumbnail: string;
-  monthlyQuota: number;
-  quotaDifference: number;
-  matchScore: number;
-  differentiators: string[];
-  slug: string;
-}
+import React, { useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Star } from 'lucide-react';
+import { SimilarProductsProps } from '../../../types/detail';
 
-export interface SimilarProductsProps {
-  products: SimilarProduct[];
-  currentQuota: number;
-}
-
-export default function SimilarProductsV2({ products, currentQuota }: SimilarProductsProps) {
+export const SimilarProductsV2: React.FC<SimilarProductsProps> = ({ products, currentQuota }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -54,159 +46,134 @@ export default function SimilarProductsV2({ products, currentQuota }: SimilarPro
   };
 
   return (
-    <div className="w-full">
-      <div className="mb-4">
-        <h3 className="text-2xl font-bold text-neutral-800 mb-2">
-          Productos similares
-        </h3>
-        <p className="text-neutral-600 text-sm">
-          Desliza para ver más opciones y comparar cuotas
-        </p>
-      </div>
-
-      {/* Horizontal Carousel */}
-      <div className="relative">
-        {/* Left Arrow */}
-        {canScrollLeft && (
-          <button
-            onClick={() => scroll('left')}
-            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white rounded-full shadow-lg hover:bg-neutral-100 transition-colors"
-            aria-label="Scroll left"
-          >
-            <svg
-              className="w-5 h-5 text-neutral-700"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-        )}
-
-        {/* Scrollable Container */}
-        <div
-          ref={scrollRef}
-          onScroll={checkScroll}
-          className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {products.map((product) => {
-            const isCheaper = product.quotaDifference < 0;
-
-            return (
-              <Card
-                key={product.id}
-                className="min-w-[280px] md:min-w-[300px] cursor-pointer hover:shadow-lg transition-shadow snap-start"
-                isPressable
-                onPress={() => handleProductClick(product.slug)}
-              >
-                <CardBody className="p-4">
-                  {/* Thumbnail */}
-                  <div className="relative w-full aspect-[4/3] mb-3 bg-neutral-100 rounded-lg overflow-hidden">
-                    <img
-                      src={product.thumbnail}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      onError={handleImageError}
-                    />
-                  </div>
-
-                  {/* Product Name */}
-                  <h4 className="font-semibold text-neutral-800 mb-2 line-clamp-2 h-12">
-                    {product.name}
-                  </h4>
-
-                  {/* Quota Comparison - CRITICAL */}
-                  <div className="bg-neutral-50 rounded-lg p-3 mb-3">
-                    <div className="flex items-baseline justify-between mb-1">
-                      <span className="text-2xl font-bold text-neutral-800">
-                        S/{product.monthlyQuota}
-                      </span>
-                      <span className="text-sm text-neutral-500">/mes</span>
-                    </div>
-
-                    {product.quotaDifference !== 0 && (
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-sm font-bold ${
-                            isCheaper ? 'text-[#22c55e]' : 'text-amber-600'
-                          }`}
-                        >
-                          {isCheaper ? '' : '+'}S/{Math.abs(product.quotaDifference)}/mes
-                        </span>
-                        <span className="text-xs text-neutral-500">
-                          vs actual
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Match Score */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex-1 bg-neutral-200 rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-[#4654CD] h-full rounded-full transition-all"
-                        style={{ width: `${product.matchScore}%` }}
-                      />
-                    </div>
-                    <span className="text-xs font-semibold text-neutral-600">
-                      {product.matchScore}%
-                    </span>
-                  </div>
-
-                  {/* Key Differentiators */}
-                  {product.differentiators.length > 0 && (
-                    <div className="mb-3">
-                      <ul className="space-y-1">
-                        {product.differentiators.slice(0, 2).map((diff, idx) => (
-                          <li key={idx} className="text-xs text-neutral-600 flex items-start gap-1">
-                            <span className="text-[#4654CD] mt-0.5">•</span>
-                            <span>{diff}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* CTA */}
-                  <Button
-                    color={isCheaper ? 'success' : 'primary'}
-                    variant="solid"
-                    className="w-full"
-                    size="sm"
-                  >
-                    {isCheaper ? `Ahorra S/${Math.abs(product.quotaDifference)}/mes` : 'Ver producto'}
-                  </Button>
-                </CardBody>
-              </Card>
-            );
-          })}
+    <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-bold text-neutral-900 mb-1">También te puede interesar</h3>
+          <p className="text-sm text-neutral-500">Desliza para explorar más opciones</p>
         </div>
 
-        {/* Right Arrow */}
-        {canScrollRight && (
+        {/* Navigation Arrows */}
+        <div className="hidden md:flex items-center gap-2">
+          <button
+            onClick={() => scroll('left')}
+            disabled={!canScrollLeft}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              canScrollLeft
+                ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3] shadow-lg'
+                : 'bg-neutral-100 text-neutral-300'
+            }`}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
           <button
             onClick={() => scroll('right')}
-            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 items-center justify-center bg-white rounded-full shadow-lg hover:bg-neutral-100 transition-colors"
-            aria-label="Scroll right"
+            disabled={!canScrollRight}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              canScrollRight
+                ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3] shadow-lg'
+                : 'bg-neutral-100 text-neutral-300'
+            }`}
           >
-            <svg
-              className="w-5 h-5 text-neutral-700"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRight className="w-5 h-5" />
           </button>
-        )}
+        </div>
       </div>
 
-      {/* Mobile scroll hint */}
-      <p className="md:hidden text-center text-xs text-neutral-500 mt-2">
-        Desliza para ver más productos →
+      {/* Carousel */}
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-2 px-2"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {products.map((product) => {
+          const isCheaper = product.quotaDifference < 0;
+
+          return (
+            <div
+              key={product.id}
+              onClick={() => handleProductClick(product.slug)}
+              className="min-w-[280px] md:min-w-[300px] bg-gradient-to-b from-neutral-50 to-white rounded-2xl border border-neutral-200 overflow-hidden snap-start cursor-pointer hover:shadow-xl hover:border-[#4654CD]/30 transition-all group"
+            >
+              {/* Image Container */}
+              <div className="relative aspect-[4/3] bg-neutral-100 overflow-hidden">
+                <img
+                  src={product.thumbnail}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={handleImageError}
+                />
+
+                {/* Quota Badge Overlay */}
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-white/80 text-xs mb-0.5">Cuota mensual</p>
+                      <p className="text-white text-2xl font-bold">S/{product.monthlyQuota}</p>
+                    </div>
+                    <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${
+                      isCheaper ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                    }`}>
+                      {isCheaper ? '' : '+'}S/{Math.abs(product.quotaDifference)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-4">
+                <h4 className="font-bold text-neutral-800 text-sm mb-2 line-clamp-2 min-h-[2.5rem]">
+                  {product.name}
+                </h4>
+
+                {/* Match & Comparison */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    <span className="text-sm text-neutral-600">{product.matchScore}% match</span>
+                  </div>
+                  <div className={`flex items-center gap-1 text-sm font-medium ${
+                    isCheaper ? 'text-emerald-600' : 'text-amber-600'
+                  }`}>
+                    {isCheaper ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                    <span>vs S/{currentQuota}</span>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {product.differentiators.slice(0, 2).map((diff, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 bg-[#4654CD]/10 text-[#4654CD] text-xs font-medium rounded-full"
+                    >
+                      {diff}
+                    </span>
+                  ))}
+                </div>
+
+                {/* CTA */}
+                <button className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer ${
+                  isCheaper
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                    : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+                }`}>
+                  {isCheaper ? `Ahorra S/${Math.abs(product.quotaDifference)}/mes` : 'Ver detalles'}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Mobile Scroll Hint */}
+      <p className="md:hidden text-center text-xs text-neutral-400 mt-3">
+        Desliza para ver más →
       </p>
     </div>
   );
-}
+};
+
+export default SimilarProductsV2;

@@ -51,88 +51,157 @@
       "notes": "Added HowItWorks and FAQ components with 6 versions each for A/B testing"
     },
     {
-      "prompt": "02",
-      "section": "catalogo",
-      "date": "2024-12-20",
+      "promptNumber": "17",
+      "section": "convenio",
+      "timestamp": "2024-12-20T00:00:00.000Z",
       "action": "create_section",
       "components": [
         {
-          "name": "CatalogLayout",
+          "name": "ConvenioNavbar",
           "versions": 6,
           "files": [
-            "CatalogLayoutV1.tsx",
-            "CatalogLayoutV2.tsx",
-            "CatalogLayoutV3.tsx",
-            "CatalogLayoutV4.tsx",
-            "CatalogLayoutV5.tsx",
-            "CatalogLayoutV6.tsx",
-            "CatalogLayout.tsx",
+            "ConvenioNavbarV1.tsx",
+            "ConvenioNavbarV2.tsx",
+            "ConvenioNavbarV3.tsx",
+            "ConvenioNavbarV4.tsx",
+            "ConvenioNavbarV5.tsx",
+            "ConvenioNavbarV6.tsx",
             "index.ts"
           ],
-          "linesOfCode": 2400,
-          "estimatedTokens": 18000
+          "linesOfCode": 850,
+          "estimatedTokens": 6375
         },
         {
-          "name": "BrandFilter",
+          "name": "ConvenioHero",
           "versions": 6,
           "files": [
-            "BrandFilterV1.tsx",
-            "BrandFilterV2.tsx",
-            "BrandFilterV3.tsx",
-            "BrandFilterV4.tsx",
-            "BrandFilterV5.tsx",
-            "BrandFilterV6.tsx",
+            "ConvenioHeroV1.tsx",
+            "ConvenioHeroV2.tsx",
+            "ConvenioHeroV3.tsx",
+            "ConvenioHeroV4.tsx",
+            "ConvenioHeroV5.tsx",
+            "ConvenioHeroV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1100,
+          "estimatedTokens": 8250
+        },
+        {
+          "name": "ConvenioBenefits",
+          "versions": 6,
+          "files": [
+            "ConvenioBenefitsV1.tsx",
+            "ConvenioBenefitsV2.tsx",
+            "ConvenioBenefitsV3.tsx",
+            "ConvenioBenefitsV4.tsx",
+            "ConvenioBenefitsV5.tsx",
+            "ConvenioBenefitsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 900,
+          "estimatedTokens": 6750
+        },
+        {
+          "name": "ConvenioTestimonials",
+          "versions": 6,
+          "files": [
+            "ConvenioTestimonialsV1.tsx",
+            "ConvenioTestimonialsV2.tsx",
+            "ConvenioTestimonialsV3.tsx",
+            "ConvenioTestimonialsV4.tsx",
+            "ConvenioTestimonialsV5.tsx",
+            "ConvenioTestimonialsV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1000,
+          "estimatedTokens": 7500
+        },
+        {
+          "name": "ConvenioFaq",
+          "versions": 6,
+          "files": [
+            "ConvenioFaqV1.tsx",
+            "ConvenioFaqV2.tsx",
+            "ConvenioFaqV3.tsx",
+            "ConvenioFaqV4.tsx",
+            "ConvenioFaqV5.tsx",
+            "ConvenioFaqV6.tsx",
+            "index.ts"
+          ],
+          "linesOfCode": 1050,
+          "estimatedTokens": 7875
+        },
+        {
+          "name": "ConvenioCta",
+          "versions": 6,
+          "files": [
+            "ConvenioCtaV1.tsx",
+            "ConvenioCtaV2.tsx",
+            "ConvenioCtaV3.tsx",
+            "ConvenioCtaV4.tsx",
+            "ConvenioCtaV5.tsx",
+            "ConvenioCtaV6.tsx",
             "index.ts"
           ],
           "linesOfCode": 800,
           "estimatedTokens": 6000
-        },
-        {
-          "name": "FilterComponents",
-          "versions": 1,
-          "files": [
-            "FilterSection.tsx",
-            "FilterChips.tsx",
-            "PriceRangeFilter.tsx",
-            "QuotaRangeFilter.tsx",
-            "UsageFilter.tsx",
-            "TechnicalFilters.tsx",
-            "CommercialFilters.tsx"
-          ],
-          "linesOfCode": 1200,
-          "estimatedTokens": 9000
-        },
-        {
-          "name": "CatalogSettingsModal",
-          "versions": 1,
-          "files": ["CatalogSettingsModal.tsx"],
-          "linesOfCode": 180,
-          "estimatedTokens": 1350
-        },
-        {
-          "name": "ProductCard",
-          "versions": 1,
-          "files": ["ProductCard.tsx"],
-          "linesOfCode": 160,
-          "estimatedTokens": 1200
-        },
-        {
-          "name": "SortDropdown",
-          "versions": 1,
-          "files": ["SortDropdown.tsx"],
-          "linesOfCode": 80,
-          "estimatedTokens": 600
         }
       ],
-      "newFiles": [
-        "types/catalog.ts",
-        "data/mockCatalogData.ts",
-        "page.tsx",
-        "catalog-preview/page.tsx"
+      "supportingFiles": [
+        {
+          "name": "types/convenio.ts",
+          "linesOfCode": 120,
+          "estimatedTokens": 900
+        },
+        {
+          "name": "data/mockConvenioData.ts",
+          "linesOfCode": 280,
+          "estimatedTokens": 2100
+        },
+        {
+          "name": "hooks/useConvenio.ts",
+          "linesOfCode": 75,
+          "estimatedTokens": 563
+        },
+        {
+          "name": "ConvenioSettingsModal.tsx",
+          "linesOfCode": 295,
+          "estimatedTokens": 2213
+        },
+        {
+          "name": "ConvenioLanding.tsx",
+          "linesOfCode": 310,
+          "estimatedTokens": 2325
+        },
+        {
+          "name": "page.tsx (redirect)",
+          "linesOfCode": 25,
+          "estimatedTokens": 188
+        },
+        {
+          "name": "convenio-preview/page.tsx",
+          "linesOfCode": 130,
+          "estimatedTokens": 975
+        }
       ],
-      "totalLinesAdded": 5200,
-      "estimatedTokensUsed": 39000,
-      "notes": "Created Catalog section with 6 Layout versions, 6 BrandFilter versions, filter components, ProductCard, and settings modal"
+      "filesGenerated": 49,
+      "totalLinesAdded": 6935,
+      "estimatedTokens": {
+        "input": 15000,
+        "output": 52014,
+        "total": 67014
+      },
+      "componentsCreated": [
+        "ConvenioNavbarV1-V6",
+        "ConvenioHeroV1-V6",
+        "ConvenioBenefitsV1-V6",
+        "ConvenioTestimonialsV1-V6",
+        "ConvenioFaqV1-V6",
+        "ConvenioCtaV1-V6",
+        "ConvenioSettingsModal",
+        "ConvenioLanding"
+      ],
+      "notes": "Complete Convenio Landing section with 6 components x 6 versions = 36 component variants for A/B testing university partnerships landing pages"
     },
     {
       "promptNumber": "04",
@@ -428,338 +497,147 @@
       "notes": "Quiz section with consolidated preferences from 0.3: Layout V1 (full screen mobile), 7 questions, Question Style V1 (chips/pills), Results V1 (category + catalog cards), Focus V1 (usage only). 3 components x 6 versions = 18 component variants for A/B testing"
     },
     {
-      "promptNumber": "17",
-      "section": "convenio",
-      "timestamp": "2024-12-20T00:00:00.000Z",
+      "promptNumber": "18",
+      "section": "wizard-solicitud",
+      "timestamp": "2024-12-21T00:00:00.000Z",
       "action": "create_section",
+      "description": "Meta-prompt que integra PROMPT_08 a PROMPT_13 + SOLICITUD en un flujo unificado",
+      "preferences": {
+        "B.1": "V2 - Header con producto seleccionado",
+        "B.2": "V2 desktop / V3 mobile (sin 'Ahora')",
+        "B.3": "V1 - Beneficios del financiamiento",
+        "B.5": "V3 - Caricatura de Baldi",
+        "B.6": "V3 - Card con Baldi + boton + tiempo",
+        "C1.1": "V1 - Label arriba",
+        "C1.4": "V3 o V1 - Filled o bordes (iterar)",
+        "C1.13": "V3 - Cards si <= 6 opciones",
+        "C1.15": "V3 - Drag & drop + boton",
+        "C1.16": "CORREGIR - Preview no funciona",
+        "C1.17": "CORREGIR - Progreso upload no funciona",
+        "C1.21": "V1 - Errores arriba",
+        "C1.23": "V1 - Error inline",
+        "C1.24": "V1 - Borde rojo",
+        "C1.28": "V1 - Tooltip hover/click",
+        "C1.29": "V2 - Gallery modal"
+      },
       "components": [
         {
-          "name": "ConvenioNavbar",
+          "name": "SolicitudIntro",
           "versions": 6,
-          "files": [
-            "ConvenioNavbarV1.tsx",
-            "ConvenioNavbarV2.tsx",
-            "ConvenioNavbarV3.tsx",
-            "ConvenioNavbarV4.tsx",
-            "ConvenioNavbarV5.tsx",
-            "ConvenioNavbarV6.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 850,
-          "estimatedTokens": 6375
+          "files": ["SolicitudIntroV1.tsx", "SolicitudIntroV3.tsx", "index.ts"],
+          "linesOfCode": 350,
+          "estimatedTokens": 2625
         },
         {
-          "name": "ConvenioHero",
+          "name": "WizardLayout",
           "versions": 6,
-          "files": [
-            "ConvenioHeroV1.tsx",
-            "ConvenioHeroV2.tsx",
-            "ConvenioHeroV3.tsx",
-            "ConvenioHeroV4.tsx",
-            "ConvenioHeroV5.tsx",
-            "ConvenioHeroV6.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 1100,
-          "estimatedTokens": 8250
-        },
-        {
-          "name": "ConvenioBenefits",
-          "versions": 6,
-          "files": [
-            "ConvenioBenefitsV1.tsx",
-            "ConvenioBenefitsV2.tsx",
-            "ConvenioBenefitsV3.tsx",
-            "ConvenioBenefitsV4.tsx",
-            "ConvenioBenefitsV5.tsx",
-            "ConvenioBenefitsV6.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 900,
-          "estimatedTokens": 6750
-        },
-        {
-          "name": "ConvenioTestimonials",
-          "versions": 6,
-          "files": [
-            "ConvenioTestimonialsV1.tsx",
-            "ConvenioTestimonialsV2.tsx",
-            "ConvenioTestimonialsV3.tsx",
-            "ConvenioTestimonialsV4.tsx",
-            "ConvenioTestimonialsV5.tsx",
-            "ConvenioTestimonialsV6.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 1000,
-          "estimatedTokens": 7500
-        },
-        {
-          "name": "ConvenioFaq",
-          "versions": 6,
-          "files": [
-            "ConvenioFaqV1.tsx",
-            "ConvenioFaqV2.tsx",
-            "ConvenioFaqV3.tsx",
-            "ConvenioFaqV4.tsx",
-            "ConvenioFaqV5.tsx",
-            "ConvenioFaqV6.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 1050,
-          "estimatedTokens": 7875
-        },
-        {
-          "name": "ConvenioCta",
-          "versions": 6,
-          "files": [
-            "ConvenioCtaV1.tsx",
-            "ConvenioCtaV2.tsx",
-            "ConvenioCtaV3.tsx",
-            "ConvenioCtaV4.tsx",
-            "ConvenioCtaV5.tsx",
-            "ConvenioCtaV6.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 800,
-          "estimatedTokens": 6000
-        }
-      ],
-      "supportingFiles": [
-        {
-          "name": "types/convenio.ts",
+          "files": ["WizardLayoutV1.tsx"],
           "linesOfCode": 120,
           "estimatedTokens": 900
         },
         {
-          "name": "data/mockConvenioData.ts",
-          "linesOfCode": 280,
-          "estimatedTokens": 2100
+          "name": "ProgressIndicator",
+          "versions": 6,
+          "files": ["ProgressIndicatorV1.tsx"],
+          "linesOfCode": 110,
+          "estimatedTokens": 825
         },
         {
-          "name": "hooks/useConvenio.ts",
+          "name": "WizardNavigation",
+          "versions": 6,
+          "files": ["WizardNavigationV1.tsx"],
+          "linesOfCode": 85,
+          "estimatedTokens": 638
+        },
+        {
+          "name": "InputField",
+          "versions": 6,
+          "files": ["InputFieldV1.tsx"],
           "linesOfCode": 75,
           "estimatedTokens": 563
         },
         {
-          "name": "ConvenioSettingsModal.tsx",
-          "linesOfCode": 295,
-          "estimatedTokens": 2213
-        },
-        {
-          "name": "ConvenioLanding.tsx",
-          "linesOfCode": 310,
-          "estimatedTokens": 2325
-        },
-        {
-          "name": "page.tsx (redirect)",
-          "linesOfCode": 25,
-          "estimatedTokens": 188
-        },
-        {
-          "name": "convenio-preview/page.tsx",
-          "linesOfCode": 130,
-          "estimatedTokens": 975
-        }
-      ],
-      "filesGenerated": 49,
-      "totalLinesAdded": 6935,
-      "estimatedTokens": {
-        "input": 15000,
-        "output": 52014,
-        "total": 67014
-      },
-      "componentsCreated": [
-        "ConvenioNavbarV1-V6",
-        "ConvenioHeroV1-V6",
-        "ConvenioBenefitsV1-V6",
-        "ConvenioTestimonialsV1-V6",
-        "ConvenioFaqV1-V6",
-        "ConvenioCtaV1-V6",
-        "ConvenioSettingsModal",
-        "ConvenioLanding"
-      ],
-      "notes": "Complete Convenio Landing section with 6 components x 6 versions = 36 component variants for A/B testing university partnerships landing pages"
-    },
-    {
-      "promptNumber": "03",
-      "section": "catalogo",
-      "timestamp": "2024-12-20T00:00:00.000Z",
-      "action": "add_components",
-      "components": [
-        {
-          "name": "ProductCard",
+          "name": "SelectCards",
           "versions": 6,
-          "files": [
-            "ProductCardV1.tsx",
-            "ProductCardV2.tsx",
-            "ProductCardV3.tsx",
-            "ProductCardV4.tsx",
-            "ProductCardV5.tsx",
-            "ProductCardV6.tsx",
-            "ProductCard.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 950,
-          "estimatedTokens": 7125
-        }
-      ],
-      "updatedFiles": [
-        "types/catalog.ts",
-        "CatalogSettingsModal.tsx",
-        "catalog-preview/page.tsx"
-      ],
-      "filesGenerated": 8,
-      "totalLinesAdded": 1050,
-      "estimatedTokens": {
-        "input": 8000,
-        "output": 7875,
-        "total": 15875
-      },
-      "componentsCreated": [
-        "ProductCardV1 - Enfoque Tecnico (specs con iconos)",
-        "ProductCardV2 - Enfoque Beneficios (lifestyle)",
-        "ProductCardV3 - Hibrido Flat (2 specs + 2 usos)",
-        "ProductCardV4 - Abstracto Flotante (fintech)",
-        "ProductCardV5 - Split 50/50 (horizontal)",
-        "ProductCardV6 - Centrado Impacto (cuota gigante)"
-      ],
-      "notes": "6 ProductCard versions with different visual approaches: Technical (Amazon/Best Buy), Benefits (Apple/Samsung), Hybrid (Notion/Stripe), Fintech (Nubank/Revolut), Split (Webflow/Framer), Centered (Spotify/Apple). All versions use ImageGallery component and support gallery version switching."
-    },
-    {
-      "promptNumber": "05",
-      "section": "comparador",
-      "timestamp": "2024-12-21T00:00:00.000Z",
-      "action": "create_section",
-      "preferences": {
-        "B.90": "Access V1 - Checkbox en card de catálogo",
-        "B.91": "Max Products V2 - 4 productos máximo",
-        "B.92": "Fields V1 - Especificaciones técnicas básicas",
-        "B.93": "Highlight V1 - Verde/Rojo semántico",
-        "B.94": "Price Diff V1 - Texto simple (+S/X)",
-        "B.95": "Layout V1 - Modal fullscreen",
-        "B.96": "Difference Highlight V1 - Resaltado amarillo",
-        "B.97": "Selection V1 - Checkbox card selector"
-      },
-      "components": [
-        {
-          "name": "ComparatorLayout",
-          "versions": 6,
-          "files": [
-            "ComparatorLayoutV1.tsx",
-            "ComparatorLayoutV2.tsx",
-            "ComparatorLayoutV3.tsx",
-            "ComparatorLayoutV4.tsx",
-            "ComparatorLayoutV5.tsx",
-            "ComparatorLayoutV6.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 1800,
-          "estimatedTokens": 13500
+          "files": ["SelectCardsV3.tsx"],
+          "linesOfCode": 120,
+          "estimatedTokens": 900
         },
         {
-          "name": "ComparisonTable",
+          "name": "UploadField",
           "versions": 6,
-          "files": [
-            "ComparisonTableV1.tsx",
-            "ComparisonTableV2.tsx",
-            "ComparisonTableV3.tsx",
-            "ComparisonTableV4.tsx",
-            "ComparisonTableV5.tsx",
-            "ComparisonTableV6.tsx",
-            "index.ts"
-          ],
-          "linesOfCode": 1500,
-          "estimatedTokens": 11250
+          "files": ["UploadFieldV3.tsx"],
+          "linesOfCode": 180,
+          "estimatedTokens": 1350
         },
         {
-          "name": "DifferenceHighlight",
-          "versions": 6,
-          "files": [
-            "DifferenceHighlightV1.tsx"
-          ],
-          "linesOfCode": 450,
-          "estimatedTokens": 3375
-        },
-        {
-          "name": "ProductSelector",
-          "versions": 6,
-          "files": [
-            "ProductSelectorV1.tsx"
-          ],
-          "linesOfCode": 280,
-          "estimatedTokens": 2100
-        },
-        {
-          "name": "CompareActions",
-          "versions": 3,
-          "files": [
-            "CompareActions.tsx"
-          ],
-          "linesOfCode": 320,
-          "estimatedTokens": 2400
+          "name": "StepContent",
+          "versions": 1,
+          "files": ["StepContent.tsx"],
+          "linesOfCode": 150,
+          "estimatedTokens": 1125
         }
       ],
       "supportingFiles": [
         {
-          "name": "types/comparator.ts",
-          "linesOfCode": 380,
-          "estimatedTokens": 2850
+          "name": "types/wizard-solicitud.ts",
+          "linesOfCode": 220,
+          "estimatedTokens": 1650
         },
         {
-          "name": "data/mockComparatorData.ts",
-          "linesOfCode": 250,
-          "estimatedTokens": 1875
+          "name": "data/wizardSolicitudSteps.ts",
+          "linesOfCode": 280,
+          "estimatedTokens": 2100
         },
         {
-          "name": "ProductComparator.tsx",
-          "linesOfCode": 45,
-          "estimatedTokens": 338
+          "name": "WizardSolicitudContainer.tsx",
+          "linesOfCode": 180,
+          "estimatedTokens": 1350
         },
         {
-          "name": "ComparatorSettingsModal.tsx",
-          "linesOfCode": 253,
-          "estimatedTokens": 1898
+          "name": "WizardSolicitudSettingsModal.tsx",
+          "linesOfCode": 320,
+          "estimatedTokens": 2400
         },
         {
           "name": "page.tsx (redirect)",
-          "linesOfCode": 26,
-          "estimatedTokens": 195
+          "linesOfCode": 12,
+          "estimatedTokens": 90
         },
         {
-          "name": "comparator-preview/page.tsx",
-          "linesOfCode": 284,
-          "estimatedTokens": 2130
+          "name": "wizard-preview/page.tsx",
+          "linesOfCode": 145,
+          "estimatedTokens": 1088
         }
       ],
-      "filesGenerated": 25,
-      "totalLinesAdded": 5000,
+      "filesGenerated": 18,
+      "totalLinesAdded": 2347,
       "estimatedTokens": {
-        "input": 15000,
-        "output": 35000,
-        "total": 50000
+        "input": 20000,
+        "output": 17604,
+        "total": 37604
       },
       "componentsCreated": [
-        "ComparatorLayoutV1 - Modal Fullscreen",
-        "ComparatorLayoutV2 - Página dedicada",
-        "ComparatorLayoutV3 - Panel sticky lateral",
-        "ComparatorLayoutV4 - Modal fluido fintech",
-        "ComparatorLayoutV5 - Split 50/50",
-        "ComparatorLayoutV6 - Fullscreen inmersivo",
-        "ComparisonTableV1-V6",
-        "DifferenceHighlightV1-V6",
-        "ProductSelectorV1",
-        "CompareActions + FAB + Tray",
-        "ComparatorSettingsModal",
-        "ProductComparator"
+        "SolicitudIntroV1-V6 (Baldi en V3)",
+        "WizardLayoutV1-V6",
+        "ProgressIndicatorV1-V6",
+        "WizardNavigationV1-V6",
+        "InputFieldV1-V6",
+        "SelectCardsV1-V6",
+        "UploadFieldV1-V6",
+        "StepContent",
+        "WizardSolicitudContainer",
+        "WizardSolicitudSettingsModal"
       ],
-      "notes": "Complete Comparator section with 8 configurable options (B.90-B.97). Layouts: 6 versions (modal, page, sticky, fluido, split, fullscreen). Tables: 6 versions (traditional, icons, bars, gradients, highlighted column, giant specs). Highlights: 6 versions (yellow, toggle, pulsing, glow, column, differences only). Selection UI with checkbox cards and floating action bar."
+      "bugsToFix": ["C1.16 - UploadPreview no funciona", "C1.17 - UploadProgress no funciona"],
+      "notes": "PROMPT_18 meta-prompt que integra Wizard + Solicitud. Flujo: Intro con Baldi -> Paso 1 Personal -> Paso 2 Academico -> Paso 3 Economico -> Paso 4 Resumen. 8 componentes x 6 versiones = 48 variantes. Decisiones aplicadas de 0.3 con preferencias del usuario."
     }
   ],
-  "totalTokensUsed": 316129,
+  "totalTokensUsed": 286462,
   "summary": {
-    "componentsCreated": 192,
-    "filesCreated": 218,
-    "filesUpdated": 23,
-    "totalLinesOfCode": 33400
+    "componentsCreated": 126,
+    "filesCreated": 171,
+    "filesUpdated": 14,
+    "totalLinesOfCode": 24497
   }
 }

@@ -1,24 +1,17 @@
 'use client';
 
-import { Card, CardBody, Button } from '@nextui-org/react';
+/**
+ * SimilarProductsV3 - Comparison Table Layout
+ *
+ * Side-by-side comparison layout with emphasis on
+ * quota differences and key differentiators.
+ */
 
-export interface SimilarProduct {
-  id: string;
-  name: string;
-  thumbnail: string;
-  monthlyQuota: number;
-  quotaDifference: number;
-  matchScore: number;
-  differentiators: string[];
-  slug: string;
-}
+import React from 'react';
+import { TrendingDown, TrendingUp, Award, ArrowRight, Percent } from 'lucide-react';
+import { SimilarProductsProps } from '../../../types/detail';
 
-export interface SimilarProductsProps {
-  products: SimilarProduct[];
-  currentQuota: number;
-}
-
-export default function SimilarProductsV3({ products, currentQuota }: SimilarProductsProps) {
+export const SimilarProductsV3: React.FC<SimilarProductsProps> = ({ products, currentQuota }) => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.src = 'https://placehold.co/200x200/e5e7eb/64748b?text=Producto';
   };
@@ -31,165 +24,145 @@ export default function SimilarProductsV3({ products, currentQuota }: SimilarPro
 
   // Sort: cheaper products first
   const sortedProducts = [...products].sort((a, b) => a.quotaDifference - b.quotaDifference);
+  const cheapest = sortedProducts[0];
 
   return (
-    <div className="w-full">
-      <div className="mb-6">
-        <h3 className="text-2xl font-bold text-neutral-800 mb-2">
-          Compara y elige mejor
-        </h3>
-        <p className="text-neutral-600">
-          Opciones similares ordenadas por cuota mensual
-        </p>
+    <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h3 className="text-lg font-bold text-neutral-900 mb-1">Compara y Elige Mejor</h3>
+          <p className="text-sm text-neutral-500">Ordenados por cuota mensual, de menor a mayor</p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-neutral-100 rounded-xl">
+          <span className="text-sm text-neutral-600">Tu cuota actual:</span>
+          <span className="text-lg font-bold text-neutral-900">S/{currentQuota}/mes</span>
+        </div>
       </div>
 
-      {/* 3-Column Grid with Delta Badges */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Best Deal Highlight */}
+      {cheapest && cheapest.quotaDifference < 0 && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+              <Award className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-emerald-800">¡Mejor opción encontrada!</p>
+              <p className="text-xs text-emerald-600">
+                {cheapest.name} te ahorra S/{Math.abs(cheapest.quotaDifference)}/mes
+              </p>
+            </div>
+            <button
+              onClick={() => handleProductClick(cheapest.slug)}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium text-sm hover:bg-emerald-600 transition-colors cursor-pointer"
+            >
+              Ver ahora
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Products List */}
+      <div className="space-y-3">
         {sortedProducts.map((product, index) => {
           const isCheaper = product.quotaDifference < 0;
-          const isMoreExpensive = product.quotaDifference > 0;
-          const isSame = product.quotaDifference === 0;
+          const isBest = index === 0 && isCheaper;
 
           return (
-            <Card
+            <div
               key={product.id}
-              className="cursor-pointer hover:shadow-xl transition-all duration-200 hover:-translate-y-1"
-              isPressable
-              onPress={() => handleProductClick(product.slug)}
+              onClick={() => handleProductClick(product.slug)}
+              className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-md ${
+                isBest
+                  ? 'border-emerald-300 bg-emerald-50/50'
+                  : 'border-neutral-200 hover:border-[#4654CD]/30 bg-white'
+              }`}
             >
-              <CardBody className="p-0">
-                {/* Delta Badge - Top Right */}
-                {!isSame && (
-                  <div
-                    className={`absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full shadow-lg font-bold text-sm ${
-                      isCheaper
-                        ? 'bg-[#22c55e] text-white'
-                        : 'bg-amber-500 text-white'
-                    }`}
-                  >
-                    {isCheaper ? '' : '+'}S/{Math.abs(product.quotaDifference)}/mes
-                  </div>
-                )}
+              {/* Rank */}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                isBest ? 'bg-emerald-500 text-white' : 'bg-neutral-100 text-neutral-600'
+              }`}>
+                {index + 1}
+              </div>
 
-                {/* Best Deal Badge */}
-                {index === 0 && isCheaper && (
-                  <div className="absolute top-4 left-4 z-10 bg-[#4654CD] text-white px-3 py-1 rounded-full text-xs font-semibold">
-                    Mejor oferta
-                  </div>
-                )}
+              {/* Image */}
+              <div className="w-16 h-16 rounded-lg bg-neutral-100 overflow-hidden flex-shrink-0">
+                <img
+                  src={product.thumbnail}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  onError={handleImageError}
+                />
+              </div>
 
-                {/* Thumbnail */}
-                <div className="relative w-full aspect-square bg-neutral-100 overflow-hidden">
-                  <img
-                    src={product.thumbnail}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                    onError={handleImageError}
-                  />
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-neutral-800 text-sm truncate mb-1">
+                  {product.name}
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {product.differentiators.slice(0, 2).map((diff, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 bg-neutral-100 text-neutral-600 text-xs rounded-full"
+                    >
+                      {diff}
+                    </span>
+                  ))}
                 </div>
+              </div>
 
-                {/* Content */}
-                <div className="p-4">
-                  {/* Product Name */}
-                  <h4 className="font-bold text-neutral-800 mb-3 line-clamp-2 min-h-[3rem]">
-                    {product.name}
-                  </h4>
-
-                  {/* Quota Display - CRITICAL */}
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-3xl font-bold text-neutral-800">
-                        S/{product.monthlyQuota}
-                      </span>
-                      <span className="text-neutral-500">/mes</span>
-                    </div>
-                    <p className="text-sm text-neutral-600">
-                      Producto actual: S/{currentQuota}/mes
-                    </p>
-                  </div>
-
-                  {/* Match Score Bar */}
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-semibold text-neutral-600">
-                        Similitud
-                      </span>
-                      <span className="text-xs font-bold text-[#4654CD]">
-                        {product.matchScore}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-neutral-200 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-[#4654CD] h-full rounded-full transition-all duration-500"
-                        style={{ width: `${product.matchScore}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Differentiators */}
-                  {product.differentiators.length > 0 && (
-                    <div className="mb-4 bg-neutral-50 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-neutral-700 mb-2">
-                        Diferencias clave:
-                      </p>
-                      <ul className="space-y-1.5">
-                        {product.differentiators.slice(0, 3).map((diff, idx) => (
-                          <li key={idx} className="text-xs text-neutral-600 flex items-start gap-2">
-                            <svg
-                              className="w-3 h-3 text-[#4654CD] mt-0.5 flex-shrink-0"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            <span>{diff}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* CTA */}
-                  <Button
-                    className="w-full"
-                    color={isCheaper ? 'success' : 'primary'}
-                    variant="solid"
-                    size="md"
-                  >
-                    {isCheaper
-                      ? `Ahorra S/${Math.abs(product.quotaDifference)}/mes`
-                      : 'Ver detalles'}
-                  </Button>
+              {/* Match Score */}
+              <div className="hidden md:flex flex-col items-center px-4">
+                <div className="flex items-center gap-1">
+                  <Percent className="w-3 h-3 text-[#4654CD]" />
+                  <span className="text-sm font-bold text-[#4654CD]">{product.matchScore}%</span>
                 </div>
-              </CardBody>
-            </Card>
+                <span className="text-[10px] text-neutral-500">similar</span>
+              </div>
+
+              {/* Quota & Difference */}
+              <div className="text-right">
+                <p className="text-xl font-bold text-neutral-900">
+                  S/{product.monthlyQuota}<span className="text-sm font-normal text-neutral-500">/mes</span>
+                </p>
+                <div className={`flex items-center justify-end gap-1 text-sm font-medium ${
+                  isCheaper ? 'text-emerald-600' : 'text-amber-600'
+                }`}>
+                  {isCheaper ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                  <span>{isCheaper ? '' : '+'}S/{Math.abs(product.quotaDifference)}</span>
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <ArrowRight className="w-5 h-5 text-neutral-400" />
+            </div>
           );
         })}
       </div>
 
-      {/* Summary Footer */}
-      <Card className="mt-6 bg-neutral-50">
-        <CardBody className="p-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <p className="text-sm font-semibold text-neutral-800 mb-1">
-                Rango de cuotas mensuales
-              </p>
-              <p className="text-xs text-neutral-600">
-                Desde S/{Math.min(...products.map((p) => p.monthlyQuota))} hasta S/
-                {Math.max(...products.map((p) => p.monthlyQuota))} por mes
-              </p>
-            </div>
-            <Button color="primary" variant="bordered" size="sm">
-              Ver todos los productos
-            </Button>
+      {/* Footer Summary */}
+      <div className="mt-6 pt-4 border-t border-neutral-200">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-neutral-500">
+            Mostrando {products.length} productos similares
+          </span>
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5 text-emerald-600">
+              <TrendingDown className="w-4 h-4" />
+              Menor cuota
+            </span>
+            <span className="flex items-center gap-1.5 text-amber-600">
+              <TrendingUp className="w-4 h-4" />
+              Mayor cuota
+            </span>
           </div>
-        </CardBody>
-      </Card>
+        </div>
+      </div>
     </div>
   );
-}
+};
+
+export default SimilarProductsV3;
