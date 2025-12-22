@@ -273,15 +273,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               {renderInfoHeader()}
             </div>
 
-            {/* Pricing Calculator */}
-            <div id="section-pricing">
+            {/* Pricing Calculator + CTA */}
+            <div id="section-pricing" className="space-y-4">
               {renderPricing()}
+              {/* CTA Button - Same width as calculator */}
+              <button className="w-full bg-[#4654CD] text-white py-4 rounded-xl font-semibold text-lg hover:bg-[#3a47b3] transition-colors cursor-pointer shadow-lg shadow-[#4654CD]/25">
+                ¡Lo quiero! Solicitar ahora
+              </button>
             </div>
-
-            {/* CTA Button */}
-            <button className="w-full bg-[#4654CD] text-white py-4 rounded-xl font-semibold text-lg hover:bg-[#3a47b3] transition-colors cursor-pointer">
-              ¡Lo quiero! Solicitar ahora
-            </button>
 
             {/* Certifications */}
             <div id="section-certifications">

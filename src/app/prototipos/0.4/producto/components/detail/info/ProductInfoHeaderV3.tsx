@@ -1,94 +1,74 @@
 'use client';
 
 /**
- * ProductInfoHeaderV3 - Layout con Chips Flotantes
+ * ProductInfoHeaderV3 - Horizontal Split Layout
  *
- * Two-column layout with info on left and floating chips stacked on right.
- * Badges appear beside the product info for a more dynamic look.
+ * Clean horizontal layout with brand emphasis,
+ * inline specs, and minimal visual noise.
  */
 
 import React from 'react';
-import { Chip } from '@nextui-org/react';
-import { Star, Monitor, Battery, Package, CheckCircle } from 'lucide-react';
+import { Star, Package, ChevronRight } from 'lucide-react';
 import { ProductInfoHeaderProps } from '../../../types/detail';
 
 export const ProductInfoHeaderV3: React.FC<ProductInfoHeaderProps> = ({ product }) => {
-  const getBadgeIcon = (type: string) => {
-    switch (type) {
-      case 'os': return <CheckCircle className="w-3 h-3" />;
-      case 'battery': return <Battery className="w-3 h-3" />;
-      case 'stock': return <Package className="w-3 h-3" />;
-      default: return null;
-    }
-  };
-
   return (
-    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-      {/* Left: Main Info */}
-      <div className="space-y-2 flex-1">
-        {/* Brand */}
-        <p className="text-sm font-medium text-neutral-500 uppercase tracking-wide">
-          {product.brand}
-        </p>
+    <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+      {/* Top Section */}
+      <div className="p-5">
+        {/* Brand + Rating Row */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1.5 bg-[#4654CD] text-white text-sm font-bold rounded-lg">
+              {product.brand}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+              <span className="text-base font-bold text-neutral-800">{product.rating}</span>
+              <span className="text-sm text-neutral-400">({product.reviewCount})</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
+            <Package className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-medium text-emerald-700">{product.stock} en stock</span>
+          </div>
+        </div>
 
         {/* Product Name */}
-        <h1 className="text-xl md:text-2xl font-bold text-neutral-900 font-['Baloo_2'] leading-tight">
+        <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2'] leading-tight">
           {product.displayName}
         </h1>
+      </div>
 
-        {/* Rating */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                className={`w-4 h-4 ${
-                  i < Math.floor(product.rating)
-                    ? 'text-amber-400 fill-amber-400'
-                    : 'text-neutral-300'
-                }`}
-              />
-            ))}
+      {/* Specs Strip */}
+      <div className="px-5 py-4 bg-neutral-50 border-t border-neutral-100">
+        <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-amber-500" />
+            <span className="text-neutral-600">Ryzen 5</span>
           </div>
-          <span className="text-sm font-medium text-neutral-700">{product.rating}</span>
-          <span className="text-sm text-neutral-500">({product.reviewCount} opiniones)</span>
+          <div className="w-px h-4 bg-neutral-200" />
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-blue-500" />
+            <span className="text-neutral-600">8GB RAM</span>
+          </div>
+          <div className="w-px h-4 bg-neutral-200" />
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-purple-500" />
+            <span className="text-neutral-600">256GB SSD</span>
+          </div>
+          <div className="w-px h-4 bg-neutral-200" />
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-cyan-500" />
+            <span className="text-neutral-600">15.6" FHD</span>
+          </div>
+
+          <button className="ml-auto flex items-center gap-1 text-[#4654CD] font-medium hover:underline cursor-pointer">
+            <span>Ver todo</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
-      </div>
-
-      {/* Right: Floating Chips (visible on md+) */}
-      <div className="hidden md:flex flex-col gap-2 items-end">
-        {product.badges.map((badge, index) => (
-          <Chip
-            key={index}
-            size="sm"
-            radius="sm"
-            startContent={getBadgeIcon(badge.type)}
-            classNames={{
-              base: 'bg-white border border-neutral-200 shadow-sm px-3 py-1.5 h-auto',
-              content: 'text-xs font-medium text-neutral-700',
-            }}
-          >
-            {badge.text}
-          </Chip>
-        ))}
-      </div>
-
-      {/* Mobile: Horizontal badges */}
-      <div className="flex md:hidden flex-wrap gap-2">
-        {product.badges.map((badge, index) => (
-          <Chip
-            key={index}
-            size="sm"
-            radius="sm"
-            startContent={getBadgeIcon(badge.type)}
-            classNames={{
-              base: 'bg-neutral-100 px-2.5 py-1 h-auto',
-              content: 'text-xs font-medium text-neutral-700',
-            }}
-          >
-            {badge.text}
-          </Chip>
-        ))}
       </div>
     </div>
   );

@@ -5,4 +5,4 @@ export { default as SimilarProductsV4 } from './SimilarProductsV4';
 export { default as SimilarProductsV5 } from './SimilarProductsV5';
 export { default as SimilarProductsV6 } from './SimilarProductsV6';
 
-export type { SimilarProduct, SimilarProductsProps } from './SimilarProductsV1';
+export type { SimilarProduct, SimilarProductsProps } from '../../../types/detail';

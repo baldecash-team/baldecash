@@ -2090,3 +2090,233 @@ Antes de entregar cualquier componente, verificar:
 - [ ] **Ortografía y gramática revisada (tildes, concordancia)**
 - [ ] **Contraste de tipografía vs fondo verificado (4.5:1 mínimo)**
 - [ ] **Terminología "equipos" en lugar de "laptops" en textos generales**
+
+## Focus States (NO borde negro)
+
+### CRÍTICO: Ningún input debe mostrar borde negro al hacer focus
+
+El CSS global ya incluye reglas para quitar el outline negro. Si aún aparece, verificar:
+
+```css
+/* globals.css - Ya configurado */
+*:focus,
+*:focus-visible {
+  outline: none !important;
+}
+
+[data-focus-visible="true"],
+[data-focused="true"],
+[data-focus="true"] {
+  outline: none !important;
+  --tw-ring-color: transparent !important;
+}
+```
+
+### En componentes NextUI, usar classNames:
+
+```tsx
+// ❌ PROHIBIDO - Input con focus ring negro
+<Input
+  classNames={{
+    inputWrapper: 'border border-neutral-200',
+  }}
+/>
+
+// ✅ CORRECTO - Input sin focus ring, solo cambio de borde
+<Input
+  classNames={{
+    inputWrapper: `
+      border border-neutral-200 
+      data-[focus=true]:border-[#4654CD]
+      data-[focus-visible=true]:ring-0
+      data-[focus-visible=true]:ring-offset-0
+    `,
+  }}
+/>
+```
+
+### Reglas de focus:
+- **NUNCA** permitir outline negro en ningún input
+- **SIEMPRE** cambiar border-color a primario (#4654CD) en focus
+- **SIEMPRE** agregar `data-[focus-visible=true]:ring-0` a inputs NextUI
+- Si persiste el borde, verificar que globals.css esté importado
+
+## Modales de Configuración (Patrón HeroUI)
+
+### SIEMPRE usar el mismo patrón que HeroSettingsModal
+
+Los modales de configuración deben:
+1. Usar **Select** en lugar de RadioGroup (más compacto)
+2. Tener icono en el header
+3. Sin bordes internos excesivos
+4. Botones con cursor-pointer
+
+```tsx
+// ✅ CORRECTO - Modal con estilo HeroUI
+<Modal
+  isOpen={isOpen}
+  onClose={onClose}
+  size="2xl"
+  scrollBehavior="outside"
+  backdrop="blur"
+  placement="center"
+  classNames={{
+    base: 'bg-white my-8',
+    wrapper: 'items-center justify-center py-8 min-h-full',
+    backdrop: 'bg-black/50',
+    header: 'border-b border-neutral-200 bg-white py-4 pr-12',
+    body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
+    footer: 'border-t border-neutral-200 bg-white',
+    closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+  }}
+>
+  <ModalContent>
+    <ModalHeader className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
+        <Settings className="w-4 h-4 text-[#4654CD]" />
+      </div>
+      <span className="text-lg font-semibold text-neutral-800">Configurar Sección</span>
+    </ModalHeader>
+    {/* ... */}
+  </ModalContent>
+</Modal>
+```
+
+## Keyboard Shortcuts en Previews
+
+### OBLIGATORIO: Implementar shortcuts en todas las páginas de preview
+
+Usar el hook `useKeyboardShortcuts` de `@/app/prototipos/_shared`:
+
+```tsx
+import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
+
+// En el componente de preview:
+useKeyboardShortcuts({
+  componentOrder: ['navbar', 'hero', 'cta', 'footer'],
+  onVersionChange: (componentId, version) => {
+    setConfig(prev => ({ ...prev, [`${componentId}Version`]: version }));
+  },
+  onToggleSettings: () => setIsSettingsOpen(prev => !prev),
+  getCurrentVersion: (componentId) => config[`${componentId}Version`] || 1,
+  isModalOpen: isSettingsOpen,
+});
+```
+
+### Atajos disponibles:
+| Atajo | Acción |
+|-------|--------|
+| `1-6` | Cambiar versión del componente actual |
+| `Tab` | Siguiente componente |
+| `Shift+Tab` | Componente anterior |
+| `?` o `K` | Abrir/cerrar modal |
+| `Escape` | Cerrar modal |
+
+### Reglas de shortcuts:
+- **SIEMPRE** desactivar cuando el usuario escribe en inputs
+- **SIEMPRE** mostrar guía de shortcuts en la página de versión
+- Los shortcuts se desactivan automáticamente cuando `isModalOpen=true` (excepto Escape)
+
+## Selector Rápido de Versiones
+
+### VersionNav ya incluye selector de versiones
+
+El componente `VersionNav` en `_shared/components` ya incluye:
+- Navegación prev/next entre versiones
+- Selector con todas las versiones activas
+- Indicador de progreso
+- Links a secciones
+
+```tsx
+import { VersionNav } from '@/app/prototipos/_shared';
+
+// En páginas de preview:
+<VersionNav currentVersion="0.4" showSections={true} />
+```
+
+### Reglas:
+- **SIEMPRE** usar VersionNav en páginas de sección
+- `showSections={true}` para mostrar links a las secciones
+- `showSections={false}` para páginas de índice de versión
+
+## Checklist de SettingsModal (OBLIGATORIO)
+
+Antes de entregar cualquier SettingsModal, verificar que cumpla con TODOS estos requisitos:
+
+### Modal Props (CRÍTICO)
+- [ ] `scrollBehavior="outside"` (NUNCA "inside")
+- [ ] `placement="center"`
+- [ ] `backdrop="blur"`
+- [ ] `size="2xl"`
+
+### Modal classNames (CRÍTICO)
+```tsx
+classNames={{
+  base: 'bg-white my-8',
+  wrapper: 'items-center justify-center py-8 min-h-full',
+  backdrop: 'bg-black/50',
+  header: 'border-b border-neutral-200 bg-white py-4 pr-12',
+  body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
+  footer: 'border-t border-neutral-200 bg-white',
+  closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+}}
+```
+
+### Header
+- [ ] Icono con fondo `bg-[#4654CD]/10`
+- [ ] Título con `text-lg font-semibold text-neutral-800`
+- [ ] Sin `border-b` en className (ya está en classNames.header)
+
+### Body
+- [ ] `className="py-6 bg-white"` (NO py-4)
+- [ ] Sin Divider de NextUI - usar `<div className="border-t border-neutral-200 my-4" />`
+
+### Footer
+- [ ] `className="bg-white"` (sin border-t, ya está en classNames)
+- [ ] Botón Restablecer: `variant="light"` + `className="cursor-pointer"`
+- [ ] Botón Aplicar: `className="bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3] transition-colors"`
+
+### Errores Comunes a Evitar
+```tsx
+// ❌ PROHIBIDO
+scrollBehavior="inside"  // Causa problemas de centrado
+<Divider className="my-4" />  // Invisible
+<ModalFooter className="border-t">  // Ya definido en classNames
+<Button onPress={...}>  // Sin cursor-pointer
+
+// ✅ CORRECTO
+scrollBehavior="outside"
+<div className="border-t border-neutral-200 my-4" />
+<ModalFooter className="bg-white">
+<Button onPress={...} className="cursor-pointer">
+```
+
+## NextUI Switch con Color de Marca
+
+### SIEMPRE usar classNames con color primario en Switch
+
+```tsx
+// ❌ PROHIBIDO - Switch sin color de marca
+<Switch
+  size="sm"
+  isSelected={value}
+  onValueChange={onChange}
+/>
+
+// ✅ CORRECTO - Switch con color primario BaldeCash
+<Switch
+  size="sm"
+  isSelected={value}
+  onValueChange={onChange}
+  classNames={{
+    wrapper: 'group-data-[selected=true]:bg-[#4654CD]',
+    thumb: 'group-data-[selected=true]:bg-white',
+  }}
+/>
+```
+
+### Reglas para Switch:
+- **SIEMPRE** usar `classNames` con `wrapper` y `thumb`
+- Color activado: `bg-[#4654CD]` (primario)
+- Thumb activado: `bg-white`
+- Envolver en `<label>` con `cursor-pointer`
