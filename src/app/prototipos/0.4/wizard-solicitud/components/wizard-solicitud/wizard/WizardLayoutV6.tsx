@@ -14,8 +14,8 @@ interface WizardLayoutV6Props {
   steps: WizardSolicitudStep[];
   currentStep: number;
   selectedProduct?: SelectedProduct;
-  showTimeEstimate?: boolean;
-  estimatedMinutesRemaining?: number;
+  
+  
   children: React.ReactNode;
   onClose?: () => void;
 }
@@ -24,8 +24,8 @@ export const WizardLayoutV6: React.FC<WizardLayoutV6Props> = ({
   steps,
   currentStep,
   selectedProduct,
-  showTimeEstimate = true,
-  estimatedMinutesRemaining = 5,
+  
+  
   children,
   onClose,
 }) => {
@@ -45,22 +45,14 @@ export const WizardLayoutV6: React.FC<WizardLayoutV6Props> = ({
               <p className="text-white/70 text-xs">Financia tu futuro</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            {showTimeEstimate && (
-              <div className="hidden sm:flex items-center gap-1 text-white/80 text-sm">
-                <Clock className="w-4 h-4" />
-                <span>~{estimatedMinutesRemaining} minutos restantes</span>
-              </div>
-            )}
-            <Button
-              isIconOnly
-              size="sm"
-              onPress={onClose}
-              className="bg-white/10 hover:bg-white/20 text-white rounded-full"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <Button
+            isIconOnly
+            size="sm"
+            onPress={onClose}
+            className="bg-white/10 hover:bg-white/20 text-white rounded-full"
+          >
+            <X className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* Sub-header con producto */}

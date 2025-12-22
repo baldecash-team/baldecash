@@ -3,25 +3,13 @@
  * Exporta todas las versiones de componentes de campos
  */
 
-// InputField - 6 versiones (legacy)
+// InputField - 6 versiones (Label integrado en cada version)
 export { InputFieldV1 } from './InputFieldV1';
 export { InputFieldV2 } from './InputFieldV2';
 export { InputFieldV3 } from './InputFieldV3';
 export { InputFieldV4 } from './InputFieldV4';
 export { InputFieldV5 } from './InputFieldV5';
 export { InputFieldV6 } from './InputFieldV6';
-
-// InputFieldUnified - 6 versiones (label+input combinados)
-export {
-  InputFieldUnified,
-  InputFieldUnifiedV1,
-  InputFieldUnifiedV2,
-  InputFieldUnifiedV3,
-  InputFieldUnifiedV4,
-  InputFieldUnifiedV5,
-  InputFieldUnifiedV6,
-  getInputFieldUnified,
-} from './InputFieldUnified';
 
 // SelectCards - 6 versiones
 export { SelectCardsV1 } from './SelectCardsV1';
@@ -113,9 +101,6 @@ export const getInputField = (version: 1 | 2 | 3 | 4 | 5 | 6) => InputFieldVersi
 export const getSelectCards = (version: 1 | 2 | 3 | 4 | 5 | 6) => SelectCardsVersions[version];
 export const getUploadField = (version: 1 | 2 | 3 | 4 | 5 | 6) => UploadFieldVersions[version];
 export const getDatePickerField = (version: 1 | 2 | 3 | 4 | 5 | 6) => DatePickerFieldVersions[version];
-
-// Labels
-export { getLabel, LabelVersions, LabelV1, LabelV2, LabelV3, LabelV4, LabelV5, LabelV6 } from './labels';
 
 // HelpTooltips
 export {
