@@ -13,8 +13,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
 import { Menu, X, Zap, User } from 'lucide-react';
 
+const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+
 const navItems = [
-  { label: 'Equipos', href: '#equipos' },
+  { label: 'Equipos', href: catalogUrl },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
   { label: 'FAQ', href: '#faq' },

@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Users, Building } from 'lucide-react';
 import { HeroBannerProps } from '../../../types/hero';
@@ -21,6 +22,9 @@ export const HeroBannerV2: React.FC<HeroBannerProps> = ({
   primaryCta,
   underlineStyle = 1,
 }) => {
+  const router = useRouter();
+  const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+
   return (
     <section className="relative min-h-[70vh] overflow-hidden">
       {/* Background Image */}
@@ -80,6 +84,7 @@ export const HeroBannerV2: React.FC<HeroBannerProps> = ({
               radius="lg"
               className="bg-[#03DBD0] text-neutral-900 font-semibold px-8 cursor-pointer hover:bg-[#02C3BA] transition-colors"
               endContent={<ArrowRight className="w-5 h-5" />}
+              onPress={() => router.push(catalogUrl)}
             >
               {primaryCta?.text || 'Ver laptops disponibles'}
             </Button>

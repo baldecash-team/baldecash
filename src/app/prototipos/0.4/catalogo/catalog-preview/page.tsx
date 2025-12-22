@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef } from 'react';
 import { Button, Spinner } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft, ArrowUp } from 'lucide-react';
+import { Settings, Code, ArrowLeft, ArrowUp, Sparkles, ArrowRight, GitCompare, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CatalogLayout } from '../components/catalog/CatalogLayout';
 import { CatalogSettingsModal } from '../components/catalog/CatalogSettingsModal';
@@ -33,6 +33,41 @@ import {
   pricingModeLabels,
 } from '../types/catalog';
 import { sortProducts, getFilteredProducts, getFilterCounts, mockProducts } from '../data/mockCatalogData';
+import { EmptyState } from '../components/empty';
+import { AppliedFilter } from '../types/empty';
+import { ProductComparator } from '../../comparador/components/comparator/ProductComparator';
+import {
+  ComparatorConfig,
+  ComparisonState,
+  defaultComparisonState,
+  ComparisonProduct,
+} from '../../comparador/types/comparator';
+
+// URL del detalle de producto
+const detailUrl = '/prototipos/0.4/producto/detail-preview/?infoHeader=1&gallery=1&tabs=1&specs=1&pricing=1&cronograma=1&similar=1&limitations=1&certifications=1';
+
+// Configuración del comparador (basada en la URL especificada)
+const comparatorConfig: ComparatorConfig = {
+  layoutVersion: 3,        // Panel Sticky
+  accessVersion: 1,        // Checkbox en Cards
+  maxProductsVersion: 4,   // Máximo 4 productos
+  fieldsVersion: 2,        // Specs + Features
+  highlightVersion: 1,     // Semántico clásico
+  priceDiffVersion: 4,     // Badge Animado
+  differenceHighlightVersion: 5, // Subrayado Animado
+  cardSelectionVersion: 3, // Glow + Ribbon
+  defaultTerm: 24,
+  defaultInitial: 10,
+};
+
+const MAX_COMPARE_PRODUCTS = 3;
+
+// Mock de productos relacionados para el empty state
+const relatedProducts = [
+  { id: 1, brand: 'LENOVO', name: 'IdeaPad 3 15" AMD Ryzen 5', price: 89, gama: 'Gama Media', gamaColor: 'bg-blue-100 text-blue-700' },
+  { id: 2, brand: 'HP', name: 'HP 15 Intel Core i5 12th Gen', price: 79, gama: 'Gama Media', gamaColor: 'bg-blue-100 text-blue-700' },
+  { id: 3, brand: 'ACER', name: 'Aspire 5 AMD Ryzen 7', price: 99, gama: 'Gama Alta', gamaColor: 'bg-purple-100 text-purple-700' },
+];
 
 /**
  * Catalog Preview Page
@@ -104,6 +139,11 @@ function CatalogPreviewContent() {
   const [isLoadingMore, setIsLoadingMore] = useState(false); // Loading state for "load more"
   const [showScrollTop, setShowScrollTop] = useState(false); // Show scroll to top button
   const isFirstRender = useRef(true);
+
+  // Comparison state
+  const [compareList, setCompareList] = useState<string[]>([]);
+  const [isComparatorOpen, setIsComparatorOpen] = useState(false);
+  const [comparisonState, setComparisonState] = useState<ComparisonState>(defaultComparisonState);
 
   // Scroll detection for "scroll to top" button
   useEffect(() => {
@@ -265,6 +305,87 @@ function CatalogPreviewContent() {
     }, loadingTime);
   }, [config.loadingDuration]);
 
+  // Convert current filters to AppliedFilter format for EmptyState
+  const appliedFilters = useMemo((): AppliedFilter[] => {
+    const result: AppliedFilter[] = [];
+
+    if (filters.brands.length > 0) {
+      filters.brands.forEach(brand => {
+        result.push({ key: 'brand', label: brand.charAt(0).toUpperCase() + brand.slice(1), value: brand });
+      });
+    }
+    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 10000) {
+      result.push({ key: 'price', label: `S/${filters.priceRange[0]} - S/${filters.priceRange[1]}`, value: filters.priceRange });
+    }
+    if (filters.ram.length > 0) {
+      filters.ram.forEach(ram => {
+        result.push({ key: 'ram', label: `${ram}GB RAM`, value: ram });
+      });
+    }
+    if (filters.usage.length > 0) {
+      const usageLabels: Record<string, string> = { office: 'Oficina', gaming: 'Gaming', creative: 'Creativo', student: 'Estudiante' };
+      filters.usage.forEach(u => {
+        result.push({ key: 'usage', label: usageLabels[u] || u, value: u });
+      });
+    }
+    if (filters.gama.length > 0) {
+      const gamaLabels: Record<string, string> = { economica: 'Económica', estudiante: 'Estudiante', profesional: 'Profesional', creativa: 'Creativa', gamer: 'Gamer' };
+      filters.gama.forEach(g => {
+        result.push({ key: 'gama', label: gamaLabels[g] || g, value: g });
+      });
+    }
+    if (filters.processorBrand.length > 0) {
+      filters.processorBrand.forEach(p => {
+        result.push({ key: 'processorBrand', label: p.toUpperCase(), value: p });
+      });
+    }
+
+    return result;
+  }, [filters]);
+
+  // Handler to remove a specific filter
+  const handleRemoveFilter = useCallback((key: string) => {
+    setFilters(prev => {
+      const newFilters = { ...prev };
+      if (key === 'brand') newFilters.brands = [];
+      if (key === 'price') newFilters.priceRange = [0, 10000];
+      if (key === 'ram') newFilters.ram = [];
+      if (key === 'usage') newFilters.usage = [];
+      if (key === 'gama') newFilters.gama = [];
+      if (key === 'processorBrand') newFilters.processorBrand = [];
+      return newFilters;
+    });
+  }, []);
+
+  // Comparison handlers
+  const handleToggleCompare = useCallback((productId: string) => {
+    setCompareList(prev => {
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      }
+      if (prev.length >= MAX_COMPARE_PRODUCTS) {
+        return prev; // Don't add if at max
+      }
+      return [...prev, productId];
+    });
+  }, []);
+
+  const handleRemoveFromCompare = useCallback((productId: string) => {
+    setCompareList(prev => prev.filter(id => id !== productId));
+  }, []);
+
+  const handleClearCompare = useCallback(() => {
+    setCompareList([]);
+    setIsComparatorOpen(false);
+  }, []);
+
+  // Get products for comparison
+  const compareProducts = useMemo((): ComparisonProduct[] => {
+    return compareList
+      .map(id => filteredProducts.find(p => p.id === id) || mockProducts.find(p => p.id === id))
+      .filter((p): p is ComparisonProduct => p !== undefined);
+  }, [compareList, filteredProducts]);
+
   return (
     <div className="min-h-screen relative">
       {/* Catalog Layout with Products */}
@@ -306,9 +427,11 @@ function CatalogPreviewContent() {
                     console.log('Toggle favorite:', product.id);
                   }}
                   onViewDetail={() => {
-                    console.log('View detail:', product.id);
-                    // TODO: Navigate to product detail page
+                    router.push('/prototipos/0.4/producto/detail-preview/?infoHeader=1&gallery=1&tabs=1&specs=1&pricing=1&cronograma=1&similar=1&limitations=1&certifications=1');
                   }}
+                  onCompare={() => handleToggleCompare(product.id)}
+                  isCompareSelected={compareList.includes(product.id)}
+                  compareDisabled={compareList.length >= MAX_COMPARE_PRODUCTS}
                 />
               ))}
               {/* Show skeletons for products being loaded */}
@@ -335,28 +458,140 @@ function CatalogPreviewContent() {
           />
         )}
 
-        {/* Empty state */}
+        {/* Empty state con EmptyState component (illustration=5, actions=6) */}
         {!isLoading && filteredProducts.length === 0 && (
-          <div className="col-span-full text-center py-16">
-            <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Settings className="w-8 h-8 text-neutral-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-neutral-700 mb-2">
-              No encontramos equipos
-            </h3>
-            <p className="text-sm text-neutral-500 mb-4">
-              Intenta ajustar los filtros para ver más opciones
-            </p>
-            <Button
-              variant="bordered"
-              onPress={() => setFilters(defaultFilterState)}
-              className="cursor-pointer"
-            >
-              Limpiar filtros
-            </Button>
+          <div className="col-span-full">
+            <EmptyState
+              appliedFilters={appliedFilters}
+              onClearFilters={() => setFilters(defaultFilterState)}
+              onExpandPriceRange={() => setFilters(prev => ({ ...prev, priceRange: [0, 10000] }))}
+              onRemoveFilter={handleRemoveFilter}
+              totalProductsIfExpanded={mockProducts.length}
+              config={{
+                illustrationVersion: 5,
+                actionsVersion: 6,
+              }}
+            />
+
+            {/* Productos relacionados */}
+            <section className="mt-8 mb-4 px-4">
+              <div className="flex items-center gap-2 mb-6">
+                <Sparkles className="w-5 h-5 text-[#4654CD]" />
+                <h2 className="text-xl font-semibold text-neutral-800">
+                  Productos que podrían interesarte
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {relatedProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-md hover:border-[#4654CD]/30 transition-all cursor-pointer"
+                    onClick={() => router.push(detailUrl)}
+                  >
+                    <div className="flex gap-4">
+                      <div className="w-20 h-20 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <span className="text-3xl font-bold text-neutral-300">
+                          {product.brand.charAt(0)}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium text-neutral-500">{product.brand}</span>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${product.gamaColor}`}>
+                            {product.gama}
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-medium text-neutral-800 line-clamp-2 mb-2">{product.name}</h3>
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-xl font-bold text-[#4654CD]">S/{product.price}</span>
+                          <span className="text-sm text-neutral-500">/mes</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-neutral-100">
+                      <button
+                        className="flex items-center gap-1 text-sm font-medium text-[#4654CD] hover:text-[#3a47b3] transition-colors cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); router.push(detailUrl); }}
+                      >
+                        Ver detalles
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
         )}
       </CatalogLayout>
+
+      {/* Floating Comparison Bar */}
+      {compareList.length > 0 && !isComparatorOpen && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] bg-white rounded-xl shadow-xl border border-neutral-200 px-4 py-3 flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
+              <GitCompare className="w-4 h-4 text-[#4654CD]" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-neutral-800">
+                {compareList.length} producto{compareList.length !== 1 ? 's' : ''} seleccionado{compareList.length !== 1 ? 's' : ''}
+              </p>
+              <p className="text-xs text-neutral-500">
+                Máximo 3 productos
+              </p>
+            </div>
+          </div>
+
+          {/* Mini product previews */}
+          <div className="flex -space-x-2">
+            {compareProducts.slice(0, 4).map((product, index) => (
+              <div
+                key={product.id}
+                className="w-10 h-10 rounded-lg bg-neutral-100 border-2 border-white flex items-center justify-center overflow-hidden"
+                style={{ zIndex: 4 - index }}
+              >
+                <span className="text-xs font-bold text-neutral-400">
+                  {product.brand.charAt(0)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="flat"
+              className="bg-neutral-100 text-neutral-600 cursor-pointer"
+              onPress={handleClearCompare}
+            >
+              Limpiar
+            </Button>
+            <Button
+              size="sm"
+              className="bg-[#4654CD] text-white cursor-pointer"
+              onPress={() => setIsComparatorOpen(true)}
+              isDisabled={compareList.length < 2}
+            >
+              Comparar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Product Comparator Panel */}
+      {isComparatorOpen && compareProducts.length >= 2 && (
+        <ProductComparator
+          products={compareProducts}
+          config={comparatorConfig}
+          isOpen={isComparatorOpen}
+          onClose={() => setIsComparatorOpen(false)}
+          onRemoveProduct={handleRemoveFromCompare}
+          onClearAll={handleClearCompare}
+          comparisonState={comparisonState}
+          onStateChange={setComparisonState}
+        />
+      )}
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">

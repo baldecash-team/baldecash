@@ -356,9 +356,61 @@ displayName: `Laptop ${brand.name} ${displaySize}"`
 
 ---
 
+---
+
+## 12. Integración Comparador → Catálogo
+
+### Configuración Recomendada para Catálogo
+
+```typescript
+const comparatorConfig: ComparatorConfig = {
+  layoutVersion: 3,        // Panel Sticky (mejor para catálogo)
+  accessVersion: 1,        // Checkbox en Cards
+  maxProductsVersion: 4,   // Config base (pero limitamos a 3)
+  fieldsVersion: 2,        // Specs + Features
+  highlightVersion: 1,     // Semántico clásico
+  priceDiffVersion: 4,     // Badge Animado
+  differenceHighlightVersion: 5, // Subrayado Animado
+  cardSelectionVersion: 3, // Glow + Ribbon
+};
+
+const MAX_COMPARE_PRODUCTS = 3; // Máximo 3 en contexto de catálogo
+```
+
+### Tipos Compatibles
+
+```typescript
+// ComparisonProduct extiende CatalogProduct
+export interface ComparisonProduct extends CatalogProduct {
+  // Campos adicionales opcionales para comparación
+}
+
+// Esto significa que productos del catálogo se pueden usar directamente
+const compareProducts: ComparisonProduct[] = catalogProducts.filter(
+  p => compareList.includes(p.id)
+);
+```
+
+### Flujo de Integración
+
+1. **Usuario selecciona** productos con botón `GitCompare` en cards
+2. **Floating bar aparece** mostrando productos seleccionados
+3. **Botón "Comparar"** habilita cuando hay 2+ productos
+4. **ProductComparator** se abre como panel sticky (Layout V3)
+
+### Límites por Contexto
+
+| Contexto | Máximo | Razón |
+|----------|--------|-------|
+| Catálogo | 3 | UX: evitar comparaciones complejas |
+| Comparador standalone | 4-6 | Usuarios que quieren comparar más |
+
+---
+
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-21 | Versión inicial |
 | 1.1 | 2025-12-21 | Eliminado selectionVersion, agregadas secciones 7-8 (verbos español, patrón A/B) |
 | 1.2 | 2025-12-21 | Nuevas versiones de Resaltado de Diferencias: Punto, Etiqueta, Badge, Gradiente, Subrayado, Icono |
 | 1.3 | 2025-12-22 | V2/V3 color brand, displayName simplificado, secciones 9-10 |
+| 1.4 | 2025-12-22 | Integración comparador en catálogo, límites por contexto |

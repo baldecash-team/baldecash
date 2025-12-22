@@ -34,6 +34,10 @@ export interface ProductCardProps {
   onViewDetail?: () => void;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
+  // Compare props
+  onCompare?: () => void;
+  isCompareSelected?: boolean;
+  compareDisabled?: boolean;
 }
 
 /**
@@ -61,6 +65,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onViewDetail,
   onMouseEnter,
   isFavorite = false,
+  onCompare,
+  isCompareSelected = false,
+  compareDisabled = false,
 }) => {
   const commonProps = {
     product,
@@ -75,6 +82,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     pricingMode,
     defaultTerm,
     defaultInitial,
+    onCompare,
+    isCompareSelected,
+    compareDisabled,
   };
 
   switch (cardVersion) {

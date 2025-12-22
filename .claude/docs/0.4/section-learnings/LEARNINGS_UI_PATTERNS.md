@@ -437,9 +437,114 @@ Al crear una nueva página de preview:
 
 ---
 
+---
+
+## 10. Patrón de Floating Action Bar (Comparador)
+
+### Estructura
+
+```tsx
+{/* Floating Comparison Bar - aparece cuando hay productos seleccionados */}
+{compareList.length > 0 && !isComparatorOpen && (
+  <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] bg-white rounded-xl shadow-xl border border-neutral-200 px-4 py-3 flex items-center gap-4">
+    {/* Icono + Contador */}
+    <div className="flex items-center gap-2">
+      <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
+        <GitCompare className="w-4 h-4 text-[#4654CD]" />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-neutral-800">
+          {compareList.length} producto{compareList.length !== 1 ? 's' : ''} seleccionado{compareList.length !== 1 ? 's' : ''}
+        </p>
+        <p className="text-xs text-neutral-500">
+          Máximo 3 productos
+        </p>
+      </div>
+    </div>
+
+    {/* Mini previews */}
+    <div className="flex -space-x-2">
+      {compareProducts.slice(0, 3).map((product, index) => (
+        <div
+          key={product.id}
+          className="w-10 h-10 rounded-lg bg-neutral-100 border-2 border-white"
+          style={{ zIndex: 3 - index }}
+        >
+          {/* Thumbnail o inicial de marca */}
+        </div>
+      ))}
+    </div>
+
+    {/* Acciones */}
+    <div className="flex items-center gap-2">
+      <Button variant="flat" onPress={handleClearCompare}>
+        Limpiar
+      </Button>
+      <Button
+        className="bg-[#4654CD] text-white"
+        onPress={() => setIsComparatorOpen(true)}
+        isDisabled={compareList.length < 2}
+      >
+        Comparar
+      </Button>
+    </div>
+  </div>
+)}
+```
+
+### Posicionamiento
+
+| Elemento | Posición | z-index |
+|----------|----------|---------|
+| Floating Bar | `bottom-6 left-1/2 -translate-x-1/2` | 90 |
+| Floating Controls | `bottom-6 right-6` | 100 |
+| Modal/Comparator | - | 50 |
+
+### Regla de Visibilidad
+- **Aparece**: `compareList.length > 0 && !isComparatorOpen`
+- **Desaparece**: Cuando se abre el comparador o se limpia la lista
+
+---
+
+## 11. Links de Navegación entre Secciones
+
+### Hero → Catálogo
+
+```typescript
+// URL del catálogo con configuración específica
+const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+
+// En HeroBanner (CTA principal)
+<Button onPress={() => router.push(catalogUrl)}>
+  Ver laptops
+</Button>
+
+// En Navbar (link "Laptops" o "Equipos")
+<a href={catalogUrl}>Laptops</a>
+
+// En Footer (link "Equipos")
+<a href={catalogUrl}>Equipos</a>
+```
+
+### Catálogo → Detalle
+
+```typescript
+const detailUrl = '/prototipos/0.4/producto/detail-preview/?infoHeader=1&gallery=1&tabs=1&specs=1&pricing=1&cronograma=1&similar=1&limitations=1&certifications=1';
+
+// En ProductCard (botón "Ver detalle")
+onViewDetail={() => router.push(detailUrl)}
+```
+
+### Consistencia
+- Usar `useRouter` y `router.push()` para navegación programática
+- Mantener query params completos para preservar configuración
+
+---
+
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-22 | Versión inicial - Patrones estandarizados |
 | 1.1 | 2025-12-22 | Anti-patrón: Version Badges Redundantes |
 | 1.2 | 2025-12-22 | Anti-patrón: VersionNav en páginas preview |
 | 1.3 | 2025-12-22 | Reglas ortográficas en español (UI) |
+| 1.4 | 2025-12-22 | Agregado: Floating Action Bar, Links entre secciones |
