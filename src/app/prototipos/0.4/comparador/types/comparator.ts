@@ -28,8 +28,8 @@ export interface ComparatorConfig {
   // B.96 - Resaltado de diferencias
   differenceHighlightVersion: 1 | 2 | 3 | 4 | 5 | 6;
 
-  // B.97 - Puntos de acceso (selector)
-  selectionVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  // Card selection style - cómo se ve la card cuando está seleccionada
+  cardSelectionVersion: 1 | 2 | 3;
 
   // Pricing options
   defaultTerm: TermMonths;
@@ -44,7 +44,7 @@ export const defaultComparatorConfig: ComparatorConfig = {
   priceDiffVersion: 1,
   layoutVersion: 1,
   differenceHighlightVersion: 1,
-  selectionVersion: 1,
+  cardSelectionVersion: 1,
   defaultTerm: 24,
   defaultInitial: 10,
 };
@@ -108,21 +108,18 @@ export const layoutVersionLabels: Record<1 | 2 | 3 | 4 | 5 | 6, { name: string; 
 };
 
 export const differenceHighlightVersionLabels: Record<1 | 2 | 3 | 4 | 5 | 6, { name: string; description: string }> = {
-  1: { name: 'Highlight Amarillo', description: 'Highlight amarillo en celdas diferentes' },
-  2: { name: 'Toggle Diferencias', description: 'Botón "Solo mostrar diferencias"' },
-  3: { name: 'Animación Pulsante', description: 'Animación pulsante al detectar diferencia' },
-  4: { name: 'Glow Sutil', description: 'Diferencias con glow sutil fintech' },
-  5: { name: 'Columna Separada', description: 'Columna de diferencias separada' },
-  6: { name: 'Solo Diferencias', description: 'Solo diferencias visibles, resto oculto' },
+  1: { name: 'Punto Amarillo', description: 'Punto amarillo junto al label de la spec' },
+  2: { name: 'Etiqueta "Diferente"', description: 'Chip pequeño con texto "Diferente"' },
+  3: { name: 'Badge "≠"', description: 'Badge con símbolo de diferencia junto al label' },
+  4: { name: 'Fondo Gradiente', description: 'Gradiente sutil amarillo a transparente' },
+  5: { name: 'Subrayado Animado', description: 'Línea inferior que pulsa suavemente' },
+  6: { name: 'Icono Comparación', description: 'Icono de flechas indicando valores distintos' },
 };
 
-export const selectionVersionLabels: Record<1 | 2 | 3 | 4 | 5 | 6, { name: string; description: string }> = {
-  1: { name: 'Solo Cards', description: 'Checkbox siempre visible en cards' },
-  2: { name: 'Solo Detalle', description: 'Más intencional desde detalle' },
-  3: { name: 'Ambos Flexible', description: 'Máxima flexibilidad, ambos lugares' },
-  4: { name: 'Animación Unificada', description: 'Cards + detalle con animación unificada' },
-  5: { name: 'Split Flow', description: 'Card para añadir, detalle para confirmar' },
-  6: { name: 'CTA Prominente', description: 'CTA prominente en ambos lugares' },
+export const cardSelectionVersionLabels: Record<1 | 2 | 3, { name: string; description: string }> = {
+  1: { name: 'Borde + Fondo', description: 'Borde brand con fondo sutil - estilo e-commerce' },
+  2: { name: 'Badge + Borde', description: 'Badge con número de orden + borde prominente' },
+  3: { name: 'Glow + Ribbon', description: 'Efecto glow con cinta diagonal - estilo fintech' },
 };
 
 // ============================================
@@ -186,6 +183,7 @@ export interface ComparisonTableProps {
   showOnlyDifferences: boolean;
   highlightVersion: 1 | 2 | 3 | 4 | 5 | 6;
   config: ComparatorConfig;
+  showProductHeaders?: boolean;
 }
 
 export interface DifferenceHighlightProps {
@@ -201,7 +199,7 @@ export interface ProductSelectorProps {
   onSelect: (productId: string) => void;
   onDeselect: (productId: string) => void;
   maxProducts: number;
-  version: 1 | 2 | 3 | 4 | 5 | 6;
+  cardSelectionVersion?: 1 | 2 | 3;
 }
 
 export interface CompareActionsProps {
@@ -271,7 +269,7 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
 
   // Processor
   const processorValues = products.map(p => p.specs.processor.model);
-  const processorRaw = products.map(p => {
+  const processorRaw: number[] = products.map(p => {
     // Score based on processor tier
     const model = p.specs.processor.model.toLowerCase();
     if (model.includes('i9') || model.includes('ryzen 9')) return 9;
@@ -338,7 +336,7 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
 
   // Resolution
   const resValues = products.map(p => p.specs.display.resolutionPixels);
-  const resRaw = products.map(p => {
+  const resRaw: number[] = products.map(p => {
     const res = p.specs.display.resolution;
     if (res === '4k') return 4;
     if (res === 'qhd') return 3;
@@ -358,7 +356,7 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
 
   // GPU
   const gpuValues = products.map(p => `${p.specs.gpu.brand} ${p.specs.gpu.model}`);
-  const gpuRaw = products.map(p => p.specs.gpu.type === 'dedicated' ? 2 : 1);
+  const gpuRaw: number[] = products.map(p => p.specs.gpu.type === 'dedicated' ? 2 : 1);
   specs.push({
     key: 'gpu',
     label: 'Gráficos',

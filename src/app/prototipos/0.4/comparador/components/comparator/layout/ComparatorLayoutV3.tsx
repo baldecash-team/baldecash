@@ -2,27 +2,28 @@
 
 import React from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
-import { X, Trash2, Scale, ChevronRight, Eye } from 'lucide-react';
+import { X, Trash2, Scale, ChevronLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ComparatorLayoutProps } from '../../../types/comparator';
 import { ComparisonTableV1 } from '../table/ComparisonTableV1';
 import { compareSpecs } from '../../../types/comparator';
 
 /**
- * ComparatorLayoutV3 - Panel Sticky
- * Split layout: catálogo a la izquierda, panel sticky comparador a la derecha
- * Referencia: Airbnb, Booking sidebar filters
+ * ComparatorLayoutV3 - Panel Lateral Deslizante
+ * Panel que se desliza desde la derecha con animación
+ * Referencia: Airbnb filters, Shopping cart sidebars
  *
  * Características:
- * - Layout dividido 60/40 o 70/30
- * - Panel derecho sticky que permanece visible al hacer scroll
- * - Product cards compactas en el panel
- * - Botón para ver comparación completa
- * - Catálogo renderizado por el padre (children)
+ * - Desliza desde la derecha hacia la izquierda
+ * - Overlay oscuro con click para cerrar
+ * - Ancho 500px en desktop, fullscreen en mobile
+ * - Header sticky con acciones
+ * - Contenido scrolleable
  */
 export const ComparatorLayoutV3: React.FC<
   ComparatorLayoutProps & {
-    children?: React.ReactNode;
-    onViewFullComparison?: () => void;
+    isOpen?: boolean;
+    onClose?: () => void;
   }
 > = ({
   products,
@@ -31,239 +32,187 @@ export const ComparatorLayoutV3: React.FC<
   onClearAll,
   comparisonState,
   onStateChange,
-  children,
-  onViewFullComparison,
+  isOpen = false,
+  onClose = () => {},
 }) => {
   const specs = compareSpecs(products);
-  const hasProducts = products.length > 0;
+
+  if (products.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-[1920px] mx-auto">
-        <div className="flex gap-6 p-6">
-          {/* Left side: Catalog content */}
-          <div className={`flex-1 ${hasProducts ? 'lg:w-[65%]' : 'w-full'}`}>
-            {children}
-          </div>
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 z-[60]"
+            onClick={onClose}
+          />
 
-          {/* Right side: Sticky Comparator Panel */}
-          {hasProducts && (
-            <div className="hidden lg:block lg:w-[35%] xl:w-[30%]">
-              <div className="sticky top-6 space-y-4">
-                {/* Header Card */}
-                <Card className="border border-neutral-200 shadow-sm">
-                  <CardBody className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                          <Scale className="w-5 h-5 text-[#4654CD]" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-neutral-800 font-['Baloo_2']">
-                            Comparador
-                          </h3>
-                          <p className="text-xs text-neutral-500">
-                            {products.length} equipos
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        isIconOnly
-                        variant="light"
-                        size="sm"
-                        onPress={onClearAll}
-                        className="cursor-pointer text-neutral-500 hover:text-red-500"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="bg-neutral-50 rounded-lg p-2">
-                        <p className="text-xs text-neutral-500">Desde</p>
-                        <p className="text-sm font-bold text-[#4654CD]">
-                          S/{Math.min(...products.map(p => p.quotaMonthly))}/mes
-                        </p>
-                      </div>
-                      <div className="bg-neutral-50 rounded-lg p-2">
-                        <p className="text-xs text-neutral-500">Hasta</p>
-                        <p className="text-sm font-bold text-neutral-700">
-                          S/{Math.max(...products.map(p => p.quotaMonthly))}/mes
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* View Full Comparison Button */}
-                    <Button
-                      className="w-full bg-[#4654CD] text-white cursor-pointer"
-                      endContent={<Eye className="w-4 h-4" />}
-                      onPress={onViewFullComparison}
-                    >
-                      Ver comparación completa
-                    </Button>
-                  </CardBody>
-                </Card>
-
-                {/* Products List */}
-                <div className="space-y-3 max-h-[calc(100vh-320px)] overflow-y-auto">
-                  {products.map((product, index) => (
-                    <Card
-                      key={product.id}
-                      className="border border-neutral-200 hover:border-[#4654CD]/50 transition-all cursor-pointer group"
-                    >
-                      <CardBody className="p-4">
-                        <div className="flex gap-3">
-                          {/* Product Image */}
-                          <div className="w-20 h-20 bg-white rounded-lg flex-shrink-0 flex items-center justify-center p-2 border border-neutral-100">
-                            <img
-                              src={product.thumbnail}
-                              alt={product.displayName}
-                              className="w-full h-full object-contain"
-                            />
-                          </div>
-
-                          {/* Product Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <h4 className="text-sm font-semibold text-neutral-800 line-clamp-2 leading-tight">
-                                {product.displayName}
-                              </h4>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onRemoveProduct(product.id);
-                                }}
-                                className="w-6 h-6 rounded-full bg-neutral-100 hover:bg-red-100 flex items-center justify-center flex-shrink-0 cursor-pointer transition-colors group/btn"
-                              >
-                                <X className="w-3 h-3 text-neutral-500 group-hover/btn:text-red-500" />
-                              </button>
-                            </div>
-
-                            {/* Compact specs */}
-                            <div className="space-y-1 text-xs text-neutral-600 mb-2">
-                              <p className="truncate">
-                                {product.specs.processor.model} • {product.specs.ram.size}GB RAM
-                              </p>
-                              <p className="truncate">
-                                {product.specs.storage.size}GB {product.specs.storage.type.toUpperCase()}
-                              </p>
-                            </div>
-
-                            {/* Price */}
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-lg font-bold text-[#4654CD]">
-                                S/{product.quotaMonthly}
-                              </span>
-                              <span className="text-xs text-neutral-500">/mes</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Position indicator */}
-                        <div className="mt-3 pt-3 border-t border-neutral-100">
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-neutral-400">
-                              Equipo {index + 1} de {products.length}
-                            </span>
-                            <ChevronRight className="w-3 h-3 text-neutral-400 group-hover:text-[#4654CD] transition-colors" />
-                          </div>
-                        </div>
-                      </CardBody>
-                    </Card>
-                  ))}
+          {/* Panel deslizante */}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed top-0 right-0 h-full w-full sm:w-[500px] bg-white shadow-2xl z-[70] flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-neutral-200 bg-white">
+              <div className="flex items-center gap-3">
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onPress={onClose}
+                  className="cursor-pointer"
+                >
+                  <ChevronLeft className="w-5 h-5 text-neutral-600" />
+                </Button>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+                    <Scale className="w-5 h-5 text-[#4654CD]" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-neutral-800 font-['Baloo_2']">
+                      Comparador
+                    </h2>
+                    <p className="text-xs text-neutral-500">
+                      {products.length} equipos seleccionados
+                    </p>
+                  </div>
                 </div>
+              </div>
 
-                {/* Quick Comparison Preview */}
-                {products.length >= 2 && (
-                  <Card className="border border-neutral-200 shadow-sm">
-                    <CardBody className="p-4">
-                      <h4 className="text-sm font-bold text-neutral-800 mb-3 font-['Baloo_2']">
-                        Vista Rápida
-                      </h4>
-                      <div className="space-y-2">
-                        {/* RAM Comparison */}
-                        <div className="text-xs">
-                          <p className="text-neutral-500 mb-1">Memoria RAM</p>
-                          <div className="flex items-center gap-2">
-                            {products.map((p, i) => (
-                              <div
-                                key={p.id}
-                                className={`flex-1 h-2 rounded-full ${
-                                  p.specs.ram.size === Math.max(...products.map(p => p.specs.ram.size))
-                                    ? 'bg-[#4654CD]'
-                                    : 'bg-neutral-200'
-                                }`}
-                                title={`${p.specs.ram.size}GB`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Storage Comparison */}
-                        <div className="text-xs">
-                          <p className="text-neutral-500 mb-1">Almacenamiento</p>
-                          <div className="flex items-center gap-2">
-                            {products.map((p, i) => (
-                              <div
-                                key={p.id}
-                                className={`flex-1 h-2 rounded-full ${
-                                  p.specs.storage.size === Math.max(...products.map(p => p.specs.storage.size))
-                                    ? 'bg-[#03DBD0]'
-                                    : 'bg-neutral-200'
-                                }`}
-                                title={`${p.specs.storage.size}GB`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Price Comparison */}
-                        <div className="text-xs">
-                          <p className="text-neutral-500 mb-1">Precio (mejor = menor)</p>
-                          <div className="flex items-center gap-2">
-                            {products.map((p, i) => (
-                              <div
-                                key={p.id}
-                                className={`flex-1 h-2 rounded-full ${
-                                  p.quotaMonthly === Math.min(...products.map(p => p.quotaMonthly))
-                                    ? 'bg-green-500'
-                                    : 'bg-neutral-200'
-                                }`}
-                                title={`S/${p.quotaMonthly}/mes`}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </CardBody>
-                  </Card>
-                )}
-
-                {/* Show differences toggle */}
-                <Card className="border border-neutral-200">
-                  <CardBody className="p-3">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={comparisonState.showOnlyDifferences}
-                        onChange={(e) => onStateChange({
-                          ...comparisonState,
-                          showOnlyDifferences: e.target.checked,
-                        })}
-                        className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
-                      />
-                      <span className="text-xs text-neutral-600">
-                        Solo mostrar diferencias
-                      </span>
-                    </label>
-                  </CardBody>
-                </Card>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="light"
+                  onPress={onClearAll}
+                  className="cursor-pointer text-neutral-500 hover:text-red-500"
+                  startContent={<Trash2 className="w-4 h-4" />}
+                >
+                  Limpiar
+                </Button>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onPress={onClose}
+                  className="cursor-pointer sm:hidden"
+                >
+                  <X className="w-5 h-5 text-neutral-600" />
+                </Button>
               </div>
             </div>
-          )}
-        </div>
-      </div>
-    </div>
+
+            {/* Products Header - Horizontal scroll */}
+            <div className="p-4 border-b border-neutral-200 bg-neutral-50">
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {products.map((product, index) => (
+                  <div
+                    key={product.id}
+                    className="flex-shrink-0 w-32 bg-white rounded-xl p-3 border border-neutral-200 relative group"
+                  >
+                    <button
+                      onClick={() => onRemoveProduct(product.id)}
+                      className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border border-neutral-200 shadow-sm hover:bg-red-50 hover:border-red-200 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3 text-neutral-500 hover:text-red-500" />
+                    </button>
+
+                    <div className="w-6 h-6 rounded-full bg-[#4654CD] text-white text-xs font-bold flex items-center justify-center mb-2">
+                      {index + 1}
+                    </div>
+
+                    <img
+                      src={product.thumbnail}
+                      alt={product.displayName}
+                      className="w-full h-16 object-contain mb-2"
+                    />
+
+                    <p className="text-xs font-medium text-neutral-800 line-clamp-2 mb-1">
+                      {product.brand}
+                    </p>
+
+                    <p className="text-sm font-bold text-[#4654CD]">
+                      S/{product.quotaMonthly}<span className="text-xs font-normal text-neutral-500">/mes</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Toggle diferencias */}
+            <div className="px-4 py-3 border-b border-neutral-200 bg-white">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={comparisonState.showOnlyDifferences}
+                  onChange={(e) => onStateChange({
+                    ...comparisonState,
+                    showOnlyDifferences: e.target.checked,
+                  })}
+                  className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
+                />
+                <span className="text-sm text-neutral-700">
+                  Solo mostrar diferencias
+                </span>
+              </label>
+            </div>
+
+            {/* Comparison Table - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {products.length >= 2 ? (
+                <ComparisonTableV1
+                  products={products}
+                  specs={specs}
+                  showOnlyDifferences={comparisonState.showOnlyDifferences}
+                  highlightVersion={config.highlightVersion}
+                  config={config}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                  <div className="w-16 h-16 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4">
+                    <Scale className="w-8 h-8 text-neutral-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-neutral-700 mb-2">
+                    Añade otro equipo
+                  </h3>
+                  <p className="text-sm text-neutral-500">
+                    Selecciona al menos 2 equipos para ver la comparación
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer con resumen */}
+            {products.length >= 2 && (
+              <div className="p-4 border-t border-neutral-200 bg-neutral-50">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm text-neutral-600">Mejor precio:</span>
+                  <span className="text-lg font-bold text-green-600">
+                    S/{Math.min(...products.map(p => p.quotaMonthly))}/mes
+                  </span>
+                </div>
+                <Button
+                  className="w-full bg-[#4654CD] text-white cursor-pointer"
+                  size="lg"
+                  onPress={onClose}
+                >
+                  Continuar explorando
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };

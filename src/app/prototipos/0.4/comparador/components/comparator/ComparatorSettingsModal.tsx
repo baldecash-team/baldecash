@@ -11,7 +11,7 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Scale, Layout, Table, Sparkles, DollarSign, Columns, Eye, MousePointer } from 'lucide-react';
+import { Settings, RotateCcw, Scale, Layout, Table, Sparkles, DollarSign, Columns, Eye, MousePointer, CreditCard } from 'lucide-react';
 import {
   ComparatorSettingsModalProps,
   defaultComparatorConfig,
@@ -23,7 +23,7 @@ import {
   priceDiffVersionLabels,
   layoutVersionLabels,
   differenceHighlightVersionLabels,
-  selectionVersionLabels,
+  cardSelectionVersionLabels,
 } from '../../types/comparator';
 
 export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = ({
@@ -328,26 +328,26 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
             </RadioGroup>
           </div>
 
-          {/* Selection Version (B.97) */}
+          {/* Card Selection Style */}
           <div className="pt-4 border-t border-neutral-200">
             <div className="flex items-center gap-2 mb-3">
-              <Columns className="w-4 h-4 text-[#4654CD]" />
-              <h3 className="font-semibold text-neutral-800">Punto de Selección</h3>
+              <CreditCard className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Estilo de Card Seleccionada</h3>
             </div>
             <RadioGroup
-              value={config.selectionVersion.toString()}
-              onValueChange={(val) => updateConfig('selectionVersion', parseInt(val) as 1 | 2 | 3 | 4 | 5 | 6)}
+              value={config.cardSelectionVersion.toString()}
+              onValueChange={(val) => updateConfig('cardSelectionVersion', parseInt(val) as 1 | 2 | 3)}
               classNames={{
                 wrapper: 'gap-2',
               }}
             >
-              {[1, 2, 3, 4, 5, 6].map((version) => (
+              {[1, 2, 3].map((version) => (
                 <Radio
                   key={version}
                   value={version.toString()}
                   classNames={{
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
-                      ${config.selectionVersion === version
+                      ${config.cardSelectionVersion === version
                         ? 'border-[#4654CD] bg-[#4654CD]/5'
                         : 'border-neutral-200 hover:border-[#4654CD]/50'
                       }`,
@@ -356,9 +356,9 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                     label: 'text-sm',
                     description: 'text-xs text-neutral-500',
                   }}
-                  description={selectionVersionLabels[version as keyof typeof selectionVersionLabels].description}
+                  description={cardSelectionVersionLabels[version as keyof typeof cardSelectionVersionLabels].description}
                 >
-                  V{version} - {selectionVersionLabels[version as keyof typeof selectionVersionLabels].name}
+                  V{version} - {cardSelectionVersionLabels[version as keyof typeof cardSelectionVersionLabels].name}
                 </Radio>
               ))}
             </RadioGroup>

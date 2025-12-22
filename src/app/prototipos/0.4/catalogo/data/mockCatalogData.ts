@@ -342,7 +342,7 @@ function generateProducts(): CatalogProduct[] {
         id: `prod-${id}`,
         slug: `${brand.name.toLowerCase()}-laptop-${id}`,
         name: `${brand.name} Laptop ${processorModel.split(' ')[1]} ${ramSize}GB`,
-        displayName: `Laptop ${brand.name} ${displaySize}" para ${usages[i % usages.length][0]}`,
+        displayName: `Laptop ${brand.name} ${displaySize}"`,
         brand: brand.name.toLowerCase(),
         thumbnail: unsplashLaptops[id % unsplashLaptops.length],
         images: [

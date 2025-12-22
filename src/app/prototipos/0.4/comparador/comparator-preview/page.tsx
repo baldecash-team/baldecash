@@ -14,7 +14,7 @@ import {
 import { ProductComparator } from '../components/comparator/ProductComparator';
 import { ComparatorSettingsModal } from '../components/comparator/ComparatorSettingsModal';
 import { ProductSelectorV1 } from '../components/comparator/selection/ProductSelectorV1';
-import { CompareActions } from '../components/comparator/actions/CompareActions';
+import { CompareActions, CompareActionsFAB, ComparisonTray } from '../components/comparator/actions/CompareActions';
 import { availableProducts, getProductsByIds } from '../data/mockComparatorData';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 
@@ -49,7 +49,7 @@ function ComparatorPreviewContent() {
     const highlightVersion = parseInt(searchParams.get('highlight') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
     const priceDiffVersion = parseInt(searchParams.get('pricediff') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
     const differenceHighlightVersion = parseInt(searchParams.get('diffhighlight') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
-    const selectionVersion = parseInt(searchParams.get('selection') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
+    const cardSelectionVersion = parseInt(searchParams.get('cardstyle') || '1') as 1 | 2 | 3;
 
     return {
       ...defaultComparatorConfig,
@@ -60,7 +60,7 @@ function ComparatorPreviewContent() {
       highlightVersion: [1, 2, 3, 4, 5, 6].includes(highlightVersion) ? highlightVersion : 1,
       priceDiffVersion: [1, 2, 3, 4, 5, 6].includes(priceDiffVersion) ? priceDiffVersion : 1,
       differenceHighlightVersion: [1, 2, 3, 4, 5, 6].includes(differenceHighlightVersion) ? differenceHighlightVersion : 1,
-      selectionVersion: [1, 2, 3, 4, 5, 6].includes(selectionVersion) ? selectionVersion : 1,
+      cardSelectionVersion: [1, 2, 3].includes(cardSelectionVersion) ? cardSelectionVersion : 1,
     };
   });
 
@@ -92,7 +92,7 @@ function ComparatorPreviewContent() {
     params.set('highlight', config.highlightVersion.toString());
     params.set('pricediff', config.priceDiffVersion.toString());
     params.set('diffhighlight', config.differenceHighlightVersion.toString());
-    params.set('selection', config.selectionVersion.toString());
+    params.set('cardstyle', config.cardSelectionVersion.toString());
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [config, router]);
 
@@ -208,17 +208,105 @@ function ComparatorPreviewContent() {
           onSelect={handleSelectProduct}
           onDeselect={handleDeselectProduct}
           maxProducts={maxProducts}
-          version={config.selectionVersion}
+          cardSelectionVersion={config.cardSelectionVersion}
         />
       </main>
 
-      {/* Compare Actions Floating Bar */}
-      <CompareActions
-        products={selectedProducts}
-        onCompare={handleCompare}
-        onClear={handleClearAll}
-        maxProducts={maxProducts}
-      />
+      {/* Compare Actions - Different versions based on accessVersion */}
+      {config.accessVersion === 1 && (
+        <CompareActions
+          products={selectedProducts}
+          onCompare={handleCompare}
+          onClear={handleClearAll}
+          maxProducts={maxProducts}
+        />
+      )}
+      {config.accessVersion === 2 && (
+        <CompareActionsFAB
+          products={selectedProducts}
+          onCompare={handleCompare}
+          onClear={handleClearAll}
+          maxProducts={maxProducts}
+        />
+      )}
+      {config.accessVersion === 3 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50">
+          <ComparisonTray
+            products={selectedProducts}
+            onRemove={handleRemoveProduct}
+            onCompare={handleCompare}
+            maxProducts={maxProducts}
+          />
+        </div>
+      )}
+      {config.accessVersion === 4 && (
+        /* V4: Header button - shown in header area */
+        <div className="fixed top-20 right-6 z-50">
+          {selectedProducts.length > 0 && (
+            <button
+              onClick={handleCompare}
+              disabled={selectedProducts.length < 2}
+              className="flex items-center gap-2 bg-[#4654CD] text-white px-4 py-2 rounded-xl shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Scale className="w-4 h-4" />
+              Comparar ({selectedProducts.length})
+            </button>
+          )}
+        </div>
+      )}
+      {config.accessVersion === 5 && (
+        /* V5: Minimal chip - compact inline */
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          {selectedProducts.length > 0 && (
+            <button
+              onClick={handleCompare}
+              disabled={selectedProducts.length < 2}
+              className="flex items-center gap-2 bg-white border border-[#4654CD] text-[#4654CD] px-6 py-3 rounded-full shadow-lg cursor-pointer hover:bg-[#4654CD]/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Scale className="w-5 h-5" />
+              <span className="font-medium">{selectedProducts.length} equipos</span>
+              <span className="bg-[#4654CD] text-white px-2 py-0.5 rounded-full text-sm">Comparar</span>
+            </button>
+          )}
+        </div>
+      )}
+      {config.accessVersion === 6 && (
+        /* V6: Full bottom bar with product names */
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-[#4654CD] to-[#4654CD]/90 text-white p-4">
+          {selectedProducts.length > 0 ? (
+            <div className="container mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Scale className="w-6 h-6" />
+                <div>
+                  <p className="font-semibold">{selectedProducts.length} equipos seleccionados</p>
+                  <p className="text-sm text-white/80">
+                    {selectedProducts.map(p => p.brand).join(' vs ')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClearAll}
+                  className="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 cursor-pointer transition-colors"
+                >
+                  Limpiar
+                </button>
+                <button
+                  onClick={handleCompare}
+                  disabled={selectedProducts.length < 2}
+                  className="px-6 py-2 rounded-lg bg-white text-[#4654CD] font-semibold cursor-pointer hover:bg-white/90 transition-colors disabled:opacity-50"
+                >
+                  Comparar ahora
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="container mx-auto text-center py-2">
+              <p className="text-white/80">Selecciona equipos para comparar</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Comparator Modal */}
       <ProductComparator

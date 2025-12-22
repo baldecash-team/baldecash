@@ -80,7 +80,11 @@ export const CompareActions: React.FC<CompareActionsProps> = ({
               size="sm"
               isDisabled={!canCompare || disabled}
               onPress={onCompare}
-              className="bg-[#4654CD] text-white cursor-pointer"
+              className={`${
+                canCompare && !disabled
+                  ? 'bg-[#4654CD] text-white cursor-pointer'
+                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+              }`}
               endContent={<ArrowRight className="w-4 h-4" />}
             >
               Comparar
@@ -118,7 +122,11 @@ export const CompareActionsFAB: React.FC<CompareActionsProps> = ({
         size="lg"
         isDisabled={!canCompare || disabled}
         onPress={onCompare}
-        className="bg-[#4654CD] text-white rounded-full shadow-lg cursor-pointer hover:shadow-xl transition-shadow"
+        className={`rounded-full shadow-lg transition-shadow ${
+          canCompare && !disabled
+            ? 'bg-[#4654CD] text-white cursor-pointer hover:shadow-xl'
+            : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+        }`}
       >
         <Scale className="w-5 h-5 mr-2" />
         Comparar ({products.length})
@@ -150,7 +158,11 @@ export const ComparisonTray: React.FC<{
           size="sm"
           isDisabled={products.length < 2}
           onPress={onCompare}
-          className="bg-[#4654CD] text-white cursor-pointer"
+          className={`${
+            products.length >= 2
+              ? 'bg-[#4654CD] text-white cursor-pointer'
+              : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+          }`}
         >
           Comparar ahora
         </Button>
@@ -185,7 +197,7 @@ export const ComparisonTray: React.FC<{
             key={`empty-${i}`}
             className="flex-shrink-0 w-24 h-24 border-2 border-dashed border-neutral-200 rounded-lg flex items-center justify-center"
           >
-            <span className="text-xs text-neutral-400">+ Agregar</span>
+            <span className="text-xs text-neutral-400">+ Añadir</span>
           </div>
         ))}
       </div>

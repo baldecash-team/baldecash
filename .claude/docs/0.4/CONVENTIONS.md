@@ -534,7 +534,104 @@ export const ComponentV1: React.FC<Props> = ({ ... }) => {
 
 ---
 
-## 10. Checklist de Validación
+## 10. Patrón de Configuración A/B
+
+### 10.1 Implementación Real, No Solo Estado
+
+Cada opción configurable debe tener implementación funcional en los componentes:
+
+```typescript
+// ❌ Incorrecto: Se guarda pero no se usa
+const hlVersion = config.highlightVersion; // guardado pero ignorado
+return <div>{value}</div>; // siempre igual
+
+// ✅ Correcto: Se usa para cambiar comportamiento
+const hlVersion = config.highlightVersion;
+switch (hlVersion) {
+  case 1: return <div className="bg-green-100">{value} <Trophy /></div>;
+  case 2: return <div className="bg-amber-50">{value} <Crown /></div>;
+  case 3: return <div><ProgressBar />{value}</div>;
+  // ... cada versión es diferente
+}
+```
+
+### 10.2 Versiones Exclusivas, No Combinadas
+
+Cada versión de estilo debe ser independiente:
+
+```tsx
+// ❌ Incorrecto: V3 combina con V1 (checkbox siempre visible)
+<Checkbox ... /> {/* siempre */}
+{cardVersion === 3 && <Ribbon />} {/* adicional */}
+
+// ✅ Correcto: Cada versión es exclusiva
+{cardVersion === 1 && <Checkbox ... />}
+{cardVersion === 2 && <Badge ... />}
+{cardVersion === 3 && <Ribbon ... />}
+```
+
+### 10.3 Eliminar Opciones Sin Valor
+
+Si una opción de configuración no produce cambios visibles diferenciables:
+1. **Primero**: Intentar implementarla correctamente
+2. **Si no aporta valor**: Eliminarla del config, modal, y URL params
+
+```typescript
+// Antes: 8 opciones (una no funcionaba)
+selectionVersion: 1 | 2 | 3 | 4 | 5 | 6; // ❌ eliminada
+
+// Después: 7 opciones funcionales
+// Menos opciones = menos complejidad = mejor UX de testing
+```
+
+### 10.4 Props Opcionales con Defaults
+
+Para evitar duplicación de UI (ej: headers en layout + tabla):
+
+```typescript
+interface TableProps {
+  showProductHeaders?: boolean; // default true
+}
+
+// Layout que ya muestra productos
+<ComparisonTable showProductHeaders={false} />
+
+// Layout sin productos propios
+<ComparisonTable /> // usa default true
+```
+
+### 10.5 Versiones con Mismos Datos Necesitan Diferenciadores Visuales
+
+Si múltiples versiones retornan los mismos datos, necesitan otros diferenciadores:
+
+```typescript
+// ❌ Problema: V3, V4, V5 todas retornan null (todos los campos)
+case 3: return null; // muestra 10 filas
+case 4: return null; // muestra 10 filas - ¿cuál es la diferencia?
+case 5: return null; // muestra 10 filas
+
+// ✅ Solución: Añadir diferenciadores visuales
+case 3: return null; // todos los campos, layout normal
+case 4: return null; // todos los campos + animación fadeIn
+case 5: return null; // todos los campos + layout split
+```
+
+### 10.6 No Eliminar Funcionalidad Sin Entender Contexto A/B
+
+Antes de eliminar código que parece innecesario, verificar si es parte del sistema A/B:
+
+```typescript
+// ❌ Error: Eliminar porque "el usuario pidió quitar +S/135"
+{renderPriceDiff(index)} // eliminado
+
+// ✅ Correcto: Entender que es necesario para versiones de precio
+// El usuario quería quitar un valor específico, no la funcionalidad
+// Las 6 versiones de "Diferencia de Precio" dependen de esto
+```
+
+---
+
+## 11. Checklist de Validación
 
 Antes de finalizar cualquier iteración, verificar:
 

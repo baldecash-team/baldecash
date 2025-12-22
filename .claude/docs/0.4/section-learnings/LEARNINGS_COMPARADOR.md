@@ -120,7 +120,7 @@ Se creó el `ComparatorSettingsModal` sin revisar primero el `CatalogSettingsMod
 
 ## 4. Estructura del Comparador
 
-### Configuración (8 opciones A/B)
+### Configuración (7 opciones A/B)
 
 | Config | Nombre | Opciones |
 |--------|--------|----------|
@@ -130,8 +130,9 @@ Se creó el `ComparatorSettingsModal` sin revisar primero el `CatalogSettingsMod
 | fieldsVersion | Campos de Comparación | Técnico, Beneficios, Mixto, Fintech, Resumido, Completo |
 | highlightVersion | Visualización Mejor/Peor | Verde/Rojo, Solo mejor, Badges, Gradiente, Iconos, Ninguno |
 | priceDiffVersion | Diferencia de Precio | Texto, Porcentaje, Barra, Mínimo, Ahorro, Oculto |
-| differenceHighlightVersion | Resaltado Diferencias | Amarillo, Toggle, Pulsing, Glow, Columna, Solo diferencias |
-| selectionVersion | Punto de Selección | Checkbox, Pills, Chips, Modal, Inline, Drag |
+| differenceHighlightVersion | Resaltado Diferencias | Punto Amarillo, Etiqueta "Diferente", Badge "≠", Fondo Gradiente, Subrayado Animado, Icono Comparación |
+
+> **Nota**: `selectionVersion` fue eliminado por no aportar valor significativo al testing A/B.
 
 ### Componentes Principales
 
@@ -236,11 +237,105 @@ useEffect(() => {
 
 ---
 
-## 7. Próximos Pasos Sugeridos
+## 7. Consistencia de Verbos en Español
+
+### Regla
+Usar **"añadir"** en lugar de **"agregar"** en toda la UI del comparador.
+
+### Incorrecto
+```tsx
+// ❌ "Agregar" - no usar
+<span>+ Agregar</span>
+<h3>Agrega otro equipo</h3>
+```
+
+### Correcto
+```tsx
+// ✅ "Añadir" - siempre
+<span>+ Añadir</span>
+<h3>Añade otro equipo</h3>
+```
+
+### Archivos Corregidos
+- `CompareActions.tsx`: "Agregar" → "Añadir"
+- `ComparatorLayoutV3.tsx`: "Agrega" → "Añade"
+
+---
+
+## 8. Patrón A/B: Implementación Real
+
+> **Ver también**: CONVENTIONS.md sección 10 para el patrón completo.
+
+### Resumen
+Cada versión de configuración A/B debe tener implementación real, no solo estado almacenado.
+
+```typescript
+// ❌ Incorrecto: Solo almacena versión sin uso
+const config = { fieldsVersion: 3 };
+// ...código que no usa fieldsVersion
+
+// ✅ Correcto: Versión tiene efecto real
+const getFieldsForVersion = () => {
+  switch (config.fieldsVersion) {
+    case 1: return ['processor', 'ram', 'storage'];
+    case 2: return ['processor', 'ram', 'storage', 'gpu'];
+    // ...cada versión con comportamiento distinto
+  }
+};
+```
+
+---
+
+## 9. Resaltado de Diferencias - Variedad Visual
+
+### Principio
+Cada versión de "Resaltado de Diferencias" debe usar un **mecanismo visual distinto** para ser claramente diferenciable.
+
+### Implementación Actual (6 versiones)
+
+| Ver | Nombre | Mecanismo | Código |
+|-----|--------|-----------|--------|
+| V1 | Punto Amarillo | Punto pequeño junto al label | `<span className="w-2 h-2 rounded-full bg-amber-400" />` |
+| V2 | Etiqueta "Diferente" | Chip con texto | `<span className="... text-[#4654CD] bg-[#4654CD]/10">Diferente</span>` |
+| V3 | Badge "≠" | Badge con símbolo | `<span className="... text-[#4654CD]">≠</span>` |
+| V4 | Fondo Gradiente | Gradiente en fila | `bg-gradient-to-r from-amber-100/60 to-transparent` |
+| V5 | Subrayado Animado | Borde inferior pulsante | `border-b-2 border-amber-400 animate-pulse` |
+| V6 | Icono Comparación | Icono lucide | `<ArrowLeftRight className="w-4 h-4 text-amber-500" />` |
+
+### Lección Aprendida
+- V2 y V3 usan color brand (`#4654CD`) para consistencia
+- V1, V4, V5, V6 usan amber para indicar "diferencia/advertencia"
+
+---
+
+## 10. DisplayName Simplificado
+
+### Problema
+Los nombres de productos incluían información redundante que alargaba innecesariamente el texto.
+
+### Antes
+```typescript
+displayName: `Laptop ${brand.name} ${displaySize}" para ${usages[i % usages.length][0]}`
+// Resultado: "Laptop Lenovo 17.3" para estudios"
+```
+
+### Después
+```typescript
+displayName: `Laptop ${brand.name} ${displaySize}"`
+// Resultado: "Laptop Lenovo 17.3""
+```
+
+### Razón
+- El uso ("estudios", "gaming", etc.) ya está en otros campos del producto
+- Nombres más cortos = mejor UX en cards y tablas de comparación
+
+---
+
+## 11. Próximos Pasos Sugeridos
 
 ### Para el Comparador
 - [ ] Implementar persistencia de comparación (localStorage)
-- [ ] Agregar export a PDF de comparación
+- [ ] Añadir export a PDF de comparación
 - [ ] Integrar comparador desde catálogo (checkbox en ProductCard)
 - [ ] Animaciones de entrada/salida con framer-motion
 
@@ -252,14 +347,18 @@ useEffect(() => {
 
 ---
 
-## 8. Referencias
+## 12. Referencias
 
 - **Spec**: `.claude/docs/0.4/section-specs/PROMPT_05_COMPARADOR.md`
 - **Código**: `src/app/prototipos/0.4/comparador/`
 - **Preview**: `http://localhost:3000/prototipos/0.4/comparador`
+- **Convenciones A/B**: `../CONVENTIONS.md` sección 10
 
 ---
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-21 | Versión inicial |
+| 1.1 | 2025-12-21 | Eliminado selectionVersion, agregadas secciones 7-8 (verbos español, patrón A/B) |
+| 1.2 | 2025-12-21 | Nuevas versiones de Resaltado de Diferencias: Punto, Etiqueta, Badge, Gradiente, Subrayado, Icono |
+| 1.3 | 2025-12-22 | V2/V3 color brand, displayName simplificado, secciones 9-10 |
