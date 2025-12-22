@@ -13,7 +13,7 @@ import {
   Select,
   SelectItem,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, GraduationCap, Navigation2, Image, Gift, MessageCircle, HelpCircle, MousePointerClick, Link2, Check } from 'lucide-react';
+import { Settings, RotateCcw, GraduationCap, Navigation2, Image, Gift, MessageCircle, HelpCircle, MousePointerClick, Link2, Check, LayoutGrid } from 'lucide-react';
 import {
   ConvenioConfig,
   ConvenioVersion,
@@ -57,6 +57,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
     params.set('testimonials', config.testimonialsVersion.toString());
     params.set('faq', config.faqVersion.toString());
     params.set('cta', config.ctaVersion.toString());
+    params.set('footer', config.footerVersion.toString());
     params.set('convenio', convenio.slug);
     const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     navigator.clipboard.writeText(url);
@@ -343,7 +344,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
           </div>
 
           {/* CTA Version */}
-          <div className="pt-4 border-t border-neutral-200">
+          <div className="mb-6 pt-4 border-t border-neutral-200">
             <div className="flex items-center gap-2 mb-3">
               <MousePointerClick className="w-4 h-4 text-[#4654CD]" />
               <h3 className="font-semibold text-neutral-800">CTA Final</h3>
@@ -371,6 +372,42 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
                     description: 'text-xs text-neutral-500',
                   }}
                   description={versionDescriptions.cta[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Footer Version */}
+          <div className="pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <LayoutGrid className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Footer</h3>
+            </div>
+            <RadioGroup
+              value={config.footerVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, footerVersion: parseInt(val) as ConvenioVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.footerVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.footer[version]}
                 >
                   Versión {version}
                 </Radio>

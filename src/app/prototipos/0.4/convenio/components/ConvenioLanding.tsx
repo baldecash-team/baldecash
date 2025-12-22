@@ -5,7 +5,7 @@
  * Renders all sections based on version configuration
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@nextui-org/react';
 import { Settings, Eye, EyeOff } from 'lucide-react';
 import {
@@ -75,6 +75,16 @@ import {
   ConvenioCtaV6,
 } from './cta';
 
+// Footer versions
+import {
+  ConvenioFooterV1,
+  ConvenioFooterV2,
+  ConvenioFooterV3,
+  ConvenioFooterV4,
+  ConvenioFooterV5,
+  ConvenioFooterV6,
+} from './footer';
+
 // Settings Modal
 import { ConvenioSettingsModal } from './ConvenioSettingsModal';
 
@@ -82,17 +92,41 @@ interface ConvenioLandingProps {
   initialConfig?: ConvenioConfig;
   initialConvenio?: ConvenioData;
   showOverlaysDefault?: boolean;
+  /** Si es true, usa el config del prop directamente (modo controlado) */
+  controlled?: boolean;
 }
 
 export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({
   initialConfig = defaultConvenioConfig,
   initialConvenio,
   showOverlaysDefault = true,
+  controlled = false,
 }) => {
-  const [config, setConfig] = useState<ConvenioConfig>(initialConfig);
+  // Estado interno del config
+  const [internalConfig, setInternalConfig] = useState<ConvenioConfig>(initialConfig);
+
+  // En modo controlado, sincronizamos con props cuando cambian
+  useEffect(() => {
+    if (controlled) {
+      setInternalConfig(initialConfig);
+    }
+  }, [controlled, initialConfig]);
+
+  // Siempre usamos internalConfig para que React detecte los cambios
+  const config = internalConfig;
+  const setConfig = controlled ? () => {} : setInternalConfig;
+
   const [convenio, setConvenio] = useState<ConvenioData>(
     initialConvenio || conveniosList[0]
   );
+
+  // En modo controlado, sincronizamos convenio con props cuando cambian
+  useEffect(() => {
+    if (controlled && initialConvenio) {
+      setConvenio(initialConvenio);
+    }
+  }, [controlled, initialConvenio]);
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showOverlays, setShowOverlays] = useState(showOverlaysDefault);
 
@@ -258,13 +292,37 @@ export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({
     }
   };
 
+  // Render Footer based on version
+  const renderFooter = () => {
+    const footerProps = {
+      convenio,
+    };
+
+    switch (config.footerVersion) {
+      case 1:
+        return <ConvenioFooterV1 {...footerProps} />;
+      case 2:
+        return <ConvenioFooterV2 {...footerProps} />;
+      case 3:
+        return <ConvenioFooterV3 {...footerProps} />;
+      case 4:
+        return <ConvenioFooterV4 {...footerProps} />;
+      case 5:
+        return <ConvenioFooterV5 {...footerProps} />;
+      case 6:
+        return <ConvenioFooterV6 {...footerProps} />;
+      default:
+        return <ConvenioFooterV1 {...footerProps} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
       {renderNavbar()}
 
-      {/* Main content with padding for fixed navbar */}
-      <main className="pt-16">
+      {/* Main content */}
+      <main>
         {/* Hero Section */}
         <div id="convenio-hero">
           {renderHero()}
@@ -292,58 +350,9 @@ export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({
       </main>
 
       {/* Footer */}
-      <footer className="bg-neutral-900 text-white py-12">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
-            {/* Logo */}
-            <div>
-              <img
-                src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
-                alt="BaldeCash"
-                className="h-8 mb-4"
-              />
-              <p className="text-neutral-400 text-sm">
-                Financiamiento para estudiantes
-              </p>
-            </div>
-
-            {/* Links */}
-            <div>
-              <h4 className="font-semibold mb-4">Producto</h4>
-              <ul className="space-y-2 text-sm text-neutral-400">
-                <li><a href="#" className="hover:text-white transition-colors">Cómo funciona</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Catálogo</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Convenios</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Empresa</h4>
-              <ul className="space-y-2 text-sm text-neutral-400">
-                <li><a href="#" className="hover:text-white transition-colors">Nosotros</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contacto</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-neutral-400">
-                <li><a href="#" className="hover:text-white transition-colors">Términos y condiciones</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Política de privacidad</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Libro de reclamaciones</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-neutral-800 mt-8 pt-8 text-center text-sm text-neutral-500">
-            <p>© 2024 Balde K S.A.C. Todos los derechos reservados.</p>
-            <p className="mt-2">
-              Convenio exclusivo para estudiantes de {convenio.nombre}
-            </p>
-          </div>
-        </div>
-      </footer>
+      <div id="convenio-footer">
+        {renderFooter()}
+      </div>
 
       {/* Floating Action Buttons */}
       {showOverlays && (

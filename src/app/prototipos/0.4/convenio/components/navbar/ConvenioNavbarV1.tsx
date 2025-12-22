@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { Button, Chip } from '@nextui-org/react';
+import { Button } from '@nextui-org/react';
 import { Menu, X } from 'lucide-react';
 import { ConvenioNavbarProps } from '../../types/convenio';
 
@@ -37,19 +37,8 @@ export const ConvenioNavbarV1: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
           />
         </div>
 
-        {/* Desktop: Badge + CTA */}
+        {/* Desktop: CTA */}
         <div className="hidden md:flex items-center gap-4">
-          <Chip
-            size="sm"
-            radius="sm"
-            classNames={{
-              base: 'px-3 py-1 h-auto',
-              content: 'text-white text-xs font-medium',
-            }}
-            style={{ backgroundColor: convenio.colorPrimario }}
-          >
-            Convenio {convenio.nombreCorto}
-          </Chip>
           <Button
             className="bg-[#4654CD] text-white rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-colors"
             onPress={onVerEquipos}
@@ -70,28 +59,15 @@ export const ConvenioNavbarV1: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
       {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-white border-t border-neutral-200 px-4 py-4">
-          <div className="flex flex-col gap-4">
-            <Chip
-              size="sm"
-              radius="sm"
-              classNames={{
-                base: 'px-3 py-1 h-auto w-fit',
-                content: 'text-white text-xs font-medium',
-              }}
-              style={{ backgroundColor: convenio.colorPrimario }}
-            >
-              Convenio {convenio.nombreCorto}
-            </Chip>
-            <Button
-              className="bg-[#4654CD] text-white rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-colors w-full"
-              onPress={() => {
-                onVerEquipos?.();
-                setIsMenuOpen(false);
-              }}
-            >
-              Ver equipos
-            </Button>
-          </div>
+          <Button
+            className="bg-[#4654CD] text-white rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-colors w-full"
+            onPress={() => {
+              onVerEquipos?.();
+              setIsMenuOpen(false);
+            }}
+          >
+            Ver equipos
+          </Button>
         </div>
       )}
     </nav>
