@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { WizardSolicitudConfig } from '../types/wizard-solicitud';
 
-type ComponentKey = 'wizardLayout' | 'progress' | 'navigation' | 'celebration' | 'label' | 'input' | 'options' | 'upload' | 'header' | 'hero' | 'cta';
+type ComponentKey = 'wizardLayout' | 'progress' | 'navigation' | 'celebration' | 'input' | 'options' | 'upload' | 'header' | 'hero' | 'cta';
 
 interface UseKeyboardShortcutsOptions {
   config: WizardSolicitudConfig;
@@ -29,7 +29,6 @@ const COMPONENT_ORDER: ComponentKey[] = [
   'progress',
   'navigation',
   'celebration',
-  'label',
   'input',
   'options',
   'upload',
@@ -43,7 +42,6 @@ const COMPONENT_CONFIG_MAP: Record<ComponentKey, keyof WizardSolicitudConfig> = 
   progress: 'progressVersion',
   navigation: 'navigationVersion',
   celebration: 'celebrationVersion',
-  label: 'labelVersion',
   input: 'inputVersion',
   options: 'optionsVersion',
   upload: 'uploadVersion',
@@ -57,8 +55,7 @@ const COMPONENT_LABELS: Record<ComponentKey, string> = {
   progress: 'Progreso (C.5)',
   navigation: 'Navegación (C.14)',
   celebration: 'Celebración (C.20)',
-  label: 'Labels (C1.1)',
-  input: 'Input (C1.4)',
+  input: 'Input+Label (C1.1+C1.4)',
   options: 'Opciones (C1.13)',
   upload: 'Upload (C1.15)',
 };

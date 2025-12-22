@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
-import { Menu, X, GraduationCap } from 'lucide-react';
+import { Menu, X, GraduationCap, ArrowRight } from 'lucide-react';
 import { ConvenioNavbarProps } from '../../types/convenio';
 
 const BALDECASH_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
@@ -56,8 +56,9 @@ export const ConvenioNavbarV2: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
               ¿Tienes dudas?
             </a>
             <Button
-              className="text-white rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+              className="text-white font-semibold px-6 rounded-xl cursor-pointer hover:opacity-90 hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
               style={{ backgroundColor: convenio.colorPrimario }}
+              endContent={<ArrowRight className="w-4 h-4" />}
               onPress={onVerEquipos}
             >
               Ver equipos
@@ -111,8 +112,9 @@ export const ConvenioNavbarV2: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
               ¿Tienes dudas?
             </a>
             <Button
-              className="text-white rounded-xl cursor-pointer hover:opacity-90 transition-opacity w-full"
+              className="text-white font-semibold rounded-xl cursor-pointer hover:opacity-90 transition-all w-full"
               style={{ backgroundColor: convenio.colorPrimario }}
+              endContent={<ArrowRight className="w-4 h-4" />}
               onPress={() => {
                 onVerEquipos?.();
                 setIsMenuOpen(false);

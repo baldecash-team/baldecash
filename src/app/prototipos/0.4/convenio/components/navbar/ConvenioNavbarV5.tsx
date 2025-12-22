@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@nextui-org/react';
-import { Menu, X, Clock } from 'lucide-react';
+import { Menu, X, Clock, ArrowRight } from 'lucide-react';
 import { ConvenioNavbarProps } from '../../types/convenio';
 
 const BALDECASH_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
@@ -88,13 +88,13 @@ export const ConvenioNavbarV5: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logos */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <img
               src={BALDECASH_LOGO}
               alt="BaldeCash"
               className="h-8 object-contain"
             />
-            <span className="text-neutral-300 text-lg hidden sm:inline">×</span>
+            <div className="w-px h-6 bg-neutral-200 hidden sm:block" />
             <img
               src={convenio.logo}
               alt={convenio.nombre}
@@ -112,7 +112,8 @@ export const ConvenioNavbarV5: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
               {convenio.descuentoCuota}% de descuento
             </span>
             <Button
-              className="bg-[#4654CD] text-white rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-colors font-semibold"
+              className="bg-[#4654CD] text-white px-6 rounded-xl cursor-pointer hover:bg-[#3a47b3] hover:shadow-lg hover:scale-[1.02] transition-all duration-200 font-semibold"
+              endContent={<ArrowRight className="w-4 h-4" />}
               onPress={onVerEquipos}
             >
               ¡Aprovecha ahora!
@@ -144,7 +145,8 @@ export const ConvenioNavbarV5: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
               </div>
             </div>
             <Button
-              className="bg-[#4654CD] text-white rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-colors w-full font-semibold"
+              className="bg-[#4654CD] text-white rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-all w-full font-semibold"
+              endContent={<ArrowRight className="w-4 h-4" />}
               onPress={() => {
                 onVerEquipos?.();
                 setIsMenuOpen(false);

@@ -17,6 +17,7 @@ export interface ConvenioConfig {
   testimonialsVersion: ConvenioVersion;
   faqVersion: ConvenioVersion;
   ctaVersion: ConvenioVersion;
+  footerVersion: ConvenioVersion;
 }
 
 export const defaultConvenioConfig: ConvenioConfig = {
@@ -26,6 +27,7 @@ export const defaultConvenioConfig: ConvenioConfig = {
   testimonialsVersion: 1,
   faqVersion: 1,
   ctaVersion: 1,
+  footerVersion: 1,
 };
 
 // ============================================
@@ -141,6 +143,10 @@ export interface ConvenioCtaProps {
   showCountdown?: boolean;
 }
 
+export interface ConvenioFooterProps {
+  convenio: ConvenioData;
+}
+
 export interface ConvenioSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -226,5 +232,13 @@ export const versionDescriptions = {
     4: 'CTA split (info + botón)',
     5: 'CTA con cupos limitados',
     6: 'CTA con WhatsApp directo',
+  },
+  footer: {
+    1: 'Footer clásico 4 columnas',
+    2: 'Footer minimalista centrado',
+    3: 'Footer con newsletter',
+    4: 'Footer con mapa y contacto',
+    5: 'Footer con redes sociales destacadas',
+    6: 'Footer con app download CTA',
   },
 } as const;

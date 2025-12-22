@@ -132,7 +132,6 @@ export const StepContent: React.FC<StepContentProps> = ({
               value={value as string}
               error={error}
               onChange={(val) => onFieldChange(field.name, val)}
-              labelVersion={config.labelVersion}
               helpVersion={config.helpVersion}
             />
           );
@@ -147,7 +146,6 @@ export const StepContent: React.FC<StepContentProps> = ({
               value={value}
               error={error}
               onChange={(val) => onFieldChange(field.name, val)}
-              labelVersion={config.labelVersion}
               helpVersion={config.helpVersion}
             />
           );
@@ -162,7 +160,6 @@ export const StepContent: React.FC<StepContentProps> = ({
               value={value as string}
               error={error}
               onChange={(val) => onFieldChange(field.name, val)}
-              labelVersion={config.labelVersion}
               helpVersion={config.helpVersion}
               inputVersion={config.inputVersion}
             />
@@ -177,7 +174,6 @@ export const StepContent: React.FC<StepContentProps> = ({
             value={value as string}
             error={error}
             onChange={(val) => onFieldChange(field.name, val)}
-            labelVersion={config.labelVersion}
             helpVersion={config.helpVersion}
           />
         );

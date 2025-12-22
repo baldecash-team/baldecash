@@ -32,7 +32,7 @@ export const ConvenioNavbarV4: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
           </span>
           <Button
             size="lg"
-            className="text-white rounded-xl cursor-pointer hover:opacity-90 transition-opacity px-8 font-semibold"
+            className="text-white rounded-xl cursor-pointer hover:opacity-90 hover:shadow-lg hover:scale-[1.02] transition-all duration-200 px-8 font-semibold"
             style={{ backgroundColor: convenio.colorPrimario }}
             startContent={<ShoppingBag className="w-5 h-5" />}
             onPress={onVerEquipos}
@@ -70,7 +70,7 @@ export const ConvenioNavbarV4: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
             </div>
             <Button
               size="lg"
-              className="text-white rounded-xl cursor-pointer hover:opacity-90 transition-opacity w-full font-semibold"
+              className="text-white rounded-xl cursor-pointer hover:opacity-90 transition-all w-full font-semibold"
               style={{ backgroundColor: convenio.colorPrimario }}
               startContent={<ShoppingBag className="w-5 h-5" />}
               onPress={() => {

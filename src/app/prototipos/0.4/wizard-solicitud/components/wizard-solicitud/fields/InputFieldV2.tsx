@@ -1,22 +1,20 @@
 'use client';
 
 /**
- * InputFieldV2 - Linea inferior (Material Design)
- * Campo con solo linea inferior estilo Material
+ * InputFieldV2 - Material Design con label flotante
+ * Campo con linea inferior y label que flota al escribir
  */
 
 import React, { useState } from 'react';
 import { Input } from '@nextui-org/react';
 import { Loader2 } from 'lucide-react';
 import type { FieldConfig } from '../../../types/wizard-solicitud';
-import { getLabel } from './labels';
 
 interface InputFieldV2Props {
   field: FieldConfig;
   value: string | undefined;
   error?: string;
   onChange: (value: string) => void;
-  labelVersion?: 1 | 2 | 3 | 4 | 5 | 6;
   isLoading?: boolean;
 }
 
@@ -25,12 +23,11 @@ export const InputFieldV2: React.FC<InputFieldV2Props> = ({
   value,
   error,
   onChange,
-  labelVersion = 1,
   isLoading = false,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const hasValue = Boolean(value && value.length > 0);
-  const LabelComponent = getLabel(labelVersion);
+  const isFloating = isFocused || hasValue;
 
   const getInputType = () => {
     switch (field.type) {
@@ -46,49 +43,40 @@ export const InputFieldV2: React.FC<InputFieldV2Props> = ({
     <Loader2 className="w-4 h-4 text-[#4654CD] animate-spin" />
   ) : undefined;
 
-  const inputClasses = {
-    inputWrapper: 'bg-transparent border-0 border-b-2 border-neutral-300 rounded-none hover:border-[#4654CD] focus-within:border-[#4654CD] data-[invalid=true]:border-red-500 shadow-none',
-    input: 'text-neutral-800',
-    errorMessage: 'text-red-500 text-xs mt-1',
-  };
-
-  if (labelVersion === 5) {
-    return (
-      <div className="flex items-start gap-3">
-        <LabelComponent field={field} isFocused={isFocused} hasValue={hasValue} hasError={!!error} />
-        <div className="flex-1">
-          <Input type={getInputType()} value={value || ''} placeholder={field.placeholder}
-            onChange={(e) => onChange(e.target.value)} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)}
-            isInvalid={!!error} errorMessage={error} isDisabled={isLoading} endContent={endContent} classNames={inputClasses} />
-        </div>
-      </div>
-    );
-  }
-
-  if (labelVersion === 2) {
-    return (
-      <div className="relative pt-2">
-        <LabelComponent field={field} isFocused={isFocused} hasValue={hasValue} hasError={!!error} />
-        <Input type={getInputType()} value={value || ''} placeholder={isFocused || hasValue ? field.placeholder : ''}
-          onChange={(e) => onChange(e.target.value)} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)}
-          isInvalid={!!error} errorMessage={error} isDisabled={isLoading} endContent={endContent} classNames={{...inputClasses, inputWrapper: inputClasses.inputWrapper + ' pt-3'}} />
-      </div>
-    );
-  }
-
-  if (labelVersion === 3) {
-    return (
-      <Input type={getInputType()} value={value || ''} placeholder={`${field.label}${field.required ? ' *' : ''}`}
-        onChange={(e) => onChange(e.target.value)} isInvalid={!!error} errorMessage={error} isDisabled={isLoading} endContent={endContent} classNames={inputClasses} />
-    );
-  }
-
   return (
-    <div className="space-y-1">
-      <LabelComponent field={field} isFocused={isFocused} hasValue={hasValue} hasError={!!error} />
-      <Input type={getInputType()} value={value || ''} placeholder={field.placeholder}
-        onChange={(e) => onChange(e.target.value)} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)}
-        isInvalid={!!error} errorMessage={error} isDisabled={isLoading} endContent={endContent} classNames={inputClasses} />
+    <div className="relative pt-4">
+      {/* Label V2 integrado: Label flotante (Material Design) */}
+      <label className={`
+        absolute left-3 transition-all duration-200 pointer-events-none z-10
+        ${isFloating
+          ? 'top-0 text-xs font-medium'
+          : 'top-1/2 text-sm font-normal'
+        }
+        ${error ? 'text-red-500' : isFocused ? 'text-[#4654CD]' : 'text-neutral-400'}
+      `}>
+        <span className="inline-flex items-center gap-1">
+          {field.label}
+          {field.required && <span className="text-red-400">*</span>}
+          {!field.required && isFloating && <span className="text-neutral-300 text-[10px]">(opcional)</span>}
+        </span>
+      </label>
+      <Input
+        type={getInputType()}
+        value={value || ''}
+        placeholder={isFloating ? field.placeholder : ''}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        isInvalid={!!error}
+        errorMessage={error}
+        isDisabled={isLoading}
+        endContent={endContent}
+        classNames={{
+          inputWrapper: 'bg-transparent border-0 border-b-2 border-neutral-300 rounded-none hover:border-[#4654CD] focus-within:border-[#4654CD] data-[invalid=true]:border-red-500 pt-2 shadow-none',
+          input: 'text-neutral-800',
+          errorMessage: 'text-red-500 text-xs mt-1',
+        }}
+      />
     </div>
   );
 };

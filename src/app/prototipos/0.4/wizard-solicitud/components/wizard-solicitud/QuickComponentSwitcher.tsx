@@ -15,7 +15,7 @@ import {
 import { Zap, Check } from 'lucide-react';
 import type { WizardSolicitudConfig } from '../../types/wizard-solicitud';
 
-type ComponentKey = 'wizardLayout' | 'progress' | 'navigation' | 'celebration' | 'label' | 'input' | 'options' | 'upload' | 'header' | 'hero' | 'cta';
+type ComponentKey = 'wizardLayout' | 'progress' | 'navigation' | 'celebration' | 'input' | 'options' | 'upload' | 'header' | 'hero' | 'cta';
 
 interface QuickComponentSwitcherProps {
   isOpen: boolean;
@@ -34,7 +34,6 @@ const COMPONENT_CONFIG_MAP: Record<ComponentKey, keyof WizardSolicitudConfig> = 
   progress: 'progressVersion',
   navigation: 'navigationVersion',
   celebration: 'celebrationVersion',
-  label: 'labelVersion',
   input: 'inputVersion',
   options: 'optionsVersion',
   upload: 'uploadVersion',
@@ -64,8 +63,7 @@ const COMPONENT_GROUPS = [
     title: 'Campos (C1.x)',
     color: 'bg-green-500',
     components: [
-      { key: 'label' as ComponentKey, label: 'C1.1 - Labels' },
-      { key: 'input' as ComponentKey, label: 'C1.4 - Inputs' },
+      { key: 'input' as ComponentKey, label: 'C1.1+C1.4 - Input (Label integrado)' },
       { key: 'options' as ComponentKey, label: 'C1.13 - Opciones' },
       { key: 'upload' as ComponentKey, label: 'C1.15 - Upload' },
     ],

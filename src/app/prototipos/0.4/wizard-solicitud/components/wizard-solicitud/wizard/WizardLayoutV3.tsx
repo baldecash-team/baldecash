@@ -7,15 +7,15 @@
 
 import React from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
-import { X, Clock } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { WizardSolicitudStep, SelectedProduct } from '../../../types/wizard-solicitud';
 
 interface WizardLayoutV3Props {
   steps: WizardSolicitudStep[];
   currentStep: number;
   selectedProduct?: SelectedProduct;
-  showTimeEstimate?: boolean;
-  estimatedMinutesRemaining?: number;
+  
+  
   children: React.ReactNode;
   onClose?: () => void;
 }
@@ -24,8 +24,8 @@ export const WizardLayoutV3: React.FC<WizardLayoutV3Props> = ({
   steps,
   currentStep,
   selectedProduct,
-  showTimeEstimate = true,
-  estimatedMinutesRemaining = 5,
+  
+  
   children,
   onClose,
 }) => {
@@ -56,17 +56,9 @@ export const WizardLayoutV3: React.FC<WizardLayoutV3Props> = ({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {showTimeEstimate && (
-              <span className="text-sm text-neutral-500 flex items-center gap-1 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-neutral-200/50">
-                <Clock className="w-4 h-4" />
-                ~{estimatedMinutesRemaining} min
-              </span>
-            )}
-            <Button isIconOnly variant="light" size="sm" onPress={onClose} className="rounded-full bg-white/80 backdrop-blur-sm border border-neutral-200/50">
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
+          <Button isIconOnly variant="light" size="sm" onPress={onClose} className="rounded-full bg-white/80 backdrop-blur-sm border border-neutral-200/50">
+            <X className="w-5 h-5" />
+          </Button>
         </div>
 
         {/* Card principal */}

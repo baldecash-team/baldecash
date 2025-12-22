@@ -13,7 +13,7 @@ import type {
   SelectedProduct,
 } from '../../types/wizard-solicitud';
 import { defaultWizardSolicitudConfig } from '../../types/wizard-solicitud';
-import { WIZARD_STEPS, getRemainingMinutes, MOCK_PRODUCT } from '../../data/wizardSolicitudSteps';
+import { WIZARD_STEPS, MOCK_PRODUCT } from '../../data/wizardSolicitudSteps';
 
 // Wizard components con mapeo de versiones
 import { getWizardLayout, getProgressIndicator, getWizardNavigation } from './wizard';
@@ -46,7 +46,6 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
   // Referencia para detectar cambios en versiones de input
   const previousVersions = useRef({
     inputVersion: config.inputVersion,
-    labelVersion: config.labelVersion,
     datePickerVersion: config.datePickerVersion,
     optionsVersion: config.optionsVersion,
     uploadVersion: config.uploadVersion,
@@ -72,7 +71,6 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
   useEffect(() => {
     const currentVersions = {
       inputVersion: config.inputVersion,
-      labelVersion: config.labelVersion,
       datePickerVersion: config.datePickerVersion,
       optionsVersion: config.optionsVersion,
       uploadVersion: config.uploadVersion,
@@ -98,7 +96,6 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
     }
   }, [
     config.inputVersion,
-    config.labelVersion,
     config.datePickerVersion,
     config.optionsVersion,
     config.uploadVersion,
@@ -189,7 +186,6 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
   // Datos del paso actual
   const currentStepData = WIZARD_STEPS[state.currentStep];
   const isLastStep = state.currentStep === WIZARD_STEPS.length - 1;
-  const remainingMinutes = getRemainingMinutes(state.currentStep);
 
   // Obtener componentes segun configuracion
   const WizardLayout = getWizardLayout(config.wizardLayoutVersion);
@@ -215,8 +211,6 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
         steps={WIZARD_STEPS}
         currentStep={state.currentStep}
         selectedProduct={selectedProduct}
-        showTimeEstimate={config.showTimeEstimate}
-        estimatedMinutesRemaining={remainingMinutes}
       >
         {/* Indicador de progreso */}
         <ProgressIndicator
