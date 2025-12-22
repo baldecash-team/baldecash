@@ -15,8 +15,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, ArrowLeft, Eye, EyeOff, Keyboard, Zap } from 'lucide-react';
-import Link from 'next/link';
+import { Settings, ArrowLeft, Zap, Code } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Components
@@ -32,10 +32,11 @@ import { defaultWizardSolicitudConfig } from '../types/wizard-solicitud';
 import { MOCK_PRODUCT } from '../data/wizardSolicitudSteps';
 
 export default function WizardSolicitudPreviewPage() {
+  const router = useRouter();
   const [config, setConfig] = useState<WizardSolicitudConfig>(defaultWizardSolicitudConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQuickSwitcherOpen, setIsQuickSwitcherOpen] = useState(false);
-  const [showOverlays, setShowOverlays] = useState(true);
+  const [showConfigBadge, setShowConfigBadge] = useState(false);
 
   const { activeComponent, setActiveComponent, componentLabel, toast } = useKeyboardShortcuts({
     config,
@@ -50,16 +51,6 @@ export default function WizardSolicitudPreviewPage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Icono volver - fixed top left */}
-      {showOverlays && (
-        <Link
-          href="/prototipos/0.4"
-          className="fixed top-4 left-4 z-50 w-10 h-10 flex items-center justify-center bg-white/90 backdrop-blur-sm border border-neutral-200 rounded-full text-neutral-500 hover:text-[#4654CD] hover:border-[#4654CD]/30 transition-colors shadow-sm cursor-pointer"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-      )}
-
       {/* Main content - Wizard Container */}
       <div>
         <WizardSolicitudContainer
@@ -95,51 +86,49 @@ export default function WizardSolicitudPreviewPage() {
       </AnimatePresence>
 
       {/* Floating controls */}
-      {showOverlays && (
-        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
-          <TokenCounter sectionId="PROMPT_18" version="0.4" />
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+        <TokenCounter sectionId="PROMPT_18" version="0.4" />
+        <Button
+          isIconOnly
+          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+          onPress={() => setIsSettingsOpen(true)}
+          aria-label="Configuración"
+        >
+          <Settings className="w-5 h-5" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-amber-500 text-white shadow-lg cursor-pointer hover:bg-amber-600 transition-colors"
+          onPress={() => setIsQuickSwitcherOpen(true)}
+          aria-label="Cambio rápido"
+        >
+          <Zap className="w-5 h-5" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => setShowConfigBadge(!showConfigBadge)}
+          aria-label="Mostrar configuración"
+        >
+          <Code className="w-5 h-5 text-neutral-600" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => router.push('/prototipos/0.4')}
+          aria-label="Volver al índice"
+        >
+          <ArrowLeft className="w-5 h-5 text-neutral-600" />
+        </Button>
+      </div>
 
-          <Button
-            isIconOnly
-            size="lg"
-            className="bg-amber-500 text-white shadow-lg hover:bg-amber-600"
-            onPress={() => setIsQuickSwitcherOpen(true)}
-            title="Cambio Rapido (C)"
-          >
-            <Zap className="w-5 h-5" />
-          </Button>
-
-          <Button
-            isIconOnly
-            size="lg"
-            className="bg-[#4654CD] text-white shadow-lg hover:bg-[#3A47B8]"
-            onPress={() => setIsSettingsOpen(true)}
-            title="Settings (S)"
-          >
-            <Settings className="w-5 h-5" />
-          </Button>
-
-          <Button
-            isIconOnly
-            size="lg"
-            variant="bordered"
-            className="bg-white border-neutral-300 shadow-lg"
-            onPress={() => setShowOverlays((prev) => !prev)}
-          >
-            {showOverlays ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-          </Button>
-        </div>
-      )}
-
-      {/* Active component badge */}
-      {showOverlays && (
+      {/* Current Config Badge */}
+      {showConfigBadge && (
         <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
-          <div className="flex items-center gap-2 mb-1">
-            <Keyboard className="w-3.5 h-3.5 text-neutral-400" />
-            <p className="text-xs text-neutral-500">Componente activo:</p>
-          </div>
-          <p className="text-sm font-medium text-[#4654CD]">{componentLabel}</p>
-          <p className="text-[10px] text-neutral-400 mt-1">Tab/Shift+Tab navegar • 1-6 versión</p>
+          <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+          <p className="text-xs font-mono text-neutral-700">
+            Header: V{config.headerVersion} | Hero: V{config.heroVersion} | CTA: V{config.ctaVersion} | Layout: V{config.wizardLayoutVersion} | Progress: V{config.progressVersion} | Nav: V{config.navigationVersion}
+          </p>
         </div>
       )}
 

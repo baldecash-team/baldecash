@@ -1,9 +1,5 @@
 'use client';
 
-/**
- * HeroSettingsModal - Settings modal for configuring hero versions
- */
-
 import React from 'react';
 import {
   Modal,
@@ -12,10 +8,10 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Select,
-  SelectItem,
+  RadioGroup,
+  Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw } from 'lucide-react';
+import { Settings, RotateCcw, Navigation2, Image, Type, Users, ListOrdered, MousePointerClick, HelpCircle, PanelBottom } from 'lucide-react';
 import { HeroConfig, HeroVersion, UnderlineStyle, defaultHeroConfig, versionDescriptions } from '../../types/hero';
 
 interface HeroSettingsModalProps {
@@ -26,82 +22,6 @@ interface HeroSettingsModalProps {
 }
 
 const versionOptions: HeroVersion[] = [1, 2, 3, 4, 5, 6];
-
-interface VersionSelectorProps {
-  label: string;
-  value: HeroVersion;
-  onChange: (value: HeroVersion) => void;
-  descriptions: Record<number, string>;
-}
-
-const VersionSelector: React.FC<VersionSelectorProps> = ({
-  label,
-  value,
-  onChange,
-  descriptions,
-}) => {
-  // Create items array for renderValue lookup
-  const items = versionOptions.map((v) => ({
-    key: v.toString(),
-    label: `V${v}: ${descriptions[v]}`,
-  }));
-
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-neutral-700 mb-2">{label}</label>
-      <Select
-        aria-label={label}
-        selectedKeys={new Set([value.toString()])}
-        onSelectionChange={(keys) => {
-          const selectedKey = Array.from(keys)[0];
-          if (selectedKey) {
-            onChange(parseInt(selectedKey as string) as HeroVersion);
-          }
-        }}
-        renderValue={(items) => {
-          return items.map((item) => (
-            <span key={item.key} className="text-sm text-neutral-700">
-              {item.textValue}
-            </span>
-          ));
-        }}
-        classNames={{
-          base: 'w-full',
-          trigger: 'h-12 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
-          value: 'text-sm text-neutral-700',
-          innerWrapper: 'pr-8',
-          selectorIcon: 'right-3',
-          popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
-          listbox: 'p-1 bg-white',
-          listboxWrapper: 'max-h-[300px] bg-white',
-        }}
-        popoverProps={{
-          classNames: {
-            base: 'bg-white',
-            content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
-          },
-        }}
-      >
-        {versionOptions.map((v) => (
-          <SelectItem
-            key={v.toString()}
-            textValue={`V${v}: ${descriptions[v]}`}
-            classNames={{
-              base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
-                text-neutral-700
-                data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
-                data-[selected=false]:data-[hover=true]:text-[#4654CD]
-                data-[selected=true]:bg-[#4654CD]
-                data-[selected=true]:text-white`,
-            }}
-          >
-            V{v}: {descriptions[v]}
-          </SelectItem>
-        ))}
-      </Select>
-    </div>
-  );
-};
 
 export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
   isOpen,
@@ -136,75 +56,302 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
           <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
             <Settings className="w-4 h-4 text-[#4654CD]" />
           </div>
-          <span className="text-lg font-semibold text-neutral-800">Configurar Hero Section</span>
+          <span className="text-lg font-semibold text-neutral-800">
+            Configuración del Hero
+          </span>
         </ModalHeader>
 
         <ModalBody className="py-6 bg-white">
           <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
-            Selecciona la versión de cada componente para ver diferentes combinaciones de diseño.
+            Personaliza el diseño del hero seleccionando diferentes versiones de cada componente.
           </p>
 
-          <VersionSelector
-            label="Navbar"
-            value={config.navbarVersion}
-            onChange={(v) => onConfigChange({ ...config, navbarVersion: v })}
-            descriptions={versionDescriptions.navbar}
-          />
+          {/* Navbar Version */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Navigation2 className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Navbar</h3>
+            </div>
+            <RadioGroup
+              value={config.navbarVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, navbarVersion: parseInt(val) as HeroVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.navbarVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.navbar[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Hero Banner"
-            value={config.heroBannerVersion}
-            onChange={(v) => onConfigChange({ ...config, heroBannerVersion: v })}
-            descriptions={versionDescriptions.heroBanner}
-          />
+          {/* Hero Banner Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Image className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Hero Banner</h3>
+            </div>
+            <RadioGroup
+              value={config.heroBannerVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, heroBannerVersion: parseInt(val) as HeroVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.heroBannerVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.heroBanner[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Estilo de Subrayado"
-            value={config.underlineStyle}
-            onChange={(v) => onConfigChange({ ...config, underlineStyle: v as UnderlineStyle })}
-            descriptions={versionDescriptions.underline}
-          />
+          {/* Underline Style */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Type className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Estilo de Subrayado</h3>
+            </div>
+            <RadioGroup
+              value={config.underlineStyle.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, underlineStyle: parseInt(val) as UnderlineStyle })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.underlineStyle === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.underline[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Social Proof"
-            value={config.socialProofVersion}
-            onChange={(v) => onConfigChange({ ...config, socialProofVersion: v })}
-            descriptions={versionDescriptions.socialProof}
-          />
+          {/* Social Proof Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Social Proof</h3>
+            </div>
+            <RadioGroup
+              value={config.socialProofVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, socialProofVersion: parseInt(val) as HeroVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.socialProofVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.socialProof[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="¿Cómo Funciona?"
-            value={config.howItWorksVersion}
-            onChange={(v) => onConfigChange({ ...config, howItWorksVersion: v })}
-            descriptions={versionDescriptions.howItWorks}
-          />
+          {/* How It Works Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <ListOrdered className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">¿Cómo Funciona?</h3>
+            </div>
+            <RadioGroup
+              value={config.howItWorksVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, howItWorksVersion: parseInt(val) as HeroVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.howItWorksVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.howItWorks[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="CTA"
-            value={config.ctaVersion}
-            onChange={(v) => onConfigChange({ ...config, ctaVersion: v })}
-            descriptions={versionDescriptions.cta}
-          />
+          {/* CTA Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <MousePointerClick className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">CTA</h3>
+            </div>
+            <RadioGroup
+              value={config.ctaVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, ctaVersion: parseInt(val) as HeroVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.ctaVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.cta[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="¿Tienes Dudas? (FAQ)"
-            value={config.faqVersion}
-            onChange={(v) => onConfigChange({ ...config, faqVersion: v })}
-            descriptions={versionDescriptions.faq}
-          />
+          {/* FAQ Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <HelpCircle className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">¿Tienes Dudas? (FAQ)</h3>
+            </div>
+            <RadioGroup
+              value={config.faqVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, faqVersion: parseInt(val) as HeroVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.faqVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.faq[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Footer"
-            value={config.footerVersion}
-            onChange={(v) => onConfigChange({ ...config, footerVersion: v })}
-            descriptions={versionDescriptions.footer}
-          />
-
-          <div className="mt-2 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
-            <p className="text-xs text-neutral-500">
-              <strong>Nota:</strong> Cada combinación puede producir diferentes experiencias de usuario.
-              Experimenta con distintas versiones para encontrar la mejor configuración.
-            </p>
+          {/* Footer Version */}
+          <div className="pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <PanelBottom className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Footer</h3>
+            </div>
+            <RadioGroup
+              value={config.footerVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, footerVersion: parseInt(val) as HeroVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.footerVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.footer[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
           </div>
         </ModalBody>
 
@@ -218,7 +365,7 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
             Restablecer
           </Button>
           <Button
-            className="bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3] transition-colors"
+            className="bg-[#4654CD] text-white cursor-pointer"
             onPress={onClose}
           >
             Aplicar

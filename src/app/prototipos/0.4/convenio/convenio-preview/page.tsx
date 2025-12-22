@@ -14,8 +14,7 @@
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { Settings, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Settings, ArrowLeft, Code } from 'lucide-react';
 
 // Components
 import { ConvenioLanding, ConvenioSettingsModal, ShortcutToast, ShortcutHelpBadge } from '../components';
@@ -59,6 +58,7 @@ function ConvenioPreviewContent() {
   };
 
   const [config, setConfig] = useState<ConvenioConfig>(getConfigFromParams);
+  const [showConfigBadge, setShowConfigBadge] = useState(false);
 
   // Sync config with URL params
   const updateConfigAndUrl = (newConfig: ConvenioConfig) => {
@@ -115,20 +115,6 @@ function ConvenioPreviewContent() {
 
   return (
     <div className="relative">
-      {/* Back button */}
-      <div className="fixed top-4 left-4 z-[60]">
-        <Link href="/prototipos/0.4">
-          <Button
-            variant="flat"
-            size="sm"
-            startContent={<ArrowLeft className="w-4 h-4" />}
-            className="bg-white shadow-md cursor-pointer"
-          >
-            Prototipos
-          </Button>
-        </Link>
-      </div>
-
       {/* Keyboard shortcut toast */}
       <ShortcutToast message={toast?.message || null} type={toast?.type} />
 
@@ -147,13 +133,39 @@ function ConvenioPreviewContent() {
         <TokenCounter sectionId="PROMPT_17" version="0.4" />
         <Button
           isIconOnly
-          size="lg"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer"
+          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
           onPress={() => setIsSettingsOpen(true)}
+          aria-label="Configuración"
         >
-          <Settings className="w-5 h-5 text-neutral-600" />
+          <Settings className="w-5 h-5" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => setShowConfigBadge(!showConfigBadge)}
+          aria-label="Mostrar configuración"
+        >
+          <Code className="w-5 h-5 text-neutral-600" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => router.push('/prototipos/0.4')}
+          aria-label="Volver al índice"
+        >
+          <ArrowLeft className="w-5 h-5 text-neutral-600" />
         </Button>
       </div>
+
+      {/* Current Config Badge */}
+      {showConfigBadge && (
+        <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
+          <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+          <p className="text-xs font-mono text-neutral-700">
+            Navbar: V{config.navbarVersion} | Hero: V{config.heroVersion} | Benefits: V{config.benefitsVersion} | Testimonials: V{config.testimonialsVersion} | FAQ: V{config.faqVersion} | CTA: V{config.ctaVersion}
+          </p>
+        </div>
+      )}
 
       {/* Keyboard shortcuts hint */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">

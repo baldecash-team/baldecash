@@ -132,6 +132,21 @@
           "version": 1,
           "variants": 1,
           "notes": "Card de producto con cuota prominente"
+        },
+        "emptyState": {
+          "version": 1,
+          "variants": 6,
+          "notes": "Estado vacío del catálogo cuando los filtros no devuelven resultados"
+        },
+        "emptyIllustration": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Icono SearchX, V2-Estudiante buscando, V3-Personaje lupa, V4-Shapes abstractos, V5-Split layout, V6-Mensaje gigante 0"
+        },
+        "emptyActions": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Botones simples, V2-Cards preview, V3-Chips ilustrados, V4-Floating pills, V5-Panel split, V6-CTA grande"
         }
       }
     },
@@ -216,6 +231,76 @@
           "notes": "V1-Categoria+cards catalogo (PREFERIDO basado en 0.3 V3), V2-Producto destacado, V3-Top 3 ranking, V4-Comparativa tabla, V5-Carrusel swipeable, V6-Lista con filtros"
         }
       }
+    },
+    "upsell": {
+      "lastUpdated": "2024-12-22T00:00:00.000Z",
+      "components": {
+        "accessoryIntro": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Título sutil iconos, V2-Elegante lifestyle, V3-Social proof, V4-Fintech animado, V5-Split opcionales, V6-Hero card impacto"
+        },
+        "accessoryCard": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Grid uniforme 3col, V2-Lifestyle variable, V3-Ilustraciones flat, V4-Carrusel snap, V5-Featured+grid, V6-Cards gigantes"
+        },
+        "accessoryLimit": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Sin límite, V2-Contador elegante, V3-Badge máximo, V4-Progress bar, V5-Split warning, V6-Warning gigante"
+        },
+        "selectionIndicator": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Check verde borde, V2-Badge flotante, V3-Color+check flat, V4-Bounce glow, V5-Mueve a selección, V6-Expande card"
+        },
+        "removeButton": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-X esquina, V2-Toggle on/off, V3-Click deselect, V4-Swipe+X animada, V5-Quitar visible, V6-X grande hover"
+        },
+        "priceBreakdown": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Desglose lateral, V2-Tooltip hover, V3-Ver desglose, V4-Expandible animado, V5-Split columna, V6-Centrado prominente"
+        },
+        "insuranceIntro": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Funcional protege, V2-Emocional tranquilidad, V3-Claro accidentes, V4-Fintech animado, V5-Split protección, V6-Impacto arriesga"
+        },
+        "protectionIcon": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Escudo checkmark, V2-Paraguas, V3-Candado flat, V4-Escudo brillo, V5-Split beneficios, V6-Escudo hero"
+        },
+        "planComparison": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Cards lado a lado, V2-Tabla checks, V3-Slider cobertura, V4-Cards hover, V5-Preview modal, V6-Cards apiladas"
+        },
+        "recommendedBadge": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Badge sobre card, V2-Card grande borde, V3-Estrella medalla, V4-Pulso animado, V5-Split prominente, V6-Hero central"
+        },
+        "coverageDisplay": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Lista checks X, V2-Tabs cubre/no, V3-Iconos flat, V4-Lista animada, V5-Split coberturas, V6-Prominente pequeño"
+        },
+        "skipModal": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Persuasivo suave, V2-Neutral, V3-Informativo, V4-Última oferta, V5-Split riesgos, V6-Impacto"
+        },
+        "modalButtons": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Simétricos, V2-Agregar destacado, V3-Con iconos, V4-Hover atractivo, V5-Vertical, V6-Gigante+link"
+        }
+      }
     }
   },
   "testingNotes": [
@@ -247,6 +332,16 @@
     {
       "date": "2024-12-20",
       "note": "Agregado componente Cronograma (6 versiones): Timeline, Tabla, Cards año, Calendario, Progress bar gamificado, Comparador. Agregado PortsDisplay visual mostrando puertos izquierda/derecha. DetailTabsV1 ahora sticky compacto con 6 secciones navegables. Total 55 componentes producto.",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-22",
+      "note": "Creados componentes de Estado Vacío (PROMPT_07): EmptyIllustration (6 versiones) + EmptyActions (6 versiones) + EmptyState wrapper + EmptyStateSettingsModal. Total 12 componentes de variante para A/B testing de estados sin resultados en el catálogo.",
+      "author": "Claude"
+    },
+    {
+      "date": "2024-12-22",
+      "note": "Creada sección Upsell (PROMPT_14) completa: Accesorios (AccessoryIntro, AccessoryCard, AccessoryLimit, SelectionIndicator, RemoveButton, PriceBreakdown) + Seguros (InsuranceIntro, ProtectionIcon, PlanComparison, RecommendedBadge, CoverageDisplay, SkipModal, ModalButtons). 13 componentes x 6 versiones = 78 variantes para A/B testing de upsell.",
       "author": "Claude"
     }
   ]

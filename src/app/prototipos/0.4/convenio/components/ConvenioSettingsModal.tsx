@@ -1,9 +1,5 @@
 'use client';
 
-/**
- * ConvenioSettingsModal - Settings modal for configuring convenio landing versions
- */
-
 import React from 'react';
 import {
   Modal,
@@ -12,11 +8,12 @@ import {
   ModalBody,
   ModalFooter,
   Button,
+  RadioGroup,
+  Radio,
   Select,
   SelectItem,
-  Divider,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, GraduationCap } from 'lucide-react';
+import { Settings, RotateCcw, GraduationCap, Navigation2, Image, Gift, MessageCircle, HelpCircle, MousePointerClick } from 'lucide-react';
 import {
   ConvenioConfig,
   ConvenioVersion,
@@ -36,76 +33,6 @@ interface ConvenioSettingsModalProps {
 }
 
 const versionOptions: ConvenioVersion[] = [1, 2, 3, 4, 5, 6];
-
-interface VersionSelectorProps {
-  label: string;
-  value: ConvenioVersion;
-  onChange: (value: ConvenioVersion) => void;
-  descriptions: Record<number, string>;
-}
-
-const VersionSelector: React.FC<VersionSelectorProps> = ({
-  label,
-  value,
-  onChange,
-  descriptions,
-}) => {
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-neutral-700 mb-2">{label}</label>
-      <Select
-        aria-label={label}
-        selectedKeys={new Set([value.toString()])}
-        onSelectionChange={(keys) => {
-          const selectedKey = Array.from(keys)[0];
-          if (selectedKey) {
-            onChange(parseInt(selectedKey as string) as ConvenioVersion);
-          }
-        }}
-        renderValue={(items) => {
-          return items.map((item) => (
-            <span key={item.key} className="text-sm text-neutral-700">
-              {item.textValue}
-            </span>
-          ));
-        }}
-        classNames={{
-          base: 'w-full',
-          trigger: 'h-12 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
-          value: 'text-sm text-neutral-700',
-          innerWrapper: 'pr-8',
-          selectorIcon: 'right-3',
-          popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
-          listbox: 'p-1 bg-white',
-          listboxWrapper: 'max-h-[300px] bg-white',
-        }}
-        popoverProps={{
-          classNames: {
-            base: 'bg-white',
-            content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
-          },
-        }}
-      >
-        {versionOptions.map((v) => (
-          <SelectItem
-            key={v.toString()}
-            textValue={`V${v}: ${descriptions[v]}`}
-            classNames={{
-              base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
-                text-neutral-700
-                data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
-                data-[selected=false]:data-[hover=true]:text-[#4654CD]
-                data-[selected=true]:bg-[#4654CD]
-                data-[selected=true]:text-white`,
-            }}
-          >
-            V{v}: {descriptions[v]}
-          </SelectItem>
-        ))}
-      </Select>
-    </div>
-  );
-};
 
 export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
   isOpen,
@@ -143,20 +70,22 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
           <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
             <Settings className="w-4 h-4 text-[#4654CD]" />
           </div>
-          <span className="text-lg font-semibold text-neutral-800">Configurar Landing Convenio</span>
+          <span className="text-lg font-semibold text-neutral-800">
+            Configuración del Landing Convenio
+          </span>
         </ModalHeader>
 
         <ModalBody className="py-6 bg-white">
           <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
-            Selecciona el convenio y las versiones de cada componente para ver diferentes combinaciones de diseño.
+            Personaliza el diseño del landing seleccionando el convenio y las versiones de cada componente.
           </p>
 
           {/* Convenio Selector */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-neutral-700 mb-2 flex items-center gap-2">
-              <GraduationCap className="w-4 h-4" />
-              Convenio Activo
-            </label>
+            <div className="flex items-center gap-2 mb-3">
+              <GraduationCap className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Convenio Activo</h3>
+            </div>
             <Select
               aria-label="Seleccionar convenio"
               selectedKeys={new Set([convenio.slug])}
@@ -176,7 +105,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
               }}
               classNames={{
                 base: 'w-full',
-                trigger: 'h-12 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
+                trigger: 'h-12 bg-white border-2 border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer rounded-lg',
                 value: 'text-sm text-neutral-700',
                 innerWrapper: 'pr-8',
                 selectorIcon: 'right-3',
@@ -216,57 +145,220 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
             </Select>
           </div>
 
-          <Divider className="my-4" />
+          {/* Navbar Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Navigation2 className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Navbar</h3>
+            </div>
+            <RadioGroup
+              value={config.navbarVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, navbarVersion: parseInt(val) as ConvenioVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.navbarVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.navbar[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <p className="text-sm font-medium text-neutral-700 mb-4">Versiones de Componentes</p>
+          {/* Hero Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Image className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Hero</h3>
+            </div>
+            <RadioGroup
+              value={config.heroVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, heroVersion: parseInt(val) as ConvenioVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.heroVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.hero[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Navbar"
-            value={config.navbarVersion}
-            onChange={(v) => onConfigChange({ ...config, navbarVersion: v })}
-            descriptions={versionDescriptions.navbar}
-          />
+          {/* Benefits Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Gift className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Beneficios</h3>
+            </div>
+            <RadioGroup
+              value={config.benefitsVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, benefitsVersion: parseInt(val) as ConvenioVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.benefitsVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.benefits[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Hero"
-            value={config.heroVersion}
-            onChange={(v) => onConfigChange({ ...config, heroVersion: v })}
-            descriptions={versionDescriptions.hero}
-          />
+          {/* Testimonials Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <MessageCircle className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Testimonios</h3>
+            </div>
+            <RadioGroup
+              value={config.testimonialsVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, testimonialsVersion: parseInt(val) as ConvenioVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.testimonialsVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.testimonials[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Beneficios"
-            value={config.benefitsVersion}
-            onChange={(v) => onConfigChange({ ...config, benefitsVersion: v })}
-            descriptions={versionDescriptions.benefits}
-          />
+          {/* FAQ Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <HelpCircle className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">¿Tienes Dudas? (FAQ)</h3>
+            </div>
+            <RadioGroup
+              value={config.faqVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, faqVersion: parseInt(val) as ConvenioVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.faqVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.faq[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Testimonios"
-            value={config.testimonialsVersion}
-            onChange={(v) => onConfigChange({ ...config, testimonialsVersion: v })}
-            descriptions={versionDescriptions.testimonials}
-          />
-
-          <VersionSelector
-            label="¿Tienes Dudas? (FAQ)"
-            value={config.faqVersion}
-            onChange={(v) => onConfigChange({ ...config, faqVersion: v })}
-            descriptions={versionDescriptions.faq}
-          />
-
-          <VersionSelector
-            label="CTA Final"
-            value={config.ctaVersion}
-            onChange={(v) => onConfigChange({ ...config, ctaVersion: v })}
-            descriptions={versionDescriptions.cta}
-          />
-
-          <div className="mt-2 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
-            <p className="text-xs text-neutral-500">
-              <strong>Nota:</strong> Cada combinación puede producir diferentes experiencias de usuario.
-              Experimenta con distintas versiones para encontrar la mejor configuración para cada convenio.
-            </p>
+          {/* CTA Version */}
+          <div className="pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <MousePointerClick className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">CTA Final</h3>
+            </div>
+            <RadioGroup
+              value={config.ctaVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, ctaVersion: parseInt(val) as ConvenioVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.ctaVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.cta[version]}
+                >
+                  Version {version}
+                </Radio>
+              ))}
+            </RadioGroup>
           </div>
         </ModalBody>
 
@@ -280,7 +372,7 @@ export const ConvenioSettingsModal: React.FC<ConvenioSettingsModalProps> = ({
             Restablecer
           </Button>
           <Button
-            className="bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3] transition-colors"
+            className="bg-[#4654CD] text-white cursor-pointer"
             onPress={onClose}
           >
             Aplicar
