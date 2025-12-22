@@ -38,21 +38,25 @@ export const ConvenioHeroV6: React.FC<ConvenioHeroProps> = ({
         <div className="text-center text-white mb-10">
           {/* Co-branded logos */}
           <div className="flex items-center justify-center gap-4 mb-6">
-            <img
-              src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
-              alt="BaldeCash"
-              className="h-8 object-contain"
-            />
-            <span className="text-white/50 text-lg">×</span>
-            <img
-              src={convenio.logo}
-              alt={convenio.nombre}
-              className="h-6 object-contain"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
+            <div className="bg-white/95 rounded-lg px-3 py-2">
+              <img
+                src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+                alt="BaldeCash"
+                className="h-8 object-contain"
+              />
+            </div>
+            <span className="text-white/70 text-xl font-light">×</span>
+            <div className="bg-white/95 rounded-lg px-3 py-2">
+              <img
+                src={convenio.logo}
+                alt={convenio.nombre}
+                className="h-6 object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.parentElement!.style.display = 'none';
+                }}
+              />
+            </div>
           </div>
 
           <Chip

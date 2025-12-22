@@ -7,15 +7,15 @@
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
-import { X, Clock } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { WizardSolicitudStep, SelectedProduct } from '../../../types/wizard-solicitud';
 
 interface WizardLayoutV5Props {
   steps: WizardSolicitudStep[];
   currentStep: number;
   selectedProduct?: SelectedProduct;
-  showTimeEstimate?: boolean;
-  estimatedMinutesRemaining?: number;
+  
+  
   children: React.ReactNode;
   onClose?: () => void;
 }
@@ -24,8 +24,8 @@ export const WizardLayoutV5: React.FC<WizardLayoutV5Props> = ({
   steps,
   currentStep,
   selectedProduct,
-  showTimeEstimate = true,
-  estimatedMinutesRemaining = 5,
+  
+  
   children,
   onClose,
 }) => {
@@ -41,12 +41,6 @@ export const WizardLayoutV5: React.FC<WizardLayoutV5Props> = ({
             alt="BaldeCash"
             className="h-5 object-contain"
           />
-          {showTimeEstimate && (
-            <span className="text-sm text-neutral-500 flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {estimatedMinutesRemaining} min
-            </span>
-          )}
         </div>
         <Button
           isIconOnly

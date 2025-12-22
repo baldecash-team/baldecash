@@ -27,6 +27,7 @@ import { useConvenioKeyboardShortcuts } from '../hooks';
 import {
   ConvenioConfig,
   ConvenioVersion,
+  ConvenioData,
   defaultConvenioConfig,
 } from '../types/convenio';
 import { conveniosList, getConvenioBySlug, defaultConvenio } from '../data/mockConvenioData';
@@ -46,6 +47,7 @@ function ConvenioPreviewContent() {
     const testimonialsVersion = parseInt(searchParams.get('testimonials') || '1') as ConvenioVersion;
     const faqVersion = parseInt(searchParams.get('faq') || '1') as ConvenioVersion;
     const ctaVersion = parseInt(searchParams.get('cta') || '1') as ConvenioVersion;
+    const footerVersion = parseInt(searchParams.get('footer') || '1') as ConvenioVersion;
 
     return {
       navbarVersion: Math.min(Math.max(navbarVersion, 1), 6) as ConvenioVersion,
@@ -54,6 +56,7 @@ function ConvenioPreviewContent() {
       testimonialsVersion: Math.min(Math.max(testimonialsVersion, 1), 6) as ConvenioVersion,
       faqVersion: Math.min(Math.max(faqVersion, 1), 6) as ConvenioVersion,
       ctaVersion: Math.min(Math.max(ctaVersion, 1), 6) as ConvenioVersion,
+      footerVersion: Math.min(Math.max(footerVersion, 1), 6) as ConvenioVersion,
     };
   };
 
@@ -70,6 +73,7 @@ function ConvenioPreviewContent() {
     params.set('testimonials', String(newConfig.testimonialsVersion));
     params.set('faq', String(newConfig.faqVersion));
     params.set('cta', String(newConfig.ctaVersion));
+    params.set('footer', String(newConfig.footerVersion));
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
@@ -82,6 +86,14 @@ function ConvenioPreviewContent() {
     }
     setIsClient(true);
   }, [searchParams]);
+
+  // Update convenio and URL
+  const updateConvenioAndUrl = (newConvenio: ConvenioData) => {
+    setSelectedConvenio(newConvenio);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('convenio', newConvenio.slug);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   // Keyboard shortcuts hook
   const { activeComponent, toast } = useConvenioKeyboardShortcuts({
@@ -98,6 +110,7 @@ function ConvenioPreviewContent() {
     hero: 'Hero',
     benefits: 'Beneficios',
     testimonials: 'Testimonios',
+    footer: 'Footer',
     faq: 'FAQ',
     cta: 'CTA',
   };
@@ -125,7 +138,8 @@ function ConvenioPreviewContent() {
       <ConvenioLanding
         initialConfig={config}
         initialConvenio={selectedConvenio}
-        showOverlaysDefault={true}
+        showOverlaysDefault={false}
+        controlled={true}
       />
 
       {/* Floating controls */}
@@ -162,7 +176,7 @@ function ConvenioPreviewContent() {
         <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
           <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
           <p className="text-xs font-mono text-neutral-700">
-            Navbar: V{config.navbarVersion} | Hero: V{config.heroVersion} | Benefits: V{config.benefitsVersion} | Testimonials: V{config.testimonialsVersion} | FAQ: V{config.faqVersion} | CTA: V{config.ctaVersion}
+            Navbar: V{config.navbarVersion} | Hero: V{config.heroVersion} | Benefits: V{config.benefitsVersion} | Testimonials: V{config.testimonialsVersion} | FAQ: V{config.faqVersion} | CTA: V{config.ctaVersion} | Footer: V{config.footerVersion}
           </p>
         </div>
       )}
@@ -189,7 +203,7 @@ function ConvenioPreviewContent() {
         config={config}
         onConfigChange={updateConfigAndUrl}
         convenio={selectedConvenio}
-        onConvenioChange={setSelectedConvenio}
+        onConvenioChange={updateConvenioAndUrl}
         conveniosList={conveniosList}
       />
     </div>

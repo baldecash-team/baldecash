@@ -25,8 +25,7 @@ export interface WizardSolicitudConfig {
   celebrationVersion: 1 | 2 | 3 | 4 | 5 | 6;   // C.20 - Celebraciones
 
   // === CAMPOS (C1.x) ===
-  labelVersion: 1 | 2 | 3 | 4 | 5 | 6;         // C1.1 - Labels
-  inputVersion: 1 | 2 | 3 | 4 | 5 | 6;         // C1.4 - Inputs
+  inputVersion: 1 | 2 | 3 | 4 | 5 | 6;         // C1.1+C1.4 - InputField (Label integrado)
   optionsVersion: 1 | 2 | 3 | 4 | 5 | 6;       // C1.13 - Opciones (cards)
   uploadVersion: 1 | 2 | 3 | 4 | 5 | 6;        // C1.15 - Upload
   datePickerVersion: 1 | 2 | 3 | 4 | 5 | 6;    // C1.18 - DatePicker
@@ -40,7 +39,6 @@ export interface WizardSolicitudConfig {
   // === OPCIONES ADICIONALES ===
   allowFreeNavigation: boolean;
   autoSave: boolean;
-  showTimeEstimate: boolean;
 }
 
 // Configuracion con decisiones aplicadas del PROMPT_18
@@ -62,8 +60,7 @@ export const defaultWizardSolicitudConfig: WizardSolicitudConfig = {
   celebrationVersion: 1,
 
   // Campos - Decisiones C1.x
-  labelVersion: 1,           // C1.1 - Label arriba
-  inputVersion: 1,           // C1.4 - Filled (o 1 para bordes)
+  inputVersion: 1,           // C1.1+C1.4 - InputField con Label integrado
   optionsVersion: 1,         // C1.13 - Cards (si <= 6 opciones)
   uploadVersion: 1,          // C1.15 - Drag & drop + boton
   datePickerVersion: 1,      // C1.18 - Calendario clasico popup
@@ -77,7 +74,6 @@ export const defaultWizardSolicitudConfig: WizardSolicitudConfig = {
   // Opciones adicionales
   allowFreeNavigation: false,
   autoSave: true,
-  showTimeEstimate: true,
 };
 
 // ============================================
@@ -253,22 +249,14 @@ export const versionDescriptions = {
     6: 'Pantalla completa branded',
   },
 
-  // Campos (C1.x)
-  label: {
-    1: 'Label arriba (siempre visible)',
-    2: 'Label flotante (Material Design)',
-    3: 'Solo placeholder (minimalista)',
-    4: 'Label con badge requerido',
-    5: 'Label izquierda del campo',
-    6: 'Label grande sobre campo',
-  },
+  // Campos (C1.x) - InputField con Label integrado
   input: {
-    1: 'Bordes completos (clasico)',
-    2: 'Linea inferior (Material Design)',
-    3: 'Fondo filled sin bordes',
-    4: 'Filled con sombra interna',
-    5: 'Bordes redondeados grandes',
-    6: 'Minimalista sin bordes',
+    1: 'Bordes clasicos + Label arriba visible',
+    2: 'Material Design + Label flotante animado',
+    3: 'Minimalista + Solo placeholder (sin label)',
+    4: 'Filled redondeado + Label con badge',
+    5: 'Glassmorphism + Label inline izquierdo',
+    6: 'Fintech Premium + Label flotante con check',
   },
   options: {
     1: 'Radio buttons tradicionales',

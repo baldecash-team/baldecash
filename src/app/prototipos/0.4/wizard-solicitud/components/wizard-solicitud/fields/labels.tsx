@@ -1,11 +1,13 @@
 /**
- * Label Components - BaldeCash Web 4.0
- * 6 versiones de labels según C1.1
- * Soporta campos requeridos y opcionales
+ * Label Components (Utilidad interna)
+ * Usado por DatePickerField y SelectCards para labels dinamicos
+ *
+ * NOTA: Los InputField ya tienen los labels integrados directamente.
+ * Este archivo existe solo para componentes que requieren labels dinamicos.
  */
 
 import React from 'react';
-import type { FieldConfig } from '../../../../types/wizard-solicitud';
+import type { FieldConfig } from '../../../types/wizard-solicitud';
 
 export interface LabelProps {
   field: FieldConfig;
@@ -50,9 +52,8 @@ export const LabelV2: React.FC<LabelProps> = ({ field, isFocused, hasValue, hasE
   );
 };
 
-// V3: Minimalista - Solo asterisco para requerido, nada para opcional
+// V3: Minimalista - Solo asterisco para requerido
 export const LabelV3: React.FC<LabelProps> = ({ field, hasError }) => {
-  // Para campos sin placeholder (como DatePicker), mostrar el label
   if (field.type === 'date') {
     return (
       <label className={`
@@ -64,7 +65,6 @@ export const LabelV3: React.FC<LabelProps> = ({ field, hasError }) => {
       </label>
     );
   }
-  // Para inputs con placeholder, solo mostrar asterisco si es requerido
   return field.required ? (
     <span className="text-red-500 text-xs font-medium">*</span>
   ) : null;
@@ -92,7 +92,7 @@ export const LabelV4: React.FC<LabelProps> = ({ field, hasError }) => (
 // V5: Label izquierda (inline) - Formularios compactos
 export const LabelV5: React.FC<LabelProps> = ({ field, hasError }) => (
   <label className={`
-    inline-flex items-center gap-1.5 text-sm font-medium min-w-[120px] shrink-0 leading-none
+    inline-flex items-center gap-1.5 text-sm font-medium min-w-[120px] shrink-0 leading-none pt-2
     ${hasError ? 'text-red-600' : 'text-neutral-600'}
   `}>
     <span>{field.label}</span>

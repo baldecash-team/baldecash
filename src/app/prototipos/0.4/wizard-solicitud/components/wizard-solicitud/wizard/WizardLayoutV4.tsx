@@ -7,15 +7,15 @@
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
-import { X, Clock } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { WizardSolicitudStep, SelectedProduct } from '../../../types/wizard-solicitud';
 
 interface WizardLayoutV4Props {
   steps: WizardSolicitudStep[];
   currentStep: number;
   selectedProduct?: SelectedProduct;
-  showTimeEstimate?: boolean;
-  estimatedMinutesRemaining?: number;
+  
+  
   children: React.ReactNode;
   onClose?: () => void;
 }
@@ -24,8 +24,8 @@ export const WizardLayoutV4: React.FC<WizardLayoutV4Props> = ({
   steps,
   currentStep,
   selectedProduct,
-  showTimeEstimate = true,
-  estimatedMinutesRemaining = 5,
+  
+  
   children,
   onClose,
 }) => {
@@ -60,22 +60,14 @@ export const WizardLayoutV4: React.FC<WizardLayoutV4Props> = ({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {showTimeEstimate && (
-              <div className="flex items-center gap-1.5 text-white/60 text-sm bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                <Clock className="w-4 h-4" />
-                <span>{estimatedMinutesRemaining} min</span>
-              </div>
-            )}
-            <Button
-              isIconOnly
-              size="sm"
-              onPress={onClose}
-              className="bg-white/10 hover:bg-white/20 text-white rounded-full min-w-8 w-8 h-8 border border-white/10"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
+          <Button
+            isIconOnly
+            size="sm"
+            onPress={onClose}
+            className="bg-white/10 hover:bg-white/20 text-white rounded-full min-w-8 w-8 h-8 border border-white/10"
+          >
+            <X className="w-4 h-4" />
+          </Button>
         </div>
       </header>
 

@@ -40,13 +40,13 @@ export const ConvenioNavbarV3: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           {/* Logos co-branded */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <img
               src={BALDECASH_LOGO}
               alt="BaldeCash"
               className="h-8 object-contain"
             />
-            <span className="text-neutral-300 text-lg hidden sm:inline">×</span>
+            <div className="w-px h-6 bg-neutral-200 hidden sm:block" />
             <img
               src={convenio.logo}
               alt={convenio.nombre}
@@ -73,7 +73,8 @@ export const ConvenioNavbarV3: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
               Testimonios
             </a>
             <Button
-              className="bg-[#4654CD] text-white rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-colors"
+              className="bg-[#4654CD] text-white font-semibold px-6 rounded-xl cursor-pointer hover:bg-[#3a47b3] hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
+              endContent={<ArrowRight className="w-4 h-4" />}
               onPress={onVerEquipos}
             >
               Ver equipos
@@ -123,7 +124,8 @@ export const ConvenioNavbarV3: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
               Testimonios
             </a>
             <Button
-              className="bg-[#4654CD] text-white rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-colors w-full"
+              className="bg-[#4654CD] text-white font-semibold rounded-xl cursor-pointer hover:bg-[#3a47b3] transition-all w-full"
+              endContent={<ArrowRight className="w-4 h-4" />}
               onPress={() => {
                 onVerEquipos?.();
                 setIsMenuOpen(false);
