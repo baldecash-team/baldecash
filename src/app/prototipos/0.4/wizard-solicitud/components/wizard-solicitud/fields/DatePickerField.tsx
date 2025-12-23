@@ -55,7 +55,7 @@ const getInputClasses = (version: number, isOpen: boolean, error: boolean) => {
       input: 'text-neutral-800 placeholder:text-neutral-400 cursor-pointer',
     },
     6: {
-      inputWrapper: `bg-neutral-50 border-2 rounded-xl h-14 cursor-pointer transition-all duration-200 shadow-none ${isOpen ? 'border-[#4654CD] bg-white' : 'border-transparent'} ${error ? 'border-red-400 bg-red-50/50' : ''} hover:bg-neutral-100`,
+      inputWrapper: `bg-neutral-50 border-2 rounded-xl h-14 cursor-pointer transition-all duration-200 ${isOpen ? 'border-[#4654CD] bg-white shadow-lg shadow-[#4654CD]/10' : 'border-transparent shadow-sm'} ${error ? 'border-red-400 bg-red-50/50' : ''} hover:bg-neutral-100 hover:shadow-md`,
       input: 'text-neutral-900 text-base placeholder:text-neutral-400 cursor-pointer',
     },
   };
@@ -224,21 +224,23 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
     const showFloatingLabel = isOpen || hasValue;
     return (
       <div className="relative">
-        <motion.label
-          className={`absolute left-3 pointer-events-none z-10 transition-colors duration-200
-            ${showFloatingLabel ? 'text-xs font-medium' : 'text-sm font-normal'}
-            ${isOpen ? 'text-[#4654CD]' : 'text-neutral-400'} ${error ? 'text-red-500' : ''}`}
-          animate={{
-            top: showFloatingLabel ? 6 : '50%',
-            y: showFloatingLabel ? 0 : '-50%',
-            fontSize: showFloatingLabel ? '11px' : '14px'
-          }}
-          transition={{ duration: 0.15, ease: 'easeOut' }}>
-          {field.label}{field.required && <span className="text-red-400 ml-0.5">*</span>}
-        </motion.label>
         <Popover isOpen={isOpen} onOpenChange={setIsOpen} placement="bottom-start">
           <PopoverTrigger>
             <div className="relative">
+              <motion.label
+                className={`absolute left-3 pointer-events-none z-20 transition-colors duration-200
+                  ${showFloatingLabel ? 'text-xs font-medium' : 'text-sm font-normal'}
+                  ${isOpen ? 'text-[#4654CD]' : 'text-neutral-400'} ${error ? 'text-red-500' : ''}`}
+                animate={{
+                  top: showFloatingLabel ? 6 : '50%',
+                  y: showFloatingLabel ? 0 : '-50%',
+                  fontSize: showFloatingLabel ? '11px' : '14px'
+                }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}>
+                {field.label}
+                {field.required && <span className="text-red-400 ml-0.5">*</span>}
+                {!field.required && showFloatingLabel && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
+              </motion.label>
               <Input
                 readOnly
                 value={value ? formatDisplayDate(value) : ''}
@@ -267,11 +269,29 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
     );
   }
 
-  // V2: Material Design floating label
-  if (labelVersion === 2) {
+  // V2: Material Design floating label (integrado como InputFieldV2)
+  if (labelVersion === 2 || inputVersion === 2) {
+    const showFloatingLabel = isOpen || hasValue;
     return (
-      <div className="relative pt-2">
-        <LabelComponent field={field} isFocused={isOpen} hasValue={hasValue} hasError={!!error} />
+      <div className="relative pt-4">
+        {/* Label flotante animado */}
+        <motion.label
+          className={`
+            absolute left-3 pointer-events-none z-10 transition-colors duration-200
+            ${showFloatingLabel ? 'text-xs font-medium' : 'text-sm font-normal'}
+            ${error ? 'text-red-500' : isOpen ? 'text-[#4654CD]' : 'text-neutral-400'}
+          `}
+          animate={{
+            top: showFloatingLabel ? 0 : '50%',
+            y: showFloatingLabel ? 0 : '-50%',
+            fontSize: showFloatingLabel ? '11px' : '14px'
+          }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+        >
+          {field.label}
+          {field.required && <span className="text-red-400 ml-0.5">*</span>}
+          {!field.required && showFloatingLabel && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
+        </motion.label>
         <Popover isOpen={isOpen} onOpenChange={setIsOpen} placement="bottom-start">
           <PopoverTrigger>
             <div className="relative">
@@ -281,19 +301,29 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
                 placeholder=""
                 isInvalid={!!error}
                 isDisabled={isLoading}
-                size={inputVersion === 5 ? 'lg' : 'md'}
-                startContent={<Calendar className="w-4 h-4 text-neutral-400" />}
+                size="md"
                 endContent={isLoading ? <Loader2 className="w-4 h-4 text-[#4654CD] animate-spin" /> : undefined}
                 classNames={{
-                  ...inputClasses,
-                  inputWrapper: `${inputClasses.inputWrapper} pt-3`,
+                  inputWrapper: 'bg-transparent border-0 border-b-2 border-neutral-300 rounded-none hover:border-[#4654CD] focus-within:border-[#4654CD] data-[invalid=true]:border-red-500 pt-2 shadow-none cursor-pointer',
+                  input: 'text-neutral-800 cursor-pointer',
                 }}
               />
             </div>
           </PopoverTrigger>
           {calendarPopup}
         </Popover>
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+        <AnimatePresence>
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="text-red-500 text-xs mt-1.5 ml-1"
+            >
+              {error}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
