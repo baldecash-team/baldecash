@@ -41,6 +41,11 @@ export const CronogramaV2: React.FC<CronogramaProps> = ({
   const [showAll, setShowAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Calculate monthly quota based on selected term
+  // Base amount is calculated so that shorter terms have higher monthly payments
+  const baseTotal = monthlyQuota * term; // Total financed amount
+  const adjustedQuota = baseTotal / selectedTerm;
+
   const getMonthDate = (monthIndex: number) => {
     const date = new Date(startDate);
     date.setMonth(date.getMonth() + monthIndex);
@@ -49,7 +54,7 @@ export const CronogramaV2: React.FC<CronogramaProps> = ({
 
   const visibleMonths = showAll ? selectedTerm : Math.min(6, selectedTerm);
   const hasMore = selectedTerm > 6;
-  const totalPayment = monthlyQuota * selectedTerm;
+  const totalPayment = adjustedQuota * selectedTerm;
 
   const handleDownloadPDF = () => {
     // In a real app, this would generate and download a PDF
@@ -121,7 +126,7 @@ export const CronogramaV2: React.FC<CronogramaProps> = ({
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="text-sm font-semibold text-neutral-900">
-                      S/{monthlyQuota.toFixed(2)}
+                      S/{adjustedQuota.toFixed(2)}
                     </span>
                   </td>
                 </tr>
@@ -206,7 +211,7 @@ export const CronogramaV2: React.FC<CronogramaProps> = ({
             <div className="bg-[#4654CD]/5 rounded-xl p-4 mb-6">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-neutral-600">Cuota mensual</span>
-                <span className="text-xl font-bold text-[#4654CD]">S/{monthlyQuota.toFixed(2)}</span>
+                <span className="text-xl font-bold text-[#4654CD]">S/{adjustedQuota.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-neutral-600">Plazo</span>
@@ -269,7 +274,7 @@ export const CronogramaV2: React.FC<CronogramaProps> = ({
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-neutral-600">Monto total a pagar</p>
-                    <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{monthlyQuota.toFixed(2)}</p>
+                    <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{adjustedQuota.toFixed(2)}</p>
                   </div>
                   <p className="text-2xl font-bold text-green-600">S/{totalPayment.toFixed(2)}</p>
                 </div>

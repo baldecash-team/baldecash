@@ -25,6 +25,10 @@ export const CronogramaV3: React.FC<CronogramaProps> = ({
 }) => {
   const [selectedTerm, setSelectedTerm] = useState(term);
 
+  // Calculate monthly quota based on selected term
+  const baseTotal = monthlyQuota * term;
+  const adjustedQuota = baseTotal / selectedTerm;
+
   // Group by year
   const getYearGroups = () => {
     const groups: { year: number; months: number[]; startMonth: number }[] = [];
@@ -56,7 +60,7 @@ export const CronogramaV3: React.FC<CronogramaProps> = ({
   };
 
   const yearGroups = getYearGroups();
-  const totalAmount = monthlyQuota * selectedTerm;
+  const totalAmount = adjustedQuota * selectedTerm;
 
   return (
     <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
@@ -93,7 +97,7 @@ export const CronogramaV3: React.FC<CronogramaProps> = ({
       {/* Year Cards */}
       <div className="space-y-3">
         {yearGroups.map((group, idx) => {
-          const yearTotal = monthlyQuota * group.months.length;
+          const yearTotal = adjustedQuota * group.months.length;
           const progress = (group.months.length / selectedTerm) * 100;
           const isLastYear = idx === yearGroups.length - 1;
 

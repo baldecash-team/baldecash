@@ -22,12 +22,25 @@ const megaMenuItems = [
   { label: 'Accesorios', href: catalogUrl, icon: Headphones, description: 'Complementa tu equipo' },
 ];
 
+const convenioUrl = '/prototipos/0.4/convenio/convenio-preview?navbar=3&hero=2&benefits=1&testimonials=1&faq=2&cta=6&footer=2&mode=clean';
+
 const navItems = [
   { label: 'Equipos', href: catalogUrl, hasMegaMenu: true },
   { label: 'Cómo funciona', href: '#como-funciona' },
-  { label: 'Convenios', href: '#convenios' },
+  { label: 'Convenios', href: convenioUrl },
   { label: '¿Tienes dudas?', href: '#faq' },
 ];
+
+// Smooth scroll handler for anchor links
+const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  if (href.startsWith('#')) {
+    e.preventDefault();
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+};
 
 export const NavbarV6: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -92,6 +105,7 @@ export const NavbarV6: React.FC = () => {
                 >
                   <a
                     href={item.href}
+                    onClick={(e) => handleAnchorClick(e, item.href)}
                     className="flex items-center gap-1 text-neutral-600 hover:text-[#4654CD] text-sm font-medium transition-colors"
                   >
                     {item.label}
@@ -194,7 +208,10 @@ export const NavbarV6: React.FC = () => {
                     key={item.label}
                     href={item.href}
                     className="flex items-center justify-between py-2 text-neutral-600 hover:text-[#4654CD] font-medium"
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={(e) => {
+                      handleAnchorClick(e, item.href);
+                      setIsMenuOpen(false);
+                    }}
                   >
                     {item.label}
                     {index === 0 && (

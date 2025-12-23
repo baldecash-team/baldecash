@@ -33,6 +33,10 @@ export const CronogramaV5: React.FC<CronogramaProps> = ({
   const [currentPayment, setCurrentPayment] = useState(0); // Simula cuotas pagadas
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // Calculate monthly quota based on selected term
+  const baseTotal = monthlyQuota * term;
+  const adjustedQuota = baseTotal / selectedTerm;
+
   // Calcular progreso actual
   const progressPercent = useMemo(() =>
     (currentPayment / selectedTerm) * 100,
@@ -239,7 +243,7 @@ export const CronogramaV5: React.FC<CronogramaProps> = ({
         {milestones.map((milestone, idx) => {
           const Icon = milestone.icon;
           const cuotaNum = getMilestoneMonth(milestone.percent);
-          const amountPaid = monthlyQuota * cuotaNum;
+          const amountPaid = adjustedQuota * cuotaNum;
           const isUnlocked = progressPercent >= milestone.percent;
           const isNext = !isUnlocked && (idx === 0 || progressPercent >= milestones[idx - 1].percent);
 
@@ -337,7 +341,7 @@ export const CronogramaV5: React.FC<CronogramaProps> = ({
           </div>
           <div className="text-right">
             <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-              S/{(monthlyQuota * selectedTerm).toFixed(0)}
+              S/{(adjustedQuota * selectedTerm).toFixed(0)}
             </p>
             <p className="text-xs text-slate-400">Total inversión</p>
           </div>

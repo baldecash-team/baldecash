@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { Button, Input } from '@nextui-org/react';
-import { Facebook, Instagram, Linkedin, Twitter, Mail, Send } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Twitter, Phone, Send } from 'lucide-react';
 
 const catalogUrl =
   '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
@@ -61,7 +61,7 @@ const socialLinks = [
 ];
 
 export const FooterV2: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const currentYear = new Date().getFullYear();
 
   return (
@@ -78,11 +78,11 @@ export const FooterV2: React.FC = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
               <Input
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                startContent={<Mail className="w-4 h-4 text-neutral-400" />}
+                type="tel"
+                placeholder="999 999 999"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                startContent={<Phone className="w-4 h-4 text-neutral-400" />}
                 classNames={{
                   base: 'w-full sm:w-72',
                   inputWrapper: 'bg-white border-0 h-11 focus-within:ring-0',
@@ -95,7 +95,7 @@ export const FooterV2: React.FC = () => {
                 className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors"
                 endContent={<Send className="w-4 h-4" />}
               >
-                Suscribir
+                Enviar
               </Button>
             </div>
           </div>

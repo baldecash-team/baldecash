@@ -29,6 +29,10 @@ export const CronogramaV4: React.FC<CronogramaProps> = ({
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
 
+  // Calculate monthly quota based on selected term
+  const baseTotal = monthlyQuota * term;
+  const adjustedQuota = baseTotal / selectedTerm;
+
   const ITEMS_PER_PAGE = 12;
 
   const paymentMonths = useMemo(() => {
@@ -211,11 +215,11 @@ export const CronogramaV4: React.FC<CronogramaProps> = ({
           <div className="grid grid-cols-2 gap-3 mt-3">
             <div className="p-3 bg-white rounded-lg">
               <p className="text-[10px] text-neutral-500 uppercase tracking-wide">Monto cuota</p>
-              <p className="text-lg font-bold text-neutral-900">S/{monthlyQuota.toFixed(2)}</p>
+              <p className="text-lg font-bold text-neutral-900">S/{adjustedQuota.toFixed(2)}</p>
             </div>
             <div className="p-3 bg-white rounded-lg">
               <p className="text-[10px] text-neutral-500 uppercase tracking-wide">Acumulado</p>
-              <p className="text-lg font-bold text-[#4654CD]">S/{(monthlyQuota * selectedMonth).toFixed(0)}</p>
+              <p className="text-lg font-bold text-[#4654CD]">S/{(adjustedQuota * selectedMonth).toFixed(0)}</p>
             </div>
           </div>
 
@@ -250,7 +254,7 @@ export const CronogramaV4: React.FC<CronogramaProps> = ({
         <div className="text-right">
           <p className="text-xs text-neutral-500">Total a pagar</p>
           <p className="text-xl font-bold text-neutral-900">
-            S/{(monthlyQuota * selectedTerm).toLocaleString()}
+            S/{(adjustedQuota * selectedTerm).toLocaleString()}
           </p>
         </div>
       </div>

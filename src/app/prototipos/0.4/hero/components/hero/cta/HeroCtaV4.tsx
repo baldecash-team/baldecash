@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
-import { Laptop, ClipboardList } from 'lucide-react';
+import { Laptop, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface HeroCtaV4Props {
@@ -38,7 +38,7 @@ export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
 
   const handleQuiz = () => {
     onCtaClick?.();
-    router.push('/prototipos/0.4/wizard-solicitud/wizard-preview');
+    router.push('/prototipos/0.4/quiz?layout=5&mode=modal');
   };
 
   return (
@@ -57,10 +57,10 @@ export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
           size="lg"
           radius="lg"
           className="bg-[#03DBD0] text-neutral-900 font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#02c4ba] transition-colors shadow-lg shadow-[#03DBD0]/25"
-          startContent={<ClipboardList className="w-5 h-5" />}
+          startContent={<HelpCircle className="w-5 h-5" />}
           onPress={handleQuiz}
         >
-          Solicitar ahora
+          Quiz
         </Button>
         <Button
           size="lg"
