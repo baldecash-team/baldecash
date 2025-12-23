@@ -404,8 +404,8 @@ function WizardPreviewContent() {
           onSave={(data) => {
             console.log('Guardado:', data);
           }}
-          onAprobado={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?estado=aprobado')}
-          onRechazado={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?estado=rechazado')}
+          onAprobado={() => router.push('/prototipos/0.4/resultado/aprobado-preview/?celebration=1&confetti=1&sound=2&summary=1&time=3&share=6&referrals=1&mode=clean')}
+          onRechazado={() => router.push('/prototipos/0.4/resultado/rechazado-preview/?mode=clean')}
           onRecibido={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?estado=recibido')}
         />
       </div>

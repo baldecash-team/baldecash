@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@nextui-org/react';
 import { Menu, X, ArrowRight } from 'lucide-react';
 
-const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&mode=clean';
 const convenioUrl = '/prototipos/0.4/convenio/convenio-preview?navbar=3&hero=2&benefits=1&testimonials=1&faq=2&cta=6&footer=2&mode=clean';
 
 const navItems = [

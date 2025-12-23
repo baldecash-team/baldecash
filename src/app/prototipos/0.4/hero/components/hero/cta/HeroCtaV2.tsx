@@ -24,7 +24,7 @@ export const HeroCtaV2: React.FC<HeroCtaV2Props> = ({ onCtaClick }) => {
 
   const handleClick = () => {
     onCtaClick?.();
-    router.push('/prototipos/0.4/catalogo');
+    router.push('/prototipos/0.4/catalogo/catalog-preview?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1');
   };
 
   return (

@@ -29,10 +29,10 @@ export const mockProductDetail: ProductDetail = {
   originalQuota: 99, // For crossed-out quota display
   images: [
     { id: '1', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7929bd7b580e6de7247d_Lenovo%20Chromebook%20S330.jpg', alt: 'Laptop Lenovo frontal', type: 'main' },
-    { id: '2', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8af9ed1fbf48ea397396_hp15.png', alt: 'HP 15 lateral', type: 'gallery' },
-    { id: '3', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad88ee81af5459cee11a99_hp-nb-15-ef2511la-r5-5500u-8gb-256gbssd-156-w11-612b9laabim.jpg', alt: 'HP Notebook', type: 'gallery' },
-    { id: '4', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/623f67d99ae6d7aa236b8447_mac-gold.png', alt: 'MacBook Gold', type: 'gallery' },
-    { id: '5', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/623f67d5dc3c331e102b1f23_mac-grey.png', alt: 'MacBook Grey', type: 'detail' },
+    { id: '2', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621d62b4f58ff1c45ce3ef7c_post-fb-2.png', alt: 'Estudiante usando laptop', type: 'gallery' },
+    { id: '3', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621d62b8de9cbc9e7038ebfc_post-fb-3.png', alt: 'Laptop en escritorio', type: 'gallery' },
+    { id: '4', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621d62b3f58ff1b5b4e3ef79_post-fb-1.png', alt: 'Laptop para estudios', type: 'gallery' },
+    { id: '5', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621d62b63e1ada6ec35ea2d7_post-fb-4.png', alt: 'Laptop portátil', type: 'detail' },
   ],
   description: 'La Lenovo V15 G4 es la laptop perfecta para estudiantes universitarios. Con su procesador AMD Ryzen 5 y 8GB de RAM, podras ejecutar todas tus aplicaciones de estudio sin problemas. Su pantalla de 15.6 pulgadas Full HD te permite trabajar comodamente durante horas.',
   shortDescription: 'Laptop ideal para estudios universitarios con Ryzen 5, 8GB RAM y SSD de 256GB.',

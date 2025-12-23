@@ -347,7 +347,6 @@ export const RejectionScreen: React.FC<RejectionScreenProps> = ({
 
         {/* Alternativas */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-neutral-800 mb-4">¿Qué puedes hacer?</h2>
           {renderAlternativesLayout()}
         </div>
 

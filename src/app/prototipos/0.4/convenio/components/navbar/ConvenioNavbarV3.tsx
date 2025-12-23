@@ -39,33 +39,15 @@ export const ConvenioNavbarV3: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
       {/* Main navbar */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logos co-branded */}
-          <div className="flex items-center gap-3">
-            <img
-              src={BALDECASH_LOGO}
-              alt="BaldeCash"
-              className="h-8 object-contain"
-            />
-            <div className="w-px h-6 bg-neutral-200 hidden sm:block" />
-            <img
-              src={convenio.logo}
-              alt={convenio.nombre}
-              className="h-6 object-contain hidden sm:block"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
-          </div>
+          {/* Logo solo BaldeCash */}
+          <img
+            src={BALDECASH_LOGO}
+            alt="BaldeCash"
+            className="h-8 object-contain"
+          />
 
           {/* Desktop: CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <a
-              href="#como-funciona"
-              className="text-sm text-neutral-600 hover:text-[#4654CD] transition-colors cursor-pointer"
-            >
-              ¿Cómo funciona?
-            </a>
             <a
               href="#testimonios"
               className="text-sm text-neutral-600 hover:text-[#4654CD] transition-colors cursor-pointer"
@@ -95,27 +77,6 @@ export const ConvenioNavbarV3: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
       {isMenuOpen && (
         <div className="md:hidden bg-white border-b border-neutral-200 px-4 py-4 shadow-lg">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 pb-3 border-b border-neutral-100">
-              <img
-                src={convenio.logo}
-                alt={convenio.nombre}
-                className="h-6 object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
-              <span className="text-sm font-medium text-neutral-700">
-                Convenio {convenio.nombreCorto}
-              </span>
-            </div>
-            <a
-              href="#como-funciona"
-              className="text-sm text-neutral-600 hover:text-[#4654CD] transition-colors cursor-pointer py-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              ¿Cómo funciona?
-            </a>
             <a
               href="#testimonios"
               className="text-sm text-neutral-600 hover:text-[#4654CD] transition-colors cursor-pointer py-2"

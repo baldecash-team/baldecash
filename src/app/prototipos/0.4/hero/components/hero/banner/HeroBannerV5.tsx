@@ -90,6 +90,9 @@ export const HeroBannerV5: React.FC<HeroBannerProps> = ({
               radius="lg"
               variant="bordered"
               className="border-2 border-neutral-200 text-neutral-700 font-semibold h-14 cursor-pointer hover:bg-neutral-50 hover:border-neutral-300 transition-all"
+              onPress={() => {
+                document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
             >
               Cómo funciona
             </Button>
