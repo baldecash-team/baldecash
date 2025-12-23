@@ -1,16 +1,18 @@
 'use client';
 
 /**
- * FooterV2 - Completo 4 columnas
+ * FooterV2 - Completo con Newsletter + 4 columnas
  *
- * Concepto: Links, productos, legal, contacto
- * Estilo: Footer corporativo tradicional
+ * Concepto: Newsletter prominente arriba + Links organizados + Legal
+ * Estilo: Footer corporativo moderno
  */
 
-import React from 'react';
-import { Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import React, { useState } from 'react';
+import { Button, Input } from '@nextui-org/react';
+import { Facebook, Instagram, Linkedin, Twitter, Mail, Send } from 'lucide-react';
 
-const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+const catalogUrl =
+  '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
 
 const columns = [
   {
@@ -59,13 +61,51 @@ const socialLinks = [
 ];
 
 export const FooterV2: React.FC = () => {
+  const [email, setEmail] = useState('');
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="bg-neutral-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Newsletter Section */}
+      <div className="bg-[#4654CD]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-center md:text-left">
+              <h3 className="text-xl font-bold mb-1">Recibe ofertas exclusivas</h3>
+              <p className="text-white/80 text-sm">
+                Sé el primero en enterarte de promociones y nuevos equipos
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <Input
+                type="email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                startContent={<Mail className="w-4 h-4 text-neutral-400" />}
+                classNames={{
+                  base: 'w-full sm:w-72',
+                  inputWrapper: 'bg-white border-0 h-11 focus-within:ring-0',
+                  input: 'text-neutral-800 focus:outline-none',
+                  innerWrapper: 'focus-within:ring-0',
+                }}
+              />
+              <Button
+                radius="lg"
+                className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors"
+                endContent={<Send className="w-4 h-4" />}
+              >
+                Suscribir
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Main Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-10">
           {/* Logo Column */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
             <a href="/prototipos/0.4/hero" className="inline-block mb-4">
@@ -75,9 +115,7 @@ export const FooterV2: React.FC = () => {
                 className="h-8 object-contain brightness-0 invert"
               />
             </a>
-            <p className="text-sm text-neutral-400 mb-4">
-              Financiamiento para estudiantes
-            </p>
+            <p className="text-sm text-neutral-400 mb-4">Financiamiento para estudiantes</p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (
                 <a
@@ -95,9 +133,7 @@ export const FooterV2: React.FC = () => {
           {/* Link Columns */}
           {columns.map((column) => (
             <div key={column.title}>
-              <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">
-                {column.title}
-              </h4>
+              <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">{column.title}</h4>
               <ul className="space-y-2">
                 {column.links.map((link) => (
                   <li key={link.label}>
@@ -115,13 +151,11 @@ export const FooterV2: React.FC = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-neutral-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="border-t border-neutral-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-neutral-500">
             © {currentYear} Balde K S.A.C. Todos los derechos reservados.
           </p>
-          <p className="text-xs text-neutral-600">
-            Empresa supervisada por la SBS
-          </p>
+          <p className="text-xs text-neutral-600">Empresa supervisada por la SBS</p>
         </div>
       </div>
     </footer>

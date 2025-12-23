@@ -42,30 +42,15 @@ export const SocialProofV6: React.FC<SocialProofProps> = ({ data, underlineStyle
           {/* Peru Map */}
           <div className="relative">
             <div className="relative w-full aspect-[3/4]">
-              {/* Peru SVG Map */}
-              <svg
-                viewBox="0 0 100 130"
-                className="w-full h-full"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {/* Peru simplified shape */}
-                <path
-                  d="M15 5 L30 3 L40 8 L50 5 L55 10 L58 20 L55 30 L60 35 L65 40 L70 45 L75 55 L80 60 L82 70 L78 80 L75 90 L70 100 L60 105 L50 110 L45 115 L35 118 L25 115 L20 105 L18 95 L15 85 L12 75 L10 65 L8 55 L10 45 L12 35 L15 25 L18 15 L15 5 Z"
-                  fill="#E8EDFF"
-                  stroke="#4654CD"
-                  strokeWidth="0.5"
-                  className="drop-shadow-sm"
-                />
-                {/* Department borders */}
-                <path
-                  d="M25 35 L35 30 L45 35 L50 45 M30 50 L40 55 L50 50 M25 70 L35 75 L45 70 L55 75"
-                  fill="none"
-                  stroke="#4654CD"
-                  strokeWidth="0.3"
-                  strokeDasharray="2,2"
-                  opacity="0.3"
-                />
-              </svg>
+              {/* Peru SVG Map - Real detailed map */}
+              <img
+                src="/images/peru-map.svg"
+                alt="Mapa de Perú"
+                className="w-full h-full object-contain drop-shadow-sm"
+                style={{
+                  filter: 'hue-rotate(220deg) saturate(0.5) brightness(1.1)',
+                }}
+              />
 
               {/* Region markers */}
               {regions.map((region) => (

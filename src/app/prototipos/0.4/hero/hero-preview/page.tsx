@@ -3,7 +3,18 @@
 /**
  * Hero Preview Page - Configurable demo for all hero versions
  *
- * Keyboard Shortcuts:
+ * Query Parameters:
+ * - navbar=1-6: Navbar version
+ * - hero=1-6: Hero banner version
+ * - social=1-6: Social proof version
+ * - how=1-6: How it works version
+ * - cta=1-6: CTA version
+ * - faq=1-6: FAQ version
+ * - footer=1-6: Footer version
+ * - underline=1-6: Underline style
+ * - mode=clean: Hide all configuration controls
+ *
+ * Keyboard Shortcuts (when not in clean mode):
  * - 1-6: Change active component version
  * - Shift + 1-6: Change underline style
  * - Tab / Shift+Tab: Navigate between components
@@ -11,12 +22,12 @@
  * - Esc: Close modal
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, Code, Keyboard, ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Settings, Code, ArrowLeft } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { HeroSection, HeroSettingsModal } from '../components/hero';
-import { HeroConfig, defaultHeroConfig } from '../types/hero';
+import { HeroConfig, defaultHeroConfig, HeroVersion, UnderlineStyle } from '../types/hero';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { useKeyboardShortcuts } from '../hooks';
 import { ShortcutToast, ShortcutHelpBadge } from '../components/hero/common/ShortcutToast';
@@ -31,19 +42,55 @@ const COMPONENT_LABELS: Record<string, string> = {
   footer: 'Footer',
 };
 
-export default function HeroPreviewPage() {
+const parseVersion = (value: string | null): HeroVersion | null => {
+  if (!value) return null;
+  const num = parseInt(value, 10);
+  if (num >= 1 && num <= 6) return num as HeroVersion;
+  return null;
+};
+
+function HeroPreviewContent() {
   const router = useRouter();
-  const [config, setConfig] = useState<HeroConfig>(defaultHeroConfig);
+  const searchParams = useSearchParams();
+
+  // Parse query params
+  const isCleanMode = searchParams.get('mode') === 'clean';
+
+  const getInitialConfig = (): HeroConfig => {
+    return {
+      navbarVersion: parseVersion(searchParams.get('navbar')) || defaultHeroConfig.navbarVersion,
+      heroBannerVersion: parseVersion(searchParams.get('hero')) || defaultHeroConfig.heroBannerVersion,
+      socialProofVersion: parseVersion(searchParams.get('social')) || defaultHeroConfig.socialProofVersion,
+      howItWorksVersion: parseVersion(searchParams.get('how')) || defaultHeroConfig.howItWorksVersion,
+      ctaVersion: parseVersion(searchParams.get('cta')) || defaultHeroConfig.ctaVersion,
+      faqVersion: parseVersion(searchParams.get('faq')) || defaultHeroConfig.faqVersion,
+      footerVersion: parseVersion(searchParams.get('footer')) || defaultHeroConfig.footerVersion,
+      underlineStyle: (parseVersion(searchParams.get('underline')) as UnderlineStyle) || defaultHeroConfig.underlineStyle,
+    };
+  };
+
+  const [config, setConfig] = useState<HeroConfig>(getInitialConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
+
+  // Update config when URL params change
+  useEffect(() => {
+    setConfig(getInitialConfig());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const { activeComponent, toast } = useKeyboardShortcuts({
     config,
     onConfigChange: setConfig,
-    onOpenSettings: () => setIsSettingsOpen(true),
+    onOpenSettings: () => !isCleanMode && setIsSettingsOpen(true),
     onCloseSettings: () => setIsSettingsOpen(false),
     isSettingsOpen,
   });
+
+  // In clean mode, just render the hero section without controls
+  if (isCleanMode) {
+    return <HeroSection config={config} />;
+  }
 
   return (
     <div className="relative">
@@ -104,5 +151,13 @@ export default function HeroPreviewPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function HeroPreviewPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <HeroPreviewContent />
+    </Suspense>
   );
 }
