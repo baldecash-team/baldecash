@@ -541,6 +541,184 @@ onViewDetail={() => router.push(detailUrl)}
 
 ---
 
+## 12. Patrón de Keyboard Shortcuts
+
+### Hook Compartido
+
+Ubicación: `src/app/prototipos/_shared/hooks/useKeyboardShortcuts.ts`
+
+```typescript
+const { currentComponent } = useKeyboardShortcuts({
+  // Lista de componentes navegables con Tab
+  componentOrder: ['layout', 'card', 'filters', ...],
+
+  // Callback cuando se presiona 1-6
+  onVersionChange: (componentId, version) => {
+    setConfig(prev => ({ ...prev, [`${componentId}Version`]: version }));
+    showToast(`${componentLabels[componentId]}: V${version}`, 'version');
+  },
+
+  // Callback cuando se presiona Tab/Shift+Tab
+  onNavigate: (componentId) => {
+    showToast(`Componente: ${componentLabels[componentId]}`, 'navigation');
+  },
+
+  // Callback cuando se presiona ? o K
+  onToggleSettings: () => setIsSettingsOpen(prev => !prev),
+
+  // Obtener versión actual de un componente
+  getCurrentVersion: (componentId) => config[`${componentId}Version`] || 1,
+
+  // Desactiva shortcuts cuando hay modal abierto
+  isModalOpen: isSettingsOpen,
+});
+```
+
+### Toast UI Estandarizado
+
+```tsx
+{/* Toast de shortcuts */}
+<AnimatePresence>
+  {toast && (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+        toast.type === 'version'
+          ? 'bg-[#4654CD] text-white'
+          : toast.type === 'navigation'
+          ? 'bg-neutral-800 text-white'
+          : 'bg-white text-neutral-800 border border-neutral-200'
+      }`}
+    >
+      {toast.type === 'version' && <Layers className="w-4 h-4" />}
+      {toast.type === 'navigation' && <Navigation className="w-4 h-4" />}
+      {toast.type === 'info' && <Info className="w-4 h-4" />}
+      <span>{toast.message}</span>
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
+### Estilos por Tipo de Toast
+
+| Tipo | Background | Icono | Mensaje | Uso |
+|------|------------|-------|---------|-----|
+| `navigation` | `bg-neutral-800` (negro) | `Navigation` (cursor) | `"Componente: {nombre}"` | Tab/Shift+Tab |
+| `version` | `bg-[#4654CD]` (primario) | `Layers` | `"{nombre}: V{n}"` | Teclas 1-6 |
+| `info` | `bg-white border` | `Info` | mensaje libre | Ayuda, errores |
+
+### Badge de Ayuda
+
+```tsx
+{/* Shortcut Help Badge - SIEMPRE en top-20 right-6 */}
+<div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+  <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+    <Keyboard className="w-3.5 h-3.5" />
+    <span>Press ? for help</span>
+  </div>
+  <div className="text-xs font-medium text-[#4654CD]">
+    Activo: {componentLabels[currentComponent] || currentComponent}
+  </div>
+</div>
+```
+
+### Estado Requerido
+
+```typescript
+const [toast, setToast] = useState<{
+  message: string;
+  type: 'version' | 'navigation' | 'info'
+} | null>(null);
+
+const showToast = useCallback((
+  message: string,
+  type: 'version' | 'navigation' | 'info' = 'info'
+) => {
+  setToast({ message, type });
+  setTimeout(() => setToast(null), 2000);
+}, []);
+
+const componentLabels: Record<string, string> = {
+  layout: 'Layout',
+  card: 'Card',
+  // ... nombres legibles en español
+};
+```
+
+### Manejo de Versiones Limitadas
+
+Algunos componentes tienen menos de 6 versiones. Validar antes de aplicar:
+
+```typescript
+onVersionChange: (componentId, version) => {
+  // focusVersion solo tiene 1-3
+  if (configKey === 'focusVersion' && version > 3) {
+    showToast(`${componentLabels[componentId]} solo tiene 3 versiones`, 'info');
+    return;
+  }
+  // Aplicar cambio normalmente...
+}
+```
+
+### Imports Necesarios
+
+```typescript
+// Iconos para toast
+import { Layers, Keyboard, Navigation, Info } from 'lucide-react';
+
+// Animaciones
+import { AnimatePresence, motion } from 'framer-motion';
+
+// Hook compartido
+import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
+```
+
+### Atajos de Teclado Disponibles
+
+| Tecla | Acción |
+|-------|--------|
+| `1-6` | Cambiar versión del componente activo |
+| `Tab` | Siguiente componente |
+| `Shift + Tab` | Componente anterior |
+| `?` o `K` | Abrir/cerrar configuración |
+| `Escape` | Cerrar modal |
+
+### Checklist de Implementación
+
+Al agregar shortcuts a una página preview:
+
+- [ ] Importar `useKeyboardShortcuts` de `@/app/prototipos/_shared`
+- [ ] Importar iconos: `Layers`, `Keyboard`, `Navigation`, `Info`
+- [ ] Importar `AnimatePresence`, `motion` de framer-motion
+- [ ] Agregar estado `toast` con tipo union
+- [ ] Crear función `showToast` con setTimeout 2000ms
+- [ ] Definir `componentLabels` con nombres en español
+- [ ] Configurar hook con `onVersionChange` y `onNavigate`
+- [ ] Agregar Toast UI animado con estilos por tipo
+- [ ] Agregar Badge de ayuda en `top-20 right-6`
+- [ ] Validar versiones limitadas (si aplica)
+
+### Páginas con Shortcuts Implementados
+
+| Página | Componentes navegables |
+|--------|----------------------|
+| hero | title, subtitle, cta, howItWorks, benefits, testimonials, faq, footer |
+| catalogo | layout, brandFilter, card, technicalFilters, skeleton, loadMore, imageGallery, gallerySize, tagDisplay |
+| comparador | layout, access, maxProducts, fields, highlight, priceDiff, diffHighlight, cardSelection |
+| quiz | layout, questionStyle, results, focus |
+| empty-preview | illustration, actions |
+| aprobado-preview | celebration, confetti, sound, summary, nextSteps, share, referral |
+| rechazado | visual, illustration, branding, message, explanationDetail, ... |
+| upsell | accessoryIntro, accessoryCard, insuranceIntro, planComparison |
+| wizard-solicitud | layout, progress, field, validation, error, summary |
+| producto/detail | gallery, infoHeader, pricing, certifications, tabs, specs, cronograma, similarProducts, limitations |
+| convenio | navbar, hero, benefits, testimonials, faq, cta, footer |
+
+---
+
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-22 | Versión inicial - Patrones estandarizados |
@@ -548,3 +726,4 @@ onViewDetail={() => router.push(detailUrl)}
 | 1.2 | 2025-12-22 | Anti-patrón: VersionNav en páginas preview |
 | 1.3 | 2025-12-22 | Reglas ortográficas en español (UI) |
 | 1.4 | 2025-12-22 | Agregado: Floating Action Bar, Links entre secciones |
+| 1.5 | 2025-12-23 | Agregado: Patrón de Keyboard Shortcuts estandarizado |
