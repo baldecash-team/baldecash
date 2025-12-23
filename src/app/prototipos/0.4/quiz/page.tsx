@@ -14,14 +14,16 @@
  * - B.102: Focus V1 (solo por uso)
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@nextui-org/react';
-import { HelpCircle, Play, ArrowLeft, Settings, Code } from 'lucide-react';
+import { HelpCircle, Play, ArrowLeft, Settings, Code, Layers, Keyboard, Navigation } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Components
 import { HelpQuiz, QuizSettingsModal } from './components/quiz';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
 
 // Types
 import { QuizConfig, defaultQuizConfig, versionDescriptions } from './types/quiz';
@@ -32,9 +34,94 @@ export default function QuizPreviewPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'version' | 'navigation' | 'info' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'version' | 'navigation' | 'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  const componentLabels: Record<string, string> = {
+    layout: 'Layout',
+    questionStyle: 'Estilo Preguntas',
+    results: 'Resultados',
+    focus: 'Enfoque',
+  };
+
+  // Keyboard shortcuts
+  const { currentComponent } = useKeyboardShortcuts({
+    componentOrder: ['layout', 'questionStyle', 'results', 'focus'],
+    onVersionChange: (componentId, version) => {
+      const keyMap: Record<string, keyof QuizConfig> = {
+        layout: 'layoutVersion',
+        questionStyle: 'questionStyle',
+        results: 'resultsVersion',
+        focus: 'focusVersion',
+      };
+      const configKey = keyMap[componentId];
+      if (configKey) {
+        // focusVersion only has 1-3
+        if (configKey === 'focusVersion' && version > 3) {
+          showToast(`${componentLabels[componentId]} solo tiene 3 versiones`, 'info');
+          return;
+        }
+        setConfig(prev => ({ ...prev, [configKey]: version }));
+        showToast(`${componentLabels[componentId]}: V${version}`, 'version');
+      }
+    },
+    onNavigate: (componentId) => {
+      showToast(`Componente: ${componentLabels[componentId] || componentId}`, 'navigation');
+    },
+    onToggleSettings: () => setIsSettingsOpen(prev => !prev),
+    getCurrentVersion: (componentId) => {
+      const keyMap: Record<string, keyof QuizConfig> = {
+        layout: 'layoutVersion',
+        questionStyle: 'questionStyle',
+        results: 'resultsVersion',
+        focus: 'focusVersion',
+      };
+      const configKey = keyMap[componentId];
+      return configKey ? config[configKey] as 1 | 2 | 3 | 4 | 5 | 6 : 1;
+    },
+    isModalOpen: isSettingsOpen || isQuizOpen,
+  });
 
   return (
     <div className="min-h-screen bg-white relative">
+      {/* Toast de shortcuts */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+              toast.type === 'version'
+                ? 'bg-[#4654CD] text-white'
+                : toast.type === 'navigation'
+                ? 'bg-neutral-800 text-white'
+                : 'bg-white text-neutral-800 border border-neutral-200'
+            }`}
+          >
+            {toast.type === 'version' && <Layers className="w-4 h-4" />}
+            {toast.type === 'navigation' && <Navigation className="w-4 h-4" />}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Shortcut Help Badge */}
+      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>Press ? for help</span>
+        </div>
+        <div className="text-xs font-medium text-[#4654CD]">
+          Activo: {componentLabels[currentComponent] || currentComponent}
+        </div>
+      </div>
+
       {/* Floating Controls */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
         <TokenCounter sectionId="PROMPT_06" version="0.4" />

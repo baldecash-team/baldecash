@@ -3,7 +3,8 @@
 import React, { useState, Suspense, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Spinner, Tabs, Tab } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft, Package, Shield } from 'lucide-react';
+import { Settings, Code, ArrowLeft, Package, Shield, Layers, Keyboard, Navigation } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
 import { UpsellConfig, defaultUpsellConfig, mockAccessories, mockInsurancePlans, mockProductContext } from '../types/upsell';
@@ -56,9 +57,22 @@ function UpsellPreviewContent() {
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
   const [selectedInsurance, setSelectedInsurance] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'accessories' | 'insurance'>('accessories');
+  const [toast, setToast] = useState<{ message: string; type: 'version' | 'navigation' | 'info' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'version' | 'navigation' | 'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  const componentLabels: Record<string, string> = {
+    accessoryIntro: 'Intro Accesorios',
+    accessoryCard: 'Card Accesorio',
+    insuranceIntro: 'Intro Seguros',
+    planComparison: 'Comparación Planes',
+  };
 
   // Keyboard shortcuts
-  useKeyboardShortcuts({
+  const { currentComponent } = useKeyboardShortcuts({
     componentOrder: ['accessoryIntro', 'accessoryCard', 'insuranceIntro', 'planComparison'],
     onVersionChange: (componentId, version) => {
       const keyMap: Record<string, keyof UpsellConfig> = {
@@ -70,7 +84,11 @@ function UpsellPreviewContent() {
       const configKey = keyMap[componentId];
       if (configKey) {
         setConfig(prev => ({ ...prev, [configKey]: version }));
+        showToast(`${componentLabels[componentId]}: V${version}`, 'version');
       }
+    },
+    onNavigate: (componentId) => {
+      showToast(`Componente: ${componentLabels[componentId] || componentId}`, 'navigation');
     },
     onToggleSettings: () => setIsSettingsOpen(prev => !prev),
     getCurrentVersion: (componentId) => {
@@ -127,6 +145,37 @@ function UpsellPreviewContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
+      {/* Toast de shortcuts */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+              toast.type === 'version'
+                ? 'bg-[#4654CD] text-white'
+                : 'bg-neutral-800 text-white'
+            }`}
+          >
+            {toast.type === 'version' ? <Layers className="w-4 h-4" /> : <Navigation className="w-4 h-4" />}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Shortcut Help Badge */}
+      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>Press ? for help</span>
+        </div>
+        <div className="text-xs font-medium text-[#4654CD]">
+          Activo: {componentLabels[currentComponent] || currentComponent}
+        </div>
+      </div>
+
       {/* Main content */}
       <main className="pt-16 pb-24 px-4 md:px-8 max-w-5xl mx-auto">
         {/* Page header */}

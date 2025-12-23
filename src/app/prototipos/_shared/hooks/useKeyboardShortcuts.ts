@@ -9,6 +9,8 @@ export interface ShortcutConfig {
   componentOrder: string[];
   /** Callback cuando se cambia versión de un componente */
   onVersionChange: (componentId: string, version: ComponentVersion) => void;
+  /** Callback cuando se navega a otro componente (Tab/Shift+Tab) */
+  onNavigate?: (componentId: string, direction: 'next' | 'prev') => void;
   /** Callback cuando se presiona ? o K para abrir/cerrar modal */
   onToggleSettings?: () => void;
   /** Obtener la versión actual de un componente */
@@ -42,6 +44,7 @@ export interface ShortcutConfig {
 export function useKeyboardShortcuts({
   componentOrder,
   onVersionChange,
+  onNavigate,
   onToggleSettings,
   getCurrentVersion,
   isModalOpen = false,
@@ -86,6 +89,7 @@ export function useKeyboardShortcuts({
       // Tab - Navegación entre componentes
       if (key === 'Tab') {
         event.preventDefault();
+        const direction = isShift ? 'prev' : 'next';
         if (isShift) {
           // Shift + Tab - Anterior
           currentComponentIndex.current =
@@ -95,8 +99,11 @@ export function useKeyboardShortcuts({
           currentComponentIndex.current =
             (currentComponentIndex.current + 1) % componentOrder.length;
         }
-        // Log para debug visual (opcional)
-        console.log(`[Shortcuts] Componente actual: ${componentOrder[currentComponentIndex.current]}`);
+        const newComponentId = componentOrder[currentComponentIndex.current];
+        // Callback de navegación si está definido
+        if (onNavigate) {
+          onNavigate(newComponentId, direction);
+        }
         return;
       }
 
@@ -113,7 +120,7 @@ export function useKeyboardShortcuts({
         return;
       }
     },
-    [componentOrder, onVersionChange, onToggleSettings, isModalOpen]
+    [componentOrder, onVersionChange, onNavigate, onToggleSettings, isModalOpen]
   );
 
   useEffect(() => {

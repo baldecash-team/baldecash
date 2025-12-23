@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Spinner } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft, Sparkles, ArrowRight } from 'lucide-react';
+import { Settings, Code, ArrowLeft, Sparkles, ArrowRight, Layers, Keyboard, Navigation } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
 import {
   EmptyState,
   EmptyStateSettingsModal,
@@ -71,6 +73,47 @@ function EmptyStatePreviewContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilter[]>(mockAppliedFilters);
+  const [toast, setToast] = useState<{ message: string; type: 'version' | 'navigation' | 'info' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'version' | 'navigation' | 'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  const componentLabels: Record<string, string> = {
+    illustration: 'Ilustración',
+    actions: 'Acciones',
+  };
+
+  // Keyboard shortcuts
+  const { currentComponent } = useKeyboardShortcuts({
+    componentOrder: ['illustration', 'actions'],
+    onVersionChange: (componentId, version) => {
+      const keyMap: Record<string, keyof EmptyStateConfig> = {
+        illustration: 'illustrationVersion',
+        actions: 'actionsVersion',
+      };
+      const configKey = keyMap[componentId];
+      if (configKey) {
+        const newConfig = { ...config, [configKey]: version };
+        updateConfig(newConfig);
+        showToast(`${componentLabels[componentId]}: V${version}`, 'version');
+      }
+    },
+    onNavigate: (componentId) => {
+      showToast(`Componente: ${componentLabels[componentId] || componentId}`, 'navigation');
+    },
+    onToggleSettings: () => setIsSettingsOpen(prev => !prev),
+    getCurrentVersion: (componentId) => {
+      const keyMap: Record<string, keyof EmptyStateConfig> = {
+        illustration: 'illustrationVersion',
+        actions: 'actionsVersion',
+      };
+      const configKey = keyMap[componentId];
+      return configKey ? config[configKey] : 1;
+    },
+    isModalOpen: isSettingsOpen,
+  });
 
   // Actualizar URL cuando cambia config
   const updateConfig = (newConfig: EmptyStateConfig) => {
@@ -100,6 +143,37 @@ function EmptyStatePreviewContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
+      {/* Toast de shortcuts */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+              toast.type === 'version'
+                ? 'bg-[#4654CD] text-white'
+                : 'bg-neutral-800 text-white'
+            }`}
+          >
+            {toast.type === 'version' ? <Layers className="w-4 h-4" /> : <Navigation className="w-4 h-4" />}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Shortcut Help Badge */}
+      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>Press ? for help</span>
+        </div>
+        <div className="text-xs font-medium text-[#4654CD]">
+          Activo: {componentLabels[currentComponent] || currentComponent}
+        </div>
+      </div>
+
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 py-6">
         <div className="container mx-auto px-4">

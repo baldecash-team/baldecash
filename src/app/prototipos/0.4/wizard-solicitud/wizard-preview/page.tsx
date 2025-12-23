@@ -15,7 +15,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, ArrowLeft, Zap, Code } from 'lucide-react';
+import { Settings, ArrowLeft, Zap, Code, Layers, Navigation, Info, Keyboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -70,20 +70,36 @@ export default function WizardSolicitudPreviewPage() {
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className={`
-              fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-full shadow-lg
-              ${toast.type === 'version' ? 'bg-[#4654CD] text-white' : ''}
-              ${toast.type === 'navigation' ? 'bg-neutral-800 text-white' : ''}
-              ${toast.type === 'info' ? 'bg-white text-neutral-800 border border-neutral-200' : ''}
-            `}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+              toast.type === 'version'
+                ? 'bg-[#4654CD] text-white'
+                : toast.type === 'navigation'
+                ? 'bg-neutral-800 text-white'
+                : 'bg-white text-neutral-800 border border-neutral-200'
+            }`}
           >
-            <span className="text-sm font-medium">{toast.message}</span>
+            {toast.type === 'version' && <Layers className="w-4 h-4" />}
+            {toast.type === 'navigation' && <Navigation className="w-4 h-4" />}
+            {toast.type === 'info' && <Info className="w-4 h-4" />}
+            <span>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Shortcut Help Badge */}
+      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>Press ? for help</span>
+        </div>
+        <div className="text-xs font-medium text-[#4654CD]">
+          Activo: {componentLabel}
+        </div>
+      </div>
 
       {/* Floating controls */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">

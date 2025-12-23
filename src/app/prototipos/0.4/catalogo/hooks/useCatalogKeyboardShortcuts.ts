@@ -183,9 +183,8 @@ export function useCatalogKeyboardShortcuts({
       }
 
       const newComponent = COMPONENT_ORDER[newIndex];
-      const maxVersion = getMaxVersion(newComponent);
       setActiveComponent(newComponent);
-      showToast(`${COMPONENT_LABELS[newComponent]} (1-${maxVersion})`, 'navigation');
+      showToast(`Componente: ${COMPONENT_LABELS[newComponent]}`, 'navigation');
     },
     [activeComponent, showToast, getMaxVersion]
   );
@@ -256,6 +255,7 @@ export function useCatalogKeyboardShortcuts({
 
   return {
     activeComponent,
+    activeComponentLabel: COMPONENT_LABELS[activeComponent],
     setActiveComponent,
     toast,
     getMaxVersion,

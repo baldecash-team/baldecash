@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef } from 'react';
 import { Button, Spinner, Chip } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft, ArrowUp, Sparkles, ArrowRight, GitCompare, X, Keyboard } from 'lucide-react';
+import { Settings, Code, ArrowLeft, ArrowUp, Sparkles, ArrowRight, GitCompare, X, Keyboard, Navigation, Layers, Info } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CatalogLayout } from '../components/catalog/CatalogLayout';
 import { CatalogSettingsModal } from '../components/catalog/CatalogSettingsModal';
@@ -196,7 +196,7 @@ function CatalogPreviewContent() {
   }, [config, router]);
 
   // Keyboard shortcuts with enhanced navigation
-  const { activeComponent, toast, getMaxVersion } = useCatalogKeyboardShortcuts({
+  const { activeComponentLabel, toast } = useCatalogKeyboardShortcuts({
     config,
     onConfigChange: setConfig,
     onOpenSettings: () => setIsSettingsOpen(true),
@@ -625,33 +625,30 @@ function CatalogPreviewContent() {
       {/* Keyboard Shortcuts Toast */}
       {toast && (
         <div
-          className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow-lg border transition-all duration-300 animate-slide-down ${
+          className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg transition-all duration-300 animate-slide-down flex items-center gap-2 text-sm font-medium ${
             toast.type === 'version'
-              ? 'bg-[#4654CD] text-white border-[#4654CD]'
+              ? 'bg-[#4654CD] text-white'
               : toast.type === 'navigation'
-              ? 'bg-white text-neutral-800 border-neutral-200'
-              : 'bg-neutral-800 text-white border-neutral-700'
+              ? 'bg-neutral-800 text-white'
+              : 'bg-white text-neutral-800 border border-neutral-200'
           }`}
         >
-          <div className="flex items-center gap-2">
-            <Keyboard className="w-4 h-4" />
-            <span className="text-sm font-medium">{toast.message}</span>
-          </div>
+          {toast.type === 'version' && <Layers className="w-4 h-4" />}
+          {toast.type === 'navigation' && <Navigation className="w-4 h-4" />}
+          {toast.type === 'info' && <Info className="w-4 h-4" />}
+          <span>{toast.message}</span>
         </div>
       )}
 
       {/* Active Component Indicator */}
-      <div className="fixed top-6 right-6 z-[100]">
-        <Chip
-          variant="flat"
-          classNames={{
-            base: 'bg-white/90 backdrop-blur border border-neutral-200 shadow-sm',
-            content: 'text-xs font-medium text-neutral-700',
-          }}
-          startContent={<Keyboard className="w-3 h-3 text-[#4654CD]" />}
-        >
-          {activeComponent} (1-{getMaxVersion(activeComponent)})
-        </Chip>
+      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>Press ? for help</span>
+        </div>
+        <div className="text-xs font-medium text-[#4654CD]">
+          Activo: {activeComponentLabel}
+        </div>
       </div>
 
       {/* Settings Modal */}

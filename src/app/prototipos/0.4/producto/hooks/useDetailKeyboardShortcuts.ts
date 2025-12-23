@@ -152,7 +152,7 @@ export function useDetailKeyboardShortcuts({
 
       const newComponent = COMPONENT_ORDER[newIndex];
       setActiveComponent(newComponent);
-      showToast(`${COMPONENT_LABELS[newComponent]}`, 'navigation');
+      showToast(`Componente: ${COMPONENT_LABELS[newComponent]}`, 'navigation');
 
       // Scroll to the new component
       setTimeout(() => {

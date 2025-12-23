@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import { Button, Spinner } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft, Scale } from 'lucide-react';
+import { Settings, Code, ArrowLeft, Scale, Keyboard, Info, Layers, Navigation } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ComparatorConfig,
@@ -17,6 +18,7 @@ import { ProductSelectorV1 } from '../components/comparator/selection/ProductSel
 import { CompareActions, CompareActionsFAB, ComparisonTray } from '../components/comparator/actions/CompareActions';
 import { availableProducts, getProductsByIds } from '../data/mockComparatorData';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
 
 /**
  * Comparator Preview Page
@@ -72,6 +74,23 @@ function ComparatorPreviewContent() {
   // UI state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'version' | 'navigation' | 'info' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'version' | 'navigation' | 'info' = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  const componentLabels: Record<string, string> = {
+    layout: 'Layout',
+    access: 'Acceso',
+    maxProducts: 'Max Productos',
+    fields: 'Campos',
+    highlight: 'Resaltado',
+    priceDiff: 'Diferencia Precio',
+    diffHighlight: 'Resaltar Diferencias',
+    cardSelection: 'Estilo Card',
+  };
 
   // Get max products based on config
   const maxProducts = useMemo(() => getMaxProducts(config.maxProductsVersion), [config.maxProductsVersion]);
@@ -96,35 +115,70 @@ function ComparatorPreviewContent() {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [config, router]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts using shared hook
+  const { currentComponent } = useKeyboardShortcuts({
+    componentOrder: ['layout', 'access', 'maxProducts', 'fields', 'highlight', 'priceDiff', 'diffHighlight', 'cardSelection'],
+    onVersionChange: (componentId, version) => {
+      const keyMap: Record<string, keyof ComparatorConfig> = {
+        layout: 'layoutVersion',
+        access: 'accessVersion',
+        maxProducts: 'maxProductsVersion',
+        fields: 'fieldsVersion',
+        highlight: 'highlightVersion',
+        priceDiff: 'priceDiffVersion',
+        diffHighlight: 'differenceHighlightVersion',
+        cardSelection: 'cardSelectionVersion',
+      };
+      const configKey = keyMap[componentId];
+      if (configKey) {
+        // cardSelectionVersion only has 1-3
+        if (configKey === 'cardSelectionVersion' && version > 3) {
+          showToast(`${componentLabels[componentId]} solo tiene 3 versiones`, 'info');
+          return;
+        }
+        setConfig(prev => ({ ...prev, [configKey]: version }));
+        showToast(`${componentLabels[componentId]}: V${version}`, 'version');
+      }
+    },
+    onNavigate: (componentId) => {
+      showToast(`Componente: ${componentLabels[componentId] || componentId}`, 'navigation');
+    },
+    onToggleSettings: () => setIsSettingsOpen(prev => !prev),
+    getCurrentVersion: (componentId) => {
+      const keyMap: Record<string, keyof ComparatorConfig> = {
+        layout: 'layoutVersion',
+        access: 'accessVersion',
+        maxProducts: 'maxProductsVersion',
+        fields: 'fieldsVersion',
+        highlight: 'highlightVersion',
+        priceDiff: 'priceDiffVersion',
+        diffHighlight: 'differenceHighlightVersion',
+        cardSelection: 'cardSelectionVersion',
+      };
+      const configKey = keyMap[componentId];
+      return configKey ? config[configKey] as 1 | 2 | 3 | 4 | 5 | 6 : 1;
+    },
+    isModalOpen: isSettingsOpen || isComparatorOpen,
+  });
+
+  // Additional keyboard shortcuts for compare action
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+      if (isSettingsOpen) return;
 
-      switch (e.key) {
-        case 's':
-        case 'S':
-          if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
-            setIsSettingsOpen(true);
-          }
-          break;
-        case 'Escape':
-          setIsSettingsOpen(false);
-          setIsComparatorOpen(false);
-          break;
-        case 'c':
-        case 'C':
-          if (!e.ctrlKey && !e.metaKey && selectedProducts.length >= 2) {
-            setIsComparatorOpen(true);
-          }
-          break;
+      if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey && selectedProducts.length >= 2) {
+        e.preventDefault();
+        setIsComparatorOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setIsComparatorOpen(false);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedProducts.length]);
+  }, [selectedProducts.length, isSettingsOpen]);
 
   // Handlers
   const handleSelectProduct = useCallback((productId: string) => {
@@ -154,6 +208,41 @@ function ComparatorPreviewContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
+      {/* Toast de shortcuts */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+              toast.type === 'version'
+                ? 'bg-[#4654CD] text-white'
+                : toast.type === 'navigation'
+                ? 'bg-neutral-800 text-white'
+                : 'bg-white text-neutral-800 border border-neutral-200'
+            }`}
+          >
+            {toast.type === 'version' && <Layers className="w-4 h-4" />}
+            {toast.type === 'navigation' && <Navigation className="w-4 h-4" />}
+            {toast.type === 'info' && <Info className="w-4 h-4" />}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Shortcut Help Badge */}
+      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+          <Keyboard className="w-3.5 h-3.5" />
+          <span>Press ? for help</span>
+        </div>
+        <div className="text-xs font-medium text-[#4654CD]">
+          Activo: {componentLabels[currentComponent] || currentComponent}
+        </div>
+      </div>
+
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
