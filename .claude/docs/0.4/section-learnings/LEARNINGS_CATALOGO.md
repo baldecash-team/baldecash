@@ -655,6 +655,94 @@ const quizConfig = {
 
 ---
 
+## 19. Toggle `showPricingOptions`
+
+### Propósito
+Permite ocultar los selectores de plazo e inicial en las ProductCards. Útil para simplificar la UI cuando no se requiere interacción de precio.
+
+### Configuración
+
+```typescript
+// En CatalogLayoutConfig
+showPricingOptions: boolean; // default: true
+
+// En ProductCardProps
+showPricingOptions?: boolean;
+```
+
+### Query Param
+
+```typescript
+// Lectura
+const showPricingOptions = searchParams.get('pricingoptions') !== 'false';
+
+// Escritura (solo cuando difiere del default)
+if (!config.showPricingOptions) {
+  params.set('pricingoptions', 'false');
+}
+```
+
+### Uso en ProductCards
+
+```tsx
+{pricingMode === 'interactive' && showPricingOptions && (
+  <div className="space-y-2">
+    {/* Selectores de plazo e inicial */}
+  </div>
+)}
+```
+
+---
+
+## 20. ProductCardV6 con Specs Detalladas
+
+### Cambio
+La versión 6 ahora muestra specs con iconos (estilo V1) en lugar de la línea compacta.
+
+### Antes
+```
+AMD · 16GB · 512GB · 14"
+```
+
+### Después
+```
+[Cpu icon] AMD Ryzen 5 5600H
+[RAM icon] 16GB DDR4 (expandible)
+[HDD icon] 512GB SSD
+[Monitor icon] 14" FHD
+```
+
+### Ubicación
+Las specs están **encima** del bloque "Cuota mensual" y centradas para mantener consistencia con el diseño centrado de V6.
+
+---
+
+## 21. Configuración Preferida del Catálogo (Index 0.4)
+
+### URL Completa
+```
+/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&pricingoptions=false
+```
+
+### Desglose
+
+| Parámetro | Valor | Nombre |
+|-----------|-------|--------|
+| layout | 4 | Quick Cards + Sidebar |
+| brand | 3 | Grid de Logos |
+| card | 6 | Centrado Impacto |
+| techfilters | 3 | Cards con Iconos |
+| cols | 3 | 3 columnas |
+| skeleton | 3 | Wave Stagger |
+| duration | default | 800ms |
+| loadmore | 3 | Gradient CTA |
+| gallery | 2 | Thumbnails |
+| gallerysize | 3 | Expanded |
+| tags | 1 | Chips Apilados |
+| pricingoptions | false | Ocultos |
+
+---
+
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-20 | Versión inicial |
@@ -662,3 +750,4 @@ const quizConfig = {
 | 1.2 | 2025-12-21 | Agregado: null vs false, conteos dinámicos, URL params, anti-patrón componentes |
 | 1.3 | 2025-12-22 | Agregado: Integración comparador, montos vs %, botón comparar en cards |
 | 1.4 | 2025-12-23 | Agregado: Integración del Quiz (FAB + Empty State + Config responsivo) |
+| 1.5 | 2025-12-23 | Agregado: showPricingOptions toggle, ProductCardV6 specs detalladas, config preferida |

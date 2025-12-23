@@ -11,7 +11,7 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal, CreditCard, Tags, Link2, Check } from 'lucide-react';
+import { Settings, RotateCcw, Layout, Tag, Grid3X3, Loader, Clock, MousePointerClick, Images, Maximize2, SlidersHorizontal, CreditCard, Tags, Link2, Check, DollarSign } from 'lucide-react';
 import { CatalogLayoutConfig, SkeletonVersion, LoadMoreVersion, LoadingDuration, ImageGalleryVersion, GallerySizeVersion, TechnicalFiltersVersion, ProductCardVersion, TagDisplayVersion, layoutVersionDescriptions, brandFilterVersionDescriptions, loadingDurationLabels, loadMoreVersionLabels, imageGalleryVersionLabels, gallerySizeVersionLabels, technicalFiltersVersionLabels, productCardVersionLabels, tagDisplayVersionLabels } from '../../types/catalog';
 import { skeletonVersionLabels } from './ProductCardSkeleton';
 
@@ -52,6 +52,7 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
       },
       showFilterCounts: true,
       showTooltips: true,
+      showPricingOptions: true,
     });
   };
 
@@ -492,6 +493,43 @@ export const CatalogSettingsModal: React.FC<CatalogSettingsModalProps> = ({
                 </Button>
               ))}
             </div>
+          </div>
+
+          {/* Show Pricing Options Toggle */}
+          <div className="pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <DollarSign className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Opciones de Precio en Cards</h3>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={config.showPricingOptions ? 'solid' : 'bordered'}
+                className={`cursor-pointer ${
+                  config.showPricingOptions
+                    ? 'bg-[#4654CD] text-white'
+                    : 'border-neutral-200 hover:border-[#4654CD]'
+                }`}
+                onPress={() => updateConfig('showPricingOptions', true)}
+              >
+                Mostrar
+              </Button>
+              <Button
+                variant={!config.showPricingOptions ? 'solid' : 'bordered'}
+                className={`cursor-pointer ${
+                  !config.showPricingOptions
+                    ? 'bg-[#4654CD] text-white'
+                    : 'border-neutral-200 hover:border-[#4654CD]'
+                }`}
+                onPress={() => updateConfig('showPricingOptions', false)}
+              >
+                Ocultar
+              </Button>
+            </div>
+            <p className="text-xs text-neutral-500 mt-2">
+              {config.showPricingOptions
+                ? 'Se muestran los botones de plazo e inicial en cada card'
+                : 'Se ocultan los botones de plazo e inicial, solo muestra la cuota'}
+            </p>
           </div>
         </ModalBody>
 

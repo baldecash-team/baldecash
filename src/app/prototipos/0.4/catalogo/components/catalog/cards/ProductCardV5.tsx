@@ -33,6 +33,7 @@ interface ProductCardV5Props {
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
+  showPricingOptions?: boolean;
   // Compare props
   onCompare?: () => void;
   isCompareSelected?: boolean;
@@ -66,6 +67,7 @@ export const ProductCardV5: React.FC<ProductCardV5Props> = ({
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
+  showPricingOptions = true,
   onCompare,
   isCompareSelected = false,
   compareDisabled = false,
@@ -194,7 +196,7 @@ export const ProductCardV5: React.FC<ProductCardV5Props> = ({
                     en {selectedTerm} meses
                     {selectedInitial > 0 && ` · inicial S/${initialAmount}`}
                   </p>
-                  {pricingMode === 'interactive' && (
+                  {pricingMode === 'interactive' && showPricingOptions && (
                     <div className="space-y-1.5">
                       {/* Selector de plazo */}
                       <div className="flex flex-wrap gap-1">

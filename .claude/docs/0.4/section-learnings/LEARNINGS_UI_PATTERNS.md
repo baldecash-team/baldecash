@@ -823,6 +823,39 @@ const config = { layoutVersion: isMobile ? 4 : 5 };
 
 ---
 
+## 15. Query Params para Configuración de UI
+
+### Patrón
+
+Cuando agregas un toggle o configuración nueva, siempre incluirlo en los query params para que el estado sea compartible/persistente en la URL.
+
+### Regla: Solo incluir cuando difiere del default
+
+```typescript
+// ✅ CORRECTO: Solo si difiere del default (URLs más limpias)
+if (!config.showPricingOptions) {
+  params.set('pricingoptions', 'false');
+}
+
+// ❌ INCORRECTO: Siempre incluir
+params.set('pricingoptions', config.showPricingOptions.toString());
+```
+
+### Lectura de Query Params Booleanos
+
+```typescript
+// Para booleans donde default es true:
+const showPricingOptions = searchParams.get('pricingoptions') !== 'false';
+
+// Para booleans donde default es false:
+const showDebug = searchParams.get('debug') === 'true';
+```
+
+### Beneficio
+URLs más limpias y compartibles. El param solo aparece cuando es necesario.
+
+---
+
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-22 | Versión inicial - Patrones estandarizados |
@@ -832,3 +865,4 @@ const config = { layoutVersion: isMobile ? 4 : 5 };
 | 1.4 | 2025-12-22 | Agregado: Floating Action Bar, Links entre secciones |
 | 1.5 | 2025-12-23 | Agregado: Patrón de Keyboard Shortcuts estandarizado |
 | 1.6 | 2025-12-23 | Agregado: Hook useIsMobile, Config responsivo por versión |
+| 1.7 | 2025-12-23 | Agregado: Query Params para configuración de UI |

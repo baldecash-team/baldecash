@@ -33,6 +33,7 @@ interface ProductCardV1Props {
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
+  showPricingOptions?: boolean;
   // Compare props
   onCompare?: () => void;
   isCompareSelected?: boolean;
@@ -74,6 +75,7 @@ export const ProductCardV1: React.FC<ProductCardV1Props> = ({
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
+  showPricingOptions = true,
   onCompare,
   isCompareSelected = false,
   compareDisabled = false,
@@ -223,7 +225,7 @@ export const ProductCardV1: React.FC<ProductCardV1Props> = ({
           </div>
 
           {/* Modo interactivo: selectores de plazo e inicial */}
-          {pricingMode === 'interactive' && (
+          {pricingMode === 'interactive' && showPricingOptions && (
             <div className="mb-4 space-y-2">
               {/* Selector de plazo */}
               <div>

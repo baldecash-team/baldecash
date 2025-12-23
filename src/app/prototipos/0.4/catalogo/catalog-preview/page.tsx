@@ -109,6 +109,7 @@ function CatalogPreviewContent() {
     const defaultTerm = parseInt(searchParams.get('term') || '24') as TermMonths;
     const defaultInitial = parseInt(searchParams.get('initial') || '10') as InitialPaymentPercent;
     const tagDisplayVersion = parseInt(searchParams.get('tags') || '1') as TagDisplayVersion;
+    const showPricingOptions = searchParams.get('pricingoptions') !== 'false';
 
     return {
       ...defaultCatalogConfig,
@@ -125,6 +126,7 @@ function CatalogPreviewContent() {
       pricingMode: ['static', 'interactive'].includes(pricingMode) ? pricingMode : 'interactive',
       defaultTerm: (termOptions as readonly number[]).includes(defaultTerm) ? defaultTerm : 24,
       defaultInitial: (initialOptions as readonly number[]).includes(defaultInitial) ? defaultInitial : 10,
+      showPricingOptions,
       productsPerRow: {
         ...defaultCatalogConfig.productsPerRow,
         desktop: [3, 4, 5].includes(cols) ? cols : 3,
@@ -207,6 +209,9 @@ function CatalogPreviewContent() {
     }
     if (config.defaultInitial !== 10) {
       params.set('initial', config.defaultInitial.toString());
+    }
+    if (!config.showPricingOptions) {
+      params.set('pricingoptions', 'false');
     }
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [config, router]);
@@ -415,6 +420,7 @@ function CatalogPreviewContent() {
                   pricingMode={config.pricingMode}
                   defaultTerm={config.defaultTerm}
                   defaultInitial={config.defaultInitial}
+                  showPricingOptions={config.showPricingOptions}
                   onAddToCart={() => {
                     console.log('Add to cart:', product.id);
                   }}
@@ -547,9 +553,11 @@ function CatalogPreviewContent() {
         )}
       </CatalogLayout>
 
-      {/* Floating Comparison Bar */}
+      {/* Floating Comparison Bar - bottom-24 for V3/V4 mobile (filters at bottom) */}
       {compareList.length > 0 && !isComparatorOpen && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] bg-white rounded-xl shadow-xl border border-neutral-200 px-4 py-3 flex items-center gap-4">
+        <div className={`fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-xl shadow-xl border border-neutral-200 px-4 py-3 flex items-center gap-4 ${
+          config.layoutVersion === 3 ? 'bottom-24' : config.layoutVersion === 4 ? 'bottom-24 lg:bottom-6' : 'bottom-6'
+        }`}>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
               <GitCompare className="w-4 h-4 text-[#4654CD]" />

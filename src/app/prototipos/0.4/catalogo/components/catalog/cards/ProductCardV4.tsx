@@ -33,6 +33,7 @@ interface ProductCardV4Props {
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
+  showPricingOptions?: boolean;
   // Compare props
   onCompare?: () => void;
   isCompareSelected?: boolean;
@@ -59,6 +60,7 @@ export const ProductCardV4: React.FC<ProductCardV4Props> = ({
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
+  showPricingOptions = true,
   onCompare,
   isCompareSelected = false,
   compareDisabled = false,
@@ -198,7 +200,7 @@ export const ProductCardV4: React.FC<ProductCardV4Props> = ({
             </motion.p>
 
             {/* Term selector - interactive mode */}
-            {pricingMode === 'interactive' && (
+            {pricingMode === 'interactive' && showPricingOptions && (
               <motion.div
                 className="mb-4 p-3 bg-neutral-50 rounded-xl"
                 initial={{ opacity: 0, y: 10 }}

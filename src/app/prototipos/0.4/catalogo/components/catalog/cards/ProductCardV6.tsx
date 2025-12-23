@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardBody, Button, Chip } from '@nextui-org/react';
-import { ArrowRight, Heart, Eye, GitCompare } from 'lucide-react';
+import { ArrowRight, Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
@@ -33,6 +33,7 @@ interface ProductCardV6Props {
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
+  showPricingOptions?: boolean;
   // Compare props
   onCompare?: () => void;
   isCompareSelected?: boolean;
@@ -58,6 +59,7 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
+  showPricingOptions = true,
   onCompare,
   isCompareSelected = false,
   compareDisabled = false,
@@ -142,6 +144,31 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
               {product.displayName}
             </h3>
 
+            {/* Specs técnicas con iconos (estilo V1) */}
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <Cpu className="w-3.5 h-3.5 text-[#4654CD]" />
+                <span>{product.specs.processor.model}</span>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <MemoryStick className="w-3.5 h-3.5 text-[#4654CD]" />
+                <span>
+                  {product.specs.ram.size}GB {product.specs.ram.type}
+                  {product.specs.ram.expandable && (
+                    <span className="text-[#22c55e] ml-1">(expandible)</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <HardDrive className="w-3.5 h-3.5 text-[#4654CD]" />
+                <span>{product.specs.storage.size}GB {product.specs.storage.type.toUpperCase()}</span>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                <Monitor className="w-3.5 h-3.5 text-[#4654CD]" />
+                <span>{product.specs.display.size}" {product.specs.display.resolution.toUpperCase()}</span>
+              </div>
+            </div>
+
             {/* Giant Price */}
             <div className="bg-[#4654CD]/5 rounded-2xl py-4 px-6 mb-4">
               <p className="text-xs text-neutral-500 mb-1">Cuota mensual</p>
@@ -156,7 +183,7 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
                 {selectedInitial > 0 && ` · inicial S/${initialAmount}`}
               </p>
               {/* Term and initial selectors - interactive mode */}
-              {pricingMode === 'interactive' && (
+              {pricingMode === 'interactive' && showPricingOptions && (
                 <div className="space-y-2 mt-3">
                   {/* Term selector */}
                   <div className="flex justify-center flex-wrap gap-1.5">
@@ -203,11 +230,6 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
                 </div>
               )}
             </div>
-
-            {/* Quick specs - minimal */}
-            <p className="text-xs text-neutral-400 mb-4">
-              {product.specs.processor.brand === 'intel' ? 'Intel' : 'AMD'} · {product.specs.ram.size}GB · {product.specs.storage.size}GB · {product.specs.display.size}"
-            </p>
 
             {/* Stock */}
             {product.stock === 'limited' && (

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Card, CardBody } from '@nextui-org/react';
-import { Trash2, ChevronDown, Settings2 } from 'lucide-react';
+import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
+import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps } from '../../../types/catalog';
 import { FilterSection } from '../filters/FilterSection';
@@ -50,6 +50,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   children,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Apply dynamic counts to options
   const dynamicBrandOptions = React.useMemo(() =>
@@ -184,6 +185,30 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
 
     return applied;
+  }, [filters]);
+
+  const appliedFiltersCount = React.useMemo(() => {
+    return (
+      filters.brands.length +
+      filters.usage.length +
+      filters.ram.length +
+      filters.gama.length +
+      filters.condition.length +
+      filters.storage.length +
+      filters.processorModel.length +
+      filters.displaySize.length +
+      filters.resolution.length +
+      filters.displayType.length +
+      (filters.gpuType.includes('dedicated') ? 1 : 0) +
+      (filters.touchScreen ? 1 : 0) +
+      (filters.backlitKeyboard ? 1 : 0) +
+      (filters.numericKeypad ? 1 : 0) +
+      (filters.fingerprint ? 1 : 0) +
+      (filters.hasWindows ? 1 : 0) +
+      (filters.hasThunderbolt ? 1 : 0) +
+      (filters.hasEthernet ? 1 : 0) +
+      (filters.ramExpandable ? 1 : 0)
+    );
   }, [filters]);
 
   const handleRemoveFilter = (id: string) => {
@@ -468,6 +493,141 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </main>
         </div>
       </div>
+
+      {/* Mobile Filter Button - Only visible on mobile (lg:hidden) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 lg:hidden">
+        <button
+          onClick={() => setIsDrawerOpen(true)}
+          className="flex items-center gap-3 bg-[#4654CD] text-white shadow-xl hover:bg-[#3a47b3] transition-all cursor-pointer px-5 py-3 rounded-xl hover:shadow-2xl hover:scale-105"
+        >
+          <SlidersHorizontal className="w-5 h-5" />
+          <span className="font-medium text-base">Filtros</span>
+          {appliedFiltersCount > 0 && (
+            <span className="bg-[#2a3499] text-white text-sm font-semibold rounded-full min-w-[24px] h-6 flex items-center justify-center px-2">
+              {appliedFiltersCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Mobile Filter Drawer Modal */}
+      <Modal
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        size="full"
+        scrollBehavior="inside"
+        classNames={{
+          base: 'bg-white m-0 rounded-none sm:rounded-l-xl sm:ml-auto sm:max-w-md h-full',
+          header: 'border-b border-neutral-200 bg-white py-4',
+          body: 'bg-white p-0',
+          footer: 'border-t border-neutral-200 bg-white',
+          closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+        }}
+      >
+        <ModalContent>
+          <ModalHeader className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
+              <Filter className="w-4 h-4 text-[#4654CD]" />
+            </div>
+            <span className="text-lg font-semibold text-neutral-800">Filtros</span>
+          </ModalHeader>
+
+          <ModalBody className="px-4 py-6 overflow-y-auto">
+            {/* Brand Filter */}
+            <FilterSection title="Marca" defaultExpanded={true}>
+              {renderBrandFilter()}
+            </FilterSection>
+
+            {/* Quota Filter */}
+            <FilterSection title="Cuota mensual" defaultExpanded={true}>
+              <QuotaRangeFilter
+                value={filters.quotaRange}
+                onChange={(val) => updateFilter('quotaRange', val)}
+              />
+            </FilterSection>
+
+            {/* Commercial Filters - Solo Gama */}
+            <CommercialFilters
+              gamaOptions={dynamicGamaOptions}
+              selectedGama={filters.gama}
+              onGamaChange={(gama) => updateFilter('gama', gama)}
+              showCounts={config.showFilterCounts}
+            />
+
+            {/* Main Filters (Uso recomendado, Condición) */}
+            <TechnicalFiltersStyled
+              version={config.technicalFiltersVersion}
+              showFilters="main"
+              usageOptions={dynamicUsageOptions}
+              selectedUsage={filters.usage}
+              onUsageChange={(usage) => updateFilter('usage', usage)}
+              conditionOptions={dynamicConditionOptions}
+              selectedCondition={filters.condition}
+              onConditionChange={(condition) => updateFilter('condition', condition)}
+              showCounts={config.showFilterCounts}
+            />
+
+            {/* Advanced Technical Filters */}
+            <div className="border-t border-neutral-200 mt-4 pt-4">
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Settings2 className="w-4 h-4" />
+                  <span>Filtros Avanzados</span>
+                </div>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showAdvancedFilters && (
+                <div className="mt-2">
+                  <TechnicalFiltersStyled
+                    version={config.technicalFiltersVersion}
+                    showFilters="advanced"
+                    ramOptions={dynamicRamOptions}
+                    selectedRam={filters.ram}
+                    onRamChange={(ram) => updateFilter('ram', ram)}
+                    storageOptions={dynamicStorageOptions}
+                    selectedStorage={filters.storage}
+                    onStorageChange={(storage) => updateFilter('storage', storage)}
+                    displaySizeOptions={dynamicDisplaySizeOptions}
+                    selectedDisplaySize={filters.displaySize}
+                    onDisplaySizeChange={(sizes) => updateFilter('displaySize', sizes)}
+                    resolutionOptions={dynamicResolutionOptions}
+                    selectedResolution={filters.resolution}
+                    onResolutionChange={(res) => updateFilter('resolution', res)}
+                    displayTypeOptions={dynamicDisplayTypeOptions}
+                    selectedDisplayType={filters.displayType}
+                    onDisplayTypeChange={(types) => updateFilter('displayType', types)}
+                    processorOptions={processorModelOptions}
+                    selectedProcessor={filters.processorModel}
+                    onProcessorChange={(models) => updateFilter('processorModel', models)}
+                    showCounts={config.showFilterCounts}
+                  />
+                </div>
+              )}
+            </div>
+          </ModalBody>
+
+          <ModalFooter className="gap-2">
+            <Button
+              variant="light"
+              startContent={<Trash2 className="w-4 h-4" />}
+              onPress={handleClearAll}
+              className="cursor-pointer"
+            >
+              Limpiar
+            </Button>
+            <Button
+              className="bg-[#4654CD] text-white flex-1 cursor-pointer"
+              onPress={() => setIsDrawerOpen(false)}
+            >
+              Ver {products.length} resultados
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

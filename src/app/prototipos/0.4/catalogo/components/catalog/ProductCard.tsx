@@ -29,6 +29,7 @@ export interface ProductCardProps {
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
+  showPricingOptions?: boolean;
   onAddToCart?: () => void;
   onFavorite?: () => void;
   onViewDetail?: () => void;
@@ -60,6 +61,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
+  showPricingOptions = true,
   onAddToCart,
   onFavorite,
   onViewDetail,
@@ -82,6 +84,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     pricingMode,
     defaultTerm,
     defaultInitial,
+    showPricingOptions,
     onCompare,
     isCompareSelected,
     compareDisabled,

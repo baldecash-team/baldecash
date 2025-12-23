@@ -359,6 +359,7 @@ export interface CatalogLayoutConfig {
   };
   showFilterCounts: boolean;
   showTooltips: boolean;
+  showPricingOptions: boolean;
 }
 
 export const defaultCatalogConfig: CatalogLayoutConfig = {
@@ -382,6 +383,7 @@ export const defaultCatalogConfig: CatalogLayoutConfig = {
   },
   showFilterCounts: true,
   showTooltips: true,
+  showPricingOptions: true,
 };
 
 // ============================================
@@ -592,4 +594,5 @@ export interface ProductCardProps {
   onViewDetail?: () => void;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
+  showPricingOptions?: boolean;
 }
