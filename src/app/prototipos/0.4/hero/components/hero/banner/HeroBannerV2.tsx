@@ -23,7 +23,7 @@ export const HeroBannerV2: React.FC<HeroBannerProps> = ({
   underlineStyle = 1,
 }) => {
   const router = useRouter();
-  const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1';
+  const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=2&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&pricingoptions=false&mode=clean';
 
   return (
     <section className="relative min-h-[70vh] overflow-hidden">

@@ -35,7 +35,7 @@ Este documento detalla las versiones seleccionadas para el modo "Presentacion" d
 | Acceso Comparador | V1 | - |
 | Cantidad Productos | V3 (max 3) | - |
 
-**URL:** `/prototipos/0.4/catalogo/catalog-preview?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=2&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&pricingoptions=false&mode=clean`
+**URL:** `/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=2&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&pricingoptions=false&mode=clean`
 
 ---
 
