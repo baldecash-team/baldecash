@@ -81,7 +81,7 @@ export default function RecibidoPreviewPage() {
   });
 
   const handleViewProduct = () => {
-    router.push(`/prototipos/0.4/producto/producto-preview?id=${productId}&mode=clean`);
+    router.push(`/prototipos/0.4/producto/detail-preview?id=${productId}&mode=clean`);
   };
 
   return (
