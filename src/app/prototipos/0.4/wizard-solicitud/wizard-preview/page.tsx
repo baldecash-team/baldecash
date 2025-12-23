@@ -453,9 +453,14 @@ function WizardPreviewContent() {
       params.set('docexamples', config.docExamplesVersion.toString());
     }
 
+    // Preserve clean mode if set
+    if (isCleanMode) {
+      params.set('mode', 'clean');
+    }
+
     const queryString = params.toString();
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
-  }, [config, router]);
+  }, [config, router, isCleanMode]);
 
   const { activeComponent, setActiveComponent, componentLabel, toast } = useKeyboardShortcuts({
     config,

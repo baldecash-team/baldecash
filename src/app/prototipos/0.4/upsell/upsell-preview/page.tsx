@@ -83,7 +83,8 @@ function UpsellPreviewContent() {
   const [activeTab, setActiveTab] = useState<'accessories' | 'insurance'>('accessories');
   const [toast, setToast] = useState<{ message: string; type: 'version' | 'navigation' | 'info' } | null>(null);
 
-  // Parse sections from URL - default to both if not specified
+  // Parse mode and sections from URL
+  const isCleanMode = searchParams.get('mode') === 'clean';
   const sectionsParam = searchParams.get('sections');
   const visibleSections = useMemo(() => {
     if (!sectionsParam) return { accessories: true, insurance: true };
@@ -189,9 +190,14 @@ function UpsellPreviewContent() {
       params.set('sections', sectionsParam);
     }
 
+    // Preserve clean mode if set
+    if (isCleanMode) {
+      params.set('mode', 'clean');
+    }
+
     const queryString = params.toString();
     router.replace(queryString ? `?${queryString}` : '', { scroll: false });
-  }, [config, router, sectionsParam]);
+  }, [config, router, sectionsParam, isCleanMode]);
 
   // Accessory handlers
   const toggleAccessory = useCallback((id: string) => {
@@ -279,36 +285,40 @@ function UpsellPreviewContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Toast de shortcuts */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
-              toast.type === 'version'
-                ? 'bg-[#4654CD] text-white'
-                : 'bg-neutral-800 text-white'
-            }`}
-          >
-            {toast.type === 'version' ? <Layers className="w-4 h-4" /> : <Navigation className="w-4 h-4" />}
-            <span>{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Toast de shortcuts - only show when not in clean mode */}
+      {!isCleanMode && (
+        <AnimatePresence>
+          {toast && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+                toast.type === 'version'
+                  ? 'bg-[#4654CD] text-white'
+                  : 'bg-neutral-800 text-white'
+              }`}
+            >
+              {toast.type === 'version' ? <Layers className="w-4 h-4" /> : <Navigation className="w-4 h-4" />}
+              <span>{toast.message}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
 
-      {/* Shortcut Help Badge */}
-      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
-        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
-          <Keyboard className="w-3.5 h-3.5" />
-          <span>Press ? for help</span>
+      {/* Shortcut Help Badge - only show when not in clean mode */}
+      {!isCleanMode && (
+        <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+          <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+            <Keyboard className="w-3.5 h-3.5" />
+            <span>Press ? for help</span>
+          </div>
+          <div className="text-xs font-medium text-[#4654CD]">
+            Activo: {componentLabels[currentComponent] || currentComponent}
+          </div>
         </div>
-        <div className="text-xs font-medium text-[#4654CD]">
-          Activo: {componentLabels[currentComponent] || currentComponent}
-        </div>
-      </div>
+      )}
 
       {/* Main content */}
       <main className="pt-16 pb-24 px-4 md:px-8 max-w-5xl mx-auto">
@@ -416,7 +426,7 @@ function UpsellPreviewContent() {
               <Button
                 size="lg"
                 className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
-                onPress={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?header=3&progress=6&celebration=3&input=4&options=2&upload=3')}
+                onPress={() => router.push(`/prototipos/0.4/wizard-solicitud/wizard-preview?header=3&progress=6&celebration=3&input=4&options=2&upload=3${isCleanMode ? '&mode=clean' : ''}`)}
               >
                 Continuar
               </Button>
@@ -439,7 +449,7 @@ function UpsellPreviewContent() {
               <Button
                 size="lg"
                 className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
-                onPress={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?header=3&progress=6&celebration=3&input=4&options=2&upload=3')}
+                onPress={() => router.push(`/prototipos/0.4/wizard-solicitud/wizard-preview?header=3&progress=6&celebration=3&input=4&options=2&upload=3${isCleanMode ? '&mode=clean' : ''}`)}
               >
                 Continuar
               </Button>
@@ -448,37 +458,39 @@ function UpsellPreviewContent() {
         ) : null}
       </main>
 
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
-        <TokenCounter sectionId="PROMPT_14" version="0.4" />
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
-          onPress={() => setIsSettingsOpen(true)}
-        >
-          <Settings className="w-5 h-5" />
-        </Button>
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => setShowConfigBadge(!showConfigBadge)}
-        >
-          <Code className="w-5 h-5 text-neutral-600" />
-        </Button>
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => router.push('/prototipos/0.4')}
-        >
-          <ArrowLeft className="w-5 h-5 text-neutral-600" />
-        </Button>
-      </div>
+      {/* Floating Action Buttons - only show when not in clean mode */}
+      {!isCleanMode && (
+        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+          <TokenCounter sectionId="PROMPT_14" version="0.4" />
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+            onPress={() => setIsSettingsOpen(true)}
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+            onPress={() => setShowConfigBadge(!showConfigBadge)}
+          >
+            <Code className="w-5 h-5 text-neutral-600" />
+          </Button>
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+            onPress={() => router.push('/prototipos/0.4')}
+          >
+            <ArrowLeft className="w-5 h-5 text-neutral-600" />
+          </Button>
+        </div>
+      )}
 
-      {/* Config Badge */}
-      {showConfigBadge && (
+      {/* Config Badge - only show when not in clean mode */}
+      {!isCleanMode && showConfigBadge && (
         <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200 max-w-xs">
           <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
           <p className="text-xs font-mono text-neutral-700">

@@ -71,7 +71,7 @@ const getDetailUrl = (productSlug: string, isCleanMode: boolean) => {
 
 // URL del upsell
 const getUpsellUrl = (isCleanMode: boolean) => {
-  const baseUrl = '/prototipos/0.4/upsell/upsell-preview/?sections=accessories&accessoryIntroVersion=3';
+  const baseUrl = '/prototipos/0.4/upsell/upsell-preview/?accessoryIntroVersion=3&sections=accessories&mode=clean';
   return isCleanMode ? `${baseUrl}&mode=clean` : baseUrl;
 };
 
