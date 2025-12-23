@@ -20,14 +20,18 @@ export interface LabelProps {
 // V1: Label arriba (siempre visible) - Clásico y accesible
 export const LabelV1: React.FC<LabelProps> = ({ field, hasError }) => (
   <label className={`
-    inline-flex items-center gap-1.5 text-sm font-medium flex-wrap leading-none
+    inline-flex items-center gap-2 text-sm font-medium flex-wrap leading-none
     ${hasError ? 'text-red-600' : 'text-neutral-700'}
   `}>
     <span>{field.label}</span>
     {field.required ? (
-      <span className="text-red-500 text-xs">*</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+        Requerido
+      </span>
     ) : (
-      <span className="text-neutral-400 text-xs font-normal">(opcional)</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+        Opcional
+      </span>
     )}
   </label>
 );
@@ -38,7 +42,7 @@ export const LabelV2: React.FC<LabelProps> = ({ field, isFocused, hasValue, hasE
   return (
     <motion.label
       className={`
-        absolute left-3 pointer-events-none z-10 transition-colors duration-200
+        absolute left-3 pointer-events-none z-10 transition-colors duration-200 inline-flex items-center gap-1.5
         ${isFloating ? 'text-xs font-medium' : 'text-sm font-normal'}
         ${hasError ? 'text-red-500' : isFocused ? 'text-[#4654CD]' : 'text-neutral-400'}
       `}
@@ -50,28 +54,50 @@ export const LabelV2: React.FC<LabelProps> = ({ field, isFocused, hasValue, hasE
       transition={{ duration: 0.15, ease: 'easeOut' }}
     >
       {field.label}
-      {field.required && <span className="text-red-400 ml-0.5">*</span>}
-      {!field.required && isFloating && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
+      {field.required && isFloating && (
+        <span className="text-[9px] px-1 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+          Requerido
+        </span>
+      )}
+      {!field.required && isFloating && (
+        <span className="text-[9px] px-1 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+          Opcional
+        </span>
+      )}
     </motion.label>
   );
 };
 
-// V3: Minimalista - Solo asterisco para requerido
+// V3: Minimalista - Con chip para requerido
 export const LabelV3: React.FC<LabelProps> = ({ field, hasError }) => {
   if (field.type === 'date') {
     return (
       <label className={`
-        inline-flex items-center gap-1.5 text-xs font-medium leading-none uppercase tracking-wide
+        inline-flex items-center gap-2 text-xs font-medium leading-none uppercase tracking-wide
         ${hasError ? 'text-red-600' : 'text-neutral-500'}
       `}>
         <span>{field.label}</span>
-        {field.required && <span className="text-red-500">*</span>}
+        {field.required ? (
+          <span className="text-[9px] px-1 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none normal-case">
+            Requerido
+          </span>
+        ) : (
+          <span className="text-[9px] px-1 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none normal-case">
+            Opcional
+          </span>
+        )}
       </label>
     );
   }
   return field.required ? (
-    <span className="text-red-500 text-xs font-medium">*</span>
-  ) : null;
+    <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+      Requerido
+    </span>
+  ) : (
+    <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+      Opcional
+    </span>
+  );
 };
 
 // V4: Label con badge inline - Moderno
@@ -96,14 +122,18 @@ export const LabelV4: React.FC<LabelProps> = ({ field, hasError }) => (
 // V5: Label izquierda (inline) - Formularios compactos
 export const LabelV5: React.FC<LabelProps> = ({ field, hasError }) => (
   <label className={`
-    inline-flex items-center gap-1.5 text-sm font-medium min-w-[120px] shrink-0 leading-none pt-2
+    inline-flex items-center gap-2 text-sm font-medium min-w-[120px] shrink-0 leading-none pt-2
     ${hasError ? 'text-red-600' : 'text-neutral-600'}
   `}>
     <span>{field.label}</span>
     {field.required ? (
-      <span className="text-red-500 text-xs">*</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+        Requerido
+      </span>
     ) : (
-      <span className="text-neutral-400 text-xs font-normal">(opc.)</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+        Opcional
+      </span>
     )}
   </label>
 );
@@ -116,9 +146,11 @@ export const LabelV6: React.FC<LabelProps> = ({ field, isFocused, hasError }) =>
   `}>
     <span>{field.label}</span>
     {field.required ? (
-      <span className="text-red-500 text-sm">*</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+        Requerido
+      </span>
     ) : (
-      <span className="text-neutral-400 text-xs font-normal bg-neutral-100 px-2 py-0.5 rounded-full">
+      <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
         Opcional
       </span>
     )}

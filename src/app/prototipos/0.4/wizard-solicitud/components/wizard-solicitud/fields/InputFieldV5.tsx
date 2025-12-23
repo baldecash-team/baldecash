@@ -21,14 +21,18 @@ interface InputFieldV5Props {
 // Label V5 integrado: Label izquierda (inline) - Formularios compactos
 const Label: React.FC<{ field: FieldConfig; hasError?: boolean }> = ({ field, hasError }) => (
   <label className={`
-    inline-flex items-center gap-1.5 text-sm font-medium min-w-[120px] shrink-0 leading-none pt-2
+    inline-flex items-center gap-2 text-sm font-medium min-w-[120px] shrink-0 leading-none pt-2
     ${hasError ? 'text-red-600' : 'text-neutral-600'}
   `}>
     <span>{field.label}</span>
     {field.required ? (
-      <span className="text-red-500 text-xs">*</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+        Requerido
+      </span>
     ) : (
-      <span className="text-neutral-400 text-xs font-normal">(opc.)</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+        Opcional
+      </span>
     )}
   </label>
 );

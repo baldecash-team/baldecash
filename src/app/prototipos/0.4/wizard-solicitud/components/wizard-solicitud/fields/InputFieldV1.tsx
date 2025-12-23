@@ -23,14 +23,18 @@ interface InputFieldV1Props {
 // Label V1 integrado: Label arriba (siempre visible) - Clásico y accesible
 const Label: React.FC<{ field: FieldConfig; hasError?: boolean }> = ({ field, hasError }) => (
   <label className={`
-    inline-flex items-center gap-1.5 text-sm font-medium flex-wrap leading-none
+    inline-flex items-center gap-2 text-sm font-medium flex-wrap leading-none
     ${hasError ? 'text-red-600' : 'text-neutral-700'}
   `}>
     <span>{field.label}</span>
     {field.required ? (
-      <span className="text-red-500 text-xs">*</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+        Requerido
+      </span>
     ) : (
-      <span className="text-neutral-400 text-xs font-normal">(opcional)</span>
+      <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+        Opcional
+      </span>
     )}
   </label>
 );

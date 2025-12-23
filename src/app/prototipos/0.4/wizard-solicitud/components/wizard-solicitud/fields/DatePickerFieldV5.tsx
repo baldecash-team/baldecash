@@ -219,8 +219,17 @@ export const DatePickerFieldV5: React.FC<DatePickerFieldV5Props> = ({
   if (labelVersion === 3) {
     return (
       <div className="space-y-1.5">
-        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-          {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
+        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide inline-flex items-center gap-2">
+          {field.label}
+          {field.required ? (
+            <span className="text-[9px] px-1 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none normal-case">
+              Requerido
+            </span>
+          ) : (
+            <span className="text-[9px] px-1 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none normal-case">
+              Opcional
+            </span>
+          )}
         </span>
         {searchContent}
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
@@ -233,10 +242,18 @@ export const DatePickerFieldV5: React.FC<DatePickerFieldV5Props> = ({
     <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
       {/* Label section */}
       <div className="sm:w-40 sm:pt-4 flex-shrink-0">
-        <div className="flex items-center gap-1.5">
-          <label className={`text-sm font-medium ${error ? 'text-red-600' : 'text-neutral-700'}`}>
+        <div className="flex items-center gap-2">
+          <label className={`text-sm font-medium inline-flex items-center gap-2 ${error ? 'text-red-600' : 'text-neutral-700'}`}>
             {field.label}
-            {field.required && <span className="text-red-500 ml-0.5">*</span>}
+            {field.required ? (
+              <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+                Requerido
+              </span>
+            ) : (
+              <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+                Opcional
+              </span>
+            )}
           </label>
           {field.helpText && <HelpTooltip content={field.helpText} title={field.label} />}
         </div>

@@ -247,8 +247,17 @@ export const DatePickerFieldV6: React.FC<DatePickerFieldV6Props> = ({
   if (labelVersion === 3) {
     return (
       <div className="space-y-1.5">
-        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-          {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
+        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide inline-flex items-center gap-2">
+          {field.label}
+          {field.required ? (
+            <span className="text-[9px] px-1 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none normal-case">
+              Requerido
+            </span>
+          ) : (
+            <span className="text-[9px] px-1 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none normal-case">
+              Opcional
+            </span>
+          )}
         </span>
         {sliderContent}
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}

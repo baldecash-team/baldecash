@@ -32,9 +32,17 @@ export const SelectCardsV1: React.FC<SelectCardsV1Props> = ({
   return (
     <div className="space-y-3">
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+      <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
         <span>{field.label}</span>
-        {field.required && <span className="text-red-500">*</span>}
+        {field.required ? (
+          <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+            Requerido
+          </span>
+        ) : (
+          <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+            Opcional
+          </span>
+        )}
         {field.helpText && (
           <HelpTooltip content={field.helpText} title={field.label} />
         )}
