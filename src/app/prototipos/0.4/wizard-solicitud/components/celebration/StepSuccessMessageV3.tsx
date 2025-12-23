@@ -75,7 +75,8 @@ export const StepSuccessMessageV3: React.FC<StepSuccessMessageProps> = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm"
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-white backdrop-blur-sm"
     >
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
