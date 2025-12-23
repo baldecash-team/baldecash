@@ -99,12 +99,16 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
   if (labelVersion === 5) {
     return (
       <div className="flex items-start gap-3">
-        <label className="inline-flex items-center gap-1.5 text-sm font-medium min-w-[120px] shrink-0 leading-none pt-2 text-neutral-600">
+        <label className="inline-flex items-center gap-2 text-sm font-medium min-w-[120px] shrink-0 leading-none pt-2 text-neutral-600">
           <span>{field.label}</span>
           {field.required ? (
-            <span className="text-red-500 text-xs">*</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+              Requerido
+            </span>
           ) : (
-            <span className="text-neutral-400 text-xs font-normal">(opc.)</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+              Opcional
+            </span>
           )}
         </label>
         <div className="flex-1">
@@ -117,9 +121,17 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
   return (
     <div className="space-y-3">
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+      <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
         <span>{field.label}</span>
-        {field.required && <span className="text-red-500">*</span>}
+        {field.required ? (
+          <span className="text-[10px] px-1.5 py-0.5 bg-[#4654CD]/10 text-[#4654CD] rounded font-medium leading-none">
+            Requerido
+          </span>
+        ) : (
+          <span className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded font-medium leading-none">
+            Opcional
+          </span>
+        )}
         {field.helpText && (
           <HelpTooltip content={field.helpText} title={field.label} />
         )}

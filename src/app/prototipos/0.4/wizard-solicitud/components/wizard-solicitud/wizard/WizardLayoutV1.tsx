@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Clock, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import type { WizardSolicitudStep, SelectedProduct } from '../../../types/wizard-solicitud';
 
@@ -29,8 +29,6 @@ export const WizardLayoutV1: React.FC<WizardLayoutV1Props> = ({
   selectedProduct,
   children,
   onClose,
-  showTimeEstimate = true,
-  estimatedMinutesRemaining = 5,
   progressComponent,
 }) => {
   const currentStepData = steps[currentStep];
@@ -41,24 +39,11 @@ export const WizardLayoutV1: React.FC<WizardLayoutV1Props> = ({
       <header className="bg-white border-b border-neutral-200 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#4654CD] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">B</span>
-            </div>
-            <span className="font-semibold text-[#4654CD] hidden sm:block">BaldeCash</span>
-          </div>
-
-          {/* Time estimate - Desktop */}
-          {showTimeEstimate && (
-            <div className="hidden sm:flex items-center gap-2 text-sm text-neutral-500">
-              <Clock className="w-4 h-4" />
-              <span>
-                {estimatedMinutesRemaining > 1
-                  ? `Aprox. ${estimatedMinutesRemaining} min restantes`
-                  : '¡Menos de 1 minuto!'}
-              </span>
-            </div>
-          )}
+          <img
+            src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+            alt="BaldeCash"
+            className="h-8 object-contain"
+          />
 
           {/* Close button */}
           <Button
@@ -115,19 +100,6 @@ export const WizardLayoutV1: React.FC<WizardLayoutV1Props> = ({
           </div>
         </motion.div>
 
-        {/* Mobile time estimate */}
-        {showTimeEstimate && (
-          <div className="sm:hidden fixed bottom-20 left-0 right-0 flex justify-center px-4 pb-2">
-            <div className="flex items-center gap-1.5 text-xs text-neutral-500 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-neutral-200">
-              <Clock className="w-3 h-3" />
-              <span>
-                {estimatedMinutesRemaining > 1
-                  ? `${estimatedMinutesRemaining} min restantes`
-                  : '¡Casi listo!'}
-              </span>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );
