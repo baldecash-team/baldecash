@@ -325,9 +325,6 @@ export const RejectionScreen: React.FC<RejectionScreenProps> = ({
 
   return (
     <div className={`min-h-screen ${getBackgroundClass()}`}>
-      {/* Header con Branding */}
-      {renderBranding()}
-
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* Sección Visual + Ilustración */}
         <div className="mb-8">
@@ -348,11 +345,6 @@ export const RejectionScreen: React.FC<RejectionScreenProps> = ({
         {/* Alternativas */}
         <div className="mb-8">
           {renderAlternativesLayout()}
-        </div>
-
-        {/* Productos Alternativos */}
-        <div className="mb-8">
-          {renderProductAlternatives()}
         </div>
 
         {/* Calculadora */}
@@ -378,15 +370,6 @@ export const RejectionScreen: React.FC<RejectionScreenProps> = ({
         {/* Contenido Educativo */}
         <div className="mb-8">
           <EducationalContent />
-        </div>
-
-        {/* Soporte */}
-        <div className="mb-8">
-          {renderAdvisorMessage()}
-        </div>
-
-        <div className="mb-8">
-          {renderAdvisorCTA()}
         </div>
 
         {/* Contacto */}
