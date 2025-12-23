@@ -568,9 +568,97 @@ title={
 
 ---
 
+## 18. Integración del Quiz en Catálogo
+
+### Puntos de Entrada
+
+| Elemento | Ubicación | Trigger |
+|----------|-----------|---------|
+| FAB | `fixed bottom-6 left-6` | Siempre visible |
+| CTA Empty State | Después de productos relacionados | Solo cuando 0 resultados |
+
+### FAB del Quiz
+
+```tsx
+{/* Quiz FAB - Bottom Left */}
+<div className="fixed bottom-6 left-6 z-[100]">
+  <Button
+    className="bg-[#4654CD] text-white shadow-lg gap-2 px-4"
+    onPress={() => setIsQuizOpen(true)}
+  >
+    <HelpCircle className="w-5 h-5" />
+    <span className="hidden sm:inline">¿Necesitas ayuda?</span>
+  </Button>
+</div>
+```
+
+### CTA en Empty State
+
+```tsx
+{/* Quiz CTA en Empty State */}
+<section className="mt-8 px-4">
+  <div className="bg-gradient-to-r from-[#4654CD]/5 to-[#4654CD]/10 rounded-2xl p-6 border border-[#4654CD]/20">
+    <div className="flex flex-col md:flex-row items-center gap-4">
+      <div className="w-14 h-14 rounded-2xl bg-[#4654CD] flex items-center justify-center">
+        <HelpCircle className="w-7 h-7 text-white" />
+      </div>
+      <div className="flex-1 text-center md:text-left">
+        <h3 className="text-lg font-semibold text-neutral-800 mb-1">
+          ¿No encuentras lo que buscas?
+        </h3>
+        <p className="text-sm text-neutral-600">
+          Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
+        </p>
+      </div>
+      <Button onPress={() => setIsQuizOpen(true)}>
+        Iniciar asistente
+      </Button>
+    </div>
+  </div>
+</section>
+```
+
+### Config Responsivo del Quiz
+
+```typescript
+const isMobile = useIsMobile();
+
+const quizConfig = {
+  layoutVersion: (isMobile ? 4 : 5) as 4 | 5, // V4 bottom-sheet, V5 modal
+  questionCount: 7 as const,
+  questionStyle: 1 as const,
+  resultsVersion: 1 as const,
+  focusVersion: 1 as const,
+};
+```
+
+### Posicionamiento de Elementos
+
+| Elemento | Posición | z-index |
+|----------|----------|---------|
+| Quiz FAB | `bottom-6 left-6` | 100 |
+| Config Badge | `bottom-20 left-6` | 100 |
+| Floating Controls | `bottom-6 right-6` | 100 |
+| Comparison Bar | `bottom-6 left-1/2` | 90 |
+
+### Balance Visual
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│         [Catálogo Grid]             │
+│                                     │
+│ [Quiz FAB]              [Controls]  │
+│ bottom-left             bottom-right│
+└─────────────────────────────────────┘
+```
+
+---
+
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-20 | Versión inicial |
 | 1.1 | 2025-12-20 | Refactorizado - reglas globales movidas a CONVENTIONS.md |
 | 1.2 | 2025-12-21 | Agregado: null vs false, conteos dinámicos, URL params, anti-patrón componentes |
 | 1.3 | 2025-12-22 | Agregado: Integración comparador, montos vs %, botón comparar en cards |
+| 1.4 | 2025-12-23 | Agregado: Integración del Quiz (FAB + Empty State + Config responsivo) |

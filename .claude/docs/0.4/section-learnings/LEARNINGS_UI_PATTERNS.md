@@ -719,6 +719,110 @@ Al agregar shortcuts a una página preview:
 
 ---
 
+## 13. Hook `useIsMobile` - Detección Responsiva
+
+### Ubicación
+`src/app/prototipos/_shared/hooks/useIsMobile.ts`
+
+### Uso
+
+```typescript
+import { useIsMobile } from '@/app/prototipos/_shared';
+
+const MyComponent = () => {
+  const isMobile = useIsMobile(); // true si < 768px
+
+  return isMobile ? <MobileVersion /> : <DesktopVersion />;
+};
+```
+
+### Implementación
+
+```typescript
+'use client';
+
+import { useState, useEffect } from 'react';
+
+const MOBILE_BREAKPOINT = 768; // Tailwind md
+
+export function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = useState(false); // Default: desktop (SSR)
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+
+    checkIsMobile(); // Check on mount
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  return isMobile;
+}
+```
+
+### Cuándo Usar
+
+| Situación | Solución |
+|-----------|----------|
+| Solo estilos diferentes | CSS media queries / Tailwind responsive |
+| Versión diferente de componente | `useIsMobile` hook |
+| Lógica condicional por dispositivo | `useIsMobile` hook |
+
+### Consideraciones SSR
+
+- Default a `false` (desktop) en el servidor
+- Se actualiza en cliente después del mount
+- Evita hydration mismatch
+
+---
+
+## 14. Patrón de Config Responsivo por Versión
+
+### Problema
+Algunas veces necesitas mostrar diferentes versiones de un componente según el dispositivo, no solo cambiar estilos CSS.
+
+### Solución
+
+```typescript
+const isMobile = useIsMobile();
+
+// Quiz: V4 (bottom sheet) mobile, V5 (modal) desktop
+const quizConfig = {
+  layoutVersion: isMobile ? 4 : 5,
+  // ... resto igual
+};
+
+<HelpQuiz config={quizConfig} />
+```
+
+### Ejemplos de Uso
+
+| Componente | Mobile | Desktop | Razón |
+|------------|--------|---------|-------|
+| Quiz Layout | V4 (Bottom Sheet) | V5 (Modal) | UX nativa en mobile |
+| Settings | Drawer | Modal | Espacio disponible |
+| Filtros | Drawer | Sidebar | Navegación táctil |
+
+### Anti-patrón
+
+```typescript
+// ❌ INCORRECTO: Renderizar ambos y ocultar con CSS
+<div className="hidden md:block">
+  <DesktopQuiz />
+</div>
+<div className="md:hidden">
+  <MobileQuiz />
+</div>
+
+// ✅ CORRECTO: Un solo componente con config dinámico
+const config = { layoutVersion: isMobile ? 4 : 5 };
+<Quiz config={config} />
+```
+
+---
+
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-22 | Versión inicial - Patrones estandarizados |
@@ -727,3 +831,4 @@ Al agregar shortcuts a una página preview:
 | 1.3 | 2025-12-22 | Reglas ortográficas en español (UI) |
 | 1.4 | 2025-12-22 | Agregado: Floating Action Bar, Links entre secciones |
 | 1.5 | 2025-12-23 | Agregado: Patrón de Keyboard Shortcuts estandarizado |
+| 1.6 | 2025-12-23 | Agregado: Hook useIsMobile, Config responsivo por versión |

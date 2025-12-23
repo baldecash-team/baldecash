@@ -24,25 +24,25 @@ const usageCardOptions: UsageCardOption[] = [
     value: 'estudios',
     label: 'Para estudiar',
     icon: <GraduationCap className="w-8 h-8" />,
-    description: 'Ideal para clases y tareas',
+    description: 'Clases online, investigación y proyectos',
   },
   {
     value: 'diseño',
     label: 'Para crear',
     icon: <Palette className="w-8 h-8" />,
-    description: 'Diseño y contenido',
+    description: 'Diseño gráfico, video y fotografía',
   },
   {
     value: 'oficina',
     label: 'Para trabajar',
     icon: <Briefcase className="w-8 h-8" />,
-    description: 'Productividad y oficina',
+    description: 'Excel, reuniones y multitarea',
   },
   {
     value: 'gaming',
     label: 'Para jugar',
     icon: <Gamepad2 className="w-8 h-8" />,
-    description: 'Gaming y entretenimiento',
+    description: 'Juegos, streaming y multimedia',
   },
 ];
 
@@ -105,7 +105,7 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
                     : 'border-2 border-[#4654CD]/20 bg-white hover:border-[#4654CD]/50 hover:shadow-sm'
                 }`}
               >
-                <CardBody className="p-4 flex flex-col items-center text-center gap-2">
+                <CardBody className="p-4 flex flex-col items-start text-left gap-2">
                   {/* Icon */}
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${

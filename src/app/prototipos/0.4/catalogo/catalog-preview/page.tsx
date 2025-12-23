@@ -43,6 +43,9 @@ import {
   defaultComparisonState,
   ComparisonProduct,
 } from '../../comparador/types/comparator';
+import { HelpQuiz } from '../../quiz/components/quiz';
+import { HelpCircle } from 'lucide-react';
+import { useIsMobile } from '@/app/prototipos/_shared';
 
 // URL del detalle de producto
 const detailUrl = '/prototipos/0.4/producto/detail-preview/?infoHeader=1&gallery=1&tabs=1&specs=1&pricing=1&cronograma=1&similar=1&limitations=1&certifications=1';
@@ -145,6 +148,19 @@ function CatalogPreviewContent() {
   const [compareList, setCompareList] = useState<string[]>([]);
   const [isComparatorOpen, setIsComparatorOpen] = useState(false);
   const [comparisonState, setComparisonState] = useState<ComparisonState>(defaultComparisonState);
+
+  // Quiz state
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  // Quiz config - V4 (bottom sheet) for mobile, V5 (clean modal) for desktop
+  const quizConfig = {
+    layoutVersion: (isMobile ? 4 : 5) as 4 | 5,
+    questionCount: 7 as const,
+    questionStyle: 1 as const,
+    resultsVersion: 1 as const,
+    focusVersion: 1 as const,
+  };
 
   // Scroll detection for "scroll to top" button
   useEffect(() => {
@@ -501,6 +517,32 @@ function CatalogPreviewContent() {
                 ))}
               </div>
             </section>
+
+            {/* Quiz CTA en Empty State */}
+            <section className="mt-8 px-4">
+              <div className="bg-gradient-to-r from-[#4654CD]/5 to-[#4654CD]/10 rounded-2xl p-6 border border-[#4654CD]/20">
+                <div className="flex flex-col md:flex-row items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-[#4654CD] flex items-center justify-center flex-shrink-0">
+                    <HelpCircle className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-lg font-semibold text-neutral-800 mb-1">
+                      ¿No encuentras lo que buscas?
+                    </h3>
+                    <p className="text-sm text-neutral-600">
+                      Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
+                    </p>
+                  </div>
+                  <Button
+                    className="bg-[#4654CD] text-white font-medium cursor-pointer hover:bg-[#3a47b3] transition-colors"
+                    onPress={() => setIsQuizOpen(true)}
+                    startContent={<HelpCircle className="w-4 h-4" />}
+                  >
+                    Iniciar asistente
+                  </Button>
+                </div>
+              </div>
+            </section>
           </div>
         )}
       </CatalogLayout>
@@ -572,6 +614,28 @@ function CatalogPreviewContent() {
         />
       )}
 
+      {/* Quiz FAB - Bottom Left */}
+      <div className="fixed bottom-6 left-6 z-[100]">
+        <Button
+          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-4"
+          onPress={() => setIsQuizOpen(true)}
+        >
+          <HelpCircle className="w-5 h-5" />
+          <span className="hidden sm:inline">¿Necesitas ayuda?</span>
+        </Button>
+      </div>
+
+      {/* Help Quiz Modal */}
+      <HelpQuiz
+        config={quizConfig}
+        isOpen={isQuizOpen}
+        onClose={() => setIsQuizOpen(false)}
+        onComplete={(results) => {
+          console.log('Quiz completed:', results);
+          setIsQuizOpen(false);
+        }}
+      />
+
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
         {/* Scroll to Top Button - appears on scroll */}
@@ -612,9 +676,9 @@ function CatalogPreviewContent() {
         </Button>
       </div>
 
-      {/* Current Config Badge */}
+      {/* Current Config Badge - positioned above the quiz FAB */}
       {showConfigBadge && (
-        <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
+        <div className="fixed bottom-20 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200 max-w-md">
           <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
           <p className="text-xs font-mono text-neutral-700">
             Layout: V{config.layoutVersion} | Marca: V{config.brandFilterVersion} | Filtros: V{config.technicalFiltersVersion} | Card: V{config.cardVersion} | Tags: V{config.tagDisplayVersion} | Skeleton: V{config.skeletonVersion} | LoadMore: V{config.loadMoreVersion} | Gallery: V{config.imageGalleryVersion} | Size: V{config.gallerySizeVersion} | Precio: {config.pricingMode} ({config.defaultTerm}m, {config.defaultInitial}%)

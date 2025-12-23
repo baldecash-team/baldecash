@@ -3,21 +3,23 @@
 /**
  * Quiz Preview Page - BaldeCash v0.4
  *
- * Página de preview para el Quiz de Ayuda
- * con controles de configuración A/B.
+ * Pagina de preview para el Quiz de Ayuda
+ * con controles de configuracion A/B.
  *
- * Versiones preferidas consolidadas de 0.3:
- * - B.98: Layout V1 (modal full screen mobile)
- * - B.99: 7 preguntas
- * - B.100: Question Style V1 (chips/pills)
- * - B.101: Results V1 (categoría + cards catálogo)
- * - B.102: Focus V1 (solo por uso)
+ * Query params:
+ * - layout: 1-6
+ * - questions: 3, 5, 7
+ * - style: 1-6
+ * - results: 1-6
+ * - focus: 1-3
+ *
+ * Ejemplo: /prototipos/0.4/quiz?layout=1&questions=7&style=1&results=1&focus=1
  */
 
-import { useState, useCallback } from 'react';
-import { Button } from '@nextui-org/react';
+import { useState, useCallback, Suspense } from 'react';
+import { Button, Spinner } from '@nextui-org/react';
 import { HelpCircle, Play, ArrowLeft, Settings, Code, Layers, Keyboard, Navigation } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Components
@@ -28,9 +30,27 @@ import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
 // Types
 import { QuizConfig, defaultQuizConfig, versionDescriptions } from './types/quiz';
 
-export default function QuizPreviewPage() {
+function QuizPreviewContent() {
   const router = useRouter();
-  const [config, setConfig] = useState<QuizConfig>(defaultQuizConfig);
+  const searchParams = useSearchParams();
+
+  // Config from URL params
+  const [config, setConfig] = useState<QuizConfig>(() => {
+    const layout = parseInt(searchParams.get('layout') || '1');
+    const questions = parseInt(searchParams.get('questions') || '7');
+    const style = parseInt(searchParams.get('style') || '1');
+    const results = parseInt(searchParams.get('results') || '1');
+    const focus = parseInt(searchParams.get('focus') || '1');
+
+    return {
+      layoutVersion: (layout >= 1 && layout <= 6 ? layout : 1) as 1 | 2 | 3 | 4 | 5 | 6,
+      questionCount: ([3, 5, 7].includes(questions) ? questions : 7) as 3 | 5 | 7,
+      questionStyle: (style >= 1 && style <= 6 ? style : 1) as 1 | 2 | 3 | 4 | 5 | 6,
+      resultsVersion: (results >= 1 && results <= 6 ? results : 1) as 1 | 2 | 3 | 4 | 5 | 6,
+      focusVersion: (focus >= 1 && focus <= 3 ? focus : 1) as 1 | 2 | 3,
+    };
+  });
+
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
@@ -40,6 +60,18 @@ export default function QuizPreviewPage() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2000);
   }, []);
+
+  // Update URL when config changes
+  const updateConfig = useCallback((newConfig: QuizConfig) => {
+    setConfig(newConfig);
+    const params = new URLSearchParams();
+    params.set('layout', newConfig.layoutVersion.toString());
+    params.set('questions', newConfig.questionCount.toString());
+    params.set('style', newConfig.questionStyle.toString());
+    params.set('results', newConfig.resultsVersion.toString());
+    params.set('focus', newConfig.focusVersion.toString());
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [router]);
 
   const componentLabels: Record<string, string> = {
     layout: 'Layout',
@@ -65,7 +97,7 @@ export default function QuizPreviewPage() {
           showToast(`${componentLabels[componentId]} solo tiene 3 versiones`, 'info');
           return;
         }
-        setConfig(prev => ({ ...prev, [configKey]: version }));
+        updateConfig({ ...config, [configKey]: version });
         showToast(`${componentLabels[componentId]}: V${version}`, 'version');
       }
     },
@@ -129,7 +161,7 @@ export default function QuizPreviewPage() {
           isIconOnly
           className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
           onPress={() => setIsSettingsOpen(true)}
-          aria-label="Configuración"
+          aria-label="Configuracion"
         >
           <Settings className="w-5 h-5" />
         </Button>
@@ -145,7 +177,7 @@ export default function QuizPreviewPage() {
           isIconOnly
           className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
           onPress={() => setShowConfigBadge(!showConfigBadge)}
-          aria-label="Mostrar configuración"
+          aria-label="Mostrar configuracion"
         >
           <Code className="w-5 h-5 text-neutral-600" />
         </Button>
@@ -153,7 +185,7 @@ export default function QuizPreviewPage() {
           isIconOnly
           className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
           onPress={() => router.push('/prototipos/0.4')}
-          aria-label="Volver al índice"
+          aria-label="Volver al indice"
         >
           <ArrowLeft className="w-5 h-5 text-neutral-600" />
         </Button>
@@ -162,7 +194,7 @@ export default function QuizPreviewPage() {
       {/* Current Config Badge */}
       {showConfigBadge && (
         <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
-          <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+          <p className="text-xs text-neutral-500 mb-1">Configuracion actual:</p>
           <p className="text-xs font-mono text-neutral-700">
             Layout: V{config.layoutVersion} | Preguntas: {config.questionCount} | Estilo: V{config.questionStyle} | Resultados: V{config.resultsVersion} | Enfoque: V{config.focusVersion}
           </p>
@@ -192,7 +224,7 @@ export default function QuizPreviewPage() {
             </div>
             <div>
               <h2 className="font-semibold text-neutral-800">
-                Configuración Actual
+                Configuracion Actual
               </h2>
               <p className="text-sm text-neutral-500">
                 Ajusta las versiones para probar diferentes combinaciones
@@ -274,7 +306,7 @@ export default function QuizPreviewPage() {
                 ? 'border-[#4654CD] shadow-lg'
                 : 'border-neutral-200 hover:border-[#4654CD]/50'
             }`}
-            onClick={() => setConfig({ ...config, layoutVersion: 1 })}
+            onClick={() => updateConfig({ ...config, layoutVersion: 1 })}
           >
             <div className="aspect-video bg-neutral-100 rounded-lg mb-3 flex items-center justify-center">
               <div className="w-3/4 h-3/4 bg-white rounded-lg shadow-md border border-neutral-200" />
@@ -294,7 +326,7 @@ export default function QuizPreviewPage() {
                 ? 'border-[#4654CD] shadow-lg'
                 : 'border-neutral-200 hover:border-[#4654CD]/50'
             }`}
-            onClick={() => setConfig({ ...config, layoutVersion: 2 })}
+            onClick={() => updateConfig({ ...config, layoutVersion: 2 })}
           >
             <div className="aspect-video bg-neutral-100 rounded-lg mb-3 flex items-center justify-end pr-2">
               <div className="w-1/3 h-full bg-white rounded-lg shadow-md border border-neutral-200" />
@@ -314,7 +346,7 @@ export default function QuizPreviewPage() {
                 ? 'border-[#4654CD] shadow-lg'
                 : 'border-neutral-200 hover:border-[#4654CD]/50'
             }`}
-            onClick={() => setConfig({ ...config, layoutVersion: 3 })}
+            onClick={() => updateConfig({ ...config, layoutVersion: 3 })}
           >
             <div className="aspect-video bg-neutral-100 rounded-lg mb-3 flex flex-col">
               <div className="h-3 bg-white border-b border-neutral-200" />
@@ -323,10 +355,10 @@ export default function QuizPreviewPage() {
               </div>
             </div>
             <h4 className="font-semibold text-neutral-800 text-sm mb-1">
-              V3 - Página Dedicada
+              V3 - Pagina Dedicada
             </h4>
             <p className="text-xs text-neutral-500">
-              Página completa para el quiz
+              Pagina completa para el quiz
             </p>
           </div>
         </div>
@@ -339,7 +371,7 @@ export default function QuizPreviewPage() {
             startContent={<Play className="w-5 h-5" />}
             onPress={() => setIsQuizOpen(true)}
           >
-            Probar Quiz con esta Configuración
+            Probar Quiz con esta Configuracion
           </Button>
         </div>
       </main>
@@ -349,7 +381,7 @@ export default function QuizPreviewPage() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         config={config}
-        onConfigChange={setConfig}
+        onConfigChange={updateConfig}
       />
 
       {/* Quiz */}
@@ -362,5 +394,21 @@ export default function QuizPreviewPage() {
         }}
       />
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <Spinner size="lg" color="primary" />
+    </div>
+  );
+}
+
+export default function QuizPreviewPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <QuizPreviewContent />
+    </Suspense>
   );
 }

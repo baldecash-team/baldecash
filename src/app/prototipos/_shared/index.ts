@@ -6,6 +6,7 @@ export { usePrototypeConfig } from './hooks/usePrototypeConfig';
 export { useSectionSettings, generateSettingsGroups } from './hooks/useSectionSettings';
 export { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 export type { ShortcutConfig, ComponentVersion as ShortcutComponentVersion } from './hooks/useKeyboardShortcuts';
+export { useIsMobile } from './hooks/useIsMobile';
 
 // Components
 export { SettingsButton } from './components/SettingsButton';
