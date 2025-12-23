@@ -38,14 +38,14 @@ export interface ProductDetailConfig {
 }
 
 export const defaultDetailConfig: ProductDetailConfig = {
-  infoHeaderVersion: 1,
+  infoHeaderVersion: 3,
   galleryVersion: 1,
   tabsVersion: 1,
-  specsVersion: 1,
-  pricingVersion: 1,
-  cronogramaVersion: 1,
-  similarProductsVersion: 1,
-  limitationsVersion: 1,
+  specsVersion: 2,
+  pricingVersion: 4,
+  cronogramaVersion: 2,
+  similarProductsVersion: 2,
+  limitationsVersion: 6,
   certificationsVersion: 1,
 };
 

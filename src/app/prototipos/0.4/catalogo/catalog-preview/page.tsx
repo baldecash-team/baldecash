@@ -47,8 +47,21 @@ import { HelpQuiz } from '../../quiz/components/quiz';
 import { HelpCircle } from 'lucide-react';
 import { useIsMobile } from '@/app/prototipos/_shared';
 
-// URL del detalle de producto
-const detailUrl = '/prototipos/0.4/producto/detail-preview/?infoHeader=1&gallery=1&tabs=1&specs=1&pricing=1&cronograma=1&similar=1&limitations=1&certifications=1';
+// URL del wizard de solicitud (se construye dinámicamente con los params)
+const getWizardUrl = (config: CatalogLayoutConfig) => {
+  const params = new URLSearchParams();
+  // Mapear versiones del catálogo al wizard
+  params.set('input', config.cardVersion.toString());
+  params.set('options', config.cardVersion.toString());
+  params.set('progress', config.cardVersion.toString());
+  params.set('navigation', config.cardVersion.toString());
+  return `/prototipos/0.4/wizard-solicitud/wizard-preview?${params.toString()}`;
+};
+
+// URL del detalle del producto
+const getDetailUrl = (productSlug: string) => {
+  return `/prototipos/0.4/producto/${productSlug}`;
+};
 
 // Configuración del comparador (basada en la URL especificada)
 const comparatorConfig: ComparatorConfig = {
@@ -428,7 +441,7 @@ function CatalogPreviewContent() {
                     console.log('Toggle favorite:', product.id);
                   }}
                   onViewDetail={() => {
-                    router.push('/prototipos/0.4/producto/detail-preview/?infoHeader=1&gallery=1&tabs=1&specs=1&pricing=1&cronograma=1&similar=1&limitations=1&certifications=1');
+                    router.push(getDetailUrl(product.id));
                   }}
                   onCompare={() => handleToggleCompare(product.id)}
                   isCompareSelected={compareList.includes(product.id)}
@@ -488,7 +501,7 @@ function CatalogPreviewContent() {
                   <div
                     key={product.id}
                     className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-md hover:border-[#4654CD]/30 transition-all cursor-pointer"
-                    onClick={() => router.push(detailUrl)}
+                    onClick={() => router.push(getDetailUrl(product.id.toString()))}
                   >
                     <div className="flex gap-4">
                       <div className="w-20 h-20 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -513,7 +526,7 @@ function CatalogPreviewContent() {
                     <div className="mt-4 pt-3 border-t border-neutral-100">
                       <button
                         className="flex items-center gap-1 text-sm font-medium text-[#4654CD] hover:text-[#3a47b3] transition-colors cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); router.push(detailUrl); }}
+                        onClick={(e) => { e.stopPropagation(); router.push(getDetailUrl(product.id.toString())); }}
                       >
                         Ver detalles
                         <ArrowRight className="w-4 h-4" />

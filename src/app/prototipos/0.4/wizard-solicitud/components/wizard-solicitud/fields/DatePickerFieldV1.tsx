@@ -127,7 +127,7 @@ export const DatePickerFieldV1: React.FC<DatePickerFieldV1Props> = ({
             isInvalid={!!error}
             errorMessage={error}
             isDisabled={isLoading}
-            startContent={<Calendar className="w-4 h-4 text-neutral-400" />}
+            startContent={<Calendar className="w-4 h-4 text-neutral-400 mr-1" />}
             endContent={isLoading ? <Loader2 className="w-4 h-4 text-[#4654CD] animate-spin" /> : undefined}
             classNames={{
               inputWrapper: `bg-neutral-50 border border-neutral-300 hover:border-[#4654CD] focus-within:border-[#4654CD] cursor-pointer shadow-none ${isOpen ? 'border-[#4654CD] ring-2 ring-[#4654CD]/20' : ''}`,
@@ -222,7 +222,7 @@ export const DatePickerFieldV1: React.FC<DatePickerFieldV1Props> = ({
                 placeholder=""
                 isInvalid={!!error}
                 isDisabled={isLoading}
-                startContent={<Calendar className="w-4 h-4 text-neutral-400" />}
+                startContent={<Calendar className="w-4 h-4 text-neutral-400 mr-1" />}
                 endContent={isLoading ? <Loader2 className="w-4 h-4 text-[#4654CD] animate-spin" /> : undefined}
                 classNames={{
                   inputWrapper: `bg-white border border-neutral-300 hover:border-[#4654CD] focus-within:border-[#4654CD] cursor-pointer shadow-none pt-4 ${isOpen ? 'border-[#4654CD] ring-2 ring-[#4654CD]/20' : ''}`,

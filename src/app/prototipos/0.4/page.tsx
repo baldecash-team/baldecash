@@ -1,20 +1,55 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardBody } from "@nextui-org/react";
-import { AlertCircle, Layers, Rocket, ArrowLeft, CheckCircle, Keyboard, Command, SearchX } from "lucide-react";
+import { Card, CardBody, Switch } from "@nextui-org/react";
+import { AlertCircle, Layers, Rocket, ArrowLeft, CheckCircle, Keyboard, Command, SearchX, Presentation, Settings2 } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
 
 const version = getVersionByNumber("0.4")!;
 
-// Custom paths for sections with predefined variations
-const customPaths: Record<string, string> = {
-  catalogo: "/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&pricingoptions=false",
-  comparador: "/prototipos/0.4/comparador/comparator-preview/?layout=3&access=1&maxproducts=4&fields=2&highlight=1&pricediff=4&diffhighlight=5&cardstyle=3",
-  estados: "/prototipos/0.4/catalogo/empty-preview/?illustration=1&actions=1",
-  upsell: "/prototipos/0.4/upsell/upsell-preview/?accessoryIntroVersion=3&insuranceIntroVersion=4&planComparisonVersion=4",
+// Presentation mode paths (optimized versions with mode=clean)
+// Versiones seleccionadas documentadas en CLAUDE.md
+const presentationPaths: Record<string, string> = {
+  // Hero: Navbar V6, Hero V2, Social V1+V3, How V5, CTA V4, FAQ V2, Footer V2+V3
+  hero: "/prototipos/0.4/hero/hero-preview?navbar=6&hero=2&social=1&how=5&cta=4&faq=2&footer=2&mode=clean",
+  // Catalogo: Layout V4 desktop/V3 mobile, Brand V3, Card V6, TechFilters V3, 4 cols, Skeleton V2, LoadMore V3, Gallery V2, Size V3, Tags V1
+  catalogo: "/prototipos/0.4/catalogo/catalog-preview?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=2&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&pricingoptions=false&mode=clean",
+  // Detalle: Header V3, Gallery V1, Tabs V1, Specs V2, Pricing V4, Cronograma V2, Similar V2, Limitations V6, Certifications V1
+  detalle: "/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1&mode=clean",
+  // Comparador: Layout V1, Access V1, MaxProducts V3, Fields V2, Highlight V1, PriceDiff V4, DiffHighlight V5, CardStyle V3
+  comparador: "/prototipos/0.4/comparador/comparator-preview?layout=1&access=1&maxproducts=3&fields=2&highlight=1&pricediff=4&diffhighlight=5&cardstyle=3&mode=clean",
+  // Quiz: Layout V5 desktop / V4 mobile
+  quiz: "/prototipos/0.4/quiz/quiz-preview?layout=5&mode=clean",
+  // Estados vacios: Illustration V5, Actions V6
+  estados: "/prototipos/0.4/catalogo/empty-preview?illustration=5&actions=6&mode=clean",
+  // Wizard: Input V4, Options V2, Progress V1, Navigation V1
+  'wizard-solicitud': "/prototipos/0.4/wizard-solicitud/wizard-preview?input=4&options=2&progress=1&navigation=1&mode=clean",
+  // Upsell: Modulo separado
+  upsell: "/prototipos/0.4/upsell/upsell-preview?mode=clean",
+  // Aprobacion: Celebration V1, Confetti V1, Sound V2, Summary V1, Time V3, Share V6, Referrals V1
+  aprobacion: "/prototipos/0.4/resultado/aprobado-preview?celebration=1&confetti=1&sound=2&summary=1&time=3&share=6&referrals=1&mode=clean",
+  // Rechazo/Pendiente: Mismo que aprobacion pero estado diferente
+  rechazo: "/prototipos/0.4/resultado/rechazado-preview?mode=clean",
+  // Convenio: Navbar V3 con CTA V4, Hero V2, Benefits V1, Testimonials V1, FAQ V2, CTA V6, Footer V2+V3
+  convenio: "/prototipos/0.4/convenio/convenio-preview?navbar=3&hero=2&benefits=1&testimonials=1&faq=2&cta=6&footer=2&mode=clean",
+};
+
+// Configuration mode paths (V1 defaults, no mode=clean)
+const configPaths: Record<string, string> = {
+  hero: "/prototipos/0.4/hero/hero-preview?navbar=1&hero=1&social=1&how=1&cta=1&faq=1&footer=1",
+  catalogo: "/prototipos/0.4/catalogo/catalog-preview?layout=1&brand=1&card=1&techfilters=1&cols=3&skeleton=1&duration=default&loadmore=1&gallery=1&gallerysize=3&tags=1&pricingoptions=false",
+  detalle: "/prototipos/0.4/producto/detail-preview?infoHeader=1&gallery=1&tabs=1&specs=1&pricing=1&cronograma=1&similar=1&limitations=1&certifications=1",
+  comparador: "/prototipos/0.4/comparador/comparator-preview?layout=1&access=1&maxproducts=4&fields=1&highlight=1&pricediff=1&diffhighlight=1&cardstyle=1",
+  quiz: "/prototipos/0.4/quiz/quiz-preview",
+  estados: "/prototipos/0.4/catalogo/empty-preview?illustration=1&actions=1",
+  'wizard-solicitud': "/prototipos/0.4/wizard-solicitud/wizard-preview?input=1&options=1&progress=1&navigation=1",
+  upsell: "/prototipos/0.4/upsell/upsell-preview",
+  aprobacion: "/prototipos/0.4/resultado/aprobado-preview",
+  rechazo: "/prototipos/0.4/resultado/rechazado-preview",
+  convenio: "/prototipos/0.4/convenio/convenio-preview?navbar=1&hero=1&benefits=1&testimonials=1&faq=1&cta=1&footer=1",
 };
 
 const sectionIcons: Record<string, React.ElementType> = {
@@ -39,9 +74,11 @@ const statusStyles = {
 
 export default function Version04Page() {
   const router = useRouter();
+  const [isPresentationMode, setIsPresentationMode] = useState(true);
 
   const getSectionPath = (section: { id: string; path: string }) => {
-    return customPaths[section.id] || section.path;
+    const paths = isPresentationMode ? presentationPaths : configPaths;
+    return paths[section.id] || section.path;
   };
 
   return (
@@ -58,6 +95,50 @@ export default function Version04Page() {
           <h1 className="text-4xl font-black text-neutral-900 mb-4">{version.title}</h1>
           <p className="text-lg text-neutral-500 max-w-2xl mx-auto">{version.description}</p>
         </header>
+
+        {/* Mode Switch */}
+        <section className="max-w-4xl mx-auto mb-8">
+          <div className="bg-white rounded-2xl p-4 border border-neutral-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isPresentationMode ? (
+                  <div className="w-10 h-10 rounded-xl bg-[#4654CD] flex items-center justify-center">
+                    <Presentation className="w-5 h-5 text-white" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center">
+                    <Settings2 className="w-5 h-5 text-neutral-600" />
+                  </div>
+                )}
+                <div>
+                  <h3 className="font-semibold text-neutral-900">
+                    {isPresentationMode ? "Modo Presentación" : "Modo Configuración"}
+                  </h3>
+                  <p className="text-sm text-neutral-500">
+                    {isPresentationMode
+                      ? "Versiones optimizadas sin controles de configuración"
+                      : "Todas las versiones V1 con controles visibles"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-medium ${!isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
+                  Config
+                </span>
+                <Switch
+                  isSelected={isPresentationMode}
+                  onValueChange={setIsPresentationMode}
+                  classNames={{
+                    wrapper: "group-data-[selected=true]:bg-[#4654CD]",
+                  }}
+                />
+                <span className={`text-sm font-medium ${isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
+                  Presentación
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Progress Overview */}
         <section className="max-w-4xl mx-auto mb-12">

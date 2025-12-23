@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { WizardSolicitudConfig } from '../types/wizard-solicitud';
 
-type ComponentKey = 'wizardLayout' | 'progress' | 'navigation' | 'celebration' | 'input' | 'options' | 'upload' | 'header' | 'hero' | 'cta';
+type ComponentKey = 'wizardLayout' | 'progress' | 'navigation' | 'celebration' | 'input' | 'options' | 'upload' | 'header' | 'hero' | 'cta' | 'datePicker' | 'search';
 
 interface UseKeyboardShortcutsOptions {
   config: WizardSolicitudConfig;
@@ -32,6 +32,8 @@ const COMPONENT_ORDER: ComponentKey[] = [
   'input',
   'options',
   'upload',
+  'datePicker',
+  'search',
 ];
 
 const COMPONENT_CONFIG_MAP: Record<ComponentKey, keyof WizardSolicitudConfig> = {
@@ -45,6 +47,8 @@ const COMPONENT_CONFIG_MAP: Record<ComponentKey, keyof WizardSolicitudConfig> = 
   input: 'inputVersion',
   options: 'optionsVersion',
   upload: 'uploadVersion',
+  datePicker: 'datePickerVersion',
+  search: 'searchVersion',
 };
 
 const COMPONENT_LABELS: Record<ComponentKey, string> = {
@@ -58,6 +62,8 @@ const COMPONENT_LABELS: Record<ComponentKey, string> = {
   input: 'Input+Label (C1.1+C1.4)',
   options: 'Opciones (C1.13)',
   upload: 'Upload (C1.15)',
+  datePicker: 'DatePicker (C1.18)',
+  search: 'SearchField (C1.xx)',
 };
 
 export function useKeyboardShortcuts({

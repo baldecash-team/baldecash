@@ -126,7 +126,7 @@ export const DatePickerFieldV5: React.FC<DatePickerFieldV5Props> = ({
             }}
             onFocus={() => setShowSuggestions(true)}
             placeholder="Escribe tu fecha: ej. 15 marzo 2000"
-            startContent={<Search className="w-4 h-4 text-neutral-400" />}
+            startContent={<Search className="w-4 h-4 text-neutral-400 mr-1" />}
             classNames={{
               inputWrapper: 'bg-white border border-neutral-200 shadow-none',
               input: 'text-neutral-800',
@@ -228,15 +228,27 @@ export const DatePickerFieldV5: React.FC<DatePickerFieldV5Props> = ({
     );
   }
 
-  // Default: Label above
+  // Default V5: Label al lado del input (horizontal)
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5">
-        <LabelComponent field={field} hasError={!!error} />
-        {field.helpText && <HelpTooltip content={field.helpText} title={field.label} />}
+    <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+      {/* Label section */}
+      <div className="sm:w-40 sm:pt-4 flex-shrink-0">
+        <div className="flex items-center gap-1.5">
+          <label className={`text-sm font-medium ${error ? 'text-red-600' : 'text-neutral-700'}`}>
+            {field.label}
+            {field.required && <span className="text-red-500 ml-0.5">*</span>}
+          </label>
+          {field.helpText && <HelpTooltip content={field.helpText} title={field.label} />}
+        </div>
+        {field.description && (
+          <p className="text-xs text-neutral-500 mt-0.5">{field.description}</p>
+        )}
       </div>
-      {searchContent}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {/* Input section */}
+      <div className="flex-1">
+        {searchContent}
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
     </div>
   );
 };

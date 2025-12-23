@@ -15,7 +15,7 @@ import {
 import { Zap, Check } from 'lucide-react';
 import type { WizardSolicitudConfig } from '../../types/wizard-solicitud';
 
-type ComponentKey = 'wizardLayout' | 'progress' | 'navigation' | 'celebration' | 'input' | 'options' | 'upload' | 'header' | 'hero' | 'cta';
+type ComponentKey = 'wizardLayout' | 'progress' | 'navigation' | 'celebration' | 'input' | 'options' | 'upload' | 'header' | 'hero' | 'cta' | 'datePicker' | 'search';
 
 interface QuickComponentSwitcherProps {
   isOpen: boolean;
@@ -37,6 +37,8 @@ const COMPONENT_CONFIG_MAP: Record<ComponentKey, keyof WizardSolicitudConfig> = 
   input: 'inputVersion',
   options: 'optionsVersion',
   upload: 'uploadVersion',
+  datePicker: 'datePickerVersion',
+  search: 'searchVersion',
 };
 
 const COMPONENT_GROUPS = [
@@ -66,6 +68,8 @@ const COMPONENT_GROUPS = [
       { key: 'input' as ComponentKey, label: 'C1.1+C1.4 - Input (Label integrado)' },
       { key: 'options' as ComponentKey, label: 'C1.13 - Opciones' },
       { key: 'upload' as ComponentKey, label: 'C1.15 - Upload' },
+      { key: 'datePicker' as ComponentKey, label: 'C1.18 - DatePicker' },
+      { key: 'search' as ComponentKey, label: 'C1.xx - SearchField' },
     ],
   },
 ];
