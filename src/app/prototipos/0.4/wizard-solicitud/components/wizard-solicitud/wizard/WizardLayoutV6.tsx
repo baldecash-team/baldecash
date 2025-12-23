@@ -87,7 +87,7 @@ export const WizardLayoutV6: React.FC<WizardLayoutV6Props> = ({
       </div>
 
       {/* Main content */}
-      <main className="flex-1 py-8 px-4">
+      <main className="flex-1 py-8 px-4 overflow-hidden">
         <div className="max-w-lg mx-auto">
           <div className="mb-6 text-center">
             <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">
