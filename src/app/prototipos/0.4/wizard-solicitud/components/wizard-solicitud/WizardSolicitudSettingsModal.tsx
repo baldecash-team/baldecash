@@ -11,7 +11,7 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, FileText, Image, MousePointerClick, Layout, BarChart3, Navigation2, PartyPopper, FormInput, ListChecks, Upload, Calendar, CheckCircle, AlertCircle, HelpCircle, BookOpen, ToggleLeft, Link2, Check } from 'lucide-react';
+import { Settings, RotateCcw, FileText, Image, MousePointerClick, Layout, BarChart3, Navigation2, PartyPopper, FormInput, ListChecks, Upload, Calendar, CheckCircle, AlertCircle, HelpCircle, BookOpen, ToggleLeft, Link2, Check, Search } from 'lucide-react';
 import { CustomSwitch } from '@/app/prototipos/_shared/components/CustomSwitch';
 import type { WizardSolicitudConfig } from '../../types/wizard-solicitud';
 import { defaultWizardSolicitudConfig, versionDescriptions } from '../../types/wizard-solicitud';
@@ -49,6 +49,8 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
     params.set('navigation', config.navigationVersion.toString());
     params.set('stepLayout', config.stepLayoutVersion.toString());
     params.set('input', config.inputVersion.toString());
+    params.set('datePicker', config.datePickerVersion.toString());
+    params.set('search', config.searchVersion.toString());
     const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
@@ -482,6 +484,40 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
                       description: 'text-xs text-neutral-500',
                     }}
                     description={versionDescriptions.datePicker[version]}
+                  >
+                    Versión {version}
+                  </Radio>
+                ))}
+              </RadioGroup>
+            </div>
+
+            {/* SearchField */}
+            <div className="mb-4 pt-4 border-t border-neutral-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Search className="w-4 h-4 text-[#4654CD]" />
+                <h4 className="font-medium text-neutral-800">Campo de Búsqueda</h4>
+              </div>
+              <RadioGroup
+                value={String(config.searchVersion)}
+                onValueChange={(val) => updateConfig('searchVersion', Number(val))}
+                classNames={{ wrapper: 'gap-2' }}
+              >
+                {versionOptions.map((version) => (
+                  <Radio
+                    key={version}
+                    value={String(version)}
+                    classNames={{
+                      base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                        ${config.searchVersion === version
+                          ? 'border-[#4654CD] bg-[#4654CD]/5'
+                          : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        }`,
+                      wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                      labelWrapper: 'ml-2',
+                      label: 'text-sm',
+                      description: 'text-xs text-neutral-500',
+                    }}
+                    description={versionDescriptions.search[version]}
                   >
                     Versión {version}
                   </Radio>

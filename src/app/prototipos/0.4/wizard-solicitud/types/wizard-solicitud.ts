@@ -29,6 +29,7 @@ export interface WizardSolicitudConfig {
   optionsVersion: 1 | 2 | 3 | 4 | 5 | 6;       // C1.13 - Opciones (cards)
   uploadVersion: 1 | 2 | 3 | 4 | 5 | 6;        // C1.15 - Upload
   datePickerVersion: 1 | 2 | 3 | 4 | 5 | 6;    // C1.18 - DatePicker
+  searchVersion: 1 | 2 | 3 | 4 | 5 | 6;        // C1.xx - SearchField
   previewVersion: 1 | 2 | 3 | 4 | 5 | 6;       // C1.16 - Preview
   uploadProgressVersion: 1 | 2 | 3 | 4 | 5 | 6; // C1.17 - Progreso upload
   validationVersion: 1 | 2 | 3 | 4 | 5 | 6;    // C1.21 - Validacion
@@ -64,6 +65,7 @@ export const defaultWizardSolicitudConfig: WizardSolicitudConfig = {
   optionsVersion: 1,         // C1.13 - Cards (si <= 6 opciones)
   uploadVersion: 1,          // C1.15 - Drag & drop + boton
   datePickerVersion: 1,      // C1.18 - Calendario clasico popup
+  searchVersion: 1,          // C1.xx - SearchField con búsqueda
   previewVersion: 1,         // C1.16 - [CORREGIR]
   uploadProgressVersion: 1,  // C1.17 - [CORREGIR]
   validationVersion: 1,      // C1.21 - Errores arriba
@@ -98,7 +100,7 @@ export interface WizardSolicitudStep {
 // TIPOS DE CAMPOS
 // ============================================
 
-export type FieldType = 'text' | 'email' | 'tel' | 'number' | 'select' | 'radio' | 'checkbox' | 'upload' | 'date';
+export type FieldType = 'text' | 'email' | 'tel' | 'number' | 'select' | 'radio' | 'checkbox' | 'upload' | 'date' | 'search';
 
 export interface FieldConfig {
   name: string;
@@ -313,5 +315,13 @@ export const versionDescriptions = {
     4: 'Carrusel de ejemplos',
     5: 'Drawer lateral con ejemplos',
     6: 'Lightbox fullscreen',
+  },
+  search: {
+    1: 'Dropdown clásico con búsqueda',
+    2: 'Underline minimalista',
+    3: 'Floating label Material Design',
+    4: 'Inline/compacto horizontal',
+    5: 'Pill/chip moderno',
+    6: 'Card/modal fullscreen mobile',
   },
 };

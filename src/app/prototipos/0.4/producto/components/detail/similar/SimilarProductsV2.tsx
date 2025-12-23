@@ -154,13 +154,22 @@ export const SimilarProductsV2: React.FC<SimilarProductsProps> = ({ products, cu
                   ))}
                 </div>
 
-                {/* CTA */}
+                {/* CTA - Dynamic based on product differences */}
                 <button className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer ${
                   isCheaper
                     ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                     : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
                 }`}>
-                  {isCheaper ? `Ahorra S/${Math.abs(product.quotaDifference)}/mes` : 'Ver detalles'}
+                  {isCheaper
+                    ? `Ahorra S/${Math.abs(product.quotaDifference)}/mes`
+                    : product.differentiators.some(d => d.toLowerCase().includes('procesador') || d.toLowerCase().includes('cpu') || d.toLowerCase().includes('ryzen') || d.toLowerCase().includes('intel'))
+                      ? 'Mejora tu procesador'
+                      : product.differentiators.some(d => d.toLowerCase().includes('ssd') || d.toLowerCase().includes('almacenamiento') || d.toLowerCase().includes('tb') || d.toLowerCase().includes('512'))
+                        ? 'Mejora tu almacenamiento'
+                        : product.differentiators.some(d => d.toLowerCase().includes('ram') || d.toLowerCase().includes('memoria') || d.toLowerCase().includes('16gb') || d.toLowerCase().includes('32gb'))
+                          ? 'Mejora tu RAM'
+                          : `+S/${Math.abs(product.quotaDifference)}/mes más`
+                  }
                 </button>
               </div>
             </div>

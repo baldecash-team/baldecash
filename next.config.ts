@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
-const isProd = process.env.NODE_ENV === "production";
+// Use NEXT_PUBLIC_BASE_PATH env var for GitHub Pages subdirectory deployment
+// Leave empty for custom domain (demo.baldecash.com)
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const nextConfig: NextConfig = {
   output: "export",
-  basePath: isProd ? "/baldecash" : "",
+  basePath: basePath,
   trailingSlash: true,
   images: {
     unoptimized: true,

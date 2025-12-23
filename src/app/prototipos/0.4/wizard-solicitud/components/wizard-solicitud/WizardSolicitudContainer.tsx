@@ -29,6 +29,10 @@ interface WizardSolicitudContainerProps {
   selectedProduct?: SelectedProduct;
   onComplete?: (data: Record<string, unknown>) => void;
   onSave?: (data: Record<string, unknown>) => void;
+  // Demo callbacks para preview
+  onAprobado?: () => void;
+  onRechazado?: () => void;
+  onRecibido?: () => void;
 }
 
 export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> = ({
@@ -36,6 +40,9 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
   selectedProduct = MOCK_PRODUCT,
   onComplete,
   onSave,
+  onAprobado,
+  onRechazado,
+  onRecibido,
 }) => {
   // Merge config con defaults
   const config = useMemo(
@@ -238,6 +245,9 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
               errors={state.errors}
               onFieldChange={handleFieldChange}
               selectedProduct={selectedProduct}
+              onAprobado={onAprobado}
+              onRechazado={onRechazado}
+              onRecibido={onRecibido}
             />
           </motion.div>
         </AnimatePresence>

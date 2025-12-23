@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * WizardNavigationV4 - Gradiente con progress bar integrado
- * Estilo fintech moderno con indicador de progreso
+ * WizardNavigationV4 - Progress bar integrado
+ * UI: Barra de progreso + botones con step counter
  */
 
 import React from 'react';
 import { Button, Spinner } from '@nextui-org/react';
-import { ArrowLeft, ArrowRight, Send, Shield, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface WizardNavigationV4Props {
@@ -41,15 +41,15 @@ export const WizardNavigationV4: React.FC<WizardNavigationV4Props> = ({
       {/* Progress bar animado */}
       <div className="h-1 bg-neutral-200">
         <motion.div
-          className="h-full bg-gradient-to-r from-[#4654CD] to-[#03DBD0]"
+          className="h-full bg-[#4654CD]"
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
         />
       </div>
 
-      {/* Navigation con gradiente sutil */}
-      <div className="bg-gradient-to-t from-white via-white to-neutral-50/80 backdrop-blur-sm border-t border-neutral-100 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+      {/* Navigation */}
+      <div className="bg-white/95 backdrop-blur-md border-t border-neutral-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         {/* Trust badge inline */}
         <div className="max-w-lg mx-auto px-4 pt-2">
           <div className="flex items-center justify-center gap-4 text-xs text-neutral-400">
@@ -66,11 +66,11 @@ export const WizardNavigationV4: React.FC<WizardNavigationV4Props> = ({
           <div className="max-w-lg mx-auto flex items-center gap-3">
             {canGoBack ? (
               <Button
-                variant="bordered"
+                variant="flat"
                 isDisabled={isSubmitting}
                 onPress={onBack}
                 startContent={<ArrowLeft className="w-4 h-4" />}
-                className="border-neutral-300 text-neutral-600 hover:border-[#4654CD] hover:text-[#4654CD]"
+                className="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium h-11 transition-all"
               >
                 Atras
               </Button>
@@ -82,10 +82,10 @@ export const WizardNavigationV4: React.FC<WizardNavigationV4Props> = ({
               size="lg"
               isDisabled={!canGoForward || isSubmitting}
               onPress={onNext}
-              className={`flex-1 font-bold text-white ${
+              className={`flex-1 font-bold h-12 text-white transition-all ${
                 isLastStep
-                  ? 'bg-gradient-to-r from-[#22c55e] to-[#16a34a]'
-                  : 'bg-gradient-to-r from-[#4654CD] to-[#5B68E3]'
+                  ? 'bg-[#22c55e] hover:bg-[#16a34a]'
+                  : 'bg-[#4654CD] hover:bg-[#3A47B8]'
               }`}
               endContent={
                 isSubmitting ? (
@@ -97,7 +97,7 @@ export const WizardNavigationV4: React.FC<WizardNavigationV4Props> = ({
                 )
               }
             >
-              {isSubmitting ? 'Enviando...' : isLastStep ? 'ENVIAR SOLICITUD' : 'CONTINUAR'}
+              {isSubmitting ? 'Enviando...' : isLastStep ? 'Enviar solicitud' : 'Continuar'}
             </Button>
           </div>
         </div>
