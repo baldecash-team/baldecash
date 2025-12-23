@@ -3,10 +3,50 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, CardBody, Switch } from "@nextui-org/react";
+import { Card, CardBody } from "@nextui-org/react";
+import { motion } from "framer-motion";
 import { AlertCircle, Layers, Rocket, ArrowLeft, CheckCircle, Keyboard, Command, SearchX, Presentation, Settings2 } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
+
+// Custom Switch Component with framer-motion animation
+interface CustomSwitchProps {
+  isSelected: boolean;
+  onValueChange: (value: boolean) => void;
+}
+
+function CustomSwitch({ isSelected, onValueChange }: CustomSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isSelected}
+      onClick={() => onValueChange(!isSelected)}
+      className="inline-flex items-center cursor-pointer"
+    >
+      <div
+        className={`
+          w-12 h-6 rounded-full relative transition-colors duration-200
+          ${isSelected ? 'bg-[#4654CD]' : 'bg-neutral-300'}
+        `}
+      >
+        <motion.div
+          className="w-5 h-5 bg-white rounded-full shadow-md absolute top-1/2"
+          initial={false}
+          animate={{
+            x: isSelected ? 24 : 2,
+            y: '-50%',
+          }}
+          transition={{
+            type: 'spring',
+            stiffness: 500,
+            damping: 30,
+          }}
+        />
+      </div>
+    </button>
+  );
+}
 
 const version = getVersionByNumber("0.4")!;
 
@@ -122,17 +162,14 @@ export default function Version04Page() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className={`text-sm font-medium ${!isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
+                <span className={`text-sm font-medium transition-colors ${!isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
                   Config
                 </span>
-                <Switch
+                <CustomSwitch
                   isSelected={isPresentationMode}
                   onValueChange={setIsPresentationMode}
-                  classNames={{
-                    wrapper: "group-data-[selected=true]:bg-[#4654CD]",
-                  }}
                 />
-                <span className={`text-sm font-medium ${isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
+                <span className={`text-sm font-medium transition-colors ${isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
                   Presentación
                 </span>
               </div>

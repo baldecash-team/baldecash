@@ -15,13 +15,25 @@ const recentSearches = ['Lenovo Ideapad', 'HP Pavilion', 'MacBook Air'];
 const popularSearches = ['Laptops gamer', 'Laptops para estudios', 'Tablets'];
 
 const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+const convenioUrl = '/prototipos/0.4/convenio/convenio-preview?navbar=3&hero=2&benefits=1&testimonials=1&faq=2&cta=6&footer=2&mode=clean';
 
 const navItems = [
   { label: 'Laptops', href: catalogUrl },
   { label: 'Cómo funciona', href: '#como-funciona' },
-  { label: 'Convenios', href: '#convenios' },
+  { label: 'Convenios', href: convenioUrl },
   { label: 'Preguntas frecuentes', href: '#faq' },
 ];
+
+// Smooth scroll handler for anchor links
+const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+  if (href.startsWith('#')) {
+    e.preventDefault();
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+};
 
 export const NavbarV5: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -126,6 +138,7 @@ export const NavbarV5: React.FC = () => {
                 <a
                   key={item.label}
                   href={item.href}
+                  onClick={(e) => handleAnchorClick(e, item.href)}
                   className="text-neutral-600 hover:text-[#4654CD] text-sm font-medium transition-colors whitespace-nowrap"
                 >
                   {item.label}
@@ -217,7 +230,10 @@ export const NavbarV5: React.FC = () => {
                   key={item.label}
                   href={item.href}
                   className="block py-3 text-neutral-700 hover:text-[#4654CD] font-medium text-lg"
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={(e) => {
+                    handleAnchorClick(e, item.href);
+                    setIsMenuOpen(false);
+                  }}
                 >
                   {item.label}
                 </a>

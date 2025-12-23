@@ -13,14 +13,29 @@ import { Button } from '@nextui-org/react';
 import { Menu, X, ArrowRight } from 'lucide-react';
 
 const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+const convenioUrl = '/prototipos/0.4/convenio/convenio-preview?navbar=3&hero=2&benefits=1&testimonials=1&faq=2&cta=6&footer=2&mode=clean';
 
 const navItems = [
   { label: 'Laptops', href: catalogUrl },
   { label: 'Cómo funciona', href: '#como-funciona' },
-  { label: 'Convenios', href: '#convenios' },
+  { label: 'Convenios', href: convenioUrl },
   { label: 'Preguntas frecuentes', href: '#faq' },
   { label: 'Contacto', href: '#contacto' },
 ];
+
+// Smooth scroll handler for anchor links
+const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string, closeMenu: () => void) => {
+  if (href.startsWith('#')) {
+    e.preventDefault();
+    closeMenu();
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } else {
+    closeMenu();
+  }
+};
 
 export const NavbarV4: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -87,7 +102,7 @@ export const NavbarV4: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    onClick={() => setIsMenuOpen(false)}
+                    onClick={(e) => handleAnchorClick(e, item.href, () => setIsMenuOpen(false))}
                   >
                     {item.label}
                   </motion.a>
