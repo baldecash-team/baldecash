@@ -224,23 +224,23 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
     const showFloatingLabel = isOpen || hasValue;
     return (
       <div className="relative">
-        <motion.label
-          className={`absolute left-3 pointer-events-none z-10 transition-colors duration-200
-            ${showFloatingLabel ? 'text-xs font-medium' : 'text-sm font-normal'}
-            ${isOpen ? 'text-[#4654CD]' : 'text-neutral-400'} ${error ? 'text-red-500' : ''}`}
-          animate={{
-            top: showFloatingLabel ? 6 : '50%',
-            y: showFloatingLabel ? 0 : '-50%',
-            fontSize: showFloatingLabel ? '11px' : '14px'
-          }}
-          transition={{ duration: 0.15, ease: 'easeOut' }}>
-          {field.label}
-          {field.required && <span className="text-red-400 ml-0.5">*</span>}
-          {!field.required && showFloatingLabel && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
-        </motion.label>
         <Popover isOpen={isOpen} onOpenChange={setIsOpen} placement="bottom-start">
           <PopoverTrigger>
             <div className="relative">
+              <motion.label
+                className={`absolute left-3 pointer-events-none z-20 transition-colors duration-200
+                  ${showFloatingLabel ? 'text-xs font-medium' : 'text-sm font-normal'}
+                  ${isOpen ? 'text-[#4654CD]' : 'text-neutral-400'} ${error ? 'text-red-500' : ''}`}
+                animate={{
+                  top: showFloatingLabel ? 6 : '50%',
+                  y: showFloatingLabel ? 0 : '-50%',
+                  fontSize: showFloatingLabel ? '11px' : '14px'
+                }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}>
+                {field.label}
+                {field.required && <span className="text-red-400 ml-0.5">*</span>}
+                {!field.required && showFloatingLabel && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
+              </motion.label>
               <Input
                 readOnly
                 value={value ? formatDisplayDate(value) : ''}
