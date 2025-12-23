@@ -88,7 +88,7 @@ export const WizardLayoutV4: React.FC<WizardLayoutV4Props> = ({
       </div>
 
       {/* Main content - wrapper con overrides dark mode para todos los hijos */}
-      <main className="relative z-10 py-8 px-4 wizard-dark-mode
+      <main className="relative z-10 py-8 px-4 overflow-hidden wizard-dark-mode
         [&_.text-neutral-900]:text-white [&_.text-neutral-800]:text-white [&_.text-neutral-700]:text-white/80
         [&_.text-neutral-600]:text-white/70 [&_.text-neutral-500]:text-white/60 [&_.text-neutral-400]:text-white/50
         [&_.bg-neutral-50]:bg-white/10 [&_.bg-neutral-100]:bg-white/10 [&_.bg-neutral-200]:bg-white/30

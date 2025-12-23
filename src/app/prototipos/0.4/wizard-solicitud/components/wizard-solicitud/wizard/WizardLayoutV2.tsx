@@ -99,7 +99,7 @@ export const WizardLayoutV2: React.FC<WizardLayoutV2Props> = ({
       )}
 
       {/* Main content */}
-      <main className="flex-1 px-4 py-6 sm:py-10">
+      <main className="flex-1 px-4 py-6 sm:py-10 overflow-hidden">
         <motion.div
           key={currentStep}
           initial={{ opacity: 0, y: 20 }}

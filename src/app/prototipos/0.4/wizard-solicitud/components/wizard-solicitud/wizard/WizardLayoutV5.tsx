@@ -53,7 +53,7 @@ export const WizardLayoutV5: React.FC<WizardLayoutV5Props> = ({
       </header>
 
       {/* Main content area */}
-      <main className="flex-1 flex items-center justify-center px-4 py-20">
+      <main className="flex-1 flex items-center justify-center px-4 py-20 overflow-hidden">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Product banner */}
           {selectedProduct && (
