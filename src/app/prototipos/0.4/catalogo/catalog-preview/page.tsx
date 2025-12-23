@@ -487,7 +487,7 @@ function CatalogPreviewContent() {
               }}
             />
 
-            {/* Productos relacionados */}
+{/* Productos relacionados - Comentado temporalmente
             <section className="mt-8 mb-4 px-4">
               <div className="flex items-center gap-2 mb-6">
                 <Sparkles className="w-5 h-5 text-[#4654CD]" />
@@ -536,6 +536,7 @@ function CatalogPreviewContent() {
                 ))}
               </div>
             </section>
+            */}
 
             {/* Quiz CTA en Empty State */}
             <section className="mt-8 px-4">
@@ -593,9 +594,11 @@ function CatalogPreviewContent() {
                 className="w-10 h-10 rounded-lg bg-neutral-100 border-2 border-white flex items-center justify-center overflow-hidden"
                 style={{ zIndex: 4 - index }}
               >
-                <span className="text-xs font-bold text-neutral-400">
-                  {product.brand.charAt(0)}
-                </span>
+                <img
+                  src={product.thumbnail}
+                  alt={product.name}
+                  className="w-full h-full object-contain"
+                />
               </div>
             ))}
           </div>

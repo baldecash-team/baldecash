@@ -158,8 +158,9 @@ function RechazadoPreviewContent() {
         </div>
       </div>
 
-      {/* Version Nav */}
+      {/* Version Nav - Comentado temporalmente
       <VersionNav currentVersion="0.4" showSections={true} />
+      */}
 
       {/* Main Content */}
       <RejectionScreen config={config} />
