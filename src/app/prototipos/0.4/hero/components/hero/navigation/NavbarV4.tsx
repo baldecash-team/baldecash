@@ -18,7 +18,7 @@ const navItems = [
   { label: 'Laptops', href: catalogUrl },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
-  { label: 'FAQ', href: '#faq' },
+  { label: 'Preguntas frecuentes', href: '#faq' },
   { label: 'Contacto', href: '#contacto' },
 ];
 
@@ -98,13 +98,16 @@ export const NavbarV4: React.FC = () => {
             {/* Footer */}
             <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-neutral-100">
               <Button
+                as="a"
+                href="https://zonaclientes.baldecash.com"
+                target="_blank"
                 size="lg"
                 radius="lg"
-                className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
+                variant="bordered"
+                className="w-full border-neutral-300 text-neutral-700 font-semibold cursor-pointer"
                 endContent={<ArrowRight className="w-5 h-5" />}
-                onPress={() => setIsMenuOpen(false)}
               >
-                Solicitar ahora
+                Mi cuenta
               </Button>
             </div>
           </motion.div>
