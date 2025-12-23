@@ -79,25 +79,16 @@ export const ConvenioHeroV2: React.FC<ConvenioHeroProps> = ({
             ))}
           </ul>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              size="lg"
-              className="text-white font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: convenio.colorPrimario }}
-              endContent={<ArrowRight className="w-5 h-5" />}
-              onPress={onVerEquipos}
-            >
-              Ver equipos disponibles
-            </Button>
-            <Button
-              size="lg"
-              variant="bordered"
-              className="border-white/30 text-white rounded-xl cursor-pointer hover:bg-white/10 transition-colors"
-            >
-              ¿Cómo funciona?
-            </Button>
-          </div>
+          {/* CTA */}
+          <Button
+            size="lg"
+            className="text-white font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: convenio.colorPrimario }}
+            endContent={<ArrowRight className="w-5 h-5" />}
+            onPress={onVerEquipos}
+          >
+            Ver equipos disponibles
+          </Button>
         </div>
       </div>
     </div>
