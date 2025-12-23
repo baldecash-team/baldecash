@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import type { FieldConfig } from '../../../types/wizard-solicitud';
 
 export interface LabelProps {
@@ -31,24 +32,27 @@ export const LabelV1: React.FC<LabelProps> = ({ field, hasError }) => (
   </label>
 );
 
-// V2: Label flotante (Material Design) - Animado
+// V2: Label flotante (Material Design) - Animado con framer-motion
 export const LabelV2: React.FC<LabelProps> = ({ field, isFocused, hasValue, hasError }) => {
   const isFloating = isFocused || hasValue;
   return (
-    <label className={`
-      absolute left-3 transition-all duration-200 pointer-events-none z-10
-      ${isFloating
-        ? 'top-1 text-xs font-medium'
-        : 'top-1/2 -translate-y-1/2 text-sm font-normal'
-      }
-      ${hasError ? 'text-red-500' : isFocused ? 'text-[#4654CD]' : 'text-neutral-400'}
-    `}>
-      <span className="inline-flex items-center gap-1">
-        {field.label}
-        {field.required && <span className="text-red-400">*</span>}
-        {!field.required && isFloating && <span className="text-neutral-300 text-[10px]">(opcional)</span>}
-      </span>
-    </label>
+    <motion.label
+      className={`
+        absolute left-3 pointer-events-none z-10 transition-colors duration-200
+        ${isFloating ? 'text-xs font-medium' : 'text-sm font-normal'}
+        ${hasError ? 'text-red-500' : isFocused ? 'text-[#4654CD]' : 'text-neutral-400'}
+      `}
+      animate={{
+        top: isFloating ? 4 : '50%',
+        y: isFloating ? 0 : '-50%',
+        fontSize: isFloating ? '11px' : '14px'
+      }}
+      transition={{ duration: 0.15, ease: 'easeOut' }}
+    >
+      {field.label}
+      {field.required && <span className="text-red-400 ml-0.5">*</span>}
+      {!field.required && isFloating && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
+    </motion.label>
   );
 };
 

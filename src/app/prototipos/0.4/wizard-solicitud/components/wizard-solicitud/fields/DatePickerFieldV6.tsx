@@ -3,11 +3,13 @@
 /**
  * DatePickerFieldV6 - Selector basado en edad compacto
  * UX: Slider de edad + seleccion rapida de mes/dia en una sola vista
+ * V6: Label flotante animado + borde estilo fintech
  */
 
 import React, { useState, useEffect } from 'react';
 import { Slider } from '@nextui-org/react';
 import { Cake } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { FieldConfig } from '../../../types/wizard-solicitud';
 import { getLabel } from './labels';
 import { getHelpTooltip } from './HelpTooltip';
@@ -53,6 +55,7 @@ export const DatePickerFieldV6: React.FC<DatePickerFieldV6Props> = ({
 
   const LabelComponent = getLabel(labelVersion);
   const HelpTooltip = getHelpTooltip(helpVersion);
+  const [isFocused, setIsFocused] = useState(false);
 
   const birthYear = currentYear - age;
   const daysInMonth = new Date(birthYear, month + 1, 0).getDate();
@@ -65,8 +68,19 @@ export const DatePickerFieldV6: React.FC<DatePickerFieldV6Props> = ({
     onChange(newDate.toISOString().split('T')[0]);
   }, [age, month, day, birthYear, daysInMonth, onChange]);
 
-  const sliderContent = (
-    <div className={`bg-neutral-50 border rounded-xl p-4 ${error ? 'border-red-500' : 'border-neutral-200'}`}>
+  const getSliderContent = (withFocusHandlers = false) => (
+    <div
+      className={`bg-neutral-50 border-2 rounded-xl p-4 transition-all duration-200 ${
+        error
+          ? 'border-red-400 bg-red-50/50'
+          : isFocused
+            ? 'border-[#4654CD] bg-white shadow-lg shadow-[#4654CD]/10'
+            : 'border-neutral-200 hover:bg-neutral-100 hover:shadow-md'
+      }`}
+      onFocus={() => withFocusHandlers && setIsFocused(true)}
+      onBlur={() => withFocusHandlers && setIsFocused(false)}
+      tabIndex={withFocusHandlers ? 0 : undefined}
+    >
         {/* Age slider */}
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-[#4654CD]/10 flex items-center justify-center shrink-0">
@@ -154,6 +168,53 @@ export const DatePickerFieldV6: React.FC<DatePickerFieldV6Props> = ({
         </div>
       </div>
   );
+
+  const sliderContent = getSliderContent(false);
+  const hasValue = !!value;
+  const showFloatingLabel = isFocused || hasValue;
+
+  // V6: Fintech Premium con label flotante animado (igual que InputFieldV6)
+  if (labelVersion === 6) {
+    return (
+      <div
+        className="relative pt-5"
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+      >
+        {/* Floating Label */}
+        <motion.label
+          className={`absolute left-3 top-0 pointer-events-none z-10 transition-colors duration-200 bg-white px-1
+            ${showFloatingLabel ? 'text-xs font-medium' : 'text-sm font-normal'}
+            ${isFocused ? 'text-[#4654CD]' : 'text-neutral-500'}
+            ${error ? 'text-red-500' : ''}`}
+          animate={{
+            top: showFloatingLabel ? -2 : 24,
+            fontSize: showFloatingLabel ? '11px' : '14px'
+          }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
+        >
+          {field.label}
+          {field.required && <span className="text-red-400 ml-0.5">*</span>}
+          {!field.required && showFloatingLabel && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
+        </motion.label>
+
+        {getSliderContent(true)}
+
+        <AnimatePresence>
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="text-red-500 text-xs mt-1.5 ml-1"
+            >
+              {error}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
 
   // V2: Material Design floating label
   if (labelVersion === 2) {

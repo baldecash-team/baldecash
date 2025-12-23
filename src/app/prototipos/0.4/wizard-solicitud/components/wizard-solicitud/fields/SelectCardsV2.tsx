@@ -25,23 +25,15 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
   value,
   error,
   onChange,
+  labelVersion = 1,
   helpVersion = 1,
 }) => {
   const options = field.options || [];
   const hasMany = options.length > 4;
   const HelpTooltip = getHelpTooltip(helpVersion);
 
-  return (
-    <div className="space-y-3">
-      {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        <span>{field.label}</span>
-        {field.required && <span className="text-red-500">*</span>}
-        {field.helpText && (
-          <HelpTooltip content={field.helpText} title={field.label} />
-        )}
-      </label>
-
+  const cardsContent = (
+    <>
       {/* Segmented Control Container - with overflow hidden to contain elements */}
       <div
         className={`
@@ -60,7 +52,7 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
                 onClick={() => onChange(option.value)}
                 className={`
                   relative flex-1 min-w-[80px] py-2.5 px-4 text-sm font-medium rounded-lg
-                  transition-colors duration-150 whitespace-nowrap z-10
+                  transition-colors duration-150 whitespace-nowrap z-10 cursor-pointer
                   ${isSelected
                     ? 'text-[#4654CD]'
                     : 'text-neutral-600 hover:text-neutral-800 hover:bg-neutral-200/50'
@@ -88,14 +80,14 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
 
       {/* Selected description if any */}
       {value && options.find(o => o.value === value)?.description && (
-        <p className="text-xs text-neutral-500 bg-neutral-50 rounded-lg px-3 py-2 border border-neutral-100">
+        <p className="text-xs text-neutral-500 bg-neutral-50 rounded-lg px-3 py-2 border border-neutral-100 mt-2">
           {options.find(o => o.value === value)?.description}
         </p>
       )}
 
       {/* Scroll hint for many options */}
       {hasMany && (
-        <p className="text-xs text-neutral-400 text-center flex items-center justify-center gap-1">
+        <p className="text-xs text-neutral-400 text-center flex items-center justify-center gap-1 mt-2">
           <span className="inline-block w-4 h-0.5 bg-neutral-300 rounded" />
           Desliza para ver mas opciones
           <span className="inline-block w-4 h-0.5 bg-neutral-300 rounded" />
@@ -104,11 +96,45 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
 
       {/* Error */}
       {error && (
-        <p className="text-red-500 text-xs flex items-center gap-1">
+        <p className="text-red-500 text-xs flex items-center gap-1 mt-2">
           <span className="w-1 h-1 bg-red-500 rounded-full" />
           {error}
         </p>
       )}
+    </>
+  );
+
+  // V5: Horizontal layout with label on left
+  if (labelVersion === 5) {
+    return (
+      <div className="flex items-start gap-3">
+        <label className="inline-flex items-center gap-1.5 text-sm font-medium min-w-[120px] shrink-0 leading-none pt-2 text-neutral-600">
+          <span>{field.label}</span>
+          {field.required ? (
+            <span className="text-red-500 text-xs">*</span>
+          ) : (
+            <span className="text-neutral-400 text-xs font-normal">(opc.)</span>
+          )}
+        </label>
+        <div className="flex-1">
+          {cardsContent}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Label */}
+      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+        <span>{field.label}</span>
+        {field.required && <span className="text-red-500">*</span>}
+        {field.helpText && (
+          <HelpTooltip content={field.helpText} title={field.label} />
+        )}
+      </label>
+
+      {cardsContent}
     </div>
   );
 };
