@@ -55,7 +55,7 @@ const getInputClasses = (version: number, isOpen: boolean, error: boolean) => {
       input: 'text-neutral-800 placeholder:text-neutral-400 cursor-pointer',
     },
     6: {
-      inputWrapper: `bg-neutral-50 border-2 rounded-xl h-14 cursor-pointer transition-all duration-200 shadow-none ${isOpen ? 'border-[#4654CD] bg-white' : 'border-transparent'} ${error ? 'border-red-400 bg-red-50/50' : ''} hover:bg-neutral-100`,
+      inputWrapper: `bg-neutral-50 border-2 rounded-xl h-14 cursor-pointer transition-all duration-200 ${isOpen ? 'border-[#4654CD] bg-white shadow-lg shadow-[#4654CD]/10' : 'border-transparent shadow-sm'} ${error ? 'border-red-400 bg-red-50/50' : ''} hover:bg-neutral-100 hover:shadow-md`,
       input: 'text-neutral-900 text-base placeholder:text-neutral-400 cursor-pointer',
     },
   };
