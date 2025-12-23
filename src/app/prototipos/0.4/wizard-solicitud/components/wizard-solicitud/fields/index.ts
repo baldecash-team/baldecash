@@ -3,39 +3,7 @@
  * Exporta todas las versiones de componentes de campos
  */
 
-// InputField - 6 versiones (Label integrado en cada version)
-export { InputFieldV1 } from './InputFieldV1';
-export { InputFieldV2 } from './InputFieldV2';
-export { InputFieldV3 } from './InputFieldV3';
-export { InputFieldV4 } from './InputFieldV4';
-export { InputFieldV5 } from './InputFieldV5';
-export { InputFieldV6 } from './InputFieldV6';
-
-// SelectCards - 6 versiones
-export { SelectCardsV1 } from './SelectCardsV1';
-export { SelectCardsV2 } from './SelectCardsV2';
-export { SelectCardsV3 } from './SelectCardsV3';
-export { SelectCardsV4 } from './SelectCardsV4';
-export { SelectCardsV5 } from './SelectCardsV5';
-export { SelectCardsV6 } from './SelectCardsV6';
-
-// UploadField - 6 versiones
-export { UploadFieldV1 } from './UploadFieldV1';
-export { UploadFieldV2 } from './UploadFieldV2';
-export { UploadFieldV3 } from './UploadFieldV3';
-export { UploadFieldV4 } from './UploadFieldV4';
-export { UploadFieldV5 } from './UploadFieldV5';
-export { UploadFieldV6 } from './UploadFieldV6';
-
-// DatePickerField - 6 versiones
-export { DatePickerFieldV1 } from './DatePickerFieldV1';
-export { DatePickerFieldV2 } from './DatePickerFieldV2';
-export { DatePickerFieldV3 } from './DatePickerFieldV3';
-export { DatePickerFieldV4 } from './DatePickerFieldV4';
-export { DatePickerFieldV5 } from './DatePickerFieldV5';
-export { DatePickerFieldV6 } from './DatePickerFieldV6';
-
-// Mapeo de versiones para uso dinamico
+// Imports primero para uso en mapeos
 import { InputFieldV1 } from './InputFieldV1';
 import { InputFieldV2 } from './InputFieldV2';
 import { InputFieldV3 } from './InputFieldV3';
@@ -61,6 +29,36 @@ import { DatePickerFieldV4 } from './DatePickerFieldV4';
 import { DatePickerFieldV5 } from './DatePickerFieldV5';
 import { DatePickerFieldV6 } from './DatePickerFieldV6';
 
+// Re-exports de componentes individuales
+export { InputFieldV1 } from './InputFieldV1';
+export { InputFieldV2 } from './InputFieldV2';
+export { InputFieldV3 } from './InputFieldV3';
+export { InputFieldV4 } from './InputFieldV4';
+export { InputFieldV5 } from './InputFieldV5';
+export { InputFieldV6 } from './InputFieldV6';
+
+export { SelectCardsV1 } from './SelectCardsV1';
+export { SelectCardsV2 } from './SelectCardsV2';
+export { SelectCardsV3 } from './SelectCardsV3';
+export { SelectCardsV4 } from './SelectCardsV4';
+export { SelectCardsV5 } from './SelectCardsV5';
+export { SelectCardsV6 } from './SelectCardsV6';
+
+export { UploadFieldV1 } from './UploadFieldV1';
+export { UploadFieldV2 } from './UploadFieldV2';
+export { UploadFieldV3 } from './UploadFieldV3';
+export { UploadFieldV4 } from './UploadFieldV4';
+export { UploadFieldV5 } from './UploadFieldV5';
+export { UploadFieldV6 } from './UploadFieldV6';
+
+export { DatePickerFieldV1 } from './DatePickerFieldV1';
+export { DatePickerFieldV2 } from './DatePickerFieldV2';
+export { DatePickerFieldV3 } from './DatePickerFieldV3';
+export { DatePickerFieldV4 } from './DatePickerFieldV4';
+export { DatePickerFieldV5 } from './DatePickerFieldV5';
+export { DatePickerFieldV6 } from './DatePickerFieldV6';
+
+// Mapeo de versiones para uso dinamico
 export const InputFieldVersions = {
   1: InputFieldV1,
   2: InputFieldV2,

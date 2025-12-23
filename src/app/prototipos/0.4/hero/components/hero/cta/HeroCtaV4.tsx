@@ -1,15 +1,17 @@
 'use client';
 
 /**
- * HeroCtaV4 - WhatsApp Directo
+ * HeroCtaV4 - WhatsApp Directo + Ver productos
  *
- * Concepto: Botón que lleva directamente a WhatsApp
+ * Concepto: Botón WhatsApp + link al catálogo
  * Estilo: Verde WhatsApp, genera confianza y cercanía
- * Uso: Cuando se quiere comunicación directa e inmediata
+ * Uso: Cuando se quiere comunicación directa con opción de ver catálogo
  */
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
+import { Laptop } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface HeroCtaV4Props {
   onCtaClick?: () => void;
@@ -22,22 +24,41 @@ const WhatsAppIcon = () => (
 );
 
 export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
+  const router = useRouter();
+
   const handleWhatsApp = () => {
-    window.open('https://wa.me/51999999999?text=Hola,%20quiero%20información%20sobre%20laptops', '_blank');
+    window.open('https://wa.link/osgxjf', '_blank');
     onCtaClick?.();
+  };
+
+  const handleCatalogo = () => {
+    onCtaClick?.();
+    router.push('/prototipos/0.4/catalogo');
   };
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <Button
-        size="lg"
-        radius="lg"
-        className="bg-[#25D366] text-white font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#20BD5A] transition-colors shadow-lg shadow-[#25D366]/25"
-        startContent={<WhatsAppIcon />}
-        onPress={handleWhatsApp}
-      >
-        Escríbenos por WhatsApp
-      </Button>
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <Button
+          size="lg"
+          radius="lg"
+          className="bg-[#4654CD] text-white font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
+          startContent={<Laptop className="w-5 h-5" />}
+          onPress={handleCatalogo}
+        >
+          Ver productos
+        </Button>
+        <Button
+          size="lg"
+          radius="lg"
+          variant="bordered"
+          className="border-2 border-[#25D366] text-[#25D366] font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#25D366] hover:text-white transition-colors"
+          startContent={<WhatsAppIcon />}
+          onPress={handleWhatsApp}
+        >
+          WhatsApp
+        </Button>
+      </div>
       <p className="text-sm text-neutral-400">
         Respuesta en menos de 5 minutos
       </p>
