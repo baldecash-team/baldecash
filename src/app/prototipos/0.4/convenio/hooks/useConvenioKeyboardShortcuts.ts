@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { ConvenioConfig, ConvenioVersion, versionDescriptions } from '../types/convenio';
 
-type ComponentKey = 'navbar' | 'hero' | 'benefits' | 'testimonials' | 'faq' | 'cta';
+type ComponentKey = 'navbar' | 'hero' | 'benefits' | 'testimonials' | 'faq' | 'cta' | 'footer';
 
 interface UseConvenioKeyboardShortcutsOptions {
   config: ConvenioConfig;
@@ -25,6 +25,7 @@ const COMPONENT_ORDER: ComponentKey[] = [
   'testimonials',
   'faq',
   'cta',
+  'footer',
 ];
 
 const COMPONENT_CONFIG_MAP: Record<ComponentKey, keyof ConvenioConfig> = {
@@ -34,6 +35,7 @@ const COMPONENT_CONFIG_MAP: Record<ComponentKey, keyof ConvenioConfig> = {
   testimonials: 'testimonialsVersion',
   faq: 'faqVersion',
   cta: 'ctaVersion',
+  footer: 'footerVersion',
 };
 
 const COMPONENT_LABELS: Record<ComponentKey, string> = {
@@ -43,6 +45,7 @@ const COMPONENT_LABELS: Record<ComponentKey, string> = {
   testimonials: 'Testimonios',
   faq: 'FAQ',
   cta: 'CTA',
+  footer: 'Footer',
 };
 
 export function useConvenioKeyboardShortcuts({
@@ -114,6 +117,7 @@ export function useConvenioKeyboardShortcuts({
         testimonials: 'convenio-testimonials',
         faq: 'convenio-faq',
         cta: 'convenio-cta',
+        footer: 'convenio-footer',
       };
 
       if (sectionIds[newComponent] === 'top') {

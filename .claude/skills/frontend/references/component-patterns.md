@@ -716,7 +716,138 @@ Antes de hacer commit, verificar:
 
 ---
 
-## 17. Patrón: Keyboard Shortcuts para Preview Pages
+## 17. Patrón: Label Versions para Formularios
+
+> **IMPORTANTE**: Cada versión de label tiene un comportamiento específico.
+> Los componentes de campo (Input, DatePicker, Select, etc.) deben manejar
+> cada versión correctamente para evitar problemas de alineación.
+
+### Descripción de Versiones
+
+| Versión | Nombre | Comportamiento |
+|---------|--------|----------------|
+| **V1** | Label arriba | Label sobre el campo, siempre visible |
+| **V2** | Label flotante | Animado tipo Material Design, usa `absolute` positioning |
+| **V3** | Minimalista | Solo placeholder con label, sin label externo (o minimal) |
+| **V4** | Badge inline | Label con badge "Requerido"/"Opcional" |
+| **V5** | Label izquierda | Layout horizontal, label a la izquierda del campo |
+| **V6** | Label hero | Label grande y prominente |
+
+### Patrón de Implementación para Campos
+
+```tsx
+// ✅ CORRECTO - Manejar cada versión por separado
+const MyField = ({ field, labelVersion, ... }) => {
+  const LabelComponent = getLabel(labelVersion);
+
+  // Extraer contenido del campo a variable
+  const fieldContent = (
+    <div className="bg-neutral-50 border rounded-xl p-4">
+      {/* Contenido del campo */}
+    </div>
+  );
+
+  // V5: Layout horizontal con label a la izquierda
+  if (labelVersion === 5) {
+    return (
+      <div className="flex items-start gap-3">
+        <LabelComponent field={field} hasError={!!error} />
+        <div className="flex-1">
+          {fieldContent}
+          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
+  // V3: Minimalista - label en placeholder o minimal arriba
+  if (labelVersion === 3) {
+    return (
+      <div className="space-y-1.5">
+        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+          {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
+        </span>
+        {fieldContent}
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
+    );
+  }
+
+  // Default (V1, V4, V6): Label arriba
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <LabelComponent field={field} hasError={!!error} />
+        {field.helpText && <HelpTooltip content={field.helpText} />}
+      </div>
+      {fieldContent}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+};
+```
+
+### V3 para Inputs con Placeholder
+
+Para inputs que usan V3, el label debe ir en el placeholder:
+
+```tsx
+// Para inputs con labelVersion === 3
+const placeholderText = labelVersion === 3
+  ? `${field.label}${field.required ? ' *' : ''}`
+  : field.placeholder || 'Ingresa valor';
+
+<Input placeholder={placeholderText} ... />
+```
+
+### V2 (Flotante) - Requiere Container Relativo
+
+```tsx
+// V2 usa absolute positioning, necesita container relativo
+if (labelVersion === 2) {
+  return (
+    <div className="relative pt-2">
+      <LabelComponent
+        field={field}
+        isFocused={isFocused}
+        hasValue={!!value}
+        hasError={!!error}
+      />
+      <Input
+        classNames={{
+          inputWrapper: '...existing... pt-3'  // Padding top para el label
+        }}
+      />
+    </div>
+  );
+}
+```
+
+### ❌ Errores Comunes a Evitar
+
+```tsx
+// ❌ INCORRECTO - No manejar versiones, causa desalineación
+<div className="inline-flex items-center gap-1.5">
+  <LabelComponent field={field} />  // V2/V5 no funcionarán bien aquí
+</div>
+
+// ❌ INCORRECTO - V5 sin layout horizontal
+if (labelVersion === 5) {
+  return (
+    <div className="space-y-1.5">  // Debería ser flex horizontal
+      <LabelComponent />
+      ...
+    </div>
+  );
+}
+
+// ❌ INCORRECTO - V3 mostrando label completo + placeholder con label
+// Crea redundancia visual
+```
+
+---
+
+## 18. Patrón: Keyboard Shortcuts para Preview Pages
 
 > **OBLIGATORIO**: Todas las páginas de preview (hero-preview, convenio-preview, etc.)
 > deben implementar atajos de teclado para navegación rápida entre componentes y versiones.

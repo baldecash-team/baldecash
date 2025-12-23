@@ -1,10 +1,6 @@
 'use client';
 
-/**
- * DetailSettingsModal - Settings modal for configuring product detail versions
- */
-
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalContent,
@@ -12,17 +8,16 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Select,
-  SelectItem,
+  RadioGroup,
+  Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Link2, Check } from 'lucide-react';
+import { Settings, RotateCcw, Link2, Check, FileText, Images, Layout, Cpu, Calculator, Calendar, Grid2X2, AlertTriangle, Award } from 'lucide-react';
 import {
   ProductDetailConfig,
   DetailVersion,
   defaultDetailConfig,
   versionDescriptions,
 } from '../../types/detail';
-import { useState } from 'react';
 
 interface DetailSettingsModalProps {
   isOpen: boolean;
@@ -32,76 +27,6 @@ interface DetailSettingsModalProps {
 }
 
 const versionOptions: DetailVersion[] = [1, 2, 3, 4, 5, 6];
-
-interface VersionSelectorProps {
-  label: string;
-  value: DetailVersion;
-  onChange: (value: DetailVersion) => void;
-  descriptions: Record<number, string>;
-}
-
-const VersionSelector: React.FC<VersionSelectorProps> = ({
-  label,
-  value,
-  onChange,
-  descriptions,
-}) => {
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-neutral-700 mb-2">{label}</label>
-      <Select
-        aria-label={label}
-        selectedKeys={new Set([value.toString()])}
-        onSelectionChange={(keys) => {
-          const selectedKey = Array.from(keys)[0];
-          if (selectedKey) {
-            onChange(parseInt(selectedKey as string) as DetailVersion);
-          }
-        }}
-        renderValue={(items) => {
-          return items.map((item) => (
-            <span key={item.key} className="text-sm text-neutral-700">
-              {item.textValue}
-            </span>
-          ));
-        }}
-        classNames={{
-          base: 'w-full',
-          trigger: 'h-12 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
-          value: 'text-sm text-neutral-700',
-          innerWrapper: 'pr-8',
-          selectorIcon: 'right-3',
-          popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
-          listbox: 'p-1 bg-white',
-          listboxWrapper: 'max-h-[300px] bg-white',
-        }}
-        popoverProps={{
-          classNames: {
-            base: 'bg-white',
-            content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
-          },
-        }}
-      >
-        {versionOptions.map((v) => (
-          <SelectItem
-            key={v.toString()}
-            textValue={`V${v}: ${descriptions[v]}`}
-            classNames={{
-              base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
-                text-neutral-700
-                data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
-                data-[selected=false]:data-[hover=true]:text-[#4654CD]
-                data-[selected=true]:bg-[#4654CD]
-                data-[selected=true]:text-white`,
-            }}
-          >
-            V{v}: {descriptions[v]}
-          </SelectItem>
-        ))}
-      </Select>
-    </div>
-  );
-};
 
 export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
   isOpen,
@@ -162,86 +87,350 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
           <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
             <Settings className="w-4 h-4 text-[#4654CD]" />
           </div>
-          <span className="text-lg font-semibold text-neutral-800">Configurar Detalle de Producto</span>
+          <span className="text-lg font-semibold text-neutral-800">
+            Configuración del Detalle de Producto
+          </span>
         </ModalHeader>
 
         <ModalBody className="py-6 bg-white">
           <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
-            Selecciona la versión de cada componente para ver diferentes combinaciones de diseño en la página de detalle.
+            Personaliza el diseño de la página de detalle seleccionando diferentes versiones de cada componente.
           </p>
 
-          <VersionSelector
-            label="Info Header"
-            value={config.infoHeaderVersion}
-            onChange={(v) => onConfigChange({ ...config, infoHeaderVersion: v })}
-            descriptions={versionDescriptions.infoHeader}
-          />
+          {/* Info Header Version */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Info Header</h3>
+            </div>
+            <RadioGroup
+              value={config.infoHeaderVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, infoHeaderVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.infoHeaderVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.infoHeader[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Galería de Imágenes"
-            value={config.galleryVersion}
-            onChange={(v) => onConfigChange({ ...config, galleryVersion: v })}
-            descriptions={versionDescriptions.gallery}
-          />
+          {/* Gallery Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Images className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Galería de Imágenes</h3>
+            </div>
+            <RadioGroup
+              value={config.galleryVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, galleryVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.galleryVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.gallery[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Tabs / Layout"
-            value={config.tabsVersion}
-            onChange={(v) => onConfigChange({ ...config, tabsVersion: v })}
-            descriptions={versionDescriptions.tabs}
-          />
+          {/* Tabs Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Layout className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Tabs / Layout</h3>
+            </div>
+            <RadioGroup
+              value={config.tabsVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, tabsVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.tabsVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.tabs[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Especificaciones"
-            value={config.specsVersion}
-            onChange={(v) => onConfigChange({ ...config, specsVersion: v })}
-            descriptions={versionDescriptions.specs}
-          />
+          {/* Specs Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Cpu className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Especificaciones</h3>
+            </div>
+            <RadioGroup
+              value={config.specsVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, specsVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.specsVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.specs[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Calculadora de Cuotas"
-            value={config.pricingVersion}
-            onChange={(v) => onConfigChange({ ...config, pricingVersion: v })}
-            descriptions={versionDescriptions.pricing}
-          />
+          {/* Pricing Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Calculator className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Calculadora de Cuotas</h3>
+            </div>
+            <RadioGroup
+              value={config.pricingVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, pricingVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.pricingVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.pricing[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Cronograma de Pagos"
-            value={config.cronogramaVersion}
-            onChange={(v) => onConfigChange({ ...config, cronogramaVersion: v })}
-            descriptions={versionDescriptions.cronograma}
-          />
+          {/* Cronograma Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Cronograma de Pagos</h3>
+            </div>
+            <RadioGroup
+              value={config.cronogramaVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, cronogramaVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.cronogramaVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.cronograma[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Productos Similares"
-            value={config.similarProductsVersion}
-            onChange={(v) => onConfigChange({ ...config, similarProductsVersion: v })}
-            descriptions={versionDescriptions.similarProducts}
-          />
+          {/* Similar Products Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Grid2X2 className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Productos Similares</h3>
+            </div>
+            <RadioGroup
+              value={config.similarProductsVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, similarProductsVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.similarProductsVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.similarProducts[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Limitaciones (Honestidad)"
-            value={config.limitationsVersion}
-            onChange={(v) => onConfigChange({ ...config, limitationsVersion: v })}
-            descriptions={versionDescriptions.limitations}
-          />
+          {/* Limitations Version */}
+          <div className="mb-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Limitaciones (Honestidad)</h3>
+            </div>
+            <RadioGroup
+              value={config.limitationsVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, limitationsVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.limitationsVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.limitations[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
 
-          <VersionSelector
-            label="Certificaciones"
-            value={config.certificationsVersion}
-            onChange={(v) => onConfigChange({ ...config, certificationsVersion: v })}
-            descriptions={versionDescriptions.certifications}
-          />
-
-          <div className="mt-2 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
-            <p className="text-xs text-neutral-500">
-              <strong>Nota:</strong> V1 de cada componente es la versión preferida según feedback de v0.3.
-              Experimenta con distintas versiones para encontrar la mejor configuración.
-            </p>
+          {/* Certifications Version */}
+          <div className="pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Award className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Certificaciones</h3>
+            </div>
+            <RadioGroup
+              value={config.certificationsVersion.toString()}
+              onValueChange={(val) => onConfigChange({ ...config, certificationsVersion: parseInt(val) as DetailVersion })}
+              classNames={{
+                wrapper: 'gap-2',
+              }}
+            >
+              {versionOptions.map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${config.certificationsVersion === version
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={versionDescriptions.certifications[version]}
+                >
+                  Versión {version}
+                </Radio>
+              ))}
+            </RadioGroup>
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white flex justify-between">
+        <ModalFooter className="bg-white justify-between">
+          <Button
+            variant="flat"
+            startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
+            onPress={handleGenerateUrl}
+            className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
+          >
+            {copied ? 'Copiado!' : 'Generar URL'}
+          </Button>
           <div className="flex gap-2">
             <Button
               variant="light"
@@ -252,20 +441,12 @@ export const DetailSettingsModal: React.FC<DetailSettingsModalProps> = ({
               Restablecer
             </Button>
             <Button
-              variant="flat"
-              startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
-              onPress={handleGenerateUrl}
-              className={`cursor-pointer transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'}`}
+              className="bg-[#4654CD] text-white cursor-pointer"
+              onPress={onClose}
             >
-              {copied ? 'Copiado!' : 'Generar URL'}
+              Aplicar
             </Button>
           </div>
-          <Button
-            className="bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3] transition-colors"
-            onPress={onClose}
-          >
-            Aplicar
-          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

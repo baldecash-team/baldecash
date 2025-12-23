@@ -455,8 +455,122 @@ const TechnicalFiltersV2 = () => {
 
 ---
 
+---
+
+## 15. Integración del Comparador en Catálogo
+
+### Configuración Usada
+
+```typescript
+const comparatorConfig: ComparatorConfig = {
+  layoutVersion: 3,        // Panel Sticky
+  accessVersion: 1,        // Checkbox en Cards
+  maxProductsVersion: 4,   // Config (pero limitamos a 3)
+  fieldsVersion: 2,        // Specs + Features
+  highlightVersion: 1,     // Semántico clásico
+  priceDiffVersion: 4,     // Badge Animado
+  differenceHighlightVersion: 5, // Subrayado Animado
+  cardSelectionVersion: 3, // Glow + Ribbon
+};
+
+const MAX_COMPARE_PRODUCTS = 3; // Máximo 3 en catálogo
+```
+
+### Estado de Comparación
+
+```typescript
+const [compareList, setCompareList] = useState<string[]>([]);
+const [isComparatorOpen, setIsComparatorOpen] = useState(false);
+
+const handleToggleCompare = useCallback((productId: string) => {
+  setCompareList(prev => {
+    if (prev.includes(productId)) {
+      return prev.filter(id => id !== productId);
+    }
+    if (prev.length >= MAX_COMPARE_PRODUCTS) {
+      return prev; // No agregar si está al máximo
+    }
+    return [...prev, productId];
+  });
+}, []);
+```
+
+### Props para ProductCard
+
+```typescript
+// En ProductCard
+onCompare={() => handleToggleCompare(product.id)}
+isCompareSelected={compareList.includes(product.id)}
+compareDisabled={compareList.length >= MAX_COMPARE_PRODUCTS}
+```
+
+### Floating Comparison Bar
+
+- **Posición**: `fixed bottom-6 left-1/2 -translate-x-1/2`
+- **Muestra**: Contador + mini previews + botones
+- **Aparece**: Cuando `compareList.length > 0 && !isComparatorOpen`
+
+---
+
+## 16. Montos vs Porcentajes en Inicial
+
+### Problema
+Los usuarios no entienden "10%" - prefieren ver "S/200".
+
+### Solución
+
+```typescript
+// ❌ INCORRECTO: Mostrar porcentaje
+{initialOptions.map((initial) => (
+  <button>{initialLabels[initial]}</button>  // "10%", "20%"
+))}
+
+// ✅ CORRECTO: Calcular y mostrar monto
+{initialOptions.map((initial) => {
+  const amount = Math.round(product.price * (initial / 100));
+  const label = initial === 0 ? 'Sin inicial' : `S/${amount}`;
+  return <button>{label}</button>;  // "S/200", "S/400"
+})}
+```
+
+### Aplicar en Todas las Versiones
+- ProductCardV1 a V6: Actualizar selector de inicial
+- El cálculo usa `product.price` del producto actual
+
+---
+
+## 17. Botón Comparar en ProductCard
+
+### Ubicación
+Al lado del botón de favoritos (Heart), en el overlay de la imagen.
+
+### Estados Visuales
+
+| Estado | Clases |
+|--------|--------|
+| Normal | `bg-white/80 hover:bg-[#4654CD]/10 cursor-pointer` |
+| Seleccionado | `bg-[#4654CD] text-white` |
+| Deshabilitado | `bg-white/50 text-neutral-300 cursor-not-allowed` |
+
+### Icono
+`GitCompare` de lucide-react
+
+### Tooltip
+```typescript
+title={
+  compareDisabled && !isCompareSelected
+    ? 'Máximo 3 productos'
+    : isCompareSelected
+      ? 'Quitar de comparación'
+      : 'Agregar a comparación'
+}
+```
+
+---
+
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-20 | Versión inicial |
 | 1.1 | 2025-12-20 | Refactorizado - reglas globales movidas a CONVENTIONS.md |
 | 1.2 | 2025-12-21 | Agregado: null vs false, conteos dinámicos, URL params, anti-patrón componentes |
+| 1.3 | 2025-12-22 | Agregado: Integración comparador, montos vs %, botón comparar en cards |

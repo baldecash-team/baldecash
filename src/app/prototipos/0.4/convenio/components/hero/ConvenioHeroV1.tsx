@@ -71,14 +71,16 @@ export const ConvenioHeroV1: React.FC<ConvenioHeroProps> = ({
             </div>
 
             {/* CTA */}
-            <Button
-              size="lg"
-              className="bg-white text-[#4654CD] font-bold rounded-xl cursor-pointer hover:bg-neutral-100 transition-colors"
-              endContent={<ArrowRight className="w-5 h-5" />}
-              onPress={onVerEquipos}
-            >
-              Ver equipos disponibles
-            </Button>
+            <div className="flex justify-start">
+              <Button
+                size="lg"
+                className="bg-white text-[#4654CD] font-bold rounded-xl cursor-pointer hover:bg-neutral-100 transition-colors"
+                endContent={<ArrowRight className="w-5 h-5" />}
+                onPress={onVerEquipos}
+              >
+                Ver equipos disponibles
+              </Button>
+            </div>
 
             {/* Trust signals */}
             <div className="flex flex-wrap items-center gap-4 mt-6">

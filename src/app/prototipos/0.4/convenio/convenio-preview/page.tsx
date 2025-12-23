@@ -5,17 +5,16 @@
  * Configurable preview for A/B testing convenio landing page versions
  *
  * Keyboard Shortcuts:
- * - Tab / Shift+Tab: Navigate between components
- * - 1-6: Change version of active component
- * - ? / K: Open/close settings modal
- * - Esc: Close modal
+ * - Tab / Shift+Tab: Navegar entre componentes
+ * - 1-6: Cambiar versión del componente activo
+ * - ? o K: Abrir/cerrar configuración
+ * - Esc: Cerrar modal
  */
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { Settings, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Settings, ArrowLeft, Code } from 'lucide-react';
 
 // Components
 import { ConvenioLanding, ConvenioSettingsModal, ShortcutToast, ShortcutHelpBadge } from '../components';
@@ -28,6 +27,7 @@ import { useConvenioKeyboardShortcuts } from '../hooks';
 import {
   ConvenioConfig,
   ConvenioVersion,
+  ConvenioData,
   defaultConvenioConfig,
 } from '../types/convenio';
 import { conveniosList, getConvenioBySlug, defaultConvenio } from '../data/mockConvenioData';
@@ -47,6 +47,7 @@ function ConvenioPreviewContent() {
     const testimonialsVersion = parseInt(searchParams.get('testimonials') || '1') as ConvenioVersion;
     const faqVersion = parseInt(searchParams.get('faq') || '1') as ConvenioVersion;
     const ctaVersion = parseInt(searchParams.get('cta') || '1') as ConvenioVersion;
+    const footerVersion = parseInt(searchParams.get('footer') || '1') as ConvenioVersion;
 
     return {
       navbarVersion: Math.min(Math.max(navbarVersion, 1), 6) as ConvenioVersion,
@@ -55,10 +56,12 @@ function ConvenioPreviewContent() {
       testimonialsVersion: Math.min(Math.max(testimonialsVersion, 1), 6) as ConvenioVersion,
       faqVersion: Math.min(Math.max(faqVersion, 1), 6) as ConvenioVersion,
       ctaVersion: Math.min(Math.max(ctaVersion, 1), 6) as ConvenioVersion,
+      footerVersion: Math.min(Math.max(footerVersion, 1), 6) as ConvenioVersion,
     };
   };
 
   const [config, setConfig] = useState<ConvenioConfig>(getConfigFromParams);
+  const [showConfigBadge, setShowConfigBadge] = useState(false);
 
   // Sync config with URL params
   const updateConfigAndUrl = (newConfig: ConvenioConfig) => {
@@ -70,6 +73,7 @@ function ConvenioPreviewContent() {
     params.set('testimonials', String(newConfig.testimonialsVersion));
     params.set('faq', String(newConfig.faqVersion));
     params.set('cta', String(newConfig.ctaVersion));
+    params.set('footer', String(newConfig.footerVersion));
     router.replace(`?${params.toString()}`, { scroll: false });
   };
 
@@ -82,6 +86,14 @@ function ConvenioPreviewContent() {
     }
     setIsClient(true);
   }, [searchParams]);
+
+  // Update convenio and URL
+  const updateConvenioAndUrl = (newConvenio: ConvenioData) => {
+    setSelectedConvenio(newConvenio);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('convenio', newConvenio.slug);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   // Keyboard shortcuts hook
   const { activeComponent, toast } = useConvenioKeyboardShortcuts({
@@ -98,6 +110,7 @@ function ConvenioPreviewContent() {
     hero: 'Hero',
     benefits: 'Beneficios',
     testimonials: 'Testimonios',
+    footer: 'Footer',
     faq: 'FAQ',
     cta: 'CTA',
   };
@@ -115,20 +128,6 @@ function ConvenioPreviewContent() {
 
   return (
     <div className="relative">
-      {/* Back button */}
-      <div className="fixed top-4 left-4 z-[60]">
-        <Link href="/prototipos/0.4">
-          <Button
-            variant="flat"
-            size="sm"
-            startContent={<ArrowLeft className="w-4 h-4" />}
-            className="bg-white shadow-md cursor-pointer"
-          >
-            Prototipos
-          </Button>
-        </Link>
-      </div>
-
       {/* Keyboard shortcut toast */}
       <ShortcutToast message={toast?.message || null} type={toast?.type} />
 
@@ -139,7 +138,8 @@ function ConvenioPreviewContent() {
       <ConvenioLanding
         initialConfig={config}
         initialConvenio={selectedConvenio}
-        showOverlaysDefault={true}
+        showOverlaysDefault={false}
+        controlled={true}
       />
 
       {/* Floating controls */}
@@ -147,13 +147,39 @@ function ConvenioPreviewContent() {
         <TokenCounter sectionId="PROMPT_17" version="0.4" />
         <Button
           isIconOnly
-          size="lg"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer"
+          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
           onPress={() => setIsSettingsOpen(true)}
+          aria-label="Configuración"
         >
-          <Settings className="w-5 h-5 text-neutral-600" />
+          <Settings className="w-5 h-5" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => setShowConfigBadge(!showConfigBadge)}
+          aria-label="Mostrar configuración"
+        >
+          <Code className="w-5 h-5 text-neutral-600" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => router.push('/prototipos/0.4')}
+          aria-label="Volver al índice"
+        >
+          <ArrowLeft className="w-5 h-5 text-neutral-600" />
         </Button>
       </div>
+
+      {/* Current Config Badge */}
+      {showConfigBadge && (
+        <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
+          <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+          <p className="text-xs font-mono text-neutral-700">
+            Navbar: V{config.navbarVersion} | Hero: V{config.heroVersion} | Benefits: V{config.benefitsVersion} | Testimonials: V{config.testimonialsVersion} | FAQ: V{config.faqVersion} | CTA: V{config.ctaVersion} | Footer: V{config.footerVersion}
+          </p>
+        </div>
+      )}
 
       {/* Keyboard shortcuts hint */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
@@ -165,7 +191,7 @@ function ConvenioPreviewContent() {
             <kbd className="bg-white/20 px-1.5 py-0.5 rounded">1-6</kbd> versión
           </span>
           <span>
-            <kbd className="bg-white/20 px-1.5 py-0.5 rounded">?</kbd> config
+            <kbd className="bg-white/20 px-1.5 py-0.5 rounded">?</kbd> o <kbd className="bg-white/20 px-1.5 py-0.5 rounded">K</kbd> config
           </span>
         </div>
       </div>
@@ -177,7 +203,7 @@ function ConvenioPreviewContent() {
         config={config}
         onConfigChange={updateConfigAndUrl}
         convenio={selectedConvenio}
-        onConvenioChange={setSelectedConvenio}
+        onConvenioChange={updateConvenioAndUrl}
         conveniosList={conveniosList}
       />
     </div>

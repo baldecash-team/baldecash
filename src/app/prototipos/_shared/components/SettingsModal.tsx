@@ -8,12 +8,10 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  RadioGroup,
-  Radio,
-  Divider,
-  Chip,
+  Select,
+  SelectItem,
 } from '@nextui-org/react';
-import { RotateCcw } from 'lucide-react';
+import { Settings, RotateCcw } from 'lucide-react';
 import type { SettingsGroup, ComponentVersion } from '../types/config.types';
 
 interface SettingsModalProps {
@@ -31,6 +29,11 @@ interface SettingsModalProps {
 /**
  * Modal para seleccionar versiones de componentes
  * Permite preview en tiempo real antes de guardar
+ *
+ * IMPORTANTE: Este modal sigue el patrón de HeroSettingsModal
+ * - Usa Select en lugar de RadioGroup
+ * - Sin bordes visibles en el contenido
+ * - Estilos consistentes con la marca
  */
 export function SettingsModal({
   isOpen,
@@ -61,69 +64,87 @@ export function SettingsModal({
         wrapper: 'items-center justify-center py-8 min-h-full',
         backdrop: 'bg-black/50',
         header: 'border-b border-neutral-200 bg-white py-4 pr-12',
-        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide py-6',
+        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
         footer: 'border-t border-neutral-200 bg-white',
         closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1">
-          <h2 className="text-xl font-semibold text-neutral-800">
-            Configurar {sectionLabel}
-          </h2>
-          <p className="text-sm font-normal text-neutral-500">
-            Selecciona las versiones de cada componente para probar
-          </p>
+        <ModalHeader className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
+            <Settings className="w-4 h-4 text-[#4654CD]" />
+          </div>
+          <span className="text-lg font-semibold text-neutral-800">Configurar {sectionLabel}</span>
         </ModalHeader>
 
-        <ModalBody>
-          <div className="space-y-6">
-            {groups.map((group, index) => (
-              <div key={group.id}>
-                {index > 0 && <Divider className="my-4" />}
+        <ModalBody className="py-6 bg-white">
+          <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
+            Selecciona la versión de cada componente para ver diferentes combinaciones de diseño.
+          </p>
 
-                <div className="mb-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-medium text-neutral-800">
-                      {group.label}
-                    </h3>
-                    <Chip size="sm" variant="flat" className="bg-[#4654CD]/10 text-[#4654CD]">
-                      V{group.currentVersion}
-                    </Chip>
-                  </div>
-                </div>
-
-                <RadioGroup
-                  value={String(group.currentVersion)}
-                  onValueChange={(value) =>
-                    onVersionChange(group.id, Number(value) as ComponentVersion)
+          {groups.map((group) => (
+            <div key={group.id} className="mb-4">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                {group.label}
+              </label>
+              <Select
+                aria-label={group.label}
+                selectedKeys={new Set([String(group.currentVersion)])}
+                onSelectionChange={(keys) => {
+                  const selectedKey = Array.from(keys)[0];
+                  if (selectedKey) {
+                    onVersionChange(group.id, Number(selectedKey) as ComponentVersion);
                   }
-                  classNames={{
-                    wrapper: 'gap-3',
-                  }}
-                >
-                  {group.options.map((option) => (
-                    <Radio
-                      key={option.value}
-                      value={String(option.value)}
-                      classNames={{
-                        base: 'border border-neutral-200 rounded-lg p-3 max-w-full hover:bg-neutral-50 data-[selected=true]:border-[#4654CD] data-[selected=true]:bg-[#4654CD]/5',
-                        label: 'w-full',
-                      }}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-neutral-800">
-                          {option.label}
-                        </span>
-                        <span className="text-sm text-neutral-500">
-                          {option.description}
-                        </span>
-                      </div>
-                    </Radio>
-                  ))}
-                </RadioGroup>
-              </div>
-            ))}
+                }}
+                renderValue={(items) => {
+                  return items.map((item) => (
+                    <span key={item.key} className="text-sm text-neutral-700">
+                      {item.textValue}
+                    </span>
+                  ));
+                }}
+                classNames={{
+                  base: 'w-full',
+                  trigger: 'h-12 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
+                  value: 'text-sm text-neutral-700',
+                  innerWrapper: 'pr-8',
+                  selectorIcon: 'right-3',
+                  popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
+                  listbox: 'p-1 bg-white',
+                  listboxWrapper: 'max-h-[300px] bg-white',
+                }}
+                popoverProps={{
+                  classNames: {
+                    base: 'bg-white',
+                    content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
+                  },
+                }}
+              >
+                {group.options.map((option) => (
+                  <SelectItem
+                    key={String(option.value)}
+                    textValue={`V${option.value}: ${option.description}`}
+                    classNames={{
+                      base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
+                        text-neutral-700
+                        data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
+                        data-[selected=false]:data-[hover=true]:text-[#4654CD]
+                        data-[selected=true]:bg-[#4654CD]
+                        data-[selected=true]:text-white`,
+                    }}
+                  >
+                    V{option.value}: {option.description}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          ))}
+
+          <div className="mt-2 p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+            <p className="text-xs text-neutral-500">
+              <strong>Nota:</strong> Cada combinación puede producir diferentes experiencias de usuario.
+              Experimenta con distintas versiones para encontrar la mejor configuración.
+            </p>
           </div>
         </ModalBody>
 
@@ -132,11 +153,12 @@ export function SettingsModal({
             variant="light"
             startContent={<RotateCcw className="w-4 h-4" />}
             onPress={onReset}
+            className="cursor-pointer"
           >
             Restablecer
           </Button>
           <Button
-            className="bg-[#4654CD] text-white"
+            className="bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3] transition-colors"
             onPress={handleApplyAndClose}
           >
             Aplicar

@@ -16,7 +16,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { Settings, Eye, EyeOff, ArrowLeft, Code, Keyboard, X } from 'lucide-react';
+import { Settings, Eye, ArrowLeft, Code } from 'lucide-react';
 import { ProductDetailConfig, defaultDetailConfig, DetailVersion } from '../types/detail';
 import { ProductDetail } from '../components/detail/ProductDetail';
 import { DetailSettingsModal } from '../components/detail/DetailSettingsModal';
@@ -30,8 +30,7 @@ function DetailPreviewContent() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
-  const [showBadges, setShowBadges] = useState(true);
-  const [showShortcuts, setShowShortcuts] = useState(true);
+  const [showConfigBadge, setShowConfigBadge] = useState(false);
 
   // Initialize config from URL params or defaults
   const [config, setConfig] = useState<ProductDetailConfig>(() => {
@@ -110,57 +109,6 @@ function DetailPreviewContent() {
         <ShortcutHelpBadge activeComponent={COMPONENT_LABELS[activeComponent as keyof typeof COMPONENT_LABELS] || activeComponent} />
       )}
 
-      {/* Back button */}
-      <div className="fixed top-4 left-4 z-50">
-        <Button
-          isIconOnly
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => router.push('/prototipos/0.4')}
-        >
-          <ArrowLeft className="w-5 h-5 text-neutral-600" />
-        </Button>
-      </div>
-
-      {/* Version badges overlay */}
-      {showOverlays && showBadges && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-wrap justify-center items-center gap-2 bg-white/95 backdrop-blur-sm pl-4 pr-2 py-2 rounded-lg shadow-lg border border-neutral-200 max-w-[90vw]">
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'gallery' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Gallery: V{config.galleryVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'infoHeader' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Info: V{config.infoHeaderVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'pricing' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Pricing: V{config.pricingVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'certifications' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Certs: V{config.certificationsVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'tabs' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Tabs: V{config.tabsVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'specs' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Specs: V{config.specsVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'cronograma' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Crono: V{config.cronogramaVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'similarProducts' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Similar: V{config.similarProductsVersion}
-          </span>
-          <span className={`text-xs px-2 py-1 rounded transition-all ${activeComponent === 'limitations' ? 'bg-[#4654CD] text-white ring-2 ring-[#4654CD]/50' : 'bg-[#4654CD]/10 text-[#4654CD]'}`}>
-            Limits: V{config.limitationsVersion}
-          </span>
-          <button
-            onClick={() => setShowBadges(false)}
-            className="ml-2 p-1 hover:bg-neutral-100 rounded transition-colors cursor-pointer"
-            aria-label="Cerrar badges"
-          >
-            <X className="w-4 h-4 text-neutral-400 hover:text-neutral-600" />
-          </button>
-        </div>
-      )}
-
       {/* Main content */}
       <ProductDetail config={config} />
 
@@ -173,29 +121,38 @@ function DetailPreviewContent() {
           />
           <Button
             isIconOnly
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+            onPress={() => setIsSettingsOpen(true)}
+            aria-label="Configuración"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+          <Button
+            isIconOnly
             className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-            onPress={() => {
-              const configString = JSON.stringify(config, null, 2);
-              navigator.clipboard.writeText(configString);
-            }}
-            aria-label="Copiar configuracion"
+            onPress={() => setShowConfigBadge(!showConfigBadge)}
+            aria-label="Mostrar configuración"
           >
             <Code className="w-5 h-5 text-neutral-600" />
           </Button>
           <Button
             isIconOnly
             className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-            onPress={() => setShowOverlays(!showOverlays)}
+            onPress={() => router.push('/prototipos/0.4')}
+            aria-label="Volver al índice"
           >
-            {showOverlays ? <EyeOff className="w-5 h-5 text-neutral-600" /> : <Eye className="w-5 h-5 text-neutral-600" />}
+            <ArrowLeft className="w-5 h-5 text-neutral-600" />
           </Button>
-          <Button
-            isIconOnly
-            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
-            onPress={() => setIsSettingsOpen(true)}
-          >
-            <Settings className="w-5 h-5" />
-          </Button>
+        </div>
+      )}
+
+      {/* Current Config Badge */}
+      {showConfigBadge && (
+        <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
+          <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+          <p className="text-xs font-mono text-neutral-700">
+            Info: V{config.infoHeaderVersion} | Gallery: V{config.galleryVersion} | Tabs: V{config.tabsVersion} | Specs: V{config.specsVersion} | Pricing: V{config.pricingVersion} | Crono: V{config.cronogramaVersion} | Similar: V{config.similarProductsVersion} | Limits: V{config.limitationsVersion} | Certs: V{config.certificationsVersion}
+          </p>
         </div>
       )}
 
@@ -220,28 +177,6 @@ function DetailPreviewContent() {
         onConfigChange={handleConfigChange}
       />
 
-      {/* Keyboard shortcuts help */}
-      {showOverlays && showShortcuts && (
-        <div className="fixed bottom-6 left-6 z-50 text-xs text-neutral-500 bg-white/95 backdrop-blur-sm px-3 py-2 rounded-lg shadow-lg border border-neutral-200">
-          <div className="flex items-center justify-between gap-4 mb-1.5">
-            <div className="flex items-center gap-1.5">
-              <Keyboard className="w-3.5 h-3.5" />
-              <span className="font-medium">Atajos</span>
-            </div>
-            <button
-              onClick={() => setShowShortcuts(false)}
-              className="p-0.5 hover:bg-neutral-100 rounded transition-colors cursor-pointer"
-              aria-label="Cerrar atajos"
-            >
-              <X className="w-3.5 h-3.5 text-neutral-400 hover:text-neutral-600" />
-            </button>
-          </div>
-          <p><kbd className="bg-neutral-100 px-1 rounded text-neutral-700">Tab</kbd> Siguiente</p>
-          <p><kbd className="bg-neutral-100 px-1 rounded text-neutral-700">1-6</kbd> Version</p>
-          <p><kbd className="bg-neutral-100 px-1 rounded text-neutral-700">S</kbd> Settings</p>
-          <p><kbd className="bg-neutral-100 px-1 rounded text-neutral-700">O</kbd> Overlays</p>
-        </div>
-      )}
     </div>
   );
 }

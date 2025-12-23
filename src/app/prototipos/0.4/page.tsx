@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@nextui-org/react";
-import { AlertCircle, Layers, Rocket, ArrowLeft, CheckCircle, Keyboard, Command } from "lucide-react";
+import { AlertCircle, Layers, Rocket, ArrowLeft, CheckCircle, Keyboard, Command, SearchX } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
 
@@ -12,6 +12,9 @@ const version = getVersionByNumber("0.4")!;
 // Custom paths for sections with predefined variations
 const customPaths: Record<string, string> = {
   catalogo: "/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3",
+  comparador: "/prototipos/0.4/comparador/comparator-preview/?layout=3&access=1&maxproducts=4&fields=2&highlight=1&pricediff=4&diffhighlight=5&cardstyle=3",
+  estados: "/prototipos/0.4/catalogo/empty-preview/?illustration=1&actions=1",
+  upsell: "/prototipos/0.4/upsell/upsell-preview",
 };
 
 const sectionIcons: Record<string, React.ElementType> = {
@@ -20,9 +23,8 @@ const sectionIcons: Record<string, React.ElementType> = {
   detalle: Layers,
   comparador: Layers,
   quiz: Layers,
-  estados: Layers,
-  wizard: Layers,
-  solicitud: Layers,
+  estados: SearchX,
+  'wizard-solicitud': Layers,
   upsell: Layers,
   aprobacion: Layers,
   rechazo: Layers,
@@ -51,7 +53,7 @@ export default function Version04Page() {
         <header className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#4654CD]/10 text-[#4654CD] rounded-full text-sm mb-4">
             <Rocket className="w-4 h-4" />
-            <span>Version {version.version}</span>
+            <span>Versión {version.version}</span>
           </div>
           <h1 className="text-4xl font-black text-neutral-900 mb-4">{version.title}</h1>
           <p className="text-lg text-neutral-500 max-w-2xl mx-auto">{version.description}</p>
@@ -87,7 +89,7 @@ export default function Version04Page() {
               const IconComponent = sectionIcons[section.id] || Layers;
               const status = statusStyles[section.status];
               const StatusIcon = status.icon;
-              const isDone = section.status === 'done';
+              const isClickable = section.status === 'done' || section.status === 'in_progress';
 
               const cardContent = (
                 <CardBody className="p-4 flex flex-col">
@@ -108,7 +110,7 @@ export default function Version04Page() {
                 </CardBody>
               );
 
-              if (isDone) {
+              if (isClickable) {
                 return (
                   <Card
                     key={section.id}

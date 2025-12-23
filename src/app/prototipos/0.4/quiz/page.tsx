@@ -3,21 +3,21 @@
 /**
  * Quiz Preview Page - BaldeCash v0.4
  *
- * Pagina de preview para el Quiz de Ayuda
- * con controles de configuracion A/B.
+ * Página de preview para el Quiz de Ayuda
+ * con controles de configuración A/B.
  *
  * Versiones preferidas consolidadas de 0.3:
  * - B.98: Layout V1 (modal full screen mobile)
  * - B.99: 7 preguntas
  * - B.100: Question Style V1 (chips/pills)
- * - B.101: Results V1 (categoria + cards catalogo)
+ * - B.101: Results V1 (categoría + cards catálogo)
  * - B.102: Focus V1 (solo por uso)
  */
 
 import { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { HelpCircle, Play, ArrowLeft, Settings } from 'lucide-react';
-import Link from 'next/link';
+import { HelpCircle, Play, ArrowLeft, Settings, Code } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 // Components
 import { HelpQuiz, QuizSettingsModal } from './components/quiz';
@@ -27,49 +27,63 @@ import { TokenCounter } from '@/components/ui/TokenCounter';
 import { QuizConfig, defaultQuizConfig, versionDescriptions } from './types/quiz';
 
 export default function QuizPreviewPage() {
+  const router = useRouter();
   const [config, setConfig] = useState<QuizConfig>(defaultQuizConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [showConfigBadge, setShowConfigBadge] = useState(false);
 
   return (
     <div className="min-h-screen bg-white relative">
-      {/* Back to prototypes */}
-      <div className="fixed top-4 left-4 z-[60]">
-        <Link href="/prototipos/0.4">
-          <Button
-            variant="flat"
-            size="sm"
-            startContent={<ArrowLeft className="w-4 h-4" />}
-            className="bg-white shadow-md cursor-pointer"
-          >
-            Prototipos
-          </Button>
-        </Link>
-      </div>
-
       {/* Floating Controls */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
         <TokenCounter sectionId="PROMPT_06" version="0.4" />
         <Button
           isIconOnly
-          size="lg"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer"
+          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
           onPress={() => setIsSettingsOpen(true)}
+          aria-label="Configuración"
         >
-          <Settings className="w-5 h-5 text-neutral-600" />
+          <Settings className="w-5 h-5" />
         </Button>
         <Button
           isIconOnly
-          size="lg"
-          className="bg-[#4654CD] text-white shadow-lg cursor-pointer"
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
           onPress={() => setIsQuizOpen(true)}
+          aria-label="Iniciar quiz"
         >
-          <Play className="w-5 h-5" />
+          <Play className="w-5 h-5 text-neutral-600" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => setShowConfigBadge(!showConfigBadge)}
+          aria-label="Mostrar configuración"
+        >
+          <Code className="w-5 h-5 text-neutral-600" />
+        </Button>
+        <Button
+          isIconOnly
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => router.push('/prototipos/0.4')}
+          aria-label="Volver al índice"
+        >
+          <ArrowLeft className="w-5 h-5 text-neutral-600" />
         </Button>
       </div>
 
+      {/* Current Config Badge */}
+      {showConfigBadge && (
+        <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
+          <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+          <p className="text-xs font-mono text-neutral-700">
+            Layout: V{config.layoutVersion} | Preguntas: {config.questionCount} | Estilo: V{config.questionStyle} | Resultados: V{config.resultsVersion} | Enfoque: V{config.focusVersion}
+          </p>
+        </div>
+      )}
+
       {/* Main content */}
-      <main className="max-w-6xl mx-auto px-4 py-6 pt-20">
+      <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#4654CD]/10 mb-4">
@@ -91,7 +105,7 @@ export default function QuizPreviewPage() {
             </div>
             <div>
               <h2 className="font-semibold text-neutral-800">
-                Configuracion Actual
+                Configuración Actual
               </h2>
               <p className="text-sm text-neutral-500">
                 Ajusta las versiones para probar diferentes combinaciones
@@ -222,10 +236,10 @@ export default function QuizPreviewPage() {
               </div>
             </div>
             <h4 className="font-semibold text-neutral-800 text-sm mb-1">
-              V3 - Pagina Dedicada
+              V3 - Página Dedicada
             </h4>
             <p className="text-xs text-neutral-500">
-              Pagina completa para el quiz
+              Página completa para el quiz
             </p>
           </div>
         </div>
@@ -238,7 +252,7 @@ export default function QuizPreviewPage() {
             startContent={<Play className="w-5 h-5" />}
             onPress={() => setIsQuizOpen(true)}
           >
-            Probar Quiz con esta Configuracion
+            Probar Quiz con esta Configuración
           </Button>
         </div>
       </main>

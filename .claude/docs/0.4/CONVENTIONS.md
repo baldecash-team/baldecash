@@ -316,9 +316,110 @@ export { SectionSettingsModal } from './SectionSettingsModal';
 
 ---
 
-## 6. Colores y Estilos
+## 6. Settings Modal Pattern
 
-### 6.1 Colores de Marca
+### 6.1 Estructura Obligatoria
+
+Todos los `SettingsModal` en v0.4 deben usar `RadioGroup` con `Radio`, **NO** `Select` dropdown.
+
+```tsx
+import { RadioGroup, Radio } from '@nextui-org/react';
+
+// Estructura de cada sección
+<div className="mb-6 pt-4 border-t border-neutral-200">
+  <div className="flex items-center gap-2 mb-3">
+    <IconComponent className="w-4 h-4 text-[#4654CD]" />
+    <h3 className="font-semibold text-neutral-800">Nombre de la Opción</h3>
+  </div>
+  <RadioGroup
+    value={config.optionVersion.toString()}
+    onValueChange={(val) => updateConfig('optionVersion', parseInt(val))}
+    classNames={{ wrapper: 'gap-2' }}
+  >
+    {[1, 2, 3, 4, 5, 6].map((version) => (
+      <Radio
+        key={version}
+        value={version.toString()}
+        classNames={{
+          base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+            ${config.optionVersion === version
+              ? 'border-[#4654CD] bg-[#4654CD]/5'
+              : 'border-neutral-200 hover:border-[#4654CD]/50'
+            }`,
+          wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+          labelWrapper: 'ml-2',
+          label: 'text-sm',
+          description: 'text-xs text-neutral-500',
+        }}
+        description={versionLabels[version].description}
+      >
+        V{version} - {versionLabels[version].name}
+      </Radio>
+    ))}
+  </RadioGroup>
+</div>
+```
+
+### 6.2 Elementos del Radio
+
+| Elemento | Contenido |
+|----------|-----------|
+| Label | `V{n} - {nombre}` |
+| Description | Descripción breve de la versión |
+| Estado seleccionado | `border-[#4654CD] bg-[#4654CD]/5` |
+| Estado hover | `hover:border-[#4654CD]/50` |
+
+### 6.3 Separadores entre Secciones
+
+```tsx
+// Primera sección: sin border-top
+<div className="mb-6">
+
+// Secciones intermedias: con border-top
+<div className="mb-6 pt-4 border-t border-neutral-200">
+
+// Última sección: sin mb-6
+<div className="pt-4 border-t border-neutral-200">
+```
+
+### 6.4 Títulos Sin Códigos Internos
+
+```tsx
+// ❌ Incorrecto: códigos visibles
+<h3>Layout del Comparador (B.95)</h3>
+
+// ✅ Correcto: códigos solo en comentarios
+{/* Layout Version (B.95) */}
+<h3>Layout del Comparador</h3>
+```
+
+### 6.5 Modal Base Config
+
+```tsx
+<Modal
+  isOpen={isOpen}
+  onClose={onClose}
+  size="2xl"
+  scrollBehavior="outside"
+  backdrop="blur"
+  placement="center"
+  classNames={{
+    base: 'bg-white my-8',
+    wrapper: 'items-center justify-center py-8 min-h-full',
+    backdrop: 'bg-black/50',
+    header: 'border-b border-neutral-200 bg-white py-4 pr-12',
+    body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
+    footer: 'border-t border-neutral-200 bg-white',
+    closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+  }}
+>
+```
+
+---
+
+## 7. Colores y Estilos
+
+### 7.1 Colores de Marca
 
 ```css
 --brand-primary: #4654CD;      /* Azul principal */
@@ -330,7 +431,7 @@ export { SectionSettingsModal } from './SectionSettingsModal';
 --error: #ef4444;
 ```
 
-### 6.2 Clases Comunes
+### 7.2 Clases Comunes
 
 ```tsx
 // Botón primario
@@ -349,7 +450,7 @@ className="border-[#4654CD] bg-[#4654CD]/5"
 className="border-neutral-200 hover:border-[#4654CD]/50"
 ```
 
-### 6.3 Restricciones
+### 7.3 Restricciones
 
 - **NO emojis** en UI → usar `lucide-react` icons
 - **NO gradientes** → colores sólidos
@@ -357,9 +458,9 @@ className="border-neutral-200 hover:border-[#4654CD]/50"
 
 ---
 
-## 7. Performance Patterns
+## 8. Performance Patterns
 
-### 7.1 Memoización
+### 8.1 Memoización
 
 ```typescript
 // Filtrados y cálculos costosos
@@ -373,7 +474,7 @@ const handleAction = useCallback(() => {
 }, [dependencies]);
 ```
 
-### 7.2 Evitar Loading en Primer Render
+### 8.2 Evitar Loading en Primer Render
 
 ```typescript
 const isFirstRender = useRef(true);
@@ -389,7 +490,7 @@ useEffect(() => {
 }, [dependencies]);
 ```
 
-### 7.3 Lazy Loading de Imágenes
+### 8.3 Lazy Loading de Imágenes
 
 ```tsx
 <img
@@ -402,9 +503,9 @@ useEffect(() => {
 
 ---
 
-## 8. Comentarios en Código
+## 9. Comentarios en Código
 
-### 8.1 Documentación de Componentes
+### 9.1 Documentación de Componentes
 
 ```typescript
 /**
@@ -415,7 +516,7 @@ useEffect(() => {
 export const ComponentV1: React.FC<Props> = ({ ... }) => {
 ```
 
-### 8.2 Secciones de Código
+### 9.2 Secciones de Código
 
 ```tsx
 {/* Header */}
@@ -433,7 +534,104 @@ export const ComponentV1: React.FC<Props> = ({ ... }) => {
 
 ---
 
-## 9. Checklist de Validación
+## 10. Patrón de Configuración A/B
+
+### 10.1 Implementación Real, No Solo Estado
+
+Cada opción configurable debe tener implementación funcional en los componentes:
+
+```typescript
+// ❌ Incorrecto: Se guarda pero no se usa
+const hlVersion = config.highlightVersion; // guardado pero ignorado
+return <div>{value}</div>; // siempre igual
+
+// ✅ Correcto: Se usa para cambiar comportamiento
+const hlVersion = config.highlightVersion;
+switch (hlVersion) {
+  case 1: return <div className="bg-green-100">{value} <Trophy /></div>;
+  case 2: return <div className="bg-amber-50">{value} <Crown /></div>;
+  case 3: return <div><ProgressBar />{value}</div>;
+  // ... cada versión es diferente
+}
+```
+
+### 10.2 Versiones Exclusivas, No Combinadas
+
+Cada versión de estilo debe ser independiente:
+
+```tsx
+// ❌ Incorrecto: V3 combina con V1 (checkbox siempre visible)
+<Checkbox ... /> {/* siempre */}
+{cardVersion === 3 && <Ribbon />} {/* adicional */}
+
+// ✅ Correcto: Cada versión es exclusiva
+{cardVersion === 1 && <Checkbox ... />}
+{cardVersion === 2 && <Badge ... />}
+{cardVersion === 3 && <Ribbon ... />}
+```
+
+### 10.3 Eliminar Opciones Sin Valor
+
+Si una opción de configuración no produce cambios visibles diferenciables:
+1. **Primero**: Intentar implementarla correctamente
+2. **Si no aporta valor**: Eliminarla del config, modal, y URL params
+
+```typescript
+// Antes: 8 opciones (una no funcionaba)
+selectionVersion: 1 | 2 | 3 | 4 | 5 | 6; // ❌ eliminada
+
+// Después: 7 opciones funcionales
+// Menos opciones = menos complejidad = mejor UX de testing
+```
+
+### 10.4 Props Opcionales con Defaults
+
+Para evitar duplicación de UI (ej: headers en layout + tabla):
+
+```typescript
+interface TableProps {
+  showProductHeaders?: boolean; // default true
+}
+
+// Layout que ya muestra productos
+<ComparisonTable showProductHeaders={false} />
+
+// Layout sin productos propios
+<ComparisonTable /> // usa default true
+```
+
+### 10.5 Versiones con Mismos Datos Necesitan Diferenciadores Visuales
+
+Si múltiples versiones retornan los mismos datos, necesitan otros diferenciadores:
+
+```typescript
+// ❌ Problema: V3, V4, V5 todas retornan null (todos los campos)
+case 3: return null; // muestra 10 filas
+case 4: return null; // muestra 10 filas - ¿cuál es la diferencia?
+case 5: return null; // muestra 10 filas
+
+// ✅ Solución: Añadir diferenciadores visuales
+case 3: return null; // todos los campos, layout normal
+case 4: return null; // todos los campos + animación fadeIn
+case 5: return null; // todos los campos + layout split
+```
+
+### 10.6 No Eliminar Funcionalidad Sin Entender Contexto A/B
+
+Antes de eliminar código que parece innecesario, verificar si es parte del sistema A/B:
+
+```typescript
+// ❌ Error: Eliminar porque "el usuario pidió quitar +S/135"
+{renderPriceDiff(index)} // eliminado
+
+// ✅ Correcto: Entender que es necesario para versiones de precio
+// El usuario quería quitar un valor específico, no la funcionalidad
+// Las 6 versiones de "Diferencia de Precio" dependen de esto
+```
+
+---
+
+## 11. Checklist de Validación
 
 Antes de finalizar cualquier iteración, verificar:
 
@@ -466,12 +664,13 @@ Antes de finalizar cualquier iteración, verificar:
 
 ---
 
-## 10. Versionado de Documento
+## 11. Versionado de Documento
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
 | 1.0 | 2025-12-20 | Versión inicial extraída de LEARNINGS_CATALOGO |
 | 1.1 | 2025-12-20 | Agregado: tildes en identificadores internos (values, keys) |
+| 1.2 | 2025-12-21 | Agregado: Settings Modal Pattern (sección 6) |
 
 ---
 

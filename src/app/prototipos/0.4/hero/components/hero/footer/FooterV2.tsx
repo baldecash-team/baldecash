@@ -10,11 +10,13 @@
 import React from 'react';
 import { Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
 
+const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+
 const columns = [
   {
     title: 'Productos',
     links: [
-      { label: 'Equipos', href: '#equipos' },
+      { label: 'Equipos', href: catalogUrl },
       { label: 'Accesorios', href: '#accesorios' },
       { label: 'Seguros', href: '#seguros' },
       { label: 'Promociones', href: '#promos' },

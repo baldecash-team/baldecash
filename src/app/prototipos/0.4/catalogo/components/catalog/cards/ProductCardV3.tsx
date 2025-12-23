@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardBody, Button, Chip } from '@nextui-org/react';
-import { ShoppingCart, Heart, Cpu, MemoryStick, GraduationCap, Gamepad2, Palette, Briefcase, Code, Check, Eye } from 'lucide-react';
+import { ShoppingCart, Heart, Cpu, MemoryStick, GraduationCap, Gamepad2, Palette, Briefcase, Code, Check, Eye, GitCompare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
@@ -34,6 +34,10 @@ interface ProductCardV3Props {
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
+  // Compare props
+  onCompare?: () => void;
+  isCompareSelected?: boolean;
+  compareDisabled?: boolean;
 }
 
 const usageIcons: Record<UsageType, React.ReactNode> = {
@@ -71,6 +75,9 @@ export const ProductCardV3: React.FC<ProductCardV3Props> = ({
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
+  onCompare,
+  isCompareSelected = false,
+  compareDisabled = false,
 }) => {
   const [selectedTerm, setSelectedTerm] = useState<TermMonths>(defaultTerm);
   const [selectedInitial, setSelectedInitial] = useState<InitialPaymentPercent>(defaultInitial);
@@ -87,18 +94,43 @@ export const ProductCardV3: React.FC<ProductCardV3Props> = ({
     >
       <Card className="h-full border border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-md transition-all bg-gradient-to-b from-[#f8fafc] to-white">
         <CardBody className="p-4">
-          {/* Top row: Brand + Favorite */}
+          {/* Top row: Brand + Actions */}
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-neutral-400 uppercase tracking-wide">{product.brand}</p>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onFavorite?.();
-              }}
-              className="p-1.5 rounded-full hover:bg-[#4654CD]/10 cursor-pointer transition-colors"
-            >
-              <Heart className={`w-4 h-4 transition-colors ${isFavorite ? 'fill-[#4654CD] text-[#4654CD]' : 'text-neutral-300 hover:text-[#4654CD]'}`} />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Compare button */}
+              {onCompare && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!compareDisabled || isCompareSelected) {
+                      onCompare();
+                    }
+                  }}
+                  disabled={compareDisabled && !isCompareSelected}
+                  className={`p-1.5 rounded-full transition-colors ${
+                    isCompareSelected
+                      ? 'bg-[#4654CD] text-white'
+                      : compareDisabled
+                        ? 'text-neutral-200 cursor-not-allowed'
+                        : 'hover:bg-[#4654CD]/10 cursor-pointer'
+                  }`}
+                  title={compareDisabled && !isCompareSelected ? 'Máximo 3 productos' : isCompareSelected ? 'Quitar de comparación' : 'Agregar a comparación'}
+                >
+                  <GitCompare className={`w-4 h-4 transition-colors ${isCompareSelected ? 'text-white' : compareDisabled ? 'text-neutral-200' : 'text-neutral-300 hover:text-[#4654CD]'}`} />
+                </button>
+              )}
+              {/* Favorite button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFavorite?.();
+                }}
+                className="p-1.5 rounded-full hover:bg-[#4654CD]/10 cursor-pointer transition-colors"
+              >
+                <Heart className={`w-4 h-4 transition-colors ${isFavorite ? 'fill-[#4654CD] text-[#4654CD]' : 'text-neutral-300 hover:text-[#4654CD]'}`} />
+              </button>
+            </div>
           </div>
 
           {/* Image Gallery */}
@@ -187,22 +219,26 @@ export const ProductCardV3: React.FC<ProductCardV3Props> = ({
                 </div>
                 {/* Selector de inicial */}
                 <div className="flex flex-wrap gap-1">
-                  {initialOptions.map((initial) => (
-                    <button
-                      key={initial}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedInitial(initial);
-                      }}
-                      className={`px-2 py-0.5 text-[10px] font-medium rounded cursor-pointer transition-all ${
-                        selectedInitial === initial
-                          ? 'bg-[#03DBD0] text-white'
-                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                      }`}
-                    >
-                      {initialLabels[initial]}
-                    </button>
-                  ))}
+                  {initialOptions.map((initial) => {
+                    const amount = Math.round(product.price * (initial / 100));
+                    const label = initial === 0 ? 'Sin inicial' : `S/${amount}`;
+                    return (
+                      <button
+                        key={initial}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedInitial(initial);
+                        }}
+                        className={`px-2 py-0.5 text-[10px] font-medium rounded cursor-pointer transition-all ${
+                          selectedInitial === initial
+                            ? 'bg-[#03DBD0] text-white'
+                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

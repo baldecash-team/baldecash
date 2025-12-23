@@ -10,13 +10,21 @@
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
-import { ArrowRight } from 'lucide-react';
+import { Laptop } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface HeroCtaV5Props {
   onCtaClick?: () => void;
 }
 
 export const HeroCtaV5: React.FC<HeroCtaV5Props> = ({ onCtaClick }) => {
+  const router = useRouter();
+
+  const handleClick = () => {
+    onCtaClick?.();
+    router.push('/prototipos/0.4/catalogo');
+  };
+
   return (
     <>
       {/* Desktop: Botón normal */}
@@ -25,10 +33,10 @@ export const HeroCtaV5: React.FC<HeroCtaV5Props> = ({ onCtaClick }) => {
           size="lg"
           radius="lg"
           className="bg-[#4654CD] text-white font-semibold px-10 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
-          endContent={<ArrowRight className="w-5 h-5" />}
-          onPress={onCtaClick}
+          startContent={<Laptop className="w-5 h-5" />}
+          onPress={handleClick}
         >
-          Solicitar mi laptop
+          Ver productos
         </Button>
       </div>
 
@@ -50,10 +58,10 @@ export const HeroCtaV5: React.FC<HeroCtaV5Props> = ({ onCtaClick }) => {
             size="lg"
             radius="lg"
             className="bg-[#4654CD] text-white font-semibold px-6 h-12 cursor-pointer hover:bg-[#3a47b3] transition-colors flex-shrink-0"
-            endContent={<ArrowRight className="w-4 h-4" />}
-            onPress={onCtaClick}
+            startContent={<Laptop className="w-4 h-4" />}
+            onPress={handleClick}
           >
-            Solicitar
+            Ver productos
           </Button>
         </div>
       </div>

@@ -514,3 +514,99 @@ export const TextInputV1: React.FC<TextInputV1Props> = ({
 5. **Sin gradientes**: Colores sólidos
 6. **Sin emojis**: Solo Lucide icons
 7. **cursor-pointer**: En todos los elementos clickeables
+
+---
+
+## 8. Manejo de Label Versions en Campos
+
+> **CRÍTICO**: Cada campo (Input, DatePicker, Select, etc.) DEBE manejar las 6 versiones
+> de label correctamente. El error más común es usar un wrapper genérico que no funciona
+> para todas las versiones.
+
+### Comportamiento por Versión
+
+| Versión | Layout | Container | Notas |
+|---------|--------|-----------|-------|
+| V1 | Label arriba | `space-y-1.5` | Default, siempre funciona |
+| V2 | Label flotante | `relative pt-2` | Label usa `absolute` positioning |
+| V3 | Minimalista | `space-y-1.5` | Label en placeholder para inputs |
+| V4 | Badge inline | `space-y-1.5` | Similar a V1 con badge |
+| V5 | Label izquierda | `flex items-start gap-3` | **Layout horizontal obligatorio** |
+| V6 | Label hero | `space-y-1.5` | Label grande, similar a V1 |
+
+### Patrón Obligatorio para Campos Complejos (DatePicker, etc.)
+
+```tsx
+const MyComplexField = ({ field, labelVersion, ... }) => {
+  const LabelComponent = getLabel(labelVersion);
+
+  // 1. Extraer contenido a variable JSX
+  const fieldContent = (
+    <div className="bg-neutral-50 border rounded-xl p-4">
+      {/* Contenido del campo */}
+    </div>
+  );
+
+  // 2. V5: Layout horizontal OBLIGATORIO
+  if (labelVersion === 5) {
+    return (
+      <div className="flex items-start gap-3">
+        <LabelComponent field={field} hasError={!!error} />
+        <div className="flex-1">{fieldContent}</div>
+      </div>
+    );
+  }
+
+  // 3. V3: Minimal o placeholder
+  if (labelVersion === 3) {
+    return (
+      <div className="space-y-1.5">
+        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+          {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
+        </span>
+        {fieldContent}
+      </div>
+    );
+  }
+
+  // 4. Default: Label arriba
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <LabelComponent field={field} hasError={!!error} />
+        {field.helpText && <HelpTooltip />}
+      </div>
+      {fieldContent}
+    </div>
+  );
+};
+```
+
+### ❌ Errores a Evitar
+
+```tsx
+// ❌ INCORRECTO - Un solo wrapper para todas las versiones
+return (
+  <div className="space-y-1.5">
+    <div className="inline-flex items-center gap-1.5">
+      <LabelComponent />  // V2/V5 no funcionarán
+    </div>
+    {fieldContent}
+  </div>
+);
+
+// ❌ INCORRECTO - V3 con label redundante
+// Si labelVersion === 3, el label va en placeholder, no arriba
+```
+
+### Inputs con labelVersion 3
+
+Para inputs simples con V3, usar el label en el placeholder:
+
+```tsx
+const placeholderText = labelVersion === 3
+  ? `${field.label}${field.required ? ' *' : ''}`
+  : field.placeholder;
+
+<Input placeholder={placeholderText} ... />
+```

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardBody, Button, Chip } from '@nextui-org/react';
-import { ArrowRight, Heart, Eye } from 'lucide-react';
+import { ArrowRight, Heart, Eye, GitCompare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
@@ -33,6 +33,10 @@ interface ProductCardV6Props {
   pricingMode?: PricingMode;
   defaultTerm?: TermMonths;
   defaultInitial?: InitialPaymentPercent;
+  // Compare props
+  onCompare?: () => void;
+  isCompareSelected?: boolean;
+  compareDisabled?: boolean;
 }
 
 /**
@@ -54,6 +58,9 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
   pricingMode = 'interactive',
   defaultTerm = 24,
   defaultInitial = 10,
+  onCompare,
+  isCompareSelected = false,
+  compareDisabled = false,
 }) => {
   const [selectedTerm, setSelectedTerm] = useState<TermMonths>(defaultTerm);
   const [selectedInitial, setSelectedInitial] = useState<InitialPaymentPercent>(defaultInitial);
@@ -79,16 +86,41 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
               sizeVersion={gallerySizeVersion}
             />
 
-            {/* Favorite - centered top */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onFavorite?.();
-              }}
-              className="absolute top-3 right-3 p-2.5 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[#4654CD]/10 transition-all"
-            >
-              <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-[#4654CD] text-[#4654CD]' : 'text-neutral-300 hover:text-[#4654CD]'}`} />
-            </button>
+            {/* Action buttons - top right */}
+            <div className="absolute top-3 right-3 flex flex-col gap-1">
+              {/* Favorite */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFavorite?.();
+                }}
+                className="p-2.5 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[#4654CD]/10 transition-all"
+              >
+                <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'fill-[#4654CD] text-[#4654CD]' : 'text-neutral-300 hover:text-[#4654CD]'}`} />
+              </button>
+              {/* Compare */}
+              {onCompare && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!compareDisabled || isCompareSelected) {
+                      onCompare();
+                    }
+                  }}
+                  disabled={compareDisabled && !isCompareSelected}
+                  className={`p-2.5 rounded-full shadow-md transition-all ${
+                    isCompareSelected
+                      ? 'bg-[#4654CD] text-white'
+                      : compareDisabled
+                        ? 'bg-white/50 text-neutral-300 cursor-not-allowed'
+                        : 'bg-white/90 hover:bg-[#4654CD]/10 cursor-pointer'
+                  }`}
+                  title={compareDisabled && !isCompareSelected ? 'Máximo 3 productos' : isCompareSelected ? 'Quitar de comparación' : 'Agregar a comparación'}
+                >
+                  <GitCompare className={`w-5 h-5 transition-colors ${isCompareSelected ? 'text-white' : compareDisabled ? 'text-neutral-300' : 'text-neutral-300 hover:text-[#4654CD]'}`} />
+                </button>
+              )}
+            </div>
 
             {/* Product Tags */}
             {product.tags && product.tags.length > 0 && (
@@ -147,22 +179,26 @@ export const ProductCardV6: React.FC<ProductCardV6Props> = ({
                   </div>
                   {/* Initial selector */}
                   <div className="flex justify-center flex-wrap gap-1.5">
-                    {initialOptions.map((initial) => (
-                      <button
-                        key={initial}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedInitial(initial);
-                        }}
-                        className={`px-3 py-1 text-xs font-medium rounded-full cursor-pointer transition-all ${
-                          selectedInitial === initial
-                            ? 'bg-[#03DBD0] text-white'
-                            : 'bg-white text-neutral-600 hover:bg-neutral-100'
-                        }`}
-                      >
-                        {initialLabels[initial]}
-                      </button>
-                    ))}
+                    {initialOptions.map((initial) => {
+                      const amount = Math.round(product.price * (initial / 100));
+                      const label = initial === 0 ? 'Sin inicial' : `S/${amount}`;
+                      return (
+                        <button
+                          key={initial}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedInitial(initial);
+                          }}
+                          className={`px-3 py-1 text-xs font-medium rounded-full cursor-pointer transition-all ${
+                            selectedInitial === initial
+                              ? 'bg-[#03DBD0] text-white'
+                              : 'bg-white text-neutral-600 hover:bg-neutral-100'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

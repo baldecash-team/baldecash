@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Clock, CreditCard, Sparkles, CheckCircle2, GraduationCap, Star } from 'lucide-react';
@@ -22,6 +23,9 @@ export const HeroBannerV1: React.FC<HeroBannerProps> = ({
   primaryCta,
   underlineStyle = 1,
 }) => {
+  const router = useRouter();
+  const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+
   return (
     <section className="relative bg-gradient-to-br from-neutral-50 via-white to-[#4654CD]/5 min-h-[85vh] overflow-hidden">
       {/* Background Pattern */}
@@ -128,6 +132,7 @@ export const HeroBannerV1: React.FC<HeroBannerProps> = ({
                 radius="lg"
                 className="bg-[#4654CD] text-white font-bold px-8 h-14 text-base cursor-pointer hover:bg-[#3a47b3] hover:scale-[1.02] transition-all shadow-lg shadow-[#4654CD]/25"
                 endContent={<ArrowRight className="w-5 h-5" />}
+                onPress={() => router.push(catalogUrl)}
               >
                 {primaryCta?.text || 'Ver equipos disponibles'}
               </Button>
