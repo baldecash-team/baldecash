@@ -24,7 +24,7 @@ function VersionCard({ version }: { version: VersionConfig }) {
 
   return (
     <Link href={`/prototipos/${version.version}`}>
-      <Card className="bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-all duration-300 hover:scale-[1.02] cursor-pointer h-full relative group" isPressable>
+      <Card className="bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-all duration-300 hover:scale-[1.02] cursor-pointer h-full relative group">
         {version.badge && (
           <div className="absolute top-4 right-4 z-10">
             <span className={`px-3 py-1 ${status.bg} ${status.color} text-xs font-semibold rounded-full`}>{version.badge}</span>
@@ -81,7 +81,7 @@ function LegacyCard({ proto }: { proto: typeof LEGACY_PROTOTYPES[0] }) {
   const IconComponent = iconMap[proto.icon] || Layers;
   return (
     <Link href={proto.href}>
-      <Card className="bg-neutral-50 border border-neutral-200 hover:border-[#4654CD]/50 transition-all duration-300 hover:scale-[1.02] cursor-pointer h-full" isPressable>
+      <Card className="bg-neutral-50 border border-neutral-200 hover:border-[#4654CD]/50 transition-all duration-300 hover:scale-[1.02] cursor-pointer h-full">
         <CardHeader className="flex flex-row items-center gap-4 pt-6 px-6">
           <div className="w-12 h-12 rounded-xl bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
             <IconComponent className="w-6 h-6 text-[#4654CD]" />
