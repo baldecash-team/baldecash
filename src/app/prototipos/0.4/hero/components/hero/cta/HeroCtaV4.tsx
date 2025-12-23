@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
-import { Laptop } from 'lucide-react';
+import { Laptop, ClipboardList } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface HeroCtaV4Props {
@@ -36,6 +36,11 @@ export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
     router.push('/prototipos/0.4/catalogo');
   };
 
+  const handleQuiz = () => {
+    onCtaClick?.();
+    router.push('/prototipos/0.4/wizard-solicitud/wizard-preview');
+  };
+
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -47,6 +52,15 @@ export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
           onPress={handleCatalogo}
         >
           Ver productos
+        </Button>
+        <Button
+          size="lg"
+          radius="lg"
+          className="bg-[#03DBD0] text-neutral-900 font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#02c4ba] transition-colors shadow-lg shadow-[#03DBD0]/25"
+          startContent={<ClipboardList className="w-5 h-5" />}
+          onPress={handleQuiz}
+        >
+          Solicitar ahora
         </Button>
         <Button
           size="lg"
