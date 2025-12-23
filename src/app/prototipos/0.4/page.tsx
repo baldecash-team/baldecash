@@ -65,8 +65,8 @@ const presentationPaths: Record<string, string> = {
   quiz: "/prototipos/0.4/quiz/quiz-preview?layout=5&mode=clean",
   // Estados vacios: Illustration V5, Actions V6
   estados: "/prototipos/0.4/catalogo/empty-preview?illustration=5&actions=6&mode=clean",
-  // Wizard: Input V4, Options V2, Progress V1, Navigation V1
-  'wizard-solicitud': "/prototipos/0.4/wizard-solicitud/wizard-preview?input=4&options=2&progress=1&navigation=1&mode=clean",
+  // Wizard: Input V4, Options V2, Upload V3, Progress V1, Navigation V1
+  'wizard-solicitud': "/prototipos/0.4/wizard-solicitud/wizard-preview?input=4&options=2&upload=3&progress=1&navigation=1&mode=clean",
   // Upsell: AccessoryIntro V3, InsuranceIntro V4, PlanComparison V4
   upsell: "/prototipos/0.4/upsell/upsell-preview?accessoryIntroVersion=3&insuranceIntroVersion=4&planComparisonVersion=4&mode=clean",
   // Aprobacion: Celebration V1, Confetti V1, Sound V2, Summary V1, Time V3, Share V6, Referrals V1

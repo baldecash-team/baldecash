@@ -8,7 +8,7 @@
  * 6 navigation options for all page sections.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Image,
   Info,
@@ -23,6 +23,8 @@ import { DetailTabsProps } from '../../../types/detail';
 
 export const DetailTabsV1: React.FC<DetailTabsProps> = () => {
   const [activeSection, setActiveSection] = useState('section-gallery');
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // All 6 navigation sections
   const navItems = [
@@ -36,13 +38,36 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = () => {
 
   useEffect(() => {
     const handleScroll = () => {
+      // Skip scroll detection while programmatic scrolling is in progress
+      if (isScrollingRef.current) return;
+
       const scrollPosition = window.scrollY + 150;
 
-      for (const item of [...navItems].reverse()) {
+      // Filter out items that are at the same vertical position as gallery/info (grid row)
+      // Only detect based on sections that have distinct vertical positions
+      const distinctSections = navItems.filter(item => {
+        // Gallery and Info are in the same row, so we only check gallery for that row
+        if (item.id === 'section-info') return false;
+        return true;
+      });
+
+      for (const item of [...distinctSections].reverse()) {
         const element = document.getElementById(item.id);
         if (element) {
           const { offsetTop } = element;
           if (scrollPosition >= offsetTop) {
+            // Special case: if we're at gallery level, check if scroll is more to the right column
+            if (item.id === 'section-gallery') {
+              const infoElement = document.getElementById('section-info');
+              const pricingElement = document.getElementById('section-pricing');
+              if (infoElement && pricingElement) {
+                // If we haven't scrolled past the pricing section, we're still in gallery/info row
+                if (scrollPosition < pricingElement.offsetTop) {
+                  setActiveSection('section-gallery');
+                  break;
+                }
+              }
+            }
             setActiveSection(item.id);
             break;
           }
@@ -58,9 +83,25 @@ export const DetailTabsV1: React.FC<DetailTabsProps> = () => {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
+      // Set active section immediately on click
+      setActiveSection(sectionId);
+
+      // Prevent scroll detection from overriding during smooth scroll
+      isScrollingRef.current = true;
+
+      // Clear any existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
       const yOffset = -80;
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
+
+      // Re-enable scroll detection after animation completes
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 800);
     }
   };
 

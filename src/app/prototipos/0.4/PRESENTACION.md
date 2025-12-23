@@ -33,22 +33,56 @@
 
 ### Wizard de Solicitud
 ```
-/prototipos/0.4/wizard-solicitud/wizard-preview
+# Con controles
+/prototipos/0.4/wizard-solicitud/wizard-preview?input=4&options=2&upload=3&progress=1&navigation=1
+
+# Sin controles (presentacion)
+/prototipos/0.4/wizard-solicitud/wizard-preview?input=4&options=2&upload=3&progress=1&navigation=1&mode=clean
 ```
+
+**Componentes seleccionados:**
+| Componente | Version | Descripcion |
+|------------|---------|-------------|
+| Input + Label | V4 | Labels animados |
+| Opciones | V2 | Cards de seleccion |
+| Upload | V3 | Con boton de camara |
+| Progress | V1 | Barra de progreso |
+| Navigation | V1 | Botones siguiente/anterior |
 
 ### Catalogo de Productos
 ```
-/prototipos/0.4/catalogo/catalog-preview
+# Con controles
+/prototipos/0.4/catalogo/catalog-preview?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1
+
+# Sin controles (presentacion)
+/prototipos/0.4/catalogo/catalog-preview?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&mode=clean
+```
+
+### Detalle de Producto
+```
+# Con controles
+/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1
+
+# Sin controles (presentacion)
+/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1&mode=clean
 ```
 
 ### Resultado Aprobado
 ```
-/prototipos/0.4/resultado/aprobado-preview
+# Con controles
+/prototipos/0.4/resultado/aprobado-preview?celebration=1&confetti=1&sound=2&summary=1&time=3&share=6&referrals=1
+
+# Sin controles (presentacion)
+/prototipos/0.4/resultado/aprobado-preview?celebration=1&confetti=1&sound=2&summary=1&time=3&share=6&referrals=1&mode=clean
 ```
 
 ### Resultado Rechazado
 ```
+# Con controles
 /prototipos/0.4/resultado/rechazado-preview
+
+# Sin controles (presentacion)
+/prototipos/0.4/resultado/rechazado-preview?mode=clean
 ```
 
 ---

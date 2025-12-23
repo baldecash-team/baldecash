@@ -119,10 +119,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const finalConfig: ProductDetailConfig = { ...defaultDetailConfig, ...config };
 
   const handleSolicitar = () => {
-    // Navigate to wizard - if in clean mode, use presentation mode
-    const wizardUrl = isCleanMode
-      ? '/prototipos/0.4/wizard-solicitud/wizard-preview?input=1&options=1&progress=1&navigation=1&mode=clean'
-      : '/prototipos/0.4/wizard-solicitud/wizard-preview?input=1&options=1&progress=1&navigation=1';
+    // Navigate to wizard with optimized params: Input V4, Options V2, Upload V3, Progress V1, Navigation V1
+    const baseWizardUrl = '/prototipos/0.4/wizard-solicitud/wizard-preview?input=4&options=2&upload=3&progress=1&navigation=1';
+    const wizardUrl = isCleanMode ? `${baseWizardUrl}&mode=clean` : baseWizardUrl;
     router.push(wizardUrl);
   };
 
