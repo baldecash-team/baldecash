@@ -1,13 +1,12 @@
 'use client';
 
 /**
- * SelectCardsV5 - Lista con checkmarks
- * Lista vertical con checkmarks al seleccionar
+ * SelectCardsV5 - Radio dots minimalistas inline
+ * Opciones con radio visual compacto en linea horizontal
  */
 
 import React from 'react';
-import { Check, Circle } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { motion } from 'framer-motion';
 import type { FieldConfig } from '../../../types/wizard-solicitud';
 import { getLabel } from './labels';
 import { getHelpTooltip } from './HelpTooltip';
@@ -29,18 +28,15 @@ export const SelectCardsV5: React.FC<SelectCardsV5Props> = ({
   labelVersion = 1,
   helpVersion = 1,
 }) => {
+  const options = field.options || [];
   const LabelComponent = getLabel(labelVersion);
   const HelpTooltip = getHelpTooltip(helpVersion);
-  const getIcon = (iconName?: string) => {
-    if (!iconName) return null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Icon = (LucideIcons as any)[iconName];
-    return Icon ? <Icon className="w-5 h-5" /> : null;
-  };
 
-  const cardsContent = (
-    <div className="space-y-2">
-        {field.options?.map((option) => {
+  const radioContent = (
+    <>
+      {/* Radio group inline */}
+      <div className="flex flex-wrap gap-4">
+        {options.map((option) => {
           const isSelected = value === option.value;
           return (
             <button
@@ -48,75 +44,73 @@ export const SelectCardsV5: React.FC<SelectCardsV5Props> = ({
               type="button"
               onClick={() => onChange(option.value)}
               className={`
-                w-full flex items-center gap-3 p-3 rounded-lg border-2 transition-all text-left
-                ${isSelected
-                  ? 'border-[#4654CD] bg-[#4654CD]/5'
-                  : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                }
+                inline-flex items-center gap-2.5 py-1.5 cursor-pointer
+                transition-colors duration-200 group
               `}
             >
-              <div className={`
-                w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0
-                ${isSelected ? 'bg-[#4654CD] text-white' : 'border-2 border-neutral-300'}
-              `}>
-                {isSelected ? <Check className="w-4 h-4" /> : <Circle className="w-4 h-4 text-transparent" />}
-              </div>
-
-              {option.icon && (
-                <div className={`text-neutral-500 ${isSelected ? 'text-[#4654CD]' : ''}`}>
-                  {getIcon(option.icon)}
-                </div>
-              )}
-
-              <div className="flex-1 min-w-0">
-                <p className={`font-medium text-sm ${isSelected ? 'text-[#4654CD]' : 'text-neutral-800'}`}>
-                  {option.label}
-                </p>
-                {option.description && (
-                  <p className="text-xs text-neutral-500">{option.description}</p>
+              {/* Radio dot */}
+              <div
+                className={`
+                  w-5 h-5 rounded-full border-2 flex items-center justify-center
+                  transition-all duration-200
+                  ${isSelected
+                    ? 'border-[#4654CD] bg-[#4654CD]'
+                    : 'border-neutral-300 group-hover:border-[#4654CD]/50'
+                  }
+                  ${error ? 'border-red-300' : ''}
+                `}
+              >
+                {isSelected && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="w-2 h-2 bg-white rounded-full"
+                  />
                 )}
               </div>
+
+              {/* Label */}
+              <span
+                className={`
+                  text-sm font-medium transition-colors
+                  ${isSelected ? 'text-[#4654CD]' : 'text-neutral-600 group-hover:text-neutral-800'}
+                `}
+              >
+                {option.label}
+              </span>
             </button>
           );
         })}
       </div>
+
+      {/* Error */}
+      {error && (
+        <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+          <span className="w-1 h-1 bg-red-500 rounded-full" />
+          {error}
+        </p>
+      )}
+    </>
   );
 
-  // V5/V6: Layout horizontal con label a la izquierda
-  if (labelVersion === 5 || labelVersion === 6) {
+  // V5: Horizontal layout
+  if (labelVersion === 5) {
     return (
       <div className="flex items-start gap-3">
         <LabelComponent field={field} hasError={!!error} />
-        <div className="flex-1">
-          {cardsContent}
-          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-        </div>
+        <div className="flex-1">{radioContent}</div>
       </div>
     );
   }
 
-  // V3: Minimal label
-  if (labelVersion === 3) {
-    return (
-      <div className="space-y-2">
-        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-          {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
-        </span>
-        {cardsContent}
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      </div>
-    );
-  }
-
-  // Default: Label arriba
   return (
     <div className="space-y-2">
+      {/* Label */}
       <div className="flex items-center gap-1.5">
         <LabelComponent field={field} hasError={!!error} />
         {field.helpText && <HelpTooltip content={field.helpText} title={field.label} />}
       </div>
-      {cardsContent}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {radioContent}
     </div>
   );
 };

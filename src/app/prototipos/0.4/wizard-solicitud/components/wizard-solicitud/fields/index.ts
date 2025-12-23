@@ -28,6 +28,12 @@ import { DatePickerFieldV3 } from './DatePickerFieldV3';
 import { DatePickerFieldV4 } from './DatePickerFieldV4';
 import { DatePickerFieldV5 } from './DatePickerFieldV5';
 import { DatePickerFieldV6 } from './DatePickerFieldV6';
+import { SearchFieldV1 } from './SearchFieldV1';
+import { SearchFieldV2 } from './SearchFieldV2';
+import { SearchFieldV3 } from './SearchFieldV3';
+import { SearchFieldV4 } from './SearchFieldV4';
+import { SearchFieldV5 } from './SearchFieldV5';
+import { SearchFieldV6 } from './SearchFieldV6';
 
 // Re-exports de componentes individuales
 export { InputFieldV1 } from './InputFieldV1';
@@ -57,6 +63,13 @@ export { DatePickerFieldV3 } from './DatePickerFieldV3';
 export { DatePickerFieldV4 } from './DatePickerFieldV4';
 export { DatePickerFieldV5 } from './DatePickerFieldV5';
 export { DatePickerFieldV6 } from './DatePickerFieldV6';
+
+export { SearchFieldV1 } from './SearchFieldV1';
+export { SearchFieldV2 } from './SearchFieldV2';
+export { SearchFieldV3 } from './SearchFieldV3';
+export { SearchFieldV4 } from './SearchFieldV4';
+export { SearchFieldV5 } from './SearchFieldV5';
+export { SearchFieldV6 } from './SearchFieldV6';
 
 // Mapeo de versiones para uso dinamico
 export const InputFieldVersions = {
@@ -95,10 +108,20 @@ export const DatePickerFieldVersions = {
   6: DatePickerFieldV6,
 };
 
+export const SearchFieldVersions = {
+  1: SearchFieldV1,
+  2: SearchFieldV2,
+  3: SearchFieldV3,
+  4: SearchFieldV4,
+  5: SearchFieldV5,
+  6: SearchFieldV6,
+};
+
 export const getInputField = (version: 1 | 2 | 3 | 4 | 5 | 6) => InputFieldVersions[version];
 export const getSelectCards = (version: 1 | 2 | 3 | 4 | 5 | 6) => SelectCardsVersions[version];
 export const getUploadField = (version: 1 | 2 | 3 | 4 | 5 | 6) => UploadFieldVersions[version];
 export const getDatePickerField = (version: 1 | 2 | 3 | 4 | 5 | 6) => DatePickerFieldVersions[version];
+export const getSearchField = (version: 1 | 2 | 3 | 4 | 5 | 6) => SearchFieldVersions[version];
 
 // HelpTooltips
 export {
