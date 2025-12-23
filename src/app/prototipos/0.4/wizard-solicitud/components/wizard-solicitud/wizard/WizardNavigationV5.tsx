@@ -2,12 +2,12 @@
 
 /**
  * WizardNavigationV5 - Pills flotantes con animacion
- * Estilo minimalista con botones pill en esquinas
+ * UI: Botones pill minimalistas con animaciones suaves
  */
 
 import React from 'react';
 import { Spinner } from '@nextui-org/react';
-import { ArrowLeft, ArrowRight, Send, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface WizardNavigationV5Props {
@@ -42,10 +42,10 @@ export const WizardNavigationV5: React.FC<WizardNavigationV5Props> = ({
               exit={{ x: -20, opacity: 0 }}
               onClick={onBack}
               disabled={isSubmitting}
-              className="pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-full bg-white shadow-xl border border-neutral-200 text-neutral-600 hover:text-[#4654CD] hover:border-[#4654CD]/30 transition-all disabled:opacity-50 cursor-pointer"
+              className="pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-full bg-white shadow-[0_4px_20px_rgba(0,0,0,0.12)] border border-neutral-200 text-neutral-700 hover:text-[#4654CD] hover:border-[#4654CD]/30 hover:shadow-[0_4px_24px_rgba(70,84,205,0.2)] transition-all disabled:opacity-50 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Atras</span>
+              <span className="text-sm font-semibold">Atras</span>
             </motion.button>
           )}
         </AnimatePresence>
@@ -58,10 +58,10 @@ export const WizardNavigationV5: React.FC<WizardNavigationV5Props> = ({
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
           disabled={!canGoForward || isSubmitting}
-          className={`pointer-events-auto flex items-center gap-3 px-6 py-3.5 rounded-full shadow-xl transition-all disabled:opacity-50 cursor-pointer ${
+          className={`pointer-events-auto flex items-center gap-3 px-7 py-3.5 rounded-full transition-all disabled:opacity-50 cursor-pointer ${
             isLastStep
-              ? 'bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white'
-              : 'bg-[#4654CD] text-white hover:bg-[#3A47B8]'
+              ? 'bg-[#22c55e] hover:bg-[#16a34a] text-white shadow-[0_4px_20px_rgba(34,197,94,0.35)]'
+              : 'bg-[#4654CD] text-white hover:bg-[#3A47B8] shadow-[0_4px_20px_rgba(70,84,205,0.35)]'
           }`}
         >
           <span className="font-semibold">
@@ -70,17 +70,9 @@ export const WizardNavigationV5: React.FC<WizardNavigationV5Props> = ({
           {isSubmitting ? (
             <Spinner size="sm" color="white" />
           ) : isLastStep ? (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center"
-            >
-              <Check className="w-4 h-4" />
-            </motion.div>
+            <Send className="w-4 h-4" />
           ) : (
-            <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-              <ArrowRight className="w-4 h-4" />
-            </div>
+            <ArrowRight className="w-4 h-4" />
           )}
         </motion.button>
       </div>

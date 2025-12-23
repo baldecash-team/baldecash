@@ -1,15 +1,14 @@
 'use client';
 
 /**
- * SearchFieldV6 - Select con búsqueda card/modal
- * Abre en modal fullscreen en mobile, card grande en desktop
+ * SearchFieldV6 - Select con búsqueda estilo Fintech Premium
+ * Mismo estilo que InputFieldV6 + modal fullscreen en mobile
  */
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Check, X, ChevronRight } from 'lucide-react';
+import { Search, Check, X, ChevronDown, HelpCircle } from 'lucide-react';
 import type { FieldConfig } from '../../../types/wizard-solicitud';
-import { getHelpTooltip } from './HelpTooltip';
 
 interface SearchFieldV6Props {
   field: FieldConfig;
@@ -24,12 +23,14 @@ export const SearchFieldV6: React.FC<SearchFieldV6Props> = ({
   value,
   error,
   onChange,
-  helpVersion = 1,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   const options = field.options || [];
+  const hasValue = Boolean(value);
+  const showFloatingLabel = isFocused || hasValue || isOpen;
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm) return options;
@@ -44,57 +45,90 @@ export const SearchFieldV6: React.FC<SearchFieldV6Props> = ({
     onChange(optionValue);
     setIsOpen(false);
     setSearchTerm('');
+    setIsFocused(false);
   };
 
-  const HelpTooltip = getHelpTooltip(helpVersion);
+  const handleOpen = () => {
+    setIsOpen(true);
+    setIsFocused(true);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setIsFocused(false);
+    setSearchTerm('');
+  };
 
   return (
-    <div className="space-y-1.5">
-      {/* Label */}
-      <div className="inline-flex items-center gap-1.5">
-        <label className={`
-          text-sm font-medium
-          ${error ? 'text-red-600' : 'text-neutral-700'}
-        `}>
-          {field.label}
-          {field.required && <span className="text-red-500 ml-0.5">*</span>}
-        </label>
-        {field.helpText && (
-          <HelpTooltip content={field.helpText} title={field.label} />
-        )}
-      </div>
+    <div className="relative">
+      {/* Floating Label - igual que InputFieldV6 */}
+      <motion.label
+        className={`absolute left-3 pointer-events-none z-10 transition-colors duration-200
+          ${showFloatingLabel ? 'text-xs font-medium' : 'text-sm font-normal'}
+          ${isFocused || isOpen ? 'text-[#4654CD]' : 'text-neutral-400'}
+          ${error ? 'text-red-500' : ''}`}
+        animate={{
+          top: showFloatingLabel ? 6 : '50%',
+          y: showFloatingLabel ? 0 : '-50%',
+          fontSize: showFloatingLabel ? '11px' : '14px'
+        }}
+        transition={{ duration: 0.15, ease: 'easeOut' }}
+      >
+        {field.label}
+        {field.required && <span className="text-red-400 ml-0.5">*</span>}
+        {!field.required && showFloatingLabel && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
+      </motion.label>
 
-      {/* Card-style button */}
+      {/* Input-style button - igual que InputFieldV6 */}
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => !isOpen && setIsFocused(false)}
         className={`
-          w-full p-4 rounded-xl border-2 transition-all cursor-pointer text-left
-          flex items-center justify-between gap-3
-          ${error ? 'border-red-500 bg-red-50/50' : ''}
-          ${!error && value ? 'border-[#4654CD]/30 bg-[#4654CD]/5' : ''}
-          ${!error && !value ? 'border-neutral-200 hover:border-neutral-300 bg-white' : ''}
+          w-full h-14 px-3 pt-4 rounded-xl border-2 transition-all duration-200 cursor-pointer text-left
+          flex items-center justify-between gap-2
+          ${isFocused || isOpen ? 'border-[#4654CD] bg-white shadow-lg shadow-[#4654CD]/10' : 'border-transparent shadow-sm'}
+          ${error ? 'border-red-400 bg-red-50/50' : ''}
+          ${!isFocused && !isOpen && !error ? 'bg-neutral-50 hover:bg-neutral-100 hover:shadow-md' : ''}
         `}
       >
-        <div className="flex-1 min-w-0">
-          {selectedOption ? (
-            <>
-              <p className="text-neutral-800 font-medium truncate">{selectedOption.label}</p>
-              <p className="text-xs text-[#4654CD] mt-0.5">Toca para cambiar</p>
-            </>
-          ) : (
-            <>
-              <p className="text-neutral-400">{field.placeholder || 'Seleccionar opción'}</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Toca para buscar</p>
-            </>
-          )}
-        </div>
+        <span className={`text-base mt-1 truncate ${selectedOption ? 'text-neutral-900' : 'text-transparent'}`}>
+          {selectedOption?.label || '.'}
+        </span>
 
         <div className="flex items-center gap-2">
-          {value && !error && <Check className="w-5 h-5 text-[#22c55e]" />}
-          <ChevronRight className="w-5 h-5 text-neutral-400" />
+          {hasValue && !error && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center"
+            >
+              <Check className="w-3 h-3 text-white" />
+            </motion.div>
+          )}
+          {field.helpText && (
+            <button type="button" className="text-neutral-400 hover:text-[#4654CD] transition-colors" title={field.helpText}>
+              <HelpCircle className="w-4 h-4" />
+            </button>
+          )}
+          <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
+
+      {/* Error message - igual que InputFieldV6 */}
+      <AnimatePresence>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="text-red-500 text-xs mt-1.5 ml-1"
+          >
+            {error}
+          </motion.p>
+        )}
+      </AnimatePresence>
 
       {/* Modal/Sheet */}
       <AnimatePresence>
@@ -106,7 +140,7 @@ export const SearchFieldV6: React.FC<SearchFieldV6Props> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-              onClick={() => setIsOpen(false)}
+              onClick={handleClose}
             />
 
             {/* Modal content */}
@@ -123,7 +157,7 @@ export const SearchFieldV6: React.FC<SearchFieldV6Props> = ({
                   <h3 className="font-semibold text-neutral-800">{field.label}</h3>
                   <button
                     type="button"
-                    onClick={() => setIsOpen(false)}
+                    onClick={handleClose}
                     className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center cursor-pointer"
                   >
                     <X className="w-4 h-4 text-neutral-600" />
@@ -188,14 +222,6 @@ export const SearchFieldV6: React.FC<SearchFieldV6Props> = ({
           </>
         )}
       </AnimatePresence>
-
-      {/* Error message */}
-      {error && (
-        <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
-          <span className="w-1 h-1 bg-red-500 rounded-full" />
-          {error}
-        </p>
-      )}
     </div>
   );
 };

@@ -6,12 +6,12 @@
  */
 
 import React from 'react';
-import { Card, CardBody } from '@nextui-org/react';
-import { CheckCircle } from 'lucide-react';
+import { Card, CardBody, Button } from '@nextui-org/react';
+import { CheckCircle, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import type { WizardSolicitudStep, WizardSolicitudConfig, SelectedProduct } from '../../../types/wizard-solicitud';
 
 // Field components - dynamic version selection
-import { getInputField, getSelectCards, getUploadField } from '../fields';
+import { getInputField, getSelectCards, getUploadField, getSearchField } from '../fields';
 import { DatePickerField } from '../fields/DatePickerField';
 
 interface StepContentProps {
@@ -21,6 +21,10 @@ interface StepContentProps {
   errors: Record<string, string>;
   onFieldChange: (name: string, value: unknown) => void;
   selectedProduct?: SelectedProduct;
+  // Callbacks para demo en paso resumen
+  onAprobado?: () => void;
+  onRechazado?: () => void;
+  onRecibido?: () => void;
 }
 
 export const StepContent: React.FC<StepContentProps> = ({
@@ -30,6 +34,9 @@ export const StepContent: React.FC<StepContentProps> = ({
   errors,
   onFieldChange,
   selectedProduct,
+  onAprobado,
+  onRechazado,
+  onRecibido,
 }) => {
   // Paso de resumen
   if (step.code === 'resumen') {
@@ -103,6 +110,50 @@ export const StepContent: React.FC<StepContentProps> = ({
           <CheckCircle className="w-4 h-4" />
           <span>Al enviar, recibiras respuesta en menos de 24 horas</span>
         </div>
+
+        {/* Demo buttons - solo para preview */}
+        {(onAprobado || onRechazado || onRecibido) && (
+          <Card className="border-2 border-dashed border-amber-300 bg-amber-50/50">
+            <CardBody className="p-4">
+              <p className="text-xs text-amber-600 font-medium mb-3 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Demo: Simular resultado
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {onAprobado && (
+                  <Button
+                    size="sm"
+                    className="bg-[#22c55e] text-white font-medium cursor-pointer"
+                    startContent={<CheckCircle2 className="w-4 h-4" />}
+                    onPress={onAprobado}
+                  >
+                    Aprobado
+                  </Button>
+                )}
+                {onRechazado && (
+                  <Button
+                    size="sm"
+                    className="bg-red-500 text-white font-medium cursor-pointer"
+                    startContent={<XCircle className="w-4 h-4" />}
+                    onPress={onRechazado}
+                  >
+                    Rechazado
+                  </Button>
+                )}
+                {onRecibido && (
+                  <Button
+                    size="sm"
+                    className="bg-[#4654CD] text-white font-medium cursor-pointer"
+                    startContent={<Clock className="w-4 h-4" />}
+                    onPress={onRecibido}
+                  >
+                    Recibido
+                  </Button>
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        )}
       </div>
     );
   }
@@ -111,6 +162,7 @@ export const StepContent: React.FC<StepContentProps> = ({
   const InputField = getInputField(config.inputVersion);
   const SelectCards = getSelectCards(config.optionsVersion);
   const UploadField = getUploadField(config.uploadVersion);
+  const SearchField = getSearchField(config.searchVersion);
 
   // Pasos con campos
   return (
@@ -162,6 +214,20 @@ export const StepContent: React.FC<StepContentProps> = ({
               onChange={(val) => onFieldChange(field.name, val)}
               helpVersion={config.helpVersion}
               inputVersion={config.inputVersion}
+            />
+          );
+        }
+
+        // Campos de búsqueda
+        if (field.type === 'search') {
+          return (
+            <SearchField
+              key={field.name}
+              field={field}
+              value={value as string}
+              error={error}
+              onChange={(val) => onFieldChange(field.name, val)}
+              helpVersion={config.helpVersion}
             />
           );
         }

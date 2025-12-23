@@ -4,6 +4,10 @@
  * Wizard Solicitud Preview - PROMPT_18
  * Preview con Settings Modal para configurar versiones
  *
+ * URL Params:
+ * - ?estado=aprobado - Muestra pantalla de aprobación
+ * - ?estado=rechazado - Muestra pantalla de rechazo
+ *
  * Keyboard Shortcuts:
  * - 1-6: Cambiar versión del componente activo
  * - Tab: Siguiente componente
@@ -13,10 +17,10 @@
  * - Esc: Cerrar modal
  */
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Button } from '@nextui-org/react';
-import { Settings, ArrowLeft, Zap, Code, Layers, Navigation, Info, Keyboard } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Settings, ArrowLeft, Zap, Code, Layers, Navigation, Info, Keyboard, CheckCircle2, XCircle, PartyPopper, AlertTriangle, Home, RotateCcw, Phone } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Components
@@ -31,9 +35,334 @@ import type { WizardSolicitudConfig } from '../types/wizard-solicitud';
 import { defaultWizardSolicitudConfig } from '../types/wizard-solicitud';
 import { MOCK_PRODUCT } from '../data/wizardSolicitudSteps';
 
-export default function WizardSolicitudPreviewPage() {
+// Pantalla de Aprobación
+const AprobadoScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const router = useRouter();
-  const [config, setConfig] = useState<WizardSolicitudConfig>(defaultWizardSolicitudConfig);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#22c55e]/10 to-white flex flex-col">
+      {/* Header */}
+      <div className="bg-white border-b border-neutral-200 px-4 py-3">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
+          <img src="/images/logos/balde-cash-logo.svg" alt="BaldeCash" className="h-8" />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full text-center"
+        >
+          {/* Icon */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            className="w-24 h-24 mx-auto mb-6 bg-[#22c55e] rounded-full flex items-center justify-center shadow-lg shadow-[#22c55e]/30"
+          >
+            <CheckCircle2 className="w-12 h-12 text-white" />
+          </motion.div>
+
+          {/* Confetti */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mb-4"
+          >
+            <PartyPopper className="w-8 h-8 mx-auto text-amber-500" />
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2']"
+          >
+            ¡Felicidades!
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-lg text-[#22c55e] font-semibold mb-4"
+          >
+            Tu solicitud ha sido aprobada
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-200 mb-6"
+          >
+            <p className="text-neutral-600 mb-4">
+              En las próximas 24-48 horas nos comunicaremos contigo para coordinar la entrega de tu laptop.
+            </p>
+            <div className="bg-[#22c55e]/10 rounded-xl p-4">
+              <p className="text-sm text-neutral-500 mb-1">Monto aprobado</p>
+              <p className="text-2xl font-bold text-[#22c55e]">S/ 2,499</p>
+              <p className="text-sm text-neutral-500">18 cuotas de S/ 149/mes</p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="space-y-3"
+          >
+            <Button
+              size="lg"
+              className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
+              startContent={<Home className="w-5 h-5" />}
+              onPress={() => router.push('/prototipos/0.4')}
+            >
+              Volver al inicio
+            </Button>
+            <Button
+              size="lg"
+              variant="bordered"
+              className="w-full border-2 border-neutral-300 text-neutral-700 font-semibold cursor-pointer"
+              startContent={<Phone className="w-5 h-5" />}
+              onPress={() => window.open('https://wa.link/osgxjf', '_blank')}
+            >
+              Contactar por WhatsApp
+            </Button>
+          </motion.div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+// Pantalla de Recibido (Solicitud en evaluación)
+const RecibidoScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const router = useRouter();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#4654CD]/10 to-white flex flex-col">
+      {/* Header */}
+      <div className="bg-white border-b border-neutral-200 px-4 py-3">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
+          <img src="/images/logos/balde-cash-logo.svg" alt="BaldeCash" className="h-8" />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full text-center"
+        >
+          {/* Icon */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            className="w-24 h-24 mx-auto mb-6 bg-[#4654CD] rounded-full flex items-center justify-center shadow-lg shadow-[#4654CD]/30"
+          >
+            <CheckCircle2 className="w-12 h-12 text-white" />
+          </motion.div>
+
+          {/* Confetti */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mb-4"
+          >
+            <PartyPopper className="w-8 h-8 mx-auto text-amber-500" />
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2']"
+          >
+            ¡Solicitud recibida!
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-lg text-[#4654CD] font-semibold mb-4"
+          >
+            Estamos evaluando tu solicitud
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-200 mb-6"
+          >
+            <p className="text-neutral-600 mb-4">
+              En las próximas <span className="font-semibold text-[#4654CD]">24 horas</span> recibirás una respuesta sobre tu solicitud.
+            </p>
+            <div className="bg-[#4654CD]/10 rounded-xl p-4">
+              <p className="text-sm text-neutral-500 mb-1">Tu producto solicitado</p>
+              <p className="text-xl font-bold text-[#4654CD]">Laptop HP ProBook</p>
+              <p className="text-sm text-neutral-500">18 cuotas de S/ 149/mes</p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="space-y-3"
+          >
+            <Button
+              size="lg"
+              className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
+              startContent={<Home className="w-5 h-5" />}
+              onPress={() => router.push('/prototipos/0.4')}
+            >
+              Volver al inicio
+            </Button>
+            <Button
+              size="lg"
+              variant="bordered"
+              className="w-full border-2 border-neutral-300 text-neutral-700 font-semibold cursor-pointer"
+              startContent={<Phone className="w-5 h-5" />}
+              onPress={() => window.open('https://wa.link/osgxjf', '_blank')}
+            >
+              Contactar por WhatsApp
+            </Button>
+          </motion.div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+// Pantalla de Rechazo
+const RechazadoScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const router = useRouter();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex flex-col">
+      {/* Header */}
+      <div className="bg-white border-b border-neutral-200 px-4 py-3">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
+          <img src="/images/logos/balde-cash-logo.svg" alt="BaldeCash" className="h-8" />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full text-center"
+        >
+          {/* Icon */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            className="w-24 h-24 mx-auto mb-6 bg-neutral-200 rounded-full flex items-center justify-center"
+          >
+            <XCircle className="w-12 h-12 text-neutral-500" />
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-2xl font-bold text-neutral-800 mb-2 font-['Baloo_2']"
+          >
+            Lo sentimos
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-neutral-600 mb-6"
+          >
+            En esta oportunidad no podemos aprobar tu solicitud
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white rounded-2xl p-6 shadow-lg border border-neutral-200 mb-6"
+          >
+            <div className="flex items-start gap-3 text-left mb-4">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-neutral-800 mb-1">¿Por qué fue rechazada?</p>
+                <p className="text-sm text-neutral-600">
+                  No cumples con alguno de los requisitos mínimos. Esto puede deberse a la información proporcionada o al historial crediticio.
+                </p>
+              </div>
+            </div>
+            <div className="border-t border-neutral-100 pt-4">
+              <p className="text-sm text-neutral-500 mb-2">Puedes intentar nuevamente en:</p>
+              <p className="text-xl font-bold text-neutral-800">30 días</p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="space-y-3"
+          >
+            <Button
+              size="lg"
+              className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
+              startContent={<Home className="w-5 h-5" />}
+              onPress={() => router.push('/prototipos/0.4')}
+            >
+              Volver al inicio
+            </Button>
+            <Button
+              size="lg"
+              variant="bordered"
+              className="w-full border-2 border-neutral-300 text-neutral-700 font-semibold cursor-pointer"
+              startContent={<Phone className="w-5 h-5" />}
+              onPress={() => window.open('https://wa.link/osgxjf', '_blank')}
+            >
+              Contactar soporte
+            </Button>
+          </motion.div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+// Contenido principal con useSearchParams
+function WizardPreviewContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const estado = searchParams.get('estado');
+
+  // Inicializar config desde URL params
+  const [config, setConfig] = useState<WizardSolicitudConfig>(() => {
+    const inputVersion = parseInt(searchParams.get('input') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
+    const optionsVersion = parseInt(searchParams.get('options') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
+    const progressVersion = parseInt(searchParams.get('progress') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
+    const navigationVersion = parseInt(searchParams.get('navigation') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
+
+    return {
+      ...defaultWizardSolicitudConfig,
+      inputVersion: [1, 2, 3, 4, 5, 6].includes(inputVersion) ? inputVersion : 1,
+      optionsVersion: [1, 2, 3, 4, 5, 6].includes(optionsVersion) ? optionsVersion : 1,
+      progressVersion: [1, 2, 3, 4, 5, 6].includes(progressVersion) ? progressVersion : 1,
+      navigationVersion: [1, 2, 3, 4, 5, 6].includes(navigationVersion) ? navigationVersion : 1,
+    };
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQuickSwitcherOpen, setIsQuickSwitcherOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
@@ -49,6 +378,19 @@ export default function WizardSolicitudPreviewPage() {
     isQuickSwitcherOpen,
   });
 
+  // Mostrar pantallas de resultado según el estado
+  if (estado === 'aprobado') {
+    return <AprobadoScreen onBack={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview')} />;
+  }
+
+  if (estado === 'rechazado') {
+    return <RechazadoScreen onBack={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview')} />;
+  }
+
+  if (estado === 'recibido') {
+    return <RecibidoScreen onBack={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview')} />;
+  }
+
   return (
     <div className="relative min-h-screen">
       {/* Main content - Wizard Container */}
@@ -58,11 +400,13 @@ export default function WizardSolicitudPreviewPage() {
           selectedProduct={MOCK_PRODUCT}
           onComplete={(data) => {
             console.log('Solicitud completada:', data);
-            alert('Solicitud enviada correctamente');
           }}
           onSave={(data) => {
             console.log('Guardado:', data);
           }}
+          onAprobado={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?estado=aprobado')}
+          onRechazado={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?estado=rechazado')}
+          onRecibido={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?estado=recibido')}
         />
       </div>
 
@@ -166,5 +510,14 @@ export default function WizardSolicitudPreviewPage() {
         onActiveComponentChange={setActiveComponent}
       />
     </div>
+  );
+}
+
+// Export con Suspense para useSearchParams
+export default function WizardSolicitudPreviewPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <WizardPreviewContent />
+    </Suspense>
   );
 }

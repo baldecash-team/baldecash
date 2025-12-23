@@ -21,13 +21,13 @@ export interface ConvenioConfig {
 }
 
 export const defaultConvenioConfig: ConvenioConfig = {
-  navbarVersion: 1,
-  heroVersion: 1,
+  navbarVersion: 3,
+  heroVersion: 2,
   benefitsVersion: 1,
   testimonialsVersion: 1,
-  faqVersion: 1,
-  ctaVersion: 1,
-  footerVersion: 1,
+  faqVersion: 2,
+  ctaVersion: 6,
+  footerVersion: 2,
 };
 
 // ============================================
