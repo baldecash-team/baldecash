@@ -26,7 +26,7 @@ const navItems = [
   { label: 'Equipos', href: catalogUrl, hasMegaMenu: true },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
-  { label: 'Preguntas frecuentes', href: '#faq' },
+  { label: '¿Tienes dudas?', href: '#faq' },
 ];
 
 export const NavbarV6: React.FC = () => {

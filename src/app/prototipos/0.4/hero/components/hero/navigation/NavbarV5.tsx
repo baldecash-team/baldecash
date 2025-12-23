@@ -20,6 +20,7 @@ const navItems = [
   { label: 'Laptops', href: catalogUrl },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
+  { label: 'Preguntas frecuentes', href: '#faq' },
 ];
 
 export const NavbarV5: React.FC = () => {
@@ -135,11 +136,15 @@ export const NavbarV5: React.FC = () => {
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-3 flex-shrink-0">
               <Button
+                as="a"
+                href="https://zonaclientes.baldecash.com"
+                target="_blank"
                 size="md"
                 radius="lg"
-                className="bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] transition-colors px-6"
+                variant="bordered"
+                className="border-neutral-300 text-neutral-700 font-semibold cursor-pointer px-6"
               >
-                Solicitar ahora
+                Mi cuenta
               </Button>
             </div>
 
@@ -219,11 +224,15 @@ export const NavbarV5: React.FC = () => {
               ))}
               <div className="pt-4 border-t border-neutral-100">
                 <Button
+                  as="a"
+                  href="https://zonaclientes.baldecash.com"
+                  target="_blank"
                   size="lg"
                   radius="lg"
-                  className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer h-12"
+                  variant="bordered"
+                  className="w-full border-neutral-300 text-neutral-700 font-semibold cursor-pointer h-12"
                 >
-                  Solicitar ahora
+                  Mi cuenta
                 </Button>
               </div>
             </div>
