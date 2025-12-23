@@ -132,21 +132,6 @@
           "version": 1,
           "variants": 1,
           "notes": "Card de producto con cuota prominente"
-        },
-        "emptyState": {
-          "version": 1,
-          "variants": 6,
-          "notes": "Estado vacío del catálogo cuando los filtros no devuelven resultados"
-        },
-        "emptyIllustration": {
-          "version": 1,
-          "variants": 6,
-          "notes": "V1-Icono SearchX, V2-Estudiante buscando, V3-Personaje lupa, V4-Shapes abstractos, V5-Split layout, V6-Mensaje gigante 0"
-        },
-        "emptyActions": {
-          "version": 1,
-          "variants": 6,
-          "notes": "V1-Botones simples, V2-Cards preview, V3-Chips ilustrados, V4-Floating pills, V5-Panel split, V6-CTA grande"
         }
       }
     },
@@ -232,73 +217,133 @@
         }
       }
     },
-    "upsell": {
+    "resultado": {
       "lastUpdated": "2024-12-22T00:00:00.000Z",
       "components": {
-        "accessoryIntro": {
+        "celebration": {
           "version": 1,
           "variants": 6,
-          "notes": "V1-Título sutil iconos, V2-Elegante lifestyle, V3-Social proof, V4-Fintech animado, V5-Split opcionales, V6-Hero card impacto"
+          "notes": "V1-Confetti+Ilustración, V2-Lifestyle estudiante, V3-Checkmark animado, V4-Fintech partículas, V5-Split layout, V6-Explosión visual"
         },
-        "accessoryCard": {
+        "confetti": {
           "version": 1,
           "variants": 6,
-          "notes": "V1-Grid uniforme 3col, V2-Lifestyle variable, V3-Ilustraciones flat, V4-Carrusel snap, V5-Featured+grid, V6-Cards gigantes"
+          "notes": "V1-Exuberante 3-5s, V2-Elegante 1-2s, V3-Sin confetti, V4-Partículas flotantes, V5-Lateral, V6-Máximo pantalla completa"
         },
-        "accessoryLimit": {
-          "version": 1,
+        "sound": {
+          "version": 2,
           "variants": 6,
-          "notes": "V1-Sin límite, V2-Contador elegante, V3-Badge máximo, V4-Progress bar, V5-Split warning, V6-Warning gigante"
+          "notes": "V1-Activo por defecto, V2-Silencioso (DEFAULT), V3-Bajo demanda, V4-Ding sutil, V5-Adaptativo mobile/desktop, V6-Fanfarria completa"
         },
-        "selectionIndicator": {
+        "summary": {
           "version": 1,
           "variants": 6,
-          "notes": "V1-Check verde borde, V2-Badge flotante, V3-Color+check flat, V4-Bounce glow, V5-Mueve a selección, V6-Expande card"
+          "notes": "V1-Card completa, V2-Texto elegante, V3-Ilustración flat, V4-Mini card animada, V5-Split layout, V6-Hero card grande"
         },
-        "removeButton": {
+        "nextSteps": {
           "version": 1,
           "variants": 6,
-          "notes": "V1-X esquina, V2-Toggle on/off, V3-Click deselect, V4-Swipe+X animada, V5-Quitar visible, V6-X grande hover"
+          "notes": "V1-Rango claro 24-48h, V2-Casual, V3-Ilustración reloj, V4-Countdown fintech, V5-Split info, V6-Tiempo prominente"
         },
-        "priceBreakdown": {
+        "share": {
           "version": 1,
           "variants": 6,
-          "notes": "V1-Desglose lateral, V2-Tooltip hover, V3-Ver desglose, V4-Expandible animado, V5-Split columna, V6-Centrado prominente"
+          "notes": "V1-Prominente, V2-Sutil modal, V3-Iconos flat, V4-Animados hover, V5-Split compartir+referir, V6-Sección grande"
         },
-        "insuranceIntro": {
-          "version": 1,
+        "referral": {
+          "version": 2,
           "variants": 6,
-          "notes": "V1-Funcional protege, V2-Emocional tranquilidad, V3-Claro accidentes, V4-Fintech animado, V5-Split protección, V6-Impacto arriesga"
+          "notes": "V1-Prominente CTA, V2-Sutil link (DEFAULT), V3-Ilustración grupo, V4-Banner animado delay, V5-Panel lateral, V6-CTA gigante"
         },
-        "protectionIcon": {
+        "createAccount": {
           "version": 1,
+          "variants": 1,
+          "notes": "CTA secundario para crear cuenta en Zona Estudiantes"
+        }
+      }
+    },
+    "rechazo": {
+      "lastUpdated": "2024-12-22T00:00:00.000Z",
+      "components": {
+        "visual": {
+          "version": 3,
           "variants": 6,
-          "notes": "V1-Escudo checkmark, V2-Paraguas, V3-Candado flat, V4-Escudo brillo, V5-Split beneficios, V6-Escudo hero"
+          "notes": "V1-Neutros fríos, V2-Cálidos acogedores, V3-Marca suavizada (DEFAULT), V4-Fintech minimalista, V5-Split visual, V6-Máxima calma"
         },
-        "planComparison": {
+        "illustration": {
           "version": 1,
           "variants": 6,
-          "notes": "V1-Cards lado a lado, V2-Tabla checks, V3-Slider cobertura, V4-Cards hover, V5-Preview modal, V6-Cards apiladas"
+          "notes": "V1-Persona reflexiva, V2-Camino bifurcado, V3-Sin ilustración, V4-Shapes abstractos, V5-Lateral pequeña, V6-Grande emocional"
         },
-        "recommendedBadge": {
-          "version": 1,
+        "branding": {
+          "version": 3,
           "variants": 6,
-          "notes": "V1-Badge sobre card, V2-Card grande borde, V3-Estrella medalla, V4-Pulso animado, V5-Split prominente, V6-Hero central"
+          "notes": "V1-Minimalista extremo, V2-Branding completo, V3-Reducido (DEFAULT), V4-Fintech sutil, V5-Split, V6-Un acento"
         },
-        "coverageDisplay": {
+        "message": {
           "version": 1,
           "variants": 6,
-          "notes": "V1-Lista checks X, V2-Tabs cubre/no, V3-Iconos flat, V4-Lista animada, V5-Split coberturas, V6-Prominente pequeño"
+          "notes": "V1-Nombre prominente, V2-Genérico, V3-Nombre sutil, V4-Contextual, V5-En mensaje, V6-Nombre grande"
         },
-        "skipModal": {
-          "version": 1,
+        "explanationDetail": {
+          "version": 3,
           "variants": 6,
-          "notes": "V1-Persuasivo suave, V2-Neutral, V3-Informativo, V4-Última oferta, V5-Split riesgos, V6-Impacto"
+          "notes": "V1-General vago, V2-Categoría, V3-Accionable (DEFAULT), V4-Técnico amigable, V5-Expandible, V6-Prominente"
         },
-        "modalButtons": {
+        "explanationFraming": {
           "version": 1,
           "variants": 6,
-          "notes": "V1-Simétricos, V2-Agregar destacado, V3-Con iconos, V4-Hover atractivo, V5-Vertical, V6-Gigante+link"
+          "notes": "V1-100% positivo, V2-Neutral, V3-Directo honesto, V4-Positivo realista, V5-Split, V6-Enfoque acción"
+        },
+        "alternativesLayout": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Cards grandes, V2-Lista elegante, V3-Accordion, V4-Cards animadas, V5-Split, V6-Cards hero"
+        },
+        "productAlternatives": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Cards completas, V2-Lista simple, V3-Solo link, V4-Mini cards, V5-Featured+lista, V6-Cards hero"
+        },
+        "calculator": {
+          "version": 2,
+          "variants": 6,
+          "notes": "V1-Slider interactivo, V2-Ejemplos fijos (DEFAULT), V3-Link externo, V4-Animada, V5-Split, V6-Hero central"
+        },
+        "emailCapture": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Campo prominente, V2-Checkbox discreto, V3-No pedir, V4-Input elegante, V5-Split, V6-CTA grande"
+        },
+        "retryTimeline": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Fecha específica, V2-General vago, V3-No mencionar, V4-Countdown sutil, V5-Tiempo+acción, V6-Calendario visual"
+        },
+        "advisorCTA": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-CTA prominente, V2-Link secundario, V3-Solo info, V4-Chat flotante, V5-Split, V6-Solución principal"
+        },
+        "advisorMessage": {
+          "version": 1,
+          "variants": 6,
+          "notes": "V1-Optimista, V2-Neutral, V3-Realista, V4-Promesa específica, V5-Split, V6-Esperanza"
+        },
+        "cosignerOption": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Ilustración de 2 personas para opción de codeudor"
+        },
+        "educationalContent": {
+          "version": 1,
+          "variants": 1,
+          "notes": "Link a guía 'Cómo mejorar tu perfil crediticio'"
+        },
+        "contactOptions": {
+          "version": 1,
+          "variants": 1,
+          "notes": "WhatsApp primario + teléfono y email secundarios"
         }
       }
     }
@@ -336,12 +381,12 @@
     },
     {
       "date": "2024-12-22",
-      "note": "Creados componentes de Estado Vacío (PROMPT_07): EmptyIllustration (6 versiones) + EmptyActions (6 versiones) + EmptyState wrapper + EmptyStateSettingsModal. Total 12 componentes de variante para A/B testing de estados sin resultados en el catálogo.",
+      "note": "Creada sección Resultado/Aprobación (PROMPT_15): Celebration (6v), Confetti (6v), Sound (6v), Summary (6v), NextSteps (6v), Share (6v), Referral (6v), CreateAccountCTA (1v). Total 43 componentes nuevos. Incluye ApprovalScreen, ApprovalSettingsModal y página de preview.",
       "author": "Claude"
     },
     {
       "date": "2024-12-22",
-      "note": "Creada sección Upsell (PROMPT_14) completa: Accesorios (AccessoryIntro, AccessoryCard, AccessoryLimit, SelectionIndicator, RemoveButton, PriceBreakdown) + Seguros (InsuranceIntro, ProtectionIcon, PlanComparison, RecommendedBadge, CoverageDisplay, SkipModal, ModalButtons). 13 componentes x 6 versiones = 78 variantes para A/B testing de upsell.",
+      "note": "Creada sección Rechazo (PROMPT_16): Visual (6v), Illustration (6v), Branding (6v), Message (6v), ExplanationDetail (6v), ExplanationFraming (6v), AlternativesLayout (6v), ProductAlternatives (6v), DownPaymentCalculator (6v), EmailCapture (6v), RetryTimeline (6v), AdvisorCTA (6v), AdvisorMessage (6v), CosignerOption (1v), EducationalContent (1v), ContactOptions (1v). Total 81 componentes nuevos. Incluye RejectionScreen, RejectionSettingsModal y página de preview.",
       "author": "Claude"
     }
   ]

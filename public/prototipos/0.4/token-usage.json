@@ -633,236 +633,187 @@
       "notes": "PROMPT_18 meta-prompt que integra Wizard + Solicitud. Flujo: Intro con Baldi -> Paso 1 Personal -> Paso 2 Academico -> Paso 3 Economico -> Paso 4 Resumen. 8 componentes x 6 versiones = 48 variantes. Decisiones aplicadas de 0.3 con preferencias del usuario."
     },
     {
-      "promptNumber": "07",
-      "section": "catalogo/empty",
+      "promptNumber": "16",
+      "section": "rechazo",
       "timestamp": "2024-12-22T00:00:00.000Z",
-      "action": "create_components",
-      "description": "Estado Vacío - Componentes para cuando los filtros no devuelven resultados",
+      "action": "create_section",
+      "description": "Pantalla de rechazo empática con alternativas y retención",
       "components": [
         {
-          "name": "EmptyIllustration",
+          "name": "RejectionVisual",
           "versions": 6,
-          "files": [
-            "EmptyIllustrationV1.tsx",
-            "EmptyIllustrationV2.tsx",
-            "EmptyIllustrationV3.tsx",
-            "EmptyIllustrationV4.tsx",
-            "EmptyIllustrationV5.tsx",
-            "EmptyIllustrationV6.tsx",
-            "index.ts"
-          ],
+          "files": ["RejectionVisualV1.tsx", "RejectionVisualV2.tsx", "RejectionVisualV3.tsx", "RejectionVisualV4.tsx", "RejectionVisualV5.tsx", "RejectionVisualV6.tsx", "index.ts"],
+          "linesOfCode": 420,
+          "estimatedTokens": 3150
+        },
+        {
+          "name": "IllustrationType",
+          "versions": 6,
+          "files": ["IllustrationTypeV1.tsx", "IllustrationTypeV2.tsx", "IllustrationTypeV3.tsx", "IllustrationTypeV4.tsx", "IllustrationTypeV5.tsx", "IllustrationTypeV6.tsx", "index.ts"],
+          "linesOfCode": 380,
+          "estimatedTokens": 2850
+        },
+        {
+          "name": "BrandingLevel",
+          "versions": 6,
+          "files": ["BrandingLevelV1.tsx", "BrandingLevelV2.tsx", "BrandingLevelV3.tsx", "BrandingLevelV4.tsx", "BrandingLevelV5.tsx", "BrandingLevelV6.tsx", "index.ts"],
+          "linesOfCode": 450,
+          "estimatedTokens": 3375
+        },
+        {
+          "name": "MessagePersonalization",
+          "versions": 6,
+          "files": ["MessagePersonalizationV1.tsx", "MessagePersonalizationV2.tsx", "MessagePersonalizationV3.tsx", "MessagePersonalizationV4.tsx", "MessagePersonalizationV5.tsx", "MessagePersonalizationV6.tsx", "index.ts"],
           "linesOfCode": 350,
           "estimatedTokens": 2625
         },
         {
-          "name": "EmptyActions",
+          "name": "ExplanationDetail",
           "versions": 6,
-          "files": [
-            "EmptyActionsV1.tsx",
-            "EmptyActionsV2.tsx",
-            "EmptyActionsV3.tsx",
-            "EmptyActionsV4.tsx",
-            "EmptyActionsV5.tsx",
-            "EmptyActionsV6.tsx",
-            "index.ts"
-          ],
+          "files": ["ExplanationDetailV1.tsx", "ExplanationDetailV2.tsx", "ExplanationDetailV3.tsx", "ExplanationDetailV4.tsx", "ExplanationDetailV5.tsx", "ExplanationDetailV6.tsx", "index.ts"],
+          "linesOfCode": 480,
+          "estimatedTokens": 3600
+        },
+        {
+          "name": "ExplanationFraming",
+          "versions": 6,
+          "files": ["ExplanationFramingV1.tsx", "ExplanationFramingV2.tsx", "ExplanationFramingV3.tsx", "ExplanationFramingV4.tsx", "ExplanationFramingV5.tsx", "ExplanationFramingV6.tsx", "index.ts"],
           "linesOfCode": 420,
           "estimatedTokens": 3150
-        }
-      ],
-      "supportingFiles": [
-        {
-          "name": "types/empty.ts",
-          "linesOfCode": 79,
-          "estimatedTokens": 593
         },
         {
-          "name": "EmptyState.tsx",
-          "linesOfCode": 85,
-          "estimatedTokens": 638
-        },
-        {
-          "name": "EmptyStateSettingsModal.tsx",
-          "linesOfCode": 145,
-          "estimatedTokens": 1088
-        },
-        {
-          "name": "index.ts (barrel exports)",
-          "linesOfCode": 20,
-          "estimatedTokens": 150
-        }
-      ],
-      "filesGenerated": 17,
-      "totalLinesAdded": 1099,
-      "estimatedTokens": {
-        "input": 8000,
-        "output": 8244,
-        "total": 16244
-      },
-      "componentsCreated": [
-        "EmptyIllustrationV1-V6",
-        "EmptyActionsV1-V6",
-        "EmptyState",
-        "EmptyStateSettingsModal"
-      ],
-      "notes": "Estado Vacío con 2 configuraciones A/B: B.103 Ilustración (6 versiones) y B.104 Acciones (6 versiones). Componentes empáticos con tono amigable, sin culpar al usuario. Integrado en Catálogo para activarse cuando no hay resultados."
-    },
-    {
-      "promptNumber": "14",
-      "section": "upsell",
-      "timestamp": "2024-12-22T00:00:00.000Z",
-      "action": "create_section",
-      "description": "Upsell - Accesorios (Segmento D) + Seguros (Segmento E) con 13 componentes x 6 versiones",
-      "components": [
-        {
-          "name": "AccessoryIntro",
+          "name": "AlternativesLayout",
           "versions": 6,
-          "notes": "D.1 - Intro de accesorios: V1-Sutil iconos, V2-Lifestyle, V3-Social proof, V4-Fintech, V5-Split, V6-Hero card"
+          "files": ["AlternativesLayoutV1.tsx", "AlternativesLayoutV2.tsx", "AlternativesLayoutV3.tsx", "AlternativesLayoutV4.tsx", "AlternativesLayoutV5.tsx", "AlternativesLayoutV6.tsx", "index.ts"],
+          "linesOfCode": 550,
+          "estimatedTokens": 4125
         },
         {
-          "name": "AccessoryCard",
+          "name": "ProductAlternatives",
           "versions": 6,
-          "notes": "D.3 - Cards de accesorios: V1-Grid uniforme, V2-Lifestyle variable, V3-Flat, V4-Carrusel, V5-Featured+grid, V6-Gigantes"
+          "files": ["ProductAlternativesV1.tsx", "ProductAlternativesV2.tsx", "ProductAlternativesV3.tsx", "ProductAlternativesV4.tsx", "ProductAlternativesV5.tsx", "ProductAlternativesV6.tsx", "index.ts"],
+          "linesOfCode": 600,
+          "estimatedTokens": 4500
         },
         {
-          "name": "AccessoryLimit",
+          "name": "DownPaymentCalculator",
           "versions": 6,
-          "notes": "D.4 - Límite de selección: V1-Sin límite, V2-Contador, V3-Badge, V4-Progress bar, V5-Split, V6-Warning"
+          "files": ["DownPaymentCalculatorV1.tsx", "DownPaymentCalculatorV2.tsx", "DownPaymentCalculatorV3.tsx", "DownPaymentCalculatorV4.tsx", "DownPaymentCalculatorV5.tsx", "DownPaymentCalculatorV6.tsx"],
+          "linesOfCode": 720,
+          "estimatedTokens": 5400
         },
         {
-          "name": "SelectionIndicator",
+          "name": "EmailCapture",
           "versions": 6,
-          "notes": "D.5 - Indicador de selección: V1-Check verde, V2-Badge flotante, V3-Color change, V4-Bounce, V5-Move, V6-Expand"
+          "files": ["EmailCaptureV1.tsx", "EmailCaptureV2.tsx", "EmailCaptureV3.tsx", "EmailCaptureV4.tsx", "EmailCaptureV5.tsx", "EmailCaptureV6.tsx", "index.ts"],
+          "linesOfCode": 480,
+          "estimatedTokens": 3600
         },
         {
-          "name": "RemoveButton",
+          "name": "RetryTimeline",
           "versions": 6,
-          "notes": "D.6 - Botón quitar: V1-X esquina, V2-Toggle, V3-Click card, V4-Swipe, V5-Quitar visible, V6-X grande"
+          "files": ["RetryTimelineV1.tsx", "RetryTimelineV2.tsx", "RetryTimelineV3.tsx", "RetryTimelineV4.tsx", "RetryTimelineV5.tsx", "RetryTimelineV6.tsx", "index.ts"],
+          "linesOfCode": 420,
+          "estimatedTokens": 3150
         },
         {
-          "name": "PriceBreakdown",
+          "name": "AdvisorCTA",
           "versions": 6,
-          "notes": "D.8 - Desglose de precios: V1-Lateral, V2-Tooltip, V3-Ver desglose, V4-Expandible, V5-Split, V6-Centrado"
+          "files": ["AdvisorCTAV1.tsx", "AdvisorCTAV2.tsx", "AdvisorCTAV3.tsx", "AdvisorCTAV4.tsx", "AdvisorCTAV5.tsx", "AdvisorCTAV6.tsx", "index.ts"],
+          "linesOfCode": 520,
+          "estimatedTokens": 3900
         },
         {
-          "name": "InsuranceIntro",
+          "name": "AdvisorMessage",
           "versions": 6,
-          "notes": "E.1 - Intro de seguros: V1-Funcional, V2-Emocional, V3-Claro, V4-Animado, V5-Split, V6-Impacto"
+          "files": ["AdvisorMessageV1.tsx", "AdvisorMessageV2.tsx", "AdvisorMessageV3.tsx", "AdvisorMessageV4.tsx", "AdvisorMessageV5.tsx", "AdvisorMessageV6.tsx", "index.ts"],
+          "linesOfCode": 480,
+          "estimatedTokens": 3600
         },
         {
-          "name": "ProtectionIcon",
-          "versions": 6,
-          "notes": "E.2 - Icono de protección: V1-Escudo, V2-Paraguas, V3-Candado, V4-Animado, V5-Split, V6-Hero"
-        },
-        {
-          "name": "PlanComparison",
-          "versions": 6,
-          "notes": "E.3 - Comparación planes: V1-Cards, V2-Tabla, V3-Slider, V4-Hover, V5-Modal, V6-Apiladas"
-        },
-        {
-          "name": "RecommendedBadge",
-          "versions": 6,
-          "notes": "E.4 - Badge recomendado: V1-Badge, V2-Card grande, V3-Estrella, V4-Pulso, V5-Split, V6-Hero central"
-        },
-        {
-          "name": "CoverageDisplay",
-          "versions": 6,
-          "notes": "E.5 - Visualización cobertura: V1-Lista, V2-Tabs, V3-Iconos, V4-Animada, V5-Split, V6-Prominente"
-        },
-        {
-          "name": "SkipModal",
-          "versions": 6,
-          "notes": "E.7 - Modal skip: V1-Persuasivo, V2-Neutral, V3-Informativo, V4-Última oferta, V5-Split, V6-Impacto"
-        },
-        {
-          "name": "ModalButtons",
-          "versions": 6,
-          "notes": "E.8 - Botones modal: V1-Simétricos, V2-Primario destacado, V3-Con iconos, V4-Hover, V5-Vertical, V6-Gigante"
-        }
-      ],
-      "supportingFiles": [
-        {
-          "name": "types/upsell.ts",
-          "linesOfCode": 240,
-          "estimatedTokens": 1800
-        },
-        {
-          "name": "UpsellSettingsModal.tsx",
-          "linesOfCode": 320,
-          "estimatedTokens": 2400
-        },
-        {
-          "name": "DynamicTotal.tsx",
-          "linesOfCode": 85,
-          "estimatedTokens": 638
-        },
-        {
-          "name": "QuotaImpact.tsx",
+          "name": "CosignerOption",
+          "versions": 1,
+          "files": ["CosignerOption.tsx"],
           "linesOfCode": 95,
           "estimatedTokens": 713
         },
         {
-          "name": "AccessoriesSection.tsx",
-          "linesOfCode": 180,
-          "estimatedTokens": 1350
+          "name": "EducationalContent",
+          "versions": 1,
+          "files": ["EducationalContent.tsx"],
+          "linesOfCode": 85,
+          "estimatedTokens": 638
         },
         {
-          "name": "InsuranceSection.tsx",
-          "linesOfCode": 200,
-          "estimatedTokens": 1500
+          "name": "ContactOptions",
+          "versions": 1,
+          "files": ["ContactOptions.tsx"],
+          "linesOfCode": 110,
+          "estimatedTokens": 825
+        }
+      ],
+      "supportingFiles": [
+        {
+          "name": "types/rejection.ts",
+          "linesOfCode": 300,
+          "estimatedTokens": 2250
         },
         {
-          "name": "CoverageDetailModal.tsx",
-          "linesOfCode": 150,
-          "estimatedTokens": 1125
+          "name": "RejectionScreen.tsx",
+          "linesOfCode": 350,
+          "estimatedTokens": 2625
         },
         {
-          "name": "page.tsx (redirect)",
+          "name": "RejectionSettingsModal.tsx",
+          "linesOfCode": 280,
+          "estimatedTokens": 2100
+        },
+        {
+          "name": "rechazado/page.tsx (redirect)",
           "linesOfCode": 22,
           "estimatedTokens": 165
         },
         {
-          "name": "upsell-preview/page.tsx",
-          "linesOfCode": 280,
-          "estimatedTokens": 2100
+          "name": "rechazado-preview/page.tsx",
+          "linesOfCode": 185,
+          "estimatedTokens": 1388
         }
       ],
-      "filesGenerated": 107,
-      "totalLinesAdded": 8500,
+      "filesGenerated": 85,
+      "totalLinesAdded": 7697,
       "estimatedTokens": {
-        "input": 25000,
-        "output": 63750,
-        "total": 88750
+        "input": 20000,
+        "output": 57728,
+        "total": 77728
       },
       "componentsCreated": [
-        "AccessoryIntroV1-V6",
-        "AccessoryCardV1-V6",
-        "AccessoryLimitV1-V6",
-        "SelectionIndicatorV1-V6",
-        "RemoveButtonV1-V6",
-        "PriceBreakdownV1-V6",
-        "InsuranceIntroV1-V6",
-        "ProtectionIconV1-V6",
-        "PlanComparisonV1-V6",
-        "RecommendedBadgeV1-V6",
-        "CoverageDisplayV1-V6",
-        "SkipModalV1-V6",
-        "ModalButtonsV1-V6",
-        "DynamicTotal",
-        "QuotaImpact",
-        "AccessoriesSection",
-        "InsuranceSection",
-        "CoverageDetailModal",
-        "UpsellSettingsModal"
+        "RejectionVisualV1-V6",
+        "IllustrationTypeV1-V6",
+        "BrandingLevelV1-V6",
+        "MessagePersonalizationV1-V6",
+        "ExplanationDetailV1-V6",
+        "ExplanationFramingV1-V6",
+        "AlternativesLayoutV1-V6",
+        "ProductAlternativesV1-V6",
+        "DownPaymentCalculatorV1-V6",
+        "EmailCaptureV1-V6",
+        "RetryTimelineV1-V6",
+        "AdvisorCTAV1-V6",
+        "AdvisorMessageV1-V6",
+        "CosignerOption",
+        "EducationalContent",
+        "ContactOptions",
+        "RejectionScreen",
+        "RejectionSettingsModal"
       ],
-      "notes": "Complete Upsell section with 13 components x 6 versions = 78 component variants for A/B testing. Segmento D (Accesorios): intro, cards, límite, selección, quitar, desglose. Segmento E (Seguros): intro, icono, comparación, badge, cobertura, skip modal, botones. Tono no agresivo, impacto en cuota visible, fácil agregar/quitar."
+      "notes": "PROMPT_16 Pantalla de Rechazo empática. 81% de aplicantes son rechazados, por lo que esta pantalla es crítica. 16 componentes: 13 con 6 versiones + 3 componentes fijos (CosignerOption, EducationalContent, ContactOptions). Enfoque en empatía, alternativas concretas y retención del usuario."
     }
   ],
-  "totalTokensUsed": 391456,
+  "totalTokensUsed": 364190,
   "summary": {
-    "componentsCreated": 218,
-    "filesCreated": 295,
-    "filesUpdated": 18,
-    "totalLinesOfCode": 34096
+    "componentsCreated": 207,
+    "filesCreated": 256,
+    "filesUpdated": 16,
+    "totalLinesOfCode": 32194
   }
 }

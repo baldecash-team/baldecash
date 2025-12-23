@@ -22,7 +22,7 @@ export const SimilarProductsV2: React.FC<SimilarProductsProps> = ({ products, cu
 
   const handleProductClick = (slug: string) => {
     if (typeof window !== 'undefined') {
-      window.location.href = `/prototipos/0.4/producto/${slug}`;
+      window.location.href = `/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1&mode=clean`;
     }
   };
 

@@ -48,8 +48,7 @@ Este prompt es un **meta-prompt** que combina todo el flujo de solicitud en una 
 
 | ID | Componente | Preferido | Implementacion |
 |----|------------|-----------|----------------|
-| C1.1 | Labels | **UNIFIED** | Integrado en InputFieldUnified |
-| C1.4 | Inputs | **UNIFIED** | InputFieldUnified con 6 versiones |
+| C1.1+C1.4 | **InputField** | V1-V6 | Label integrado en cada version de InputField |
 | C1.13 | Opciones | **V3** | Cards grid SOLO si <= 6 opciones |
 | C1.15 | Upload | **V3** | Area drag & drop combinado con boton |
 | C1.16 | Preview | **V1** | Thumbnail simple (6 versiones disponibles) |
@@ -60,16 +59,18 @@ Este prompt es un **meta-prompt** que combina todo el flujo de solicitud en una 
 | C1.28 | Ayuda | **V1** | Tooltip hover/click |
 | C1.29 | Ejemplos docs | **V2** | Gallery en modal |
 
-### 3.2 InputFieldUnified - Versiones
+### 3.2 InputField - 6 Versiones (Label + Input Unificados)
 
-| Version | Estilo | Descripcion |
-|---------|--------|-------------|
-| V1 | Label arriba clasico | Label siempre visible arriba del input |
-| V2 | Material Design | Label flotante animado (sube al enfocar) |
-| V3 | Label lateral izquierdo | Label a la izquierda, input a la derecha |
-| V4 | Label lateral con badge | Label izquierdo + badge requerido/opcional |
-| V5 | Label lateral compacto | Label inline compacto |
-| V6 | Label grande hero | Label grande, input prominente |
+> **Importante:** Cada InputFieldV* incluye su label integrado. No existen labels como componentes separados.
+
+| Version | Estilo Input | Estilo Label | Descripcion |
+|---------|--------------|--------------|-------------|
+| V1 | Bordes clasicos | Label arriba visible | Label siempre visible arriba del input con bordes |
+| V2 | Linea inferior Material | Label flotante animado | Label que flota al enfocar, estilo Material Design |
+| V3 | Linea punteada minimalista | Solo placeholder | Sin label externo, texto en placeholder |
+| V4 | Filled con bordes redondeados | Label con badge | Label arriba con badge "Requerido"/"Opcional" |
+| V5 | Glassmorphism | Label inline izquierdo | Label a la izquierda, input a la derecha |
+| V6 | Fintech Premium | Label flotante animado | Label animado estilo fintech con check de validacion |
 
 ---
 
@@ -107,20 +108,12 @@ src/app/prototipos/0.4/wizard-solicitud/
 │       │   └── index.ts
 │       │
 │       ├── fields/                       # Componentes de campos (C1.x)
-│       │   ├── InputFieldUnified.tsx     # [NUEVO] Label+Input combinados - 6 versiones
-│       │   │   # V1: Label arriba clasico
-│       │   │   # V2: Material Design (label flotante)
-│       │   │   # V3: Label lateral izquierdo
-│       │   │   # V4: Label lateral con badge
-│       │   │   # V5: Label lateral compacto
-│       │   │   # V6: Label grande hero
-│       │   ├── InputFieldV1-V6.tsx       # [LEGACY] Inputs separados
-│       │   ├── labels/                   # [LEGACY] Labels separados
-│       │   ├── LabelV2.tsx               # Label izquierda
-│       │   ├── LabelV3.tsx               # Label flotante
-│       │   ├── LabelV4.tsx               # Label bold grande
-│       │   ├── LabelV5.tsx               # Label con icono
-│       │   ├── LabelV6.tsx               # Label minimal
+│       │   ├── InputFieldV1.tsx          # Bordes clasicos + Label arriba
+│       │   ├── InputFieldV2.tsx          # Material Design + Label flotante
+│       │   ├── InputFieldV3.tsx          # Minimalista + Solo placeholder
+│       │   ├── InputFieldV4.tsx          # Filled + Label con badge
+│       │   ├── InputFieldV5.tsx          # Glassmorphism + Label inline izquierdo
+│       │   ├── InputFieldV6.tsx          # Fintech Premium + Label flotante animado
 │       │   ├── SelectCardsV1.tsx         # Cards verticales
 │       │   ├── SelectCardsV2.tsx         # Cards horizontales
 │       │   ├── SelectCardsV3.tsx         # Cards grid [PREFERIDO]
@@ -560,8 +553,7 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 ### Componentes Campos (C1.x) - 6 versiones cada uno
 | Componente | V1 | V2 | V3 | V4 | V5 | V6 | Preferido |
 |------------|----|----|----|----|----|----|-----------|
-| InputField | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V3 (Filled) |
-| Label | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 (Arriba) |
+| InputField (Label integrado) | [x] | [x] | [x] | [x] | [x] | [x] | Todos disponibles |
 | SelectCards | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V3 (Grid) |
 | UploadField | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V3 (Drag&Drop) |
 | UploadPreview | [ ] | [ ] | [ ] | [ ] | [ ] | [ ] | V1 |
@@ -576,8 +568,10 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 |-----------|-------------|-----------|----------------|
 | Intro | 1 | 6 | 6 |
 | Wizard | 3 | 6 | 18 |
-| Fields | 10 | 6 | 60 |
-| **Total** | **14** | **6** | **84** |
+| Fields | 9 | 6 | 54 |
+| **Total** | **13** | **6** | **78** |
+
+> **Nota:** InputField incluye el label integrado (no son componentes separados).
 
 ### Pasos del Wizard
 - [ ] `StepContent.tsx` (renderizador dinamico)
@@ -670,15 +664,18 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
 | V5 | Pills flotantes en esquinas con AnimatePresence | Minimal elegante |
 | V6 | Full branded bar gradiente con CTA XL y onda neon animada | Premium impactante |
 
-### InputField (C1.4)
-| Version | Descripcion | Estilo |
-|---------|-------------|--------|
-| V1 | Bordes clasicos rectangulares | Tradicional |
-| V2 | Solo linea inferior (underline) | Material |
-| V3 | Fondo filled gris claro **[PREFERIDO]** | Moderno |
-| V4 | Floating label animado | Elegante |
-| V5 | Estilo card con sombra | Prominente |
-| V6 | Inline compacto para formularios densos | Eficiente |
+### InputField (C1.1 + C1.4 Unificados)
+
+> **Importante:** Cada InputFieldV* incluye su label integrado. No existen labels como componentes separados.
+
+| Version | Input | Label | Descripcion |
+|---------|-------|-------|-------------|
+| V1 | Bordes clasicos | Label arriba visible | Label siempre visible arriba, input con bordes y HelpTooltip |
+| V2 | Linea inferior Material | Label flotante | Label que flota al enfocar, estilo Material Design |
+| V3 | Linea punteada | Solo placeholder | Sin label externo, label como placeholder con asterisco |
+| V4 | Filled redondeado | Label con badge | Label arriba con badge "Requerido"/"Opcional" |
+| V5 | Glassmorphism | Label inline izquierdo | Label a la izquierda (120px), input glassmorphism a la derecha |
+| V6 | Fintech Premium | Label flotante animado | Label animado con Framer Motion, check de validacion verde |
 
 ### SelectCards (C1.13)
 | Version | Descripcion | Uso |
