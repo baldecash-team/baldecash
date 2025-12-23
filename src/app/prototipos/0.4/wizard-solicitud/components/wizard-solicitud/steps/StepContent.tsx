@@ -41,7 +41,7 @@ export const StepContent: React.FC<StepContentProps> = ({
   // Paso de resumen
   if (step.code === 'resumen') {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 pb-32">
         <Card className="border border-neutral-200">
           <CardBody className="p-4">
             <h3 className="font-semibold text-neutral-800 mb-3">Datos Personales</h3>

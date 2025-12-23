@@ -416,7 +416,7 @@ function UpsellPreviewContent() {
               <Button
                 size="lg"
                 className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
-                onPress={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview')}
+                onPress={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?header=3&progress=6&celebration=3&input=4&options=2&upload=3')}
               >
                 Continuar
               </Button>
@@ -439,7 +439,7 @@ function UpsellPreviewContent() {
               <Button
                 size="lg"
                 className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
-                onPress={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview')}
+                onPress={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview?header=3&progress=6&celebration=3&input=4&options=2&upload=3')}
               >
                 Continuar
               </Button>

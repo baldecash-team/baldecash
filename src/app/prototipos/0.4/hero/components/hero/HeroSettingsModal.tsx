@@ -37,11 +37,12 @@ export const HeroSettingsModal: React.FC<HeroSettingsModalProps> = ({
 
   const handleGenerateUrl = () => {
     const params = new URLSearchParams();
+    // Use short lowercase names for consistency with page.tsx reader
     params.set('navbar', config.navbarVersion.toString());
-    params.set('heroBanner', config.heroBannerVersion.toString());
+    params.set('hero', config.heroBannerVersion.toString());
     params.set('underline', config.underlineStyle.toString());
-    params.set('socialProof', config.socialProofVersion.toString());
-    params.set('howItWorks', config.howItWorksVersion.toString());
+    params.set('social', config.socialProofVersion.toString());
+    params.set('how', config.howItWorksVersion.toString());
     params.set('cta', config.ctaVersion.toString());
     params.set('faq', config.faqVersion.toString());
     params.set('footer', config.footerVersion.toString());

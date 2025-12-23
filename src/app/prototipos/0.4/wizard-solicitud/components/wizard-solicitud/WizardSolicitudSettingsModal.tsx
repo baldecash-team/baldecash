@@ -39,18 +39,28 @@ export const WizardSolicitudSettingsModal: React.FC<WizardSolicitudSettingsModal
 
   const handleGenerateUrl = () => {
     const params = new URLSearchParams();
+    // Vista Solicitud (B.x) - lowercase for consistency
     params.set('header', config.headerVersion.toString());
     params.set('title', config.titleVersion.toString());
     params.set('message', config.messageVersion.toString());
     params.set('hero', config.heroVersion.toString());
     params.set('cta', config.ctaVersion.toString());
-    params.set('wizardLayout', config.wizardLayoutVersion.toString());
+    // Wizard Estructura (C.x)
+    params.set('wizardlayout', config.wizardLayoutVersion.toString());
     params.set('progress', config.progressVersion.toString());
     params.set('navigation', config.navigationVersion.toString());
-    params.set('stepLayout', config.stepLayoutVersion.toString());
+    params.set('steplayout', config.stepLayoutVersion.toString());
+    params.set('celebration', config.celebrationVersion.toString());
+    // Campos (C1.x)
     params.set('input', config.inputVersion.toString());
-    params.set('datePicker', config.datePickerVersion.toString());
+    params.set('options', config.optionsVersion.toString());
+    params.set('upload', config.uploadVersion.toString());
+    params.set('datepicker', config.datePickerVersion.toString());
     params.set('search', config.searchVersion.toString());
+    params.set('validation', config.validationVersion.toString());
+    params.set('error', config.errorVersion.toString());
+    params.set('help', config.helpVersion.toString());
+    params.set('docexamples', config.docExamplesVersion.toString());
     const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     navigator.clipboard.writeText(url);
     setCopied(true);

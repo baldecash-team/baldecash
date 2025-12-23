@@ -17,7 +17,7 @@
  * - Esc: Cerrar modal
  */
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Button } from '@nextui-org/react';
 import { Settings, ArrowLeft, Zap, Code, Layers, Navigation, Info, Keyboard, CheckCircle2, XCircle, PartyPopper, AlertTriangle, Home, RotateCcw, Phone } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -348,24 +348,113 @@ function WizardPreviewContent() {
   const searchParams = useSearchParams();
   const estado = searchParams.get('estado');
 
-  // Inicializar config desde URL params
+  // Inicializar config desde URL params (lowercase for consistency)
   const [config, setConfig] = useState<WizardSolicitudConfig>(() => {
-    const inputVersion = parseInt(searchParams.get('input') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
-    const optionsVersion = parseInt(searchParams.get('options') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
-    const progressVersion = parseInt(searchParams.get('progress') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
-    const navigationVersion = parseInt(searchParams.get('navigation') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
+    const validVersions = [1, 2, 3, 4, 5, 6];
+    const parseVersion = (param: string | null): 1 | 2 | 3 | 4 | 5 | 6 => {
+      const val = parseInt(param || '1');
+      return validVersions.includes(val) ? (val as 1 | 2 | 3 | 4 | 5 | 6) : 1;
+    };
 
     return {
       ...defaultWizardSolicitudConfig,
-      inputVersion: [1, 2, 3, 4, 5, 6].includes(inputVersion) ? inputVersion : 1,
-      optionsVersion: [1, 2, 3, 4, 5, 6].includes(optionsVersion) ? optionsVersion : 1,
-      progressVersion: [1, 2, 3, 4, 5, 6].includes(progressVersion) ? progressVersion : 1,
-      navigationVersion: [1, 2, 3, 4, 5, 6].includes(navigationVersion) ? navigationVersion : 1,
+      // Vista Solicitud (B.x)
+      headerVersion: parseVersion(searchParams.get('header')),
+      titleVersion: parseVersion(searchParams.get('title')),
+      messageVersion: parseVersion(searchParams.get('message')),
+      heroVersion: parseVersion(searchParams.get('hero')),
+      ctaVersion: parseVersion(searchParams.get('cta')),
+      // Wizard Estructura (C.x)
+      wizardLayoutVersion: parseVersion(searchParams.get('wizardlayout')),
+      progressVersion: parseVersion(searchParams.get('progress')),
+      navigationVersion: parseVersion(searchParams.get('navigation')),
+      stepLayoutVersion: parseVersion(searchParams.get('steplayout')),
+      celebrationVersion: parseVersion(searchParams.get('celebration')),
+      // Campos (C1.x)
+      inputVersion: parseVersion(searchParams.get('input')),
+      optionsVersion: parseVersion(searchParams.get('options')),
+      uploadVersion: parseVersion(searchParams.get('upload')),
+      datePickerVersion: parseVersion(searchParams.get('datepicker')),
+      searchVersion: parseVersion(searchParams.get('search')),
+      validationVersion: parseVersion(searchParams.get('validation')),
+      errorVersion: parseVersion(searchParams.get('error')),
+      helpVersion: parseVersion(searchParams.get('help')),
+      docExamplesVersion: parseVersion(searchParams.get('docexamples')),
     };
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isQuickSwitcherOpen, setIsQuickSwitcherOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
+
+  // Update URL when config changes (sync with settings modal)
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    // Only include params that differ from defaults
+    // Vista Solicitud (B.x)
+    if (config.headerVersion !== defaultWizardSolicitudConfig.headerVersion) {
+      params.set('header', config.headerVersion.toString());
+    }
+    if (config.titleVersion !== defaultWizardSolicitudConfig.titleVersion) {
+      params.set('title', config.titleVersion.toString());
+    }
+    if (config.messageVersion !== defaultWizardSolicitudConfig.messageVersion) {
+      params.set('message', config.messageVersion.toString());
+    }
+    if (config.heroVersion !== defaultWizardSolicitudConfig.heroVersion) {
+      params.set('hero', config.heroVersion.toString());
+    }
+    if (config.ctaVersion !== defaultWizardSolicitudConfig.ctaVersion) {
+      params.set('cta', config.ctaVersion.toString());
+    }
+    // Wizard Estructura (C.x)
+    if (config.wizardLayoutVersion !== defaultWizardSolicitudConfig.wizardLayoutVersion) {
+      params.set('wizardlayout', config.wizardLayoutVersion.toString());
+    }
+    if (config.progressVersion !== defaultWizardSolicitudConfig.progressVersion) {
+      params.set('progress', config.progressVersion.toString());
+    }
+    if (config.navigationVersion !== defaultWizardSolicitudConfig.navigationVersion) {
+      params.set('navigation', config.navigationVersion.toString());
+    }
+    if (config.stepLayoutVersion !== defaultWizardSolicitudConfig.stepLayoutVersion) {
+      params.set('steplayout', config.stepLayoutVersion.toString());
+    }
+    if (config.celebrationVersion !== defaultWizardSolicitudConfig.celebrationVersion) {
+      params.set('celebration', config.celebrationVersion.toString());
+    }
+    // Campos (C1.x)
+    if (config.inputVersion !== defaultWizardSolicitudConfig.inputVersion) {
+      params.set('input', config.inputVersion.toString());
+    }
+    if (config.optionsVersion !== defaultWizardSolicitudConfig.optionsVersion) {
+      params.set('options', config.optionsVersion.toString());
+    }
+    if (config.uploadVersion !== defaultWizardSolicitudConfig.uploadVersion) {
+      params.set('upload', config.uploadVersion.toString());
+    }
+    if (config.datePickerVersion !== defaultWizardSolicitudConfig.datePickerVersion) {
+      params.set('datepicker', config.datePickerVersion.toString());
+    }
+    if (config.searchVersion !== defaultWizardSolicitudConfig.searchVersion) {
+      params.set('search', config.searchVersion.toString());
+    }
+    if (config.validationVersion !== defaultWizardSolicitudConfig.validationVersion) {
+      params.set('validation', config.validationVersion.toString());
+    }
+    if (config.errorVersion !== defaultWizardSolicitudConfig.errorVersion) {
+      params.set('error', config.errorVersion.toString());
+    }
+    if (config.helpVersion !== defaultWizardSolicitudConfig.helpVersion) {
+      params.set('help', config.helpVersion.toString());
+    }
+    if (config.docExamplesVersion !== defaultWizardSolicitudConfig.docExamplesVersion) {
+      params.set('docexamples', config.docExamplesVersion.toString());
+    }
+
+    const queryString = params.toString();
+    router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
+  }, [config, router]);
 
   const { activeComponent, setActiveComponent, componentLabel, toast } = useKeyboardShortcuts({
     config,
