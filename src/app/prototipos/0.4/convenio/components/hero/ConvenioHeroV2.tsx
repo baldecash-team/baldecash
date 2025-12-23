@@ -40,25 +40,6 @@ export const ConvenioHeroV2: React.FC<ConvenioHeroProps> = ({
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-16 md:py-24 min-h-[80vh] flex items-center">
         <div className="max-w-xl">
-          {/* Logos co-branded */}
-          <div className="flex items-center gap-4 mb-6">
-            <img
-              src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
-              alt="BaldeCash"
-              className="h-8 object-contain"
-            />
-            <span className="text-white/50 text-lg">×</span>
-            <img
-              src={convenio.logo}
-              alt={convenio.nombre}
-              className="h-6 object-contain"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
-          </div>
-
           {/* Badge */}
           <Chip
             radius="sm"

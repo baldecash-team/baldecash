@@ -39,12 +39,24 @@ export const ConvenioNavbarV3: React.FC<ConvenioNavbarProps> = ({ convenio, onVe
       {/* Main navbar */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          {/* Logo solo BaldeCash */}
-          <img
-            src={BALDECASH_LOGO}
-            alt="BaldeCash"
-            className="h-8 object-contain"
-          />
+          {/* Logos co-branded */}
+          <div className="flex items-center gap-3">
+            <img
+              src={BALDECASH_LOGO}
+              alt="BaldeCash"
+              className="h-8 object-contain"
+            />
+            <span className="text-neutral-300 text-lg">×</span>
+            <img
+              src={convenio.logo}
+              alt={convenio.nombre}
+              className="h-6 object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+          </div>
 
           {/* Desktop: CTA */}
           <div className="hidden md:flex items-center gap-4">
