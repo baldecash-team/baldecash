@@ -8,7 +8,7 @@
 import React, { useState, useCallback } from 'react';
 import { Button } from '@nextui-org/react';
 import { Settings, Code, ArrowLeft, Layers, Keyboard, Navigation, Eye } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ReceivedScreen } from './ReceivedScreen';
 import { ApprovalSettingsModal } from '../components/approval';
@@ -19,8 +19,6 @@ import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
 
 export default function RecibidoPreviewPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const productId = searchParams.get('productId') || '1';
   const [config, setConfig] = useState<ApprovalConfig>(defaultApprovalConfig);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
@@ -81,7 +79,7 @@ export default function RecibidoPreviewPage() {
   });
 
   const handleViewProduct = () => {
-    router.push(`/prototipos/0.4/producto/detail-preview?id=${productId}&mode=clean`);
+    router.push('/prototipos/0.4/producto/detail-preview?mode=clean');
   };
 
   return (
