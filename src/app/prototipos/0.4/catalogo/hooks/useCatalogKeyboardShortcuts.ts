@@ -11,6 +11,7 @@ interface UseCatalogKeyboardShortcutsOptions {
   onOpenSettings: () => void;
   onCloseSettings: () => void;
   isSettingsOpen: boolean;
+  enabled?: boolean; // Disable all shortcuts when false (e.g., clean mode)
 }
 
 interface ShortcutToast {
@@ -120,6 +121,7 @@ export function useCatalogKeyboardShortcuts({
   onOpenSettings,
   onCloseSettings,
   isSettingsOpen,
+  enabled = true,
 }: UseCatalogKeyboardShortcutsOptions) {
   const [activeComponent, setActiveComponent] = useState<ComponentKey>('layout');
   const [toast, setToast] = useState<ShortcutToast | null>(null);
@@ -192,6 +194,9 @@ export function useCatalogKeyboardShortcuts({
   // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip all shortcuts if disabled (clean mode)
+      if (!enabled) return;
+
       // Skip if typing in input
       if (isInputActive()) return;
 
@@ -244,6 +249,7 @@ export function useCatalogKeyboardShortcuts({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
+    enabled,
     isInputActive,
     isSettingsOpen,
     onOpenSettings,

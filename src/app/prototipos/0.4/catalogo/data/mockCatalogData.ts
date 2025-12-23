@@ -236,15 +236,18 @@ function createSeededRandom(seed: number) {
 
 const seededRandom = createSeededRandom(12345);
 
-const unsplashLaptops = [
-  'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1484788984921-03950022c9ef?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=400&h=300&fit=crop',
-  'https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?w=400&h=300&fit=crop',
+// Webflow CDN laptop images
+const webflowLaptops = [
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8af9ed1fbf48ea397396_hp15.png',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad88ee81af5459cee11a99_hp-nb-15-ef2511la-r5-5500u-8gb-256gbssd-156-w11-612b9laabim.jpg',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8633afc74e8146b99e4a_VICTUS-15-FA0031DX-1.jpg',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7ebb7cd44576556a7d0a_64ad7ac27cd445765564b11b_Dell_1505-removebg-preview.png',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7ac27cd445765564b11b_Dell%201505.jpg',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad79b64b6011e52725b3a7_hyndai_hybook.png',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7929bd7b580e6de7247d_Lenovo%20Chromebook%20S330.jpg',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad78aca11478d9ed058463_laptop_asus_x515ea.jpg',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/623f67d99ae6d7aa236b8447_mac-gold.png',
+  'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/623f67d5dc3c331e102b1f23_mac-grey.png',
 ];
 
 function generateProducts(): CatalogProduct[] {
@@ -344,11 +347,11 @@ function generateProducts(): CatalogProduct[] {
         name: `${brand.name} Laptop ${processorModel.split(' ')[1]} ${ramSize}GB`,
         displayName: `Laptop ${brand.name} ${displaySize}"`,
         brand: brand.name.toLowerCase(),
-        thumbnail: unsplashLaptops[id % unsplashLaptops.length],
+        thumbnail: webflowLaptops[id % webflowLaptops.length],
         images: [
-          unsplashLaptops[id % unsplashLaptops.length],
-          unsplashLaptops[(id + 1) % unsplashLaptops.length],
-          unsplashLaptops[(id + 2) % unsplashLaptops.length],
+          webflowLaptops[id % webflowLaptops.length],
+          webflowLaptops[(id + 1) % webflowLaptops.length],
+          webflowLaptops[(id + 2) % webflowLaptops.length],
         ],
         price,
         originalPrice: hasDiscount ? originalPrice : undefined,

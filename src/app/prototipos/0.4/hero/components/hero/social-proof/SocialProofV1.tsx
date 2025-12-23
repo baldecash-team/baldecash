@@ -117,7 +117,7 @@ export const SocialProofV1: React.FC<SocialProofProps> = ({ data, underlineStyle
             Lo que dicen nuestros estudiantes
           </h3>
           <p className="text-neutral-500 text-sm">
-            +{data.studentCount.toLocaleString()} estudiantes ya confían en nosotros
+            +{data.studentCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} estudiantes ya confían en nosotros
           </p>
         </div>
 

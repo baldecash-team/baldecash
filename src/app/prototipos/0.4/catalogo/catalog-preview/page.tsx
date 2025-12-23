@@ -61,7 +61,7 @@ const getWizardUrl = (config: CatalogLayoutConfig) => {
 
 // URL del detalle del producto
 const getDetailUrl = (productSlug: string) => {
-  return `/prototipos/0.4/producto/${productSlug}`;
+  return `/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1&mode=clean`;
 };
 
 // Configuración por defecto del comparador
@@ -104,6 +104,9 @@ export default function CatalogPreviewPage() {
 function CatalogPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Clean mode - disables shortcuts and dev UI
+  const isCleanMode = searchParams.get('mode') === 'clean';
 
   // Config state
   const [config, setConfig] = useState<CatalogLayoutConfig>(() => {
@@ -210,7 +213,7 @@ function CatalogPreviewContent() {
   const [visibleRows, setVisibleRows] = useState(INITIAL_ROWS);
   const [pendingRows, setPendingRows] = useState(0); // Rows being loaded
 
-  // Update URL when config changes
+  // Update URL when config changes (preserve mode param)
   useEffect(() => {
     const params = new URLSearchParams();
     params.set('layout', config.layoutVersion.toString());
@@ -237,16 +240,21 @@ function CatalogPreviewContent() {
     if (!config.showPricingOptions) {
       params.set('pricingoptions', 'false');
     }
+    // Preserve clean mode
+    if (isCleanMode) {
+      params.set('mode', 'clean');
+    }
     router.replace(`?${params.toString()}`, { scroll: false });
-  }, [config, router]);
+  }, [config, router, isCleanMode]);
 
-  // Keyboard shortcuts with enhanced navigation
+  // Keyboard shortcuts with enhanced navigation (disabled in clean mode)
   const { activeComponentLabel, toast } = useCatalogKeyboardShortcuts({
     config,
     onConfigChange: setConfig,
     onOpenSettings: () => setIsSettingsOpen(true),
     onCloseSettings: () => setIsSettingsOpen(false),
     isSettingsOpen,
+    enabled: !isCleanMode,
   });
 
   // Filter and sort products
@@ -679,48 +687,50 @@ function CatalogPreviewContent() {
         }}
       />
 
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
-        {/* Scroll to Top Button - appears on scroll */}
-        {showScrollTop && (
+      {/* Floating Action Buttons - hidden in clean mode */}
+      {!isCleanMode && (
+        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+          {/* Scroll to Top Button - appears on scroll */}
+          {showScrollTop && (
+            <Button
+              isIconOnly
+              radius="md"
+              className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-110"
+              onPress={scrollToTop}
+            >
+              <ArrowUp className="w-5 h-5" />
+            </Button>
+          )}
+          <TokenCounter sectionId="PROMPT_02" version="0.4" />
           <Button
             isIconOnly
             radius="md"
-            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-110"
-            onPress={scrollToTop}
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+            onPress={() => setIsSettingsOpen(true)}
           >
-            <ArrowUp className="w-5 h-5" />
+            <Settings className="w-5 h-5" />
           </Button>
-        )}
-        <TokenCounter sectionId="PROMPT_02" version="0.4" />
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
-          onPress={() => setIsSettingsOpen(true)}
-        >
-          <Settings className="w-5 h-5" />
-        </Button>
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => setShowConfigBadge(!showConfigBadge)}
-        >
-          <Code className="w-5 h-5 text-neutral-600" />
-        </Button>
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => router.push('/prototipos/0.4')}
-        >
-          <ArrowLeft className="w-5 h-5 text-neutral-600" />
-        </Button>
-      </div>
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+            onPress={() => setShowConfigBadge(!showConfigBadge)}
+          >
+            <Code className="w-5 h-5 text-neutral-600" />
+          </Button>
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+            onPress={() => router.push('/prototipos/0.4')}
+          >
+            <ArrowLeft className="w-5 h-5 text-neutral-600" />
+          </Button>
+        </div>
+      )}
 
-      {/* Current Config Badge - positioned above the quiz FAB */}
-      {showConfigBadge && (
+      {/* Current Config Badge - positioned above the quiz FAB (hidden in clean mode) */}
+      {!isCleanMode && showConfigBadge && (
         <div className="fixed bottom-20 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200 max-w-md">
           <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
           <p className="text-xs font-mono text-neutral-700">
@@ -729,8 +739,8 @@ function CatalogPreviewContent() {
         </div>
       )}
 
-      {/* Keyboard Shortcuts Toast */}
-      {toast && (
+      {/* Keyboard Shortcuts Toast - hidden in clean mode */}
+      {!isCleanMode && toast && (
         <div
           className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg transition-all duration-300 animate-slide-down flex items-center gap-2 text-sm font-medium ${
             toast.type === 'version'
@@ -747,24 +757,28 @@ function CatalogPreviewContent() {
         </div>
       )}
 
-      {/* Active Component Indicator */}
-      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
-        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
-          <Keyboard className="w-3.5 h-3.5" />
-          <span>Press ? for help</span>
+      {/* Active Component Indicator - hidden in clean mode */}
+      {!isCleanMode && (
+        <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+          <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+            <Keyboard className="w-3.5 h-3.5" />
+            <span>Press ? for help</span>
+          </div>
+          <div className="text-xs font-medium text-[#4654CD]">
+            Activo: {activeComponentLabel}
+          </div>
         </div>
-        <div className="text-xs font-medium text-[#4654CD]">
-          Activo: {activeComponentLabel}
-        </div>
-      </div>
+      )}
 
-      {/* Settings Modal */}
-      <CatalogSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        config={config}
-        onConfigChange={setConfig}
-      />
+      {/* Settings Modal - only accessible when not in clean mode */}
+      {!isCleanMode && (
+        <CatalogSettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          config={config}
+          onConfigChange={setConfig}
+        />
+      )}
     </div>
   );
 }

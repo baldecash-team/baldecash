@@ -28,11 +28,11 @@ export const mockProductDetail: ProductDetail = {
   lowestQuota: 89,
   originalQuota: 99, // For crossed-out quota display
   images: [
-    { id: '1', url: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', alt: 'Laptop frontal', type: 'main' },
-    { id: '2', url: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800', alt: 'Laptop lateral', type: 'gallery' },
-    { id: '3', url: 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=800', alt: 'Laptop teclado', type: 'gallery' },
-    { id: '4', url: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800', alt: 'Laptop abierta', type: 'gallery' },
-    { id: '5', url: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=800', alt: 'Laptop cerrada', type: 'detail' },
+    { id: '1', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7929bd7b580e6de7247d_Lenovo%20Chromebook%20S330.jpg', alt: 'Laptop Lenovo frontal', type: 'main' },
+    { id: '2', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8af9ed1fbf48ea397396_hp15.png', alt: 'HP 15 lateral', type: 'gallery' },
+    { id: '3', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad88ee81af5459cee11a99_hp-nb-15-ef2511la-r5-5500u-8gb-256gbssd-156-w11-612b9laabim.jpg', alt: 'HP Notebook', type: 'gallery' },
+    { id: '4', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/623f67d99ae6d7aa236b8447_mac-gold.png', alt: 'MacBook Gold', type: 'gallery' },
+    { id: '5', url: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/623f67d5dc3c331e102b1f23_mac-grey.png', alt: 'MacBook Grey', type: 'detail' },
   ],
   description: 'La Lenovo V15 G4 es la laptop perfecta para estudiantes universitarios. Con su procesador AMD Ryzen 5 y 8GB de RAM, podras ejecutar todas tus aplicaciones de estudio sin problemas. Su pantalla de 15.6 pulgadas Full HD te permite trabajar comodamente durante horas.',
   shortDescription: 'Laptop ideal para estudios universitarios con Ryzen 5, 8GB RAM y SSD de 256GB.',
@@ -160,7 +160,7 @@ export const mockSimilarProducts: SimilarProduct[] = [
   {
     id: 'hp-15-fc0013',
     name: 'HP 15 AMD Ryzen 3',
-    thumbnail: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=400',
+    thumbnail: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8af9ed1fbf48ea397396_hp15.png',
     monthlyQuota: 69,
     quotaDifference: -20, // S/20 menos al mes
     matchScore: 85,
@@ -168,19 +168,19 @@ export const mockSimilarProducts: SimilarProduct[] = [
     slug: 'hp-15-ryzen3-8gb',
   },
   {
-    id: 'acer-aspire3',
-    name: 'Acer Aspire 3 Intel i5',
-    thumbnail: 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=400',
-    monthlyQuota: 99,
-    quotaDifference: +10, // S/10 mas al mes
-    matchScore: 90,
-    differentiators: ['Intel i5', 'Pantalla IPS'],
-    slug: 'acer-aspire3-i5-8gb',
+    id: 'hp-victus-gaming',
+    name: 'HP Victus 15 Gaming',
+    thumbnail: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8633afc74e8146b99e4a_VICTUS-15-FA0031DX-1.jpg',
+    monthlyQuota: 149,
+    quotaDifference: +60, // S/60 mas al mes
+    matchScore: 75,
+    differentiators: ['Gaming', 'RTX Graphics'],
+    slug: 'hp-victus-15-gaming',
   },
   {
     id: 'asus-vivobook',
-    name: 'ASUS VivoBook 15',
-    thumbnail: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400',
+    name: 'ASUS VivoBook X515',
+    thumbnail: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad78aca11478d9ed058463_laptop_asus_x515ea.jpg',
     monthlyQuota: 94,
     quotaDifference: +5, // S/5 mas al mes
     matchScore: 88,
@@ -190,12 +190,22 @@ export const mockSimilarProducts: SimilarProduct[] = [
   {
     id: 'dell-inspiron15',
     name: 'Dell Inspiron 15 3000',
-    thumbnail: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400',
+    thumbnail: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7ac27cd445765564b11b_Dell%201505.jpg',
     monthlyQuota: 86,
     quotaDifference: -3, // S/3 menos al mes
     matchScore: 82,
     differentiators: ['Mejor soporte', 'Mas puertos'],
     slug: 'dell-inspiron15-i3-8gb',
+  },
+  {
+    id: 'hyundai-hybook',
+    name: 'Hyundai HyBook 14',
+    thumbnail: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad79b64b6011e52725b3a7_hyndai_hybook.png',
+    monthlyQuota: 59,
+    quotaDifference: -30, // S/30 menos al mes
+    matchScore: 70,
+    differentiators: ['Mas economica', 'Compacta'],
+    slug: 'hyundai-hybook-14',
   },
 ];
 

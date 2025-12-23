@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ProductDetailConfig, defaultDetailConfig, ProductDetail as ProductDetailType } from '../../types/detail';
 import { mockProductDetail, mockSimilarProducts, mockLimitations, mockCertifications } from '../../data/mockDetailData';
 
@@ -112,7 +113,18 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   config = {},
   product = mockProductDetail,
 }) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isCleanMode = searchParams.get('mode') === 'clean';
   const finalConfig: ProductDetailConfig = { ...defaultDetailConfig, ...config };
+
+  const handleSolicitar = () => {
+    // Navigate to wizard - if in clean mode, use presentation mode
+    const wizardUrl = isCleanMode
+      ? '/prototipos/0.4/wizard-solicitud/wizard-preview?input=1&options=1&progress=1&navigation=1&mode=clean'
+      : '/prototipos/0.4/wizard-solicitud/wizard-preview?input=1&options=1&progress=1&navigation=1';
+    router.push(wizardUrl);
+  };
 
   const renderInfoHeader = () => {
     const infoHeaderComponents = {
@@ -277,7 +289,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <div id="section-pricing" className="space-y-4">
               {renderPricing()}
               {/* CTA Button - Same width as calculator */}
-              <button className="w-full bg-[#4654CD] text-white py-4 rounded-xl font-semibold text-lg hover:bg-[#3a47b3] transition-colors cursor-pointer shadow-lg shadow-[#4654CD]/25">
+              <button
+                onClick={handleSolicitar}
+                className="w-full bg-[#4654CD] text-white py-4 rounded-xl font-semibold text-lg hover:bg-[#3a47b3] transition-colors cursor-pointer shadow-lg shadow-[#4654CD]/25"
+              >
                 ¡Lo quiero! Solicitar ahora
               </button>
             </div>
