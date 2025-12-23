@@ -93,29 +93,55 @@ export const HeroBannerV1: React.FC<HeroBannerProps> = ({
               {subheadline}
             </motion.p>
 
-            {/* Price Card */}
+            {/* Price Card - Aspirational Enhanced */}
             <motion.div
-              className="inline-flex items-center gap-6 bg-white rounded-2xl shadow-lg shadow-neutral-200/50 border border-neutral-100 p-5"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              className="relative inline-flex flex-col sm:flex-row items-stretch gap-0 bg-gradient-to-br from-white via-white to-[#4654CD]/5 rounded-2xl shadow-xl shadow-[#4654CD]/10 border border-[#4654CD]/10 overflow-hidden"
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <div>
-                <p className="text-neutral-500 text-sm mb-1">Cuotas desde</p>
-                <p className="text-4xl font-bold text-[#4654CD]">
-                  S/{minQuota}
-                  <span className="text-lg font-normal text-neutral-400">/mes</span>
-                </p>
+              {/* Animated gradient border effect */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#4654CD]/20 via-[#03DBD0]/20 to-[#4654CD]/20 animate-pulse opacity-50" style={{ padding: '1px' }} />
+
+              {/* Main Price Section */}
+              <div className="relative p-5 sm:p-6 flex flex-col items-center justify-center bg-gradient-to-br from-[#4654CD] to-[#5B68D8]">
+                <motion.div
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <p className="text-white/80 text-xs font-medium uppercase tracking-wider mb-1">Cuotas desde</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-medium text-white/70">S/</span>
+                    <span className="text-5xl sm:text-6xl font-bold text-white drop-shadow-lg">{minQuota}</span>
+                  </div>
+                  <p className="text-white/80 text-sm font-medium">al mes</p>
+                </motion.div>
+                {/* Decorative sparkle */}
+                <Sparkles className="absolute top-2 right-2 w-4 h-4 text-[#03DBD0] animate-pulse" />
               </div>
-              <div className="h-12 w-px bg-neutral-200" />
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 text-neutral-600">
-                  <CheckCircle2 className="w-4 h-4 text-[#22c55e]" />
-                  <span className="text-sm">Sin inicial</span>
-                </div>
-                <div className="flex items-center gap-2 text-neutral-600">
-                  <CheckCircle2 className="w-4 h-4 text-[#22c55e]" />
-                  <span className="text-sm">Sin aval</span>
+
+              {/* Benefits Section */}
+              <div className="relative p-5 sm:p-6 space-y-3 bg-white">
+                <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Incluye</p>
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-[#22c55e]/10 flex items-center justify-center">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e]" />
+                    </div>
+                    <span className="text-sm font-medium text-neutral-700">Sin cuota inicial</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-[#22c55e]/10 flex items-center justify-center">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#22c55e]" />
+                    </div>
+                    <span className="text-sm font-medium text-neutral-700">Sin aval requerido</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-[#03DBD0]/10 flex items-center justify-center">
+                      <CreditCard className="w-3.5 h-3.5 text-[#03DBD0]" />
+                    </div>
+                    <span className="text-sm font-medium text-neutral-700">Tasa preferencial</span>
+                  </div>
                 </div>
               </div>
             </motion.div>
