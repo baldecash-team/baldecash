@@ -29,7 +29,7 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
   helpVersion = 1,
 }) => {
   const options = field.options || [];
-  const hasMany = options.length > 4;
+  const hasMany = options.length > 5;
   const HelpTooltip = getHelpTooltip(helpVersion);
 
   const cardsContent = (
@@ -38,11 +38,10 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
       <div
         className={`
           bg-neutral-100 p-1.5 rounded-xl border border-neutral-200 overflow-hidden
-          ${hasMany ? 'overflow-x-auto scrollbar-hide' : ''}
           ${error ? 'border-red-300' : ''}
         `}
       >
-        <div className={`relative flex ${hasMany ? 'w-max min-w-full' : ''} gap-1`}>
+        <div className={`relative flex flex-wrap gap-1`}>
           {options.map((option) => {
             const isSelected = value === option.value;
             return (
@@ -82,15 +81,6 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
       {value && options.find(o => o.value === value)?.description && (
         <p className="text-xs text-neutral-500 bg-neutral-50 rounded-lg px-3 py-2 border border-neutral-100 mt-2">
           {options.find(o => o.value === value)?.description}
-        </p>
-      )}
-
-      {/* Scroll hint for many options */}
-      {hasMany && (
-        <p className="text-xs text-neutral-400 text-center flex items-center justify-center gap-1 mt-2">
-          <span className="inline-block w-4 h-0.5 bg-neutral-300 rounded" />
-          Desliza para ver mas opciones
-          <span className="inline-block w-4 h-0.5 bg-neutral-300 rounded" />
         </p>
       )}
 

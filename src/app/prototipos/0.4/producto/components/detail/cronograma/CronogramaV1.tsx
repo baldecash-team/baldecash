@@ -25,6 +25,11 @@ export const CronogramaV1: React.FC<CronogramaProps> = ({
 }) => {
   const [selectedTerm, setSelectedTerm] = useState(term);
 
+  // Calculate monthly quota based on selected term
+  // Base amount is calculated so that shorter terms have higher monthly payments
+  const baseTotal = monthlyQuota * term; // Total financed amount
+  const adjustedQuota = baseTotal / selectedTerm;
+
   // Generate milestone months (first, 25%, 50%, 75%, last)
   const getMilestones = () => {
     const milestones = [1];
@@ -37,7 +42,7 @@ export const CronogramaV1: React.FC<CronogramaProps> = ({
   };
 
   const milestones = getMilestones();
-  const totalPaid = monthlyQuota * selectedTerm;
+  const totalPaid = adjustedQuota * selectedTerm;
 
   const getMonthName = (monthsFromNow: number) => {
     const date = new Date(startDate);
@@ -126,7 +131,7 @@ export const CronogramaV1: React.FC<CronogramaProps> = ({
             <Banknote className="w-4 h-4" />
             <span className="text-xs">Cuota mensual</span>
           </div>
-          <p className="text-xl font-bold text-[#4654CD]">S/{monthlyQuota.toFixed(0)}</p>
+          <p className="text-xl font-bold text-[#4654CD]">S/{adjustedQuota.toFixed(0)}</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1 text-neutral-500 mb-1">

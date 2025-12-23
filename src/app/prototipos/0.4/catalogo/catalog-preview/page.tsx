@@ -487,56 +487,6 @@ function CatalogPreviewContent() {
               }}
             />
 
-            {/* Productos relacionados */}
-            <section className="mt-8 mb-4 px-4">
-              <div className="flex items-center gap-2 mb-6">
-                <Sparkles className="w-5 h-5 text-[#4654CD]" />
-                <h2 className="text-xl font-semibold text-neutral-800">
-                  Productos que podrían interesarte
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {relatedProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-md hover:border-[#4654CD]/30 transition-all cursor-pointer"
-                    onClick={() => router.push(getDetailUrl(product.id.toString()))}
-                  >
-                    <div className="flex gap-4">
-                      <div className="w-20 h-20 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-3xl font-bold text-neutral-300">
-                          {product.brand.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-medium text-neutral-500">{product.brand}</span>
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${product.gamaColor}`}>
-                            {product.gama}
-                          </span>
-                        </div>
-                        <h3 className="text-sm font-medium text-neutral-800 line-clamp-2 mb-2">{product.name}</h3>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-xl font-bold text-[#4654CD]">S/{product.price}</span>
-                          <span className="text-sm text-neutral-500">/mes</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-neutral-100">
-                      <button
-                        className="flex items-center gap-1 text-sm font-medium text-[#4654CD] hover:text-[#3a47b3] transition-colors cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); router.push(getDetailUrl(product.id.toString())); }}
-                      >
-                        Ver detalles
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
             {/* Quiz CTA en Empty State */}
             <section className="mt-8 px-4">
               <div className="bg-gradient-to-r from-[#4654CD]/5 to-[#4654CD]/10 rounded-2xl p-6 border border-[#4654CD]/20">
