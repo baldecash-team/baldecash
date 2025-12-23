@@ -8,10 +8,12 @@
  * Uso: Cuando se quiere comunicación directa con opción de ver catálogo
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
 import { Laptop, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { HelpQuiz } from '@/app/prototipos/0.4/quiz/components/quiz/HelpQuiz';
+import type { QuizConfig } from '@/app/prototipos/0.4/quiz/types/quiz';
 
 interface HeroCtaV4Props {
   onCtaClick?: () => void;
@@ -23,8 +25,18 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
+// Quiz config with layout V5 (modal wizard style)
+const quizConfig: QuizConfig = {
+  layoutVersion: 5,
+  questionCount: 7,
+  questionStyle: 1,
+  resultsVersion: 1,
+  focusVersion: 1,
+};
+
 export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
   const router = useRouter();
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   const handleWhatsApp = () => {
     window.open('https://wa.link/osgxjf', '_blank');
@@ -38,7 +50,11 @@ export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
 
   const handleQuiz = () => {
     onCtaClick?.();
-    router.push('/prototipos/0.4/quiz?layout=5&mode=modal');
+    setIsQuizOpen(true);
+  };
+
+  const handleQuizComplete = () => {
+    setIsQuizOpen(false);
   };
 
   return (
@@ -76,6 +92,14 @@ export const HeroCtaV4: React.FC<HeroCtaV4Props> = ({ onCtaClick }) => {
       <p className="text-sm text-neutral-400">
         Respuesta en menos de 5 minutos
       </p>
+
+      {/* Quiz Modal */}
+      <HelpQuiz
+        config={quizConfig}
+        isOpen={isQuizOpen}
+        onClose={() => setIsQuizOpen(false)}
+        onComplete={handleQuizComplete}
+      />
     </div>
   );
 };
