@@ -49,7 +49,6 @@ function ComparatorPreviewContent() {
     const maxProductsVersion = parseInt(searchParams.get('maxproducts') || '2') as 1 | 2 | 3 | 4 | 5 | 6;
     const fieldsVersion = parseInt(searchParams.get('fields') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
     const highlightVersion = parseInt(searchParams.get('highlight') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
-    const priceDiffVersion = parseInt(searchParams.get('pricediff') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
     const differenceHighlightVersion = parseInt(searchParams.get('diffhighlight') || '1') as 1 | 2 | 3 | 4 | 5 | 6;
     const cardSelectionVersion = parseInt(searchParams.get('cardstyle') || '1') as 1 | 2 | 3;
 
@@ -60,7 +59,6 @@ function ComparatorPreviewContent() {
       maxProductsVersion: [1, 2, 3, 4, 5, 6].includes(maxProductsVersion) ? maxProductsVersion : 2,
       fieldsVersion: [1, 2, 3, 4, 5, 6].includes(fieldsVersion) ? fieldsVersion : 1,
       highlightVersion: [1, 2, 3, 4, 5, 6].includes(highlightVersion) ? highlightVersion : 1,
-      priceDiffVersion: [1, 2, 3, 4, 5, 6].includes(priceDiffVersion) ? priceDiffVersion : 1,
       differenceHighlightVersion: [1, 2, 3, 4, 5, 6].includes(differenceHighlightVersion) ? differenceHighlightVersion : 1,
       cardSelectionVersion: [1, 2, 3].includes(cardSelectionVersion) ? cardSelectionVersion : 1,
     };
@@ -87,7 +85,6 @@ function ComparatorPreviewContent() {
     maxProducts: 'Max Productos',
     fields: 'Campos',
     highlight: 'Resaltado',
-    priceDiff: 'Diferencia Precio',
     diffHighlight: 'Resaltar Diferencias',
     cardSelection: 'Estilo Card',
   };
@@ -109,7 +106,6 @@ function ComparatorPreviewContent() {
     params.set('maxproducts', config.maxProductsVersion.toString());
     params.set('fields', config.fieldsVersion.toString());
     params.set('highlight', config.highlightVersion.toString());
-    params.set('pricediff', config.priceDiffVersion.toString());
     params.set('diffhighlight', config.differenceHighlightVersion.toString());
     params.set('cardstyle', config.cardSelectionVersion.toString());
     router.replace(`?${params.toString()}`, { scroll: false });
@@ -117,7 +113,7 @@ function ComparatorPreviewContent() {
 
   // Keyboard shortcuts using shared hook
   const { currentComponent } = useKeyboardShortcuts({
-    componentOrder: ['layout', 'access', 'maxProducts', 'fields', 'highlight', 'priceDiff', 'diffHighlight', 'cardSelection'],
+    componentOrder: ['layout', 'access', 'maxProducts', 'fields', 'highlight', 'diffHighlight', 'cardSelection'],
     onVersionChange: (componentId, version) => {
       const keyMap: Record<string, keyof ComparatorConfig> = {
         layout: 'layoutVersion',
@@ -125,7 +121,6 @@ function ComparatorPreviewContent() {
         maxProducts: 'maxProductsVersion',
         fields: 'fieldsVersion',
         highlight: 'highlightVersion',
-        priceDiff: 'priceDiffVersion',
         diffHighlight: 'differenceHighlightVersion',
         cardSelection: 'cardSelectionVersion',
       };
@@ -151,7 +146,6 @@ function ComparatorPreviewContent() {
         maxProducts: 'maxProductsVersion',
         fields: 'fieldsVersion',
         highlight: 'highlightVersion',
-        priceDiff: 'priceDiffVersion',
         diffHighlight: 'differenceHighlightVersion',
         cardSelection: 'cardSelectionVersion',
       };

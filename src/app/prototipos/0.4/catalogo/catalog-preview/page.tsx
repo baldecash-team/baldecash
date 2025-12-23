@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef } from 'react';
 import { Button, Spinner, Chip } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft, ArrowUp, Sparkles, ArrowRight, GitCompare, X, Keyboard, Navigation, Layers, Info } from 'lucide-react';
+import { Settings, Code, ArrowLeft, ArrowUp, Sparkles, ArrowRight, Scale, Trash2, X, Keyboard, Navigation, Layers, Info } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CatalogLayout } from '../components/catalog/CatalogLayout';
 import { CatalogSettingsModal } from '../components/catalog/CatalogSettingsModal';
@@ -42,6 +42,7 @@ import {
   ComparisonState,
   defaultComparisonState,
   ComparisonProduct,
+  getMaxProducts,
 } from '../../comparador/types/comparator';
 import { HelpQuiz } from '../../quiz/components/quiz';
 import { HelpCircle } from 'lucide-react';
@@ -63,21 +64,19 @@ const getDetailUrl = (productSlug: string) => {
   return `/prototipos/0.4/producto/${productSlug}`;
 };
 
-// Configuración del comparador (basada en la URL especificada)
-const comparatorConfig: ComparatorConfig = {
-  layoutVersion: 3,        // Panel Sticky
+// Configuración por defecto del comparador
+const defaultComparatorConfigOverride: ComparatorConfig = {
+  layoutVersion: 1,        // Modal Fullscreen
   accessVersion: 1,        // Checkbox en Cards
-  maxProductsVersion: 4,   // Máximo 4 productos
+  maxProductsVersion: 2,   // Máximo 3 productos (versión 2)
   fieldsVersion: 2,        // Specs + Features
   highlightVersion: 1,     // Semántico clásico
-  priceDiffVersion: 4,     // Badge Animado
+  priceDiffVersion: 1,     // Default (no se usa)
   differenceHighlightVersion: 5, // Subrayado Animado
   cardSelectionVersion: 3, // Glow + Ribbon
   defaultTerm: 24,
   defaultInitial: 10,
 };
-
-const MAX_COMPARE_PRODUCTS = 3;
 
 // Mock de productos relacionados para el empty state
 const relatedProducts = [
@@ -163,6 +162,18 @@ function CatalogPreviewContent() {
   const [compareList, setCompareList] = useState<string[]>([]);
   const [isComparatorOpen, setIsComparatorOpen] = useState(false);
   const [comparisonState, setComparisonState] = useState<ComparisonState>(defaultComparisonState);
+
+  // Comparator config from URL params
+  const comparatorConfig = useMemo<ComparatorConfig>(() => {
+    const maxProductsVersion = parseInt(searchParams.get('maxproducts') || '2') as 1 | 2 | 3 | 4 | 5 | 6;
+    return {
+      ...defaultComparatorConfigOverride,
+      maxProductsVersion: [1, 2, 3, 4, 5, 6].includes(maxProductsVersion) ? maxProductsVersion : 2,
+    };
+  }, [searchParams]);
+
+  // Dynamic max products based on config
+  const maxCompareProducts = useMemo(() => getMaxProducts(comparatorConfig.maxProductsVersion), [comparatorConfig.maxProductsVersion]);
 
   // Quiz state
   const [isQuizOpen, setIsQuizOpen] = useState(false);
@@ -376,7 +387,7 @@ function CatalogPreviewContent() {
       if (prev.includes(productId)) {
         return prev.filter(id => id !== productId);
       }
-      if (prev.length >= MAX_COMPARE_PRODUCTS) {
+      if (prev.length >= maxCompareProducts) {
         return prev; // Don't add if at max
       }
       return [...prev, productId];
@@ -435,7 +446,7 @@ function CatalogPreviewContent() {
                   defaultInitial={config.defaultInitial}
                   showPricingOptions={config.showPricingOptions}
                   onAddToCart={() => {
-                    console.log('Add to cart:', product.id);
+                    router.push('/prototipos/0.4/upsell/upsell-preview/?sections=accessories&accessoryIntroVersion=3');
                   }}
                   onFavorite={() => {
                     console.log('Toggle favorite:', product.id);
@@ -445,7 +456,7 @@ function CatalogPreviewContent() {
                   }}
                   onCompare={() => handleToggleCompare(product.id)}
                   isCompareSelected={compareList.includes(product.id)}
-                  compareDisabled={compareList.length >= MAX_COMPARE_PRODUCTS}
+                  compareDisabled={compareList.length >= maxCompareProducts}
                 />
               ))}
               {/* Show skeletons for products being loaded */}
@@ -569,54 +580,62 @@ function CatalogPreviewContent() {
 
       {/* Floating Comparison Bar - bottom-24 for V3/V4 mobile (filters at bottom) */}
       {compareList.length > 0 && !isComparatorOpen && (
-        <div className={`fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-xl shadow-xl border border-neutral-200 px-4 py-3 flex items-center gap-4 ${
+        <div className={`fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 flex items-center gap-4 ${
           config.layoutVersion === 3 ? 'bottom-24' : config.layoutVersion === 4 ? 'bottom-24 lg:bottom-6' : 'bottom-6'
         }`}>
+          {/* Selected count */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
-              <GitCompare className="w-4 h-4 text-[#4654CD]" />
+            <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+              <Scale className="w-5 h-5 text-[#4654CD]" />
             </div>
             <div>
-              <p className="text-sm font-medium text-neutral-800">
-                {compareList.length} producto{compareList.length !== 1 ? 's' : ''} seleccionado{compareList.length !== 1 ? 's' : ''}
+              <p className="text-sm font-semibold text-neutral-800">
+                {compareList.length} de {maxCompareProducts}
               </p>
               <p className="text-xs text-neutral-500">
-                Máximo 3 productos
+                equipos seleccionados
               </p>
             </div>
           </div>
 
-          {/* Mini product previews */}
+          {/* Selected product thumbnails */}
           <div className="flex -space-x-2">
             {compareProducts.slice(0, 4).map((product, index) => (
               <div
                 key={product.id}
-                className="w-10 h-10 rounded-lg bg-neutral-100 border-2 border-white flex items-center justify-center overflow-hidden"
+                className="w-10 h-10 rounded-lg bg-white border-2 border-white shadow-sm overflow-hidden"
                 style={{ zIndex: 4 - index }}
               >
                 <img
                   src={product.thumbnail}
-                  alt={product.name}
-                  className="w-full h-full object-contain"
+                  alt={product.displayName}
+                  className="w-full h-full object-cover"
                 />
               </div>
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Actions */}
+          <div className="flex items-center gap-2 border-l border-neutral-200 pl-4">
             <Button
+              variant="light"
               size="sm"
-              variant="flat"
-              className="bg-neutral-100 text-neutral-600 cursor-pointer"
+              isIconOnly
               onPress={handleClearCompare}
+              className="cursor-pointer text-neutral-500 hover:text-red-500"
             >
-              Limpiar
+              <Trash2 className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
-              className="bg-[#4654CD] text-white cursor-pointer"
+              className={`${
+                compareList.length >= 2
+                  ? 'bg-[#4654CD] text-white cursor-pointer'
+                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+              }`}
               onPress={() => setIsComparatorOpen(true)}
               isDisabled={compareList.length < 2}
+              endContent={<ArrowRight className="w-4 h-4" />}
             >
               Comparar
             </Button>

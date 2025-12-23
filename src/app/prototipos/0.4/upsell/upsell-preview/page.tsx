@@ -83,6 +83,17 @@ function UpsellPreviewContent() {
   const [activeTab, setActiveTab] = useState<'accessories' | 'insurance'>('accessories');
   const [toast, setToast] = useState<{ message: string; type: 'version' | 'navigation' | 'info' } | null>(null);
 
+  // Parse sections from URL - default to both if not specified
+  const sectionsParam = searchParams.get('sections');
+  const visibleSections = useMemo(() => {
+    if (!sectionsParam) return { accessories: true, insurance: true };
+    const sections = sectionsParam.split(',').map(s => s.trim().toLowerCase());
+    return {
+      accessories: sections.includes('accessories'),
+      insurance: sections.includes('insurance'),
+    };
+  }, [sectionsParam]);
+
   const showToast = useCallback((message: string, type: 'version' | 'navigation' | 'info' = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2000);
@@ -173,9 +184,14 @@ function UpsellPreviewContent() {
       params.set('modalButtonsVersion', config.modalButtonsVersion.toString());
     }
 
+    // Preserve sections param if set
+    if (sectionsParam) {
+      params.set('sections', sectionsParam);
+    }
+
     const queryString = params.toString();
     router.replace(queryString ? `?${queryString}` : '', { scroll: false });
-  }, [config, router]);
+  }, [config, router, sectionsParam]);
 
   // Accessory handlers
   const toggleAccessory = useCallback((id: string) => {
@@ -296,7 +312,7 @@ function UpsellPreviewContent() {
 
       {/* Main content */}
       <main className="pt-16 pb-24 px-4 md:px-8 max-w-5xl mx-auto">
-        {/* Page header */}
+{/* Page header - Comentado temporalmente
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-neutral-800 mb-2">
             Upsell - Preview
@@ -305,83 +321,131 @@ function UpsellPreviewContent() {
             Prueba las diferentes versiones de accesorios y seguros.
           </p>
         </div>
+        */}
 
-        {/* Tabs */}
-        <Tabs
-          selectedKey={activeTab}
-          onSelectionChange={(key) => setActiveTab(key as 'accessories' | 'insurance')}
-          classNames={{
-            tabList: 'bg-white border border-neutral-200 rounded-xl p-1',
-            tab: 'data-[selected=true]:bg-[#4654CD] data-[selected=true]:text-white rounded-lg',
-            cursor: 'bg-transparent',
-          }}
-        >
-          <Tab
-            key="accessories"
-            title={
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                <span>Accesorios</span>
-              </div>
-            }
+        {/* Conditional rendering based on sections param */}
+        {visibleSections.accessories && visibleSections.insurance ? (
+          /* Both sections - Show Tabs */
+          <Tabs
+            selectedKey={activeTab}
+            onSelectionChange={(key) => setActiveTab(key as 'accessories' | 'insurance')}
+            classNames={{
+              tabList: 'bg-white border border-neutral-200 rounded-xl p-1',
+              tab: 'data-[selected=true]:bg-[#4654CD] data-[selected=true]:text-white rounded-lg',
+              cursor: 'bg-transparent',
+            }}
           >
-            <div className="mt-6 bg-white rounded-2xl p-6 border border-neutral-200">
-              {/* Accessory Intro */}
-              {renderAccessoryIntro()}
-
-              {/* Accessory Cards Grid - Versioned */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {mockAccessories.map((accessory) =>
-                  renderAccessoryCard(
-                    accessory,
-                    selectedAccessories.includes(accessory.id),
-                    () => toggleAccessory(accessory.id)
-                  )
-                )}
-              </div>
-
-              {/* Totals */}
-              <div className="mt-6 pt-4 border-t border-neutral-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-600">Total con accesorios:</span>
-                  <span className="text-xl font-bold text-[#4654CD]">
-                    S/{totals.totalQuota}/mes
-                  </span>
+            <Tab
+              key="accessories"
+              title={
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  <span>Accesorios</span>
                 </div>
-              </div>
-            </div>
-          </Tab>
-
-          <Tab
-            key="insurance"
-            title={
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                <span>Seguros</span>
-              </div>
-            }
-          >
-            <div className="mt-6 bg-white rounded-2xl p-6 border border-neutral-200">
-              {/* Insurance Intro - Versioned */}
-              {renderInsuranceIntro()}
-
-              {/* Plan Comparison - Versioned */}
-              {renderPlanComparison()}
-
-              {/* Totals */}
-              {selectedInsurance && (
+              }
+            >
+              <div className="mt-6 bg-white rounded-2xl p-6 border border-neutral-200">
+                {renderAccessoryIntro()}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {mockAccessories.map((accessory) =>
+                    renderAccessoryCard(
+                      accessory,
+                      selectedAccessories.includes(accessory.id),
+                      () => toggleAccessory(accessory.id)
+                    )
+                  )}
+                </div>
                 <div className="mt-6 pt-4 border-t border-neutral-200">
                   <div className="flex items-center justify-between">
-                    <span className="text-neutral-600">Total con seguro:</span>
+                    <span className="text-neutral-600">Total con accesorios:</span>
                     <span className="text-xl font-bold text-[#4654CD]">
                       S/{totals.totalQuota}/mes
                     </span>
                   </div>
                 </div>
+              </div>
+            </Tab>
+
+            <Tab
+              key="insurance"
+              title={
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  <span>Seguros</span>
+                </div>
+              }
+            >
+              <div className="mt-6 bg-white rounded-2xl p-6 border border-neutral-200">
+                {renderInsuranceIntro()}
+                {renderPlanComparison()}
+                {selectedInsurance && (
+                  <div className="mt-6 pt-4 border-t border-neutral-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-neutral-600">Total con seguro:</span>
+                      <span className="text-xl font-bold text-[#4654CD]">
+                        S/{totals.totalQuota}/mes
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Tab>
+          </Tabs>
+        ) : visibleSections.accessories ? (
+          /* Only Accessories */
+          <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+            {renderAccessoryIntro()}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {mockAccessories.map((accessory) =>
+                renderAccessoryCard(
+                  accessory,
+                  selectedAccessories.includes(accessory.id),
+                  () => toggleAccessory(accessory.id)
+                )
               )}
             </div>
-          </Tab>
-        </Tabs>
+            <div className="mt-6 pt-4 border-t border-neutral-200">
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-600">Total con accesorios:</span>
+                <span className="text-xl font-bold text-[#4654CD]">
+                  S/{totals.totalQuota}/mes
+                </span>
+              </div>
+            </div>
+            <div className="mt-6">
+              <Button
+                size="lg"
+                className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
+                onPress={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview')}
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        ) : visibleSections.insurance ? (
+          /* Only Insurance */
+          <div className="bg-white rounded-2xl p-6 border border-neutral-200">
+            {renderInsuranceIntro()}
+            {renderPlanComparison()}
+            <div className="mt-6 pt-4 border-t border-neutral-200">
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-600">Total con seguro:</span>
+                <span className="text-xl font-bold text-[#4654CD]">
+                  S/{totals.totalQuota}/mes
+                </span>
+              </div>
+            </div>
+            <div className="mt-6">
+              <Button
+                size="lg"
+                className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
+                onPress={() => router.push('/prototipos/0.4/wizard-solicitud/wizard-preview')}
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </main>
 
       {/* Floating Action Buttons */}

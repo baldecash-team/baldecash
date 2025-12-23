@@ -221,9 +221,12 @@ export const ComparisonTableV1: React.FC<ComparisonTableProps> = ({
     );
   }
 
+  // Calculate equal width for product columns
+  const productColumnWidth = products.length > 0 ? `${(100 - 25) / products.length}%` : 'auto';
+
   return (
     <div className="overflow-x-auto">
-      <table className="w-full">
+      <table className="w-full table-fixed">
         {/* Header con productos */}
         {showProductHeaders && (
           <thead>
@@ -236,6 +239,7 @@ export const ComparisonTableV1: React.FC<ComparisonTableProps> = ({
                 return (
                   <th
                     key={product.id}
+                    style={{ width: productColumnWidth }}
                     className={`p-4 text-center ${index < products.length - 1 ? 'border-r border-neutral-100' : ''} ${
                       hlVersion === 5 && isCheapest ? 'bg-[#4654CD]/5' : ''
                     }`}
@@ -267,7 +271,6 @@ export const ComparisonTableV1: React.FC<ComparisonTableProps> = ({
                             S/{product.quotaMonthly}
                           </span>
                           <span className="text-xs font-normal text-neutral-500">/mes</span>
-                          {renderPriceDiff(index)}
                         </div>
                       </div>
                     </div>

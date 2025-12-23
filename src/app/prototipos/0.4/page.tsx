@@ -27,8 +27,8 @@ const presentationPaths: Record<string, string> = {
   estados: "/prototipos/0.4/catalogo/empty-preview?illustration=5&actions=6&mode=clean",
   // Wizard: Input V4, Options V2, Progress V1, Navigation V1
   'wizard-solicitud': "/prototipos/0.4/wizard-solicitud/wizard-preview?input=4&options=2&progress=1&navigation=1&mode=clean",
-  // Upsell: Modulo separado
-  upsell: "/prototipos/0.4/upsell/upsell-preview?mode=clean",
+  // Upsell: AccessoryIntro V3, InsuranceIntro V4, PlanComparison V4
+  upsell: "/prototipos/0.4/upsell/upsell-preview?accessoryIntroVersion=3&insuranceIntroVersion=4&planComparisonVersion=4&mode=clean",
   // Aprobacion: Celebration V1, Confetti V1, Sound V2, Summary V1, Time V3, Share V6, Referrals V1
   aprobacion: "/prototipos/0.4/resultado/aprobado-preview?celebration=1&confetti=1&sound=2&summary=1&time=3&share=6&referrals=1&mode=clean",
   // Rechazo/Pendiente: Mismo que aprobacion pero estado diferente

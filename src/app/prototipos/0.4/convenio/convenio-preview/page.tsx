@@ -181,7 +181,7 @@ function ConvenioPreviewContent() {
         </div>
       )}
 
-      {/* Keyboard shortcuts hint */}
+{/* Keyboard shortcuts hint - Comentado temporalmente
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
         <div className="bg-black/70 text-white text-xs px-4 py-2 rounded-full backdrop-blur flex items-center gap-3">
           <span>
@@ -195,6 +195,7 @@ function ConvenioPreviewContent() {
           </span>
         </div>
       </div>
+      */}
 
       {/* Settings Modal */}
       <ConvenioSettingsModal

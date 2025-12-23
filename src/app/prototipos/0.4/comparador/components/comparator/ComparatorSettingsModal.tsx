@@ -11,7 +11,7 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Scale, Layout, Table, Sparkles, DollarSign, Columns, Eye, MousePointer, CreditCard, Link2, Check } from 'lucide-react';
+import { Settings, RotateCcw, Scale, Layout, Table, Sparkles, Columns, Eye, MousePointer, CreditCard, Link2, Check } from 'lucide-react';
 import {
   ComparatorSettingsModalProps,
   defaultComparatorConfig,
@@ -20,7 +20,6 @@ import {
   maxProductsVersionLabels,
   fieldsVersionLabels,
   highlightVersionLabels,
-  priceDiffVersionLabels,
   layoutVersionLabels,
   differenceHighlightVersionLabels,
   cardSelectionVersionLabels,
@@ -42,12 +41,11 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
     const params = new URLSearchParams();
     params.set('layout', config.layoutVersion.toString());
     params.set('access', config.accessVersion.toString());
-    params.set('maxProducts', config.maxProductsVersion.toString());
+    params.set('maxproducts', config.maxProductsVersion.toString());
     params.set('fields', config.fieldsVersion.toString());
     params.set('highlight', config.highlightVersion.toString());
-    params.set('priceDiff', config.priceDiffVersion.toString());
-    params.set('differenceHighlight', config.differenceHighlightVersion.toString());
-    params.set('cardSelection', config.cardSelectionVersion.toString());
+    params.set('diffhighlight', config.differenceHighlightVersion.toString());
+    params.set('cardstyle', config.cardSelectionVersion.toString());
     const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
@@ -179,26 +177,29 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                 wrapper: 'gap-2',
               }}
             >
-              {[1, 2, 3, 4, 5, 6].map((version) => (
-                <Radio
-                  key={version}
-                  value={version.toString()}
-                  classNames={{
-                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
-                      ${config.maxProductsVersion === version
-                        ? 'border-[#4654CD] bg-[#4654CD]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
-                      }`,
-                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
-                    labelWrapper: 'ml-2',
-                    label: 'text-sm',
-                    description: 'text-xs text-neutral-500',
-                  }}
-                  description={maxProductsVersionLabels[version as keyof typeof maxProductsVersionLabels].description}
-                >
-                  Versión {version}
-                </Radio>
-              ))}
+              {[1, 2, 3, 4, 5, 6].map((version) => {
+                const label = maxProductsVersionLabels[version as keyof typeof maxProductsVersionLabels];
+                return (
+                  <Radio
+                    key={version}
+                    value={version.toString()}
+                    classNames={{
+                      base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                        ${config.maxProductsVersion === version
+                          ? 'border-[#4654CD] bg-[#4654CD]/5'
+                          : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        }`,
+                      wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                      labelWrapper: 'ml-2',
+                      label: 'text-sm font-medium',
+                      description: 'text-xs text-neutral-500',
+                    }}
+                    description={label.description}
+                  >
+                    {label.name}
+                  </Radio>
+                );
+              })}
             </RadioGroup>
           </div>
 
@@ -267,42 +268,6 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                     description: 'text-xs text-neutral-500',
                   }}
                   description={highlightVersionLabels[version as keyof typeof highlightVersionLabels].description}
-                >
-                  Versión {version}
-                </Radio>
-              ))}
-            </RadioGroup>
-          </div>
-
-          {/* Price Diff Version (B.94) */}
-          <div className="mb-6 pt-4 border-t border-neutral-200">
-            <div className="flex items-center gap-2 mb-3">
-              <DollarSign className="w-4 h-4 text-[#4654CD]" />
-              <h3 className="font-semibold text-neutral-800">Diferencia de Precio</h3>
-            </div>
-            <RadioGroup
-              value={config.priceDiffVersion.toString()}
-              onValueChange={(val) => updateConfig('priceDiffVersion', parseInt(val) as 1 | 2 | 3 | 4 | 5 | 6)}
-              classNames={{
-                wrapper: 'gap-2',
-              }}
-            >
-              {[1, 2, 3, 4, 5, 6].map((version) => (
-                <Radio
-                  key={version}
-                  value={version.toString()}
-                  classNames={{
-                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
-                      ${config.priceDiffVersion === version
-                        ? 'border-[#4654CD] bg-[#4654CD]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
-                      }`,
-                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
-                    labelWrapper: 'ml-2',
-                    label: 'text-sm',
-                    description: 'text-xs text-neutral-500',
-                  }}
-                  description={priceDiffVersionLabels[version as keyof typeof priceDiffVersionLabels].description}
                 >
                   Versión {version}
                 </Radio>
