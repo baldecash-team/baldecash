@@ -58,6 +58,11 @@ const getWizardUrl = (config: CatalogLayoutConfig) => {
   return `/prototipos/0.4/wizard-solicitud/wizard-preview?${params.toString()}`;
 };
 
+// URL del detalle del producto
+const getDetailUrl = (productSlug: string) => {
+  return `/prototipos/0.4/producto/${productSlug}`;
+};
+
 // Configuración del comparador (basada en la URL especificada)
 const comparatorConfig: ComparatorConfig = {
   layoutVersion: 3,        // Panel Sticky
@@ -436,7 +441,7 @@ function CatalogPreviewContent() {
                     console.log('Toggle favorite:', product.id);
                   }}
                   onViewDetail={() => {
-                    router.push(getWizardUrl(config));
+                    router.push(getDetailUrl(product.id));
                   }}
                   onCompare={() => handleToggleCompare(product.id)}
                   isCompareSelected={compareList.includes(product.id)}
@@ -496,7 +501,7 @@ function CatalogPreviewContent() {
                   <div
                     key={product.id}
                     className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-md hover:border-[#4654CD]/30 transition-all cursor-pointer"
-                    onClick={() => router.push(getWizardUrl(config))}
+                    onClick={() => router.push(getDetailUrl(product.id.toString()))}
                   >
                     <div className="flex gap-4">
                       <div className="w-20 h-20 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -521,7 +526,7 @@ function CatalogPreviewContent() {
                     <div className="mt-4 pt-3 border-t border-neutral-100">
                       <button
                         className="flex items-center gap-1 text-sm font-medium text-[#4654CD] hover:text-[#3a47b3] transition-colors cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); router.push(getWizardUrl(config)); }}
+                        onClick={(e) => { e.stopPropagation(); router.push(getDetailUrl(product.id.toString())); }}
                       >
                         Ver detalles
                         <ArrowRight className="w-4 h-4" />
