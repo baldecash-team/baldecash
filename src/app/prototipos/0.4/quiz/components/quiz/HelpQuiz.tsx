@@ -16,6 +16,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 // Types
 import {
@@ -92,6 +93,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   onClose,
   onComplete,
 }) => {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -179,13 +181,14 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     setResults(null);
   }, []);
 
-  // Handle view product
+  // Handle view product - navigate to product detail
   const handleViewProduct = useCallback(
     (productId: string) => {
-      console.log('View product:', productId);
       onClose();
+      // Navigate to product detail page with full config
+      router.push('/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1&mode=clean');
     },
-    [onClose]
+    [onClose, router]
   );
 
   // Handle close and reset
