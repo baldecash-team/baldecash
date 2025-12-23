@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * SelectCardsV6 - Grid de opciones compacto
- * Grid cuadrado minimalista
+ * SelectCardsV6 - Button Group compacto con bordes unidos
+ * Botones pegados estilo button group - muy compacto
  */
 
 import React from 'react';
 import { Check } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { motion } from 'framer-motion';
 import type { FieldConfig } from '../../../types/wizard-solicitud';
 import { getLabel } from './labels';
 import { getHelpTooltip } from './HelpTooltip';
@@ -29,83 +29,85 @@ export const SelectCardsV6: React.FC<SelectCardsV6Props> = ({
   labelVersion = 1,
   helpVersion = 1,
 }) => {
+  const options = field.options || [];
   const LabelComponent = getLabel(labelVersion);
   const HelpTooltip = getHelpTooltip(helpVersion);
-  const getIcon = (iconName?: string) => {
-    if (!iconName) return null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Icon = (LucideIcons as any)[iconName];
-    return Icon ? <Icon className="w-6 h-6" /> : null;
-  };
 
-  const optionsCount = field.options?.length || 0;
-  const gridCols = optionsCount <= 2 ? 'grid-cols-2' : optionsCount <= 4 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3 sm:grid-cols-6';
-
-  const gridContent = (
-    <div className={`grid ${gridCols} gap-2`}>
-        {field.options?.map((option) => {
+  const buttonGroupContent = (
+    <>
+      {/* Button group container */}
+      <div
+        className={`
+          inline-flex rounded-lg overflow-hidden border
+          ${error ? 'border-red-300' : 'border-neutral-200'}
+        `}
+      >
+        {options.map((option, index) => {
           const isSelected = value === option.value;
+          const isFirst = index === 0;
+          const isLast = index === options.length - 1;
+
           return (
             <button
               key={option.value}
               type="button"
               onClick={() => onChange(option.value)}
               className={`
-                aspect-square flex flex-col items-center justify-center gap-1 p-2 rounded-xl transition-all relative
+                relative px-5 py-2.5 text-sm font-medium cursor-pointer
+                transition-all duration-200
+                ${!isFirst ? 'border-l border-neutral-200' : ''}
                 ${isSelected
-                  ? 'bg-[#4654CD] text-white shadow-lg shadow-[#4654CD]/20'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  ? 'bg-[#4654CD] text-white z-10'
+                  : 'bg-white text-neutral-600 hover:bg-neutral-50'
                 }
+                ${isFirst ? 'rounded-l-lg' : ''}
+                ${isLast ? 'rounded-r-lg' : ''}
               `}
             >
-              {isSelected && (
-                <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center">
-                  <Check className="w-2.5 h-2.5 text-[#4654CD]" />
-                </div>
-              )}
-              {option.icon && getIcon(option.icon)}
-              <span className="text-xs font-medium text-center leading-tight">{option.label}</span>
+              <span className="inline-flex items-center gap-1.5">
+                {isSelected && (
+                  <motion.span
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </motion.span>
+                )}
+                {option.label}
+              </span>
             </button>
           );
         })}
       </div>
+
+      {/* Error */}
+      {error && (
+        <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+          <span className="w-1 h-1 bg-red-500 rounded-full" />
+          {error}
+        </p>
+      )}
+    </>
   );
 
-  // V5/V6: Layout horizontal con label a la izquierda
-  if (labelVersion === 5 || labelVersion === 6) {
+  // V5: Horizontal layout
+  if (labelVersion === 5) {
     return (
       <div className="flex items-start gap-3">
         <LabelComponent field={field} hasError={!!error} />
-        <div className="flex-1">
-          {gridContent}
-          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-        </div>
+        <div className="flex-1">{buttonGroupContent}</div>
       </div>
     );
   }
 
-  // V3: Minimal label
-  if (labelVersion === 3) {
-    return (
-      <div className="space-y-2">
-        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-          {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
-        </span>
-        {gridContent}
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      </div>
-    );
-  }
-
-  // Default: Label arriba
   return (
     <div className="space-y-2">
+      {/* Label */}
       <div className="flex items-center gap-1.5">
         <LabelComponent field={field} hasError={!!error} />
         {field.helpText && <HelpTooltip content={field.helpText} title={field.label} />}
       </div>
-      {gridContent}
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {buttonGroupContent}
     </div>
   );
 };

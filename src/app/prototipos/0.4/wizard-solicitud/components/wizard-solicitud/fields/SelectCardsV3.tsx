@@ -1,15 +1,15 @@
 'use client';
 
 /**
- * SelectCardsV3 - Cards clickeables (C1.13 = V3)
- * Para opciones mutuamente excluyentes cuando son 6 o menos
+ * SelectCardsV3 - Pills/Chips compactos inline
+ * Opciones en formato de pills horizontales - muy compacto
  */
 
 import React from 'react';
-import { Card, CardBody } from '@nextui-org/react';
 import { Check } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { motion } from 'framer-motion';
 import type { FieldConfig } from '../../../types/wizard-solicitud';
+import { getLabel } from './labels';
 import { getHelpTooltip } from './HelpTooltip';
 
 interface SelectCardsV3Props {
@@ -26,88 +26,78 @@ export const SelectCardsV3: React.FC<SelectCardsV3Props> = ({
   value,
   error,
   onChange,
+  labelVersion = 1,
   helpVersion = 1,
 }) => {
+  const options = field.options || [];
+  const LabelComponent = getLabel(labelVersion);
   const HelpTooltip = getHelpTooltip(helpVersion);
-  const getIcon = (iconName?: string) => {
-    if (!iconName) return null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Icon = (LucideIcons as any)[iconName];
-    return Icon ? <Icon className="w-5 h-5" /> : null;
-  };
 
-  return (
-    <div className="space-y-2">
-      {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        <span>{field.label}</span>
-        {field.required && <span className="text-red-500">*</span>}
-        {field.helpText && (
-          <HelpTooltip content={field.helpText} title={field.label} />
-        )}
-      </label>
-
-      {/* Cards grid */}
-      <div className={`grid gap-2 ${
-        (field.options?.length || 0) <= 3
-          ? 'grid-cols-1 sm:grid-cols-3'
-          : 'grid-cols-2 sm:grid-cols-3'
-      }`}>
-        {field.options?.map((option) => {
+  const pillsContent = (
+    <>
+      {/* Pills container */}
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
           const isSelected = value === option.value;
-
           return (
-            <Card
+            <motion.button
               key={option.value}
-              isPressable
-              onPress={() => onChange(option.value)}
+              type="button"
+              onClick={() => onChange(option.value)}
+              whileTap={{ scale: 0.95 }}
               className={`
-                border-2 transition-all cursor-pointer
+                inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium
+                transition-all duration-200 cursor-pointer border
                 ${isSelected
-                  ? 'border-[#4654CD] bg-[#4654CD]/5 shadow-sm'
-                  : 'border-neutral-200 hover:border-neutral-300'
+                  ? 'bg-[#4654CD] text-white border-[#4654CD] shadow-md shadow-[#4654CD]/25'
+                  : 'bg-white text-neutral-600 border-neutral-200 hover:border-[#4654CD]/50 hover:bg-[#4654CD]/5'
                 }
+                ${error ? 'border-red-300' : ''}
               `}
             >
-              <CardBody className="p-3 flex flex-row items-center gap-3">
-                {/* Icon */}
-                {option.icon && (
-                  <div className={`
-                    w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0
-                    ${isSelected ? 'bg-[#4654CD] text-white' : 'bg-neutral-100 text-neutral-500'}
-                  `}>
-                    {getIcon(option.icon)}
-                  </div>
-                )}
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <p className={`font-medium text-sm ${isSelected ? 'text-[#4654CD]' : 'text-neutral-800'}`}>
-                    {option.label}
-                  </p>
-                  {option.description && (
-                    <p className="text-xs text-neutral-500 truncate">
-                      {option.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Check */}
-                {isSelected && (
-                  <div className="w-5 h-5 bg-[#4654CD] rounded-full flex items-center justify-center flex-shrink-0">
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                )}
-              </CardBody>
-            </Card>
+              {isSelected && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </motion.span>
+              )}
+              {option.label}
+            </motion.button>
           );
         })}
       </div>
 
       {/* Error */}
       {error && (
-        <p className="text-red-500 text-xs mt-1">{error}</p>
+        <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+          <span className="w-1 h-1 bg-red-500 rounded-full" />
+          {error}
+        </p>
       )}
+    </>
+  );
+
+  // V5: Horizontal layout
+  if (labelVersion === 5) {
+    return (
+      <div className="flex items-start gap-3">
+        <LabelComponent field={field} hasError={!!error} />
+        <div className="flex-1">{pillsContent}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* Label */}
+      <div className="flex items-center gap-1.5">
+        <LabelComponent field={field} hasError={!!error} />
+        {field.helpText && <HelpTooltip content={field.helpText} title={field.label} />}
+      </div>
+      {pillsContent}
     </div>
   );
 };
