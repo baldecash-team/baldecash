@@ -33,6 +33,12 @@ interface WizardSolicitudContainerProps {
   onAprobado?: () => void;
   onRechazado?: () => void;
   onRecibido?: () => void;
+  // Clean mode - oculta botones de desarrollo
+  isCleanMode?: boolean;
+  // Paso inicial (para restaurar estado)
+  initialStep?: number;
+  // Datos iniciales del formulario
+  initialFormData?: Record<string, unknown>;
 }
 
 export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> = ({
@@ -43,6 +49,9 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
   onAprobado,
   onRechazado,
   onRecibido,
+  isCleanMode = false,
+  initialStep = 0,
+  initialFormData = {},
 }) => {
   // Merge config con defaults
   const config = useMemo(
@@ -59,15 +68,20 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
   });
 
   // Estado del wizard - inicia directamente en wizard (sin intro)
-  const [state, setState] = useState<WizardState>({
-    phase: 'wizard',
-    currentStep: 0,
-    completedSteps: [],
-    formData: {},
-    isSubmitting: false,
-    isSaving: false,
-    errors: {},
-    startedAt: new Date(),
+  // Usa initialStep e initialFormData si se proporcionan (para restaurar estado)
+  const [state, setState] = useState<WizardState>(() => {
+    // Generar completedSteps basado en initialStep
+    const completedSteps = Array.from({ length: initialStep }, (_, i) => i);
+    return {
+      phase: 'wizard',
+      currentStep: initialStep,
+      completedSteps,
+      formData: initialFormData,
+      isSubmitting: false,
+      isSaving: false,
+      errors: {},
+      startedAt: new Date(),
+    };
   });
 
   // Estado para celebracion
@@ -218,6 +232,7 @@ export const WizardSolicitudContainer: React.FC<WizardSolicitudContainerProps> =
         steps={WIZARD_STEPS}
         currentStep={state.currentStep}
         selectedProduct={selectedProduct}
+        isCleanMode={isCleanMode}
       >
         {/* Indicador de progreso */}
         <ProgressIndicator

@@ -21,6 +21,7 @@ interface WizardLayoutV1Props {
   showTimeEstimate?: boolean;
   estimatedMinutesRemaining?: number;
   progressComponent?: React.ReactNode;
+  isCleanMode?: boolean;
 }
 
 export const WizardLayoutV1: React.FC<WizardLayoutV1Props> = ({
@@ -30,6 +31,7 @@ export const WizardLayoutV1: React.FC<WizardLayoutV1Props> = ({
   children,
   onClose,
   progressComponent,
+  isCleanMode = false,
 }) => {
   const currentStepData = steps[currentStep];
 
@@ -45,16 +47,18 @@ export const WizardLayoutV1: React.FC<WizardLayoutV1Props> = ({
             className="h-8 object-contain"
           />
 
-          {/* Close button */}
-          <Button
-            isIconOnly
-            variant="light"
-            className="text-neutral-400 hover:text-neutral-600 cursor-pointer"
-            aria-label="Guardar y salir"
-            onPress={onClose}
-          >
-            <X className="w-5 h-5" />
-          </Button>
+          {/* Close button - oculto en clean mode */}
+          {!isCleanMode && (
+            <Button
+              isIconOnly
+              variant="light"
+              className="text-neutral-400 hover:text-neutral-600 cursor-pointer"
+              aria-label="Guardar y salir"
+              onPress={onClose}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          )}
         </div>
       </header>
 
