@@ -10,7 +10,8 @@
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
-import { Check } from 'lucide-react';
+import { Check, Laptop } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface HeroCtaV2Props {
   onCtaClick?: () => void;
@@ -19,15 +20,23 @@ interface HeroCtaV2Props {
 const benefits = ['Sin aval', 'Sin historial', '100% digital'];
 
 export const HeroCtaV2: React.FC<HeroCtaV2Props> = ({ onCtaClick }) => {
+  const router = useRouter();
+
+  const handleClick = () => {
+    onCtaClick?.();
+    router.push('/prototipos/0.4/catalogo');
+  };
+
   return (
     <div className="flex flex-col items-center gap-4">
       <Button
         size="lg"
         radius="lg"
         className="bg-[#4654CD] text-white font-semibold px-10 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
-        onPress={onCtaClick}
+        startContent={<Laptop className="w-5 h-5" />}
+        onPress={handleClick}
       >
-        Solicitar mi laptop
+        Ver productos
       </Button>
       <div className="flex items-center gap-4 text-sm text-neutral-500">
         {benefits.map((benefit) => (

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef } from 'react';
-import { Button, Spinner } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft, ArrowUp, Sparkles, ArrowRight, GitCompare, X } from 'lucide-react';
+import { Button, Spinner, Chip } from '@nextui-org/react';
+import { Settings, Code, ArrowLeft, ArrowUp, Sparkles, ArrowRight, GitCompare, X, Keyboard } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CatalogLayout } from '../components/catalog/CatalogLayout';
 import { CatalogSettingsModal } from '../components/catalog/CatalogSettingsModal';
@@ -10,6 +10,7 @@ import { ProductCard } from '../components/catalog/ProductCard';
 import { ProductCardSkeleton } from '../components/catalog/ProductCardSkeleton';
 import { LoadMoreButton } from '../components/catalog/LoadMoreButton';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+import { useCatalogKeyboardShortcuts } from '../hooks/useCatalogKeyboardShortcuts';
 import {
   CatalogLayoutConfig,
   defaultCatalogConfig,
@@ -194,36 +195,14 @@ function CatalogPreviewContent() {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [config, router]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
-
-      switch (e.key) {
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-          setConfig((prev) => ({ ...prev, layoutVersion: parseInt(e.key) as 1 | 2 | 3 | 4 | 5 | 6 }));
-          break;
-        case 's':
-        case 'S':
-          if (!e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
-            setIsSettingsOpen(true);
-          }
-          break;
-        case 'Escape':
-          setIsSettingsOpen(false);
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Keyboard shortcuts with enhanced navigation
+  const { activeComponent, toast, getMaxVersion } = useCatalogKeyboardShortcuts({
+    config,
+    onConfigChange: setConfig,
+    onOpenSettings: () => setIsSettingsOpen(true),
+    onCloseSettings: () => setIsSettingsOpen(false),
+    isSettingsOpen,
+  });
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -642,6 +621,38 @@ function CatalogPreviewContent() {
           </p>
         </div>
       )}
+
+      {/* Keyboard Shortcuts Toast */}
+      {toast && (
+        <div
+          className={`fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-lg shadow-lg border transition-all duration-300 animate-slide-down ${
+            toast.type === 'version'
+              ? 'bg-[#4654CD] text-white border-[#4654CD]'
+              : toast.type === 'navigation'
+              ? 'bg-white text-neutral-800 border-neutral-200'
+              : 'bg-neutral-800 text-white border-neutral-700'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Keyboard className="w-4 h-4" />
+            <span className="text-sm font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Active Component Indicator */}
+      <div className="fixed top-6 right-6 z-[100]">
+        <Chip
+          variant="flat"
+          classNames={{
+            base: 'bg-white/90 backdrop-blur border border-neutral-200 shadow-sm',
+            content: 'text-xs font-medium text-neutral-700',
+          }}
+          startContent={<Keyboard className="w-3 h-3 text-[#4654CD]" />}
+        >
+          {activeComponent} (1-{getMaxVersion(activeComponent)})
+        </Chip>
+      </div>
 
       {/* Settings Modal */}
       <CatalogSettingsModal

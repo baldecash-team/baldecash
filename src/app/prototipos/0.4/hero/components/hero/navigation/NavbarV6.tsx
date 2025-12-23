@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * NavbarV6 - Con Banner Promocional
+ * NavbarV6 - Con Banner Promocional y MegaMenu
  *
- * Concepto: Banner de promoción dismissible con X
+ * Concepto: Banner de promoción + MegaMenu para equipos
  * Estilo: Banner colorido arriba del navbar, con botón para cerrar
  * Uso: Para campañas, ofertas especiales, anuncios importantes
  */
@@ -11,20 +11,28 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
-import { Menu, X, Zap, User } from 'lucide-react';
+import { Menu, X, Zap, User, Laptop, ChevronDown, Smartphone, Monitor, Headphones } from 'lucide-react';
 
 const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
 
+const megaMenuItems = [
+  { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
+  { label: 'Celulares', href: catalogUrl, icon: Smartphone, description: 'Smartphones de todas las marcas' },
+  { label: 'Monitores', href: catalogUrl, icon: Monitor, description: 'Pantallas para tu productividad' },
+  { label: 'Accesorios', href: catalogUrl, icon: Headphones, description: 'Complementa tu equipo' },
+];
+
 const navItems = [
-  { label: 'Equipos', href: catalogUrl },
+  { label: 'Equipos', href: catalogUrl, hasMegaMenu: true },
   { label: 'Cómo funciona', href: '#como-funciona' },
   { label: 'Convenios', href: '#convenios' },
-  { label: 'FAQ', href: '#faq' },
+  { label: 'Preguntas frecuentes', href: '#faq' },
 ];
 
 export const NavbarV6: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPromo, setShowPromo] = useState(true);
+  const [showMegaMenu, setShowMegaMenu] = useState(false);
 
   return (
     <>
@@ -76,42 +84,82 @@ export const NavbarV6: React.FC = () => {
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
               {navItems.map((item, index) => (
-                <a
+                <div
                   key={item.label}
-                  href={item.href}
-                  className="relative text-neutral-600 hover:text-[#4654CD] text-sm font-medium transition-colors"
+                  className="relative"
+                  onMouseEnter={() => item.hasMegaMenu && setShowMegaMenu(true)}
+                  onMouseLeave={() => item.hasMegaMenu && setShowMegaMenu(false)}
                 >
-                  {item.label}
-                  {index === 0 && (
-                    <Chip
-                      size="sm"
-                      radius="sm"
-                      classNames={{
-                        base: 'absolute -top-4 -right-6 bg-[#03DBD0] px-1 py-0 h-4 min-w-0',
-                        content: 'text-[10px] font-bold text-white px-1',
-                      }}
-                    >
-                      NEW
-                    </Chip>
+                  <a
+                    href={item.href}
+                    className="flex items-center gap-1 text-neutral-600 hover:text-[#4654CD] text-sm font-medium transition-colors"
+                  >
+                    {item.label}
+                    {item.hasMegaMenu && <ChevronDown className={`w-3 h-3 transition-transform ${showMegaMenu ? 'rotate-180' : ''}`} />}
+                    {index === 0 && (
+                      <Chip
+                        size="sm"
+                        radius="sm"
+                        classNames={{
+                          base: 'absolute -top-4 -right-6 bg-[#03DBD0] px-1 py-0 h-4 min-w-0',
+                          content: 'text-[10px] font-bold text-white px-1',
+                        }}
+                      >
+                        NEW
+                      </Chip>
+                    )}
+                  </a>
+
+                  {/* MegaMenu */}
+                  {item.hasMegaMenu && (
+                    <AnimatePresence>
+                      {showMegaMenu && (
+                        <motion.div
+                          className="absolute top-full left-0 pt-2 w-80"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <div className="bg-white rounded-xl shadow-xl border border-neutral-100 p-4 grid gap-2">
+                            {megaMenuItems.map((menuItem) => (
+                              <a
+                                key={menuItem.label}
+                                href={menuItem.href}
+                                className="flex items-start gap-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors group"
+                              >
+                                <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center shrink-0 group-hover:bg-[#4654CD]/20 transition-colors">
+                                  <menuItem.icon className="w-5 h-5 text-[#4654CD]" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-neutral-800 group-hover:text-[#4654CD] transition-colors">
+                                    {menuItem.label}
+                                  </p>
+                                  <p className="text-xs text-neutral-500">{menuItem.description}</p>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   )}
-                </a>
+                </div>
               ))}
             </div>
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-3">
               <Button
-                variant="light"
-                className="text-neutral-600 font-medium cursor-pointer"
+                as="a"
+                href="https://zonaclientes.baldecash.com"
+                target="_blank"
+                variant="bordered"
+                radius="lg"
+                className="border-[#4654CD] text-[#4654CD] font-medium cursor-pointer hover:bg-[#4654CD] hover:text-white transition-colors"
                 startContent={<User className="w-4 h-4" />}
               >
                 Mi cuenta
-              </Button>
-              <Button
-                radius="lg"
-                className="bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] transition-colors"
-              >
-                Solicitar ahora
               </Button>
             </div>
 
@@ -163,19 +211,17 @@ export const NavbarV6: React.FC = () => {
                     )}
                   </a>
                 ))}
-                <div className="pt-4 border-t border-neutral-100 space-y-2">
+                <div className="pt-4 border-t border-neutral-100">
                   <Button
+                    as="a"
+                    href="https://zonaclientes.baldecash.com"
+                    target="_blank"
                     variant="bordered"
-                    className="w-full border-neutral-300 text-neutral-700 font-medium cursor-pointer"
+                    radius="lg"
+                    className="w-full border-[#4654CD] text-[#4654CD] font-medium cursor-pointer"
                     startContent={<User className="w-4 h-4" />}
                   >
                     Mi cuenta
-                  </Button>
-                  <Button
-                    radius="lg"
-                    className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer"
-                  >
-                    Solicitar ahora
                   </Button>
                 </div>
               </div>
