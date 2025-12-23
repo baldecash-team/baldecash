@@ -27,6 +27,7 @@ import { ShortcutToast, ShortcutHelpBadge } from '@/app/prototipos/0.4/hero/comp
 function DetailPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isCleanMode = searchParams.get('mode') === 'clean';
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
@@ -78,8 +79,14 @@ function DetailPreviewContent() {
     params.set('similar', config.similarProductsVersion.toString());
     params.set('limitations', config.limitationsVersion.toString());
     params.set('certifications', config.certificationsVersion.toString());
+
+    // Preserve clean mode if set
+    if (isCleanMode) {
+      params.set('mode', 'clean');
+    }
+
     router.replace(`?${params.toString()}`, { scroll: false });
-  }, [config, router]);
+  }, [config, router, isCleanMode]);
 
   // Toggle overlays with O key
   useEffect(() => {
@@ -98,6 +105,15 @@ function DetailPreviewContent() {
   const handleConfigChange = (newConfig: ProductDetailConfig) => {
     setConfig(newConfig);
   };
+
+  // In clean mode, just render the product detail without controls
+  if (isCleanMode) {
+    return (
+      <div className="min-h-screen bg-neutral-50">
+        <ProductDetail config={config} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-50">

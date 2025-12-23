@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { X, Trash2, Scale, ArrowRight, Trophy, Sparkles } from 'lucide-react';
 import { ComparatorLayoutProps } from '../../../types/comparator';
@@ -24,6 +24,8 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutProps & { isOpen: bool
   onClose,
 }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isCleanMode = searchParams.get('mode') === 'clean';
   const specs = compareSpecs(products);
   const [showBestOption, setShowBestOption] = useState(false);
 
@@ -47,7 +49,8 @@ export const ComparatorLayoutV1: React.FC<ComparatorLayoutProps & { isOpen: bool
 
   const handleContinueWithBest = () => {
     // Navigate to upsell with the best product
-    router.push('/prototipos/0.4/upsell/upsell-preview/?sections=accessories&accessoryIntroVersion=3');
+    const baseUrl = '/prototipos/0.4/upsell/upsell-preview/?accessoryIntroVersion=3&sections=accessories';
+    router.push(isCleanMode ? `${baseUrl}&mode=clean` : baseUrl);
   };
 
   if (products.length === 0) {
