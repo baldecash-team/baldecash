@@ -194,9 +194,10 @@ export const CronogramaV2: React.FC<CronogramaProps> = ({
         size="lg"
         classNames={{
           backdrop: "bg-black/50 backdrop-blur-sm",
+          base: "bg-white",
         }}
       >
-        <ModalContent>
+        <ModalContent className="bg-white">
           <ModalHeader className="flex items-center gap-3 border-b border-neutral-100">
             <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
               <FileText className="w-5 h-5 text-[#4654CD]" />
