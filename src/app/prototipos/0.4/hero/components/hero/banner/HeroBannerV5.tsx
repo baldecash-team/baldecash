@@ -23,7 +23,7 @@ export const HeroBannerV5: React.FC<HeroBannerProps> = ({
   underlineStyle = 1,
 }) => {
   const router = useRouter();
-  const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+  const catalogUrl = '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1';
 
   return (
     <section className="min-h-[80vh]">
@@ -90,6 +90,9 @@ export const HeroBannerV5: React.FC<HeroBannerProps> = ({
               radius="lg"
               variant="bordered"
               className="border-2 border-neutral-200 text-neutral-700 font-semibold h-14 cursor-pointer hover:bg-neutral-50 hover:border-neutral-300 transition-all"
+              onPress={() => {
+                document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
             >
               Cómo funciona
             </Button>

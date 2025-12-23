@@ -23,6 +23,9 @@ function RechazadoPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Clean mode - disables shortcuts and dev UI
+  const isCleanMode = searchParams.get('mode') === 'clean';
+
   // Inicializar config desde URL params o defaults
   const [config, setConfig] = useState<RejectionConfig>(() => {
     const initial = { ...defaultRejectionConfig };
@@ -127,75 +130,77 @@ function RechazadoPreviewContent() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Toast de shortcuts */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
-              toast.type === 'version'
-                ? 'bg-[#4654CD] text-white'
-                : 'bg-neutral-800 text-white'
-            }`}
-          >
-            {toast.type === 'version' ? <Layers className="w-4 h-4" /> : <Navigation className="w-4 h-4" />}
-            <span>{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Toast de shortcuts - hidden in clean mode */}
+      {!isCleanMode && (
+        <AnimatePresence>
+          {toast && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+                toast.type === 'version'
+                  ? 'bg-[#4654CD] text-white'
+                  : 'bg-neutral-800 text-white'
+              }`}
+            >
+              {toast.type === 'version' ? <Layers className="w-4 h-4" /> : <Navigation className="w-4 h-4" />}
+              <span>{toast.message}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
 
-      {/* Shortcut Help Badge */}
-      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
-        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
-          <Keyboard className="w-3.5 h-3.5" />
-          <span>Press ? for help</span>
+      {/* Shortcut Help Badge - hidden in clean mode */}
+      {!isCleanMode && (
+        <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+          <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+            <Keyboard className="w-3.5 h-3.5" />
+            <span>Press ? for help</span>
+          </div>
+          <div className="text-xs font-medium text-[#4654CD]">
+            Activo: {componentLabels[currentComponent] || currentComponent}
+          </div>
         </div>
-        <div className="text-xs font-medium text-[#4654CD]">
-          Activo: {componentLabels[currentComponent] || currentComponent}
-        </div>
-      </div>
-
-      {/* Version Nav - Comentado temporalmente
-      <VersionNav currentVersion="0.4" showSections={true} />
-      */}
+      )}
 
       {/* Main Content */}
       <RejectionScreen config={config} />
 
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
-        <TokenCounter sectionId="PROMPT_16" version="0.4" />
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
-          onPress={() => setIsSettingsOpen(true)}
-        >
-          <Settings className="w-5 h-5" />
-        </Button>
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => setShowConfigBadge(!showConfigBadge)}
-        >
-          <Code className="w-5 h-5 text-neutral-600" />
-        </Button>
-        <Button
-          isIconOnly
-          radius="md"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => router.push('/prototipos/0.4')}
-        >
-          <ArrowLeft className="w-5 h-5 text-neutral-600" />
-        </Button>
-      </div>
+      {/* Floating Action Buttons - hidden in clean mode */}
+      {!isCleanMode && (
+        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+          <TokenCounter sectionId="PROMPT_16" version="0.4" />
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+            onPress={() => setIsSettingsOpen(true)}
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+            onPress={() => setShowConfigBadge(!showConfigBadge)}
+          >
+            <Code className="w-5 h-5 text-neutral-600" />
+          </Button>
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+            onPress={() => router.push('/prototipos/0.4')}
+          >
+            <ArrowLeft className="w-5 h-5 text-neutral-600" />
+          </Button>
+        </div>
+      )}
 
-      {/* Config Badge */}
-      {showConfigBadge && (
+      {/* Config Badge - hidden in clean mode */}
+      {!isCleanMode && showConfigBadge && (
         <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
           <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
           <p className="text-xs font-mono text-neutral-700">
@@ -210,13 +215,15 @@ function RechazadoPreviewContent() {
         </div>
       )}
 
-      {/* Settings Modal */}
-      <RejectionSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        config={config}
-        onConfigChange={handleConfigChange}
-      />
+      {/* Settings Modal - hidden in clean mode */}
+      {!isCleanMode && (
+        <RejectionSettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          config={config}
+          onConfigChange={handleConfigChange}
+        />
+      )}
     </div>
   );
 }

@@ -28,7 +28,7 @@ export const AlternativesLayoutV1: React.FC<AlternativesLayoutProps> = ({ altern
     <div className="space-y-4 mb-8">
       <h2 className="font-semibold text-lg text-neutral-800">¿Qué puedes hacer?</h2>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {alternatives.map((alt) => (
           <Card
             key={alt.id}
@@ -36,16 +36,19 @@ export const AlternativesLayoutV1: React.FC<AlternativesLayoutProps> = ({ altern
             className="border border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-md transition-all cursor-pointer"
             onPress={() => onSelect?.(alt)}
           >
-            <CardBody className="flex flex-row items-center gap-4 p-5">
-              <div className="w-14 h-14 bg-[#4654CD]/10 rounded-xl flex items-center justify-center text-[#4654CD] flex-shrink-0">
-                {iconMap[alt.icon]}
+            <CardBody className="flex flex-col gap-3 p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#4654CD]/10 rounded-xl flex items-center justify-center text-[#4654CD] flex-shrink-0">
+                  {iconMap[alt.icon]}
+                </div>
+                <h3 className="font-semibold text-neutral-800 text-sm">{alt.title}</h3>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-neutral-800">{alt.title}</h3>
-                <p className="text-sm text-neutral-600">{alt.description}</p>
-              </div>
+              <p className="text-xs text-neutral-600 leading-relaxed">{alt.description}</p>
               {alt.action && (
-                <ArrowRight className="w-5 h-5 text-neutral-400" />
+                <div className="flex items-center gap-1 text-xs text-[#4654CD] font-medium mt-auto">
+                  {alt.action.label || 'Ver más'}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </div>
               )}
             </CardBody>
           </Card>

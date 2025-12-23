@@ -12,7 +12,7 @@ import { Button, Input } from '@nextui-org/react';
 import { Facebook, Instagram, Linkedin, Twitter, Phone, Send } from 'lucide-react';
 
 const catalogUrl =
-  '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=3&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=3';
+  '/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1';
 
 const columns = [
   {
