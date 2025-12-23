@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardBody, Chip } from '@nextui-org/react';
+import { Card, CardBody } from '@nextui-org/react';
 import {
   Search,
   FileText,
@@ -208,33 +208,6 @@ export const HowItWorksV5: React.FC<HowItWorksProps> = ({ data = mockHowItWorksD
               })}
             </div>
 
-            {/* Plazos */}
-            <Card className="bg-neutral-50 border-none">
-              <CardBody className="p-6">
-                <p className="text-sm text-neutral-500 mb-3">Plazos disponibles</p>
-                <div className="flex flex-wrap gap-2">
-                  {data.availableTerms.map((term, i) => (
-                    <motion.div
-                      key={term}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.3 + i * 0.05 }}
-                    >
-                      <Chip
-                        radius="sm"
-                        classNames={{
-                          base: 'bg-[#4654CD] px-4 py-2 h-auto',
-                          content: 'text-white font-semibold',
-                        }}
-                      >
-                        {term} meses
-                      </Chip>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardBody>
-            </Card>
           </div>
         </div>
       </div>

@@ -313,17 +313,16 @@ export const mockHowItWorksData: HowItWorksData = {
     },
     {
       id: 4,
-      title: 'Empieza a estudiar',
-      description: 'Recibe tu equipo y comienza tu camino',
+      title: 'Recibe tu laptop',
+      description: 'Entrega a domicilio en todo el Perú',
       icon: 'GraduationCap',
       color: '#22c55e',
     },
   ],
   requirements: [
     { id: 1, text: 'Ser estudiante universitario o técnico', icon: 'GraduationCap' },
-    { id: 2, text: 'DNI vigente', icon: 'CreditCard' },
-    { id: 3, text: 'Correo institucional (opcional)', icon: 'Mail' },
-    { id: 4, text: 'Celular con WhatsApp', icon: 'Smartphone' },
+    { id: 2, text: 'DNI o CE vigente', icon: 'CreditCard' },
+    { id: 3, text: 'Celular con WhatsApp', icon: 'Smartphone' },
   ],
   availableTerms: [6, 12, 18, 24],
 };
