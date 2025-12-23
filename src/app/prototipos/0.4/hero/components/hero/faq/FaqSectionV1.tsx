@@ -86,7 +86,7 @@ export const FaqSectionV1: React.FC<FaqSectionProps> = ({ data = mockFaqData, un
               href="#contacto"
               className="text-[#4654CD] font-medium hover:underline"
             >
-              Escribenos por WhatsApp
+              Escríbenos por WhatsApp
             </a>
           </p>
         </motion.div>

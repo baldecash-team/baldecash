@@ -376,4 +376,33 @@ Si encuentras problemas con los prompts o necesitas ajustes, puedes:
 2. Agregar contexto adicional en el comando de Claude Terminal
 3. Iterar sobre componentes específicos
 
-¡Éxito con la implementación! 🚀
+---
+
+## Learnings por Sesión
+
+### Sesión 2024-12-23: Comparador + Catálogo + Rechazo
+
+#### Query Params
+- **Usar lowercase consistente**: `maxproducts` no `maxProducts`. La inconsistencia causa problemas de sincronización entre componentes.
+
+#### Componentes Wrapper vs Simples
+- **Los wrappers que esperan `children` pero no los reciben causan páginas en blanco**. Ejemplo: BrandingLevelV1-V6 eran wrappers con `min-h-screen` pero `renderBranding()` no pasaba children. Solución: convertirlos a componentes header simples.
+
+#### Tablas con Columnas Iguales
+- Usar `table-fixed` + ancho dinámico calculado:
+```tsx
+const columnWidth = `${(100 - 25) / products.length}%`;
+<table className="w-full table-fixed">
+  <th style={{ width: columnWidth }}>
+```
+
+#### Badges y Elementos Flotantes
+- **Posicionar dentro del contenedor, no con `absolute` fuera**. Los elementos con `absolute -top-3` se cortan por overflow del padre. Solución: colocar el badge como elemento regular dentro del card con `mb-2`.
+
+#### Ortografía Española
+- Los imperativos llevan tilde: "Escríbenos" no "Escribenos"
+- Revisar siempre: eñes, tildes en imperativos, acentos en palabras agudas
+
+#### UX del Comparador
+- Antes de redirigir al usuario, mostrar feedback visual (highlight del producto ganador + CTA contextual)
+- Labels descriptivos > nombres genéricos ("Máximo 3 productos" > "Versión 2")
