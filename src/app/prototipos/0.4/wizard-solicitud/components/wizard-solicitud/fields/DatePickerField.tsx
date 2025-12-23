@@ -234,7 +234,9 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
             fontSize: showFloatingLabel ? '11px' : '14px'
           }}
           transition={{ duration: 0.15, ease: 'easeOut' }}>
-          {field.label}{field.required && <span className="text-red-400 ml-0.5">*</span>}
+          {field.label}
+          {field.required && <span className="text-red-400 ml-0.5">*</span>}
+          {!field.required && showFloatingLabel && <span className="text-neutral-300 ml-1 text-[10px]">(opcional)</span>}
         </motion.label>
         <Popover isOpen={isOpen} onOpenChange={setIsOpen} placement="bottom-start">
           <PopoverTrigger>
