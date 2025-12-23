@@ -1,13 +1,15 @@
 'use client';
 
 /**
- * WizardLayoutV2 - Layout con sidebar izquierdo
- * Muestra lista de pasos en sidebar desktop
+ * WizardLayoutV2 - Header minimalista con branding
+ * C.1 V2: Mantiene header minimalista para branding presente
+ * Balance entre foco y contexto de marca
  */
 
 import React from 'react';
+import { motion } from 'framer-motion';
+import { Clock, ChevronLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
-import { X, Check } from 'lucide-react';
 import type { WizardSolicitudStep, SelectedProduct } from '../../../types/wizard-solicitud';
 
 interface WizardLayoutV2Props {
@@ -16,6 +18,10 @@ interface WizardLayoutV2Props {
   selectedProduct?: SelectedProduct;
   children: React.ReactNode;
   onClose?: () => void;
+  onStepClick?: (step: number) => void;
+  showTimeEstimate?: boolean;
+  estimatedMinutesRemaining?: number;
+  progressComponent?: React.ReactNode;
 }
 
 export const WizardLayoutV2: React.FC<WizardLayoutV2Props> = ({
@@ -24,99 +30,110 @@ export const WizardLayoutV2: React.FC<WizardLayoutV2Props> = ({
   selectedProduct,
   children,
   onClose,
+  onStepClick,
+  showTimeEstimate = true,
+  estimatedMinutesRemaining = 5,
+  progressComponent,
 }) => {
   const currentStepData = steps[currentStep];
+  const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex">
-      {/* Sidebar - solo desktop */}
-      <aside className="hidden lg:flex w-72 bg-white border-r border-neutral-200 flex-col">
-        {/* Logo */}
-        <div className="p-4 border-b border-neutral-200">
-          <img
-            src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
-            alt="BaldeCash"
-            className="h-7 object-contain"
-          />
-        </div>
-
-        {/* Steps list */}
-        <nav className="flex-1 p-4 space-y-2">
-          {steps.map((step, index) => {
-            const isCompleted = index < currentStep;
-            const isCurrent = index === currentStep;
-
-            return (
-              <div
-                key={step.id}
-                className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isCurrent ? 'bg-[#4654CD]/10 text-[#4654CD]' :
-                  isCompleted ? 'text-neutral-600' : 'text-neutral-400'
-                }`}
-              >
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                  isCompleted ? 'bg-[#22c55e] text-white' :
-                  isCurrent ? 'bg-[#4654CD] text-white' : 'bg-neutral-200 text-neutral-500'
-                }`}>
-                  {isCompleted ? <Check className="w-3 h-3" /> : index + 1}
-                </div>
-                <span className="text-sm font-medium">{step.shortName}</span>
-              </div>
-            );
-          })}
-        </nav>
-
-        {/* Product info */}
-        {selectedProduct && (
-          <div className="p-4 border-t border-neutral-200">
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header con branding */}
+      <header className="bg-[#4654CD] text-white px-4 py-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            {/* Back button + Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-neutral-100 rounded overflow-hidden">
-                <img
-                  src={selectedProduct.thumbnail}
-                  alt={selectedProduct.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-neutral-800 truncate">{selectedProduct.name}</p>
-                <p className="text-lg font-bold text-[#4654CD]">S/{selectedProduct.monthlyQuota}/mes</p>
+              {currentStep > 0 && (
+                <Button
+                  isIconOnly
+                  variant="light"
+                  className="text-white/80 hover:text-white cursor-pointer"
+                  onPress={() => onStepClick?.(currentStep - 1)}
+                  aria-label="Volver al paso anterior"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                  <span className="text-[#4654CD] font-bold text-sm">B</span>
+                </div>
+                <span className="font-semibold hidden sm:block">Solicitud de Financiamiento</span>
               </div>
             </div>
+
+            {/* Time estimate */}
+            {showTimeEstimate && (
+              <div className="flex items-center gap-2 text-sm text-white/80">
+                <Clock className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {estimatedMinutesRemaining > 1
+                    ? `${estimatedMinutesRemaining} min restantes`
+                    : '¡Casi listo!'}
+                </span>
+                <span className="sm:hidden">{estimatedMinutesRemaining} min</span>
+              </div>
+            )}
           </div>
-        )}
-      </aside>
+
+          {/* Progress bar simple */}
+          <div className="h-1 bg-white/20 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-white rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* Progress steps - opcional */}
+      {progressComponent && (
+        <div className="bg-neutral-50 border-b border-neutral-200 px-4 py-4">
+          <div className="max-w-4xl mx-auto">{progressComponent}</div>
+        </div>
+      )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header mobile/tablet */}
-        <header className="lg:hidden bg-white border-b border-neutral-200 sticky top-0 z-40">
-          <div className="px-4 py-3 flex items-center justify-between">
-            <img
-              src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
-              alt="BaldeCash"
-              className="h-7 object-contain"
-            />
-            <Button isIconOnly variant="light" size="sm" onPress={onClose}>
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </header>
-
-        {/* Content */}
-        <main className="flex-1 py-6 px-4 lg:px-8">
-          <div className="max-w-lg mx-auto lg:max-w-xl">
-            <div className="mb-6">
-              <h1 className="text-xl md:text-2xl font-bold text-neutral-900">
-                {currentStepData?.name}
-              </h1>
-              {currentStepData?.description && (
-                <p className="text-sm text-neutral-500 mt-1">{currentStepData.description}</p>
-              )}
+      <main className="flex-1 px-4 py-6 sm:py-10">
+        <motion.div
+          key={currentStep}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="max-w-xl mx-auto"
+        >
+          {/* Step header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 text-sm text-neutral-500 mb-2">
+              <span>Paso {currentStep + 1} de {steps.length}</span>
             </div>
-            {children}
+            <motion.h1
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-2xl sm:text-3xl font-bold text-neutral-800 mb-2"
+            >
+              {currentStepData?.name}
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              className="text-neutral-600"
+            >
+              {currentStepData?.description}
+            </motion.p>
           </div>
-        </main>
-      </div>
+
+          {/* Form content */}
+          {children}
+        </motion.div>
+      </main>
     </div>
   );
 };

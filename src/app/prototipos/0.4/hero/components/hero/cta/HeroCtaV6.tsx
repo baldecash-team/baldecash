@@ -10,13 +10,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@nextui-org/react';
-import { Clock, Zap } from 'lucide-react';
+import { Clock, Laptop } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface HeroCtaV6Props {
   onCtaClick?: () => void;
 }
 
 export const HeroCtaV6: React.FC<HeroCtaV6Props> = ({ onCtaClick }) => {
+  const router = useRouter();
   const [timeLeft, setTimeLeft] = useState({ hours: 5, minutes: 32, seconds: 15 });
 
   useEffect(() => {
@@ -34,6 +36,11 @@ export const HeroCtaV6: React.FC<HeroCtaV6Props> = ({ onCtaClick }) => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleClick = () => {
+    onCtaClick?.();
+    router.push('/prototipos/0.4/catalogo');
+  };
 
   const pad = (n: number) => n.toString().padStart(2, '0');
 
@@ -55,10 +62,10 @@ export const HeroCtaV6: React.FC<HeroCtaV6Props> = ({ onCtaClick }) => {
         size="lg"
         radius="lg"
         className="bg-[#4654CD] text-white font-semibold px-10 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
-        startContent={<Zap className="w-5 h-5" />}
-        onPress={onCtaClick}
+        startContent={<Laptop className="w-5 h-5" />}
+        onPress={handleClick}
       >
-        Aprovechar oferta
+        Ver productos
       </Button>
 
       {/* Beneficio */}

@@ -5,30 +5,36 @@
  *
  * Concepto: Botón primario + botón secundario lado a lado
  * Estilo: Ofrece dos caminos claros al usuario
- * Uso: Cuando hay una acción principal y una alternativa (ej: solicitar vs simular)
+ * Uso: Cuando hay una acción principal y una alternativa (ej: ver productos vs simular)
  */
 
 import React from 'react';
 import { Button } from '@nextui-org/react';
-import { ArrowRight, Calculator } from 'lucide-react';
+import { Laptop, Calculator } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface HeroCtaV3Props {
   onCtaClick?: () => void;
 }
 
 export const HeroCtaV3: React.FC<HeroCtaV3Props> = ({ onCtaClick }) => {
+  const router = useRouter();
+
+  const handleCatalogo = () => {
+    onCtaClick?.();
+    router.push('/prototipos/0.4/catalogo');
+  };
+
   return (
     <div className="flex flex-col sm:flex-row items-center gap-3">
       <Button
         size="lg"
         radius="lg"
         className="bg-[#4654CD] text-white font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25 group"
-        endContent={
-          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-        }
-        onPress={onCtaClick}
+        startContent={<Laptop className="w-5 h-5" />}
+        onPress={handleCatalogo}
       >
-        Solicitar ahora
+        Ver productos
       </Button>
       <Button
         size="lg"
