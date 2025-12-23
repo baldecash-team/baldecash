@@ -1,15 +1,14 @@
 'use client';
 
 /**
- * SelectCardsV4 - Cards con iconos grandes
- * Cards prominentes con iconos destacados
+ * SelectCardsV4 - Toggle Buttons estilo iOS/Apple
+ * Botones con fondo deslizante animado - muy compacto y elegante
  */
 
 import React from 'react';
-import { Card, CardBody } from '@nextui-org/react';
-import { Check } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { motion } from 'framer-motion';
 import type { FieldConfig } from '../../../types/wizard-solicitud';
+import { getLabel } from './labels';
 import { getHelpTooltip } from './HelpTooltip';
 
 interface SelectCardsV4Props {
@@ -26,69 +25,78 @@ export const SelectCardsV4: React.FC<SelectCardsV4Props> = ({
   value,
   error,
   onChange,
+  labelVersion = 1,
   helpVersion = 1,
 }) => {
+  const options = field.options || [];
+  const LabelComponent = getLabel(labelVersion);
   const HelpTooltip = getHelpTooltip(helpVersion);
-  const getIcon = (iconName?: string) => {
-    if (!iconName) return null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const Icon = (LucideIcons as any)[iconName];
-    return Icon ? <Icon className="w-8 h-8" /> : null;
-  };
 
-  return (
-    <div className="space-y-2">
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-        <span>{field.label}</span>
-        {field.required && <span className="text-red-500">*</span>}
-        {field.helpText && (
-          <HelpTooltip content={field.helpText} title={field.label} />
-        )}
-      </label>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {field.options?.map((option) => {
+  const toggleContent = (
+    <>
+      {/* Toggle container with sliding background */}
+      <div
+        className={`
+          inline-flex p-1 rounded-xl bg-neutral-100 border
+          ${error ? 'border-red-300' : 'border-neutral-200'}
+        `}
+      >
+        {options.map((option) => {
           const isSelected = value === option.value;
           return (
-            <Card
+            <button
               key={option.value}
-              isPressable
-              onPress={() => onChange(option.value)}
+              type="button"
+              onClick={() => onChange(option.value)}
               className={`
-                border-2 transition-all cursor-pointer relative
-                ${isSelected
-                  ? 'border-[#4654CD] bg-[#4654CD]/5 shadow-md'
-                  : 'border-neutral-200 hover:border-neutral-300 hover:shadow-sm'
-                }
+                relative px-5 py-2 text-sm font-medium rounded-lg cursor-pointer
+                transition-colors duration-200 z-10
+                ${isSelected ? 'text-white' : 'text-neutral-600 hover:text-neutral-800'}
               `}
             >
-              <CardBody className="p-4 flex flex-col items-center text-center gap-3">
-                {isSelected && (
-                  <div className="absolute top-2 right-2 w-5 h-5 bg-[#4654CD] rounded-full flex items-center justify-center">
-                    <Check className="w-3 h-3 text-white" />
-                  </div>
-                )}
-                <div className={`
-                  w-14 h-14 rounded-xl flex items-center justify-center
-                  ${isSelected ? 'bg-[#4654CD] text-white' : 'bg-neutral-100 text-neutral-500'}
-                `}>
-                  {getIcon(option.icon) || <div className="w-8 h-8 bg-neutral-200 rounded" />}
-                </div>
-                <div>
-                  <p className={`font-semibold text-sm ${isSelected ? 'text-[#4654CD]' : 'text-neutral-800'}`}>
-                    {option.label}
-                  </p>
-                  {option.description && (
-                    <p className="text-xs text-neutral-500 mt-0.5">{option.description}</p>
-                  )}
-                </div>
-              </CardBody>
-            </Card>
+              {isSelected && (
+                <motion.div
+                  layoutId={`toggle-bg-${field.name}`}
+                  className="absolute inset-0 bg-[#4654CD] rounded-lg shadow-sm"
+                  initial={false}
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                  style={{ zIndex: -1 }}
+                />
+              )}
+              <span className="relative">{option.label}</span>
+            </button>
           );
         })}
       </div>
 
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {/* Error */}
+      {error && (
+        <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+          <span className="w-1 h-1 bg-red-500 rounded-full" />
+          {error}
+        </p>
+      )}
+    </>
+  );
+
+  // V5: Horizontal layout
+  if (labelVersion === 5) {
+    return (
+      <div className="flex items-start gap-3">
+        <LabelComponent field={field} hasError={!!error} />
+        <div className="flex-1">{toggleContent}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* Label */}
+      <div className="flex items-center gap-1.5">
+        <LabelComponent field={field} hasError={!!error} />
+        {field.helpText && <HelpTooltip content={field.helpText} title={field.label} />}
+      </div>
+      {toggleContent}
     </div>
   );
 };
