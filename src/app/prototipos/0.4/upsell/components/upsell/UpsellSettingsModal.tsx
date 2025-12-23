@@ -62,7 +62,8 @@ export const UpsellSettingsModal: React.FC<UpsellSettingsModalProps> = ({
     label: string,
     configKey: keyof UpsellConfig,
     descriptions: Record<number, string>,
-    icon: React.ReactNode
+    icon: React.ReactNode,
+    maxVersions: number = 6
   ) => (
     <div className="mb-6 pt-4 border-t border-neutral-200 first:border-t-0 first:pt-0">
       <div className="flex items-center gap-2 mb-3">
@@ -74,7 +75,7 @@ export const UpsellSettingsModal: React.FC<UpsellSettingsModalProps> = ({
         onValueChange={(val) => updateConfig(configKey, parseInt(val) as 1 | 2 | 3 | 4 | 5 | 6)}
         classNames={{ wrapper: 'gap-2' }}
       >
-        {[1, 2, 3, 4, 5, 6].map((version) => (
+        {Array.from({ length: maxVersions }, (_, i) => i + 1).map((version) => (
           <Radio
             key={version}
             value={version.toString()}
@@ -147,7 +148,8 @@ export const UpsellSettingsModal: React.FC<UpsellSettingsModalProps> = ({
               'Cards de Accesorios',
               'accessoryCardVersion',
               versionDescriptions.accessoryCard,
-              <Package className="w-4 h-4 text-[#4654CD]" />
+              <Package className="w-4 h-4 text-[#4654CD]" />,
+              5
             )}
 
             {renderVersionSelector(

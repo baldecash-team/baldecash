@@ -22,9 +22,7 @@ export const AccessoryCardV5: React.FC<AccessoryCardProps> = ({
   if (isFeatured) {
     return (
       <Card
-        isPressable
-        onPress={onToggle}
-        className={`cursor-pointer transition-all col-span-full ${
+        className={`transition-all col-span-full ${
           isSelected
             ? 'border-2 border-[#4654CD] bg-[#4654CD]/5'
             : 'border border-neutral-200 hover:border-[#4654CD]/50'
@@ -63,6 +61,7 @@ export const AccessoryCardV5: React.FC<AccessoryCardProps> = ({
                   </p>
                 </div>
                 <Button
+                  onPress={onToggle}
                   className={`cursor-pointer ${
                     isSelected
                       ? 'bg-[#4654CD] text-white'

@@ -142,7 +142,7 @@ export const mockAccessories: Accessory[] = [
     description: 'HDMI, USB 3.0 x3, SD, microSD, USB-C PD. Expande tu conectividad.',
     price: 129,
     monthlyQuota: 6,
-    image: 'https://images.unsplash.com/photo-1625723044792-44de16ccb4e8?w=300&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1618410320928-25228d811631?w=300&h=300&fit=crop',
     category: 'conectividad',
     isRecommended: false,
     compatibleWith: ['all'],

@@ -73,11 +73,50 @@ function HeroPreviewContent() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
 
-  // Update config when URL params change
+  // Update config when URL params change (initial load)
   useEffect(() => {
     setConfig(getInitialConfig());
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+
+  // Update URL when config changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    // Only include params that differ from defaults
+    if (config.navbarVersion !== defaultHeroConfig.navbarVersion) {
+      params.set('navbar', config.navbarVersion.toString());
+    }
+    if (config.heroBannerVersion !== defaultHeroConfig.heroBannerVersion) {
+      params.set('hero', config.heroBannerVersion.toString());
+    }
+    if (config.socialProofVersion !== defaultHeroConfig.socialProofVersion) {
+      params.set('social', config.socialProofVersion.toString());
+    }
+    if (config.howItWorksVersion !== defaultHeroConfig.howItWorksVersion) {
+      params.set('how', config.howItWorksVersion.toString());
+    }
+    if (config.ctaVersion !== defaultHeroConfig.ctaVersion) {
+      params.set('cta', config.ctaVersion.toString());
+    }
+    if (config.faqVersion !== defaultHeroConfig.faqVersion) {
+      params.set('faq', config.faqVersion.toString());
+    }
+    if (config.footerVersion !== defaultHeroConfig.footerVersion) {
+      params.set('footer', config.footerVersion.toString());
+    }
+    if (config.underlineStyle !== defaultHeroConfig.underlineStyle) {
+      params.set('underline', config.underlineStyle.toString());
+    }
+
+    // Preserve clean mode if set
+    if (isCleanMode) {
+      params.set('mode', 'clean');
+    }
+
+    const queryString = params.toString();
+    router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
+  }, [config, router, isCleanMode]);
 
   const { activeComponent, toast } = useKeyboardShortcuts({
     config,

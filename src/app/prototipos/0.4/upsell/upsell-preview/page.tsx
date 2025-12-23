@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense, useMemo, useCallback } from 'react';
+import React, { useState, Suspense, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Spinner, Tabs, Tab } from '@nextui-org/react';
 import { Settings, Code, ArrowLeft, Package, Shield, Layers, Keyboard, Navigation } from 'lucide-react';
@@ -10,13 +10,37 @@ import { useKeyboardShortcuts } from '@/app/prototipos/_shared';
 import { UpsellConfig, defaultUpsellConfig, mockAccessories, mockInsurancePlans, mockProductContext } from '../types/upsell';
 import { UpsellSettingsModal } from '../components/upsell/UpsellSettingsModal';
 
-// Lazy imports for versioned components
+// Versioned components - Accessories Intro
 import { AccessoryIntroV1 } from '../components/upsell/accessories/intro/AccessoryIntroV1';
 import { AccessoryIntroV2 } from '../components/upsell/accessories/intro/AccessoryIntroV2';
 import { AccessoryIntroV3 } from '../components/upsell/accessories/intro/AccessoryIntroV3';
 import { AccessoryIntroV4 } from '../components/upsell/accessories/intro/AccessoryIntroV4';
 import { AccessoryIntroV5 } from '../components/upsell/accessories/intro/AccessoryIntroV5';
 import { AccessoryIntroV6 } from '../components/upsell/accessories/intro/AccessoryIntroV6';
+
+// Versioned components - Accessories Cards
+import { AccessoryCardV1 } from '../components/upsell/accessories/cards/AccessoryCardV1';
+import { AccessoryCardV2 } from '../components/upsell/accessories/cards/AccessoryCardV2';
+import { AccessoryCardV3 } from '../components/upsell/accessories/cards/AccessoryCardV3';
+import { AccessoryCardV4 } from '../components/upsell/accessories/cards/AccessoryCardV4';
+import { AccessoryCardV5 } from '../components/upsell/accessories/cards/AccessoryCardV5';
+import { AccessoryCardV6 } from '../components/upsell/accessories/cards/AccessoryCardV6';
+
+// Versioned components - Insurance Intro
+import { InsuranceIntroV1 } from '../components/upsell/insurance/intro/InsuranceIntroV1';
+import { InsuranceIntroV2 } from '../components/upsell/insurance/intro/InsuranceIntroV2';
+import { InsuranceIntroV3 } from '../components/upsell/insurance/intro/InsuranceIntroV3';
+import { InsuranceIntroV4 } from '../components/upsell/insurance/intro/InsuranceIntroV4';
+import { InsuranceIntroV5 } from '../components/upsell/insurance/intro/InsuranceIntroV5';
+import { InsuranceIntroV6 } from '../components/upsell/insurance/intro/InsuranceIntroV6';
+
+// Versioned components - Plan Comparison
+import { PlanComparisonV1 } from '../components/upsell/insurance/comparison/PlanComparisonV1';
+import { PlanComparisonV2 } from '../components/upsell/insurance/comparison/PlanComparisonV2';
+import { PlanComparisonV3 } from '../components/upsell/insurance/comparison/PlanComparisonV3';
+import { PlanComparisonV4 } from '../components/upsell/insurance/comparison/PlanComparisonV4';
+import { PlanComparisonV5 } from '../components/upsell/insurance/comparison/PlanComparisonV5';
+import { PlanComparisonV6 } from '../components/upsell/insurance/comparison/PlanComparisonV6';
 
 export default function UpsellPreviewPage() {
   return (
@@ -104,6 +128,55 @@ function UpsellPreviewContent() {
     isModalOpen: isSettingsOpen,
   });
 
+  // Update URL when config changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    // Only include params that differ from defaults
+    if (config.accessoryIntroVersion !== 1) {
+      params.set('accessoryIntroVersion', config.accessoryIntroVersion.toString());
+    }
+    if (config.accessoryCardVersion !== 1) {
+      params.set('accessoryCardVersion', config.accessoryCardVersion.toString());
+    }
+    if (config.accessoryLimitVersion !== 1) {
+      params.set('accessoryLimitVersion', config.accessoryLimitVersion.toString());
+    }
+    if (config.selectionIndicatorVersion !== 1) {
+      params.set('selectionIndicatorVersion', config.selectionIndicatorVersion.toString());
+    }
+    if (config.removeButtonVersion !== 1) {
+      params.set('removeButtonVersion', config.removeButtonVersion.toString());
+    }
+    if (config.priceBreakdownVersion !== 1) {
+      params.set('priceBreakdownVersion', config.priceBreakdownVersion.toString());
+    }
+    if (config.insuranceIntroVersion !== 1) {
+      params.set('insuranceIntroVersion', config.insuranceIntroVersion.toString());
+    }
+    if (config.protectionIconVersion !== 1) {
+      params.set('protectionIconVersion', config.protectionIconVersion.toString());
+    }
+    if (config.planComparisonVersion !== 1) {
+      params.set('planComparisonVersion', config.planComparisonVersion.toString());
+    }
+    if (config.recommendedBadgeVersion !== 1) {
+      params.set('recommendedBadgeVersion', config.recommendedBadgeVersion.toString());
+    }
+    if (config.coverageDisplayVersion !== 1) {
+      params.set('coverageDisplayVersion', config.coverageDisplayVersion.toString());
+    }
+    if (config.skipModalVersion !== 1) {
+      params.set('skipModalVersion', config.skipModalVersion.toString());
+    }
+    if (config.modalButtonsVersion !== 1) {
+      params.set('modalButtonsVersion', config.modalButtonsVersion.toString());
+    }
+
+    const queryString = params.toString();
+    router.replace(queryString ? `?${queryString}` : '', { scroll: false });
+  }, [config, router]);
+
   // Accessory handlers
   const toggleAccessory = useCallback((id: string) => {
     setSelectedAccessories(prev =>
@@ -140,6 +213,51 @@ function UpsellPreviewContent() {
       case 5: return <AccessoryIntroV5 />;
       case 6: return <AccessoryIntroV6 />;
       default: return <AccessoryIntroV1 />;
+    }
+  };
+
+  // Render accessory card based on version
+  const renderAccessoryCard = (accessory: typeof mockAccessories[0], isSelected: boolean, onToggle: () => void) => {
+    const props = { accessory, isSelected, onToggle };
+    switch (config.accessoryCardVersion) {
+      case 1: return <AccessoryCardV1 key={accessory.id} {...props} />;
+      case 2: return <AccessoryCardV2 key={accessory.id} {...props} />;
+      case 3: return <AccessoryCardV3 key={accessory.id} {...props} />;
+      case 4: return <AccessoryCardV4 key={accessory.id} {...props} />;
+      case 5: return <AccessoryCardV5 key={accessory.id} {...props} />;
+      case 6: return <AccessoryCardV6 key={accessory.id} {...props} />;
+      default: return <AccessoryCardV1 key={accessory.id} {...props} />;
+    }
+  };
+
+  // Render insurance intro based on version
+  const renderInsuranceIntro = () => {
+    switch (config.insuranceIntroVersion) {
+      case 1: return <InsuranceIntroV1 />;
+      case 2: return <InsuranceIntroV2 />;
+      case 3: return <InsuranceIntroV3 />;
+      case 4: return <InsuranceIntroV4 />;
+      case 5: return <InsuranceIntroV5 />;
+      case 6: return <InsuranceIntroV6 />;
+      default: return <InsuranceIntroV1 />;
+    }
+  };
+
+  // Render plan comparison based on version
+  const renderPlanComparison = () => {
+    const props = {
+      plans: mockInsurancePlans,
+      selectedPlan: selectedInsurance,
+      onSelect: (planId: string) => setSelectedInsurance(planId === selectedInsurance ? null : planId),
+    };
+    switch (config.planComparisonVersion) {
+      case 1: return <PlanComparisonV1 {...props} />;
+      case 2: return <PlanComparisonV2 {...props} />;
+      case 3: return <PlanComparisonV3 {...props} />;
+      case 4: return <PlanComparisonV4 {...props} />;
+      case 5: return <PlanComparisonV5 {...props} />;
+      case 6: return <PlanComparisonV6 {...props} />;
+      default: return <PlanComparisonV1 {...props} />;
     }
   };
 
@@ -211,37 +329,15 @@ function UpsellPreviewContent() {
               {/* Accessory Intro */}
               {renderAccessoryIntro()}
 
-              {/* Accessory Cards Grid - Placeholder */}
+              {/* Accessory Cards Grid - Versioned */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {mockAccessories.map((accessory) => (
-                  <div
-                    key={accessory.id}
-                    onClick={() => toggleAccessory(accessory.id)}
-                    className={`p-4 border rounded-xl cursor-pointer transition-all ${
-                      selectedAccessories.includes(accessory.id)
-                        ? 'border-[#22c55e] bg-[#22c55e]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
-                    }`}
-                  >
-                    <div className="w-full h-24 bg-neutral-100 rounded-lg mb-3 flex items-center justify-center">
-                      <img
-                        src={accessory.image}
-                        alt={accessory.name}
-                        className="max-h-20 max-w-full object-contain"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                    <h4 className="font-semibold text-sm text-neutral-800 mb-1 line-clamp-2">
-                      {accessory.name}
-                    </h4>
-                    <p className="text-[#4654CD] font-bold">
-                      +S/{accessory.monthlyQuota}/mes
-                    </p>
-                  </div>
-                ))}
+                {mockAccessories.map((accessory) =>
+                  renderAccessoryCard(
+                    accessory,
+                    selectedAccessories.includes(accessory.id),
+                    () => toggleAccessory(accessory.id)
+                  )
+                )}
               </div>
 
               {/* Totals */}
@@ -266,47 +362,23 @@ function UpsellPreviewContent() {
             }
           >
             <div className="mt-6 bg-white rounded-2xl p-6 border border-neutral-200">
-              <h2 className="text-xl font-semibold text-neutral-800 mb-4">
-                Protege tu equipo
-              </h2>
-              <p className="text-neutral-600 mb-6">
-                Selecciona un plan de protección para tu laptop.
-              </p>
+              {/* Insurance Intro - Versioned */}
+              {renderInsuranceIntro()}
 
-              {/* Insurance Plans */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {mockInsurancePlans.map((plan) => (
-                  <div
-                    key={plan.id}
-                    onClick={() => setSelectedInsurance(plan.id === selectedInsurance ? null : plan.id)}
-                    className={`p-4 border rounded-xl cursor-pointer transition-all ${
-                      selectedInsurance === plan.id
-                        ? 'border-[#4654CD] bg-[#4654CD]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
-                    } ${plan.isRecommended ? 'ring-2 ring-[#4654CD]/30' : ''}`}
-                  >
-                    {plan.isRecommended && (
-                      <div className="text-xs font-medium text-[#4654CD] mb-2">
-                        Recomendado
-                      </div>
-                    )}
-                    <h4 className="font-semibold text-neutral-800 mb-2">
-                      {plan.name}
-                    </h4>
-                    <p className="text-2xl font-bold text-[#4654CD] mb-3">
-                      S/{plan.monthlyPrice}/mes
-                    </p>
-                    <ul className="text-sm text-neutral-600 space-y-1">
-                      {plan.coverage.map((item) => (
-                        <li key={item.name} className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-[#22c55e] rounded-full" />
-                          {item.name}
-                        </li>
-                      ))}
-                    </ul>
+              {/* Plan Comparison - Versioned */}
+              {renderPlanComparison()}
+
+              {/* Totals */}
+              {selectedInsurance && (
+                <div className="mt-6 pt-4 border-t border-neutral-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-neutral-600">Total con seguro:</span>
+                    <span className="text-xl font-bold text-[#4654CD]">
+                      S/{totals.totalQuota}/mes
+                    </span>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           </Tab>
         </Tabs>

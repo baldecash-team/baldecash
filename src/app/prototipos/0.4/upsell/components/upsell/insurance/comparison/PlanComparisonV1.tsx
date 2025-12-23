@@ -25,8 +25,6 @@ export const PlanComparisonV1: React.FC<PlanComparisonV1Props> = ({
       {plans.map((plan) => (
         <Card
           key={plan.id}
-          isPressable
-          onPress={() => onSelect(plan.id)}
           className={`transition-all cursor-pointer h-full ${
             selectedPlan === plan.id
               ? 'border-2 border-[#4654CD] bg-[#4654CD]/5'
