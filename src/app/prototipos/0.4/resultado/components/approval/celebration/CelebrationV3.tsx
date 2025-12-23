@@ -12,9 +12,13 @@ import { Star, Sparkles, Trophy } from 'lucide-react';
 interface CelebrationProps {
   userName: string;
   applicationId: string;
+  resultType?: 'aprobado' | 'recibido';
 }
 
-export const CelebrationV3: React.FC<CelebrationProps> = ({ userName, applicationId }) => {
+export const CelebrationV3: React.FC<CelebrationProps> = ({ userName, applicationId, resultType = 'aprobado' }) => {
+  const isRecibido = resultType === 'recibido';
+  const statusText = isRecibido ? 'Tu solicitud fue recibida' : 'Tu solicitud fue aprobada';
+  const titleText = isRecibido ? '¡Gracias!' : '¡Felicidades!';
   return (
     <div className="text-center">
       {/* Checkmark gigante con animación */}
@@ -80,10 +84,10 @@ export const CelebrationV3: React.FC<CelebrationProps> = ({ userName, applicatio
         transition={{ delay: 0.5 }}
       >
         <h1 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-2">
-          ¡Felicidades {userName}!
+          {titleText} {userName}!
         </h1>
         <p className="text-xl text-[#4654CD] font-semibold mb-2">
-          Tu solicitud fue aprobada
+          {statusText}
         </p>
         <p className="text-neutral-500 text-sm">
           Solicitud #{applicationId}
