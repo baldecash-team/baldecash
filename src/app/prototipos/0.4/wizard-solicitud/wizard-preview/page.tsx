@@ -347,6 +347,7 @@ function WizardPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const estado = searchParams.get('estado');
+  const isCleanMode = searchParams.get('mode') === 'clean';
 
   // Inicializar config desde URL params (lowercase for consistency)
   const [config, setConfig] = useState<WizardSolicitudConfig>(() => {
@@ -499,105 +500,110 @@ function WizardPreviewContent() {
         />
       </div>
 
-      {/* Toast de shortcuts */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
-              toast.type === 'version'
-                ? 'bg-[#4654CD] text-white'
-                : toast.type === 'navigation'
-                ? 'bg-neutral-800 text-white'
-                : 'bg-white text-neutral-800 border border-neutral-200'
-            }`}
-          >
-            {toast.type === 'version' && <Layers className="w-4 h-4" />}
-            {toast.type === 'navigation' && <Navigation className="w-4 h-4" />}
-            {toast.type === 'info' && <Info className="w-4 h-4" />}
-            <span>{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Dev UI - Hidden in clean mode */}
+      {!isCleanMode && (
+        <>
+          {/* Toast de shortcuts */}
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
+                  toast.type === 'version'
+                    ? 'bg-[#4654CD] text-white'
+                    : toast.type === 'navigation'
+                    ? 'bg-neutral-800 text-white'
+                    : 'bg-white text-neutral-800 border border-neutral-200'
+                }`}
+              >
+                {toast.type === 'version' && <Layers className="w-4 h-4" />}
+                {toast.type === 'navigation' && <Navigation className="w-4 h-4" />}
+                {toast.type === 'info' && <Info className="w-4 h-4" />}
+                <span>{toast.message}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {/* Shortcut Help Badge */}
-      <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
-        <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
-          <Keyboard className="w-3.5 h-3.5" />
-          <span>Press ? for help</span>
-        </div>
-        <div className="text-xs font-medium text-[#4654CD]">
-          Activo: {componentLabel}
-        </div>
-      </div>
+          {/* Shortcut Help Badge */}
+          <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">
+            <div className="flex items-center gap-2 text-xs text-neutral-500 mb-1">
+              <Keyboard className="w-3.5 h-3.5" />
+              <span>Press ? for help</span>
+            </div>
+            <div className="text-xs font-medium text-[#4654CD]">
+              Activo: {componentLabel}
+            </div>
+          </div>
 
-      {/* Floating controls */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
-        <TokenCounter sectionId="PROMPT_18" version="0.4" />
-        <Button
-          isIconOnly
-          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
-          onPress={() => setIsSettingsOpen(true)}
-          aria-label="Configuración"
-        >
-          <Settings className="w-5 h-5" />
-        </Button>
-        <Button
-          isIconOnly
-          className="bg-amber-500 text-white shadow-lg cursor-pointer hover:bg-amber-600 transition-colors"
-          onPress={() => setIsQuickSwitcherOpen(true)}
-          aria-label="Cambio rápido"
-        >
-          <Zap className="w-5 h-5" />
-        </Button>
-        <Button
-          isIconOnly
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => setShowConfigBadge(!showConfigBadge)}
-          aria-label="Mostrar configuración"
-        >
-          <Code className="w-5 h-5 text-neutral-600" />
-        </Button>
-        <Button
-          isIconOnly
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => router.push('/prototipos/0.4')}
-          aria-label="Volver al índice"
-        >
-          <ArrowLeft className="w-5 h-5 text-neutral-600" />
-        </Button>
-      </div>
+          {/* Floating controls */}
+          <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
+            <TokenCounter sectionId="PROMPT_18" version="0.4" />
+            <Button
+              isIconOnly
+              className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+              onPress={() => setIsSettingsOpen(true)}
+              aria-label="Configuración"
+            >
+              <Settings className="w-5 h-5" />
+            </Button>
+            <Button
+              isIconOnly
+              className="bg-amber-500 text-white shadow-lg cursor-pointer hover:bg-amber-600 transition-colors"
+              onPress={() => setIsQuickSwitcherOpen(true)}
+              aria-label="Cambio rápido"
+            >
+              <Zap className="w-5 h-5" />
+            </Button>
+            <Button
+              isIconOnly
+              className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+              onPress={() => setShowConfigBadge(!showConfigBadge)}
+              aria-label="Mostrar configuración"
+            >
+              <Code className="w-5 h-5 text-neutral-600" />
+            </Button>
+            <Button
+              isIconOnly
+              className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+              onPress={() => router.push('/prototipos/0.4')}
+              aria-label="Volver al índice"
+            >
+              <ArrowLeft className="w-5 h-5 text-neutral-600" />
+            </Button>
+          </div>
 
-      {/* Current Config Badge */}
-      {showConfigBadge && (
-        <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
-          <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
-          <p className="text-xs font-mono text-neutral-700">
-            Header: V{config.headerVersion} | Hero: V{config.heroVersion} | CTA: V{config.ctaVersion} | Layout: V{config.wizardLayoutVersion} | Progress: V{config.progressVersion} | Nav: V{config.navigationVersion}
-          </p>
-        </div>
+          {/* Current Config Badge */}
+          {showConfigBadge && (
+            <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
+              <p className="text-xs text-neutral-500 mb-1">Configuración actual:</p>
+              <p className="text-xs font-mono text-neutral-700">
+                Header: V{config.headerVersion} | Hero: V{config.heroVersion} | CTA: V{config.ctaVersion} | Layout: V{config.wizardLayoutVersion} | Progress: V{config.progressVersion} | Nav: V{config.navigationVersion}
+              </p>
+            </div>
+          )}
+
+          {/* Settings Modal */}
+          <WizardSolicitudSettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            config={config}
+            onConfigChange={setConfig}
+          />
+
+          {/* Quick Component Switcher */}
+          <QuickComponentSwitcher
+            isOpen={isQuickSwitcherOpen}
+            onClose={() => setIsQuickSwitcherOpen(false)}
+            config={config}
+            onConfigChange={setConfig}
+            activeComponent={activeComponent}
+            onActiveComponentChange={setActiveComponent}
+          />
+        </>
       )}
-
-      {/* Settings Modal */}
-      <WizardSolicitudSettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        config={config}
-        onConfigChange={setConfig}
-      />
-
-      {/* Quick Component Switcher */}
-      <QuickComponentSwitcher
-        isOpen={isQuickSwitcherOpen}
-        onClose={() => setIsQuickSwitcherOpen(false)}
-        config={config}
-        onConfigChange={setConfig}
-        activeComponent={activeComponent}
-        onActiveComponentChange={setActiveComponent}
-      />
     </div>
   );
 }

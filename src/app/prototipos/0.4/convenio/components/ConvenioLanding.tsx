@@ -132,7 +132,7 @@ export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({
 
   // Handle "Ver Equipos" CTA
   const handleVerEquipos = () => {
-    window.location.href = `/prototipos/0.4/catalogo?convenio=${convenio.slug}`;
+    window.location.href = `/prototipos/0.4/catalogo/catalog-preview/?layout=4&brand=3&card=6&techfilters=3&cols=4&skeleton=3&duration=default&loadmore=3&gallery=2&gallerysize=3&tags=1&mode=clean`;
   };
 
   // Handle "Aplicar Ahora" CTA

@@ -41,7 +41,8 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
           ${error ? 'border-red-300' : ''}
         `}
       >
-        <div className={`relative flex flex-wrap gap-1`}>
+        {/* Grid layout: 5 per row for 5+ options, otherwise flex row */}
+        <div className={`relative ${hasMany ? 'grid grid-cols-5 gap-1' : 'flex flex-wrap gap-1'}`}>
           {options.map((option) => {
             const isSelected = value === option.value;
             return (
@@ -50,8 +51,8 @@ export const SelectCardsV2: React.FC<SelectCardsV2Props> = ({
                 type="button"
                 onClick={() => onChange(option.value)}
                 className={`
-                  relative flex-1 min-w-[80px] py-2.5 px-4 text-sm font-medium rounded-lg
-                  transition-colors duration-150 whitespace-nowrap z-10 cursor-pointer
+                  relative ${hasMany ? '' : 'flex-1 min-w-[80px]'} py-2.5 px-3 text-sm font-medium rounded-lg
+                  transition-colors duration-150 whitespace-nowrap z-10 cursor-pointer text-center
                   ${isSelected
                     ? 'text-[#4654CD]'
                     : 'text-neutral-600 hover:text-neutral-800 hover:bg-neutral-200/50'

@@ -48,20 +48,31 @@ import { HelpQuiz } from '../../quiz/components/quiz';
 import { HelpCircle } from 'lucide-react';
 import { useIsMobile } from '@/app/prototipos/_shared';
 
-// URL del wizard de solicitud (se construye dinámicamente con los params)
-const getWizardUrl = (config: CatalogLayoutConfig) => {
+// URL del wizard de solicitud - valores fijos optimizados
+const getWizardUrl = (isCleanMode: boolean) => {
   const params = new URLSearchParams();
-  // Mapear versiones del catálogo al wizard
-  params.set('input', config.cardVersion.toString());
-  params.set('options', config.cardVersion.toString());
-  params.set('progress', config.cardVersion.toString());
-  params.set('navigation', config.cardVersion.toString());
+  // Valores optimizados: Input V4, Options V2, Upload V3, Progress V1, Navigation V1
+  params.set('input', '4');
+  params.set('options', '2');
+  params.set('upload', '3');
+  params.set('progress', '1');
+  params.set('navigation', '1');
+  if (isCleanMode) {
+    params.set('mode', 'clean');
+  }
   return `/prototipos/0.4/wizard-solicitud/wizard-preview?${params.toString()}`;
 };
 
 // URL del detalle del producto
-const getDetailUrl = (productSlug: string) => {
-  return `/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1&mode=clean`;
+const getDetailUrl = (productSlug: string, isCleanMode: boolean) => {
+  const baseUrl = '/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1';
+  return isCleanMode ? `${baseUrl}&mode=clean` : baseUrl;
+};
+
+// URL del upsell
+const getUpsellUrl = (isCleanMode: boolean) => {
+  const baseUrl = '/prototipos/0.4/upsell/upsell-preview/?sections=accessories&accessoryIntroVersion=3';
+  return isCleanMode ? `${baseUrl}&mode=clean` : baseUrl;
 };
 
 // Configuración por defecto del comparador
@@ -454,13 +465,13 @@ function CatalogPreviewContent() {
                   defaultInitial={config.defaultInitial}
                   showPricingOptions={config.showPricingOptions}
                   onAddToCart={() => {
-                    router.push('/prototipos/0.4/upsell/upsell-preview/?sections=accessories&accessoryIntroVersion=3');
+                    router.push(getUpsellUrl(isCleanMode));
                   }}
                   onFavorite={() => {
                     console.log('Toggle favorite:', product.id);
                   }}
                   onViewDetail={() => {
-                    router.push(getDetailUrl(product.id));
+                    router.push(getDetailUrl(product.id, isCleanMode));
                   }}
                   onCompare={() => handleToggleCompare(product.id)}
                   isCompareSelected={compareList.includes(product.id)}

@@ -37,6 +37,7 @@ interface ApprovalScreenProps {
   data: ApprovalData;
   steps: NextStep[];
   config?: ApprovalConfig;
+  resultType?: 'aprobado' | 'recibido';
 }
 
 const celebrationComponents = {
@@ -105,7 +106,8 @@ const referralComponents = {
 export const ApprovalScreen: React.FC<ApprovalScreenProps> = ({
   data,
   steps,
-  config = defaultApprovalConfig
+  config = defaultApprovalConfig,
+  resultType = 'aprobado'
 }) => {
   const CelebrationComponent = celebrationComponents[config.celebrationVersion];
   const ConfettiComponent = confettiComponents[config.confettiVersion];
@@ -141,6 +143,7 @@ export const ApprovalScreen: React.FC<ApprovalScreenProps> = ({
           <CelebrationComponent
             userName={data.userName}
             applicationId={data.applicationId}
+            resultType={resultType}
           />
         </div>
 

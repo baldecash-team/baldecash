@@ -104,7 +104,7 @@ Este documento detalla las versiones seleccionadas para el modo "Presentacion" d
 | Opciones | V2 | Para campos con mas de 4 opciones, usar dropdown select con buscador de v0.3 |
 | Upload | V3 | Incluir boton de tomar foto |
 
-**URL:** `/prototipos/0.4/wizard-solicitud/wizard-preview/?header=3&progress=6&celebration=3&input=4&options=2&upload=3&mode=clean`
+**URL:** `/prototipos/0.4/wizard-solicitud/wizard-preview?header=3&progress=6&celebration=3&input=4&options=2&upload=3&navigation=1&mode=clean`
 
 ---
 
