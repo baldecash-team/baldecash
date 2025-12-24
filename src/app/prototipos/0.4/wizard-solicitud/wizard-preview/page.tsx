@@ -493,6 +493,7 @@ function WizardPreviewContent() {
         <WizardSolicitudContainer
           config={config}
           selectedProduct={MOCK_PRODUCT}
+          isCleanMode={isCleanMode}
           onComplete={(data) => {
             console.log('Solicitud completada:', data);
           }}
