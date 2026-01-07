@@ -95,8 +95,8 @@ export const VERSION_REGISTRY: VersionConfig[] = [
     description: 'Refinamiento y optimizaciones de la landing completa con mejoras de UX',
     icon: 'Rocket',
     color: 'from-[#4654CD] to-[#03DBD0]',
-    badge: 'En desarrollo',
-    status: 'in_progress',
+    badge: 'Listo',
+    status: 'ready',
     sections: [
       { id: 'hero', name: 'Hero', path: '/prototipos/0.4/hero', status: 'done', promptNumber: '01' },
       { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.4/catalogo', status: 'done', promptNumber: '02-03' },
@@ -112,6 +112,20 @@ export const VERSION_REGISTRY: VersionConfig[] = [
     ],
     createdAt: '2025-12-19',
     updatedAt: '2025-12-21',
+  },
+  {
+    version: '0.5',
+    title: 'Catálogo Iterativo v0.5',
+    description: 'Iteración del catálogo con ColorSelector configurable y sistema de feedback',
+    icon: 'Palette',
+    color: 'from-[#4654CD] to-[#03DBD0]',
+    badge: 'En desarrollo',
+    status: 'in_progress',
+    sections: [
+      { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.5/catalogo/catalog-preview', status: 'in_progress', promptNumber: '02-03' },
+    ],
+    createdAt: '2026-01-06',
+    updatedAt: '2026-01-07',
   },
 ];
 
