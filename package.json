@@ -19,6 +19,7 @@
     "daisyui": "^5.5.8",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.556.0",
+    "modern-screenshot": "^4.6.7",
     "next": "16.0.7",
     "react": "19.2.0",
     "react-confetti": "^6.4.0",

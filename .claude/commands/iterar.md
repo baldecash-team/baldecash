@@ -4,7 +4,20 @@
 
 **Parámetros:** `$ARGUMENTS` = `{PROMPT_NUMBER} {VERSION}`
 
-Ejemplo: `/iterar 01 0.4` o `/iterar 02 0.4`
+Ejemplo: `/iterar 01 0.5` o `/iterar 02 0.4`
+
+---
+
+## Versiones por Release
+
+El número de versiones a generar se define en `CONVENTIONS.md` de cada release:
+
+| Release | Versiones | Archivo |
+|---------|-----------|---------|
+| 0.4 | 6 (V1-V6) | `.claude/docs/0.4/CONVENTIONS.md` |
+| 0.5 | 2 (V1-V2) | `.claude/docs/0.5/CONVENTIONS.md` |
+
+**IMPORTANTE:** Siempre leer la sección "Versiones por Componente" en CONVENTIONS.md antes de generar.
 
 ---
 
@@ -51,7 +64,7 @@ Busca `.claude/docs/{VERSION}/section-learnings/LEARNINGS_{SECCION}.md`
 Usa los skills brandbook y frontend (ya cargados arriba)
 
 Genera componentes según marcadores en el PROMPT:
-- **[ITERAR - 6 versiones]** = 6 versiones (V1, V2, V3, V4, V5, V6)
+- **[ITERAR]** = Generar versiones según CONVENTIONS.md (v0.4: 6, v0.5: 2)
 - **[DEFINIDO]** = 1 versión fija aplicada a todas las variantes
 
 ### Paso 5: Guardar y Configurar
@@ -108,18 +121,17 @@ src/app/prototipos/{VERSION}/{seccion}/
 │   └── page.tsx                      # Preview con Floating Controls
 ├── components/
 │   └── {seccion}/
-│       ├── {ComponenteV1}.tsx
-│       ├── {ComponenteV2}.tsx
-│       ├── {ComponenteV3}.tsx
-│       ├── {ComponenteV4}.tsx
-│       ├── {ComponenteV5}.tsx
-│       ├── {ComponenteV6}.tsx
+│       ├── {Componente}V1.tsx        # Versión 1
+│       ├── {Componente}V2.tsx        # Versión 2
+│       ├── ...                       # (más versiones según CONVENTIONS.md)
 │       ├── {Seccion}SettingsModal.tsx
 │       └── index.ts                  # Barrel exports
 ├── types/{seccion}.ts
 ├── data/mock{Seccion}Data.ts
 └── page.tsx                          # Redirect a preview
 ```
+
+> **Nota:** v0.4 genera V1-V6, v0.5 genera V1-V2. Ver CONVENTIONS.md.
 
 ---
 

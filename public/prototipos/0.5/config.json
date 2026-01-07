@@ -1,0 +1,38 @@
+{
+  "version": "0.5",
+  "createdAt": "2025-01-06T00:00:00.000Z",
+  "updatedAt": "2025-01-06T00:00:00.000Z",
+  "description": "Prototipo v0.5 - Sistema de A/B testing con 2 versiones por componente (refinamiento)",
+  "status": "development",
+  "sections": {
+    "catalogo": {
+      "lastUpdated": "2025-01-06T00:00:00.000Z",
+      "description": "Catálogo de productos con configuración mayormente fija basada en v0.4 presentación",
+      "fixedConfiguration": {
+        "layoutVersion": 4,
+        "brandFilterVersion": 3,
+        "cardVersion": 6,
+        "technicalFiltersVersion": 3,
+        "imageGalleryVersion": 2,
+        "gallerySizeVersion": 3,
+        "tagsVersion": 1,
+        "showPricing": false,
+        "notes": "Configuración fija según presentación v0.4"
+      },
+      "iterableComponents": {
+        "colorSelector": {
+          "versions": 2,
+          "currentVersion": 1,
+          "notes": "V1-Dots (pequeños círculos con tooltip), V2-Swatches (cuadrados con nombre visible)"
+        }
+      }
+    }
+  },
+  "testingNotes": [
+    {
+      "date": "2025-01-06",
+      "note": "Creada sección Catálogo v0.5 con configuración mayormente fija de v0.4. Solo ColorSelector tiene 2 versiones iterables (V1 Dots, V2 Swatches). Total: 2 variantes de componente.",
+      "author": "Claude"
+    }
+  ]
+}
