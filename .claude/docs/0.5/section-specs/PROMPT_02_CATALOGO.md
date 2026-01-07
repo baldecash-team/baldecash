@@ -225,7 +225,7 @@ El modal solo tiene UNA opción configurable:
       >
         {[1, 2].map((version) => (
           <Radio key={version} value={version.toString()} ...>
-            Versión {version} - {colorSelectorVersionLabels[version].name}
+            V{version} - {colorSelectorVersionLabels[version].name}
           </Radio>
         ))}
       </RadioGroup>

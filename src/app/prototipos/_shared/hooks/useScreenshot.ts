@@ -145,15 +145,21 @@ export function useScreenshot() {
         }
       });
 
-      // 3. Capturar el viewport visible
+      // 3. Detectar si hay un modal/popup abierto (fixed position overlay)
+      // Los modales fixed no se mueven con el transform, así que no lo aplicamos
+      const hasOpenModal = document.querySelector(
+        '[role="dialog"], .nextui-modal, [data-slot="wrapper"]'
+      );
+
+      // 4. Capturar el viewport visible
       const dataUrl = await domToJpeg(document.body, {
         quality: 0.8,
         scale: 1,
         width: window.innerWidth,
         height: window.innerHeight,
-        style: {
-          transform: `translate(-${window.scrollX}px, -${window.scrollY}px)`,
-        },
+        style: hasOpenModal
+          ? {} // Sin transform cuando hay modal abierto
+          : { transform: `translate(-${window.scrollX}px, -${window.scrollY}px)` },
         // Excluir elementos de feedback del screenshot
         filter: (node) => {
           if (node instanceof HTMLElement) {

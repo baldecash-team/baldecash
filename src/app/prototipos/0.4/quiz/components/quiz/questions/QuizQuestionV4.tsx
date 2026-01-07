@@ -124,7 +124,7 @@ export const QuizQuestionV4: React.FC<QuizQuestionProps> = ({
         >
           <p className="text-sm text-neutral-600">
             {question.options.find((o) => o.id === selectedOption)?.description ||
-              'Excelente eleccion'}
+              'Excelente elección'}
           </p>
         </motion.div>
       )}

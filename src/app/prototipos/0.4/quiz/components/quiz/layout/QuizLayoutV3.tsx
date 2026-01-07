@@ -46,7 +46,7 @@ export const QuizLayoutV3: React.FC<QuizLayoutProps> = ({
               onPress={onClose}
               className="cursor-pointer text-neutral-600"
             >
-              Volver al catalogo
+              Volver al catálogo
             </Button>
             <div className="flex items-center gap-2">
               <HelpCircle className="w-5 h-5 text-[#4654CD]" />

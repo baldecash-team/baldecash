@@ -92,7 +92,7 @@ export const QuizQuestionV5: React.FC<QuizQuestionProps> = ({
           <IconComponent className="w-8 h-8 text-white" />
         </div>
         <h3 className="text-xl font-bold text-neutral-800 mb-1">
-          {currentOption?.label || 'Selecciona una opcion'}
+          {currentOption?.label || 'Selecciona una opción'}
         </h3>
         <p className="text-sm text-neutral-500">
           {currentOption?.description || 'Desliza para elegir'}

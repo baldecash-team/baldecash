@@ -47,16 +47,16 @@ const categoryInfo: Record<string, { name: string; description: string; color: s
   },
   gaming: {
     name: 'Laptops Gamer',
-    description: 'Potencia para los juegos mas exigentes',
+    description: 'Potencia para los juegos más exigentes',
     color: '#dc2626',
   },
   design: {
-    name: 'Laptops para Diseno',
+    name: 'Laptops para Diseño',
     description: 'Pantallas precisas y rendimiento creativo',
     color: '#7c3aed',
   },
   coding: {
-    name: 'Laptops para Programacion',
+    name: 'Laptops para Programación',
     description: 'Rendimiento y memoria para desarrollo',
     color: '#059669',
   },
@@ -293,7 +293,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
         <div className="flex items-center gap-2 mb-3">
           <Check className="w-5 h-5 text-[#22c55e]" />
           <span className="text-sm font-medium text-neutral-700">
-            Lo que encontraras en esta categoria:
+            Lo que encontrarás en esta categoría:
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -348,7 +348,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
           size="lg"
           endContent={<Filter className="w-4 h-4" />}
         >
-          Ver todas en esta categoria
+          Ver todas en esta categoría
         </Button>
         <div className="flex gap-3">
           <Button
@@ -364,7 +364,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
             className="flex-1 cursor-pointer"
             endContent={<ArrowRight className="w-4 h-4" />}
           >
-            Ver catalogo
+            Ver catálogo
           </Button>
         </div>
       </motion.div>

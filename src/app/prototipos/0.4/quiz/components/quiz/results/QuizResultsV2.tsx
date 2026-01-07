@@ -172,7 +172,7 @@ export const QuizResultsV2: React.FC<QuizResultsProps> = ({
           transition={{ delay: 0.4 }}
         >
           <p className="text-sm text-neutral-500 text-center mb-3">
-            Otras opciones que podrian gustarte
+            Otras opciones que podrían gustarte
           </p>
           <div className="space-y-2">
             {results.slice(1, 3).map((result) => (

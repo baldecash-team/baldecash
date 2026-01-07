@@ -34,6 +34,7 @@ export const QuizLayoutV5: React.FC<QuizLayoutProps> = ({
       backdrop="blur"
       placement="center"
       hideCloseButton
+      isDismissable={false}
       classNames={{
         base: 'bg-white m-4 rounded-2xl',
         backdrop: 'bg-black/60',

@@ -122,7 +122,7 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
                   }}
                   description={colorSelectorVersionLabels[version].description}
                 >
-                  Versión {version} - {colorSelectorVersionLabels[version].name}
+                  V{version} - {colorSelectorVersionLabels[version].name}
                 </Radio>
               ))}
             </RadioGroup>

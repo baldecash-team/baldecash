@@ -241,7 +241,7 @@ export const QuizResultsV5: React.FC<QuizResultsProps> = ({
           Nuevo quiz
         </Button>
         <Button className="flex-1 bg-[#4654CD] text-white cursor-pointer">
-          Ver catalogo
+          Ver catálogo
         </Button>
       </motion.div>
     </div>

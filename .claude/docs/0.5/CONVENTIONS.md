@@ -505,7 +505,7 @@ interface SectionSettingsModalProps {
         }}
         description={versionDescriptions.component[version]}
       >
-        Versión {version}
+        V{version} - {versionLabels.component[version].name}
       </Radio>
     ))}
   </RadioGroup>

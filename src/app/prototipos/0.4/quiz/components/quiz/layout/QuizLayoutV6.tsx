@@ -106,7 +106,7 @@ export const QuizLayoutV6: React.FC<QuizLayoutProps> = ({
             <div className="border-t border-neutral-200 p-3 bg-white">
               <div className="flex items-center gap-2">
                 <div className="flex-1 bg-neutral-100 rounded-full px-4 py-2 text-sm text-neutral-400">
-                  Selecciona una opcion arriba...
+                  Selecciona una opción arriba...
                 </div>
                 <Button
                   isIconOnly

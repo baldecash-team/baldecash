@@ -11,26 +11,26 @@ import { QuizQuestion, QuizProduct, QuizResult, QuizAnswer } from '../types/quiz
 export const quizQuestionsUsage: QuizQuestion[] = [
   {
     id: 'usage',
-    question: '¿Para que usaras tu laptop principalmente?',
-    helpText: 'Elige la actividad mas importante para ti',
+    question: '¿Para qué usarás tu laptop principalmente?',
+    helpText: 'Elige la actividad más importante para ti',
     options: [
       {
         id: 'estudios',
         label: 'Estudios y clases',
         icon: 'GraduationCap',
-        description: 'Word, Excel, navegacion, videollamadas',
+        description: 'Word, Excel, navegación, videollamadas',
         weight: { ram: 8, gpu: 'integrated', usage: 'study' },
       },
       {
         id: 'gaming',
         label: 'Gaming',
         icon: 'Gamepad2',
-        description: 'Juegos modernos con buenos graficos',
+        description: 'Juegos modernos con buenos gráficos',
         weight: { ram: 16, gpu: 'dedicated', usage: 'gaming' },
       },
       {
         id: 'diseno',
-        label: 'Diseno y edicion',
+        label: 'Diseño y edición',
         icon: 'Palette',
         description: 'Photoshop, Illustrator, Premiere',
         weight: { ram: 16, gpu: 'dedicated', usage: 'design' },
@@ -39,12 +39,12 @@ export const quizQuestionsUsage: QuizQuestion[] = [
         id: 'oficina',
         label: 'Trabajo de oficina',
         icon: 'Briefcase',
-        description: 'Email, documentos, hojas de calculo',
+        description: 'Email, documentos, hojas de cálculo',
         weight: { ram: 8, gpu: 'integrated', usage: 'office' },
       },
       {
         id: 'programacion',
-        label: 'Programacion',
+        label: 'Programación',
         icon: 'Code',
         description: 'IDEs, compiladores, contenedores',
         weight: { ram: 16, storage: 512, usage: 'coding' },
@@ -54,14 +54,14 @@ export const quizQuestionsUsage: QuizQuestion[] = [
   },
   {
     id: 'budget',
-    question: '¿Cual es tu presupuesto mensual para cuotas?',
+    question: '¿Cuál es tu presupuesto mensual para cuotas?',
     helpText: 'Financiamos hasta en 24 meses',
     options: [
       {
         id: 'low',
         label: 'Hasta S/80',
         icon: 'Wallet',
-        description: 'Equipos basicos',
+        description: 'Equipos básicos',
         weight: { maxPrice: 2000, budget: 'low' },
       },
       {
@@ -80,7 +80,7 @@ export const quizQuestionsUsage: QuizQuestion[] = [
       },
       {
         id: 'premium',
-        label: 'Mas de S/250',
+        label: 'Más de S/250',
         icon: 'CreditCard',
         description: 'Equipos premium',
         weight: { maxPrice: 10000, budget: 'premium' },
@@ -90,21 +90,21 @@ export const quizQuestionsUsage: QuizQuestion[] = [
   },
   {
     id: 'priority',
-    question: '¿Que es lo mas importante para ti?',
+    question: '¿Qué es lo más importante para ti?',
     helpText: 'Esto nos ayuda a encontrar la laptop ideal',
     options: [
       {
         id: 'portabilidad',
         label: 'Portabilidad',
         icon: 'Feather',
-        description: 'Liviana, facil de cargar',
+        description: 'Liviana, fácil de cargar',
         weight: { weight: 1.5, priority: 'portable' },
       },
       {
         id: 'bateria',
-        label: 'Duracion de bateria',
+        label: 'Duración de batería',
         icon: 'Battery',
-        description: 'Larga duracion sin cargar',
+        description: 'Larga duración sin cargar',
         weight: { battery: 8, priority: 'battery' },
       },
       {
@@ -116,9 +116,9 @@ export const quizQuestionsUsage: QuizQuestion[] = [
       },
       {
         id: 'rendimiento',
-        label: 'Maximo rendimiento',
+        label: 'Máximo rendimiento',
         icon: 'Zap',
-        description: 'La mas potente posible',
+        description: 'La más potente posible',
         weight: { performance: 'high', priority: 'performance' },
       },
     ],
@@ -138,17 +138,17 @@ export const quizQuestionsUsage: QuizQuestion[] = [
   },
   {
     id: 'screen_size',
-    question: '¿Que tamano de pantalla prefieres?',
+    question: '¿Qué tamaño de pantalla prefieres?',
     options: [
       { id: 'small', label: '13-14"', icon: 'Smartphone', description: 'Compacta y liviana', weight: { display: 14 } },
-      { id: 'medium', label: '15.6"', icon: 'Monitor', description: 'Tamano estandar', weight: { display: 15.6 } },
+      { id: 'medium', label: '15.6"', icon: 'Monitor', description: 'Tamaño estándar', weight: { display: 15.6 } },
       { id: 'large', label: '16-17"', icon: 'MonitorPlay', description: 'Pantalla grande', weight: { display: 17 } },
     ],
     type: 'single',
   },
   {
     id: 'delivery',
-    question: '¿Cuando necesitas tu laptop?',
+    question: '¿Cuándo necesitas tu laptop?',
     options: [
       { id: 'urgent', label: 'Lo antes posible', icon: 'Clock', weight: { inStock: true } },
       { id: 'week', label: 'Esta semana', icon: 'Calendar', weight: { inStock: true } },
@@ -161,7 +161,7 @@ export const quizQuestionsUsage: QuizQuestion[] = [
     question: '¿Equipo nuevo o reacondicionado?',
     options: [
       { id: 'new', label: 'Solo nuevo', icon: 'Sparkles', weight: { condition: 'new' } },
-      { id: 'refurbished', label: 'Reacondicionado esta bien', icon: 'Recycle', description: 'Ahorra hasta 40%', weight: { condition: 'any' } },
+      { id: 'refurbished', label: 'Reacondicionado está bien', icon: 'Recycle', description: 'Ahorra hasta 40%', weight: { condition: 'any' } },
     ],
     type: 'single',
   },
@@ -394,7 +394,7 @@ const getMatchReasons = (product: QuizProduct, usage: string, budget: string): s
   const reasons: string[] = [];
 
   if (product.tags.includes('estudios')) {
-    reasons.push('Ideal para tareas academicas');
+    reasons.push('Ideal para tareas académicas');
   }
   if (product.tags.includes('gaming')) {
     reasons.push('Excelente para juegos');
@@ -426,16 +426,16 @@ export const categoryMapping: Record<string, { name: string; description: string
   },
   gaming: {
     name: 'Laptops Gamer',
-    description: 'Potencia para los juegos mas exigentes',
+    description: 'Potencia para los juegos más exigentes',
     icon: 'Gamepad2',
   },
   design: {
-    name: 'Laptops para Diseno',
+    name: 'Laptops para Diseño',
     description: 'Pantallas precisas y rendimiento creativo',
     icon: 'Palette',
   },
   coding: {
-    name: 'Laptops para Programacion',
+    name: 'Laptops para Programación',
     description: 'Rendimiento y memoria para desarrollo',
     icon: 'Code',
   },

@@ -208,7 +208,7 @@ export const QuizResultsV3: React.FC<QuizResultsProps> = ({
           className="flex-1 bg-[#4654CD] text-white cursor-pointer"
           endContent={<ChevronRight className="w-4 h-4" />}
         >
-          Ver catalogo
+          Ver catálogo
         </Button>
       </motion.div>
     </div>

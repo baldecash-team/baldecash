@@ -128,7 +128,7 @@ export const QuizQuestionV1: React.FC<QuizQuestionProps> = ({
         >
           <p className="text-sm text-[#4654CD]">
             {question.options.find((o) => o.id === selectedOption)?.description ||
-              'Excelente eleccion'}
+              'Excelente elección'}
           </p>
         </motion.div>
       )}
@@ -136,7 +136,7 @@ export const QuizQuestionV1: React.FC<QuizQuestionProps> = ({
       {/* Visual scale indicator (for preference-type questions) */}
       {question.options.length >= 4 && (
         <div className="flex items-center justify-between text-xs text-neutral-400 px-4">
-          <span>Basico</span>
+          <span>Básico</span>
           <div className="flex-1 mx-4 h-0.5 bg-gradient-to-r from-neutral-200 via-[#4654CD]/30 to-[#4654CD]" />
           <span>Avanzado</span>
         </div>

@@ -125,7 +125,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'hero', name: 'Hero', path: '/prototipos/0.5/hero', status: 'pending', promptNumber: '01' },
       { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.5/catalogo/catalog-preview', status: 'in_progress', promptNumber: '02-03' },
       { id: 'detalle', name: 'Detalle', path: '/prototipos/0.5/producto/detail-preview', status: 'pending', promptNumber: '04' },
-      { id: 'comparador', name: 'Comparador', path: '/prototipos/0.5/comparador', status: 'pending', promptNumber: '05' },
+      { id: 'comparador', name: 'Comparador', path: '/prototipos/0.5/comparador/comparator-preview', status: 'done', promptNumber: '05' },
       { id: 'quiz', name: 'Quiz', path: '/prototipos/0.5/quiz/quiz-preview', status: 'pending', promptNumber: '06' },
       { id: 'estados', name: 'Estados Vacíos', path: '/prototipos/0.5/catalogo/empty-preview', status: 'pending', promptNumber: '07' },
       { id: 'wizard-solicitud', name: 'Wizard Solicitud', path: '/prototipos/0.5/wizard-solicitud/wizard-preview', status: 'pending', promptNumber: '08-13, 18' },

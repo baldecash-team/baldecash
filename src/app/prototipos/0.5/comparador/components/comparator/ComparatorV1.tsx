@@ -1,0 +1,200 @@
+'use client';
+
+import React, { useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
+import { Trash2, Scale, ArrowRight, Trophy } from 'lucide-react';
+import { ComparatorLayoutProps, compareSpecs, calculatePriceDifference } from '../../types/comparator';
+import { DesignStyleA } from './DesignStyleA';
+import { DesignStyleB } from './DesignStyleB';
+import { DesignStyleC } from './DesignStyleC';
+
+/**
+ * ComparatorV1 - Modal Fullscreen
+ * Modal inmersivo con overlay oscuro
+ * Referencia: Amazon, Best Buy comparison modal
+ */
+export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; onClose: () => void }> = ({
+  products,
+  config,
+  onRemoveProduct,
+  onClearAll,
+  comparisonState,
+  onStateChange,
+  isOpen,
+  onClose,
+}) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isCleanMode = searchParams.get('mode') === 'clean';
+  const specs = compareSpecs(products);
+  const priceDiff = calculatePriceDifference(products);
+  const [showBestOption, setShowBestOption] = useState(false);
+
+  // Find the best option (lowest monthly quota)
+  const bestProduct = useMemo(() => {
+    if (products.length === 0) return null;
+    return products.reduce((best, current) =>
+      current.quotaMonthly < best.quotaMonthly ? current : best
+    , products[0]);
+  }, [products]);
+
+  const bestProductIndex = useMemo(() => {
+    if (!bestProduct) return -1;
+    return products.findIndex(p => p.id === bestProduct.id);
+  }, [products, bestProduct]);
+
+  const handleShowBestOption = () => {
+    setShowBestOption(true);
+  };
+
+  const handleContinueWithBest = () => {
+    const baseUrl = '/prototipos/0.5/upsell/upsell-preview';
+    router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
+  };
+
+  // Filter specs based on fieldsVersion
+  const getFilteredSpecs = () => {
+    if (config.fieldsVersion === 1) {
+      // V1: Solo specs principales
+      const allowedFields = ['processor', 'ram', 'storage', 'displaySize', 'quota'];
+      return specs.filter(s => allowedFields.includes(s.key));
+    }
+    // V2: Todos los campos
+    return specs;
+  };
+
+  const filteredSpecs = comparisonState.showOnlyDifferences
+    ? getFilteredSpecs().filter(s => s.isDifferent)
+    : getFilteredSpecs();
+
+  // Handler for selecting a product from DesignStyleB/C
+  const handleSelectProduct = (productId: string) => {
+    const baseUrl = '/prototipos/0.5/upsell/upsell-preview';
+    router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
+  };
+
+  // Render the appropriate design style
+  const renderDesignStyle = () => {
+    const commonProps = {
+      products,
+      specs: filteredSpecs,
+      config,
+      showBestOption,
+      bestProductIndex,
+      onRemoveProduct,
+      priceDiff,
+    };
+
+    switch (config.designStyle) {
+      case 1:
+        return <DesignStyleA {...commonProps} />;
+      case 2:
+        return <DesignStyleB {...commonProps} onSelectProduct={handleSelectProduct} />;
+      case 3:
+        return <DesignStyleC {...commonProps} onSelectProduct={handleSelectProduct} />;
+      default:
+        return <DesignStyleA {...commonProps} />;
+    }
+  };
+
+  if (products.length === 0) {
+    return null;
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="full"
+      scrollBehavior="outside"
+      backdrop="blur"
+      isDismissable={false}
+      classNames={{
+        base: 'bg-white m-0 rounded-none h-screen',
+        wrapper: 'p-0',
+        backdrop: 'bg-black/70',
+        header: 'border-b border-neutral-200 bg-white py-4 flex-shrink-0',
+        body: 'bg-neutral-50 py-6 px-4 md:px-8 flex-1 overflow-y-auto',
+        footer: 'border-t border-neutral-200 bg-white flex-shrink-0',
+        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+      }}
+    >
+      <ModalContent>
+        <ModalHeader className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+              <Scale className="w-5 h-5 text-[#4654CD]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-neutral-800 font-['Baloo_2']">
+                Comparador de Equipos
+              </h2>
+              <p className="text-sm text-neutral-500">
+                {products.length} equipos seleccionados
+              </p>
+            </div>
+          </div>
+        </ModalHeader>
+
+        <ModalBody>
+          {/* Toggle for differences */}
+          <div className="flex items-center justify-start gap-4 mb-4 pt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={comparisonState.showOnlyDifferences}
+                onChange={(e) => onStateChange({
+                  ...comparisonState,
+                  showOnlyDifferences: e.target.checked,
+                })}
+                className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
+              />
+              <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
+            </label>
+          </div>
+
+          {/* Design Style Content */}
+          {renderDesignStyle()}
+        </ModalBody>
+
+        <ModalFooter className="flex justify-between">
+          <Button
+            variant="light"
+            startContent={<Trash2 className="w-4 h-4" />}
+            onPress={onClearAll}
+            className="cursor-pointer text-neutral-600 hover:text-red-500"
+          >
+            Limpiar comparación
+          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="bordered"
+              onPress={onClose}
+              className="cursor-pointer border-neutral-200"
+            >
+              Cerrar
+            </Button>
+            {!showBestOption ? (
+              <Button
+                className="bg-[#4654CD] text-white cursor-pointer font-semibold"
+                onPress={handleShowBestOption}
+                startContent={<Trophy className="w-4 h-4" />}
+              >
+                Ver mejor opción
+              </Button>
+            ) : (
+              <Button
+                className="bg-[#22c55e] text-white cursor-pointer font-semibold shadow-md hover:shadow-lg hover:scale-105 transition-all"
+                onPress={handleContinueWithBest}
+                endContent={<ArrowRight className="w-4 h-4" />}
+              >
+                Elegir ganador
+              </Button>
+            )}
+          </div>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+};
