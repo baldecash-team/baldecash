@@ -95,7 +95,7 @@ export const TokenCounter: React.FC<TokenCounterProps> = ({ sectionId, version }
           <Coins className="w-5 h-5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-72">
+      <PopoverContent className="w-72 bg-white border border-neutral-200 shadow-lg">
         <div className="p-3 space-y-3">
           <div className="flex items-center gap-2 border-b pb-2">
             <Coins className="w-5 h-5 text-amber-500" />

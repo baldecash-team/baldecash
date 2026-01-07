@@ -634,6 +634,40 @@ className="border-neutral-200 hover:border-[#4654CD]/50"
 - **NO gradientes** → colores sólidos
 - **Cursor pointer** → agregar `cursor-pointer` a todos los elementos clickeables
 
+### 7.4 Floating UI Elements (Popover, Tooltip, Dropdown)
+
+Estilos estándar para elementos flotantes de NextUI:
+
+| Elemento | Classes estándar |
+|----------|------------------|
+| `PopoverContent` | `bg-white border border-neutral-200 shadow-lg` |
+| `TooltipContent` | `bg-neutral-900 text-white text-sm px-3 py-2 rounded-lg` |
+| `DropdownMenu` | `bg-white border border-neutral-200 shadow-lg` |
+
+```tsx
+// Popover (ej: TokenCounter)
+<PopoverContent className="w-72 bg-white border border-neutral-200 shadow-lg">
+  <div className="p-3">...</div>
+</PopoverContent>
+
+// Tooltip
+<Tooltip
+  content="Texto del tooltip"
+  classNames={{
+    content: "bg-neutral-900 text-white text-sm px-3 py-2 rounded-lg"
+  }}
+>
+  <Button>...</Button>
+</Tooltip>
+
+// Dropdown
+<DropdownMenu className="bg-white border border-neutral-200 shadow-lg">
+  <DropdownItem>...</DropdownItem>
+</DropdownMenu>
+```
+
+**Importante:** Siempre especificar `bg-white` explícitamente para evitar problemas de transparencia.
+
 ---
 
 ## 8. Responsive Design
@@ -1782,7 +1816,215 @@ Antes de finalizar cualquier iteración, verificar:
 
 ---
 
-## 14. Versionado de Documento
+## 14. Página Index de Versión
+
+Cada versión (0.4, 0.5, etc.) tiene una página index en `/prototipos/{version}/page.tsx` que sigue esta estructura estándar.
+
+### 14.1 Estructura de Secciones
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                        HEADER                           │
+│  [Badge versión] + Título + Descripción                 │
+├─────────────────────────────────────────────────────────┤
+│                    MODE DISPLAY                         │
+│  Modo Presentación/Configuración (toggle o estático)    │
+├─────────────────────────────────────────────────────────┤
+│                  PROGRESS OVERVIEW                      │
+│  Barra de progreso + contador de secciones              │
+├─────────────────────────────────────────────────────────┤
+│                   SECTIONS GRID                         │
+│  Grid 4 columnas (desktop) / 2 columnas (mobile)        │
+│  Cards de secciones con estado                          │
+├─────────────────────────────────────────────────────────┤
+│              KEYBOARD SHORTCUTS GUIDE                   │
+│  Atajos Windows/Linux y macOS                           │
+├─────────────────────────────────────────────────────────┤
+│                   QUICK ACTIONS                         │
+│  [Ver versión anterior] [Volver al Home]                │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 14.2 Mode Display
+
+**Con toggle (versiones con múltiples modos como v0.4):**
+```tsx
+<section className="max-w-4xl mx-auto mb-8">
+  <div className="bg-white rounded-2xl p-4 border border-neutral-200 shadow-sm">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        {isPresentationMode ? (
+          <div className="w-10 h-10 rounded-xl bg-[#4654CD] flex items-center justify-center">
+            <Presentation className="w-5 h-5 text-white" />
+          </div>
+        ) : (
+          <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center">
+            <Settings2 className="w-5 h-5 text-neutral-600" />
+          </div>
+        )}
+        <div>
+          <h3 className="font-semibold text-neutral-900">
+            {isPresentationMode ? "Modo Presentación" : "Modo Configuración"}
+          </h3>
+          <p className="text-sm text-neutral-500">
+            {isPresentationMode
+              ? "Versiones optimizadas sin controles de configuración"
+              : "Todas las versiones V1 con controles visibles"}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className={`text-sm font-medium ${!isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
+          Config
+        </span>
+        <CustomSwitch isSelected={isPresentationMode} onValueChange={setIsPresentationMode} />
+        <span className={`text-sm font-medium ${isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
+          Presentación
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+**Estático (versiones con modo único como v0.5):**
+```tsx
+<section className="max-w-4xl mx-auto mb-8">
+  <div className="bg-white rounded-2xl p-4 border border-neutral-200 shadow-sm">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#4654CD] flex items-center justify-center">
+          <Presentation className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-neutral-900">Modo Presentación</h3>
+          <p className="text-sm text-neutral-500">
+            Configuración fija optimizada con sistema de feedback
+          </p>
+        </div>
+      </div>
+      <div className="px-3 py-1 bg-[#4654CD]/10 text-[#4654CD] rounded-full text-xs font-medium">
+        Único modo
+      </div>
+    </div>
+  </div>
+</section>
+```
+
+### 14.3 Sections Grid
+
+**Grid layout:**
+```tsx
+<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+```
+
+**Card de sección:**
+```tsx
+<CardBody className="p-4 flex flex-col">
+  {/* Icon */}
+  <div className={`w-10 h-10 rounded-lg ${status.bg} flex items-center justify-center mb-3`}>
+    <IconComponent className={`w-5 h-5 ${status.color}`} />
+  </div>
+
+  {/* Content */}
+  <h3 className="text-sm font-semibold text-neutral-900 mb-0.5">{section.name}</h3>
+  <p className="text-neutral-400 text-xs mb-2">#{section.promptNumber}</p>
+
+  {/* Status */}
+  <div className="mt-auto flex items-center gap-1">
+    <StatusIcon className={`w-3.5 h-3.5 ${status.color}`} />
+    <span className={`text-xs ${status.color}`}>{status.label}</span>
+  </div>
+</CardBody>
+```
+
+**Estados de sección:**
+```tsx
+const statusStyles = {
+  pending: { icon: AlertCircle, color: "text-neutral-400", bg: "bg-neutral-200", label: "Pendiente" },
+  in_progress: { icon: Rocket, color: "text-[#03DBD0]", bg: "bg-[#03DBD0]/20", label: "En desarrollo" },
+  done: { icon: CheckCircle, color: "text-[#4654CD]", bg: "bg-[#4654CD]/20", label: "Completado" },
+};
+```
+
+**Iconos por sección:**
+```tsx
+const sectionIcons: Record<string, React.ElementType> = {
+  hero: Rocket,
+  catalogo: Layers,
+  detalle: FileText,
+  comparador: GitCompare,
+  quiz: HelpCircle,
+  estados: SearchX,
+  'wizard-solicitud': ClipboardList,
+  upsell: ShoppingCart,
+  aprobacion: CheckCircle2,
+  rechazo: XCircle,
+  convenio: Building2,
+};
+```
+
+### 14.4 Quick Actions
+
+```tsx
+<section className="max-w-4xl mx-auto mt-10">
+  <div className="flex flex-wrap items-center justify-center gap-3">
+    {/* Botón primario: Ver versión anterior */}
+    <Link
+      href="/prototipos/{version-anterior}"
+      className="px-4 py-2 bg-[#4654CD] hover:bg-[#3a47b3] text-white rounded-lg text-sm transition-colors flex items-center gap-2"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Ver versión anterior ({version-anterior})
+    </Link>
+    {/* Botón secundario: Volver al Home */}
+    <Link
+      href="/"
+      className="px-4 py-2 bg-white hover:bg-neutral-50 text-neutral-600 hover:text-[#4654CD] border border-neutral-200 rounded-lg text-sm transition-colors"
+    >
+      Volver al Home
+    </Link>
+  </div>
+</section>
+```
+
+### 14.5 Registry de Versiones (`_registry/versions.ts`)
+
+**Estructura de VersionConfig:**
+```ts
+interface VersionConfig {
+  version: string;           // "0.5"
+  title: string;             // "Catálogo Iterativo v0.5"
+  description: string;       // Descripción corta
+  icon: string;              // Nombre de icono Lucide
+  color: string;             // Tailwind gradient classes
+  badge?: string;            // "En desarrollo", "Listo", "Completada"
+  status: 'draft' | 'in_progress' | 'ready' | 'archived';
+  sections: SectionStatus[];
+  createdAt: string;         // "2026-01-06"
+  updatedAt: string;
+}
+
+interface SectionStatus {
+  id: string;                // "catalogo"
+  name: string;              // "Catálogo"
+  path: string;              // "/prototipos/0.5/catalogo/catalog-preview"
+  status: 'pending' | 'in_progress' | 'done';
+  promptNumber: string;      // "02-03"
+}
+```
+
+**Badges y estados:**
+| Status | Badge | Uso |
+|--------|-------|-----|
+| `draft` | - | Versión en planificación |
+| `in_progress` | "En desarrollo" | Versión activa con secciones pendientes |
+| `ready` | "Listo" o "Completada" | Todas las secciones done |
+| `archived` | - | Versión obsoleta (no mostrar) |
+
+---
+
+## 15. Versionado de Documento
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
@@ -1794,6 +2036,8 @@ Antes de finalizar cualquier iteración, verificar:
 | 1.5 | 2025-01-06 | 8 elementos obligatorios en páginas preview + comportamiento mode=clean |
 | 1.6 | 2025-01-06 | FeedbackButton para mode=clean (screenshot + texto → API) |
 | 1.7 | 2026-01-06 | useScreenshot: excluir sidebars de sticky fix, scroll interno opt-in con `data-scroll-fix` |
+| 1.8 | 2026-01-07 | Sección 7.4: Estilos estándar para Floating UI Elements (Popover, Tooltip, Dropdown) |
+| 1.9 | 2026-01-07 | Sección 14: Página Index de Versión (estructura, Mode Display, Sections Grid, Registry) |
 
 ---
 

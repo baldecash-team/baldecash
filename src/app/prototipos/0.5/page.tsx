@@ -3,14 +3,24 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@nextui-org/react";
-import { Palette, Layers, Rocket, ArrowLeft, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
+import { Palette, Layers, Rocket, ArrowLeft, CheckCircle, AlertCircle, SearchX, FileText, GitCompare, HelpCircle, ClipboardList, ShoppingCart, CheckCircle2, XCircle, Building2, Keyboard, Command, Presentation } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
 
 const version = getVersionByNumber("0.5")!;
 
 const sectionIcons: Record<string, React.ElementType> = {
+  hero: Rocket,
   catalogo: Layers,
+  detalle: FileText,
+  comparador: GitCompare,
+  quiz: HelpCircle,
+  estados: SearchX,
+  'wizard-solicitud': ClipboardList,
+  upsell: ShoppingCart,
+  aprobacion: CheckCircle2,
+  rechazo: XCircle,
+  convenio: Building2,
 };
 
 const statusStyles = {
@@ -37,20 +47,23 @@ export default function Version05Page() {
           <p className="text-lg text-neutral-500 max-w-2xl mx-auto">{version.description}</p>
         </header>
 
-        {/* Info Banner */}
+        {/* Mode Display (static - v0.5 only has presentation mode) */}
         <section className="max-w-4xl mx-auto mb-8">
-          <div className="bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-2xl p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
-                <Palette className="w-5 h-5 text-[#4654CD]" />
+          <div className="bg-white rounded-2xl p-4 border border-neutral-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#4654CD] flex items-center justify-center">
+                  <Presentation className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-neutral-900">Modo Presentación</h3>
+                  <p className="text-sm text-neutral-500">
+                    Configuración fija optimizada con sistema de feedback
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-neutral-900 mb-2">Enfoque de esta versión</h3>
-                <p className="text-sm text-neutral-600">
-                  v0.5 itera sobre el catálogo de v0.4 con configuración fija, permitiendo solo iterar el
-                  <strong> ColorSelector</strong> (V1 Dots / V2 Swatches). Incluye sistema de feedback
-                  con screenshots para recolectar opiniones en modo presentación.
-                </p>
+              <div className="px-3 py-1 bg-[#4654CD]/10 text-[#4654CD] rounded-full text-xs font-medium">
+                Único modo
               </div>
             </div>
           </div>
@@ -78,10 +91,10 @@ export default function Version05Page() {
         <section className="max-w-4xl mx-auto">
           <h2 className="text-xl font-semibold text-neutral-900 mb-6 flex items-center gap-2">
             <Layers className="w-5 h-5 text-neutral-400" />
-            Secciones
+            Secciones Planificadas
           </h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {version.sections.map((section) => {
               const IconComponent = sectionIcons[section.id] || Layers;
               const status = statusStyles[section.status];
@@ -89,20 +102,20 @@ export default function Version05Page() {
               const isClickable = section.status === 'done' || section.status === 'in_progress';
 
               const cardContent = (
-                <CardBody className="p-5 flex flex-col">
+                <CardBody className="p-4 flex flex-col">
                   {/* Icon */}
-                  <div className={`w-12 h-12 rounded-xl ${status.bg} flex items-center justify-center mb-4`}>
-                    <IconComponent className={`w-6 h-6 ${status.color}`} />
+                  <div className={`w-10 h-10 rounded-lg ${status.bg} flex items-center justify-center mb-3`}>
+                    <IconComponent className={`w-5 h-5 ${status.color}`} />
                   </div>
 
                   {/* Content */}
-                  <h3 className="text-base font-semibold text-neutral-900 mb-1">{section.name}</h3>
-                  <p className="text-neutral-400 text-sm mb-3">#{section.promptNumber}</p>
+                  <h3 className="text-sm font-semibold text-neutral-900 mb-0.5">{section.name}</h3>
+                  <p className="text-neutral-400 text-xs mb-2">#{section.promptNumber}</p>
 
                   {/* Status */}
-                  <div className="mt-auto flex items-center gap-1.5">
-                    <StatusIcon className={`w-4 h-4 ${status.color}`} />
-                    <span className={`text-sm ${status.color}`}>{status.label}</span>
+                  <div className="mt-auto flex items-center gap-1">
+                    <StatusIcon className={`w-3.5 h-3.5 ${status.color}`} />
+                    <span className={`text-xs ${status.color}`}>{status.label}</span>
                   </div>
                 </CardBody>
               );
@@ -132,22 +145,144 @@ export default function Version05Page() {
           </div>
         </section>
 
-        {/* Quick Actions */}
+        {/* Keyboard Shortcuts Guide */}
         <section className="max-w-4xl mx-auto mt-12">
+          <div className="bg-white rounded-2xl p-6 border border-neutral-200 shadow-sm">
+            <h2 className="text-lg font-semibold text-neutral-900 mb-4 flex items-center gap-2">
+              <Keyboard className="w-5 h-5 text-[#4654CD]" />
+              Atajos de Teclado
+            </h2>
+            <p className="text-sm text-neutral-500 mb-6">
+              Usa estos atajos en el preview para cambiar versiones rápidamente sin abrir el modal.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Windows */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded bg-neutral-100 flex items-center justify-center">
+                    <span className="text-xs font-bold text-neutral-600">⊞</span>
+                  </div>
+                  <span className="text-sm font-medium text-neutral-700">Windows / Linux</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Cambiar versión componente</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">1</kbd>
+                      <span className="text-neutral-400">-</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">6</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Cambiar subrayado</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Shift</kbd>
+                      <span className="text-neutral-400">+</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">1-6</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Siguiente componente</span>
+                    <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Tab</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Componente anterior</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Shift</kbd>
+                      <span className="text-neutral-400">+</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Tab</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Abrir/cerrar config</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">?</kbd>
+                      <span className="text-neutral-400">o</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">K</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-neutral-600">Cerrar modal</span>
+                    <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">Esc</kbd>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mac */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Command className="w-5 h-5 text-neutral-600" />
+                  <span className="text-sm font-medium text-neutral-700">macOS</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Cambiar versión componente</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">1</kbd>
+                      <span className="text-neutral-400">-</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">6</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Cambiar subrayado</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⇧</kbd>
+                      <span className="text-neutral-400">+</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">1-6</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Siguiente componente</span>
+                    <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⇥</kbd>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Componente anterior</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⇧</kbd>
+                      <span className="text-neutral-400">+</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⇥</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Abrir/cerrar config</span>
+                    <div className="flex gap-1">
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">?</kbd>
+                      <span className="text-neutral-400">o</span>
+                      <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">K</kbd>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-neutral-600">Cerrar modal</span>
+                    <kbd className="px-2 py-1 bg-neutral-100 rounded text-xs font-mono text-neutral-700">⎋</kbd>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 p-3 bg-[#4654CD]/5 rounded-lg border border-[#4654CD]/10">
+              <p className="text-xs text-[#4654CD]">
+                <strong>Nota:</strong> Los atajos se desactivan automáticamente cuando escribes en campos de búsqueda o formularios.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="max-w-4xl mx-auto mt-10">
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/prototipos/0.4"
-              className="px-4 py-2 bg-white hover:bg-neutral-50 text-neutral-600 hover:text-[#4654CD] border border-neutral-200 rounded-lg text-sm transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-[#4654CD] hover:bg-[#3a47b3] text-white rounded-lg text-sm transition-colors flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Ver versión anterior (0.4)
             </Link>
             <Link
               href="/"
-              className="px-4 py-2 bg-[#4654CD] hover:bg-[#3a47b3] text-white rounded-lg text-sm transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-white hover:bg-neutral-50 text-neutral-600 hover:text-[#4654CD] border border-neutral-200 rounded-lg text-sm transition-colors"
             >
               Volver al Home
-              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </section>
