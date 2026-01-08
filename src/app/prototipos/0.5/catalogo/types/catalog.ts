@@ -407,13 +407,16 @@ export interface ProductColor {
 }
 
 export const colorSelectorVersionLabels: Record<ColorSelectorVersion, { name: string; description: string }> = {
-  1: { name: 'Dots', description: 'Círculos compactos con tooltip' },
-  2: { name: 'Swatches', description: 'Muestras grandes con nombre visible' },
+  1: { name: 'Swatches', description: 'Muestras grandes con nombre visible' },
+  2: { name: 'Dots', description: 'Círculos compactos con tooltip' },
 };
 
 // ============================================
 // Producto (para mock data)
 // ============================================
+
+// Device type for linking to detail page
+export type CatalogDeviceType = 'laptop' | 'tablet' | 'celular';
 
 export interface CatalogProduct {
   id: string;
@@ -425,6 +428,7 @@ export interface CatalogProduct {
   thumbnail: string;
   images: string[];
   colors?: ProductColor[]; // NUEVO v0.5: colores disponibles
+  deviceType?: CatalogDeviceType; // NUEVO v0.5: tipo de dispositivo para link al detalle
   price: number;
   originalPrice?: number;
   discount?: number;

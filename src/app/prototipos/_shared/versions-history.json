@@ -57,7 +57,8 @@
         "Hero banner ocupa 100vh menos altura del header",
         "Validación de número peruano (9 dígitos, empieza con 9)",
         "Toast de éxito en formulario newsletter",
-        "Corrección ortográfica (tildes en nombres, NEW→NUEVO)"
+        "Corrección ortográfica (tildes en nombres, NEW→NUEVO)",
+        "Sección Detalle de producto (config fija: Info V3, Gallery V1, Tabs V1, Specs V2, Pricing V4, Cronograma V2, Similar V2, Limitations V6, Certifications V1)"
       ],
       "results": null
     }

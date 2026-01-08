@@ -14,9 +14,11 @@ import { useScreenshot } from '../hooks/useScreenshot';
 interface FeedbackButtonProps {
   sectionId: string;
   config: Record<string, unknown>;
+  /** Clases adicionales para el contenedor del botón (ej: para ajustar posición en mobile) */
+  className?: string;
 }
 
-export function FeedbackButton({ sectionId, config }: FeedbackButtonProps) {
+export function FeedbackButton({ sectionId, config, className }: FeedbackButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const { captureScreenshot, isCapturing } = useScreenshot();
@@ -54,7 +56,7 @@ export function FeedbackButton({ sectionId, config }: FeedbackButtonProps) {
 
       {/* Botón flotante */}
       <div
-        className="fixed bottom-6 right-6 z-[100]"
+        className={`fixed right-6 z-[100] ${className || 'bottom-6'}`}
         data-feedback-button
       >
         <Button

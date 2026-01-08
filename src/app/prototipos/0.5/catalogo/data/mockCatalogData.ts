@@ -1,7 +1,8 @@
-// data/mockCatalogData.ts - BaldeCash Catalog Mock Data v0.4
+// data/mockCatalogData.ts - BaldeCash Catalog Mock Data v0.5
 
 import {
   CatalogProduct,
+  CatalogDeviceType,
   FilterOption,
   FilterTooltipContent,
   GamaTier,
@@ -260,6 +261,161 @@ function createSeededRandom(seed: number) {
 
 const seededRandom = createSeededRandom(12345);
 
+// ============================================
+// Featured Products (Manual - Laptop, Tablet, Celular)
+// Estos aparecen primero en el catálogo y enlazan al detalle con deviceType
+// ============================================
+
+const featuredLaptop: CatalogProduct = {
+  id: 'featured-laptop',
+  slug: 'lenovo-v15-g4-ryzen5',
+  name: 'Lenovo V15 G4 Ryzen 5 8GB',
+  displayName: 'Laptop Lenovo 15.6"',
+  brand: 'lenovo',
+  thumbnail: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7929bd7b580e6de7247d_Lenovo%20Chromebook%20S330.jpg',
+  images: [
+    'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7929bd7b580e6de7247d_Lenovo%20Chromebook%20S330.jpg',
+    'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8af9ed1fbf48ea397396_hp15.png',
+    'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad78aca11478d9ed058463_laptop_asus_x515ea.jpg',
+  ],
+  colors: [
+    { id: 'laptop-gray', name: 'Gris Grafito', hex: '#4A4A4A' },
+    { id: 'laptop-silver', name: 'Plata', hex: '#C0C0C0' },
+    { id: 'laptop-black', name: 'Negro', hex: '#1A1A1A' },
+  ],
+  deviceType: 'laptop',
+  price: 2499,
+  originalPrice: 2899,
+  discount: 14,
+  quotaMonthly: 89,
+  quotaBiweekly: 45,
+  quotaWeekly: 23,
+  maxTermMonths: 36,
+  gama: 'estudiante',
+  condition: 'nuevo',
+  stock: 'available',
+  stockQuantity: 15,
+  usage: ['estudios', 'oficina'],
+  isFeatured: true,
+  isNew: false,
+  tags: ['recomendado', 'cuota_baja'],
+  specs: {
+    processor: { brand: 'amd', model: 'Ryzen 5 7520U', cores: 4, speed: '4.3 GHz' },
+    ram: { size: 8, type: 'DDR5', maxSize: 16, expandable: true },
+    storage: { size: 256, type: 'ssd', hasSecondSlot: true },
+    display: { size: 15.6, resolution: 'fhd', resolutionPixels: '1920x1080', type: 'tn', refreshRate: 60, touchScreen: false },
+    gpu: { type: 'integrated', brand: 'AMD', model: 'Radeon Graphics' },
+    connectivity: { wifi: 'WiFi 6', bluetooth: '5.1', hasEthernet: false },
+    ports: { usb: 2, usbC: 1, hdmi: true, thunderbolt: false, sdCard: true, headphone: true },
+    keyboard: { backlit: false, numericPad: true, language: 'Español Latino' },
+    security: { fingerprint: false, facialRecognition: false, tpmChip: true },
+    os: { hasWindows: true, windowsVersion: 'Windows 11 Home' },
+    battery: { capacity: '38Wh', life: '6 horas' },
+    dimensions: { weight: 1.65, thickness: 19.9 },
+  },
+  createdAt: new Date().toISOString(),
+};
+
+const featuredTablet: CatalogProduct = {
+  id: 'featured-tablet',
+  slug: 'samsung-galaxy-tab-s9',
+  name: 'Samsung Galaxy Tab S9 128GB',
+  displayName: 'Tablet Samsung 11"',
+  brand: 'samsung',
+  thumbnail: 'https://pngimg.com/d/tablet_PNG8576.png',
+  images: [
+    'https://pngimg.com/d/tablet_PNG8576.png',
+    'https://pngimg.com/d/tablet_PNG8571.png',
+    'https://pngimg.com/d/tablet_PNG8562.png',
+  ],
+  colors: [
+    { id: 'tablet-graphite', name: 'Grafito', hex: '#2C2C2C' },
+    { id: 'tablet-beige', name: 'Beige', hex: '#D4C4B0' },
+    { id: 'tablet-pink', name: 'Rosa Lavanda', hex: '#E8D5E0' },
+  ],
+  deviceType: 'tablet',
+  price: 1899,
+  originalPrice: 2199,
+  discount: 14,
+  quotaMonthly: 69,
+  quotaBiweekly: 35,
+  quotaWeekly: 18,
+  maxTermMonths: 36,
+  gama: 'profesional',
+  condition: 'nuevo',
+  stock: 'available',
+  stockQuantity: 8,
+  usage: ['estudios', 'diseño'],
+  isFeatured: true,
+  isNew: true,
+  tags: ['mas_vendido', 'recomendado'],
+  specs: {
+    processor: { brand: 'amd', model: 'Snapdragon 8 Gen 2', cores: 8, speed: '3.2 GHz' },
+    ram: { size: 8, type: 'LPDDR5', maxSize: 8, expandable: false },
+    storage: { size: 128, type: 'ssd', hasSecondSlot: false },
+    display: { size: 11, resolution: 'qhd', resolutionPixels: '2560x1600', type: 'oled', refreshRate: 120, touchScreen: true },
+    gpu: { type: 'integrated', brand: 'Qualcomm', model: 'Adreno 740' },
+    connectivity: { wifi: 'WiFi 6E', bluetooth: '5.3', hasEthernet: false },
+    ports: { usb: 0, usbC: 1, hdmi: false, thunderbolt: false, sdCard: true, headphone: false },
+    keyboard: { backlit: false, numericPad: false, language: 'Virtual' },
+    security: { fingerprint: true, facialRecognition: true, tpmChip: false },
+    os: { hasWindows: false },
+    battery: { capacity: '8400mAh', life: '15 horas' },
+    dimensions: { weight: 0.5, thickness: 5.9 },
+  },
+  createdAt: new Date().toISOString(),
+};
+
+const featuredCelular: CatalogProduct = {
+  id: 'featured-celular',
+  slug: 'samsung-galaxy-a54-5g',
+  name: 'Samsung Galaxy A54 5G 128GB',
+  displayName: 'Celular Samsung 6.4"',
+  brand: 'samsung',
+  thumbnail: 'https://pngimg.com/d/smartphone_PNG8534.png',
+  images: [
+    'https://pngimg.com/d/smartphone_PNG8534.png',
+    'https://pngimg.com/d/smartphone_PNG8545.png',
+    'https://pngimg.com/d/smartphone_PNG8507.png',
+  ],
+  colors: [
+    { id: 'cel-black', name: 'Negro Increíble', hex: '#1C1C1C' },
+    { id: 'cel-violet', name: 'Violeta Asombroso', hex: '#8B5CF6' },
+    { id: 'cel-lime', name: 'Lima Increíble', hex: '#84CC16' },
+  ],
+  deviceType: 'celular',
+  price: 1499,
+  originalPrice: 1799,
+  discount: 17,
+  quotaMonthly: 54,
+  quotaBiweekly: 27,
+  quotaWeekly: 14,
+  maxTermMonths: 36,
+  gama: 'estudiante',
+  condition: 'nuevo',
+  stock: 'available',
+  stockQuantity: 12,
+  usage: ['estudios', 'oficina'],
+  isFeatured: true,
+  isNew: true,
+  tags: ['oferta', 'cuota_baja'],
+  specs: {
+    processor: { brand: 'amd', model: 'Exynos 1380', cores: 8, speed: '2.4 GHz' },
+    ram: { size: 8, type: 'LPDDR4X', maxSize: 8, expandable: false },
+    storage: { size: 128, type: 'ssd', hasSecondSlot: false },
+    display: { size: 6.4, resolution: 'fhd', resolutionPixels: '2340x1080', type: 'oled', refreshRate: 120, touchScreen: true },
+    gpu: { type: 'integrated', brand: 'ARM', model: 'Mali-G68' },
+    connectivity: { wifi: 'WiFi 6', bluetooth: '5.3', hasEthernet: false },
+    ports: { usb: 0, usbC: 1, hdmi: false, thunderbolt: false, sdCard: true, headphone: false },
+    keyboard: { backlit: false, numericPad: false, language: 'Virtual' },
+    security: { fingerprint: true, facialRecognition: false, tpmChip: false },
+    os: { hasWindows: false },
+    battery: { capacity: '5000mAh', life: '2 días' },
+    dimensions: { weight: 0.202, thickness: 8.2 },
+  },
+  createdAt: new Date().toISOString(),
+};
+
 // Webflow CDN laptop images
 const webflowLaptops = [
   'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8af9ed1fbf48ea397396_hp15.png',
@@ -472,7 +628,13 @@ function generateProducts(): CatalogProduct[] {
   return products;
 }
 
-export const mockProducts: CatalogProduct[] = generateProducts();
+// Combine featured products (first) with generated products
+export const mockProducts: CatalogProduct[] = [
+  featuredLaptop,
+  featuredTablet,
+  featuredCelular,
+  ...generateProducts(),
+];
 
 // ============================================
 // Funciones de Utilidad

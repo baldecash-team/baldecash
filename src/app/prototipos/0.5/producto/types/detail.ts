@@ -1,0 +1,224 @@
+// Detail Section Types - BaldeCash v0.5
+// Simplified version with fixed configuration
+
+// ============================================
+// Device Type Configuration (Iterable)
+// ============================================
+
+export type DeviceType = 'laptop' | 'tablet' | 'celular';
+
+export interface DetalleConfig {
+  deviceType: DeviceType;
+}
+
+export const defaultDetalleConfig: DetalleConfig = {
+  deviceType: 'laptop',
+};
+
+export const deviceTypeLabels: Record<DeviceType, { name: string; description: string }> = {
+  laptop: {
+    name: 'Laptop',
+    description: 'Computadora portátil con teclado integrado',
+  },
+  tablet: {
+    name: 'Tablet',
+    description: 'Dispositivo táctil con pantalla grande',
+  },
+  celular: {
+    name: 'Celular',
+    description: 'Smartphone con conectividad móvil',
+  },
+};
+
+// ============================================
+// Product Types
+// ============================================
+
+export interface ProductImage {
+  id: string;
+  url: string;
+  alt: string;
+  type: 'main' | 'gallery' | 'detail';
+}
+
+export interface ProductSpec {
+  category: string;
+  icon: string;
+  specs: SpecItem[];
+}
+
+export interface SpecItem {
+  label: string;
+  value: string;
+  tooltip?: string;
+  highlight?: boolean;
+}
+
+export interface ProductPort {
+  name: string;
+  icon: string;
+  count: number;
+  position: 'left' | 'right' | 'back';
+}
+
+export interface ProductSoftware {
+  name: string;
+  icon: string;
+  included: boolean;
+  description?: string;
+}
+
+export interface ProductFeature {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface ProductBadge {
+  type: 'os' | 'battery' | 'stock' | 'promo' | 'new';
+  icon?: string;
+  text: string;
+  variant?: 'primary' | 'success' | 'warning' | 'info';
+}
+
+export interface ProductColor {
+  id: string;
+  name: string;
+  hex: string;
+}
+
+export interface ProductDetail {
+  id: string;
+  slug: string;
+  name: string;
+  displayName: string;
+  brand: string;
+  category: string;
+  price: number;
+  originalPrice?: number;
+  discount?: number;
+  lowestQuota: number;
+  originalQuota?: number;
+  images: ProductImage[];
+  colors: ProductColor[];
+  description: string;
+  shortDescription: string;
+  specs: ProductSpec[];
+  ports: ProductPort[];
+  software: ProductSoftware[];
+  features: ProductFeature[];
+  badges: ProductBadge[];
+  batteryLife: string;
+  fastCharge?: string;
+  hasOS: boolean;
+  osName?: string;
+  warranty: string;
+  stock: number;
+  rating: number;
+  reviewCount: number;
+}
+
+// ============================================
+// Payment Types
+// ============================================
+
+export type InitialPaymentPercentage = 0 | 10 | 20 | 30;
+
+export interface PaymentPlan {
+  term: number;
+  monthlyQuota: number;
+  originalQuota?: number;
+  initialPaymentPercent: InitialPaymentPercentage;
+  initialPaymentAmount: number;
+}
+
+// ============================================
+// Similar Products Types
+// ============================================
+
+export interface SimilarProduct {
+  id: string;
+  name: string;
+  thumbnail: string;
+  monthlyQuota: number;
+  quotaDifference: number;
+  matchScore: number;
+  differentiators: string[];
+  slug: string;
+}
+
+// ============================================
+// Limitations Types
+// ============================================
+
+export interface ProductLimitation {
+  category: string;
+  description: string;
+  severity: 'info' | 'warning';
+  alternative?: string;
+  icon: string;
+}
+
+// ============================================
+// Certifications Types
+// ============================================
+
+export interface Certification {
+  code: string;
+  name: string;
+  logo: string;
+  description: string;
+  learnMoreUrl?: string;
+}
+
+// ============================================
+// Props Types
+// ============================================
+
+export interface ProductInfoHeaderProps {
+  product: ProductDetail;
+  selectedColorId: string;
+  onColorSelect: (colorId: string) => void;
+}
+
+export interface ProductGalleryProps {
+  images: ProductImage[];
+  productName: string;
+}
+
+export interface DetailTabsProps {
+  product: ProductDetail;
+}
+
+export interface SpecsProps {
+  specs: ProductSpec[];
+}
+
+export interface PricingCalculatorProps {
+  monthlyQuota: number;
+  originalQuota?: number;
+  defaultTerm?: number;
+}
+
+export interface SimilarProductsProps {
+  products: SimilarProduct[];
+  currentQuota: number;
+}
+
+export interface ProductLimitationsProps {
+  limitations: ProductLimitation[];
+}
+
+export interface CertificationsProps {
+  certifications: Certification[];
+}
+
+export interface CronogramaProps {
+  monthlyQuota: number;
+  term?: number;
+  startDate?: Date;
+}
+
+export interface PortsDisplayProps {
+  ports: ProductPort[];
+}

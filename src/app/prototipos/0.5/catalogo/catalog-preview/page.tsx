@@ -83,9 +83,17 @@ const getWizardUrl = (isCleanMode: boolean) => {
   return `/prototipos/0.4/wizard-solicitud/wizard-preview?${params.toString()}`;
 };
 
-const getDetailUrl = (productSlug: string, isCleanMode: boolean) => {
-  const baseUrl = '/prototipos/0.4/producto/detail-preview?infoHeader=3&gallery=1&tabs=1&specs=2&pricing=4&cronograma=2&similar=2&limitations=6&certifications=1';
-  return isCleanMode ? `${baseUrl}&mode=clean` : baseUrl;
+const getDetailUrl = (productId: string, deviceType: string | undefined, isCleanMode: boolean) => {
+  const baseUrl = '/prototipos/0.5/producto/detail-preview';
+  const params = new URLSearchParams();
+  if (deviceType && deviceType !== 'laptop') {
+    params.set('device', deviceType);
+  }
+  if (isCleanMode) {
+    params.set('mode', 'clean');
+  }
+  const queryString = params.toString();
+  return queryString ? `${baseUrl}?${queryString}` : baseUrl;
 };
 
 const getUpsellUrl = (isCleanMode: boolean) => {
@@ -483,7 +491,7 @@ function CatalogPreviewContent() {
                 onAddToCart={() => router.push(getUpsellUrl(isCleanMode))}
                 onFavorite={() => handleToggleWishlist(product.id)}
                 isFavorite={wishlist.includes(product.id)}
-                onViewDetail={() => router.push(getDetailUrl(product.id, isCleanMode))}
+                onViewDetail={() => router.push(getDetailUrl(product.id, product.deviceType, isCleanMode))}
                 onCompare={() => handleToggleCompare(product.id)}
                 isCompareSelected={compareList.includes(product.id)}
                 compareDisabled={compareList.length >= maxCompareProducts}
