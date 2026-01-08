@@ -1,0 +1,1 @@
+export { ConvenioHero } from './ConvenioHero';

@@ -1,0 +1,1 @@
+export { ConvenioCta } from './ConvenioCta';

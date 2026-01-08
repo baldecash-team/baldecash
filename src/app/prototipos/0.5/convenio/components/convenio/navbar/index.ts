@@ -1,0 +1,1 @@
+export { ConvenioNavbar } from './ConvenioNavbar';

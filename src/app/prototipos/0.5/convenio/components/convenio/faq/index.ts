@@ -1,0 +1,1 @@
+export { ConvenioFaq } from './ConvenioFaq';

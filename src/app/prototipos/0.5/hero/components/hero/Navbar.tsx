@@ -11,6 +11,7 @@ import { Button, Chip } from '@nextui-org/react';
 import { Menu, X, Zap, User, Laptop, ChevronDown, Smartphone, Monitor, Headphones } from 'lucide-react';
 
 const catalogUrl = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
+const convenioUrl = '/prototipos/0.5/convenio/convenio-preview?convenio=';
 
 const megaMenuItems = [
   { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
@@ -19,9 +20,18 @@ const megaMenuItems = [
   { label: 'Accesorios', href: catalogUrl, icon: Headphones, description: 'Complementa tu equipo' },
 ];
 
+const conveniosMegaMenuItems = [
+  { label: 'CERTUS', slug: 'certus' },
+  { label: 'UPN', slug: 'upn' },
+  { label: 'UPC', slug: 'upc' },
+  { label: 'TECSUP', slug: 'tecsup' },
+  { label: 'SENATI', slug: 'senati' },
+  { label: 'USIL', slug: 'usil' },
+];
+
 const navItems = [
-  { label: 'Equipos', href: catalogUrl, hasMegaMenu: true },
-  { label: 'Convenios', href: '#convenios' },
+  { label: 'Equipos', href: catalogUrl, megaMenuType: 'equipos' as const },
+  { label: 'Convenios', href: '#convenios', megaMenuType: 'convenios' as const },
   { label: '¿Tienes dudas?', href: '#faq' },
 ];
 
@@ -38,7 +48,8 @@ const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string)
 export const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPromo, setShowPromo] = useState(true);
-  const [showMegaMenu, setShowMegaMenu] = useState(false);
+  const [activeMegaMenu, setActiveMegaMenu] = useState<'equipos' | 'convenios' | null>(null);
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
 
   return (
     <>
@@ -93,8 +104,8 @@ export const Navbar: React.FC = () => {
                 <div
                   key={item.label}
                   className="relative"
-                  onMouseEnter={() => item.hasMegaMenu && setShowMegaMenu(true)}
-                  onMouseLeave={() => item.hasMegaMenu && setShowMegaMenu(false)}
+                  onMouseEnter={() => item.megaMenuType && setActiveMegaMenu(item.megaMenuType)}
+                  onMouseLeave={() => item.megaMenuType && setActiveMegaMenu(null)}
                 >
                   <a
                     href={item.href}
@@ -102,7 +113,7 @@ export const Navbar: React.FC = () => {
                     className="flex items-center gap-1 text-neutral-600 hover:text-[#4654CD] text-sm font-medium transition-colors"
                   >
                     {item.label}
-                    {item.hasMegaMenu && <ChevronDown className={`w-3 h-3 transition-transform ${showMegaMenu ? 'rotate-180' : ''}`} />}
+                    {item.megaMenuType && <ChevronDown className={`w-3 h-3 transition-transform ${activeMegaMenu === item.megaMenuType ? 'rotate-180' : ''}`} />}
                     {index === 0 && (
                       <Chip
                         size="sm"
@@ -117,10 +128,10 @@ export const Navbar: React.FC = () => {
                     )}
                   </a>
 
-                  {/* MegaMenu */}
-                  {item.hasMegaMenu && (
+                  {/* MegaMenu - Equipos */}
+                  {item.megaMenuType === 'equipos' && (
                     <AnimatePresence>
-                      {showMegaMenu && (
+                      {activeMegaMenu === 'equipos' && (
                         <motion.div
                           className="absolute top-full left-0 pt-2 w-80"
                           initial={{ opacity: 0, y: -10 }}
@@ -144,6 +155,33 @@ export const Navbar: React.FC = () => {
                                   </p>
                                   <p className="text-xs text-neutral-500">{menuItem.description}</p>
                                 </div>
+                              </a>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  )}
+
+                  {/* MegaMenu - Convenios */}
+                  {item.megaMenuType === 'convenios' && (
+                    <AnimatePresence>
+                      {activeMegaMenu === 'convenios' && (
+                        <motion.div
+                          className="absolute top-full left-0 pt-2 w-48"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          <div className="bg-white rounded-xl shadow-xl border border-neutral-100 p-2">
+                            {conveniosMegaMenuItems.map((menuItem) => (
+                              <a
+                                key={menuItem.slug}
+                                href={`${convenioUrl}${menuItem.slug}`}
+                                className="block px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-700 hover:bg-[#4654CD]/10 hover:text-[#4654CD] transition-colors"
+                              >
+                                {menuItem.label}
                               </a>
                             ))}
                           </div>
@@ -195,31 +233,79 @@ export const Navbar: React.FC = () => {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
             >
-              <div className="px-4 py-4 space-y-3">
+              <div className="px-4 py-4 space-y-1">
                 {navItems.map((item, index) => (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    className="flex items-center justify-between py-2 text-neutral-600 hover:text-[#4654CD] font-medium"
-                    onClick={(e) => {
-                      handleAnchorClick(e, item.href);
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    {item.label}
-                    {index === 0 && (
-                      <Chip
-                        size="sm"
-                        radius="sm"
-                        classNames={{
-                          base: 'bg-[#03DBD0] px-1.5 py-0 h-5',
-                          content: 'text-[10px] font-bold text-white',
+                  <div key={item.label}>
+                    {item.megaMenuType ? (
+                      <>
+                        <button
+                          className="flex items-center justify-between w-full py-3 text-neutral-600 hover:text-[#4654CD] font-medium cursor-pointer"
+                          onClick={() => setMobileExpanded(mobileExpanded === item.megaMenuType ? null : item.megaMenuType!)}
+                        >
+                          <span className="flex items-center gap-2">
+                            {item.label}
+                            {index === 0 && (
+                              <Chip
+                                size="sm"
+                                radius="sm"
+                                classNames={{
+                                  base: 'bg-[#03DBD0] px-1.5 py-0 h-5',
+                                  content: 'text-[10px] font-bold text-white',
+                                }}
+                              >
+                                NUEVO
+                              </Chip>
+                            )}
+                          </span>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${mobileExpanded === item.megaMenuType ? 'rotate-180' : ''}`} />
+                        </button>
+                        <AnimatePresence>
+                          {mobileExpanded === item.megaMenuType && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="pl-4 pb-2 space-y-1">
+                                {item.megaMenuType === 'equipos' && megaMenuItems.map((subItem) => (
+                                  <a
+                                    key={subItem.label}
+                                    href={subItem.href}
+                                    className="block py-2 text-sm text-neutral-500 hover:text-[#4654CD]"
+                                    onClick={() => setIsMenuOpen(false)}
+                                  >
+                                    {subItem.label}
+                                  </a>
+                                ))}
+                                {item.megaMenuType === 'convenios' && conveniosMegaMenuItems.map((subItem) => (
+                                  <a
+                                    key={subItem.slug}
+                                    href={`${convenioUrl}${subItem.slug}`}
+                                    className="block py-2 text-sm text-neutral-500 hover:text-[#4654CD]"
+                                    onClick={() => setIsMenuOpen(false)}
+                                  >
+                                    {subItem.label}
+                                  </a>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </>
+                    ) : (
+                      <a
+                        href={item.href}
+                        className="block py-3 text-neutral-600 hover:text-[#4654CD] font-medium"
+                        onClick={(e) => {
+                          handleAnchorClick(e, item.href);
+                          setIsMenuOpen(false);
                         }}
                       >
-                        NUEVO
-                      </Chip>
+                        {item.label}
+                      </a>
                     )}
-                  </a>
+                  </div>
                 ))}
                 <div className="pt-4 border-t border-neutral-100">
                   <Button

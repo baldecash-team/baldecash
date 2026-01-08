@@ -1,0 +1,1 @@
+export { ConvenioFooter } from './ConvenioFooter';

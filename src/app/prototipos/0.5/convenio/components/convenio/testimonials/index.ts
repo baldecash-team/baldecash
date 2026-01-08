@@ -1,0 +1,1 @@
+export { ConvenioTestimonials } from './ConvenioTestimonials';
