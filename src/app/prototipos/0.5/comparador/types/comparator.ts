@@ -198,6 +198,10 @@ export const specCategories = {
 
 export const MAX_COMPARE_PRODUCTS = 3;
 
+export function getMaxProducts(version: 1 | 2): number {
+  return MAX_COMPARE_PRODUCTS;
+}
+
 // ============================================
 // Helpers
 // ============================================

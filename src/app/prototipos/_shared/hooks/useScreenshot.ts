@@ -101,55 +101,58 @@ export function useScreenshot() {
         }
       });
 
-      // 2. Convertir elementos sticky a fixed para que se capturen correctamente
-      document.querySelectorAll('*').forEach((el) => {
-        if (el instanceof HTMLElement) {
-          const computed = getComputedStyle(el);
-          const position = computed.position;
-
-          if (position === 'sticky') {
-            // No modificar elementos de feedback
-            if (
-              el.hasAttribute('data-feedback-button') ||
-              el.hasAttribute('data-feedback-overlay') ||
-              el.closest('[data-feedback-button]') ||
-              el.closest('[data-feedback-overlay]')
-            ) {
-              return;
-            }
-
-            // Solo convertir sticky a fixed para elementos que NO son aside/sidebars
-            // Los sidebars causan problemas de layout al convertirlos
-            if (el.tagName.toLowerCase() === 'aside' || el.closest('aside')) {
-              return;
-            }
-
-            // Obtener la posición visual actual del elemento sticky
-            const rect = el.getBoundingClientRect();
-
-            elementsToFix.push({
-              type: 'sticky',
-              el,
-              originalPosition: position,
-              originalTop: el.style.top,
-              originalLeft: el.style.left,
-              originalWidth: el.style.width,
-            });
-
-            // Convertir a fixed compensando el transform del body
-            el.style.position = 'fixed';
-            el.style.top = `${rect.top + window.scrollY}px`;
-            el.style.left = `${rect.left}px`;
-            el.style.width = `${rect.width}px`;
-          }
-        }
-      });
-
-      // 3. Detectar si hay un modal/popup abierto (fixed position overlay)
+      // 2. Detectar si hay un modal/popup abierto (fixed position overlay)
       // Los modales fixed no se mueven con el transform, así que no lo aplicamos
       const hasOpenModal = document.querySelector(
         '[role="dialog"], .nextui-modal, [data-slot="wrapper"]'
       );
+
+      // 3. Convertir elementos sticky a fixed para que se capturen correctamente
+      // SOLO cuando NO hay modal abierto (los sticky dentro de modales rompen el layout)
+      if (!hasOpenModal) {
+        document.querySelectorAll('*').forEach((el) => {
+          if (el instanceof HTMLElement) {
+            const computed = getComputedStyle(el);
+            const position = computed.position;
+
+            if (position === 'sticky') {
+              // No modificar elementos de feedback
+              if (
+                el.hasAttribute('data-feedback-button') ||
+                el.hasAttribute('data-feedback-overlay') ||
+                el.closest('[data-feedback-button]') ||
+                el.closest('[data-feedback-overlay]')
+              ) {
+                return;
+              }
+
+              // Solo convertir sticky a fixed para elementos que NO son aside/sidebars
+              // Los sidebars causan problemas de layout al convertirlos
+              if (el.tagName.toLowerCase() === 'aside' || el.closest('aside')) {
+                return;
+              }
+
+              // Obtener la posición visual actual del elemento sticky
+              const rect = el.getBoundingClientRect();
+
+              elementsToFix.push({
+                type: 'sticky',
+                el,
+                originalPosition: position,
+                originalTop: el.style.top,
+                originalLeft: el.style.left,
+                originalWidth: el.style.width,
+              });
+
+              // Convertir a fixed compensando el transform del body
+              el.style.position = 'fixed';
+              el.style.top = `${rect.top + window.scrollY}px`;
+              el.style.left = `${rect.left}px`;
+              el.style.width = `${rect.width}px`;
+            }
+          }
+        });
+      }
 
       // 4. Capturar el viewport visible
       const dataUrl = await domToJpeg(document.body, {

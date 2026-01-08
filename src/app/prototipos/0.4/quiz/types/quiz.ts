@@ -132,7 +132,7 @@ export interface HelpQuizProps {
   config: QuizConfig;
   isOpen: boolean;
   onClose: () => void;
-  onComplete?: (results: QuizResult[]) => void;
+  onComplete?: (results: QuizResult[], answers?: QuizAnswer[]) => void;
 }
 
 // ============================================

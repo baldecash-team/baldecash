@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { Trash2, Scale, ArrowRight, Trophy } from 'lucide-react';
@@ -30,6 +30,13 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   const specs = compareSpecs(products);
   const priceDiff = calculatePriceDifference(products);
   const [showBestOption, setShowBestOption] = useState(false);
+
+  // Reset showBestOption when comparator opens
+  useEffect(() => {
+    if (isOpen) {
+      setShowBestOption(false);
+    }
+  }, [isOpen]);
 
   // Find the best option (lowest monthly quota)
   const bestProduct = useMemo(() => {
@@ -92,7 +99,17 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       case 2:
         return <DesignStyleB {...commonProps} onSelectProduct={handleSelectProduct} />;
       case 3:
-        return <DesignStyleC {...commonProps} onSelectProduct={handleSelectProduct} />;
+        return (
+          <DesignStyleC
+            {...commonProps}
+            onSelectProduct={handleSelectProduct}
+            showOnlyDifferences={comparisonState.showOnlyDifferences}
+            onToggleDifferences={(value) => onStateChange({
+              ...comparisonState,
+              showOnlyDifferences: value,
+            })}
+          />
+        );
       default:
         return <DesignStyleA {...commonProps} />;
     }
@@ -138,21 +155,23 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
         </ModalHeader>
 
         <ModalBody>
-          {/* Toggle for differences */}
-          <div className="flex items-center justify-start gap-4 mb-4 pt-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={comparisonState.showOnlyDifferences}
-                onChange={(e) => onStateChange({
-                  ...comparisonState,
-                  showOnlyDifferences: e.target.checked,
-                })}
-                className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
-              />
-              <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
-            </label>
-          </div>
+          {/* Toggle for differences - Oculto para DesignStyleC (tiene su propio checkbox) */}
+          {config.designStyle !== 3 && (
+            <div className="flex items-center justify-start gap-4 mb-4 pt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={comparisonState.showOnlyDifferences}
+                  onChange={(e) => onStateChange({
+                    ...comparisonState,
+                    showOnlyDifferences: e.target.checked,
+                  })}
+                  className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
+                />
+                <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
+              </label>
+            </div>
+          )}
 
           {/* Design Style Content */}
           {renderDesignStyle()}

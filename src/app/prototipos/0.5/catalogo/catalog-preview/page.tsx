@@ -17,6 +17,7 @@ import {
   Scale,
   Trash2,
   HelpCircle,
+  Heart,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -32,6 +33,7 @@ import { LoadMoreButton } from '../components/catalog/LoadMoreButton';
 // Empty state
 import { EmptyState } from '../components/empty';
 
+
 // Types
 import {
   CatalogLayoutConfig,
@@ -41,6 +43,10 @@ import {
   SortOption,
   ColorSelectorVersion,
   loadingDurationMs,
+  UsageType,
+  GpuType,
+  CatalogProduct,
+  CatalogViewMode,
 } from '../types/catalog';
 
 // Data
@@ -51,16 +57,18 @@ import {
   mockProducts,
 } from '../data/mockCatalogData';
 
-// External components from v0.4 (shared)
-import { ProductComparator } from '@/app/prototipos/0.4/comparador/components/comparator/ProductComparator';
+// External components from v0.5
+import { ProductComparator } from '@/app/prototipos/0.5/comparador/components/comparator';
 import {
   ComparatorConfig,
   ComparisonState,
   defaultComparisonState,
   ComparisonProduct,
   getMaxProducts,
-} from '@/app/prototipos/0.4/comparador/types/comparator';
+} from '@/app/prototipos/0.5/comparador/types/comparator';
 import { HelpQuiz } from '@/app/prototipos/0.4/quiz/components/quiz';
+import { QuizAnswer } from '@/app/prototipos/0.4/quiz/types/quiz';
+import { quizQuestionsUsage } from '@/app/prototipos/0.4/quiz/data/mockQuizData';
 import { AppliedFilter } from '../types/empty';
 
 // URLs
@@ -85,16 +93,85 @@ const getUpsellUrl = (isCleanMode: boolean) => {
   return isCleanMode ? `${baseUrl}&mode=clean` : baseUrl;
 };
 
-// Configuración fija del comparador
+// Mapear respuestas del quiz a filtros del catálogo
+const mapQuizAnswersToFilters = (answers: QuizAnswer[], currentFilters: FilterState): Partial<FilterState> => {
+  const newFilters: Partial<FilterState> = {};
+
+  answers.forEach((answer) => {
+    const question = quizQuestionsUsage.find((q) => q.id === answer.questionId);
+    if (!question) return;
+
+    const selectedOption = question.options.find((opt) => opt.id === answer.selectedOptions[0]);
+    if (!selectedOption?.weight) return;
+
+    const weight = selectedOption.weight as Record<string, unknown>;
+
+    // Mapear usage
+    if (weight.usage) {
+      const usageMap: Record<string, string> = {
+        study: 'estudiante',
+        gaming: 'gaming',
+        design: 'creativo',
+        office: 'oficina',
+        coding: 'programacion',
+      };
+      const mappedUsage = usageMap[weight.usage as string];
+      if (mappedUsage) {
+        newFilters.usage = [mappedUsage as UsageType];
+      }
+    }
+
+    // Mapear RAM
+    if (weight.ram && typeof weight.ram === 'number') {
+      newFilters.ram = [weight.ram];
+    }
+
+    // Mapear marca
+    if (weight.brand && weight.brand !== 'any') {
+      newFilters.brands = [(weight.brand as string).toLowerCase()];
+    }
+
+    // Mapear presupuesto (quotaRange)
+    if (weight.budget) {
+      const budgetMap: Record<string, [number, number]> = {
+        low: [0, 80],
+        medium: [80, 150],
+        high: [150, 250],
+        premium: [250, 500],
+      };
+      const range = budgetMap[weight.budget as string];
+      if (range) {
+        newFilters.quotaRange = range;
+      }
+    }
+
+    // Mapear tamaño de pantalla
+    if (weight.display && typeof weight.display === 'number') {
+      if (weight.display <= 14) {
+        newFilters.displaySize = [13.3, 14];
+      } else if (weight.display <= 15.6) {
+        newFilters.displaySize = [15.6];
+      } else {
+        newFilters.displaySize = [16, 17.3];
+      }
+    }
+
+    // Mapear GPU
+    if (weight.gpu === 'dedicated') {
+      newFilters.gpuType = ['dedicated'];
+    }
+  });
+
+  return newFilters;
+};
+
+// Configuración fija del comparador (v0.5)
 const comparatorConfig: ComparatorConfig = {
   layoutVersion: 1,
-  accessVersion: 1,
-  maxProductsVersion: 2,
+  designStyle: 3,
   fieldsVersion: 2,
   highlightVersion: 1,
   priceDiffVersion: 1,
-  differenceHighlightVersion: 5,
-  cardSelectionVersion: 3,
   defaultTerm: 24,
   defaultInitial: 10,
 };
@@ -167,7 +244,7 @@ function CatalogPreviewContent() {
   const [compareList, setCompareList] = useState<string[]>([]);
   const [isComparatorOpen, setIsComparatorOpen] = useState(false);
   const [comparisonState, setComparisonState] = useState<ComparisonState>(defaultComparisonState);
-  const maxCompareProducts = useMemo(() => getMaxProducts(comparatorConfig.maxProductsVersion), []);
+  const maxCompareProducts = useMemo(() => getMaxProducts(comparatorConfig.layoutVersion), []);
 
   // Quiz state
   const [isQuizOpen, setIsQuizOpen] = useState(false);
@@ -178,6 +255,42 @@ function CatalogPreviewContent() {
     resultsVersion: 1 as const,
     focusVersion: 1 as const,
   };
+
+  // Wishlist state with localStorage persistence
+  const [wishlist, setWishlist] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<CatalogViewMode>('all');
+  const [isWishlistLoaded, setIsWishlistLoaded] = useState(false);
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+  // Load wishlist from localStorage on mount (client-side only)
+  useEffect(() => {
+    const saved = localStorage.getItem('baldecash-wishlist');
+    if (saved) {
+      try {
+        setWishlist(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error parsing wishlist from localStorage:', e);
+      }
+    }
+    setIsWishlistLoaded(true);
+  }, []);
+
+  // Persist wishlist to localStorage (only after initial load)
+  useEffect(() => {
+    if (isWishlistLoaded) {
+      localStorage.setItem('baldecash-wishlist', JSON.stringify(wishlist));
+    }
+  }, [wishlist, isWishlistLoaded]);
+
+  const handleToggleWishlist = useCallback((productId: string) => {
+    setWishlist((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId]
+    );
+  }, []);
+
+
 
   // Pagination
   const INITIAL_ROWS = 4;
@@ -241,6 +354,15 @@ function CatalogPreviewContent() {
     return sortProducts(products, sort);
   }, [filters, sort]);
 
+  // Products to display based on viewMode
+  const displayedProducts = useMemo(() => {
+    if (viewMode === 'favorites') {
+      // When in favorites view, show wishlist products that also match current filters
+      return filteredProducts.filter((p) => wishlist.includes(p.id));
+    }
+    return filteredProducts;
+  }, [viewMode, filteredProducts, wishlist]);
+
   const filterCounts = useMemo(() => getFilterCounts(mockProducts), []);
 
   // Loading effect
@@ -259,9 +381,9 @@ function CatalogPreviewContent() {
   // Pagination calculations
   const columnsCount = config.productsPerRow.desktop;
   const visibleProductsCount = visibleRows * columnsCount;
-  const visibleProducts = filteredProducts.slice(0, visibleProductsCount);
-  const hasMoreProducts = visibleProductsCount < filteredProducts.length;
-  const remainingProducts = filteredProducts.length - visibleProductsCount;
+  const visibleProducts = displayedProducts.slice(0, visibleProductsCount);
+  const hasMoreProducts = visibleProductsCount < displayedProducts.length;
+  const remainingProducts = displayedProducts.length - visibleProductsCount;
 
   const handleLoadMore = useCallback(() => {
     setIsLoadingMore(true);
@@ -338,13 +460,14 @@ function CatalogPreviewContent() {
     <div className="min-h-screen relative">
       {/* Catalog Layout with Products */}
       <CatalogLayout
-        products={filteredProducts}
+        products={displayedProducts}
         filters={filters}
         onFiltersChange={setFilters}
         sort={sort}
         onSortChange={setSort}
         config={config}
         filterCounts={filterCounts}
+        onFilterDrawerChange={setIsFilterDrawerOpen}
       >
         {isLoading ? (
           Array.from({ length: visibleProductsCount }).map((_, index) => (
@@ -358,7 +481,8 @@ function CatalogPreviewContent() {
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
                 onAddToCart={() => router.push(getUpsellUrl(isCleanMode))}
-                onFavorite={() => console.log('Toggle favorite:', product.id)}
+                onFavorite={() => handleToggleWishlist(product.id)}
+                isFavorite={wishlist.includes(product.id)}
                 onViewDetail={() => router.push(getDetailUrl(product.id, isCleanMode))}
                 onCompare={() => handleToggleCompare(product.id)}
                 isCompareSelected={compareList.includes(product.id)}
@@ -378,58 +502,91 @@ function CatalogPreviewContent() {
           <LoadMoreButton
             version={config.loadMoreVersion}
             remainingProducts={remainingProducts}
-            totalProducts={filteredProducts.length}
+            totalProducts={displayedProducts.length}
             visibleProducts={visibleProducts.length}
             onLoadMore={handleLoadMore}
           />
         )}
 
         {/* Empty State */}
-        {!isLoading && filteredProducts.length === 0 && (
+        {!isLoading && displayedProducts.length === 0 && (
           <div className="col-span-full">
-            <EmptyState
-              appliedFilters={appliedFilters}
-              onClearFilters={() => setFilters(defaultFilterState)}
-              onExpandPriceRange={() => setFilters((prev) => ({ ...prev, priceRange: [0, 10000] }))}
-              onRemoveFilter={handleRemoveFilter}
-              totalProductsIfExpanded={mockProducts.length}
-              config={{ illustrationVersion: 5, actionsVersion: 6 }}
-            />
-
-            {/* Quiz CTA in Empty State */}
-            <section className="mt-8 px-4">
-              <div className="bg-gradient-to-r from-[#4654CD]/5 to-[#4654CD]/10 rounded-2xl p-6 border border-[#4654CD]/20">
-                <div className="flex flex-col md:flex-row items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-[#4654CD] flex items-center justify-center flex-shrink-0">
-                    <HelpCircle className="w-7 h-7 text-white" />
-                  </div>
-                  <div className="flex-1 text-center md:text-left">
-                    <h3 className="text-lg font-semibold text-neutral-800 mb-1">¿No encuentras lo que buscas?</h3>
-                    <p className="text-sm text-neutral-600">
-                      Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
-                    </p>
-                  </div>
+            {viewMode === 'favorites' ? (
+              // Empty state for favorites view
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                <div className="w-24 h-24 rounded-full bg-neutral-100 flex items-center justify-center mb-6">
+                  <Heart className="w-12 h-12 text-neutral-300" />
+                </div>
+                <h3 className="text-xl font-semibold text-neutral-800 mb-2">
+                  {wishlist.length === 0 ? 'Sin favoritos aún' : 'No hay favoritos que coincidan'}
+                </h3>
+                <p className="text-neutral-500 mb-6 max-w-md">
+                  {wishlist.length === 0
+                    ? 'Haz clic en el corazón de cualquier producto para agregarlo a tus favoritos'
+                    : 'Tus favoritos no coinciden con los filtros actuales. Prueba ajustar los filtros o ver todos los productos.'}
+                </p>
+                <div className="flex gap-3">
                   <Button
-                    className="bg-[#4654CD] text-white font-medium cursor-pointer hover:bg-[#3a47b3] transition-colors"
-                    onPress={() => setIsQuizOpen(true)}
-                    startContent={<HelpCircle className="w-4 h-4" />}
+                    variant="bordered"
+                    onPress={() => setViewMode('all')}
+                    className="cursor-pointer"
                   >
-                    Iniciar asistente
+                    Ver todos los productos
                   </Button>
+                  {wishlist.length > 0 && appliedFilters.length > 0 && (
+                    <Button
+                      variant="light"
+                      onPress={() => setFilters(defaultFilterState)}
+                      className="cursor-pointer text-neutral-600"
+                    >
+                      Limpiar filtros
+                    </Button>
+                  )}
                 </div>
               </div>
-            </section>
+            ) : (
+              <>
+                <EmptyState
+                  appliedFilters={appliedFilters}
+                  onClearFilters={() => setFilters(defaultFilterState)}
+                  onExpandPriceRange={() => setFilters((prev) => ({ ...prev, priceRange: [0, 10000] }))}
+                  onRemoveFilter={handleRemoveFilter}
+                  totalProductsIfExpanded={mockProducts.length}
+                  config={{ illustrationVersion: 5, actionsVersion: 6 }}
+                />
+
+                {/* Quiz CTA in Empty State */}
+                <section className="mt-8 px-4">
+                  <div className="bg-gradient-to-r from-[#4654CD]/5 to-[#4654CD]/10 rounded-2xl p-6 border border-[#4654CD]/20">
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-[#4654CD] flex items-center justify-center flex-shrink-0">
+                        <HelpCircle className="w-7 h-7 text-white" />
+                      </div>
+                      <div className="flex-1 text-center md:text-left">
+                        <h3 className="text-lg font-semibold text-neutral-800 mb-1">¿No encuentras lo que buscas?</h3>
+                        <p className="text-sm text-neutral-600">
+                          Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
+                        </p>
+                      </div>
+                      <Button
+                        className="bg-[#4654CD] text-white font-medium cursor-pointer hover:bg-[#3a47b3] transition-colors"
+                        onPress={() => setIsQuizOpen(true)}
+                        startContent={<HelpCircle className="w-4 h-4" />}
+                      >
+                        Iniciar asistente
+                      </Button>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
           </div>
         )}
       </CatalogLayout>
 
-      {/* Floating Comparison Bar */}
-      {compareList.length > 0 && !isComparatorOpen && (
-        <div
-          className={`fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 flex items-center gap-4 ${
-            config.layoutVersion === 4 ? 'bottom-24 lg:bottom-6' : 'bottom-6'
-          }`}
-        >
+      {/* Floating Comparison Bar - Desktop only */}
+      {compareList.length > 0 && !isComparatorOpen && !isQuizOpen && (
+        <div className="hidden lg:flex fixed left-1/2 -translate-x-1/2 bottom-6 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
               <Scale className="w-5 h-5 text-[#4654CD]" />
@@ -495,27 +652,99 @@ function CatalogPreviewContent() {
         />
       )}
 
-      {/* Quiz FAB - Bottom Left */}
-      <div className="fixed bottom-6 left-6 z-[100]">
-        <Button
-          className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-4"
-          onPress={() => setIsQuizOpen(true)}
-        >
-          <HelpCircle className="w-5 h-5" />
-          <span className="hidden sm:inline">¿Necesitas ayuda?</span>
-        </Button>
-      </div>
+      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, or filter drawer is open) */}
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && (
+        <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
+          {/* Compare button - mobile only, visible when products are selected */}
+          {compareList.length > 0 && (
+            <Button
+              className={`lg:hidden shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-4 ${
+                compareList.length >= 2
+                  ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+                  : 'bg-white text-[#4654CD] border border-[#4654CD]/20 hover:bg-neutral-100'
+              }`}
+              onPress={() => {
+                if (compareList.length >= 2) {
+                  setIsComparatorOpen(true);
+                }
+              }}
+              isDisabled={compareList.length < 2}
+            >
+              <Scale className="w-5 h-5" />
+              <span className="hidden sm:inline lg:hidden">Comparar</span>
+              <span className={`text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 ${
+                compareList.length >= 2 ? 'bg-white text-[#4654CD]' : 'bg-[#4654CD] text-white'
+              }`}>
+                {compareList.length}/{maxCompareProducts}
+              </span>
+            </Button>
+          )}
+
+          {/* Favoritos button - toggles view mode */}
+          <Button
+            className={`shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-4 ${
+              viewMode === 'favorites'
+                ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+                : 'bg-white text-[#4654CD] border border-[#4654CD]/20 hover:bg-neutral-100'
+            }`}
+            onPress={() => setViewMode(viewMode === 'favorites' ? 'all' : 'favorites')}
+          >
+            <Heart className={`w-5 h-5 ${viewMode === 'favorites' || wishlist.length > 0 ? 'fill-current' : ''}`} />
+            <span className="hidden sm:inline">
+              {viewMode === 'favorites' ? 'Ver todos' : 'Favoritos'}
+            </span>
+            {wishlist.length > 0 && (
+              <span className={`text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 ${
+                viewMode === 'favorites' ? 'bg-white text-[#4654CD]' : 'bg-[#4654CD] text-white'
+              }`}>
+                {wishlist.length}
+              </span>
+            )}
+          </Button>
+
+          {/* Quiz button */}
+          <Button
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-4"
+            onPress={() => setIsQuizOpen(true)}
+          >
+            <HelpCircle className="w-5 h-5" />
+            <span className="hidden sm:inline">¿Necesitas ayuda?</span>
+          </Button>
+        </div>
+      )}
 
       {/* Help Quiz Modal */}
       <HelpQuiz
         config={quizConfig}
         isOpen={isQuizOpen}
         onClose={() => setIsQuizOpen(false)}
-        onComplete={(results) => {
-          console.log('Quiz completed:', results);
+        onComplete={(results, answers) => {
+          console.log('Quiz completed:', results, answers);
+          // Aplicar filtros basados en las respuestas del quiz
+          if (answers && answers.length > 0) {
+            const quizFilters = mapQuizAnswersToFilters(answers, filters);
+            setFilters((prev) => ({
+              ...prev,
+              ...quizFilters,
+            }));
+          }
           setIsQuizOpen(false);
         }}
       />
+
+      {/* Back to top button - visible ONLY in clean mode (above FeedbackButton) */}
+      {isCleanMode && showScrollTop && (
+        <div className="fixed bottom-20 right-6 z-[100]">
+          <Button
+            isIconOnly
+            radius="md"
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-110"
+            onPress={scrollToTop}
+          >
+            <ArrowUp className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
 
       {/* Floating Action Buttons - hidden in clean mode */}
       {!isCleanMode && (

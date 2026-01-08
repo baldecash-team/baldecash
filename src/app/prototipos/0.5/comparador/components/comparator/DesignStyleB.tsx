@@ -95,12 +95,15 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
             }`}
           >
             {/* Remove button */}
-            <button
-              onClick={() => onRemoveProduct(product.id)}
-              className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/80 backdrop-blur border border-neutral-200 hover:bg-red-50 hover:border-red-200 flex items-center justify-center cursor-pointer transition-all z-10 shadow-sm"
+            <Button
+              isIconOnly
+              size="sm"
+              variant="flat"
+              onPress={() => onRemoveProduct(product.id)}
+              className="absolute top-3 right-3 w-7 h-7 min-w-7 rounded-full bg-white/80 backdrop-blur border border-neutral-200 hover:bg-red-50 hover:border-red-200 cursor-pointer z-10 shadow-sm"
             >
-              <X className="w-4 h-4 text-neutral-500 hover:text-red-500" />
-            </button>
+              <X className="w-4 h-4 text-neutral-500" />
+            </Button>
 
             <CardHeader className="flex flex-col items-center gap-3 pt-6 pb-4">
               {/* Best badge */}

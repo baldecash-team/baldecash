@@ -1,5 +1,6 @@
 // Barrel exports for Comparator components v0.5
 
+export { ProductComparator } from './ProductComparator';
 export { ComparatorV1 } from './ComparatorV1';
 export { ComparatorV2 } from './ComparatorV2';
 export { ComparatorSettingsModal } from './ComparatorSettingsModal';

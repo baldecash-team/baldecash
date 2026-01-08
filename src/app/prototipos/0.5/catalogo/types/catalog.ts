@@ -556,6 +556,9 @@ export interface FilterCounts {
   stock: Record<string, number>;
 }
 
+// View mode for catalog (all products vs favorites)
+export type CatalogViewMode = 'all' | 'favorites';
+
 export interface CatalogLayoutProps {
   products: CatalogProduct[];
   filters: FilterState;
@@ -565,6 +568,8 @@ export interface CatalogLayoutProps {
   config: CatalogLayoutConfig;
   filterCounts?: FilterCounts;
   children?: ReactNode;
+  // Filter drawer state callback (for mobile)
+  onFilterDrawerChange?: (isOpen: boolean) => void;
 }
 
 export interface BrandFilterProps {

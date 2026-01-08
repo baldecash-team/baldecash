@@ -48,9 +48,21 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   config,
   filterCounts,
   children,
+  onFilterDrawerChange,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Notify parent when drawer state changes
+  const handleDrawerOpen = () => {
+    setIsDrawerOpen(true);
+    onFilterDrawerChange?.(true);
+  };
+
+  const handleDrawerClose = () => {
+    setIsDrawerOpen(false);
+    onFilterDrawerChange?.(false);
+  };
 
   // Apply dynamic counts to options
   const dynamicBrandOptions = React.useMemo(() =>
@@ -497,7 +509,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       {/* Mobile Filter Button - Only visible on mobile (lg:hidden) */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 lg:hidden">
         <button
-          onClick={() => setIsDrawerOpen(true)}
+          onClick={handleDrawerOpen}
           className="flex items-center gap-3 bg-[#4654CD] text-white shadow-xl hover:bg-[#3a47b3] transition-all cursor-pointer px-5 py-3 rounded-xl hover:shadow-2xl hover:scale-105"
         >
           <SlidersHorizontal className="w-5 h-5" />
@@ -513,7 +525,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       {/* Mobile Filter Drawer Modal */}
       <Modal
         isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
+        onClose={handleDrawerClose}
         size="full"
         scrollBehavior="inside"
         classNames={{
@@ -621,7 +633,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             </Button>
             <Button
               className="bg-[#4654CD] text-white flex-1 cursor-pointer"
-              onPress={() => setIsDrawerOpen(false)}
+              onPress={handleDrawerClose}
             >
               Ver {products.length} resultados
             </Button>

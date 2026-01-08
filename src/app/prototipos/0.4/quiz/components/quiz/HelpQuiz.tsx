@@ -147,16 +147,18 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     setAnswers(updatedAnswers);
 
     if (currentStep >= totalSteps - 1) {
-      setIsCalculating(true);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      // Generar resultados y llamar onComplete inmediatamente
       const quizResults = generateMockResults(updatedAnswers);
-      setResults(quizResults);
-      setIsCalculating(false);
 
       if (onComplete) {
-        onComplete(quizResults);
+        onComplete(quizResults, updatedAnswers);
       }
+
+      // Reiniciar el quiz para la próxima vez
+      setCurrentStep(0);
+      setAnswers([]);
+      setSelectedOption(null);
+      setResults(null);
     } else {
       setCurrentStep((prev) => prev + 1);
       setSelectedOption(null);
