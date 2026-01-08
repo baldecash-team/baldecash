@@ -131,7 +131,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'wizard-solicitud', name: 'Wizard Solicitud', path: '/prototipos/0.5/wizard-solicitud/wizard-preview', status: 'done', promptNumber: '08-13, 18' },
       { id: 'upsell', name: 'Upsell', path: '/prototipos/0.5/upsell/upsell-preview', status: 'done', promptNumber: '14' },
       { id: 'aprobacion', name: 'Aprobación', path: '/prototipos/0.5/aprobacion/aprobado-preview', status: 'done', promptNumber: '15' },
-      { id: 'rechazo', name: 'Rechazo', path: '/prototipos/0.5/resultado/rechazado-preview', status: 'pending', promptNumber: '16' },
+      { id: 'rechazo', name: 'Rechazo', path: '/prototipos/0.5/rechazo/rechazado-preview', status: 'done', promptNumber: '16' },
       { id: 'convenio', name: 'Convenio', path: '/prototipos/0.5/convenio', status: 'pending', promptNumber: '17' },
     ],
     createdAt: '2026-01-06',
