@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@nextui-org/react";
-import { Palette, Layers, Rocket, ArrowLeft, CheckCircle, AlertCircle, SearchX, FileText, GitCompare, HelpCircle, ClipboardList, ShoppingCart, CheckCircle2, XCircle, Building2, Keyboard, Command, Presentation } from "lucide-react";
+import { Palette, Layers, Rocket, ArrowLeft, CheckCircle, AlertCircle, SearchX, FileText, GitCompare, HelpCircle, ClipboardList, ShoppingCart, CheckCircle2, XCircle, Building2, Keyboard, Command, Presentation, Layout } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
 
@@ -21,6 +21,8 @@ const sectionIcons: Record<string, React.ElementType> = {
   aprobacion: CheckCircle2,
   rechazo: XCircle,
   convenio: Building2,
+  recibido: CheckCircle2,
+  landing: Layout,
 };
 
 const statusStyles = {
