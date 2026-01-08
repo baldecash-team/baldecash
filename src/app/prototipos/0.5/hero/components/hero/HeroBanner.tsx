@@ -23,7 +23,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   const catalogUrl = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
 
   return (
-    <section className="relative min-h-[70vh] overflow-hidden">
+    <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
       {/* Background Image */}
       <img
         src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80"

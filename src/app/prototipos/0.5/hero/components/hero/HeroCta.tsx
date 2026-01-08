@@ -45,7 +45,7 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick }) => {
         <Button
           size="lg"
           radius="lg"
-          className="bg-[#4654CD] text-white font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
+          className="bg-[#4654CD] text-white font-semibold w-44 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
           startContent={<Laptop className="w-5 h-5" />}
           onPress={handleCatalogo}
         >
@@ -54,7 +54,7 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick }) => {
         <Button
           size="lg"
           radius="lg"
-          className="bg-[#03DBD0] text-neutral-900 font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#02c4ba] transition-colors shadow-lg shadow-[#03DBD0]/25"
+          className="bg-[#03DBD0] text-white font-semibold w-44 h-14 text-base cursor-pointer hover:bg-[#02c4ba] transition-colors shadow-lg shadow-[#03DBD0]/25"
           startContent={<HelpCircle className="w-5 h-5" />}
           onPress={handleQuiz}
         >
@@ -63,8 +63,7 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick }) => {
         <Button
           size="lg"
           radius="lg"
-          variant="bordered"
-          className="border-2 border-[#25D366] text-[#25D366] font-semibold px-8 h-14 text-base cursor-pointer hover:bg-[#25D366] hover:text-white transition-colors"
+          className="bg-[#25D366] text-white font-semibold w-44 h-14 text-base cursor-pointer hover:bg-[#20bd5a] transition-colors shadow-lg shadow-[#25D366]/25"
           startContent={<WhatsAppIcon />}
           onPress={handleWhatsApp}
         >

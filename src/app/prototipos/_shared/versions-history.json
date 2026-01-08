@@ -43,6 +43,23 @@
         "results.rejection": 1
       },
       "results": null
+    },
+    {
+      "version": "0.5",
+      "date": "2026-01-08",
+      "status": "in_progress",
+      "summary": "Iteración con hero fullscreen y mejoras de UX en footer",
+      "keyDecisions": {
+        "hero.banner": "100vh - header (fullscreen)",
+        "footer.newsletter": "Validación peruano + toast éxito"
+      },
+      "changes": [
+        "Hero banner ocupa 100vh menos altura del header",
+        "Validación de número peruano (9 dígitos, empieza con 9)",
+        "Toast de éxito en formulario newsletter",
+        "Corrección ortográfica (tildes en nombres, NEW→NUEVO)"
+      ],
+      "results": null
     }
   ],
   "componentEvolution": {

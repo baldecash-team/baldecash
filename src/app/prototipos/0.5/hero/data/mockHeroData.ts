@@ -149,7 +149,7 @@ export const mockHeroContent: HeroContent = {
 export const mockTestimonials: Testimonial[] = [
   {
     id: '1',
-    name: 'Maria Garcia',
+    name: 'María García',
     institution: 'UPN',
     quote: 'Gracias a BaldeCash pude terminar mi tesis a tiempo. El proceso fue súper rápido.',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
@@ -157,7 +157,7 @@ export const mockTestimonials: Testimonial[] = [
   },
   {
     id: '2',
-    name: 'Carlos Rodriguez',
+    name: 'Carlos Rodríguez',
     institution: 'UPC',
     quote: 'Nunca pensé que podría tener mi propia laptop. BaldeCash lo hizo posible.',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
@@ -181,7 +181,7 @@ export const mockTestimonials: Testimonial[] = [
   },
   {
     id: '5',
-    name: 'Fernanda Rios',
+    name: 'Fernanda Ríos',
     institution: 'CIBERTEC',
     quote: 'El proceso de aprobación fue increíblemente rápido. En 24 horas ya tenía mi laptop.',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop',
@@ -197,7 +197,7 @@ export const mockTestimonials: Testimonial[] = [
   },
   {
     id: '7',
-    name: 'Camila Fernandez',
+    name: 'Camila Fernández',
     institution: 'UCAL',
     quote: 'La mejor decisión que tomé. Mi laptop es perfecta para diseño gráfico.',
     avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop',
@@ -205,7 +205,7 @@ export const mockTestimonials: Testimonial[] = [
   },
   {
     id: '8',
-    name: 'Jorge Huaman',
+    name: 'Jorge Huamán',
     institution: 'CERTUS',
     quote: 'Atención personalizada y cuotas que se adaptan a mi presupuesto de estudiante.',
     avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',

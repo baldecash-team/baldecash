@@ -135,7 +135,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'convenio', name: 'Convenio', path: '/prototipos/0.5/convenio', status: 'pending', promptNumber: '17' },
     ],
     createdAt: '2026-01-06',
-    updatedAt: '2026-01-07',
+    updatedAt: '2026-01-08',
   },
 ];
 

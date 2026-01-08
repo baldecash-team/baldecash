@@ -112,7 +112,7 @@ export const Navbar: React.FC = () => {
                           content: 'text-[10px] font-bold text-white px-1',
                         }}
                       >
-                        NEW
+                        NUEVO
                       </Chip>
                     )}
                   </a>
@@ -216,7 +216,7 @@ export const Navbar: React.FC = () => {
                           content: 'text-[10px] font-bold text-white',
                         }}
                       >
-                        NEW
+                        NUEVO
                       </Chip>
                     )}
                   </a>

@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { Button, Input } from '@nextui-org/react';
-import { Facebook, Instagram, Linkedin, Twitter, Phone, Send } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Twitter, Phone, Send, CheckCircle } from 'lucide-react';
 
 const catalogUrl = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
 
@@ -58,7 +58,35 @@ const socialLinks = [
 
 export const Footer: React.FC = () => {
   const [whatsapp, setWhatsapp] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
   const currentYear = new Date().getFullYear();
+
+  const validatePeruvianPhone = (phone: string): boolean => {
+    const cleanPhone = phone.replace(/\s/g, '');
+    return /^9\d{8}$/.test(cleanPhone);
+  };
+
+  const handleSubmit = () => {
+    setError(null);
+
+    if (!whatsapp.trim()) {
+      setError('Ingresa tu número de WhatsApp');
+      return;
+    }
+
+    if (!validatePeruvianPhone(whatsapp)) {
+      setError('Ingresa un número válido (9 dígitos, ej: 987654321)');
+      return;
+    }
+
+    // Éxito
+    setIsSuccess(true);
+    setWhatsapp('');
+    setTimeout(() => {
+      setIsSuccess(false);
+    }, 3000);
+  };
 
   return (
     <footer className="bg-neutral-900 text-white">
@@ -72,27 +100,45 @@ export const Footer: React.FC = () => {
                 Sé el primero en enterarte de promociones y nuevos equipos
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-              <Input
-                type="tel"
-                placeholder="999 999 999"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                startContent={<Phone className="w-4 h-4 text-neutral-400" />}
-                classNames={{
-                  base: 'w-full sm:w-72',
-                  inputWrapper: 'bg-white border-0 h-11 focus-within:ring-0',
-                  input: 'text-neutral-800 focus:outline-none',
-                  innerWrapper: 'focus-within:ring-0',
-                }}
-              />
-              <Button
-                radius="lg"
-                className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors"
-                endContent={<Send className="w-4 h-4" />}
-              >
-                Enviar
-              </Button>
+            <div className="flex flex-col gap-2 w-full md:w-auto relative">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Input
+                  type="tel"
+                  placeholder="999 999 999"
+                  value={whatsapp}
+                  onChange={(e) => {
+                    setWhatsapp(e.target.value);
+                    if (error) setError(null);
+                  }}
+                  startContent={<Phone className="w-4 h-4 text-neutral-400" />}
+                  classNames={{
+                    base: 'w-full sm:w-72',
+                    inputWrapper: `bg-white h-11 focus-within:ring-0 ${error ? 'border-2 border-red-500' : 'border-0'}`,
+                    input: 'text-neutral-800 focus:outline-none',
+                    innerWrapper: 'focus-within:ring-0',
+                  }}
+                />
+                <Button
+                  radius="lg"
+                  className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors"
+                  endContent={<Send className="w-4 h-4" />}
+                  onPress={handleSubmit}
+                >
+                  Enviar
+                </Button>
+              </div>
+              {error && (
+                <p className="text-red-200 text-sm ml-1">{error}</p>
+              )}
+              {/* Toast de éxito */}
+              {isSuccess && (
+                <div className="absolute -bottom-12 left-0 right-0 sm:left-auto sm:right-0 sm:w-auto">
+                  <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm font-medium whitespace-nowrap">¡Número registrado con éxito!</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
