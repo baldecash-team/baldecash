@@ -1,0 +1,1 @@
+export { ReceivedMessage } from './ReceivedMessage';

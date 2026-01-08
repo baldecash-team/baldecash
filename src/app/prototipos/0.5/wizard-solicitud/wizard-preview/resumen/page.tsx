@@ -9,7 +9,7 @@ import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
 import { useWizard } from '../../context/WizardContext';
-import { User, GraduationCap, Wallet, CheckCircle2, AlertCircle, Edit2, Loader2, Check, Code, ArrowLeft } from 'lucide-react';
+import { User, GraduationCap, Wallet, AlertCircle, Edit2, Loader2, Check, Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { FeedbackButton } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -25,9 +25,8 @@ function ResumenContent() {
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
 
-  const { getFieldValue, resetForm } = useWizard();
+  const { getFieldValue } = useWizard();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
@@ -42,12 +41,8 @@ function ResumenContent() {
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 2000));
     setIsSubmitting(false);
-    setIsSubmitted(true);
-  };
-
-  const handleNewRequest = () => {
-    resetForm();
-    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview';
+    // Redirigir a página de resultados para seleccionar flujo
+    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/resultados';
     const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
     router.push(url);
   };
@@ -102,68 +97,6 @@ function ResumenContent() {
     };
     return cicloLabels[value] || value;
   };
-
-  // Success Screen
-  if (isSubmitted) {
-    const successContent = (
-      <div className="min-h-screen bg-neutral-50">
-        <div className="max-w-2xl mx-auto px-4 py-12">
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-neutral-800 mb-2">
-              ¡Solicitud Enviada!
-            </h1>
-            <p className="text-neutral-600 mb-6">
-              Hemos recibido tu solicitud correctamente. Te contactaremos pronto para continuar con el proceso.
-            </p>
-            <div className="bg-neutral-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-neutral-500">Número de solicitud</p>
-              <p className="text-lg font-mono font-semibold text-[#4654CD]">
-                SOL-{Date.now().toString().slice(-8)}
-              </p>
-            </div>
-            <button
-              onClick={handleNewRequest}
-              className="px-6 py-3 bg-[#4654CD] text-white rounded-xl font-semibold
-                         hover:bg-[#3a47b3] transition-colors cursor-pointer"
-            >
-              Nueva Solicitud
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-
-    if (isCleanMode) {
-      return (
-        <>
-          {successContent}
-          <FeedbackButton
-            sectionId="wizard-solicitud-resumen-success"
-            config={WIZARD_CONFIG as unknown as Record<string, unknown>}
-          />
-        </>
-      );
-    }
-
-    return (
-      <div className="relative">
-        {successContent}
-        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
-          <Button
-            isIconOnly
-            radius="md"
-            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-            onPress={() => router.push('/prototipos/0.5')}
-          >
-            <ArrowLeft className="w-5 h-5 text-neutral-600" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   const SummarySection = ({
     icon: Icon,

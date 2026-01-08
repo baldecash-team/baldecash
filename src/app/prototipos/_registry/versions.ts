@@ -36,6 +36,7 @@ export const SECTION_MAP: Record<string, { name: string; promptNumber: string }>
   aprobacion: { name: 'Aprobación', promptNumber: '15' },
   rechazo: { name: 'Rechazo', promptNumber: '16' },
   convenio: { name: 'Convenio Landing', promptNumber: '17' },
+  recibido: { name: 'Recibido', promptNumber: '18' },
 };
 
 // Registro de todas las versiones
@@ -133,6 +134,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'aprobacion', name: 'Aprobación', path: '/prototipos/0.5/aprobacion/aprobado-preview', status: 'done', promptNumber: '15' },
       { id: 'rechazo', name: 'Rechazo', path: '/prototipos/0.5/rechazo/rechazado-preview', status: 'done', promptNumber: '16' },
       { id: 'convenio', name: 'Convenio', path: '/prototipos/0.5/convenio', status: 'pending', promptNumber: '17' },
+      { id: 'recibido', name: 'Recibido', path: '/prototipos/0.5/recibido/recibido-preview', status: 'done', promptNumber: '18' },
     ],
     createdAt: '2026-01-06',
     updatedAt: '2026-01-08',
