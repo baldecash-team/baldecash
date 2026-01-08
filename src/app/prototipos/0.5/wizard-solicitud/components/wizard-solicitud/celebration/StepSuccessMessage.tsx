@@ -134,7 +134,7 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
             {message}
           </p>
           <p className="text-sm text-neutral-500">
-            {stepName} completado
+            Paso {stepNumber} de 4 completado
           </p>
         </motion.div>
 

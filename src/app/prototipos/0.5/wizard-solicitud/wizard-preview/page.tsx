@@ -13,6 +13,10 @@ import { useProduct, SelectedProduct } from '../context/ProductContext';
 import { FeedbackButton } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 
+// Upsell components
+import { AccessoryIntro, AccessoryCard } from '@/app/prototipos/0.5/upsell/components/upsell';
+import { mockAccessories } from '@/app/prototipos/0.5/upsell/data/mockUpsellData';
+
 // Fixed config for wizard
 const WIZARD_CONFIG = {
   section: 'wizard-solicitud',
@@ -41,7 +45,7 @@ function WizardPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
-  const { setSelectedProduct } = useProduct();
+  const { setSelectedProduct, selectedAccessories, toggleAccessory } = useProduct();
   const [showConfig, setShowConfig] = useState(false);
 
   // Set mock product on mount for testing purposes
@@ -58,7 +62,7 @@ function WizardPreviewContent() {
   // Content component to avoid duplication
   const PageContent = () => (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-2xl mx-auto px-4 py-12">
+      <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-[#4654CD]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -125,6 +129,21 @@ function WizardPreviewContent() {
               </div>
             </li>
           </ul>
+        </div>
+
+        {/* Accessories Upsell Section */}
+        <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
+          <AccessoryIntro />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {mockAccessories.map((accessory) => (
+              <AccessoryCard
+                key={accessory.id}
+                accessory={accessory}
+                isSelected={selectedAccessories.some((a) => a.id === accessory.id)}
+                onToggle={() => toggleAccessory(accessory)}
+              />
+            ))}
+          </div>
         </div>
 
         {/* CTA Button */}

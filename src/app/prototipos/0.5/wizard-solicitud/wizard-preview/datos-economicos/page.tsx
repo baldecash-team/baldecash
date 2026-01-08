@@ -113,7 +113,7 @@ function DatosEconomicosContent() {
               { value: 'empleado', label: 'Empleado' },
               { value: 'independiente', label: 'Independiente' },
               { value: 'practicante', label: 'Practicante' },
-              { value: 'desempleado', label: 'Sin empleo' },
+              { value: 'desempleado', label: 'Sin empleo actual' },
             ]}
             error={getFieldError('situacionLaboral')}
             tooltip={datosEconomicosTooltips.situacionLaboral}

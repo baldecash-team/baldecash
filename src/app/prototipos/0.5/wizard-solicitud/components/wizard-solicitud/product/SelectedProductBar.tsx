@@ -10,12 +10,12 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, Package } from 'lucide-react';
+import { ChevronUp, ChevronDown, Package, Plus } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import Image from 'next/image';
 
 export const SelectedProductBar: React.FC = () => {
-  const { selectedProduct } = useProduct();
+  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment } = useProduct();
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!selectedProduct) return null;
@@ -27,6 +27,10 @@ export const SelectedProductBar: React.FC = () => {
       minimumFractionDigits: 0,
     }).format(price);
   };
+
+  const totalPrice = getTotalPrice();
+  const totalMonthlyPayment = getTotalMonthlyPayment();
+  const hasAccessories = selectedAccessories.length > 0;
 
   return (
     <>
@@ -72,16 +76,21 @@ export const SelectedProductBar: React.FC = () => {
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium text-neutral-800 truncate">
                 {selectedProduct.shortName}
+                {hasAccessories && (
+                  <span className="text-xs text-neutral-500 ml-1">
+                    +{selectedAccessories.length} acc.
+                  </span>
+                )}
               </p>
               <p className="text-xs text-neutral-500">
-                {formatPrice(selectedProduct.monthlyPayment)}/mes × {selectedProduct.months}
+                {formatPrice(totalMonthlyPayment)}/mes × {selectedProduct.months}
               </p>
             </div>
 
             {/* Price & Expand Icon */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-sm font-semibold text-[#4654CD]">
-                {formatPrice(selectedProduct.price)}
+                {formatPrice(totalPrice)}
               </span>
               {isExpanded ? (
                 <ChevronDown className="w-5 h-5 text-neutral-400" />
@@ -144,18 +153,45 @@ export const SelectedProductBar: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Accessories List */}
+                  {hasAccessories && (
+                    <div className="mt-3 space-y-1">
+                      {selectedAccessories.map((acc) => (
+                        <div key={acc.id} className="flex items-center gap-2 text-xs text-neutral-600">
+                          <Plus className="w-3 h-3 text-[#4654CD]" />
+                          <span className="flex-1 truncate">{acc.name}</span>
+                          <span className="text-[#4654CD] font-medium">+{formatPrice(acc.monthlyQuota)}/mes</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Price Breakdown */}
                   <div className="mt-4 p-3 bg-neutral-50 rounded-lg">
                     <div className="flex justify-between text-sm">
-                      <span className="text-neutral-600">Precio total</span>
-                      <span className="font-semibold text-neutral-800">
+                      <span className="text-neutral-600">Equipo</span>
+                      <span className="text-neutral-800">
                         {formatPrice(selectedProduct.price)}
+                      </span>
+                    </div>
+                    {hasAccessories && (
+                      <div className="flex justify-between text-sm mt-1">
+                        <span className="text-neutral-600">Accesorios ({selectedAccessories.length})</span>
+                        <span className="text-neutral-800">
+                          {formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.price, 0))}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm mt-2 pt-2 border-t border-neutral-200">
+                      <span className="font-medium text-neutral-800">Total</span>
+                      <span className="font-semibold text-neutral-800">
+                        {formatPrice(totalPrice)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm mt-1">
                       <span className="text-neutral-600">Cuota mensual</span>
                       <span className="font-medium text-[#4654CD]">
-                        {formatPrice(selectedProduct.monthlyPayment)} × {selectedProduct.months} meses
+                        {formatPrice(totalMonthlyPayment)} × {selectedProduct.months} meses
                       </span>
                     </div>
                   </div>
@@ -168,7 +204,8 @@ export const SelectedProductBar: React.FC = () => {
       </div>
 
       {/* Desktop: Top Bar */}
-      <div className="hidden lg:block mb-6">
+      <div className="hidden lg:block mb-6 space-y-3">
+        {/* Product Card */}
         <div className="bg-white rounded-xl border border-neutral-200 p-4">
           <div className="flex items-center gap-4">
             {/* Product Image */}
@@ -200,7 +237,7 @@ export const SelectedProductBar: React.FC = () => {
                     selectedProduct.specs.processor,
                     selectedProduct.specs.ram,
                     selectedProduct.specs.storage
-                  ].filter(Boolean).join(' • ')}
+                  ].filter(Boolean).join(' · ')}
                 </p>
               )}
             </div>
@@ -216,6 +253,46 @@ export const SelectedProductBar: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Accessories Card - Only visible when accessories are selected */}
+        {hasAccessories && (
+          <div className="bg-[#4654CD]/5 rounded-xl border border-[#4654CD]/10 p-4">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-3">
+              <Package className="w-4 h-4 text-[#4654CD]" />
+              <p className="text-sm font-semibold text-neutral-800">
+                Accesorios ({selectedAccessories.length})
+              </p>
+            </div>
+
+            {/* Accessories List */}
+            <div className="space-y-2">
+              {selectedAccessories.map((acc) => (
+                <div key={acc.id} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Plus className="w-3 h-3 text-[#4654CD] flex-shrink-0" />
+                    <span className="text-neutral-700 truncate">{acc.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                    <span className="text-neutral-800 font-medium">{formatPrice(acc.price)}</span>
+                    <span className="text-neutral-500 text-xs">({formatPrice(acc.monthlyQuota)}/mes)</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total Summary */}
+            <div className="mt-3 pt-3 border-t border-[#4654CD]/10 flex justify-between items-center">
+              <span className="text-sm font-medium text-neutral-700">Total con accesorios</span>
+              <div className="text-right">
+                <span className="text-lg font-bold text-[#4654CD]">{formatPrice(totalPrice)}</span>
+                <span className="text-sm text-neutral-500 ml-2">
+                  ({formatPrice(totalMonthlyPayment)}/mes)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
     </>
