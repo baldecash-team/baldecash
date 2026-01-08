@@ -97,7 +97,7 @@ const getDetailUrl = (productId: string, deviceType: string | undefined, isClean
 };
 
 const getUpsellUrl = (isCleanMode: boolean) => {
-  const baseUrl = '/prototipos/0.4/upsell/upsell-preview/?accessoryIntroVersion=3&sections=accessories';
+  const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
   return isCleanMode ? `${baseUrl}&mode=clean` : baseUrl;
 };
 
