@@ -121,8 +121,8 @@ export const VERSION_REGISTRY: VersionConfig[] = [
     description: 'Iteración del catálogo con ColorSelector configurable y sistema de feedback',
     icon: 'Palette',
     color: 'from-[#4654CD] to-[#03DBD0]',
-    badge: 'En desarrollo',
-    status: 'in_progress',
+    badge: 'Completado',
+    status: 'ready',
     sections: [
       { id: 'hero', name: 'Hero', path: '/prototipos/0.5/hero/hero-preview', status: 'done', promptNumber: '01' },
       { id: 'catalogo', name: 'Catálogo', path: '/prototipos/0.5/catalogo/catalog-preview', status: 'done', promptNumber: '02-03' },
@@ -139,7 +139,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'landing', name: 'Landing', path: '/prototipos/0.5/landing/landing-preview', status: 'done', promptNumber: '19' },
     ],
     createdAt: '2026-01-06',
-    updatedAt: '2026-01-08',
+    updatedAt: '2026-01-09',
   },
 ];
 
