@@ -12,9 +12,11 @@
  * - Footer: V2 (Newsletter + Columnas)
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { mockHeroContent, mockSocialProof, mockHowItWorksData, mockFaqData } from '../../data/mockHeroData';
 import { UnderlinedText } from './common/UnderlinedText';
+import { useIsMobile } from '@/app/prototipos/_shared';
+import { HelpQuiz } from '@/app/prototipos/0.4/quiz/components/quiz';
 
 // Components
 import { Navbar } from './Navbar';
@@ -29,6 +31,17 @@ import { Footer } from './Footer';
 const UNDERLINE_STYLE = 4;
 
 export const HeroSection: React.FC = () => {
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  const quizConfig = {
+    layoutVersion: (isMobile ? 4 : 5) as 4 | 5,
+    questionCount: 7 as const,
+    questionStyle: 1 as const,
+    resultsVersion: 1 as const,
+    focusVersion: 1 as const,
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
@@ -74,7 +87,7 @@ export const HeroSection: React.FC = () => {
 
             {/* CTA Component */}
             <div className="flex justify-center mb-6">
-              <HeroCta />
+              <HeroCta onQuizOpen={() => setIsQuizOpen(true)} />
             </div>
 
             {/* Microcopy */}
@@ -88,13 +101,24 @@ export const HeroSection: React.FC = () => {
         </section>
 
         {/* FAQ Section */}
-        <section id="faq">
+        <section id="faq" className="scroll-mt-24">
           <FaqSection data={mockFaqData} underlineStyle={UNDERLINE_STYLE} />
         </section>
       </main>
 
       {/* Footer */}
       <Footer />
+
+      {/* Help Quiz Modal */}
+      <HelpQuiz
+        config={quizConfig}
+        isOpen={isQuizOpen}
+        onClose={() => setIsQuizOpen(false)}
+        onComplete={(results, answers) => {
+          console.log('Quiz completed:', results, answers);
+          setIsQuizOpen(false);
+        }}
+      />
     </div>
   );
 };

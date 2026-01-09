@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 
 interface HeroCtaProps {
   onCtaClick?: () => void;
+  onQuizOpen?: () => void;
 }
 
 const WhatsAppIcon = () => (
@@ -20,7 +21,7 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick }) => {
+export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick, onQuizOpen }) => {
   const router = useRouter();
 
   const handleWhatsApp = () => {
@@ -35,8 +36,7 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick }) => {
 
   const handleQuiz = () => {
     onCtaClick?.();
-    // Quiz simplificado para v0.5 - redirige al catálogo
-    router.push('/prototipos/0.5/catalogo/catalog-preview?mode=clean');
+    onQuizOpen?.();
   };
 
   return (
@@ -45,7 +45,7 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick }) => {
         <Button
           size="lg"
           radius="lg"
-          className="bg-[#4654CD] text-white font-semibold w-44 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
+          className="bg-[#4654CD] text-white font-semibold w-52 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
           startContent={<Laptop className="w-5 h-5" />}
           onPress={handleCatalogo}
         >
@@ -54,16 +54,19 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick }) => {
         <Button
           size="lg"
           radius="lg"
-          className="bg-[#03DBD0] text-white font-semibold w-44 h-14 text-base cursor-pointer hover:bg-[#02c4ba] transition-colors shadow-lg shadow-[#03DBD0]/25"
-          startContent={<HelpCircle className="w-5 h-5" />}
+          className="bg-[#03DBD0] text-white font-semibold w-52 h-14 text-base cursor-pointer hover:bg-[#02c4ba] transition-colors shadow-lg shadow-[#03DBD0]/25"
+          startContent={<HelpCircle className="w-5 h-5 flex-shrink-0" />}
           onPress={handleQuiz}
         >
-          Quiz
+          <span className="flex flex-col leading-tight text-left">
+            <span>Recomiéndame</span>
+            <span>un equipo</span>
+          </span>
         </Button>
         <Button
           size="lg"
           radius="lg"
-          className="bg-[#25D366] text-white font-semibold w-44 h-14 text-base cursor-pointer hover:bg-[#20bd5a] transition-colors shadow-lg shadow-[#25D366]/25"
+          className="bg-[#25D366] text-white font-semibold w-52 h-14 text-base cursor-pointer hover:bg-[#20bd5a] transition-colors shadow-lg shadow-[#25D366]/25"
           startContent={<WhatsAppIcon />}
           onPress={handleWhatsApp}
         >

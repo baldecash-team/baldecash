@@ -8,30 +8,19 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
-import { Menu, X, Zap, User, Laptop, ChevronDown, Smartphone, Monitor, Headphones } from 'lucide-react';
+import { Menu, X, Zap, User, Laptop, ChevronDown, Smartphone, Tablet, ArrowRight } from 'lucide-react';
 
 const catalogUrl = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
-const convenioUrl = '/prototipos/0.5/convenio/convenio-preview?convenio=';
-
 const megaMenuItems = [
   { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
+  { label: 'Tablets', href: catalogUrl, icon: Tablet, description: 'Tablets para toda ocasión' },
   { label: 'Celulares', href: catalogUrl, icon: Smartphone, description: 'Smartphones de todas las marcas' },
-  { label: 'Monitores', href: catalogUrl, icon: Monitor, description: 'Pantallas para tu productividad' },
-  { label: 'Accesorios', href: catalogUrl, icon: Headphones, description: 'Complementa tu equipo' },
-];
-
-const conveniosMegaMenuItems = [
-  { label: 'CERTUS', slug: 'certus' },
-  { label: 'UPN', slug: 'upn' },
-  { label: 'UPC', slug: 'upc' },
-  { label: 'TECSUP', slug: 'tecsup' },
-  { label: 'SENATI', slug: 'senati' },
-  { label: 'USIL', slug: 'usil' },
+  { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
 ];
 
 const navItems = [
   { label: 'Equipos', href: catalogUrl, megaMenuType: 'equipos' as const },
-  { label: 'Convenios', href: '#convenios', megaMenuType: 'convenios' as const },
+  { label: 'Convenios', href: '#convenios' },
   { label: '¿Tienes dudas?', href: '#faq' },
 ];
 
@@ -163,32 +152,6 @@ export const Navbar: React.FC = () => {
                     </AnimatePresence>
                   )}
 
-                  {/* MegaMenu - Convenios */}
-                  {item.megaMenuType === 'convenios' && (
-                    <AnimatePresence>
-                      {activeMegaMenu === 'convenios' && (
-                        <motion.div
-                          className="absolute top-full left-0 pt-2 w-48"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          <div className="bg-white rounded-xl shadow-xl border border-neutral-100 p-2">
-                            {conveniosMegaMenuItems.map((menuItem) => (
-                              <a
-                                key={menuItem.slug}
-                                href={`${convenioUrl}${menuItem.slug}`}
-                                className="block px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-700 hover:bg-[#4654CD]/10 hover:text-[#4654CD] transition-colors"
-                              >
-                                {menuItem.label}
-                              </a>
-                            ))}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  )}
                 </div>
               ))}
             </div>
@@ -278,16 +241,6 @@ export const Navbar: React.FC = () => {
                                     {subItem.label}
                                   </a>
                                 ))}
-                                {item.megaMenuType === 'convenios' && conveniosMegaMenuItems.map((subItem) => (
-                                  <a
-                                    key={subItem.slug}
-                                    href={`${convenioUrl}${subItem.slug}`}
-                                    className="block py-2 text-sm text-neutral-500 hover:text-[#4654CD]"
-                                    onClick={() => setIsMenuOpen(false)}
-                                  >
-                                    {subItem.label}
-                                  </a>
-                                ))}
                               </div>
                             </motion.div>
                           )}
@@ -298,8 +251,16 @@ export const Navbar: React.FC = () => {
                         href={item.href}
                         className="block py-3 text-neutral-600 hover:text-[#4654CD] font-medium"
                         onClick={(e) => {
-                          handleAnchorClick(e, item.href);
-                          setIsMenuOpen(false);
+                          if (item.href.startsWith('#')) {
+                            e.preventDefault();
+                            setIsMenuOpen(false);
+                            setTimeout(() => {
+                              const element = document.querySelector(item.href);
+                              if (element) {
+                                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }
+                            }, 300);
+                          }
                         }}
                       >
                         {item.label}

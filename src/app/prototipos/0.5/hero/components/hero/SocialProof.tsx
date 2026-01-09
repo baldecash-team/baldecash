@@ -41,7 +41,7 @@ export const SocialProof: React.FC<SocialProofProps> = ({ data, underlineStyle =
   };
 
   return (
-    <section className="py-12 bg-gradient-to-b from-neutral-50 to-white overflow-hidden">
+    <section id="convenios" className="py-12 bg-gradient-to-b from-neutral-50 to-white overflow-hidden scroll-mt-24">
       {/* Header Convenios */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
