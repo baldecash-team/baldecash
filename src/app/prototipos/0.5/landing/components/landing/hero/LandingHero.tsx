@@ -249,24 +249,20 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
     setShowTermsError(false);
   };
 
-  // Header height: Navbar (64px)
-  const headerHeight = 64;
-
   return (
     <section
-      className="flex"
-      style={{ height: `calc(100vh - ${headerHeight}px)` }}
+      className="flex flex-col lg:flex-row min-h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)]"
     >
-      {/* Left: Hero Image (900px fixed) */}
-      <div className="hidden lg:flex w-[900px] flex-shrink-0 h-full">
+      {/* Top/Left: Hero Image */}
+      <div className="w-full lg:h-full lg:w-[900px] flex-shrink-0">
         <img
           src={HERO_IMAGE_URL}
           alt="BaldeCash - Laptops para estudiantes"
-          className="w-full h-full object-cover"
+          className="w-full h-auto lg:h-full lg:object-cover"
         />
       </div>
 
-      {/* Right: Form (rest of space) */}
+      {/* Bottom/Right: Form */}
       <div className="w-full lg:flex-1 flex items-center justify-center p-4 lg:p-6 bg-gradient-to-br from-neutral-50 to-white">
         <div className="w-full max-w-lg">
           {/* Success State */}
