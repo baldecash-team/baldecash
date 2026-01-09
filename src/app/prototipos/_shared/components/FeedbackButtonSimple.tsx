@@ -30,30 +30,31 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
     setIsCapturing(true);
     setPageUrl(window.location.href); // Actualizar URL al momento de captura
 
-    // Guardar elementos sticky para restaurar después
-    const stickyElements: { el: HTMLElement; originalStyles: { position: string; top: string; left: string; width: string } }[] = [];
+    // Guardar elementos sticky/fixed para restaurar después
+    const elementsToFix: { el: HTMLElement; originalStyles: { top: string; left: string; width: string } }[] = [];
 
     try {
-      // Convertir elementos sticky a fixed para que se capturen correctamente
+      // Ajustar elementos sticky y fixed para que se capturen correctamente
       document.querySelectorAll('*').forEach((el) => {
         if (el instanceof HTMLElement) {
           const computed = getComputedStyle(el);
-          if (computed.position === 'sticky') {
+          const position = computed.position;
+
+          if (position === 'sticky' || position === 'fixed') {
             // No modificar elementos del feedback
             if (el.closest('[data-feedback-simple]')) {
               return;
             }
             const rect = el.getBoundingClientRect();
-            stickyElements.push({
+            elementsToFix.push({
               el,
               originalStyles: {
-                position: el.style.position,
                 top: el.style.top,
                 left: el.style.left,
                 width: el.style.width,
               },
             });
-            // Convertir a fixed compensando el transform del body
+            // Ajustar posición compensando el transform del body
             el.style.position = 'fixed';
             el.style.top = `${rect.top + window.scrollY}px`;
             el.style.left = `${rect.left}px`;
@@ -84,13 +85,14 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
       alert('Error al capturar la pantalla');
       console.error(error);
     } finally {
-      // Restaurar elementos sticky
-      stickyElements.forEach(({ el, originalStyles }) => {
-        el.style.position = originalStyles.position;
+      // Restaurar elementos sticky/fixed
+      elementsToFix.forEach(({ el, originalStyles }) => {
         el.style.top = originalStyles.top;
         el.style.left = originalStyles.left;
         el.style.width = originalStyles.width;
       });
+      // Pequeño delay para que los elementos se restauren antes de ocultar el overlay
+      await new Promise((resolve) => setTimeout(resolve, 50));
       setIsCapturing(false);
     }
   };
