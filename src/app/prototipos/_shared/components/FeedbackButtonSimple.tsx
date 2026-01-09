@@ -5,7 +5,7 @@
  * Implementación simple basada en el ejemplo de tunel/index.html
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { domToPng } from 'modern-screenshot';
 
 interface FeedbackButtonSimpleProps {
@@ -19,9 +19,16 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [nombre, setNombre] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [pageUrl, setPageUrl] = useState('');
+
+  // Obtener URL en el cliente para evitar error de hidratación
+  useEffect(() => {
+    setPageUrl(window.location.href);
+  }, []);
 
   const handleCapture = async () => {
     setIsCapturing(true);
+    setPageUrl(window.location.href); // Actualizar URL al momento de captura
 
     // Guardar elementos sticky para restaurar después
     const stickyElements: { el: HTMLElement; originalStyles: { position: string; top: string; left: string; width: string } }[] = [];
@@ -58,6 +65,13 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
         style: {
           transform: `translate(-${window.scrollX}px, -${window.scrollY}px)`,
         },
+        filter: (node) => {
+          // Excluir el botón de feedback del screenshot
+          if (node instanceof HTMLElement && node.hasAttribute('data-feedback-simple')) {
+            return false;
+          }
+          return true;
+        },
       });
       setScreenshot(dataUrl);
       setIsModalOpen(true);
@@ -87,7 +101,7 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
     console.log('Feedback enviado:', {
       nombre,
       feedback,
-      url: window.location.href,
+      url: pageUrl,
       screenshot,
     });
     alert('Feedback enviado correctamente!');
@@ -211,7 +225,7 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
       `}</style>
 
       {/* Botón flotante */}
-      <div className={`fixed bottom-6 right-6 z-[100] ${className || ''}`}>
+      <div className={`fixed bottom-6 right-6 z-[100] ${className || ''}`} data-feedback-simple>
         <button
           className="feedback-btn-simple bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg cursor-pointer hover:bg-blue-600 transition-colors disabled:opacity-60 disabled:cursor-wait"
           onClick={handleCapture}
@@ -232,6 +246,7 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
       <div
         className={`modal-overlay-simple ${isModalOpen ? 'active' : ''}`}
         onClick={(e) => e.target === e.currentTarget && handleClose()}
+        data-feedback-simple
       >
         <div className="modal-simple">
           <div className="modal-header-simple">
@@ -249,7 +264,7 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
             />
           )}
 
-          <div className="page-url-simple">{typeof window !== 'undefined' ? window.location.href : ''}</div>
+          <div className="page-url-simple">{pageUrl}</div>
 
           <form onSubmit={handleSubmit}>
             <div className="form-group-simple">
