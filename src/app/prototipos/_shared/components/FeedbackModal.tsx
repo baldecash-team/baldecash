@@ -15,7 +15,7 @@ import {
   ModalFooter,
   Button,
 } from '@nextui-org/react';
-import { MessageCircle, Send, Check, AlertCircle, User, CheckCircle2, Loader2 } from 'lucide-react';
+import { MessageCircle, Send, Check, AlertCircle, User, CheckCircle2, Loader2, Link } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AUTHOR_STORAGE_KEY = 'baldecash-feedback-author';
@@ -255,6 +255,21 @@ export function FeedbackModal({
                         alt="Captura de pantalla"
                         className="w-full h-44 object-cover object-top"
                       />
+                    </div>
+                  </div>
+                )}
+
+                {/* URL de la página */}
+                {pageUrl && (
+                  <div className="mb-5">
+                    <p className="text-sm font-medium text-neutral-700 mb-2">
+                      URL de la página
+                    </p>
+                    <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5">
+                      <Link className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                      <p className="text-sm text-neutral-600 truncate flex-1" title={pageUrl}>
+                        {pageUrl}
+                      </p>
                     </div>
                   </div>
                 )}
