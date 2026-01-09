@@ -136,7 +136,7 @@ export const VERSION_REGISTRY: VersionConfig[] = [
       { id: 'rechazo', name: 'Rechazo', path: '/prototipos/0.5/rechazo/rechazado-preview', status: 'done', promptNumber: '16' },
       { id: 'convenio', name: 'Convenio', path: '/prototipos/0.5/convenio/convenio-preview', status: 'done', promptNumber: '17' },
       { id: 'recibido', name: 'Recibido', path: '/prototipos/0.5/recibido/recibido-preview', status: 'done', promptNumber: '18' },
-      { id: 'landing', name: 'Landing', path: '/prototipos/0.5/landing/landing-preview', status: 'pending', promptNumber: '19' },
+      { id: 'landing', name: 'Landing', path: '/prototipos/0.5/landing/landing-preview', status: 'done', promptNumber: '19' },
     ],
     createdAt: '2026-01-06',
     updatedAt: '2026-01-08',
