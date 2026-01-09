@@ -10,6 +10,7 @@ import { Card, CardBody } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { Wallet, Check } from 'lucide-react';
 import { DownPaymentCalculator as CalculatorType } from '../../../types/rejection';
+import { formatMoney } from '../../../../utils/formatMoney';
 
 interface DownPaymentCalculatorProps {
   calculator: CalculatorType;
@@ -61,11 +62,11 @@ export const DownPaymentCalculator: React.FC<DownPaymentCalculatorProps> = ({
                 )}
                 <p className="text-xs text-neutral-500 mb-1">{example.label}</p>
                 <p className="text-lg font-bold text-[#4654CD] mb-2">
-                  S/{example.downPayment.toLocaleString()} inicial
+                  S/{formatMoney(example.downPayment)} inicial
                 </p>
                 <div className="flex items-center justify-center gap-1 text-neutral-600">
                   <Check className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Cuota de S/{quota}/mes</span>
+                  <span className="text-sm">Cuota de S/{formatMoney(quota)}/mes</span>
                 </div>
               </CardBody>
             </Card>

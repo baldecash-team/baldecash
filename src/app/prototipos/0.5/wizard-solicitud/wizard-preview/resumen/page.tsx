@@ -9,7 +9,7 @@ import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
 import { useWizard } from '../../context/WizardContext';
-import { User, GraduationCap, Wallet, AlertCircle, Edit2, Loader2, Check, Code, ArrowLeft } from 'lucide-react';
+import { User, GraduationCap, Wallet, AlertCircle, Edit2, Loader2, Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { FeedbackButton } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -27,8 +27,6 @@ function ResumenContent() {
 
   const { getFieldValue } = useWizard();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [acceptPromos, setAcceptPromos] = useState(true);
   const [showConfig, setShowConfig] = useState(false);
 
   const handleBack = () => {
@@ -39,10 +37,9 @@ function ResumenContent() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsSubmitting(false);
-    // Redirigir a página de resultados para seleccionar flujo
-    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/resultados';
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Redirigir a página de seguros (opcional)
+    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/seguros';
     const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
     router.push(url);
   };
@@ -137,44 +134,6 @@ function ResumenContent() {
   // Sin validación para fines prácticos
   const isDataComplete = true;
 
-  // Checkbox component
-  const Checkbox = ({
-    id,
-    checked,
-    onChange,
-    label,
-    description,
-  }: {
-    id: string;
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-    label: string;
-    description: string;
-  }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="flex items-start gap-3 w-full text-left cursor-pointer"
-    >
-      <div
-        className={`
-          w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
-          transition-all duration-200
-          ${checked
-            ? 'bg-[#4654CD] border-[#4654CD]'
-            : 'bg-white border-neutral-300 hover:border-[#4654CD]/50'
-          }
-        `}
-      >
-        {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-      </div>
-      <div className="flex-1">
-        <p className="text-sm font-medium text-neutral-800">{label}</p>
-        <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
-      </div>
-    </button>
-  );
-
   const pageContent = (
     <WizardLayout
       currentStep="resumen"
@@ -184,7 +143,7 @@ function ResumenContent() {
       onSubmit={handleSubmit}
       isLastStep
       isSubmitting={isSubmitting}
-      canProceed={!!isDataComplete && acceptTerms}
+      canProceed={!!isDataComplete}
     >
       {!isDataComplete ? (
         <div className="flex flex-col items-center py-8">
@@ -267,27 +226,6 @@ function ResumenContent() {
               </div>
             )}
           </SummarySection>
-
-          {/* Términos y Condiciones */}
-          <div className="bg-neutral-50 rounded-xl p-4">
-            <h3 className="font-semibold text-neutral-800 mb-4">Términos y Condiciones</h3>
-            <div className="space-y-4">
-              <Checkbox
-                id="acceptTerms"
-                checked={acceptTerms}
-                onChange={setAcceptTerms}
-                label="Acepto los términos y condiciones"
-                description="He leído y acepto los términos de uso y la política de privacidad"
-              />
-              <Checkbox
-                id="acceptPromos"
-                checked={acceptPromos}
-                onChange={setAcceptPromos}
-                label="Quiero recibir promociones"
-                description="Acepto recibir ofertas y novedades por correo electrónico"
-              />
-            </div>
-          </div>
         </div>
       )}
     </WizardLayout>

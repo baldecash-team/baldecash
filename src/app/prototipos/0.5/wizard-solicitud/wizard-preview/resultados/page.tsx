@@ -11,6 +11,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
+import { FeedbackButton } from '@/app/prototipos/_shared';
+
+const FIXED_CONFIG = {
+  section: 'wizard-solicitud',
+  step: 'resultados',
+  version: '0.5',
+};
 
 const RESULT_OPTIONS = [
   {
@@ -116,7 +123,7 @@ function ResultadosContent() {
         </motion.div>
       </div>
 
-      {/* Floating Back Button */}
+      {/* Floating Back Button - hidden in clean mode */}
       {!isCleanMode && (
         <div className="fixed bottom-6 right-6 z-[100]">
           <Button
@@ -128,6 +135,14 @@ function ResultadosContent() {
             <ArrowLeft className="w-5 h-5 text-neutral-600" />
           </Button>
         </div>
+      )}
+
+      {/* Feedback Button - only in clean mode */}
+      {isCleanMode && (
+        <FeedbackButton
+          sectionId="wizard-solicitud-resultados"
+          config={FIXED_CONFIG as unknown as Record<string, unknown>}
+        />
       )}
     </div>
   );

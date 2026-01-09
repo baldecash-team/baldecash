@@ -9,7 +9,7 @@ import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
-import { RadioGroup, SelectInput, FileUpload } from '../../components/wizard-solicitud/fields';
+import { SegmentedControl, SelectInput, FileUpload, TextInput } from '../../components/wizard-solicitud/fields';
 import { datosAcademicosTooltips } from '../../data/fieldTooltips';
 import { StepSuccessMessage } from '../../components/wizard-solicitud/celebration/StepSuccessMessage';
 import { useWizard } from '../../context/WizardContext';
@@ -42,6 +42,24 @@ function DatosAcademicosContent() {
   } = useWizard();
 
   const step = getStepById('datos-academicos')!;
+
+  // Inicializar touched para campos que ya tienen valor (desde localStorage)
+  React.useEffect(() => {
+    const fieldsToCheck = ['tipoInstitucion', 'institucion', 'otraInstitucion', 'carrera', 'otraCarrera', 'ciclo', 'otroCiclo', 'constanciaEstudios'];
+    const initialTouched: Record<string, boolean> = {};
+
+    fieldsToCheck.forEach((fieldId) => {
+      const value = getFieldValue(fieldId);
+      const hasValue = Array.isArray(value) ? value.length > 0 : !!(value && String(value).trim());
+      if (hasValue) {
+        initialTouched[fieldId] = true;
+      }
+    });
+
+    if (Object.keys(initialTouched).length > 0) {
+      setTouched((prev) => ({ ...prev, ...initialTouched }));
+    }
+  }, [getFieldValue]);
 
   const handleFieldChange = (fieldId: string, value: string | unknown[]) => {
     updateField(fieldId, value as string);
@@ -87,6 +105,7 @@ function DatosAcademicosContent() {
     { value: '9', label: '9no Ciclo' },
     { value: '10', label: '10mo Ciclo' },
     { value: 'egresado', label: 'Egresado' },
+    { value: 'otro', label: 'Otro' },
   ];
 
   // Opciones de universidades peruanas
@@ -106,7 +125,7 @@ function DatosAcademicosContent() {
     { value: 'unt', label: 'Universidad Nacional de Trujillo' },
     { value: 'ucsm', label: 'Universidad Católica de Santa María' },
     { value: 'upao', label: 'Universidad Privada Antenor Orrego' },
-    { value: 'otra', label: 'Otra institución' },
+    { value: 'otra', label: 'Otra universidad' },
   ];
 
   // Opciones de institutos
@@ -121,6 +140,20 @@ function DatosAcademicosContent() {
     { value: 'ipae', label: 'IPAE' },
     { value: 'certus', label: 'Certus' },
     { value: 'otro', label: 'Otro instituto' },
+  ];
+
+  // Opciones de colegios peruanos
+  const colegioOptions = [
+    { value: 'markham', label: 'Colegio Markham' },
+    { value: 'newton', label: 'Colegio Newton' },
+    { value: 'santamaria', label: 'Colegio Santa María Marianistas' },
+    { value: 'sanjose', label: 'Colegio San José de Monterrico' },
+    { value: 'trilce', label: 'Colegio Trilce' },
+    { value: 'pamer', label: 'Colegio Pamer' },
+    { value: 'saco_oliveros', label: 'Colegio Saco Oliveros' },
+    { value: 'innova', label: 'Innova Schools' },
+    { value: 'fe_alegria', label: 'Fe y Alegría' },
+    { value: 'otro', label: 'Otro colegio' },
   ];
 
   // Opciones de carreras
@@ -146,7 +179,10 @@ function DatosAcademicosContent() {
 
   // Seleccionar opciones de institución según el tipo
   const tipoInstitucion = getFieldValue('tipoInstitucion') as string;
-  const institucionOptions = tipoInstitucion === 'instituto' ? institutoOptions : universidadOptions;
+  const institucionOptions =
+    tipoInstitucion === 'instituto' ? institutoOptions :
+    tipoInstitucion === 'colegio' ? colegioOptions :
+    universidadOptions;
 
   const pageContent = (
     <>
@@ -169,7 +205,7 @@ function DatosAcademicosContent() {
         canProceed={true}
       >
         <div className="space-y-6">
-          <RadioGroup
+          <SegmentedControl
             id="tipoInstitucion"
             label="Tipo de Institución"
             value={(getFieldValue('tipoInstitucion') as string) || ''}
@@ -184,6 +220,7 @@ function DatosAcademicosContent() {
               { value: 'colegio', label: 'Colegio' },
             ]}
             error={getFieldError('tipoInstitucion')}
+            success={isFieldValid('tipoInstitucion')}
             tooltip={datosAcademicosTooltips.tipoInstitucion}
             required={false}
           />
@@ -202,6 +239,27 @@ function DatosAcademicosContent() {
             searchable
           />
 
+          {(getFieldValue('institucion') === 'otra' || getFieldValue('institucion') === 'otro') && (
+            <TextInput
+              id="otraInstitucion"
+              label={
+                tipoInstitucion === 'instituto' ? '¿Cuál instituto?' :
+                tipoInstitucion === 'colegio' ? '¿Cuál colegio?' :
+                '¿Cuál universidad?'
+              }
+              value={(getFieldValue('otraInstitucion') as string) || ''}
+              onChange={(v) => handleFieldChange('otraInstitucion', v)}
+              placeholder={
+                tipoInstitucion === 'instituto' ? 'Nombre del instituto' :
+                tipoInstitucion === 'colegio' ? 'Nombre del colegio' :
+                'Nombre de la universidad'
+              }
+              error={getFieldError('otraInstitucion')}
+              success={isFieldValid('otraInstitucion')}
+              required={false}
+            />
+          )}
+
           <SelectInput
             id="carrera"
             label="Carrera o Especialidad"
@@ -216,6 +274,19 @@ function DatosAcademicosContent() {
             searchable
           />
 
+          {getFieldValue('carrera') === 'otra' && (
+            <TextInput
+              id="otraCarrera"
+              label="¿Cuál carrera?"
+              value={(getFieldValue('otraCarrera') as string) || ''}
+              onChange={(v) => handleFieldChange('otraCarrera', v)}
+              placeholder="Nombre de la carrera"
+              error={getFieldError('otraCarrera')}
+              success={isFieldValid('otraCarrera')}
+              required={false}
+            />
+          )}
+
           <SelectInput
             id="ciclo"
             label="Ciclo Actual"
@@ -228,6 +299,24 @@ function DatosAcademicosContent() {
             tooltip={datosAcademicosTooltips.ciclo}
             required={false}
           />
+
+          {getFieldValue('ciclo') === 'otro' && (
+            <TextInput
+              id="otroCiclo"
+              label="¿Cuál ciclo?"
+              value={(getFieldValue('otroCiclo') as string) || ''}
+              onChange={(v) => {
+                const numericValue = v.replace(/\D/g, '').slice(0, 2);
+                handleFieldChange('otroCiclo', numericValue);
+              }}
+              placeholder="Ej: 11"
+              error={getFieldError('otroCiclo')}
+              success={isFieldValid('otroCiclo')}
+              required={false}
+              maxLength={2}
+              inputMode="numeric"
+            />
+          )}
 
           <FileUpload
             id="constanciaEstudios"

@@ -11,6 +11,12 @@ import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Users, Building } from 'lucide-react';
 import { HeroBannerProps } from '../../types/hero';
 import { UnderlinedText } from './common/UnderlinedText';
+import { formatMoney } from '../../../utils/formatMoney';
+
+// Helper function to build internal URLs with mode propagation
+const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
+  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+};
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   headline,
@@ -18,9 +24,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   minQuota,
   primaryCta,
   underlineStyle = 4,
+  isCleanMode = false,
 }) => {
   const router = useRouter();
-  const catalogUrl = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
+  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
 
   return (
     <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
@@ -70,7 +77,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           {/* Price Highlight */}
           <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-6 py-4 mb-8">
             <span className="text-white/70 text-lg">Desde</span>
-            <span className="text-4xl md:text-5xl font-bold text-white">S/{minQuota}</span>
+            <span className="text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
             <span className="text-white/70 text-lg">/mes</span>
           </div>
 

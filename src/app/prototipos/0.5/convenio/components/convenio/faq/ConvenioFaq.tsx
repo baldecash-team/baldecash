@@ -27,7 +27,7 @@ export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ convenio }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="py-16 md:py-24 bg-neutral-50">
+    <section id="faq" className="py-16 md:py-24 bg-neutral-50 scroll-mt-24">
       <div className="max-w-3xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">

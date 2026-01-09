@@ -9,6 +9,7 @@ import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, CheckCircle } from 'lucide-react';
 import { ConvenioData } from '../../../types/convenio';
 import { calcularCuotaConDescuento } from '../../../data/mockConvenioData';
+import { formatMoney } from '../../../../utils/formatMoney';
 
 interface ConvenioHeroProps {
   convenio: ConvenioData;
@@ -69,7 +70,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
           <div className="bg-white/10 backdrop-blur rounded-xl p-4 mb-6 inline-block">
             <p className="text-white/60 text-sm mb-1">Cuotas desde</p>
             <p className="text-4xl font-bold text-white font-['Baloo_2']">
-              S/{cuotaConDescuento}
+              S/{formatMoney(cuotaConDescuento)}
               <span className="text-lg font-normal text-white/70">/mes</span>
             </p>
           </div>

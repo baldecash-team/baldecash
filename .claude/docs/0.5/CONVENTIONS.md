@@ -5,6 +5,34 @@
 
 ---
 
+## ⚠️ CONSULTA OBLIGATORIA ANTES DE IMPLEMENTAR
+
+**IMPORTANTE:** Antes de implementar cualquiera de estos patrones, el asistente DEBE leer la sección correspondiente de este documento:
+
+| Cuando se pida... | Consultar sección |
+|-------------------|-------------------|
+| **Loading / Preload / Spinner** en botones | **8.6** Botones con Estado de Carga |
+| **Input / TextField** | **8.7.2** TextInput - Estructura Estándar |
+| **Textarea** | **8.7.3** TextArea - Estructura Estándar |
+| **Select / Dropdown** | **8.7.4** SelectInput - Estructura Estándar |
+| **File Upload / Drag & Drop** | **8.7.5** FileUpload - Estructura Estándar |
+| **Validación de formularios** | **8.7.8** Validación de Estados |
+| **Selector con 2-3 opciones** | **8.2** SegmentedControl |
+| **Selector con 4-5 opciones** | **8.3** RadioGroup |
+| **Selector con 6+ opciones** | **8.4** SelectInput con buscador |
+| **Modal de configuración** | **6** Settings Modal Pattern |
+| **Formato de dinero/precios** | **7** Formato de Moneda |
+| **FeedbackButton** | **12.8** Feedback en Modo Clean |
+| **mode=clean** | **12.2** Modo Clean |
+| **Fondos, efectos glow, cards destacadas** | **9.3.1** Prohibición de Gradientes |
+| **Cursor, hover, elementos clickeables** | **9.3.2** Cursor Pointer - Elementos Clickeables |
+| **Colores, estilos visuales** | **9** Colores y Estilos |
+| **Toast / Notificaciones / Mensajes** | **9.5** Toast Notifications |
+
+> Esta tabla existe para evitar implementaciones incorrectas. El asistente debe leer la sección completa antes de escribir código.
+
+---
+
 ## 0. Versiones por Componente
 
 **v0.5 usa 2 versiones (V1-V2)** en lugar de las 6 de v0.4.
@@ -595,9 +623,541 @@ const handleReset = () => {
 
 ---
 
-## 7. Colores y Estilos
+## 7. Formato de Moneda
 
-### 7.1 Colores de Marca
+### 7.1 Utilidad Centralizada
+
+**SIEMPRE** usar la función `formatMoney()` para mostrar montos de dinero. Nunca usar `.toFixed()` o valores sin formato.
+
+**Ubicación:** `src/app/prototipos/0.5/utils/formatMoney.ts`
+
+```typescript
+// Importar desde la utilidad central
+import { formatMoney } from '../../utils/formatMoney';  // ajustar ruta según profundidad
+```
+
+### 7.2 Formato Estándar
+
+| Valor Original | Formato Correcto | Formato Incorrecto |
+|----------------|------------------|-------------------|
+| `3204` | `3,204` | `3204` o `3,204.00` |
+| `3204.5` | `3,204.50` | `3204.5` |
+| `180` | `180` | `180.00` |
+| `1500.99` | `1,500.99` | `1500.99` |
+
+**Regla:** Mostrar decimales solo si el número tiene decimales significativos (no `.00`).
+
+### 7.3 Implementación
+
+```typescript
+// formatMoney.ts
+export const formatMoney = (amount: number): string => {
+  const hasDecimals = amount % 1 !== 0;
+  return amount.toLocaleString('en-US', {
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
+  });
+};
+
+// Para casos que siempre requieren sin decimales (ej: contadores)
+export const formatMoneyNoDecimals = (amount: number): string => {
+  return amount.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+};
+```
+
+### 7.4 Uso en Componentes
+
+```tsx
+// ✅ Correcto
+import { formatMoney } from '../../../../utils/formatMoney';
+
+<span>S/{formatMoney(product.price)}</span>
+<span>S/{formatMoney(quota)}/mes</span>
+<span>Total: S/{formatMoney(totalAmount)}</span>
+
+// ❌ Incorrecto
+<span>S/{product.price}</span>
+<span>S/{product.price.toFixed(2)}</span>
+<span>S/{product.price.toLocaleString()}</span>
+```
+
+### 7.5 Ajuste de Ruta de Import
+
+La ruta del import depende de la profundidad del archivo:
+
+| Ubicación del Archivo | Import |
+|----------------------|--------|
+| `/0.5/seccion/components/` | `../../../utils/formatMoney` |
+| `/0.5/seccion/components/subdir/` | `../../../../utils/formatMoney` |
+| `/0.5/seccion/components/subdir/deep/` | `../../../../../utils/formatMoney` |
+
+### 7.6 Checklist Formato de Moneda
+
+- [ ] Usar `formatMoney()` para todos los precios y cuotas
+- [ ] Import desde `utils/formatMoney.ts` (ruta relativa correcta)
+- [ ] Formato: separador de miles (`,`) + decimales solo si son significativos
+- [ ] Prefijo `S/` antes del valor formateado
+- [ ] No usar `.toFixed()`, `.toLocaleString()` directamente
+
+---
+
+## 8. Componentes de Selección
+
+### 8.1 Regla según Cantidad de Opciones
+
+| Cantidad de Opciones | Componente | Descripción |
+|---------------------|------------|-------------|
+| 2-3 opciones | `SegmentedControl` | Botones inline tipo tabs/toggle |
+| 4-5 opciones | `RadioGroup` | Cards verticales con radio button |
+| 6+ opciones | `SelectInput` con buscador | Dropdown searchable |
+
+### 8.2 SegmentedControl (2-3 opciones)
+
+**Ubicación:** `wizard-solicitud/components/wizard-solicitud/fields/SegmentedControl.tsx`
+
+Usado para campos con pocas opciones mutuamente excluyentes (ej: Tipo de Documento, Tipo de Institución).
+
+```tsx
+// Estructura visual - SIEMPRE 100% del ancho del contenedor
+<div className="flex w-full p-1 rounded-xl bg-neutral-100 border border-neutral-200">
+  <button className="flex-1 py-2.5 text-sm font-medium rounded-lg">
+    Opción A
+  </button>
+  <button className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-[#4654CD] text-white">
+    Opción B (seleccionada)
+  </button>
+</div>
+```
+
+**Estilos:**
+- Contenedor: `flex w-full bg-neutral-100 rounded-xl p-1 border border-neutral-200`
+- Botones: `flex-1 py-2.5` (distribuidos equitativamente, ocupan 100% del ancho)
+- Opción seleccionada: `bg-[#4654CD] text-white rounded-lg shadow-sm`
+- Opción no seleccionada: `text-neutral-600 hover:text-neutral-800`
+- Animación: Framer Motion `layoutId` para transición suave
+
+### 8.3 RadioGroup (4-5 opciones)
+
+**Ubicación:** `wizard-solicitud/components/wizard-solicitud/fields/RadioGroup.tsx`
+
+Usado para campos con más opciones que necesitan descripción.
+
+```tsx
+// Estructura visual - Estado seleccionado
+<button className="w-full p-4 rounded-xl border-2 bg-[#4654CD]/5 border-[#4654CD]">
+  <div className="flex items-center gap-3">
+    <div className="w-5 h-5 rounded-full bg-[#4654CD] border-[#4654CD]">
+      <div className="w-2 h-2 rounded-full bg-white" />
+    </div>
+    <span className="text-[#4654CD] font-medium">Opción seleccionada</span>
+  </div>
+</button>
+```
+
+**Estilos:**
+- Seleccionado: `bg-[#4654CD]/5 border-[#4654CD]`, texto `text-[#4654CD]`
+- No seleccionado: `bg-white border-neutral-200`, texto `text-neutral-800`
+- Radio circle seleccionado: `bg-[#4654CD]` con punto `bg-white`
+
+### 8.4 SelectInput con buscador (6+ opciones)
+
+**Ubicación:** `wizard-solicitud/components/wizard-solicitud/fields/SelectInput.tsx`
+
+Usado para listas largas (carreras, universidades, ciudades, etc.).
+
+### 8.5 Checklist Componentes de Selección
+
+- [ ] Contar opciones antes de elegir componente
+- [ ] 2-3 opciones → `SegmentedControl`
+- [ ] 4-5 opciones → `RadioGroup`
+- [ ] 6+ opciones → `SelectInput` con buscador
+- [ ] Mantener consistencia en todo el wizard
+
+### 8.6 Botones con Estado de Carga (Loading)
+
+**Regla:** Los botones de NextUI con `isLoading` deben usar un spinner personalizado con `Loader2` de lucide-react para asegurar la animación.
+
+```tsx
+import { Loader2 } from 'lucide-react';
+import { Button } from '@nextui-org/react';
+
+// ✅ Correcto - Spinner animado
+<Button
+  isLoading={isSubmitting}
+  spinner={<Loader2 className="w-5 h-5 animate-spin" />}
+  onPress={handleSubmit}
+>
+  Enviar Solicitud
+</Button>
+
+// ❌ Incorrecto - Sin spinner personalizado (puede no animar)
+<Button
+  isLoading={isSubmitting}
+  onPress={handleSubmit}
+>
+  {isSubmitting ? 'Enviando...' : 'Enviar Solicitud'}
+</Button>
+```
+
+**Notas:**
+- El texto del botón se mantiene fijo, NextUI lo oculta automáticamente cuando `isLoading={true}`
+- No usar texto condicional (`isSubmitting ? 'Cargando...' : 'Enviar'`), el spinner reemplaza el contenido
+- Usar `Loader2` de lucide-react con clase `animate-spin` de Tailwind
+
+### 8.7 Estándares de Campos de Formulario
+
+> **Referencia:** Basado en componentes de `wizard-solicitud/components/wizard-solicitud/fields/`
+
+Todos los campos de formulario (inputs, textareas, selects, file uploads) deben seguir estos estándares visuales y de comportamiento.
+
+#### 8.7.1 Colores y Estados
+
+| Estado | Border Color | Background | Icono |
+|--------|--------------|------------|-------|
+| **Default** | `border-neutral-300` | `bg-white` | - |
+| **Focus** | `border-[#4654CD]` | `bg-white` | - |
+| **Success** | `border-[#22c55e]` | `bg-white` | `Check` verde |
+| **Error** | `border-[#ef4444]` | `bg-white` | `AlertCircle` rojo |
+| **Disabled** | `border-neutral-300` | `bg-neutral-50` | - (opacity-50) |
+
+#### 8.7.2 TextInput - Estructura Estándar
+
+```tsx
+// Props interface
+interface TextInputProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  type?: 'text' | 'email' | 'tel' | 'number' | 'date';
+  error?: string;
+  success?: boolean;
+  helpText?: string;
+  tooltip?: FieldTooltipInfo;
+  disabled?: boolean;
+  required?: boolean;
+  maxLength?: number;
+}
+
+// Estructura visual
+<div className="space-y-1.5">
+  {/* Label */}
+  <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+    {label}
+    {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+    {tooltip && <TooltipIcon />}
+  </label>
+
+  {/* Help text (opcional) */}
+  {helpText && <p className="text-xs text-neutral-500">{helpText}</p>}
+
+  {/* Input container */}
+  <div className={`
+    flex items-center gap-2 h-11 px-3
+    rounded-lg border-2 transition-all duration-200 bg-white
+    ${getBorderColor()}
+    ${disabled ? 'opacity-50 bg-neutral-50' : ''}
+  `}>
+    <input
+      className="flex-1 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400"
+      ...
+    />
+    {/* Status icons - lado derecho */}
+    {showSuccess && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
+    {showError && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
+  </div>
+
+  {/* Error message & Character counter */}
+  {(error || maxLength) && (
+    <div className="flex items-center justify-between gap-2">
+      {error ? (
+        <p className="text-sm text-[#ef4444] flex items-center gap-1">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </p>
+      ) : <span />}
+      {maxLength && (
+        <p className="text-xs text-neutral-400 flex-shrink-0">
+          {value.length}/{maxLength}
+        </p>
+      )}
+    </div>
+  )}
+</div>
+```
+
+#### 8.7.3 TextArea - Estructura Estándar
+
+```tsx
+// Props interface
+interface TextAreaProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  rows?: number;
+  error?: string;
+  success?: boolean;
+  helpText?: string;
+  tooltip?: FieldTooltipInfo;
+  disabled?: boolean;
+  required?: boolean;
+  maxLength?: number;  // OBLIGATORIO para textareas
+}
+
+// Estructura visual
+<div className="space-y-1.5">
+  {/* Label */}
+  <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+    {label}
+    {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+  </label>
+
+  {/* Textarea container */}
+  <div className={`
+    relative rounded-lg border-2 transition-all duration-200 bg-white
+    ${getBorderColor()}
+    ${disabled ? 'opacity-50 bg-neutral-50' : ''}
+  `}>
+    <textarea
+      rows={rows || 4}
+      maxLength={maxLength}
+      className="w-full p-3 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400 resize-none"
+      ...
+    />
+    {/* Status icons - esquina superior derecha */}
+    <div className="absolute top-3 right-3">
+      {showSuccess && <Check className="w-5 h-5 text-[#22c55e]" />}
+      {showError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
+    </div>
+  </div>
+
+  {/* Character counter (OBLIGATORIO) & Error message */}
+  <div className="flex items-center justify-between gap-2">
+    {error ? (
+      <p className="text-sm text-[#ef4444] flex items-center gap-1">
+        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+        {error}
+      </p>
+    ) : <span />}
+    <p className="text-xs text-neutral-400 flex-shrink-0">
+      {value.length}/{maxLength}
+    </p>
+  </div>
+</div>
+```
+
+**Regla:** Los textareas SIEMPRE deben tener `maxLength` definido y mostrar contador de caracteres.
+
+#### 8.7.4 SelectInput - Estructura Estándar
+
+```tsx
+// Props interface
+interface SelectInputProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: SelectOption[];
+  placeholder?: string;
+  error?: string;
+  success?: boolean;
+  helpText?: string;
+  tooltip?: FieldTooltipInfo;
+  disabled?: boolean;
+  required?: boolean;
+  searchable?: boolean;  // default: true para 6+ opciones
+}
+
+// Estructura visual del trigger
+<div className={`
+  w-full h-11 px-3 flex items-center justify-between gap-2
+  rounded-lg border-2 transition-all cursor-pointer text-left
+  ${getBorderColor()}
+`}>
+  <span className={selectedOption ? 'text-neutral-800' : 'text-neutral-400'}>
+    {selectedOption?.label || placeholder}
+  </span>
+  <div className="flex items-center gap-1">
+    {value && <ClearButton />}
+    {showSuccess && <Check className="w-5 h-5 text-[#22c55e]" />}
+    {showError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
+    <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+  </div>
+</div>
+
+// Dropdown con búsqueda
+<div className="absolute z-50 top-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg">
+  {searchable && (
+    <div className="p-2 border-b border-neutral-100">
+      <div className="flex items-center gap-2 h-9 px-3 bg-neutral-50 rounded-md">
+        <Search className="w-4 h-4 text-neutral-400" />
+        <input placeholder="Buscar..." ... />
+      </div>
+    </div>
+  )}
+  <div className="max-h-60 overflow-y-auto p-1">
+    {filteredOptions.map(option => (
+      <button className={`
+        w-full px-3 py-2 text-left text-sm rounded-md cursor-pointer
+        ${selected ? 'bg-[#4654CD] text-white' : 'text-neutral-700 hover:bg-[#4654CD]/10 hover:text-[#4654CD]'}
+      `}>
+        {option.label}
+      </button>
+    ))}
+  </div>
+</div>
+```
+
+#### 8.7.5 FileUpload - Estructura Estándar
+
+```tsx
+// Props interface
+interface FileUploadProps {
+  id: string;
+  label: string;
+  value: UploadedFile[];
+  onChange: (files: UploadedFile[]) => void;
+  accept?: string;        // default: '.pdf,.jpg,.jpeg,.png'
+  maxFiles?: number;      // default: 1
+  maxSize?: number;       // default: 5MB (5 * 1024 * 1024)
+  error?: string;
+  helpText?: string;
+  tooltip?: FieldTooltipInfo;
+  disabled?: boolean;
+  required?: boolean;
+}
+
+// Drop zone visual
+<div className={`
+  relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
+  ${isDragging ? 'border-[#4654CD] bg-[#4654CD]/5'
+    : showError ? 'border-red-300 bg-red-50'
+    : hasFiles ? 'border-green-300 bg-green-50'
+    : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400'}
+`}>
+  <div className="flex flex-col items-center gap-2">
+    {showError ? <AlertCircle className="w-8 h-8 text-red-400" />
+      : hasFiles ? <CheckCircle2 className="w-8 h-8 text-green-500" />
+      : <Upload className="w-8 h-8 text-neutral-400" />}
+    <p className="text-sm text-neutral-600">
+      {isDragging ? 'Suelta el archivo aquí'
+        : hasFiles ? 'Arrastra más archivos o haz clic para agregar'
+        : 'Arrastra y suelta o haz clic para seleccionar'}
+    </p>
+    <p className="text-xs text-neutral-400">
+      {accept} • Máx {formatSize(maxSize)}
+    </p>
+  </div>
+</div>
+
+// Lista de archivos subidos
+{hasFiles && (
+  <div className="space-y-2 mt-2">
+    {value.map(file => (
+      <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-neutral-200">
+        {file.preview ? <img ... /> : <FileIcon />}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{file.name}</p>
+          <p className="text-xs text-neutral-500">{formatSize(file.size)}</p>
+        </div>
+        <RemoveButton />
+      </div>
+    ))}
+  </div>
+)}
+```
+
+#### 8.7.6 Función getBorderColor
+
+Todos los campos usan la misma lógica para determinar el color del borde:
+
+```tsx
+const getBorderColor = () => {
+  if (showError) return 'border-[#ef4444]';
+  if (showSuccess) return 'border-[#22c55e]';
+  if (isFocused) return 'border-[#4654CD]';
+  return 'border-neutral-300';
+};
+```
+
+#### 8.7.7 Tooltip Info Pattern
+
+```tsx
+interface FieldTooltipInfo {
+  title: string;
+  description: string;
+  recommendation?: string;
+}
+
+// Implementación con NextUI Tooltip
+<Tooltip
+  content={
+    <div className="max-w-xs p-2">
+      <p className="font-semibold text-neutral-800">{tooltip.title}</p>
+      <p className="text-xs text-neutral-500 mt-1">{tooltip.description}</p>
+      {tooltip.recommendation && (
+        <p className="text-xs text-[#4654CD] mt-2 flex items-center gap-1">
+          <Info className="w-3 h-3" />
+          {tooltip.recommendation}
+        </p>
+      )}
+    </div>
+  }
+  classNames={{ content: 'bg-white shadow-lg border border-neutral-200' }}
+>
+  <span className="inline-flex">
+    <Info className="w-4 h-4 text-neutral-400 hover:text-[#4654CD] cursor-help" />
+  </span>
+</Tooltip>
+```
+
+#### 8.7.8 Validación de Estados
+
+```tsx
+// Estado touched - solo mostrar success/error después de interacción
+const [touched, setTouched] = useState(false);
+
+const showError = touched && !!error;
+const showSuccess = touched && !error && value.trim().length > 0;
+
+// En onBlur del input
+onBlur={() => setTouched(true)}
+```
+
+#### 8.7.9 Imports Requeridos
+
+```tsx
+import { useState } from 'react';
+import { Tooltip } from '@nextui-org/react';
+import { Check, AlertCircle, Info, ChevronDown, Search, Upload, X, FileText, Image, CheckCircle2 } from 'lucide-react';
+```
+
+#### 8.7.10 Checklist Campos de Formulario
+
+- [ ] **TextInput**: border-2, h-11, iconos dentro del container (lado derecho)
+- [ ] **TextArea**: border-2, iconos posición absoluta (top-3 right-3)
+- [ ] **TextArea**: SIEMPRE incluir maxLength y contador de caracteres
+- [ ] **SelectInput**: Dropdown con búsqueda para 6+ opciones
+- [ ] **FileUpload**: Zona drag & drop con estados visuales diferenciados
+- [ ] **Todos**: Usar `getBorderColor()` consistentemente
+- [ ] **Todos**: Mensaje de error con icono AlertCircle
+- [ ] **Todos**: Icono Check verde para success
+- [ ] **Todos**: `disabled` usa opacity-50 y bg-neutral-50
+- [ ] **Todos**: Estado `touched` para mostrar validación solo después de interacción
+
+---
+
+## 9. Colores y Estilos
+
+### 9.1 Colores de Marca
 
 ```css
 --brand-primary: #4654CD;      /* Azul principal */
@@ -609,7 +1169,7 @@ const handleReset = () => {
 --error: #ef4444;
 ```
 
-### 7.2 Clases Comunes
+### 9.2 Clases Comunes
 
 ```tsx
 // Botón primario
@@ -628,13 +1188,106 @@ className="border-[#4654CD] bg-[#4654CD]/5"
 className="border-neutral-200 hover:border-[#4654CD]/50"
 ```
 
-### 7.3 Restricciones
+### 9.3 Restricciones
 
 - **NO emojis** en UI → usar `lucide-react` icons
-- **NO gradientes** → colores sólidos
-- **Cursor pointer** → agregar `cursor-pointer` a todos los elementos clickeables
+- **NO gradientes** → colores sólidos (ver 9.3.1)
+- **Cursor pointer** → agregar `cursor-pointer` a todos los elementos clickeables (ver 9.3.2)
 
-### 7.4 Floating UI Elements (Popover, Tooltip, Dropdown)
+#### 9.3.1 Prohibición de Gradientes
+
+**REGLA ABSOLUTA:** No usar gradientes en ningún componente. Solo colores sólidos.
+
+```tsx
+// ❌ PROHIBIDO - Gradientes
+className="bg-gradient-to-r from-[#4654CD] to-[#03DBD0]"
+className="bg-gradient-to-br from-[#4654CD]/5 to-white"
+className="bg-gradient-to-r from-[#4654CD]/20 via-[#4654CD]/30 to-[#4654CD]/20"
+
+// ✅ CORRECTO - Colores sólidos
+className="bg-[#4654CD]"
+className="bg-[#4654CD]/5"
+className="bg-[#4654CD]/20"
+className="bg-white"
+```
+
+**Aplica a:**
+- Fondos de cards, botones, badges
+- Efectos glow/blur (usar color sólido con opacity)
+- Bordes y overlays
+- Cualquier elemento visual
+
+**Verificación:**
+```bash
+# Buscar gradientes en el código
+grep -rn "gradient" src/app/prototipos/0.5/ --include="*.tsx"
+```
+
+Si el resultado no está vacío, hay violaciones que corregir.
+
+#### 9.3.2 Cursor Pointer - Elementos Clickeables
+
+**REGLA:** Todo elemento interactivo/clickeable DEBE tener `cursor-pointer` para indicar visualmente que es clickeable.
+
+**Elementos que SIEMPRE requieren `cursor-pointer`:**
+
+| Elemento | Ejemplo |
+|----------|---------|
+| Botones custom (`<button>`) | Filtros avanzados, toggles, acciones |
+| Iconos de acción | Favoritos, comparar, cerrar, expandir |
+| Cards clickeables | Producto seleccionable, opción de lista |
+| Links/anchors estilizados | Navegación, breadcrumbs |
+| Chips/badges seleccionables | Filtros, tags, opciones |
+| Elementos con `onClick` | Cualquier div/span con handler |
+
+```tsx
+// ❌ INCORRECTO - Falta cursor-pointer
+<button
+  onClick={() => setShowAdvanced(!showAdvanced)}
+  className="flex items-center gap-2 text-sm hover:text-[#4654CD]"
+>
+  <ChevronDown />
+  Filtros Avanzados
+</button>
+
+// ✅ CORRECTO - Con cursor-pointer
+<button
+  onClick={() => setShowAdvanced(!showAdvanced)}
+  className="flex items-center gap-2 text-sm hover:text-[#4654CD] cursor-pointer"
+>
+  <ChevronDown />
+  Filtros Avanzados
+</button>
+```
+
+**Estados de cursor según contexto:**
+
+| Estado | Clase | Uso |
+|--------|-------|-----|
+| Clickeable | `cursor-pointer` | Elementos interactivos activos |
+| Deshabilitado | `cursor-not-allowed` | Elementos deshabilitados |
+| Cargando | `cursor-wait` | Durante operaciones async |
+| Default | (ninguna) | Texto, contenido no interactivo |
+
+```tsx
+// Ejemplo: Botón con estados
+<button
+  disabled={isDisabled}
+  className={`p-2 rounded-full transition-all ${
+    isSelected
+      ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
+      : isDisabled
+        ? 'bg-neutral-100 text-neutral-300 cursor-not-allowed'
+        : 'bg-white hover:bg-[#4654CD]/10 cursor-pointer'
+  }`}
+>
+  <Icon />
+</button>
+```
+
+**Nota sobre NextUI:** Los componentes `<Button>` de NextUI ya incluyen `cursor-pointer` por defecto. Esta regla aplica principalmente a elementos `<button>`, `<div>`, `<span>` con handlers onClick personalizados.
+
+### 9.4 Floating UI Elements (Popover, Tooltip, Dropdown)
 
 Estilos estándar para elementos flotantes de NextUI:
 
@@ -667,6 +1320,179 @@ Estilos estándar para elementos flotantes de NextUI:
 ```
 
 **Importante:** Siempre especificar `bg-white` explícitamente para evitar problemas de transparencia.
+
+### 9.5 Toast Notifications
+
+> **Componente:** `Toast` y `useToast` de `@/app/prototipos/_shared`
+
+**REGLA:** Usar SIEMPRE el componente `Toast` estandarizado. NO crear toasts inline con estilos custom.
+
+#### 9.5.1 Tipos de Toast
+
+| Tipo | Uso | Background | Icono |
+|------|-----|------------|-------|
+| `success` | Acción completada exitosamente | `bg-neutral-800` | `CheckCircle2` verde |
+| `error` | Error en acción | `bg-neutral-800` | `XCircle` rojo |
+| `warning` | Advertencia | `bg-neutral-800` | `AlertTriangle` amarillo |
+| `info` | Información general | `bg-white` + border | `Info` azul |
+| `navigation` | Cambio de componente/sección | `bg-neutral-800` | `Navigation` blanco |
+| `version` | Cambio de versión | `bg-[#4654CD]` | `Layers` blanco |
+
+#### 9.5.2 Posición y Duración
+
+| Propiedad | Default | Opciones |
+|-----------|---------|----------|
+| `position` | `bottom` | `top`, `bottom` |
+| `duration` | `3000` (3s) | Cualquier número en ms, `0` para no auto-hide |
+
+- **Bottom:** `bottom-24` (sobre floating buttons)
+- **Top:** `top-20` (debajo de navbar)
+
+#### 9.5.3 Uso con Hook (Recomendado)
+
+```tsx
+import { Toast, useToast } from '@/app/prototipos/_shared';
+
+function MyComponent() {
+  const { toast, showToast, hideToast, isVisible } = useToast();
+
+  const handleAction = async () => {
+    try {
+      await someAction();
+      showToast('Acción completada exitosamente', 'success');
+    } catch {
+      showToast('Error al realizar la acción', 'error');
+    }
+  };
+
+  return (
+    <>
+      <Button onPress={handleAction}>Ejecutar</Button>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={isVisible}
+          onClose={hideToast}
+        />
+      )}
+    </>
+  );
+}
+```
+
+#### 9.5.4 Uso Directo (Simple)
+
+```tsx
+import { Toast } from '@/app/prototipos/_shared';
+
+function MyComponent() {
+  const [showToast, setShowToast] = useState(false);
+
+  return (
+    <>
+      <Button onPress={() => setShowToast(true)}>Mostrar</Button>
+
+      <Toast
+        message="Archivo descargado correctamente"
+        type="success"
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        duration={3000}
+        position="bottom"
+      />
+    </>
+  );
+}
+```
+
+#### 9.5.5 Ejemplos por Caso de Uso
+
+```tsx
+// Descarga exitosa
+showToast('Archivo PDF descargado correctamente', 'success');
+
+// Error de validación
+showToast('Por favor completa todos los campos', 'error');
+
+// Advertencia
+showToast('Tu sesión expirará en 5 minutos', 'warning');
+
+// Información
+showToast('Presiona Tab para navegar entre componentes', 'info');
+
+// Cambio de navegación (keyboard shortcuts)
+showToast('Componente: Filtros de Marca', 'navigation');
+
+// Cambio de versión (keyboard shortcuts)
+showToast('Card: V2 - Grid compacto', 'version');
+```
+
+#### 9.5.6 Props del Componente
+
+```tsx
+interface ToastProps {
+  message: string;           // Texto a mostrar
+  type?: ToastType;          // default: 'info'
+  isVisible: boolean;        // Controla visibilidad
+  onClose: () => void;       // Callback al cerrar
+  duration?: number;         // ms, default: 3000
+  position?: 'top' | 'bottom'; // default: 'bottom'
+}
+
+type ToastType = 'success' | 'error' | 'warning' | 'info' | 'navigation' | 'version';
+```
+
+#### 9.5.7 Prohibición de Toasts Inline
+
+**REGLA ABSOLUTA:** NUNCA crear toasts/notificaciones con código inline. Siempre usar el componente `Toast`.
+
+```tsx
+// ❌ PROHIBIDO - Toast inline con estilos custom
+<AnimatePresence>
+  {showToast && (
+    <motion.div className="fixed bottom-24 left-1/2 ...">
+      <Check className="w-4 h-4" />
+      <span>Mensaje de éxito</span>
+    </motion.div>
+  )}
+</AnimatePresence>
+
+// ❌ PROHIBIDO - Notificación inline
+{isSuccess && (
+  <div className="bg-green-500 text-white px-4 py-2 rounded-lg">
+    <CheckCircle className="w-4 h-4" />
+    <span>¡Acción exitosa!</span>
+  </div>
+)}
+
+// ✅ CORRECTO - Usar componente Toast
+<Toast
+  message="¡Acción exitosa!"
+  type="success"
+  isVisible={isSuccess}
+  onClose={() => setIsSuccess(false)}
+/>
+```
+
+**Verificación:**
+```bash
+# Buscar toasts inline potenciales
+grep -rn "AnimatePresence" src/app/prototipos/0.5/ --include="*.tsx" | grep -i toast
+grep -rn "fixed.*bottom.*left-1/2" src/app/prototipos/0.5/ --include="*.tsx"
+```
+
+#### 9.5.8 Checklist Toast
+
+- [ ] Usar componente `Toast` de `_shared` (NO inline)
+- [ ] Elegir tipo correcto según contexto
+- [ ] Posición `bottom` para acciones de usuario
+- [ ] Posición `top` para feedback de shortcuts
+- [ ] Duración 3s para mensajes normales
+- [ ] Mensajes concisos (máx ~50 caracteres)
+- [ ] NO usar `AnimatePresence` + `motion.div` para notificaciones
+- [ ] NO crear estilos custom para mensajes de feedback
 
 ---
 
@@ -1151,17 +1977,218 @@ if (isCleanMode) {
 - [ ] Usa `router.replace` con `{ scroll: false }`
 - [ ] Parsea valores con validación (1-2 para v0.5)
 
-### 12.6 Feedback en Modo Clean
+### 12.6 Propagación de `mode=clean` en Links Internos
+
+Cuando una página tiene `?mode=clean`, **todos los links internos hijos deben heredar ese query param**.
+
+#### Reglas de Propagación
+
+| Tipo de Link | Hereda `mode=clean` | Ejemplo |
+|--------------|---------------------|---------|
+| **Links internos** (rutas del prototipo) | ✅ SÍ | `/prototipos/0.5/catalogo/...` |
+| **Links externos** (URLs completas) | ❌ NO | `https://zonaclientes.baldecash.com` |
+| **Anchors** (scroll en página) | ❌ NO | `#faq`, `#convenios` |
+
+#### Implementación
+
+1. **Pasar `isCleanMode` como prop** desde la página padre a los componentes hijos:
+
+```tsx
+// Página padre (preview)
+const isCleanMode = searchParams.get('mode') === 'clean';
+
+return <HeroSection isCleanMode={isCleanMode} />;
+```
+
+2. **Usar función helper** para construir URLs internas:
+
+```tsx
+// Helper function en cada componente
+const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
+  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+};
+
+// Uso
+const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
+```
+
+3. **Aplicar en todos los links internos:**
+
+```tsx
+// Mega menú, footer, CTAs, cards, etc.
+<a href={buildInternalUrl('/prototipos/0.5/producto/detail-preview', isCleanMode)}>
+  Ver producto
+</a>
+
+// Con router
+router.push(buildInternalUrl('/prototipos/0.5/wizard-solicitud/wizard-preview', isCleanMode));
+```
+
+#### Componentes que Requieren Propagación
+
+- **Navbar**: Logo, mega menú items
+- **Footer**: Logo, links de productos
+- **HeroBanner**: CTAs principales
+- **HeroCta**: Botones de acción
+- **ProductCard**: Click en cards
+- **EmptyState**: Links a productos relacionados
+
+#### Checklist Propagación mode=clean
+
+- [ ] Página padre pasa `isCleanMode` a componentes hijos
+- [ ] Cada componente tiene interface con `isCleanMode?: boolean`
+- [ ] Función `buildInternalUrl` definida en cada componente
+- [ ] Links internos usan `buildInternalUrl()`
+- [ ] Links externos NO usan `buildInternalUrl()` (quedan sin modificar)
+- [ ] Anchors (`#section`) NO se modifican
+
+### 12.7 Aislamiento de Versiones en Links
+
+**Regla crítica:** Los archivos dentro de `/prototipos/0.X/` solo deben tener links internos que apunten a `/prototipos/0.X/`.
+
+#### Regla
+
+| Ubicación del archivo | Links deben apuntar a |
+|-----------------------|-----------------------|
+| `/prototipos/0.5/**/*.tsx` | `/prototipos/0.5/...` |
+| `/prototipos/0.4/**/*.tsx` | `/prototipos/0.4/...` |
+
+#### Excepciones Válidas
+
+1. **Imports de componentes reutilizados** (código, no navegación):
+   ```tsx
+   // ✅ OK - Import de código
+   import { HelpQuiz } from '@/app/prototipos/0.4/quiz/components/quiz';
+   ```
+
+2. **Links de navegación entre versiones** (intencional):
+   ```tsx
+   // ✅ OK - Botón "Ver versión anterior"
+   <Link href="/prototipos/0.4">Ver versión anterior (0.4)</Link>
+   ```
+
+#### Errores Comunes a Evitar
+
+```tsx
+// ❌ INCORRECTO - Archivo en 0.5 apuntando a 0.4
+const wizardUrl = '/prototipos/0.4/wizard-solicitud/wizard-preview';
+
+// ✅ CORRECTO - Archivo en 0.5 apunta a 0.5
+const wizardUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+
+// ❌ INCORRECTO - Usar & cuando es el primer query param
+const url = `${baseUrl}&mode=clean`;  // & solo para params adicionales
+
+// ✅ CORRECTO - Usar ? para el primer query param
+const url = `${baseUrl}?mode=clean`;  // ? inicia los query params
+```
+
+#### Patrón Correcto para URLs con Query Params
+
+```tsx
+// Cuando la URL base NO tiene query params
+const getSimpleUrl = (isCleanMode: boolean) => {
+  const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+  return isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
+};
+
+// Cuando la URL base PUEDE tener query params
+const getComplexUrl = (isCleanMode: boolean, deviceType?: string) => {
+  const baseUrl = '/prototipos/0.5/producto/detail-preview';
+  const params = new URLSearchParams();
+
+  if (deviceType && deviceType !== 'laptop') {
+    params.set('device', deviceType);
+  }
+  if (isCleanMode) {
+    params.set('mode', 'clean');
+  }
+
+  const queryString = params.toString();
+  return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+};
+```
+
+**Regla:** Usar `URLSearchParams` cuando hay múltiples params posibles para evitar errores de `?` vs `&`.
+
+#### Verificación
+
+Ejecutar estos comandos para detectar problemas:
+
+```bash
+# 1. Buscar links a 0.4 dentro de archivos 0.5 (excluyendo imports y comentarios)
+grep -rn "prototipos/0\.4" src/app/prototipos/0.5/ --include="*.tsx" \
+  | grep -v "import " | grep -v "// " | grep -v "* " | grep -v "Ver versión anterior"
+
+# 2. Buscar uso incorrecto de &mode=clean (debería ser ?mode=clean)
+grep -rn "&mode=clean" src/app/prototipos/0.5/ --include="*.tsx"
+```
+
+#### Checklist Aislamiento de Versiones
+
+- [ ] Todos los `router.push()` apuntan a la misma versión
+- [ ] Todas las URLs hardcodeadas usan la versión correcta
+- [ ] Los botones de navegación van a rutas de la misma versión
+- [ ] Solo el botón "Ver versión anterior" cruza versiones (intencional)
+
+### 12.8 Feedback en Modo Clean
 
 Cuando `mode=clean` está activo, se muestra un **botón de feedback** (💬) en la esquina inferior derecha para recolectar opiniones durante presentaciones.
+
+#### Regla Principal
+
+> **OBLIGATORIO**: Toda página de preview DEBE mostrar el `FeedbackButton` cuando tiene `mode=clean`.
+> El botón debe estar envuelto en la condición `{isCleanMode && <FeedbackButton ... />}`.
+
+```tsx
+// ✅ Correcto - FeedbackButton solo visible en mode=clean
+if (isCleanMode) {
+  return (
+    <>
+      <PageContent />
+      <FeedbackButton sectionId="mi-seccion" config={config} />
+    </>
+  );
+}
+
+// ✅ También correcto - usando condicional inline
+return (
+  <div>
+    <PageContent />
+    {isCleanMode && (
+      <FeedbackButton sectionId="mi-seccion" config={config} />
+    )}
+  </div>
+);
+
+// ❌ Incorrecto - FeedbackButton siempre visible
+return (
+  <div>
+    <PageContent />
+    <FeedbackButton sectionId="mi-seccion" config={config} />
+  </div>
+);
+```
+
+#### Verificación de Cumplimiento
+
+```bash
+# Buscar páginas con FeedbackButton sin condición isCleanMode
+grep -l "FeedbackButton" src/app/prototipos/0.5/**/page.tsx | while read f; do
+  if ! grep -q "isCleanMode" "$f"; then
+    echo "⚠️  $f - Falta condición isCleanMode"
+  fi
+done
+```
 
 #### Características Principales
 
 | Aspecto | Descripción |
 |---------|-------------|
 | Librería | `modern-screenshot` (soporta CSS moderno: `lab()`, `oklch()`) |
-| Visibilidad | Siempre visible en `mode=clean` (sin opción de ocultar) |
+| Visibilidad | **SOLO visible en `mode=clean`** (obligatorio) |
 | Screenshot | Solo viewport visible, excluye overlay via `filter` |
+| Campo Autor | Input con persistencia en localStorage |
 | Textarea | HTML nativo `<textarea>` (mejor control de altura) |
 | Overlay | Card blanca con spinner CSS durante captura |
 
@@ -1180,6 +2207,7 @@ mode=clean activo
                     │
                     └─→ Modal abre con:
                         ├─→ Preview del screenshot
+                        ├─→ Campo "Autor" (autocompletado desde localStorage)
                         ├─→ Textarea "Tu opinión"
                         └─→ Botones "Cancelar" / "Enviar Feedback"
                                 │
@@ -1293,13 +2321,13 @@ export function FeedbackButton({ sectionId, config }: FeedbackButtonProps) {
 
 #### 12.6.2 FeedbackModal
 
-Modal con screenshot preview y textarea nativo:
+Modal con screenshot preview, campo autor persistente y textarea nativo:
 
 ```tsx
 // FeedbackModal.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Modal,
   ModalContent,
@@ -1308,7 +2336,9 @@ import {
   ModalFooter,
   Button,
 } from '@nextui-org/react';
-import { MessageCircle, Send, Check, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, Check, AlertCircle, User } from 'lucide-react';
+
+const AUTHOR_STORAGE_KEY = 'baldecash-feedback-author';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -1329,8 +2359,23 @@ export function FeedbackModal({
   pageUrl,
   config,
 }: FeedbackModalProps) {
+  const [author, setAuthor] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
   const [status, setStatus] = useState<SubmitStatus>('idle');
+
+  // Load author from localStorage on mount
+  useEffect(() => {
+    const savedAuthor = localStorage.getItem(AUTHOR_STORAGE_KEY);
+    if (savedAuthor) {
+      setAuthor(savedAuthor);
+    }
+  }, []);
+
+  // Save author to localStorage when it changes
+  const handleAuthorChange = (value: string) => {
+    setAuthor(value);
+    localStorage.setItem(AUTHOR_STORAGE_KEY, value);
+  };
 
   const handleSubmit = async () => {
     if (!feedbackText.trim() || !screenshot) return;
@@ -1343,6 +2388,7 @@ export function FeedbackModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           screenshot,
+          author: author.trim() || 'Anónimo',
           feedbackText,
           pageUrl,
           sectionId,
@@ -1759,6 +2805,7 @@ npm install modern-screenshot
 ```typescript
 interface FeedbackEntry {
   screenshot: string;              // Base64 JPEG (calidad 0.8)
+  author: string;                  // Nombre del autor (o "Anónimo" si vacío)
   feedbackText: string;            // Texto del usuario
   pageUrl: string;                 // URL completa con params
   sectionId: string;               // Ej: "catalogo", "hero"
@@ -1768,6 +2815,33 @@ interface FeedbackEntry {
 }
 ```
 
+#### 12.6.7.1 Campo Autor con Persistencia
+
+El campo "Autor" tiene persistencia en localStorage para autocompletado entre páginas:
+
+```tsx
+const AUTHOR_STORAGE_KEY = 'baldecash-feedback-author';
+
+// Cargar al montar
+useEffect(() => {
+  const savedAuthor = localStorage.getItem(AUTHOR_STORAGE_KEY);
+  if (savedAuthor) setAuthor(savedAuthor);
+}, []);
+
+// Guardar al cambiar
+const handleAuthorChange = (value: string) => {
+  setAuthor(value);
+  localStorage.setItem(AUTHOR_STORAGE_KEY, value);
+};
+```
+
+| Aspecto | Valor |
+|---------|-------|
+| Key localStorage | `baldecash-feedback-author` |
+| Valor por defecto | `''` (vacío) |
+| Fallback en submit | `'Anónimo'` |
+| Persistencia | Entre páginas y sesiones |
+
 #### 12.6.8 Checklist FeedbackButton
 
 - [ ] Dependencia `modern-screenshot` instalada
@@ -1776,7 +2850,8 @@ interface FeedbackEntry {
 - [ ] useScreenshot.ts en `_shared/hooks/`
 - [ ] Exports en `_shared/index.ts`
 - [ ] API endpoint `/api/feedback` creado
-- [ ] Integrado en return de `mode=clean` de la sección
+- [ ] **FeedbackButton envuelto en condición `isCleanMode`** (obligatorio)
+- [ ] Campo "Autor" con persistencia en localStorage
 - [ ] Atributo `data-feedback-button` en el contenedor del botón
 - [ ] Atributo `data-feedback-overlay` en el overlay
 - [ ] Estados de loading/success/error en modal
@@ -1847,69 +2922,140 @@ Cada versión (0.4, 0.5, etc.) tiene una página index en `/prototipos/{version}
 
 ### 14.2 Mode Display
 
-**Con toggle (versiones con múltiples modos como v0.4):**
+El Mode Display permite alternar entre modo normal (con controles de desarrollo) y modo presentación (limpio, con `?mode=clean`).
+
+#### Comportamiento
+
+| Estado Toggle | Links de Secciones | Descripción |
+|---------------|-------------------|-------------|
+| **OFF** (default) | `/prototipos/0.5/seccion/preview` | Controles de desarrollo visibles |
+| **ON** | `/prototipos/0.5/seccion/preview?mode=clean` | Vista limpia sin controles |
+
+#### Implementación con Toggle y localStorage
+
+```tsx
+// Constante para localStorage
+const STORAGE_KEY = 'baldecash-v05-presentation-mode';
+
+// Estado con persistencia
+const [isPresentationMode, setIsPresentationMode] = useState(false);
+
+// Cargar desde localStorage al montar
+useEffect(() => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved !== null) {
+    setIsPresentationMode(JSON.parse(saved));
+  }
+}, []);
+
+// Guardar al cambiar
+const handlePresentationModeChange = (value: boolean) => {
+  setIsPresentationMode(value);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+};
+
+// Función para obtener path con o sin mode=clean
+const getSectionPath = (basePath: string) => {
+  return isPresentationMode ? `${basePath}?mode=clean` : basePath;
+};
+```
+
+#### JSX del Toggle
+
 ```tsx
 <section className="max-w-4xl mx-auto mb-8">
   <div className="bg-white rounded-2xl p-4 border border-neutral-200 shadow-sm">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        {isPresentationMode ? (
-          <div className="w-10 h-10 rounded-xl bg-[#4654CD] flex items-center justify-center">
-            <Presentation className="w-5 h-5 text-white" />
-          </div>
-        ) : (
-          <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center">
-            <Settings2 className="w-5 h-5 text-neutral-600" />
-          </div>
-        )}
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+          ${isPresentationMode ? 'bg-[#4654CD]' : 'bg-neutral-200'}`}
+        >
+          <Presentation className={`w-5 h-5 transition-colors
+            ${isPresentationMode ? 'text-white' : 'text-neutral-500'}`}
+          />
+        </div>
         <div>
-          <h3 className="font-semibold text-neutral-900">
-            {isPresentationMode ? "Modo Presentación" : "Modo Configuración"}
-          </h3>
+          <h3 className="font-semibold text-neutral-900">Modo Presentación</h3>
           <p className="text-sm text-neutral-500">
             {isPresentationMode
-              ? "Versiones optimizadas sin controles de configuración"
-              : "Todas las versiones V1 con controles visibles"}
+              ? 'Activo - Los links abrirán sin controles de desarrollo'
+              : 'Inactivo - Los links abrirán con controles de desarrollo'}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <span className={`text-sm font-medium ${!isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
-          Config
-        </span>
-        <CustomSwitch isSelected={isPresentationMode} onValueChange={setIsPresentationMode} />
-        <span className={`text-sm font-medium ${isPresentationMode ? 'text-neutral-900' : 'text-neutral-400'}`}>
-          Presentación
-        </span>
-      </div>
+      <CustomSwitch
+        isSelected={isPresentationMode}
+        onValueChange={handlePresentationModeChange}
+      />
     </div>
   </div>
 </section>
 ```
 
-**Estático (versiones con modo único como v0.5):**
+#### CustomSwitch Component
+
 ```tsx
-<section className="max-w-4xl mx-auto mb-8">
-  <div className="bg-white rounded-2xl p-4 border border-neutral-200 shadow-sm">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#4654CD] flex items-center justify-center">
-          <Presentation className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-neutral-900">Modo Presentación</h3>
-          <p className="text-sm text-neutral-500">
-            Configuración fija optimizada con sistema de feedback
-          </p>
-        </div>
+interface CustomSwitchProps {
+  isSelected: boolean;
+  onValueChange: (value: boolean) => void;
+}
+
+function CustomSwitch({ isSelected, onValueChange }: CustomSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isSelected}
+      onClick={() => onValueChange(!isSelected)}
+      className="inline-flex items-center cursor-pointer"
+    >
+      <div className={`
+        w-12 h-6 rounded-full relative transition-colors duration-200
+        ${isSelected ? 'bg-[#4654CD]' : 'bg-neutral-300'}
+      `}>
+        <motion.div
+          className="w-5 h-5 bg-white rounded-full shadow-md absolute top-1/2"
+          initial={false}
+          animate={{
+            x: isSelected ? 24 : 2,
+            y: '-50%',
+          }}
+          transition={{
+            type: 'spring',
+            stiffness: 500,
+            damping: 30,
+          }}
+        />
       </div>
-      <div className="px-3 py-1 bg-[#4654CD]/10 text-[#4654CD] rounded-full text-xs font-medium">
-        Único modo
-      </div>
-    </div>
-  </div>
-</section>
+    </button>
+  );
+}
 ```
+
+#### Uso en Section Cards
+
+```tsx
+// En el grid de secciones, usar getSectionPath para los links
+<Card
+  key={section.id}
+  isPressable
+  onPress={() => router.push(getSectionPath(section.path))}
+  className="bg-white border border-neutral-100 hover:border-[#4654CD]/50 hover:shadow-md transition-all cursor-pointer h-full"
+>
+  {cardContent}
+</Card>
+```
+
+#### Checklist Mode Display
+
+- [ ] `STORAGE_KEY` definido con nombre único por versión
+- [ ] Estado `isPresentationMode` con `useState(false)`
+- [ ] `useEffect` para cargar desde localStorage
+- [ ] `handlePresentationModeChange` guarda en localStorage
+- [ ] `getSectionPath` agrega `?mode=clean` cuando activo
+- [ ] Icono cambia color según estado (morado activo, gris inactivo)
+- [ ] Descripción dinámica explica el comportamiento actual
+- [ ] Section cards usan `getSectionPath(section.path)`
 
 ### 14.3 Sections Grid
 
@@ -2038,6 +3184,18 @@ interface SectionStatus {
 | 1.7 | 2026-01-06 | useScreenshot: excluir sidebars de sticky fix, scroll interno opt-in con `data-scroll-fix` |
 | 1.8 | 2026-01-07 | Sección 7.4: Estilos estándar para Floating UI Elements (Popover, Tooltip, Dropdown) |
 | 1.9 | 2026-01-07 | Sección 14: Página Index de Versión (estructura, Mode Display, Sections Grid, Registry) |
+| 2.0 | 2026-01-08 | Sección 7: Formato de Moneda (`formatMoney()` centralizado, separador miles, 2 decimales) |
+| 2.1 | 2026-01-09 | Sección 8: Componentes de Selección (regla 2-3→Segmented, 4-5→RadioGroup, 6+→Select) |
+| 2.2 | 2026-01-09 | Sección 14.2: Mode Display con toggle interactivo, localStorage y función `getSectionPath` |
+| 2.3 | 2026-01-09 | Sección 12.6: Propagación de `mode=clean` en links internos (herencia padre→hijo) |
+| 2.4 | 2026-01-09 | Sección 12.7: Aislamiento de versiones en links (0.5 solo apunta a 0.5) |
+| 2.5 | 2026-01-09 | Sección 12.7: Patrón URLSearchParams para múltiples query params, error `&` vs `?` |
+| 2.6 | 2026-01-09 | Sección 12.8: FeedbackButton OBLIGATORIO en `mode=clean`, campo Autor con persistencia localStorage |
+| 2.7 | 2026-01-09 | Sección 8.7: Estándares de Campos de Formulario (TextInput, TextArea, SelectInput, FileUpload) con estados, colores, iconos, validación y contador de caracteres |
+| 2.8 | 2026-01-09 | Tabla "CONSULTA OBLIGATORIA ANTES DE IMPLEMENTAR" al inicio del documento para referencia rápida de secciones |
+| 2.9 | 2026-01-09 | Sección 9.3.1: Prohibición de Gradientes expandida con ejemplos, verificación y casos de uso |
+| 3.0 | 2026-01-09 | Sección 9.5: Toast Notifications estandarizado con componente `Toast` y hook `useToast` |
+| 3.1 | 2026-01-09 | Sección 9.5.7: Prohibición explícita de toasts inline con ejemplos de código prohibido y verificación |
 
 ---
 

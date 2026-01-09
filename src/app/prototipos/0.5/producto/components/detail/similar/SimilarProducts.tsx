@@ -1,20 +1,57 @@
 'use client';
 
 /**
- * SimilarProducts - Carousel con cards estilo catálogo
+ * SimilarProducts - Carousel con cards estilo catálogo v0.5
  * Incluye: match %, comparación vs precio actual, tags diferenciadores
+ * Diseño basado en ProductCard del catálogo
+ * Incluye galería de imágenes con miniaturas y selector de colores
  */
 
 import React, { useRef, useState } from 'react';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { SimilarProductsProps } from '../../../types/detail';
+import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, Cpu, MemoryStick, HardDrive, Monitor, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { SimilarProductsProps, SimilarProduct } from '../../../types/detail';
+import { formatMoney } from '../../../../utils/formatMoney';
 
-export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, currentQuota }) => {
+// State per product for image and color selection
+interface ProductCardState {
+  selectedImageIndex: number;
+  selectedColorId: string | null;
+}
+
+export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, currentQuota, isCleanMode = false }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+
+  // State for each product's selected image and color
+  const [productStates, setProductStates] = useState<Record<string, ProductCardState>>(() => {
+    const initial: Record<string, ProductCardState> = {};
+    products.forEach((p) => {
+      initial[p.id] = {
+        selectedImageIndex: 0,
+        selectedColorId: p.colors?.[0]?.id || null,
+      };
+    });
+    return initial;
+  });
+
+  const updateProductState = (productId: string, updates: Partial<ProductCardState>) => {
+    setProductStates((prev) => ({
+      ...prev,
+      [productId]: { ...prev[productId], ...updates },
+    }));
+  };
+
+  // Helper function to determine if a color is light (for check icon contrast)
+  const isLightColor = (hex: string): boolean => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5;
+  };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.src = 'https://placehold.co/400x300/e5e7eb/64748b?text=Producto';
@@ -22,7 +59,8 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
 
   const handleProductClick = (slug: string) => {
     if (typeof window !== 'undefined') {
-      window.location.href = `/prototipos/0.5/producto/detail-preview?mode=clean`;
+      const baseUrl = '/prototipos/0.5/producto/detail-preview';
+      window.location.href = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
     }
   };
 
@@ -91,6 +129,9 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
         {products.map((product) => {
           const isCheaper = product.quotaDifference < 0;
           const priceDiff = Math.abs(product.quotaDifference);
+          const state = productStates[product.id] || { selectedImageIndex: 0, selectedColorId: null };
+          const images = product.images || [product.thumbnail];
+          const currentImage = images[state.selectedImageIndex] || product.thumbnail;
 
           return (
             <motion.div
@@ -103,19 +144,51 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
             >
               <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white">
                 <CardBody className="p-0 flex flex-col">
-                  {/* Image */}
+                  {/* Image Gallery - Estilo catálogo */}
                   <div className="relative bg-gradient-to-b from-neutral-50 to-white p-4">
-                    <div className="aspect-[4/3] overflow-hidden rounded-xl">
-                      <img
-                        src={product.thumbnail}
-                        alt={product.name}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                        onError={handleImageError}
-                      />
+                    {/* Main Image */}
+                    <div className="aspect-[4/3] overflow-hidden rounded-xl mb-2">
+                      <AnimatePresence mode="wait">
+                        <motion.img
+                          key={state.selectedImageIndex}
+                          src={currentImage}
+                          alt={product.name}
+                          className="w-full h-full object-contain"
+                          onError={handleImageError}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      </AnimatePresence>
                     </div>
 
+                    {/* Image Thumbnails */}
+                    {images.length > 1 && (
+                      <div className="flex justify-center gap-1.5">
+                        {images.map((img, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => updateProductState(product.id, { selectedImageIndex: idx })}
+                            className={`w-10 h-10 rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                              state.selectedImageIndex === idx
+                                ? 'border-[#4654CD] shadow-md'
+                                : 'border-transparent opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <img
+                              src={img}
+                              alt={`${product.name} ${idx + 1}`}
+                              className="w-full h-full object-contain bg-white"
+                              onError={handleImageError}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Match Badge - Top Left */}
-                    <div className="absolute top-6 left-6">
+                    <div className="absolute top-3 left-3">
                       <div className="px-3 py-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-md flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-[#4654CD]" />
                         <span className="text-xs font-bold text-neutral-800">{product.matchScore}% match</span>
@@ -123,7 +196,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                     </div>
 
                     {/* Price Comparison Badge - Top Right */}
-                    <div className="absolute top-6 right-6">
+                    <div className="absolute top-3 right-3">
                       <div className={`px-3 py-1.5 rounded-full shadow-md flex items-center gap-1 ${
                         isCheaper
                           ? 'bg-emerald-500 text-white'
@@ -135,33 +208,93 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                           <TrendingUp className="w-3.5 h-3.5" />
                         )}
                         <span className="text-xs font-bold">
-                          {isCheaper ? '-' : '+'}S/{priceDiff}
+                          {isCheaper ? '-' : '+'}S/{formatMoney(priceDiff)}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Content - Centered like catalog */}
+                  {/* Content - Estilo catálogo centrado */}
                   <div className="p-5 text-center flex flex-col flex-1">
-                    {/* Comparison vs current */}
-                    <div className={`inline-flex items-center justify-center gap-1.5 text-xs font-medium mb-2 ${
-                      isCheaper ? 'text-emerald-600' : 'text-amber-600'
-                    }`}>
-                      {isCheaper ? (
-                        <TrendingDown className="w-3.5 h-3.5" />
-                      ) : (
-                        <TrendingUp className="w-3.5 h-3.5" />
-                      )}
-                      <span>vs S/{currentQuota}/mes actual</span>
-                    </div>
+                    {/* Brand */}
+                    <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider mb-1">
+                      {product.brand}
+                    </p>
 
                     {/* Title */}
-                    <h3 className="font-bold text-neutral-800 text-base line-clamp-2 mb-3 min-h-[3rem]">
+                    <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-2">
                       {product.name}
                     </h3>
 
+                    {/* Color Selector - V1 Swatches Style */}
+                    {product.colors && product.colors.length > 0 && (
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                          {product.colors.map((color) => {
+                            const isSelected = state.selectedColorId === color.id;
+                            const isDarkColor = !isLightColor(color.hex);
+
+                            return (
+                              <button
+                                key={color.id}
+                                type="button"
+                                onClick={() => updateProductState(product.id, { selectedColorId: color.id })}
+                                className={`
+                                  w-7 h-7 rounded-md border-2 transition-all flex-shrink-0
+                                  flex items-center justify-center cursor-pointer
+                                  ${isSelected
+                                    ? 'border-[#4654CD] ring-2 ring-[#4654CD]/20'
+                                    : 'border-neutral-200 hover:border-neutral-400'}
+                                `}
+                                style={{ backgroundColor: color.hex }}
+                                aria-label={`Seleccionar color ${color.name}`}
+                                aria-pressed={isSelected}
+                              >
+                                {isSelected && (
+                                  <Check
+                                    className={`w-4 h-4 ${isDarkColor ? 'text-white' : 'text-neutral-800'}`}
+                                    style={{
+                                      filter: isDarkColor ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' : 'none',
+                                    }}
+                                  />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Selected color name */}
+                        {state.selectedColorId && (
+                          <p className="text-xs text-neutral-600 font-medium">
+                            {product.colors.find((c) => c.id === state.selectedColorId)?.name}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Specs técnicas con iconos - Estilo catálogo */}
+                    {product.specs && (
+                      <div className="space-y-1.5 mb-3">
+                        <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                          <Cpu className="w-3.5 h-3.5 text-[#4654CD]" />
+                          <span>{product.specs.processor}</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                          <MemoryStick className="w-3.5 h-3.5 text-[#4654CD]" />
+                          <span>{product.specs.ram}</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                          <HardDrive className="w-3.5 h-3.5 text-[#4654CD]" />
+                          <span>{product.specs.storage}</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                          <Monitor className="w-3.5 h-3.5 text-[#4654CD]" />
+                          <span>{product.specs.display}</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Differentiator Tags */}
-                    <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+                    <div className="flex flex-wrap justify-center gap-1.5 mb-3">
                       {product.differentiators.map((diff, idx) => (
                         <span
                           key={idx}
@@ -172,8 +305,8 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                       ))}
                     </div>
 
-                    {/* Giant Price */}
-                    <div className={`rounded-2xl py-4 px-6 mb-4 ${
+                    {/* Giant Price - Estilo catálogo */}
+                    <div className={`rounded-2xl py-4 px-6 mb-3 ${
                       isCheaper
                         ? 'bg-emerald-50'
                         : 'bg-[#4654CD]/5'
@@ -183,39 +316,45 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                         <span className={`text-3xl font-black ${
                           isCheaper ? 'text-emerald-600' : 'text-[#4654CD]'
                         }`}>
-                          S/{product.monthlyQuota}
+                          S/{formatMoney(product.monthlyQuota)}
                         </span>
                         <span className="text-base text-neutral-400">/mes</span>
                       </div>
-                      {isCheaper && (
-                        <p className="text-xs text-emerald-600 font-medium mt-1">
-                          Ahorras S/{priceDiff}/mes
-                        </p>
-                      )}
+                      {/* Comparison vs current */}
+                      <div className={`inline-flex items-center justify-center gap-1 text-xs font-medium mt-1 ${
+                        isCheaper ? 'text-emerald-600' : 'text-amber-600'
+                      }`}>
+                        {isCheaper ? (
+                          <TrendingDown className="w-3 h-3" />
+                        ) : (
+                          <TrendingUp className="w-3 h-3" />
+                        )}
+                        <span>vs S/{formatMoney(currentQuota)}/mes actual</span>
+                      </div>
                     </div>
 
                     {/* Spacer */}
                     <div className="flex-1" />
 
-                    {/* CTAs */}
+                    {/* CTAs - Estilo catálogo */}
                     <div className="flex gap-2">
                       <Button
-                        size="md"
+                        size="lg"
                         variant="bordered"
-                        className="flex-1 border-[#4654CD] text-[#4654CD] font-semibold cursor-pointer hover:bg-[#4654CD]/5 rounded-xl"
-                        startContent={<Eye className="w-4 h-4" />}
+                        className="flex-1 border-[#4654CD] text-[#4654CD] font-bold cursor-pointer hover:bg-[#4654CD]/5 rounded-xl"
+                        startContent={<Eye className="w-5 h-5" />}
                         onPress={() => handleProductClick(product.slug)}
                       >
                         Detalle
                       </Button>
                       <Button
-                        size="md"
-                        className={`flex-1 font-semibold cursor-pointer rounded-xl ${
+                        size="lg"
+                        className={`flex-1 font-bold cursor-pointer rounded-xl ${
                           isCheaper
                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                             : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
                         }`}
-                        endContent={<ArrowRight className="w-4 h-4" />}
+                        endContent={<ArrowRight className="w-5 h-5" />}
                         onPress={() => handleProductClick(product.slug)}
                       >
                         {isCheaper ? 'Ahorrar' : 'Lo quiero'}

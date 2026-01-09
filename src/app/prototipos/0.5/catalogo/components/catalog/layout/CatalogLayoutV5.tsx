@@ -18,6 +18,7 @@ import {
   BrandFilterV5,
   BrandFilterV6,
 } from '../filters/brand';
+import { formatMoney } from '../../../../utils/formatMoney';
 import {
   brandOptions,
   usageOptions,
@@ -296,7 +297,7 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
 
                     <div className="flex items-baseline gap-2 mb-3">
                       <span className="text-2xl font-bold text-[#4654CD]">
-                        S/{previewProduct.quotaMonthly}
+                        S/{formatMoney(previewProduct.quotaMonthly)}
                       </span>
                       <span className="text-sm text-neutral-500">/mes</span>
                     </div>

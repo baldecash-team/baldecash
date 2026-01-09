@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardBody, Button, Checkbox, Switch, Chip } from '@nextui-org/react';
 import { Minus, Maximize2, GripHorizontal, SlidersHorizontal, Trash2, ChevronDown, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FilterState, CatalogLayoutConfig, GamaTier, ProductCondition, ProcessorModel, Resolution, DisplayType } from '../../types/catalog';
+import { FilterState, CatalogLayoutConfig, CatalogDeviceType, GamaTier, ProductCondition, ProcessorModel, Resolution, DisplayType } from '../../types/catalog';
 import { FilterSection } from './filters/FilterSection';
 import { QuotaRangeFilter } from './filters/QuotaRangeFilter';
 import { UsageFilter } from './filters/UsageFilter';
@@ -18,6 +18,8 @@ import {
 } from './filters/brand';
 import {
   brandOptions,
+  brandsByDeviceType,
+  deviceTypeOptions,
   usageOptions,
   ramOptions,
   storageOptions,
@@ -28,6 +30,7 @@ import {
   resolutionOptions,
   displayTypeOptions,
 } from '../../data/mockCatalogData';
+import { Laptop, Tablet, Smartphone } from 'lucide-react';
 
 interface FloatingFilterPanelProps {
   isVisible: boolean;
@@ -105,9 +108,26 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
     };
   }, [isDragging]);
 
+  // Get filtered brand options based on selected device types
+  const getFilteredBrandOptions = () => {
+    if (filters.deviceTypes.length === 0) {
+      return brandOptions;
+    }
+
+    // Get all brands available for selected device types
+    const availableBrands = new Set<string>();
+    filters.deviceTypes.forEach((deviceType) => {
+      const brands = brandsByDeviceType[deviceType] || [];
+      brands.forEach((brand) => availableBrands.add(brand));
+    });
+
+    return brandOptions.filter((opt) => availableBrands.has(opt.value));
+  };
+
   const renderBrandFilter = () => {
+    const filteredBrands = getFilteredBrandOptions();
     const props = {
-      options: brandOptions,
+      options: filteredBrands,
       selected: filters.brands,
       onChange: (brands: string[]) => updateFilter('brands', brands),
       showCounts: config.showFilterCounts,
@@ -121,6 +141,12 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
       case 6: return <BrandFilterV6 {...props} />;
       default: return <BrandFilterV1 {...props} />;
     }
+  };
+
+  const deviceTypeIcons: Record<string, React.ElementType> = {
+    laptop: Laptop,
+    tablet: Tablet,
+    celular: Smartphone,
   };
 
   const gamaColors: Record<GamaTier, { bg: string; text: string }> = {
@@ -223,6 +249,40 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                         Limpiar todos los filtros
                       </Button>
                     )}
+
+                    {/* Device Type Filter */}
+                    <FilterSection title="Tipo de equipo" defaultExpanded={true}>
+                      <div className="flex flex-wrap gap-2">
+                        {deviceTypeOptions.map((opt) => {
+                          const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
+                          const Icon = deviceTypeIcons[opt.value];
+                          return (
+                            <Chip
+                              key={opt.value}
+                              size="sm"
+                              radius="sm"
+                              variant={isSelected ? 'solid' : 'bordered'}
+                              startContent={Icon ? <Icon className="w-3.5 h-3.5" /> : null}
+                              className={`cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'bg-[#4654CD] text-white border-[#4654CD]'
+                                  : 'bg-white text-neutral-700 hover:border-[#4654CD]'
+                              }`}
+                              onClick={() => {
+                                const deviceType = opt.value as CatalogDeviceType;
+                                if (filters.deviceTypes.includes(deviceType)) {
+                                  updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== deviceType));
+                                } else {
+                                  updateFilter('deviceTypes', [...filters.deviceTypes, deviceType]);
+                                }
+                              }}
+                            >
+                              {opt.label}
+                            </Chip>
+                          );
+                        })}
+                      </div>
+                    </FilterSection>
 
                     {/* Brand Filter */}
                     <FilterSection title="Marca" defaultExpanded={true}>

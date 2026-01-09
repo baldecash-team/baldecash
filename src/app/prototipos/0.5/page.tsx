@@ -1,11 +1,54 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@nextui-org/react";
-import { Palette, Layers, Rocket, ArrowLeft, CheckCircle, AlertCircle, SearchX, FileText, GitCompare, HelpCircle, ClipboardList, ShoppingCart, CheckCircle2, XCircle, Building2, Keyboard, Command, Presentation, Layout } from "lucide-react";
+import { motion } from "framer-motion";
+import { Palette, Layers, Rocket, ArrowLeft, CheckCircle, AlertCircle, SearchX, FileText, GitCompare, HelpCircle, ClipboardList, ShoppingCart, CheckCircle2, XCircle, Building2, Keyboard, Command, Presentation, Layout, Settings2 } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
+
+// Custom Switch Component with framer-motion animation
+interface CustomSwitchProps {
+  isSelected: boolean;
+  onValueChange: (value: boolean) => void;
+}
+
+function CustomSwitch({ isSelected, onValueChange }: CustomSwitchProps) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isSelected}
+      onClick={() => onValueChange(!isSelected)}
+      className="inline-flex items-center cursor-pointer"
+    >
+      <div
+        className={`
+          w-12 h-6 rounded-full relative transition-colors duration-200
+          ${isSelected ? 'bg-[#4654CD]' : 'bg-neutral-300'}
+        `}
+      >
+        <motion.div
+          className="w-5 h-5 bg-white rounded-full shadow-md absolute top-1/2"
+          initial={false}
+          animate={{
+            x: isSelected ? 24 : 2,
+            y: '-50%',
+          }}
+          transition={{
+            type: 'spring',
+            stiffness: 500,
+            damping: 30,
+          }}
+        />
+      </div>
+    </button>
+  );
+}
+
+const STORAGE_KEY = 'baldecash-v05-presentation-mode';
 
 const version = getVersionByNumber("0.5")!;
 
@@ -33,6 +76,26 @@ const statusStyles = {
 
 export default function Version05Page() {
   const router = useRouter();
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
+
+  // Load presentation mode from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved !== null) {
+      setIsPresentationMode(JSON.parse(saved));
+    }
+  }, []);
+
+  // Save presentation mode to localStorage when it changes
+  const handlePresentationModeChange = (value: boolean) => {
+    setIsPresentationMode(value);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+  };
+
+  // Get section path with or without mode=clean
+  const getSectionPath = (basePath: string) => {
+    return isPresentationMode ? `${basePath}?mode=clean` : basePath;
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -49,24 +112,27 @@ export default function Version05Page() {
           <p className="text-lg text-neutral-500 max-w-2xl mx-auto">{version.description}</p>
         </header>
 
-        {/* Mode Display (static - v0.5 only has presentation mode) */}
+        {/* Mode Toggle */}
         <section className="max-w-4xl mx-auto mb-8">
           <div className="bg-white rounded-2xl p-4 border border-neutral-200 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#4654CD] flex items-center justify-center">
-                  <Presentation className="w-5 h-5 text-white" />
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${isPresentationMode ? 'bg-[#4654CD]' : 'bg-neutral-200'}`}>
+                  <Presentation className={`w-5 h-5 transition-colors ${isPresentationMode ? 'text-white' : 'text-neutral-500'}`} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-neutral-900">Modo Presentación</h3>
                   <p className="text-sm text-neutral-500">
-                    Configuración fija optimizada con sistema de feedback
+                    {isPresentationMode
+                      ? 'Activo - Los links abrirán sin controles de desarrollo'
+                      : 'Inactivo - Los links abrirán con controles de desarrollo'}
                   </p>
                 </div>
               </div>
-              <div className="px-3 py-1 bg-[#4654CD]/10 text-[#4654CD] rounded-full text-xs font-medium">
-                Único modo
-              </div>
+              <CustomSwitch
+                isSelected={isPresentationMode}
+                onValueChange={handlePresentationModeChange}
+              />
             </div>
           </div>
         </section>
@@ -127,7 +193,7 @@ export default function Version05Page() {
                   <Card
                     key={section.id}
                     isPressable
-                    onPress={() => router.push(section.path)}
+                    onPress={() => router.push(getSectionPath(section.path))}
                     className="bg-white border border-neutral-100 hover:border-[#4654CD]/50 hover:shadow-md transition-all cursor-pointer h-full"
                   >
                     {cardContent}

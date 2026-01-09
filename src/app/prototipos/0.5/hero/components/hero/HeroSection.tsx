@@ -30,7 +30,11 @@ import { Footer } from './Footer';
 // Fixed underline style for v0.5 (4 = sin subrayado)
 const UNDERLINE_STYLE = 4;
 
-export const HeroSection: React.FC = () => {
+interface HeroSectionProps {
+  isCleanMode?: boolean;
+}
+
+export const HeroSection: React.FC<HeroSectionProps> = ({ isCleanMode = false }) => {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -45,7 +49,7 @@ export const HeroSection: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <Navbar />
+      <Navbar isCleanMode={isCleanMode} />
 
       {/* Main Content */}
       <main className="flex-1 pt-16">
@@ -58,6 +62,7 @@ export const HeroSection: React.FC = () => {
             primaryCta={mockHeroContent.primaryCta}
             trustSignals={mockHeroContent.trustSignals}
             underlineStyle={UNDERLINE_STYLE}
+            isCleanMode={isCleanMode}
           />
         </section>
 
@@ -87,7 +92,7 @@ export const HeroSection: React.FC = () => {
 
             {/* CTA Component */}
             <div className="flex justify-center mb-6">
-              <HeroCta onQuizOpen={() => setIsQuizOpen(true)} />
+              <HeroCta onQuizOpen={() => setIsQuizOpen(true)} isCleanMode={isCleanMode} />
             </div>
 
             {/* Microcopy */}
@@ -107,7 +112,7 @@ export const HeroSection: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer isCleanMode={isCleanMode} />
 
       {/* Help Quiz Modal */}
       <HelpQuiz

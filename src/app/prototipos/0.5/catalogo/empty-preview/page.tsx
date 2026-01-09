@@ -86,7 +86,9 @@ function EmptyStatePreviewContent() {
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilter[]>(mockAppliedFilters);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
 
-  const detailUrl = '/prototipos/0.4/producto/detail-preview/?infoHeader=1&gallery=1&tabs=1&specs=1&pricing=1&cronograma=1&similar=1&limitations=1&certifications=1';
+  const detailUrl = isCleanMode
+    ? '/prototipos/0.5/producto/detail-preview?mode=clean'
+    : '/prototipos/0.5/producto/detail-preview';
 
   // Handlers
   const handleClearFilters = () => {

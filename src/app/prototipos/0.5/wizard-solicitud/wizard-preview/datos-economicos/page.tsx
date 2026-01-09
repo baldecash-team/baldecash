@@ -44,9 +44,27 @@ function DatosEconomicosContent() {
 
   const step = getStepById('datos-economicos')!;
 
+  // Inicializar touched para campos que ya tienen valor (desde localStorage)
+  React.useEffect(() => {
+    const fieldsToCheck = ['situacionLaboral', 'ingresoMensual', 'comentarios'];
+    const initialTouched: Record<string, boolean> = {};
+
+    fieldsToCheck.forEach((fieldId) => {
+      const value = getFieldValue(fieldId) as string;
+      if (value && value.trim()) {
+        initialTouched[fieldId] = true;
+      }
+    });
+
+    if (Object.keys(initialTouched).length > 0) {
+      setTouched((prev) => ({ ...prev, ...initialTouched }));
+    }
+  }, [getFieldValue]);
+
   const handleFieldChange = (fieldId: string, value: string) => {
     updateField(fieldId, value);
     setFieldError(fieldId, '');
+    setTouched((prev) => ({ ...prev, [fieldId]: true }));
   };
 
   const handleFieldBlur = (fieldId: string, rules?: unknown) => {
@@ -116,6 +134,7 @@ function DatosEconomicosContent() {
               { value: 'desempleado', label: 'Sin empleo actual' },
             ]}
             error={getFieldError('situacionLaboral')}
+            success={isFieldValid('situacionLaboral')}
             tooltip={datosEconomicosTooltips.situacionLaboral}
             required
           />
@@ -142,6 +161,7 @@ function DatosEconomicosContent() {
             onBlur={() => handleFieldBlur('comentarios')}
             placeholder="Cuéntanos más sobre tu situación..."
             helpText="Opcional: cualquier información que consideres relevante"
+            error={getFieldError('comentarios')}
             success={isFieldValid('comentarios')}
             tooltip={datosEconomicosTooltips.comentarios}
             maxLength={500}

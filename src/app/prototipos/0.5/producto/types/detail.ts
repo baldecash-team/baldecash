@@ -136,15 +136,31 @@ export interface PaymentPlan {
 // Similar Products Types
 // ============================================
 
+export interface SimilarProductColor {
+  id: string;
+  name: string;
+  hex: string;
+}
+
 export interface SimilarProduct {
   id: string;
   name: string;
+  brand: string;
   thumbnail: string;
+  images?: string[]; // Para galería con miniaturas
+  colors?: SimilarProductColor[]; // Para selector de colores
   monthlyQuota: number;
   quotaDifference: number;
   matchScore: number;
   differentiators: string[];
   slug: string;
+  // Specs para mostrar en card estilo catálogo
+  specs?: {
+    processor: string;
+    ram: string;
+    storage: string;
+    display: string;
+  };
 }
 
 // ============================================
@@ -203,6 +219,7 @@ export interface PricingCalculatorProps {
 export interface SimilarProductsProps {
   products: SimilarProduct[];
   currentQuota: number;
+  isCleanMode?: boolean;
 }
 
 export interface ProductLimitationsProps {

@@ -13,9 +13,10 @@ import { LandingHero } from './hero';
 
 interface LandingPageProps {
   campaign: CampaignData;
+  isCleanMode?: boolean;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ campaign }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ campaign, isCleanMode = false }) => {
   const handleFormSubmit = (data: LeadFormData) => {
     console.log('Form submitted:', data);
     // In production, this would send data to API
@@ -24,7 +25,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ campaign }) => {
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
-      <LandingNavbar />
+      <LandingNavbar isCleanMode={isCleanMode} />
 
       {/* Main Hero Section */}
       <main>

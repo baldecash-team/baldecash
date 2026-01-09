@@ -5,6 +5,7 @@ import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from
 import { motion } from 'framer-motion';
 import { X, Heart, Trash2, GitCompare } from 'lucide-react';
 import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
+import { formatMoney } from '../../../utils/formatMoney';
 
 interface WishlistDrawerProps {
   isOpen: boolean;
@@ -114,7 +115,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                       </p>
                       <div className="flex items-baseline gap-1 mt-1">
                         <span className="text-lg font-bold text-[#4654CD]">
-                          S/{quota}
+                          S/{formatMoney(quota)}
                         </span>
                         <span className="text-xs text-neutral-500">/mes</span>
                       </div>

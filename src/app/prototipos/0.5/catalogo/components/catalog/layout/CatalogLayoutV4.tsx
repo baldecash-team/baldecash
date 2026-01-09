@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
-import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter } from 'lucide-react';
+import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { CatalogLayoutProps } from '../../../types/catalog';
+import { CatalogLayoutProps, CatalogDeviceType } from '../../../types/catalog';
 import { FilterSection } from '../filters/FilterSection';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
 import { CommercialFilters } from '../filters/CommercialFilters';
@@ -22,6 +22,8 @@ import {
 } from '../filters/brand';
 import {
   brandOptions,
+  brandsByDeviceType,
+  deviceTypeOptions,
   usageOptions,
   ramOptions,
   storageOptions,
@@ -320,9 +322,33 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     });
   };
 
+  // Device type icons mapping
+  const deviceTypeIcons: Record<string, React.ElementType> = {
+    laptop: Laptop,
+    tablet: Tablet,
+    celular: Smartphone,
+  };
+
+  // Get filtered brand options based on selected device types
+  const getFilteredBrandOptions = () => {
+    if (filters.deviceTypes.length === 0) {
+      return dynamicBrandOptions;
+    }
+
+    // Get all brands available for selected device types
+    const availableBrands = new Set<string>();
+    filters.deviceTypes.forEach((deviceType) => {
+      const brands = brandsByDeviceType[deviceType] || [];
+      brands.forEach((brand) => availableBrands.add(brand));
+    });
+
+    return dynamicBrandOptions.filter((opt) => availableBrands.has(opt.value));
+  };
+
   const renderBrandFilter = () => {
+    const filteredBrands = getFilteredBrandOptions();
     const props = {
-      options: dynamicBrandOptions,
+      options: filteredBrands,
       selected: filters.brands,
       onChange: (brands: string[]) => updateFilter('brands', brands),
       showCounts: config.showFilterCounts,
@@ -399,6 +425,52 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   )}
                 </div>
 
+                {/* Device Type Filter */}
+                <FilterSection title="Tipo de equipo" defaultExpanded={true}>
+                  <div className="grid grid-cols-3 gap-2">
+                    {deviceTypeOptions.map((opt) => {
+                      const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
+                      const Icon = deviceTypeIcons[opt.value];
+                      return (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            const deviceType = opt.value as CatalogDeviceType;
+                            if (filters.deviceTypes.includes(deviceType)) {
+                              updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== deviceType));
+                            } else {
+                              updateFilter('deviceTypes', [...filters.deviceTypes, deviceType]);
+                            }
+                          }}
+                          className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-[#4654CD] bg-[#4654CD]/5'
+                              : 'border-neutral-200 bg-white hover:border-[#4654CD]/50'
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 w-4 h-4 bg-[#4654CD] rounded-full flex items-center justify-center">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                          <div className="w-12 h-8 flex items-center justify-center mb-1">
+                            {Icon && (
+                              <Icon className={`w-6 h-6 transition-all ${
+                                isSelected ? 'text-[#4654CD]' : 'text-neutral-400'
+                              }`} />
+                            )}
+                          </div>
+                          <span className={`text-xs font-medium ${
+                            isSelected ? 'text-[#4654CD]' : 'text-neutral-600'
+                          }`}>
+                            {opt.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FilterSection>
+
                 {/* Brand Filter */}
                 <FilterSection title="Marca" defaultExpanded={true}>
                   {renderBrandFilter()}
@@ -437,7 +509,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 <div className="border-t border-neutral-200 mt-4 pt-4">
                   <button
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+                    className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       <Settings2 className="w-4 h-4" />
@@ -492,7 +564,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className={`grid gap-4 ${
+              className={`grid gap-4 pb-20 lg:pb-0 ${
                 config.productsPerRow.desktop === 4
                   ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                   : config.productsPerRow.desktop === 5
@@ -545,6 +617,52 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </ModalHeader>
 
           <ModalBody className="px-4 py-6 overflow-y-auto">
+            {/* Device Type Filter */}
+            <FilterSection title="Tipo de equipo" defaultExpanded={true}>
+              <div className="grid grid-cols-3 gap-2">
+                {deviceTypeOptions.map((opt) => {
+                  const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
+                  const Icon = deviceTypeIcons[opt.value];
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        const deviceType = opt.value as CatalogDeviceType;
+                        if (filters.deviceTypes.includes(deviceType)) {
+                          updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== deviceType));
+                        } else {
+                          updateFilter('deviceTypes', [...filters.deviceTypes, deviceType]);
+                        }
+                      }}
+                      className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'border-[#4654CD] bg-[#4654CD]/5'
+                          : 'border-neutral-200 bg-white hover:border-[#4654CD]/50'
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 w-4 h-4 bg-[#4654CD] rounded-full flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                      <div className="w-12 h-8 flex items-center justify-center mb-1">
+                        {Icon && (
+                          <Icon className={`w-6 h-6 transition-all ${
+                            isSelected ? 'text-[#4654CD]' : 'text-neutral-400'
+                          }`} />
+                        )}
+                      </div>
+                      <span className={`text-xs font-medium ${
+                        isSelected ? 'text-[#4654CD]' : 'text-neutral-600'
+                      }`}>
+                        {opt.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </FilterSection>
+
             {/* Brand Filter */}
             <FilterSection title="Marca" defaultExpanded={true}>
               {renderBrandFilter()}
@@ -583,7 +701,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             <div className="border-t border-neutral-200 mt-4 pt-4">
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+                className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <Settings2 className="w-4 h-4" />

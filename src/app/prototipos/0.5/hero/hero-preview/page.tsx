@@ -60,7 +60,7 @@ function HeroPreviewContent() {
   if (isCleanMode) {
     return (
       <>
-        <HeroSection />
+        <HeroSection isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="hero"
           config={fixedConfig as unknown as Record<string, unknown>}
@@ -72,7 +72,7 @@ function HeroPreviewContent() {
   return (
     <div className="relative">
       {/* Hero Section */}
-      <HeroSection />
+      <HeroSection isCleanMode={isCleanMode} />
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">

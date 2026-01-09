@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardBody, CardHeader, CardFooter, Button } from '@nextui-org/react';
 import { Trophy, TrendingDown, Check, X, ArrowRight, Cpu, HardDrive, Monitor, MemoryStick, Zap } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference } from '../../types/comparator';
+import { formatMoney } from '../../../utils/formatMoney';
 
 interface DesignStyleBProps {
   products: ComparisonProduct[];
@@ -66,9 +67,9 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
     if (diff === 0) return null;
 
     if (config.priceDiffVersion === 1) {
-      return <span className="text-xs text-red-500 ml-1">+S/{diff}/mes</span>;
+      return <span className="text-xs text-red-500 ml-1">+S/{formatMoney(diff)}/mes</span>;
     }
-    return <span className="text-xs text-red-500">+S/{diff * 12}/año</span>;
+    return <span className="text-xs text-red-500">+S/{formatMoney(diff * 12)}/año</span>;
   };
 
   // Count wins for a product
@@ -149,7 +150,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               {/* Price */}
               <div className="text-center">
                 <span className={`text-2xl font-bold ${isBest ? 'text-[#22c55e]' : 'text-[#4654CD]'}`}>
-                  S/{product.quotaMonthly}
+                  S/{formatMoney(product.quotaMonthly)}
                 </span>
                 <span className="text-sm font-normal text-neutral-500">/mes</span>
                 {renderPriceDiff(index)}

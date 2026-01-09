@@ -61,7 +61,7 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
   React.useEffect(() => {
     const timer = setTimeout(() => {
       onComplete?.();
-    }, 2000);
+    }, 1300);
     return () => clearTimeout(timer);
   }, [onComplete]);
 

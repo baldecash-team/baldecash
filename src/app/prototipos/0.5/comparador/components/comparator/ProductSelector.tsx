@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardBody, Checkbox, Button } from '@nextui-org/react';
 import { Check, Scale } from 'lucide-react';
 import { ProductSelectorProps, ComparisonProduct } from '../../types/comparator';
+import { formatMoney } from '../../../utils/formatMoney';
 
 /**
  * ProductSelector - Grid de productos seleccionables
@@ -78,7 +79,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                   {product.displayName}
                 </p>
                 <p className="text-base font-bold text-[#4654CD]">
-                  S/{product.quotaMonthly}
+                  S/{formatMoney(product.quotaMonthly)}
                   <span className="text-xs font-normal text-neutral-500">/mes</span>
                 </p>
               </div>

@@ -10,9 +10,15 @@ import { Button } from '@nextui-org/react';
 import { Laptop, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+// Helper function to build internal URLs with mode propagation
+const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
+  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+};
+
 interface HeroCtaProps {
   onCtaClick?: () => void;
   onQuizOpen?: () => void;
+  isCleanMode?: boolean;
 }
 
 const WhatsAppIcon = () => (
@@ -21,8 +27,9 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick, onQuizOpen }) => {
+export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick, onQuizOpen, isCleanMode = false }) => {
   const router = useRouter();
+  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
 
   const handleWhatsApp = () => {
     window.open('https://wa.link/osgxjf', '_blank');
@@ -31,7 +38,7 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ onCtaClick, onQuizOpen }) => {
 
   const handleCatalogo = () => {
     onCtaClick?.();
-    router.push('/prototipos/0.5/catalogo/catalog-preview?mode=clean');
+    router.push(catalogUrl);
   };
 
   const handleQuiz = () => {

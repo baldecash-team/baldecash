@@ -7,26 +7,32 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
-import { Menu, X, Percent, User, Laptop, ChevronDown, Smartphone, Monitor, Headphones } from 'lucide-react';
+import { Menu, X, Percent, User, Laptop, ChevronDown, Smartphone, Tablet, ArrowRight } from 'lucide-react';
 import { ConvenioData } from '../../../types/convenio';
+
+// Helper function to build internal URLs with mode propagation
+const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
+  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+};
 
 interface ConvenioNavbarProps {
   convenio: ConvenioData;
+  isCleanMode?: boolean;
 }
 
-const catalogUrl = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
-
-const megaMenuItems = [
-  { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
-  { label: 'Celulares', href: catalogUrl, icon: Smartphone, description: 'Smartphones de todas las marcas' },
-  { label: 'Monitores', href: catalogUrl, icon: Monitor, description: 'Pantallas para tu productividad' },
-  { label: 'Accesorios', href: catalogUrl, icon: Headphones, description: 'Complementa tu equipo' },
-];
-
-export const ConvenioNavbar: React.FC<ConvenioNavbarProps> = ({ convenio }) => {
+export const ConvenioNavbar: React.FC<ConvenioNavbarProps> = ({ convenio, isCleanMode = false }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPromo, setShowPromo] = useState(true);
   const [showMegaMenu, setShowMegaMenu] = useState(false);
+
+  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
+
+  const megaMenuItems = [
+    { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
+    { label: 'Tablets', href: catalogUrl, icon: Tablet, description: 'Tablets para toda ocasión' },
+    { label: 'Celulares', href: catalogUrl, icon: Smartphone, description: 'Smartphones de todas las marcas' },
+    { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
+  ];
 
   const navItems = [
     { label: 'Equipos', href: catalogUrl, hasMegaMenu: true },
@@ -187,7 +193,18 @@ export const ConvenioNavbar: React.FC<ConvenioNavbarProps> = ({ convenio }) => {
                     key={item.label}
                     href={item.href}
                     className="block py-2 text-neutral-600 hover:text-[#4654CD] font-medium"
-                    onClick={(e) => { handleAnchorClick(e, item.href); setIsMenuOpen(false); }}
+                    onClick={(e) => {
+                      if (item.href.startsWith('#')) {
+                        e.preventDefault();
+                        setIsMenuOpen(false);
+                        setTimeout(() => {
+                          const element = document.querySelector(item.href);
+                          if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }, 300);
+                      }
+                    }}
                   >
                     {item.label}
                   </a>

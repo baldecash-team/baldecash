@@ -5,6 +5,7 @@ import { Button, Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference } from '../../types/comparator';
+import { formatMoney } from '../../../utils/formatMoney';
 
 interface DesignStyleCProps {
   products: ComparisonProduct[];
@@ -64,9 +65,9 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
     if (diff === 0) return null;
 
     if (config.priceDiffVersion === 1) {
-      return <span className="text-xs text-red-500">+S/{diff}/mes</span>;
+      return <span className="text-xs text-red-500">+S/{formatMoney(diff)}/mes</span>;
     }
-    return <span className="text-xs text-red-500">+S/{diff * 12}/año</span>;
+    return <span className="text-xs text-red-500">+S/{formatMoney(diff * 12)}/año</span>;
   };
 
   return (
@@ -88,9 +89,9 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
               className="relative"
             >
               {/* Glow effect behind card */}
-              <div className="absolute -inset-2 bg-gradient-to-r from-[#4654CD]/20 via-[#4654CD]/30 to-[#4654CD]/20 rounded-3xl blur-xl" />
+              <div className="absolute -inset-2 bg-[#4654CD]/20 rounded-3xl blur-xl" />
 
-              <Card className="relative border-2 border-[#4654CD] bg-gradient-to-br from-[#4654CD]/5 to-white overflow-hidden shadow-2xl">
+              <Card className="relative border-2 border-[#4654CD] bg-white overflow-hidden shadow-2xl">
                 <CardBody className="p-0">
                   <div className="flex flex-col md:flex-row">
                     {/* Hero Image & Badge */}
@@ -168,7 +169,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         className="flex items-baseline gap-2 mb-6"
                       >
                         <span className="text-4xl font-bold text-[#4654CD]">
-                          S/{bestProduct.quotaMonthly}
+                          S/{formatMoney(bestProduct.quotaMonthly)}
                         </span>
                         <span className="text-lg text-neutral-500">/mes</span>
                         <div className="ml-2 px-3 py-1 bg-[#4654CD]/10 rounded-full">
@@ -310,7 +311,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             {/* Price */}
                             <div className="flex items-baseline gap-1 mb-2">
                               <span className="text-lg font-bold text-[#4654CD]">
-                                S/{product.quotaMonthly}
+                                S/{formatMoney(product.quotaMonthly)}
                               </span>
                               <span className="text-xs text-neutral-500">/mes</span>
                               {renderPriceDiff(originalIndex)}
@@ -462,7 +463,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
         {config.priceDiffVersion === 2 && priceDiff.annualSaving > 0 && (
           <div className="p-3 bg-[#22c55e]/10 border-t border-[#22c55e]/20 text-center">
             <p className="text-xs text-neutral-600">Ahorro anual eligiendo el más económico:</p>
-            <p className="text-lg font-bold text-[#22c55e]">S/{priceDiff.annualSaving}</p>
+            <p className="text-lg font-bold text-[#22c55e]">S/{formatMoney(priceDiff.annualSaving)}</p>
           </div>
         )}
       </div>

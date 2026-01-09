@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, useIsMobile } from '@/app/prototipos/_shared';
+import { FeedbackButton, useIsMobile, Toast, useToast } from '@/app/prototipos/_shared';
 
 // Catalog components
 import { CatalogLayout } from '../components/catalog/CatalogLayout';
@@ -73,14 +73,8 @@ import { AppliedFilter } from '../types/empty';
 
 // URLs
 const getWizardUrl = (isCleanMode: boolean) => {
-  const params = new URLSearchParams();
-  params.set('input', '4');
-  params.set('options', '2');
-  params.set('upload', '3');
-  params.set('progress', '1');
-  params.set('navigation', '1');
-  if (isCleanMode) params.set('mode', 'clean');
-  return `/prototipos/0.4/wizard-solicitud/wizard-preview?${params.toString()}`;
+  const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+  return isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
 };
 
 const getDetailUrl = (productId: string, deviceType: string | undefined, isCleanMode: boolean) => {
@@ -98,7 +92,7 @@ const getDetailUrl = (productId: string, deviceType: string | undefined, isClean
 
 const getUpsellUrl = (isCleanMode: boolean) => {
   const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
-  return isCleanMode ? `${baseUrl}&mode=clean` : baseUrl;
+  return isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
 };
 
 // Mapear respuestas del quiz a filtros del catálogo
@@ -253,6 +247,7 @@ function CatalogPreviewContent() {
   const [isComparatorOpen, setIsComparatorOpen] = useState(false);
   const [comparisonState, setComparisonState] = useState<ComparisonState>(defaultComparisonState);
   const maxCompareProducts = useMemo(() => getMaxProducts(comparatorConfig.layoutVersion), []);
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Quiz state
   const [isQuizOpen, setIsQuizOpen] = useState(false);
@@ -441,13 +436,55 @@ function CatalogPreviewContent() {
   }, []);
 
   // Comparison handlers
+  const getDeviceType = (product: CatalogProduct): string => {
+    // Si tiene deviceType definido, usarlo. Si no, asumir 'laptop' (productos generados)
+    return product.deviceType || 'laptop';
+  };
+
   const handleToggleCompare = useCallback((productId: string) => {
-    setCompareList((prev) => {
-      if (prev.includes(productId)) return prev.filter((id) => id !== productId);
-      if (prev.length >= maxCompareProducts) return prev;
-      return [...prev, productId];
-    });
-  }, [maxCompareProducts]);
+    // Si ya está en la lista, quitarlo
+    if (compareList.includes(productId)) {
+      setCompareList((prev) => prev.filter((id) => id !== productId));
+      return;
+    }
+
+    // Verificar límite
+    if (compareList.length >= maxCompareProducts) return;
+
+    // Obtener el producto a agregar
+    const productToAdd = mockProducts.find((p) => p.id === productId);
+    if (!productToAdd) return;
+
+    // Verificar tipo de dispositivo si ya hay productos en la lista
+    if (compareList.length > 0) {
+      const firstProductInList = mockProducts.find((p) => p.id === compareList[0]);
+
+      if (firstProductInList) {
+        const currentDeviceType = getDeviceType(firstProductInList);
+        const newDeviceType = getDeviceType(productToAdd);
+
+        if (currentDeviceType !== newDeviceType) {
+          // Mostrar toast de warning
+          const deviceTypeLabels: Record<string, string> = {
+            laptop: 'laptops',
+            tablet: 'tablets',
+            celular: 'celulares',
+          };
+          const currentTypeLabel = deviceTypeLabels[currentDeviceType] || currentDeviceType;
+          const newTypeLabel = deviceTypeLabels[newDeviceType] || newDeviceType;
+
+          showToast(
+            `Solo puedes comparar productos del mismo tipo. Actualmente comparas ${currentTypeLabel}, no puedes agregar ${newTypeLabel}.`,
+            'warning'
+          );
+          return;
+        }
+      }
+    }
+
+    // Agregar a la lista
+    setCompareList((prev) => [...prev, productId]);
+  }, [compareList, maxCompareProducts, showToast]);
 
   const handleRemoveFromCompare = useCallback((productId: string) => {
     setCompareList((prev) => prev.filter((id) => id !== productId));
@@ -817,6 +854,18 @@ function CatalogPreviewContent() {
           onClose={() => setIsSettingsOpen(false)}
           config={config}
           onConfigChange={setConfig}
+        />
+      )}
+
+      {/* Toast para alertas de comparación */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={isToastVisible}
+          onClose={hideToast}
+          duration={4000}
+          position="bottom"
         />
       )}
     </div>

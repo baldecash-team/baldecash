@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Card, CardBody, Chip } from '@nextui-org/react';
 import { Check, ChevronRight } from 'lucide-react';
 import type { InsurancePlan } from '../../types/upsell';
+import { formatMoney } from '../../../utils/formatMoney';
 
 interface PlanComparisonProps {
   plans: InsurancePlan[];
@@ -62,7 +63,7 @@ export const PlanComparison: React.FC<PlanComparisonProps> = ({
               <h3 className="font-semibold text-neutral-800 mb-1">{plan.name}</h3>
 
               <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-3xl font-bold text-neutral-800">S/{plan.monthlyPrice}</span>
+                <span className="text-3xl font-bold text-neutral-800">S/{formatMoney(plan.monthlyPrice)}</span>
                 <span className="text-sm text-neutral-500">/mes</span>
               </div>
 

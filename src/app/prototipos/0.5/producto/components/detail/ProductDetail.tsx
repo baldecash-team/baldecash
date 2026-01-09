@@ -73,7 +73,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-6">
         {/* Breadcrumb */}
         <nav className="text-sm text-neutral-500 mb-4">
           <span className="hover:text-[#4654CD] cursor-pointer">Inicio</span>
@@ -154,7 +154,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
         {/* Similar Products - Full Width */}
         <div id="section-similar" className="mt-12">
-          <SimilarProducts products={similarProducts} currentQuota={product.lowestQuota} />
+          <SimilarProducts products={similarProducts} currentQuota={product.lowestQuota} isCleanMode={isCleanMode} />
         </div>
 
         {/* Limitations */}

@@ -9,7 +9,7 @@ import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
-import { TextInput, RadioGroup } from '../../components/wizard-solicitud/fields';
+import { TextInput, SegmentedControl } from '../../components/wizard-solicitud/fields';
 import { datosPersonalesTooltips } from '../../data/fieldTooltips';
 import { StepSuccessMessage } from '../../components/wizard-solicitud/celebration/StepSuccessMessage';
 import { useWizard } from '../../context/WizardContext';
@@ -43,9 +43,27 @@ function DatosPersonalesContent() {
 
   const step = getStepById('datos-personales')!;
 
+  // Inicializar touched para campos que ya tienen valor (desde localStorage)
+  React.useEffect(() => {
+    const fieldsToCheck = ['nombres', 'apellidos', 'tipoDocumento', 'numeroDocumento', 'sexo', 'fechaNacimiento', 'celular', 'email'];
+    const initialTouched: Record<string, boolean> = {};
+
+    fieldsToCheck.forEach((fieldId) => {
+      const value = getFieldValue(fieldId) as string;
+      if (value && value.trim()) {
+        initialTouched[fieldId] = true;
+      }
+    });
+
+    if (Object.keys(initialTouched).length > 0) {
+      setTouched((prev) => ({ ...prev, ...initialTouched }));
+    }
+  }, [getFieldValue]);
+
   const handleFieldChange = (fieldId: string, value: string) => {
     updateField(fieldId, value);
     setFieldError(fieldId, '');
+    setTouched((prev) => ({ ...prev, [fieldId]: true }));
   };
 
   const handleFieldBlur = (fieldId: string) => {
@@ -57,7 +75,47 @@ function DatosPersonalesContent() {
     return touched[fieldId] && !!value && !getFieldError(fieldId);
   };
 
-  // Solo validar nombres, apellidos y tipo de documento
+  // Validar número de documento según tipo
+  const validateNumeroDocumento = (tipo: string, numero: string): string | null => {
+    if (!numero || !numero.trim()) {
+      return 'Este campo es requerido';
+    }
+
+    const cleaned = numero.trim();
+
+    switch (tipo) {
+      case 'dni':
+        if (!/^\d+$/.test(cleaned)) {
+          return 'El DNI solo debe contener números';
+        }
+        if (cleaned.length !== 8) {
+          return 'El DNI debe tener exactamente 8 dígitos';
+        }
+        break;
+      case 'ce':
+        if (!/^\d+$/.test(cleaned)) {
+          return 'El CE solo debe contener números';
+        }
+        if (cleaned.length !== 9) {
+          return 'El Carnet de Extranjería debe tener 9 dígitos';
+        }
+        break;
+      case 'pasaporte':
+        if (!/^[a-zA-Z0-9]+$/.test(cleaned)) {
+          return 'El pasaporte solo debe contener letras y números';
+        }
+        if (cleaned.length < 6 || cleaned.length > 12) {
+          return 'El pasaporte debe tener entre 6 y 12 caracteres';
+        }
+        break;
+      default:
+        return 'Selecciona un tipo de documento primero';
+    }
+
+    return null;
+  };
+
+  // Validar campos requeridos
   const validateStep = (): boolean => {
     let isValid = true;
 
@@ -76,6 +134,13 @@ function DatosPersonalesContent() {
     const tipoDocumento = getFieldValue('tipoDocumento') as string;
     if (!tipoDocumento) {
       setFieldError('tipoDocumento', 'Selecciona un tipo de documento');
+      isValid = false;
+    }
+
+    const numeroDocumento = getFieldValue('numeroDocumento') as string;
+    const docError = validateNumeroDocumento(tipoDocumento, numeroDocumento);
+    if (docError) {
+      setFieldError('numeroDocumento', docError);
       isValid = false;
     }
 
@@ -149,17 +214,22 @@ function DatosPersonalesContent() {
             required
           />
 
-          <RadioGroup
+          <SegmentedControl
             id="tipoDocumento"
             label="Tipo de Documento"
             value={(getFieldValue('tipoDocumento') as string) || ''}
-            onChange={(v) => handleFieldChange('tipoDocumento', v)}
+            onChange={(v) => {
+              handleFieldChange('tipoDocumento', v);
+              // Limpiar número de documento al cambiar tipo
+              handleFieldChange('numeroDocumento', '');
+            }}
             options={[
               { value: 'dni', label: 'DNI' },
-              { value: 'ce', label: 'Carnet de Extranjería' },
+              { value: 'ce', label: 'CE' },
               { value: 'pasaporte', label: 'Pasaporte' },
             ]}
             error={getFieldError('tipoDocumento')}
+            success={isFieldValid('tipoDocumento')}
             tooltip={datosPersonalesTooltips.tipoDocumento}
             required
           />
@@ -169,12 +239,40 @@ function DatosPersonalesContent() {
             label="Número de Documento"
             value={(getFieldValue('numeroDocumento') as string) || ''}
             onChange={(v) => handleFieldChange('numeroDocumento', v)}
-            onBlur={() => handleFieldBlur('numeroDocumento')}
-            placeholder="Ej: 12345678"
+            onBlur={() => {
+              handleFieldBlur('numeroDocumento');
+              const tipoDoc = getFieldValue('tipoDocumento') as string;
+              const numDoc = getFieldValue('numeroDocumento') as string;
+              const error = validateNumeroDocumento(tipoDoc, numDoc);
+              if (error) {
+                setFieldError('numeroDocumento', error);
+              }
+            }}
+            placeholder={
+              (getFieldValue('tipoDocumento') as string) === 'dni' ? 'Ej: 12345678' :
+              (getFieldValue('tipoDocumento') as string) === 'ce' ? 'Ej: 123456789' :
+              (getFieldValue('tipoDocumento') as string) === 'pasaporte' ? 'Ej: AB123456' :
+              'Selecciona tipo de documento'
+            }
             error={getFieldError('numeroDocumento')}
             success={isFieldValid('numeroDocumento')}
             tooltip={datosPersonalesTooltips.numeroDocumento}
             maxLength={12}
+            required
+          />
+
+          <SegmentedControl
+            id="sexo"
+            label="Sexo"
+            value={(getFieldValue('sexo') as string) || ''}
+            onChange={(v) => handleFieldChange('sexo', v)}
+            options={[
+              { value: 'masculino', label: 'Masculino' },
+              { value: 'femenino', label: 'Femenino' },
+              { value: 'otro', label: 'Otro' },
+            ]}
+            error={getFieldError('sexo')}
+            success={isFieldValid('sexo')}
             required={false}
           />
 

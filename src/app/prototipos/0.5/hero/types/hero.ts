@@ -94,6 +94,7 @@ export interface HeroBannerProps {
   secondaryCta?: CtaConfig;
   trustSignals?: TrustSignal[];
   underlineStyle?: UnderlineStyle;
+  isCleanMode?: boolean;
 }
 
 export interface SocialProofProps {

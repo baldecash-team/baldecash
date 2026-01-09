@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, Laptop } from 'lucide-react';
 import Image from 'next/image';
 import { AlternativeProduct } from '../../../types/rejection';
+import { formatMoney } from '../../../../utils/formatMoney';
 
 interface ProductAlternativesProps {
   products: AlternativeProduct[];
@@ -64,10 +65,10 @@ export const ProductAlternatives: React.FC<ProductAlternativesProps> = ({
                 {/* Precio */}
                 <div className="mb-3">
                   <p className="text-lg font-bold text-neutral-800">
-                    S/{product.price.toLocaleString()}
+                    S/{formatMoney(product.price)}
                   </p>
                   <p className="text-sm text-[#4654CD] font-medium">
-                    12 cuotas de S/{product.monthlyQuota}/mes
+                    12 cuotas de S/{formatMoney(product.monthlyQuota)}/mes
                   </p>
                 </div>
 

@@ -5,9 +5,12 @@
  * Persists form data across route-based steps
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { WizardStepId, FieldState, ValidationRule } from '../types/wizard-solicitud';
 import { STEP_ORDER } from '../data/wizardSteps';
+
+const STORAGE_KEY = 'wizard-solicitud-data';
+const STORAGE_STEPS_KEY = 'wizard-solicitud-steps';
 
 interface WizardContextValue {
   formData: Record<string, FieldState>;
@@ -38,9 +41,54 @@ interface WizardProviderProps {
   children: ReactNode;
 }
 
+// Helper to save to localStorage (excludes File objects)
+const saveToStorage = (formData: Record<string, FieldState>, completedSteps: WizardStepId[]) => {
+  if (typeof window === 'undefined') return;
+  try {
+    // Filter out File objects (can't be serialized)
+    const serializableData: Record<string, FieldState> = {};
+    for (const [key, value] of Object.entries(formData)) {
+      if (Array.isArray(value.value) && value.value[0] instanceof File) {
+        // Skip file fields
+        continue;
+      }
+      serializableData[key] = value;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableData));
+    localStorage.setItem(STORAGE_STEPS_KEY, JSON.stringify(completedSteps));
+  } catch {
+    // Silent fail if storage is full or unavailable
+  }
+};
+
 export const WizardProvider: React.FC<WizardProviderProps> = ({ children }) => {
   const [formData, setFormData] = useState<Record<string, FieldState>>({});
   const [completedSteps, setCompletedSteps] = useState<WizardStepId[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Load from localStorage only on client after hydration
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem(STORAGE_KEY);
+      const savedSteps = localStorage.getItem(STORAGE_STEPS_KEY);
+      if (savedData) {
+        setFormData(JSON.parse(savedData));
+      }
+      if (savedSteps) {
+        setCompletedSteps(JSON.parse(savedSteps));
+      }
+    } catch {
+      // Silent fail
+    }
+    setIsHydrated(true);
+  }, []);
+
+  // Persist to localStorage whenever formData or completedSteps change (only after hydration)
+  useEffect(() => {
+    if (isHydrated) {
+      saveToStorage(formData, completedSteps);
+    }
+  }, [formData, completedSteps, isHydrated]);
 
   const updateField = useCallback((fieldId: string, value: string | string[] | File[]) => {
     setFormData((prev) => ({
@@ -148,6 +196,11 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children }) => {
   const resetForm = useCallback(() => {
     setFormData({});
     setCompletedSteps([]);
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_STEPS_KEY);
+    }
   }, []);
 
   return (

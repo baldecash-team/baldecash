@@ -6,9 +6,11 @@
  */
 
 import React, { useState } from 'react';
-import { Calendar, ChevronDown, ChevronUp, Check, Info, Download, FileText, Percent, AlertCircle, Scale } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
 import { CronogramaProps } from '../../../types/detail';
+import { formatMoney } from '../../../../utils/formatMoney';
+import { Toast } from '@/app/prototipos/_shared';
 
 const TERMS = [12, 18, 24, 36, 48];
 
@@ -30,6 +32,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const [selectedTerm, setSelectedTerm] = useState(term);
   const [showAll, setShowAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   const baseTotal = monthlyQuota * term;
   const adjustedQuota = baseTotal / selectedTerm;
@@ -45,14 +48,15 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const totalPayment = adjustedQuota * selectedTerm;
 
   const handleDownloadPDF = () => {
-    alert('Descarga de cronograma en PDF iniciada');
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
   };
 
   return (
     <>
       <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Header - Responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
               <Calendar className="w-5 h-5 text-[#4654CD]" />
@@ -64,7 +68,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           </div>
 
           {/* Term Pills */}
-          <div className="flex gap-1">
+          <div className="flex gap-1 flex-wrap">
             {TERMS.map((t) => (
               <button
                 key={t}
@@ -113,7 +117,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   </td>
                   <td className="py-3 px-4 text-right">
                     <span className="text-sm font-semibold text-neutral-900">
-                      S/{adjustedQuota.toFixed(2)}
+                      S/{formatMoney(adjustedQuota)}
                     </span>
                   </td>
                 </tr>
@@ -149,7 +153,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             <span className="text-sm font-medium">Total a pagar</span>
           </div>
           <p className="text-2xl font-bold text-neutral-900">
-            S/{totalPayment.toFixed(2)}
+            S/{formatMoney(totalPayment)}
           </p>
         </div>
 
@@ -182,6 +186,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
         classNames={{
           backdrop: "bg-black/50 backdrop-blur-sm",
           base: "bg-white",
+          closeButton: "right-4 top-4 hover:bg-neutral-100 rounded-lg cursor-pointer",
         }}
       >
         <ModalContent className="bg-white">
@@ -199,7 +204,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             <div className="bg-[#4654CD]/5 rounded-xl p-4 mb-6">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-neutral-600">Cuota mensual</span>
-                <span className="text-xl font-bold text-[#4654CD]">S/{adjustedQuota.toFixed(2)}</span>
+                <span className="text-xl font-bold text-[#4654CD]">S/{formatMoney(adjustedQuota)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-neutral-600">Plazo</span>
@@ -262,9 +267,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-neutral-600">Monto total a pagar</p>
-                    <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{adjustedQuota.toFixed(2)}</p>
+                    <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{formatMoney(adjustedQuota)}</p>
                   </div>
-                  <p className="text-2xl font-bold text-green-600">S/{totalPayment.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-green-600">S/{formatMoney(totalPayment)}</p>
                 </div>
               </div>
 
@@ -297,6 +302,16 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Toast - Success */}
+      <Toast
+        message="Archivo PDF descargado correctamente"
+        type="success"
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+        duration={3000}
+        position="bottom"
+      />
     </>
   );
 };

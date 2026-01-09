@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { Laptop, Package, Shield } from 'lucide-react';
 import Image from 'next/image';
 import { ApprovalData } from '../../../types/approval';
+import { formatMoney } from '../../../../utils/formatMoney';
 
 interface ApprovedProductSummaryProps {
   data: ApprovalData;
@@ -50,13 +51,12 @@ export const ApprovedProductSummary: React.FC<ApprovedProductSummaryProps> = ({
               </h3>
               <div className="flex items-baseline gap-1 mb-2">
                 <span className="text-2xl font-bold text-[#4654CD]">
-                  S/ {data.totalMonthlyQuota}
+                  S/{formatMoney(data.totalMonthlyQuota)}
                 </span>
                 <span className="text-neutral-500">/mes</span>
               </div>
               <p className="text-sm text-neutral-500">
-                {data.product.term} cuotas · Total S/{' '}
-                {data.product.totalAmount.toLocaleString()}
+                {data.product.term} cuotas · Total S/{formatMoney(data.product.totalAmount)}
               </p>
             </div>
           </div>

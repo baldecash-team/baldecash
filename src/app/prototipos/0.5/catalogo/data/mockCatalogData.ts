@@ -133,6 +133,20 @@ export const usageOptions: FilterOption[] = [
   { value: 'programacion', label: 'Programación', count: 20, icon: 'Code' },
 ];
 
+// Device type options for filtering
+export const deviceTypeOptions: FilterOption[] = [
+  { value: 'laptop', label: 'Laptop', count: 30, icon: 'Laptop' },
+  { value: 'tablet', label: 'Tablet', count: 15, icon: 'Tablet' },
+  { value: 'celular', label: 'Celular', count: 20, icon: 'Smartphone' },
+];
+
+// Brand options by device type (for dynamic filtering)
+export const brandsByDeviceType: Record<string, string[]> = {
+  laptop: ['lenovo', 'hp', 'asus', 'acer', 'dell', 'msi', 'apple'],
+  tablet: ['apple', 'samsung', 'lenovo', 'huawei'],
+  celular: ['apple', 'samsung', 'xiaomi', 'huawei', 'motorola'],
+};
+
 export const brandOptions: FilterOption[] = [
   {
     value: 'lenovo',
@@ -169,6 +183,36 @@ export const brandOptions: FilterOption[] = [
     label: 'MSI',
     count: 5,
     logo: 'https://asset.msi.com/global/picture/image/feature/nb/2022-B12-Katana/msi-logo.svg',
+  },
+  {
+    value: 'apple',
+    label: 'Apple',
+    count: 12,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/100px-Apple_logo_black.svg.png',
+  },
+  {
+    value: 'samsung',
+    label: 'Samsung',
+    count: 15,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Samsung_Logo.svg/200px-Samsung_Logo.svg.png',
+  },
+  {
+    value: 'xiaomi',
+    label: 'Xiaomi',
+    count: 10,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Xiaomi_logo_%282021-%29.svg/200px-Xiaomi_logo_%282021-%29.svg.png',
+  },
+  {
+    value: 'huawei',
+    label: 'Huawei',
+    count: 8,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Huawei_Logo.svg/200px-Huawei_Logo.svg.png',
+  },
+  {
+    value: 'motorola',
+    label: 'Motorola',
+    count: 6,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Motorola_logo.svg/200px-Motorola_logo.svg.png',
   },
 ];
 

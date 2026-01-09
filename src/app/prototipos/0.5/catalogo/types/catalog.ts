@@ -178,6 +178,7 @@ export type Resolution = 'hd' | 'fhd' | 'qhd' | '4k';
 // ============================================
 
 export interface FilterState {
+  deviceTypes: CatalogDeviceType[];
   brands: string[];
   priceRange: [number, number];
   quotaRange: [number, number];
@@ -210,6 +211,7 @@ export interface FilterState {
 }
 
 export const defaultFilterState: FilterState = {
+  deviceTypes: [],
   brands: [],
   priceRange: [1000, 8000],
   quotaRange: [40, 400],

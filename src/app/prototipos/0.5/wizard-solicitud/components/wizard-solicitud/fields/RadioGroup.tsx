@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Tooltip } from '@nextui-org/react';
-import { AlertCircle, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -29,6 +29,7 @@ interface RadioGroupProps {
   onChange: (value: string) => void;
   options: RadioOption[];
   error?: string;
+  success?: boolean;
   helpText?: string;
   tooltip?: FieldTooltipInfo;
   disabled?: boolean;
@@ -42,12 +43,14 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
   onChange,
   options,
   error,
+  success,
   helpText,
   tooltip,
   disabled = false,
   required = true,
 }) => {
   const showError = !!error;
+  const showSuccess = success && !error && !!value;
 
   return (
     <div className="space-y-3">
@@ -90,10 +93,10 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
             disabled={option.disabled || disabled}
             className={`
               relative w-full p-4 rounded-xl text-left
-              transition-all duration-200 cursor-pointer
+              transition-all duration-200 cursor-pointer border-2
               ${value === option.value
-                ? 'bg-[#4654CD] text-white shadow-md'
-                : 'bg-white border-2 border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-sm'
+                ? 'bg-[#4654CD]/5 border-[#4654CD]'
+                : 'bg-white border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-sm'
               }
               ${(option.disabled || disabled) ? 'opacity-50 cursor-not-allowed' : ''}
             `}
@@ -105,13 +108,13 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
                   w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
                   transition-all duration-200
                   ${value === option.value
-                    ? 'border-white bg-white'
-                    : 'border-neutral-300'
+                    ? 'border-[#4654CD] bg-[#4654CD]'
+                    : 'border-neutral-300 bg-white'
                   }
                 `}
               >
                 {value === option.value && (
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#4654CD]" />
+                  <div className="w-2 h-2 rounded-full bg-white" />
                 )}
               </div>
 
@@ -119,14 +122,14 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
               <div className="flex-1">
                 <p className={`
                   font-medium text-base
-                  ${value === option.value ? 'text-white' : 'text-neutral-800'}
+                  ${value === option.value ? 'text-[#4654CD]' : 'text-neutral-800'}
                 `}>
                   {option.label}
                 </p>
                 {option.description && (
                   <p className={`
                     text-sm mt-0.5
-                    ${value === option.value ? 'text-white/80' : 'text-neutral-500'}
+                    ${value === option.value ? 'text-[#4654CD]/70' : 'text-neutral-500'}
                   `}>
                     {option.description}
                   </p>
@@ -145,6 +148,14 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
           </button>
         ))}
       </div>
+
+      {/* Success message */}
+      {showSuccess && (
+        <p className="text-sm text-green-600 flex items-center gap-1">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          Seleccionado
+        </p>
+      )}
 
       {/* Error message */}
       {error && (

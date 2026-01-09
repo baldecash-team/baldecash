@@ -19,6 +19,7 @@ import {
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { ColorSelector } from '../color-selector';
+import { formatMoney } from '../../../../utils/formatMoney';
 
 interface ProductCardProps {
   product: CatalogProduct;
@@ -108,7 +109,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   disabled={compareDisabled && !isCompareSelected}
                   className={`p-2.5 rounded-full shadow-md transition-all ${
                     isCompareSelected
-                      ? 'bg-[#4654CD] text-white'
+                      ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
                       : compareDisabled
                         ? 'bg-white/50 text-neutral-300 cursor-not-allowed'
                         : 'bg-white/90 hover:bg-[#4654CD]/10 cursor-pointer'
@@ -199,11 +200,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="bg-[#4654CD]/5 rounded-2xl py-4 px-6 mb-4">
               <p className="text-xs text-neutral-500 mb-1">Cuota mensual</p>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-4xl font-black text-[#4654CD]">S/{quota}</span>
+                <span className="text-4xl font-black text-[#4654CD]">S/{formatMoney(quota)}</span>
                 <span className="text-lg text-neutral-400">/mes</span>
               </div>
               <p className="text-xs text-neutral-500 mt-2">
-                en {selectedTerm} meses · inicial S/{initialAmount}
+                en {selectedTerm} meses · inicial S/{formatMoney(initialAmount)}
               </p>
             </div>
 

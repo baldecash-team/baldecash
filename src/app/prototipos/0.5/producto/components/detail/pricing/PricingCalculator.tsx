@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { PricingCalculatorProps } from '../../../types/detail';
+import { formatMoney } from '../../../../utils/formatMoney';
 
 const TERMS = [12, 18, 24, 36, 48];
 const INITIAL_PAYMENT_OPTIONS = [
@@ -112,7 +113,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                       isSelected ? 'text-white/60' : 'text-neutral-400'
                     }`}
                   >
-                    S/{originalQuota.toFixed(0)}
+                    S/{formatMoney(originalQuota)}
                   </p>
                 )}
 
@@ -121,7 +122,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                     isSelected ? 'text-white' : 'text-[#4654CD]'
                   }`}
                 >
-                  S/{quota.toFixed(0)}
+                  S/{formatMoney(quota)}
                 </p>
 
                 <p
@@ -143,11 +144,11 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
           <p className="text-sm text-neutral-600 mb-2">Pagarias</p>
           {calculatedOriginalQuota && (
             <p className="line-through text-neutral-400 text-xl mb-1">
-              S/{calculatedOriginalQuota.toFixed(2)}/mes
+              S/{formatMoney(calculatedOriginalQuota)}/mes
             </p>
           )}
           <p className="text-4xl font-bold text-[#4654CD]">
-            S/{calculatedQuota.toFixed(2)}/mes
+            S/{formatMoney(calculatedQuota)}/mes
           </p>
           <p className="text-sm text-neutral-500 mt-2">
             durante {selectedTerm} meses

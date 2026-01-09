@@ -7,7 +7,7 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FileText, Clock, Shield, ArrowRight, Loader2, Code, ArrowLeft } from 'lucide-react';
+import { FileText, Clock, Shield, ArrowRight, Loader2, Code, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { useProduct, SelectedProduct } from '../context/ProductContext';
 import { FeedbackButton } from '@/app/prototipos/_shared';
@@ -47,6 +47,8 @@ function WizardPreviewContent() {
   const isCleanMode = searchParams.get('mode') === 'clean';
   const { setSelectedProduct, selectedAccessories, toggleAccessory } = useProduct();
   const [showConfig, setShowConfig] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPromos, setAcceptPromos] = useState(true);
 
   // Set mock product on mount for testing purposes
   useEffect(() => {
@@ -58,6 +60,44 @@ function WizardPreviewContent() {
     const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
     router.push(url);
   };
+
+  // Checkbox component
+  const Checkbox = ({
+    id,
+    checked,
+    onChange,
+    label,
+    description,
+  }: {
+    id: string;
+    checked: boolean;
+    onChange: (checked: boolean) => void;
+    label: string;
+    description: string;
+  }) => (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex items-start gap-3 w-full text-left cursor-pointer"
+    >
+      <div
+        className={`
+          w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
+          transition-all duration-200
+          ${checked
+            ? 'bg-[#4654CD] border-[#4654CD]'
+            : 'bg-white border-neutral-300 hover:border-[#4654CD]/50'
+          }
+        `}
+      >
+        {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-neutral-800">{label}</p>
+        <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
+      </div>
+    </button>
+  );
 
   // Content component to avoid duplication
   const PageContent = () => (
@@ -146,21 +186,41 @@ function WizardPreviewContent() {
           </div>
         </div>
 
+        {/* Términos y Condiciones */}
+        <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
+          <h3 className="font-semibold text-neutral-800 mb-4">Términos y Condiciones</h3>
+          <div className="space-y-4">
+            <Checkbox
+              id="acceptTerms"
+              checked={acceptTerms}
+              onChange={setAcceptTerms}
+              label="Acepto los términos y condiciones"
+              description="He leído y acepto los términos de uso y la política de privacidad"
+            />
+            <Checkbox
+              id="acceptPromos"
+              checked={acceptPromos}
+              onChange={setAcceptPromos}
+              label="Quiero recibir promociones"
+              description="Acepto recibir ofertas y novedades por correo electrónico"
+            />
+          </div>
+        </div>
+
         {/* CTA Button */}
         <button
           onClick={handleStart}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#4654CD] text-white rounded-xl
-                     font-semibold text-lg hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25
-                     cursor-pointer"
+          disabled={!acceptTerms}
+          className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
+                     font-semibold text-lg transition-colors shadow-lg
+                     ${acceptTerms
+                       ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3] shadow-[#4654CD]/25 cursor-pointer'
+                       : 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-neutral-300/25'
+                     }`}
         >
           <span>Comenzar Solicitud</span>
           <ArrowRight className="w-5 h-5" />
         </button>
-
-        {/* Footer Note */}
-        <p className="text-center text-xs text-neutral-500 mt-6">
-          Al continuar, aceptas nuestros términos y condiciones de servicio.
-        </p>
       </div>
     </div>
   );

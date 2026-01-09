@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardBody, Chip } from '@nextui-org/react';
 import { Check, Plus } from 'lucide-react';
 import type { Accessory } from '../../types/upsell';
+import { formatMoney } from '../../../utils/formatMoney';
 
 interface AccessoryCardProps {
   accessory: Accessory;
@@ -77,7 +78,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
         {/* Price */}
         <div className="mt-auto flex items-center justify-between">
           <span className="text-[#4654CD] font-bold">
-            +S/{accessory.monthlyQuota}/mes
+            +S/{formatMoney(accessory.monthlyQuota)}/mes
           </span>
           {!isSelected && (
             <Plus className="w-5 h-5 text-neutral-400" />

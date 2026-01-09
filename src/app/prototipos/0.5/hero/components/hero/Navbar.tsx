@@ -10,19 +10,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
 import { Menu, X, Zap, User, Laptop, ChevronDown, Smartphone, Tablet, ArrowRight } from 'lucide-react';
 
-const catalogUrl = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
-const megaMenuItems = [
-  { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
-  { label: 'Tablets', href: catalogUrl, icon: Tablet, description: 'Tablets para toda ocasión' },
-  { label: 'Celulares', href: catalogUrl, icon: Smartphone, description: 'Smartphones de todas las marcas' },
-  { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
-];
-
-const navItems = [
-  { label: 'Equipos', href: catalogUrl, megaMenuType: 'equipos' as const },
-  { label: 'Convenios', href: '#convenios' },
-  { label: '¿Tienes dudas?', href: '#faq' },
-];
+// Helper function to build internal URLs with mode propagation
+const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
+  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+};
 
 const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
   if (href.startsWith('#')) {
@@ -34,7 +25,26 @@ const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string)
   }
 };
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  isCleanMode?: boolean;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false }) => {
+  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
+  const heroUrl = buildInternalUrl('/prototipos/0.5/hero/hero-preview', isCleanMode);
+
+  const megaMenuItems = [
+    { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
+    { label: 'Tablets', href: catalogUrl, icon: Tablet, description: 'Tablets para toda ocasión' },
+    { label: 'Celulares', href: catalogUrl, icon: Smartphone, description: 'Smartphones de todas las marcas' },
+    { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
+  ];
+
+  const navItems = [
+    { label: 'Equipos', href: catalogUrl, megaMenuType: 'equipos' as const },
+    { label: 'Convenios', href: '#convenios' },
+    { label: '¿Tienes dudas?', href: '#faq' },
+  ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPromo, setShowPromo] = useState(true);
   const [activeMegaMenu, setActiveMegaMenu] = useState<'equipos' | 'convenios' | null>(null);
@@ -79,7 +89,7 @@ export const Navbar: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <a href="/prototipos/0.5/hero/hero-preview" className="flex items-center">
+            <a href={heroUrl} className="flex items-center">
               <img
                 src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
                 alt="BaldeCash"

@@ -122,13 +122,19 @@ export const SelectInput: React.FC<SelectInputProps> = ({
         <p className="text-xs text-neutral-500">{helpText}</p>
       )}
 
-      {/* Select button */}
+      {/* Select trigger */}
       <div className="relative">
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={disabled ? -1 : 0}
           id={id}
           onClick={() => !disabled && setIsOpen(!isOpen)}
-          disabled={disabled}
+          onKeyDown={(e) => {
+            if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              setIsOpen(!isOpen);
+            }
+          }}
           className={`
             w-full h-11 px-3 flex items-center justify-between gap-2
             rounded-lg border-2 transition-all cursor-pointer text-left
@@ -157,7 +163,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             {showError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
             <ChevronDown className={`w-5 h-5 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
           </div>
-        </button>
+        </div>
 
         {/* Dropdown */}
         {isOpen && (

@@ -17,6 +17,7 @@ import { Button, Spinner, Tabs, Tab } from '@nextui-org/react';
 import { ArrowLeft, Package, Shield, Code } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { FeedbackButton } from '@/app/prototipos/_shared';
+import { formatMoney } from '../../utils/formatMoney';
 
 // Upsell components
 import {
@@ -84,8 +85,8 @@ function UpsellPreviewContent() {
 
   // Navigation URL
   const getWizardUrl = () => {
-    const baseUrl = '/prototipos/0.4/wizard-solicitud/wizard-preview?header=3&progress=6&celebration=3&input=4&options=2&upload=3';
-    return isCleanMode ? `${baseUrl}&mode=clean` : baseUrl;
+    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+    return isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
   };
 
   // Fixed config for display
@@ -135,7 +136,7 @@ function UpsellPreviewContent() {
                 <div className="flex items-center justify-between">
                   <span className="text-neutral-600">Total con accesorios:</span>
                   <span className="text-xl font-bold text-[#4654CD]">
-                    S/{totals.totalQuota}/mes
+                    S/{formatMoney(totals.totalQuota)}/mes
                   </span>
                 </div>
               </div>
@@ -165,7 +166,7 @@ function UpsellPreviewContent() {
                   <div className="flex items-center justify-between">
                     <span className="text-neutral-600">Total con seguro:</span>
                     <span className="text-xl font-bold text-[#4654CD]">
-                      S/{totals.totalQuota}/mes
+                      S/{formatMoney(totals.totalQuota)}/mes
                     </span>
                   </div>
                 </div>

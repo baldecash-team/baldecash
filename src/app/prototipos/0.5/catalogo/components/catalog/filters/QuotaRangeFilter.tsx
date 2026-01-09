@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Slider } from '@nextui-org/react';
+import { formatMoney } from '../../../../utils/formatMoney';
 
 interface QuotaRangeFilterProps {
   value: [number, number];
@@ -39,11 +40,11 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
       />
       <div className="flex justify-between text-xs">
         <span className="text-neutral-700 font-medium">
-          S/{value[0]}/mes
+          S/{formatMoney(value[0])}/mes
         </span>
         <span className="text-neutral-300">-</span>
         <span className="text-neutral-700 font-medium">
-          S/{value[1]}/mes
+          S/{formatMoney(value[1])}/mes
         </span>
       </div>
     </div>

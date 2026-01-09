@@ -19,7 +19,7 @@ import {
   ProductAlternatives,
   DownPaymentCalculator,
 } from './alternatives';
-import { EmailCapture, RetryTimeline, EducationalContent } from './retention';
+import { RetryTimeline, EducationalContent } from './retention';
 import { ContactOptions } from './support';
 
 interface RejectionScreenProps {
@@ -59,11 +59,6 @@ export const RejectionScreen: React.FC<RejectionScreenProps> = ({ data }) => {
             <DownPaymentCalculator calculator={calculator} />
           </div>
         )}
-
-        {/* Captura de email */}
-        <div className="mb-8">
-          <EmailCapture />
-        </div>
 
         {/* Timeline de reintento */}
         <div className="mb-8">

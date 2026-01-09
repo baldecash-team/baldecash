@@ -3,6 +3,7 @@
 import React from 'react';
 import { Trophy, TrendingDown, Check, X } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference } from '../../types/comparator';
+import { formatMoney } from '../../../utils/formatMoney';
 
 interface DesignStyleAProps {
   products: ComparisonProduct[];
@@ -65,9 +66,9 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
     if (diff === 0) return null;
 
     if (config.priceDiffVersion === 1) {
-      return <span className="text-xs text-red-500 ml-1">+S/{diff}</span>;
+      return <span className="text-xs text-red-500 ml-1">+S/{formatMoney(diff)}</span>;
     }
-    return <div className="text-xs text-red-500 mt-1">+S/{diff * 12}/año</div>;
+    return <div className="text-xs text-red-500 mt-1">+S/{formatMoney(diff * 12)}/año</div>;
   };
 
   return (
@@ -138,7 +139,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                           </p>
                           <div className="mt-1">
                             <span className={`font-bold text-base ${isBest ? 'text-[#22c55e]' : 'text-[#4654CD]'}`}>
-                              S/{product.quotaMonthly}
+                              S/{formatMoney(product.quotaMonthly)}
                             </span>
                             <span className="text-xs font-normal text-neutral-500">/mes</span>
                             {renderPriceDiff(index)}
@@ -208,7 +209,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
       {config.priceDiffVersion === 2 && priceDiff.annualSaving > 0 && (
         <div className="p-4 bg-[#22c55e]/10 border-t border-[#22c55e]/20 text-center">
           <p className="text-sm text-neutral-600">Ahorro anual eligiendo el más económico:</p>
-          <p className="text-2xl font-bold text-[#22c55e]">S/{priceDiff.annualSaving}</p>
+          <p className="text-2xl font-bold text-[#22c55e]">S/{formatMoney(priceDiff.annualSaving)}</p>
         </div>
       )}
     </div>

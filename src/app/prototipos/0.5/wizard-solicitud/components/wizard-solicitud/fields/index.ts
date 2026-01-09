@@ -3,6 +3,7 @@
 
 export { TextInput } from './TextInput';
 export { RadioGroup } from './RadioGroup';
+export { SegmentedControl } from './SegmentedControl';
 export { SelectInput } from './SelectInput';
 export { TextArea } from './TextArea';
 export { FileUpload } from './FileUpload';

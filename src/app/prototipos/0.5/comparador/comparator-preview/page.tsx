@@ -2,8 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import { Button, Spinner } from '@nextui-org/react';
-import { Settings, Code, ArrowLeft, Scale, Keyboard, Info, Layers, Navigation } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Settings, Code, ArrowLeft, Scale, Keyboard } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ComparatorConfig,
@@ -21,7 +20,8 @@ import {
 } from '../components/comparator';
 import { availableProducts, getProductsByIds } from '../data/mockComparatorData';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, Toast, useToast } from '@/app/prototipos/_shared';
+import type { ToastType } from '@/app/prototipos/_shared';
 
 /**
  * Comparator Preview Page v0.5
@@ -79,13 +79,8 @@ function ComparatorPreviewContent() {
   // UI state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'version' | 'navigation' | 'info' } | null>(null);
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(2000);
   const [currentComponent, setCurrentComponent] = useState<string>('layout');
-
-  const showToast = useCallback((message: string, type: 'version' | 'navigation' | 'info' = 'info') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 2000);
-  }, []);
 
   const componentLabels: Record<string, string> = {
     layout: 'Layout',
@@ -321,28 +316,16 @@ function ComparatorPreviewContent() {
   return (
     <div className="min-h-screen bg-neutral-50 relative">
       {/* Toast de shortcuts */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className={`fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium ${
-              toast.type === 'version'
-                ? 'bg-[#4654CD] text-white'
-                : toast.type === 'navigation'
-                ? 'bg-neutral-800 text-white'
-                : 'bg-white text-neutral-800 border border-neutral-200'
-            }`}
-          >
-            {toast.type === 'version' && <Layers className="w-4 h-4" />}
-            {toast.type === 'navigation' && <Navigation className="w-4 h-4" />}
-            {toast.type === 'info' && <Info className="w-4 h-4" />}
-            <span>{toast.message}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type as ToastType}
+          isVisible={isToastVisible}
+          onClose={hideToast}
+          duration={2000}
+          position="top"
+        />
+      )}
 
       {/* Shortcut Help Badge */}
       <div className="fixed top-20 right-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-md px-3 py-2 border border-neutral-200">

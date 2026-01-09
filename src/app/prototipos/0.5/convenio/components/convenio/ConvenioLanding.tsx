@@ -15,19 +15,27 @@ import { ConvenioFaq } from './faq';
 import { ConvenioCta } from './cta';
 import { ConvenioFooter } from './footer';
 
+// Helper function to build internal URLs with mode propagation
+const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
+  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+};
+
 interface ConvenioLandingProps {
   convenio: ConvenioData;
+  isCleanMode?: boolean;
 }
 
-export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({ convenio }) => {
+export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({ convenio, isCleanMode = false }) => {
+  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
+
   const handleVerEquipos = () => {
-    window.location.href = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
+    window.location.href = catalogUrl;
   };
 
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
-      <ConvenioNavbar convenio={convenio} />
+      <ConvenioNavbar convenio={convenio} isCleanMode={isCleanMode} />
 
       {/* Main content */}
       <main>

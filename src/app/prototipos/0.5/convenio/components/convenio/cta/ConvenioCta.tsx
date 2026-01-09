@@ -9,6 +9,7 @@ import { Button } from '@nextui-org/react';
 import { ArrowRight, MessageCircle, Phone } from 'lucide-react';
 import { ConvenioData } from '../../../types/convenio';
 import { calcularCuotaConDescuento } from '../../../data/mockConvenioData';
+import { formatMoney } from '../../../../utils/formatMoney';
 
 interface ConvenioCtaProps {
   convenio: ConvenioData;
@@ -117,7 +118,7 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
             <div className="mt-6 pt-6 border-t border-white/20 text-center">
               <p className="text-white/60 text-sm mb-1">Cuotas desde</p>
               <p className="text-3xl font-bold text-white font-['Baloo_2']">
-                S/{cuotaConDescuento}/mes
+                S/{formatMoney(cuotaConDescuento)}/mes
               </p>
               <p className="text-white/60 text-xs mt-1">
                 Con {convenio.descuentoCuota}% de descuento

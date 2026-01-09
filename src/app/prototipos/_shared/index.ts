@@ -15,3 +15,5 @@ export { SettingsModal } from './components/SettingsModal';
 export { VersionNav } from './components/VersionNav';
 export { FeedbackButton } from './components/FeedbackButton';
 export { FeedbackModal } from './components/FeedbackModal';
+export { Toast, useToast } from './components/Toast';
+export type { ToastType, ToastProps, UseToastReturn } from './components/Toast';

@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * Illustration - Icono de solicitud en proceso
- * Versión fija para v0.5
+ * Illustration - Icono de solicitud recibida
+ * Versión fija para v0.5 - Check estilo aprobado en morado + reloj
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileCheck, Clock } from 'lucide-react';
+import { CheckCircle, Clock } from 'lucide-react';
 
 export const Illustration: React.FC = () => {
   return (
@@ -23,12 +23,12 @@ export const Illustration: React.FC = () => {
       className="flex justify-center mb-8"
     >
       <div className="relative w-28 h-28">
-        {/* Pulse effect */}
-        <div className="absolute inset-0 bg-[#4654CD] rounded-full animate-ping opacity-20" />
+        {/* Ping effect */}
+        <div className="absolute inset-0 bg-[#4654CD] rounded-full animate-ping opacity-25" />
 
-        {/* Main circle */}
+        {/* Main check circle */}
         <div className="relative w-full h-full bg-[#4654CD] rounded-full flex items-center justify-center shadow-lg shadow-[#4654CD]/30">
-          <FileCheck className="w-14 h-14 text-white" />
+          <CheckCircle className="w-16 h-16 text-white" />
         </div>
 
         {/* Clock decoration */}

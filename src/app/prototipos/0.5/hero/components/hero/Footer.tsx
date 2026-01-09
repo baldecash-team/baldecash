@@ -5,49 +5,14 @@
  */
 
 import React, { useState } from 'react';
-import { Button, Input } from '@nextui-org/react';
-import { Facebook, Instagram, Linkedin, Twitter, Phone, Send, CheckCircle } from 'lucide-react';
+import { Button } from '@nextui-org/react';
+import { Facebook, Instagram, Linkedin, Twitter, Phone, Send, AlertCircle, Check } from 'lucide-react';
+import { Toast } from '@/app/prototipos/_shared';
 
-const catalogUrl = '/prototipos/0.5/catalogo/catalog-preview?mode=clean';
-
-const columns = [
-  {
-    title: 'Productos',
-    links: [
-      { label: 'Equipos', href: catalogUrl },
-      { label: 'Accesorios', href: '#accesorios' },
-      { label: 'Seguros', href: '#seguros' },
-      { label: 'Promociones', href: '#promos' },
-    ],
-  },
-  {
-    title: 'Empresa',
-    links: [
-      { label: 'Sobre nosotros', href: '#nosotros' },
-      { label: 'Convenios', href: '#convenios' },
-      { label: 'Trabaja con nosotros', href: '#empleo' },
-      { label: 'Blog', href: '#blog' },
-    ],
-  },
-  {
-    title: 'Soporte',
-    links: [
-      { label: 'Centro de ayuda', href: '#ayuda' },
-      { label: 'FAQ', href: '#faq' },
-      { label: 'Estado de solicitud', href: '#estado' },
-      { label: 'Contacto', href: '#contacto' },
-    ],
-  },
-  {
-    title: 'Legal',
-    links: [
-      { label: 'Términos y condiciones', href: '#terminos' },
-      { label: 'Política de privacidad', href: '#privacidad' },
-      { label: 'Libro de reclamaciones', href: '#reclamos' },
-      { label: 'Regulación SBS', href: '#sbs' },
-    ],
-  },
-];
+// Helper function to build internal URLs with mode propagation
+const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
+  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+};
 
 const socialLinks = [
   { icon: Facebook, href: '#facebook', label: 'Facebook' },
@@ -56,9 +21,55 @@ const socialLinks = [
   { icon: Linkedin, href: '#linkedin', label: 'LinkedIn' },
 ];
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  isCleanMode?: boolean;
+}
+
+export const Footer: React.FC<FooterProps> = ({ isCleanMode = false }) => {
+  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
+  const heroUrl = buildInternalUrl('/prototipos/0.5/hero/hero-preview', isCleanMode);
+
+  const columns = [
+    {
+      title: 'Productos',
+      links: [
+        { label: 'Equipos', href: catalogUrl },
+        { label: 'Accesorios', href: '#accesorios' },
+        { label: 'Seguros', href: '#seguros' },
+        { label: 'Promociones', href: '#promos' },
+      ],
+    },
+    {
+      title: 'Empresa',
+      links: [
+        { label: 'Sobre nosotros', href: '#nosotros' },
+        { label: 'Convenios', href: '#convenios' },
+        { label: 'Trabaja con nosotros', href: '#empleo' },
+        { label: 'Blog', href: '#blog' },
+      ],
+    },
+    {
+      title: 'Soporte',
+      links: [
+        { label: 'Centro de ayuda', href: '#ayuda' },
+        { label: 'FAQ', href: '#faq' },
+        { label: 'Estado de solicitud', href: '#estado' },
+        { label: 'Contacto', href: '#contacto' },
+      ],
+    },
+    {
+      title: 'Legal',
+      links: [
+        { label: 'Términos y condiciones', href: '#terminos' },
+        { label: 'Política de privacidad', href: '#privacidad' },
+        { label: 'Libro de reclamaciones', href: '#reclamos' },
+        { label: 'Regulación SBS', href: '#sbs' },
+      ],
+    },
+  ];
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const currentYear = new Date().getFullYear();
 
@@ -67,7 +78,18 @@ export const Footer: React.FC = () => {
     return /^9\d{8}$/.test(cleanPhone);
   };
 
+  // Validación en tiempo real
+  const getValidationState = () => {
+    if (!touched && !error) return 'default';
+    if (error) return 'error';
+    if (whatsapp.trim() && validatePeruvianPhone(whatsapp)) return 'success';
+    return 'default';
+  };
+
+  const validationState = getValidationState();
+
   const handleSubmit = () => {
+    setTouched(true);
     setError(null);
 
     if (!whatsapp.trim()) {
@@ -83,9 +105,8 @@ export const Footer: React.FC = () => {
     // Éxito
     setIsSuccess(true);
     setWhatsapp('');
-    setTimeout(() => {
-      setIsSuccess(false);
-    }, 3000);
+    setTouched(false);
+    setError(null);
   };
 
   return (
@@ -100,24 +121,40 @@ export const Footer: React.FC = () => {
                 Sé el primero en enterarte de promociones y nuevos equipos
               </p>
             </div>
-            <div className="flex flex-col gap-2 w-full md:w-auto relative">
+            <div className="flex flex-col gap-2 w-full md:w-auto">
               <div className="flex flex-col sm:flex-row gap-3">
-                <Input
-                  type="tel"
-                  placeholder="999 999 999"
-                  value={whatsapp}
-                  onChange={(e) => {
-                    setWhatsapp(e.target.value);
-                    if (error) setError(null);
-                  }}
-                  startContent={<Phone className="w-4 h-4 text-neutral-400" />}
-                  classNames={{
-                    base: 'w-full sm:w-72',
-                    inputWrapper: `bg-white h-11 focus-within:ring-0 ${error ? 'border-2 border-red-500' : 'border-0'}`,
-                    input: 'text-neutral-800 focus:outline-none',
-                    innerWrapper: 'focus-within:ring-0',
-                  }}
-                />
+                {/* Input con estilo estándar 8.7 */}
+                <div
+                  className={`
+                    flex items-center gap-2 h-11 px-3 w-full sm:w-72
+                    rounded-lg border-2 transition-all duration-200 bg-white
+                    ${validationState === 'error' ? 'border-[#ef4444]' : ''}
+                    ${validationState === 'success' ? 'border-[#22c55e]' : ''}
+                    ${validationState === 'default' ? 'border-transparent focus-within:border-[#4654CD]' : ''}
+                  `}
+                >
+                  <Phone className={`w-4 h-4 flex-shrink-0 ${validationState === 'error' ? 'text-[#ef4444]' : 'text-neutral-400'}`} />
+                  <input
+                    type="tel"
+                    placeholder="999 999 999"
+                    value={whatsapp}
+                    maxLength={9}
+                    onChange={(e) => {
+                      // Solo permitir números
+                      const value = e.target.value.replace(/\D/g, '');
+                      setWhatsapp(value);
+                      if (error) setError(null);
+                    }}
+                    onBlur={() => setTouched(true)}
+                    className="flex-1 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400"
+                  />
+                  {/* Contador de caracteres */}
+                  <span className={`text-xs flex-shrink-0 ${whatsapp.length === 9 ? 'text-[#22c55e]' : 'text-neutral-400'}`}>
+                    {whatsapp.length}/9
+                  </span>
+                  {validationState === 'success' && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
+                  {validationState === 'error' && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
+                </div>
                 <Button
                   radius="lg"
                   className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors"
@@ -128,16 +165,10 @@ export const Footer: React.FC = () => {
                 </Button>
               </div>
               {error && (
-                <p className="text-red-200 text-sm ml-1">{error}</p>
-              )}
-              {/* Toast de éxito */}
-              {isSuccess && (
-                <div className="absolute -bottom-12 left-0 right-0 sm:left-auto sm:right-0 sm:w-auto">
-                  <div className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-sm font-medium whitespace-nowrap">¡Número registrado con éxito!</span>
-                  </div>
-                </div>
+                <p className="text-sm text-red-200 flex items-center gap-1 ml-1">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {error}
+                </p>
               )}
             </div>
           </div>
@@ -149,7 +180,7 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-10">
           {/* Logo Column */}
           <div className="col-span-2 md:col-span-4 lg:col-span-1">
-            <a href="/prototipos/0.5/hero/hero-preview" className="inline-block mb-4">
+            <a href={heroUrl} className="inline-block mb-4">
               <img
                 src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
                 alt="BaldeCash"
@@ -199,6 +230,16 @@ export const Footer: React.FC = () => {
           <p className="text-xs text-neutral-600">Empresa supervisada por la SBS</p>
         </div>
       </div>
+
+      {/* Toast de éxito - Newsletter */}
+      <Toast
+        message="¡Número registrado con éxito!"
+        type="success"
+        isVisible={isSuccess}
+        onClose={() => setIsSuccess(false)}
+        duration={3000}
+        position="bottom"
+      />
     </footer>
   );
 };

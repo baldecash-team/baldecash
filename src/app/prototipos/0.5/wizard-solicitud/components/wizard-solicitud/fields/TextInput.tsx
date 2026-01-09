@@ -30,6 +30,7 @@ interface TextInputProps {
   disabled?: boolean;
   required?: boolean;
   maxLength?: number;
+  inputMode?: 'text' | 'tel' | 'numeric' | 'email' | 'decimal' | 'search' | 'url' | 'none';
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -47,12 +48,16 @@ export const TextInput: React.FC<TextInputProps> = ({
   disabled = false,
   required = true,
   maxLength,
+  inputMode: inputModeProp,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showError = !!error;
   const showSuccess = success && !error && value;
 
   const getInputMode = () => {
+    // Si se pasa inputMode como prop, usarlo
+    if (inputModeProp) return inputModeProp;
+    // Si no, inferir del type
     switch (type) {
       case 'tel':
         return 'tel';
