@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown } from 'lucide-react';
+import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown, Filter } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference } from '../../types/comparator';
 import { formatMoney } from '../../../utils/formatMoney';
 
@@ -249,7 +249,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
               Otras opciones
             </h4>
 
-            <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(otherProducts.length, 2)}, 1fr)` }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {otherProducts.map((product, idx) => {
                 const originalIndex = products.findIndex(p => p.id === product.id);
                 const isCheapest = priceDiff.quota[originalIndex] === 0;
@@ -363,50 +363,64 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
       {/* Summary Table (Condensed) - Siempre visible */}
       <div className="bg-neutral-50 rounded-xl border border-neutral-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-neutral-200 bg-white">
-          <h4 className="text-sm font-semibold text-neutral-700">Comparación resumida</h4>
-          {/* Checkbox - Solo visible cuando showBestOption es true */}
-          {showBestOption && onToggleDifferences && (
-            <label className="flex items-center gap-2 cursor-pointer mt-2">
-              <input
-                type="checkbox"
-                checked={showOnlyDifferences}
-                onChange={(e) => onToggleDifferences(e.target.checked)}
-                className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
-              />
-              <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
-            </label>
-          )}
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-neutral-700">Comparación resumida</h4>
+            {/* Checkbox - Siempre visible con diseño de Términos y Condiciones */}
+            {onToggleDifferences && (
+              <button
+                type="button"
+                onClick={() => onToggleDifferences(!showOnlyDifferences)}
+                className="flex items-center gap-3 cursor-pointer"
+              >
+                <div
+                  className={`
+                    w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0
+                    transition-all duration-200
+                    ${showOnlyDifferences
+                      ? 'bg-[#4654CD] border-[#4654CD]'
+                      : 'bg-white border-neutral-300 hover:border-[#4654CD]/50'
+                    }
+                  `}
+                >
+                  {showOnlyDifferences && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-neutral-800">Solo mostrar diferencias</p>
+                </div>
+              </button>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-200">
-                <th className="p-3 text-left text-xs font-medium text-neutral-500 w-[150px]">
-                  Especificaciones
+                <th className="p-2 md:p-3 text-left text-xs font-medium text-neutral-500 w-[80px] md:w-[150px]">
+                  Specs
                 </th>
                 {products.map((product, index) => {
                   const isBest = showBestOption && index === bestProductIndex;
                   return (
                     <th
                       key={product.id}
-                      className={`p-4 text-center ${
+                      className={`p-1.5 md:p-4 text-center ${
                         isBest ? 'bg-[#4654CD]/5' : ''
                       }`}
                     >
-                      <div className={`inline-flex flex-col items-center gap-2 p-3 rounded-xl border ${
+                      <div className={`inline-flex flex-col items-center gap-1 md:gap-2 p-1.5 md:p-3 rounded-lg md:rounded-xl border ${
                         isBest
                           ? 'border-[#4654CD] bg-white shadow-sm'
                           : 'border-neutral-200 bg-white'
                       }`}>
                         {/* Best badge */}
                         {isBest && (
-                          <div className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#4654CD] text-white">
-                            <Trophy className="w-3 h-3" />
+                          <div className="flex items-center gap-1 text-[8px] md:text-[10px] font-semibold px-1.5 md:px-2 py-0.5 rounded-full bg-[#4654CD] text-white">
+                            <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
                             <span>Mejor</span>
                           </div>
                         )}
                         {/* Product image */}
-                        <div className="w-14 h-14 rounded-lg bg-neutral-50 flex items-center justify-center p-1">
+                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-neutral-50 flex items-center justify-center p-0.5 md:p-1">
                           <img
                             src={product.thumbnail}
                             alt={product.displayName}
@@ -415,8 +429,8 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         </div>
                         {/* Product info */}
                         <div className="text-center">
-                          <p className="text-[10px] text-neutral-500">{product.brand}</p>
-                          <p className={`text-xs font-semibold line-clamp-2 max-w-[100px] ${
+                          <p className="text-[8px] md:text-[10px] text-neutral-500 hidden md:block">{product.brand}</p>
+                          <p className={`text-[10px] md:text-xs font-semibold line-clamp-1 md:line-clamp-2 max-w-[60px] md:max-w-[100px] ${
                             isBest ? 'text-[#4654CD]' : 'text-neutral-700'
                           }`}>
                             {product.displayName}
@@ -434,7 +448,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                   key={spec.key}
                   className={`${specIndex % 2 === 0 ? 'bg-white' : ''} border-b border-neutral-100 last:border-b-0`}
                 >
-                  <td className="p-3 text-xs text-neutral-600 font-medium">
+                  <td className="p-2 md:p-3 text-[10px] md:text-xs text-neutral-600 font-medium">
                     {spec.label}
                   </td>
                   {products.map((product, index) => {
@@ -442,11 +456,11 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                     return (
                       <td
                         key={`${product.id}-${spec.key}`}
-                        className={`p-3 text-center text-xs ${
+                        className={`p-1.5 md:p-3 text-center text-[10px] md:text-xs ${
                           index === bestProductIndex ? 'bg-[#4654CD]/5' : ''
                         } ${isWinner ? 'font-semibold text-[#4654CD]' : 'text-neutral-700'}`}
                       >
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-0.5 md:gap-1">
                           {spec.values[index]}
                           {getWinnerIcon(spec, index)}
                         </div>

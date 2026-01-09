@@ -59,6 +59,15 @@ function ResumenContent() {
     return labels[value] || value;
   };
 
+  const getSexoLabel = (value: string) => {
+    const labels: Record<string, string> = {
+      masculino: 'Masculino',
+      femenino: 'Femenino',
+      otro: 'Otro',
+    };
+    return labels[value] || value;
+  };
+
   const getTipoInstitucionLabel = (value: string) => {
     const labels: Record<string, string> = {
       universidad: 'Universidad',
@@ -93,6 +102,70 @@ function ResumenContent() {
       '10': '10mo Ciclo',
     };
     return cicloLabels[value] || value;
+  };
+
+  const getInstitucionLabel = (value: string) => {
+    const labels: Record<string, string> = {
+      // Universidades
+      unmsm: 'Universidad Nacional Mayor de San Marcos',
+      pucp: 'Pontificia Universidad Católica del Perú',
+      uni: 'Universidad Nacional de Ingeniería',
+      ulima: 'Universidad de Lima',
+      up: 'Universidad del Pacífico',
+      upc: 'Universidad Peruana de Ciencias Aplicadas',
+      usil: 'Universidad San Ignacio de Loyola',
+      esan: 'Universidad ESAN',
+      ucv: 'Universidad César Vallejo',
+      utp: 'Universidad Tecnológica del Perú',
+      unsa: 'Universidad Nacional de San Agustín',
+      unprg: 'Universidad Nacional Pedro Ruiz Gallo',
+      unt: 'Universidad Nacional de Trujillo',
+      ucsm: 'Universidad Católica de Santa María',
+      upao: 'Universidad Privada Antenor Orrego',
+      // Institutos
+      senati: 'SENATI',
+      tecsup: 'TECSUP',
+      cibertec: 'CIBERTEC',
+      idat: 'IDAT',
+      sise: 'SISE',
+      isil: 'ISIL',
+      toulouse: 'Toulouse Lautrec',
+      ipae: 'IPAE',
+      certus: 'Certus',
+      // Colegios
+      markham: 'Colegio Markham',
+      newton: 'Colegio Newton',
+      santamaria: 'Colegio Santa María Marianistas',
+      sanjose: 'Colegio San José de Monterrico',
+      trilce: 'Colegio Trilce',
+      pamer: 'Colegio Pamer',
+      saco_oliveros: 'Colegio Saco Oliveros',
+      innova: 'Innova Schools',
+      fe_alegria: 'Fe y Alegría',
+    };
+    return labels[value] || value;
+  };
+
+  const getCarreraLabel = (value: string) => {
+    const labels: Record<string, string> = {
+      ing_sistemas: 'Ingeniería de Sistemas',
+      ing_software: 'Ingeniería de Software',
+      ing_industrial: 'Ingeniería Industrial',
+      ing_civil: 'Ingeniería Civil',
+      ing_electronica: 'Ingeniería Electrónica',
+      ing_mecatronica: 'Ingeniería Mecatrónica',
+      administracion: 'Administración de Empresas',
+      contabilidad: 'Contabilidad',
+      economia: 'Economía',
+      derecho: 'Derecho',
+      medicina: 'Medicina Humana',
+      psicologia: 'Psicología',
+      arquitectura: 'Arquitectura',
+      comunicaciones: 'Ciencias de la Comunicación',
+      marketing: 'Marketing',
+      diseno_grafico: 'Diseño Gráfico',
+    };
+    return labels[value] || value;
   };
 
   const SummarySection = ({
@@ -173,6 +246,12 @@ function ResumenContent() {
               label="Documento"
               value={`${getDocumentoLabel(getFieldValue('tipoDocumento') as string)} ${getFieldValue('numeroDocumento')}`}
             />
+            {getFieldValue('sexo') && (
+              <SummaryItem
+                label="Sexo"
+                value={getSexoLabel(getFieldValue('sexo') as string)}
+              />
+            )}
             <SummaryItem
               label="Fecha de nacimiento"
               value={getFieldValue('fechaNacimiento') as string}
@@ -188,12 +267,27 @@ function ResumenContent() {
           >
             <SummaryItem
               label="Institución"
-              value={`${getFieldValue('institucion')} (${getTipoInstitucionLabel(getFieldValue('tipoInstitucion') as string)})`}
+              value={
+                (getFieldValue('institucion') === 'otra' || getFieldValue('institucion') === 'otro') && getFieldValue('otraInstitucion')
+                  ? `${getFieldValue('otraInstitucion')} (${getTipoInstitucionLabel(getFieldValue('tipoInstitucion') as string)})`
+                  : `${getInstitucionLabel(getFieldValue('institucion') as string)} (${getTipoInstitucionLabel(getFieldValue('tipoInstitucion') as string)})`
+              }
             />
-            <SummaryItem label="Carrera" value={getFieldValue('carrera') as string} />
+            <SummaryItem
+              label="Carrera"
+              value={
+                getFieldValue('carrera') === 'otra' && getFieldValue('otraCarrera')
+                  ? getFieldValue('otraCarrera') as string
+                  : getCarreraLabel(getFieldValue('carrera') as string)
+              }
+            />
             <SummaryItem
               label="Ciclo"
-              value={getCicloLabel(getFieldValue('ciclo') as string)}
+              value={
+                getFieldValue('ciclo') === 'otro' && getFieldValue('otroCiclo')
+                  ? `${getFieldValue('otroCiclo')}° Ciclo`
+                  : getCicloLabel(getFieldValue('ciclo') as string)
+              }
             />
             <SummaryItem
               label="Constancia"

@@ -10,6 +10,9 @@ import {
   UsageType,
   GamaTier,
   CatalogDeviceType,
+  GpuType,
+  StockStatus,
+  ProductCondition,
 } from '../types/catalog';
 
 // Filtros que se sincronizan con la URL
@@ -21,7 +24,10 @@ type SyncedFilterKey =
   | 'quotaRange'
   | 'ram'
   | 'storage'
-  | 'gama';
+  | 'gama'
+  | 'gpuType'
+  | 'stock'
+  | 'condition';
 
 // Mapeo de query param name -> filter key
 const PARAM_MAP: Record<string, SyncedFilterKey> = {
@@ -33,6 +39,9 @@ const PARAM_MAP: Record<string, SyncedFilterKey> = {
   ram: 'ram',
   storage: 'storage',
   gama: 'gama',
+  gpu: 'gpuType',
+  stock: 'stock',
+  condition: 'condition',
 };
 
 /**
@@ -118,6 +127,33 @@ export const parseFiltersFromParams = (
   const gama = searchParams.get('gama');
   if (gama) {
     filters.gama = gama.split(',').filter(Boolean) as GamaTier[];
+  }
+
+  // GPU Type (array de strings)
+  const gpu = searchParams.get('gpu');
+  if (gpu) {
+    filters.gpuType = gpu.split(',').filter(Boolean) as GpuType[];
+  }
+
+  // Stock (array de strings)
+  const stock = searchParams.get('stock');
+  if (stock) {
+    filters.stock = stock.split(',').filter(Boolean) as StockStatus[];
+  }
+
+  // Condition (array de strings) - mapear valores del quiz
+  const condition = searchParams.get('condition');
+  if (condition) {
+    const conditionMap: Record<string, ProductCondition> = {
+      new: 'nuevo',
+      nuevo: 'nuevo',
+      refurbished: 'reacondicionado',
+      reacondicionado: 'reacondicionado',
+    };
+    filters.condition = condition
+      .split(',')
+      .map((c) => conditionMap[c.toLowerCase()] || c)
+      .filter(Boolean) as ProductCondition[];
   }
 
   // Sort

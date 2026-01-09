@@ -276,7 +276,7 @@ export const SelectedProductBar: React.FC = () => {
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pb-4">
+                  <div className="px-4 pt-2 pb-4 border-t border-[#4654CD]/10">
                     {/* Accessories List */}
                     <div className="space-y-2">
                       {selectedAccessories.map((acc) => (
