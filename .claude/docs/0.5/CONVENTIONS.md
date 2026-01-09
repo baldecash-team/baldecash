@@ -2189,9 +2189,25 @@ done
 | Librería | `modern-screenshot` (soporta CSS moderno: `lab()`, `oklch()`) |
 | Visibilidad | **SOLO visible en `mode=clean`** (obligatorio) |
 | Screenshot | Solo viewport visible, excluye overlay via `filter` |
-| Campo Autor | Input con persistencia en localStorage |
+| Campo Responsable | Selector con persistencia en localStorage |
 | Textarea | HTML nativo `<textarea>` (mejor control de altura) |
 | Overlay | Card blanca con spinner CSS durante captura |
+
+#### Responsables Disponibles
+
+El selector de "Responsable" incluye las siguientes opciones:
+
+```tsx
+const RESPONSABLES = [
+  'RUBEN MONTENEGRO',
+  'CONSUELO MARISCAL',
+  'MARCO DEL RIO',
+  'LEONARDO MEDINA',
+  'EMILIO GONZALES',
+] as const;
+```
+
+> **IMPORTANTE**: Los nombres en mayúsculas NO llevan tildes (ej: `RUBEN` no `RUBÉN`).
 
 #### Flujo de Usuario
 
@@ -2208,7 +2224,7 @@ mode=clean activo
                     │
                     └─→ Modal abre con:
                         ├─→ Preview del screenshot
-                        ├─→ Campo "Autor" (autocompletado desde localStorage)
+                        ├─→ Selector "Responsable" (autocompletado desde localStorage)
                         ├─→ Textarea "Tu opinión"
                         └─→ Botones "Cancelar" / "Enviar Feedback"
                                 │
@@ -3284,13 +3300,14 @@ Antes de dar por terminado un filtro, verificar:
 | 2.3 | 2026-01-09 | Sección 12.6: Propagación de `mode=clean` en links internos (herencia padre→hijo) |
 | 2.4 | 2026-01-09 | Sección 12.7: Aislamiento de versiones en links (0.5 solo apunta a 0.5) |
 | 2.5 | 2026-01-09 | Sección 12.7: Patrón URLSearchParams para múltiples query params, error `&` vs `?` |
-| 2.6 | 2026-01-09 | Sección 12.8: FeedbackButton OBLIGATORIO en `mode=clean`, campo Autor con persistencia localStorage |
+| 2.6 | 2026-01-09 | Sección 12.8: FeedbackButton OBLIGATORIO en `mode=clean`, campo Responsable (selector) con persistencia localStorage |
 | 2.7 | 2026-01-09 | Sección 8.7: Estándares de Campos de Formulario (TextInput, TextArea, SelectInput, FileUpload) con estados, colores, iconos, validación y contador de caracteres |
 | 2.8 | 2026-01-09 | Tabla "CONSULTA OBLIGATORIA ANTES DE IMPLEMENTAR" al inicio del documento para referencia rápida de secciones |
 | 2.9 | 2026-01-09 | Sección 9.3.1: Prohibición de Gradientes expandida con ejemplos, verificación y casos de uso |
 | 3.0 | 2026-01-09 | Sección 9.5: Toast Notifications estandarizado con componente `Toast` y hook `useToast` |
 | 3.1 | 2026-01-09 | Sección 9.5.7: Prohibición explícita de toasts inline con ejemplos de código prohibido y verificación |
 | 3.2 | 2026-01-09 | Sección 16: Filtros con Conteo - estándar para mostrar cantidad de resultados en filtros |
+| 3.3 | 2026-01-09 | Sección 12.8: Campo "Responsable" como selector (no input), lista de responsables sin tildes en mayúsculas |
 
 ---
 

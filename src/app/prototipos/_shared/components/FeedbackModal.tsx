@@ -15,10 +15,21 @@ import {
   ModalFooter,
   Button,
 } from '@nextui-org/react';
-import { MessageCircle, Send, Check, AlertCircle, User, CheckCircle2, Loader2, Link } from 'lucide-react';
+import { MessageCircle, Send, Check, AlertCircle, User, CheckCircle2, Loader2, Link, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const AUTHOR_STORAGE_KEY = 'baldecash-feedback-author';
+const RESPONSABLE_STORAGE_KEY = 'baldecash-feedback-responsable';
+
+const FEEDBACK_API_URL = 'https://ws.baldecash.com/api/feedback';
+const FEEDBACK_API_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI3IiwianRpIjoiMmMyZWE0ZDc3OTQwZWY2ZTdmMzJlOGRkMjUwNjRhYTdhNjIyNDRmMzUzMDBkOTcyMGFjY2FhMWQxZmU4OTE2MzUxOGEwMDkzMGViZTc2NGQiLCJpYXQiOjE3NDIzMzc0OTEuMjExMzUsIm5iZiI6MTc0MjMzNzQ5MS4yMTEzNTMsImV4cCI6MTc3Mzg3MzQ5MS4xOTQ0NTUsInN1YiI6IjEiLCJzY29wZXMiOlsiKiJdfQ.GmljQKk_hSEzVFlRfZMYRpt1jtBc_Fl27Vt2UEeMT5lwN4ms1w84f-dJOObRDUyzh4--DONHc7O1WZ36SjttIqmPotbSw9UWRlrA0cDrhGzmwt6nQGAAqCth1g8pkgu5tXb737wbDq8hTHtu5FU05nLrs2bYqxtbjgp500VoQB23_xEi-5FybCX0pM3i38F6VeyPoduIiY7-FRiUq6tw153uSIcCjNpZGwkffBqw6hxQ0rgGe8G_ytFbMxha_Z0zuDL5oqXtEE2U2w4mIG2_cKygysbyPOd3Qkq_LLD_lRpOWHPASrxLdVQGpLkayCBXzHb4B-Qr0Z7zQz9LqZADqojck5J8R4ZitmPpGwHbQvh6t6IbsJuXRq9mFE37VPpqxvmHyJzo_4uM5Rm0K-jKvZ4WggUddAjDn8untElx1ncMjCmFs_kOcpnoUStv3aOQGk75635_WImjTStt05BQ_EmDoRZizUqZ2zVhlrxjmgnv1SxEiPL4jDK9jaLJWUnS2MPQX4yzhd6xwhFk0LI677xpMOiag-kFU5nC3naIc9bZBKj_Ekt1UyMejPL4KqMQsBk6g40eD6ju8qVEjNEZxYCLtgD6Qr8_dheXfXiDTQQltgrG-qSzio888E_ygdq2cawS73zf5edQiau_p_wpodbCl1O6r5BzZhRuaFF0zAA';
+
+const RESPONSABLES = [
+  'RUBEN MONTENEGRO',
+  'CONSUELO MARISCAL',
+  'MARCO DEL RIO',
+  'LEONARDO MEDINA',
+  'EMILIO GONZALES',
+] as const;
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -39,27 +50,28 @@ export function FeedbackModal({
   pageUrl,
   config,
 }: FeedbackModalProps) {
-  const [author, setAuthor] = useState('');
+  const [responsable, setResponsable] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
   const [status, setStatus] = useState<SubmitStatus>('idle');
   const [validationMessage, setValidationMessage] = useState('');
-  const [authorTouched, setAuthorTouched] = useState(false);
+  const [responsableTouched, setResponsableTouched] = useState(false);
   const [feedbackTouched, setFeedbackTouched] = useState(false);
 
-  // Load author from localStorage on mount
+  // Load responsable from localStorage on mount
   useEffect(() => {
-    const savedAuthor = localStorage.getItem(AUTHOR_STORAGE_KEY);
-    if (savedAuthor) {
-      setAuthor(savedAuthor);
-      setAuthorTouched(true);
+    const savedResponsable = localStorage.getItem(RESPONSABLE_STORAGE_KEY);
+    if (savedResponsable && RESPONSABLES.includes(savedResponsable as typeof RESPONSABLES[number])) {
+      setResponsable(savedResponsable);
+      setResponsableTouched(true);
     }
   }, []);
 
-  // Save author to localStorage when it changes
-  const handleAuthorChange = (value: string) => {
-    setAuthor(value);
-    localStorage.setItem(AUTHOR_STORAGE_KEY, value);
-    // Clear validation when user types
+  // Save responsable to localStorage when it changes
+  const handleResponsableChange = (value: string) => {
+    setResponsable(value);
+    localStorage.setItem(RESPONSABLE_STORAGE_KEY, value);
+    setResponsableTouched(true);
+    // Clear validation when user selects
     if (status === 'validation') {
       setStatus('idle');
       setValidationMessage('');
@@ -76,13 +88,13 @@ export function FeedbackModal({
   };
 
   const validateForm = (): boolean => {
-    if (!author.trim() && !feedbackText.trim()) {
-      setValidationMessage('Por favor, ingresa tu nombre y tu opinión');
+    if (!responsable && !feedbackText.trim()) {
+      setValidationMessage('Por favor, selecciona un responsable y escribe tu opinión');
       setStatus('validation');
       return false;
     }
-    if (!author.trim()) {
-      setValidationMessage('Por favor, ingresa tu nombre');
+    if (!responsable) {
+      setValidationMessage('Por favor, selecciona un responsable');
       setStatus('validation');
       return false;
     }
@@ -95,7 +107,7 @@ export function FeedbackModal({
   };
 
   const handleSubmit = async () => {
-    setAuthorTouched(true);
+    setResponsableTouched(true);
     setFeedbackTouched(true);
 
     if (!validateForm() || !screenshot) return;
@@ -103,19 +115,29 @@ export function FeedbackModal({
     setStatus('loading');
 
     try {
-      const response = await fetch('/api/feedback', {
+      // Convertir base64 a Blob
+      const base64Data = screenshot.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+      const file = new File([blob], 'screenshot.jpg', { type: 'image/jpeg' });
+
+      // Crear FormData
+      const formData = new FormData();
+      formData.append('attachment', file);
+      formData.append('user', responsable);
+      formData.append('comments', feedbackText);
+
+      const response = await fetch(FEEDBACK_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          screenshot,
-          author: author.trim(),
-          feedbackText,
-          pageUrl,
-          sectionId,
-          configSnapshot: config,
-          timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
-        }),
+        headers: {
+          'Authorization': `Bearer ${FEEDBACK_API_TOKEN}`,
+        },
+        body: formData,
       });
 
       if (response.ok) {
@@ -148,16 +170,16 @@ export function FeedbackModal({
   const isFormDisabled = status === 'loading' || status === 'success';
 
   // Field states siguiendo patrón wizard-solicitud
-  const authorHasError = status === 'validation' && !author.trim();
-  const authorIsValid = authorTouched && author.trim().length > 0 && status !== 'validation';
+  const responsableHasError = status === 'validation' && !responsable;
+  const responsableIsValid = responsableTouched && responsable.length > 0 && status !== 'validation';
 
   const feedbackHasError = status === 'validation' && !feedbackText.trim();
   const feedbackIsValid = feedbackTouched && feedbackText.trim().length > 0 && status !== 'validation';
 
   // Border colors siguiendo wizard-solicitud
-  const getAuthorBorderColor = () => {
-    if (authorHasError) return 'border-[#ef4444]';
-    if (authorIsValid) return 'border-[#22c55e]';
+  const getResponsableBorderColor = () => {
+    if (responsableHasError) return 'border-[#ef4444]';
+    if (responsableIsValid) return 'border-[#22c55e]';
     return 'border-neutral-300';
   };
 
@@ -176,8 +198,9 @@ export function FeedbackModal({
       placement="center"
       hideCloseButton
       classNames={{
+        wrapper: 'z-[150]',
         base: 'bg-white rounded-2xl',
-        backdrop: 'bg-black/50',
+        backdrop: 'bg-black/50 z-[149]',
         header: 'border-b border-neutral-100 pb-4',
         body: 'py-5',
         footer: 'border-t border-neutral-100 pt-4',
@@ -274,33 +297,40 @@ export function FeedbackModal({
                   </div>
                 )}
 
-                {/* Campo Autor - estilo wizard-solicitud */}
+                {/* Campo Responsable - selector estilo wizard-solicitud */}
                 <div className="mb-5 space-y-1.5">
                   <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-                    Autor
+                    Responsable
                   </label>
                   <div
                     className={`
                       flex items-center gap-2 h-11 px-3
                       rounded-lg border-2 transition-all duration-200 bg-white
-                      ${getAuthorBorderColor()}
+                      ${getResponsableBorderColor()}
                       ${isFormDisabled ? 'opacity-50 bg-neutral-50' : ''}
                     `}
                   >
-                    <User className={`w-4 h-4 flex-shrink-0 ${authorHasError ? 'text-[#ef4444]' : 'text-neutral-400'}`} />
-                    <input
-                      type="text"
-                      placeholder="Tu nombre"
-                      value={author}
-                      onChange={(e) => handleAuthorChange(e.target.value)}
-                      onBlur={() => setAuthorTouched(true)}
+                    <User className={`w-4 h-4 flex-shrink-0 ${responsableHasError ? 'text-[#ef4444]' : 'text-neutral-400'}`} />
+                    <select
+                      value={responsable}
+                      onChange={(e) => handleResponsableChange(e.target.value)}
                       disabled={isFormDisabled}
-                      className="flex-1 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed"
-                    />
-                    {authorIsValid && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
-                    {authorHasError && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
+                      className="flex-1 bg-transparent outline-none text-base text-neutral-800 disabled:cursor-not-allowed cursor-pointer appearance-none"
+                    >
+                      <option value="" disabled>
+                        Selecciona un responsable
+                      </option>
+                      {RESPONSABLES.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                    {responsableIsValid && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
+                    {responsableHasError && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
+                    {!responsableIsValid && !responsableHasError && <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0" />}
                   </div>
-                  {authorHasError && (
+                  {responsableHasError && (
                     <p className="text-sm text-[#ef4444] flex items-center gap-1">
                       <AlertCircle className="w-4 h-4 flex-shrink-0" />
                       Este campo es requerido

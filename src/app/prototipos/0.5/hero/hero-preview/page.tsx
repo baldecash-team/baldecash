@@ -19,7 +19,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Spinner } from '@nextui-org/react';
 import { ArrowLeft, Code } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButtonSimple } from '@/app/prototipos/_shared';
+import { FeedbackButton } from '@/app/prototipos/_shared';
 
 // Hero Section component
 import { HeroSection } from '../components/hero';
@@ -61,7 +61,7 @@ function HeroPreviewContent() {
     return (
       <>
         <HeroSection isCleanMode={isCleanMode} />
-        <FeedbackButtonSimple />
+        <FeedbackButton sectionId="hero" config={fixedConfig} />
       </>
     );
   }
@@ -116,8 +116,6 @@ function HeroPreviewContent() {
         </div>
       )}
 
-      {/* Feedback Button */}
-      <FeedbackButtonSimple />
     </div>
   );
 }

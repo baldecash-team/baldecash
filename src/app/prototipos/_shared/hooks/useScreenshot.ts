@@ -28,6 +28,7 @@ interface StickyElementFix {
   originalTop: string;
   originalLeft: string;
   originalWidth: string;
+  originalTransition: string;
 }
 
 // Tipo para elementos con scroll interno que necesitan restauración
@@ -142,7 +143,11 @@ export function useScreenshot() {
                 originalTop: el.style.top,
                 originalLeft: el.style.left,
                 originalWidth: el.style.width,
+                originalTransition: el.style.transition,
               });
+
+              // Desactivar transiciones para evitar animaciones durante la captura
+              el.style.transition = 'none';
 
               // Convertir a fixed compensando el transform del body
               el.style.position = 'fixed';
@@ -184,13 +189,14 @@ export function useScreenshot() {
       console.error('Error capturando screenshot:', error);
       return null;
     } finally {
-      // Restaurar todos los elementos modificados
+      // Paso 1: Restaurar posiciones (manteniendo transition: none)
       elementsToFix.forEach((fix) => {
         if (fix.type === 'sticky') {
           fix.el.style.position = fix.originalPosition;
           fix.el.style.top = fix.originalTop;
           fix.el.style.left = fix.originalLeft;
           fix.el.style.width = fix.originalWidth;
+          // Mantener transition: none por ahora
         } else if (fix.type === 'scroll') {
           // Mover hijos de vuelta al contenedor original
           while (fix.wrapper.firstChild) {
@@ -202,6 +208,23 @@ export function useScreenshot() {
           fix.el.scrollTop = fix.originalScrollTop;
         }
       });
+
+      // Paso 2: Forzar reflow para aplicar cambios inmediatamente
+      document.body.offsetHeight;
+
+      // Paso 3: Esperar un frame para que se apliquen los estilos
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      // Paso 4: Ahora restaurar las transiciones
+      elementsToFix.forEach((fix) => {
+        if (fix.type === 'sticky') {
+          fix.el.style.transition = fix.originalTransition;
+        }
+      });
+
+      // Paso 5: Esperar otro frame antes de ocultar overlay
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
       setIsCapturing(false);
     }
   }, []);
