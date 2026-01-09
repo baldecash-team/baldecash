@@ -26,6 +26,11 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
       const dataUrl = await domToPng(document.body, {
         scale: 1,
         quality: 0.8,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        style: {
+          transform: `translate(-${window.scrollX}px, -${window.scrollY}px)`,
+        },
       });
       setScreenshot(dataUrl);
       setIsModalOpen(true);
