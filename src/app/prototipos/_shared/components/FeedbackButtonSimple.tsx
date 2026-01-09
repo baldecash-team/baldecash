@@ -1,12 +1,12 @@
 'use client';
 
 /**
- * FeedbackButtonSimple - Botón de feedback usando html2canvas
+ * FeedbackButtonSimple - Botón de feedback usando modern-screenshot
  * Implementación simple basada en el ejemplo de tunel/index.html
  */
 
 import { useState } from 'react';
-import html2canvas from 'html2canvas';
+import { domToPng } from 'modern-screenshot';
 
 interface FeedbackButtonSimpleProps {
   /** Clases adicionales para el contenedor */
@@ -23,8 +23,10 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
   const handleCapture = async () => {
     setIsCapturing(true);
     try {
-      const canvas = await html2canvas(document.body);
-      const dataUrl = canvas.toDataURL();
+      const dataUrl = await domToPng(document.body, {
+        scale: 1,
+        quality: 0.8,
+      });
       setScreenshot(dataUrl);
       setIsModalOpen(true);
     } catch (error) {

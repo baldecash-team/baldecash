@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Popover, PopoverTrigger, PopoverContent, Tooltip } from '@nextui-org/react';
 import { ArrowLeft, Code, Loader2, RefreshCw } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButtonSimple } from '@/app/prototipos/_shared';
 import { ConvenioLanding } from '../components/convenio/ConvenioLanding';
 import { convenios, getConvenioBySlug, defaultConvenio } from '../data/mockConvenioData';
 
@@ -145,13 +145,8 @@ function ConvenioPreviewContent() {
         </div>
       )}
 
-      {/* Feedback Button - only in clean mode */}
-      {isCleanMode && (
-        <FeedbackButton
-          sectionId="convenio"
-          config={{ ...FIXED_CONFIG, convenio: selectedConvenio.nombreCorto } as unknown as Record<string, unknown>}
-        />
-      )}
+      {/* Feedback Button */}
+      <FeedbackButtonSimple />
     </div>
   );
 }
