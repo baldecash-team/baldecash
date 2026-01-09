@@ -31,7 +31,10 @@ export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ convenio }) => {
       <div className="max-w-3xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-4 font-['Baloo_2']">
+          <h2
+            className="text-3xl md:text-4xl font-bold mb-4 font-['Baloo_2']"
+            style={{ color: convenio.colorPrimario }}
+          >
             Preguntas frecuentes
           </h2>
           <p className="text-neutral-600">

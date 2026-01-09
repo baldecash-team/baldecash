@@ -35,7 +35,10 @@ export const ConvenioTestimonials: React.FC<ConvenioTestimonialsProps> = ({ conv
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 mb-4 font-['Baloo_2']">
+          <h2
+            className="text-3xl md:text-4xl font-bold mb-4 font-['Baloo_2']"
+            style={{ color: convenio.colorPrimario }}
+          >
             Lo que dicen nuestros estudiantes
           </h2>
           <p className="text-neutral-600 max-w-2xl mx-auto">

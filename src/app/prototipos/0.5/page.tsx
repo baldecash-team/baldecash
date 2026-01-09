@@ -7,6 +7,7 @@ import { Card, CardBody } from "@nextui-org/react";
 import { motion } from "framer-motion";
 import { Palette, Layers, Rocket, ArrowLeft, CheckCircle, AlertCircle, SearchX, FileText, GitCompare, HelpCircle, ClipboardList, ShoppingCart, CheckCircle2, XCircle, Building2, Keyboard, Command, Presentation, Layout, Settings2 } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
+import { FeedbackButtonSimple } from "../_shared";
 import { getVersionByNumber } from "../_registry";
 
 // Custom Switch Component with framer-motion animation
@@ -355,6 +356,9 @@ export default function Version05Page() {
           </div>
         </section>
       </main>
+
+      {/* Feedback Button */}
+      <FeedbackButtonSimple />
     </div>
   );
 }
