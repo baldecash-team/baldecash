@@ -57,6 +57,13 @@ import {
   mockProducts,
 } from '../data/mockCatalogData';
 
+// Query params utilities
+import {
+  parseFiltersFromParams,
+  buildParamsFromFilters,
+  mergeFiltersWithDefaults,
+} from '../utils/queryFilters';
+
 // External components from v0.5
 import { ProductComparator } from '@/app/prototipos/0.5/comparador/components/comparator';
 import {
@@ -66,9 +73,9 @@ import {
   ComparisonProduct,
   getMaxProducts,
 } from '@/app/prototipos/0.5/comparador/types/comparator';
-import { HelpQuiz } from '@/app/prototipos/0.4/quiz/components/quiz';
-import { QuizAnswer } from '@/app/prototipos/0.4/quiz/types/quiz';
-import { quizQuestionsUsage } from '@/app/prototipos/0.4/quiz/data/mockQuizData';
+import { HelpQuiz } from '@/app/prototipos/0.5/quiz/components/quiz';
+import { QuizAnswer } from '@/app/prototipos/0.5/quiz/types/quiz';
+import { quizQuestionsUsage } from '@/app/prototipos/0.5/quiz/data/mockQuizData';
 import { AppliedFilter } from '../types/empty';
 
 // URLs
@@ -285,6 +292,24 @@ function CatalogPreviewContent() {
     }
   }, [wishlist, isWishlistLoaded]);
 
+  // Read filters from URL on mount
+  const isFiltersInitialized = useRef(false);
+  useEffect(() => {
+    if (isFiltersInitialized.current) return;
+    isFiltersInitialized.current = true;
+
+    const urlFilters = parseFiltersFromParams(searchParams);
+    if (Object.keys(urlFilters).length > 0) {
+      const { sort: urlSort, ...filterParams } = urlFilters;
+      if (Object.keys(filterParams).length > 0) {
+        setFilters(mergeFiltersWithDefaults(filterParams));
+      }
+      if (urlSort) {
+        setSort(urlSort);
+      }
+    }
+  }, [searchParams]);
+
   const handleToggleWishlist = useCallback((productId: string) => {
     setWishlist((prev) =>
       prev.includes(productId)
@@ -312,16 +337,25 @@ function CatalogPreviewContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Update URL when colorSelectorVersion changes
+  // Update URL when filters, sort, or colorSelectorVersion change
   useEffect(() => {
-    const params = new URLSearchParams();
+    // Skip URL update during initial filter loading
+    if (!isFiltersInitialized.current) return;
+
+    // Build filter params
+    const filterParams = buildParamsFromFilters(filters, sort);
+
+    // Add colorSelectorVersion if not default
     if (config.colorSelectorVersion !== 1) {
-      params.set('color', config.colorSelectorVersion.toString());
+      filterParams.set('color', config.colorSelectorVersion.toString());
     }
-    if (isCleanMode) params.set('mode', 'clean');
-    const queryString = params.toString();
+
+    // Preserve mode param
+    if (isCleanMode) filterParams.set('mode', 'clean');
+
+    const queryString = filterParams.toString();
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
-  }, [config.colorSelectorVersion, router, isCleanMode]);
+  }, [filters, sort, config.colorSelectorVersion, router, isCleanMode]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -764,8 +798,9 @@ function CatalogPreviewContent() {
         config={quizConfig}
         isOpen={isQuizOpen}
         onClose={() => setIsQuizOpen(false)}
+        context="catalog"
+        isCleanMode={isCleanMode}
         onComplete={(results, answers) => {
-          console.log('Quiz completed:', results, answers);
           // Aplicar filtros basados en las respuestas del quiz
           if (answers && answers.length > 0) {
             const quizFilters = mapQuizAnswersToFilters(answers, filters);
@@ -774,7 +809,6 @@ function CatalogPreviewContent() {
               ...quizFilters,
             }));
           }
-          setIsQuizOpen(false);
         }}
       />
 

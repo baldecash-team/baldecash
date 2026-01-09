@@ -16,7 +16,7 @@ import React, { useState } from 'react';
 import { mockHeroContent, mockSocialProof, mockHowItWorksData, mockFaqData } from '../../data/mockHeroData';
 import { UnderlinedText } from './common/UnderlinedText';
 import { useIsMobile } from '@/app/prototipos/_shared';
-import { HelpQuiz } from '@/app/prototipos/0.4/quiz/components/quiz';
+import { HelpQuiz } from '@/app/prototipos/0.5/quiz/components/quiz';
 
 // Components
 import { Navbar } from './Navbar';
@@ -119,10 +119,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ isCleanMode = false })
         config={quizConfig}
         isOpen={isQuizOpen}
         onClose={() => setIsQuizOpen(false)}
-        onComplete={(results, answers) => {
-          console.log('Quiz completed:', results, answers);
-          setIsQuizOpen(false);
-        }}
+        context="hero"
+        isCleanMode={isCleanMode}
       />
     </div>
   );
