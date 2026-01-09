@@ -30,12 +30,19 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
     setIsCapturing(true);
     setPageUrl(window.location.href); // Actualizar URL al momento de captura
 
+    // Esperar a que el overlay se renderice completamente
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
     // Guardar elementos sticky/fixed para restaurar después
-    const elementsToFix: { el: HTMLElement; originalStyles: { top: string; left: string; width: string } }[] = [];
+    const elementsToFix: { el: HTMLElement; originalStyles: { position: string; top: string; left: string; width: string; transition: string } }[] = [];
+    let capturedDataUrl: string | null = null;
 
     try {
       // Ajustar elementos sticky y fixed para que se capturen correctamente
-      document.querySelectorAll('*').forEach((el) => {
+      // Solo buscar en elementos que típicamente son sticky/fixed (nav, header, elementos de primer nivel)
+      const potentialElements = document.querySelectorAll('nav, header, [class*="navbar"], [class*="header"], [class*="sticky"], [class*="fixed"], body > div > div');
+
+      potentialElements.forEach((el) => {
         if (el instanceof HTMLElement) {
           const computed = getComputedStyle(el);
           const position = computed.position;
@@ -49,12 +56,15 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
             elementsToFix.push({
               el,
               originalStyles: {
+                position: el.style.position,
                 top: el.style.top,
                 left: el.style.left,
                 width: el.style.width,
+                transition: el.style.transition,
               },
             });
-            // Ajustar posición compensando el transform del body
+            // Desactivar transiciones y ajustar posición
+            el.style.transition = 'none';
             el.style.position = 'fixed';
             el.style.top = `${rect.top + window.scrollY}px`;
             el.style.left = `${rect.left}px`;
@@ -63,7 +73,7 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
         }
       });
 
-      const dataUrl = await domToPng(document.body, {
+      capturedDataUrl = await domToPng(document.body, {
         scale: 1,
         quality: 0.8,
         width: window.innerWidth,
@@ -79,21 +89,41 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
           return true;
         },
       });
-      setScreenshot(dataUrl);
-      setIsModalOpen(true);
     } catch (error) {
       alert('Error al capturar la pantalla');
       console.error(error);
-    } finally {
-      // Restaurar elementos sticky/fixed
-      elementsToFix.forEach(({ el, originalStyles }) => {
-        el.style.top = originalStyles.top;
-        el.style.left = originalStyles.left;
-        el.style.width = originalStyles.width;
-      });
-      // Pequeño delay para que los elementos se restauren antes de ocultar el overlay
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      setIsCapturing(false);
+    }
+
+    // Restaurar elementos sticky/fixed (siempre, incluso si hubo error)
+    // Mantener transition: none durante la restauración para evitar animación
+    elementsToFix.forEach(({ el, originalStyles }) => {
+      el.style.position = originalStyles.position;
+      el.style.top = originalStyles.top;
+      el.style.left = originalStyles.left;
+      el.style.width = originalStyles.width;
+      // transition sigue siendo 'none' aquí
+    });
+
+    // Forzar reflow para aplicar los cambios inmediatamente
+    document.body.offsetHeight;
+
+    // Esperar un frame para que se apliquen los estilos restaurados
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    // Ahora restaurar las transiciones
+    elementsToFix.forEach(({ el, originalStyles }) => {
+      el.style.transition = originalStyles.transition;
+    });
+
+    // Esperar a que el navegador complete el repintado antes de ocultar el overlay
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    // Ocultar overlay y mostrar modal
+    setIsCapturing(false);
+
+    if (capturedDataUrl) {
+      setScreenshot(capturedDataUrl);
+      setIsModalOpen(true);
     }
   };
 
