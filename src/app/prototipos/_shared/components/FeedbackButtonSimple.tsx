@@ -22,7 +22,34 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
 
   const handleCapture = async () => {
     setIsCapturing(true);
+
+    // Guardar elementos sticky para restaurar después
+    const stickyElements: { el: HTMLElement; originalStyles: { position: string; top: string; left: string; width: string } }[] = [];
+
     try {
+      // Convertir elementos sticky a fixed para que se capturen correctamente
+      document.querySelectorAll('*').forEach((el) => {
+        if (el instanceof HTMLElement) {
+          const computed = getComputedStyle(el);
+          if (computed.position === 'sticky') {
+            const rect = el.getBoundingClientRect();
+            stickyElements.push({
+              el,
+              originalStyles: {
+                position: el.style.position,
+                top: el.style.top,
+                left: el.style.left,
+                width: el.style.width,
+              },
+            });
+            el.style.position = 'fixed';
+            el.style.top = `${rect.top}px`;
+            el.style.left = `${rect.left}px`;
+            el.style.width = `${rect.width}px`;
+          }
+        }
+      });
+
       const dataUrl = await domToPng(document.body, {
         scale: 1,
         quality: 0.8,
@@ -38,6 +65,13 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
       alert('Error al capturar la pantalla');
       console.error(error);
     } finally {
+      // Restaurar elementos sticky
+      stickyElements.forEach(({ el, originalStyles }) => {
+        el.style.position = originalStyles.position;
+        el.style.top = originalStyles.top;
+        el.style.left = originalStyles.left;
+        el.style.width = originalStyles.width;
+      });
       setIsCapturing(false);
     }
   };
