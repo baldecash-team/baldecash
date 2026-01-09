@@ -76,6 +76,13 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
     }
   };
 
+  const handleAddToCart = () => {
+    if (typeof window !== 'undefined') {
+      const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+      window.location.href = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
+    }
+  };
+
   const checkScroll = () => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
@@ -366,7 +373,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                             : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
                         }`}
-                        onPress={() => handleProductClick(product.slug)}
+                        onPress={handleAddToCart}
                       >
                         {isCheaper ? 'Ahorrar' : 'Lo quiero'}
                       </Button>
