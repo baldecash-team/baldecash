@@ -39,6 +39,10 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
         if (el instanceof HTMLElement) {
           const computed = getComputedStyle(el);
           if (computed.position === 'sticky') {
+            // No modificar elementos del feedback
+            if (el.closest('[data-feedback-simple]')) {
+              return;
+            }
             const rect = el.getBoundingClientRect();
             stickyElements.push({
               el,
@@ -49,8 +53,9 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
                 width: el.style.width,
               },
             });
+            // Convertir a fixed compensando el transform del body
             el.style.position = 'fixed';
-            el.style.top = `${rect.top}px`;
+            el.style.top = `${rect.top + window.scrollY}px`;
             el.style.left = `${rect.left}px`;
             el.style.width = `${rect.width}px`;
           }
@@ -223,6 +228,19 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
           to { transform: rotate(360deg); }
         }
       `}</style>
+
+      {/* Overlay de captura - completamente opaco para ocultar el movimiento del navbar */}
+      {isCapturing && (
+        <div
+          className="fixed inset-0 z-[200] bg-white flex items-center justify-center"
+          data-feedback-simple
+        >
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-neutral-700 font-medium">Capturando pantalla...</p>
+          </div>
+        </div>
+      )}
 
       {/* Botón flotante */}
       <div className={`fixed bottom-6 right-6 z-[100] ${className || ''}`} data-feedback-simple>
