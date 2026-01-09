@@ -99,10 +99,27 @@ function WizardPreviewContent() {
     </button>
   );
 
+  // Logo URL de BaldeCash
+  const BALDECASH_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
+
   // Content component to avoid duplication
   const PageContent = () => (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="min-h-screen bg-neutral-50 relative">
+      {/* Header con fondo primario - fixed con sombra */}
+      <div className="bg-[#4654CD] py-5 fixed top-0 left-0 right-0 z-50 shadow-lg shadow-[#4654CD]/20">
+        <div className="flex justify-center">
+          <img
+            src={BALDECASH_LOGO}
+            alt="BaldeCash"
+            className="h-12 object-contain brightness-0 invert"
+          />
+        </div>
+      </div>
+
+      {/* Spacer for fixed header */}
+      <div className="h-[68px]" />
+
+      <div className="relative z-10 max-w-4xl mx-auto px-4 pt-14 pb-12">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-[#4654CD]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
