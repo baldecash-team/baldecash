@@ -65,14 +65,66 @@ const getCatalogUrlWithFilters = (answers: QuizAnswer[], isCleanMode: boolean) =
 
   // Mapear respuestas a parámetros de filtro
   answers.forEach((answer) => {
-    if (answer.questionId === 'usage' && answer.selectedOptions[0]) {
+    const question = quizQuestionsUsage.find((q) => q.id === answer.questionId);
+    if (!question) return;
+
+    const selectedOption = question.options.find((opt) => opt.id === answer.selectedOptions[0]);
+    if (!selectedOption?.weight) return;
+
+    const weight = selectedOption.weight as Record<string, unknown>;
+
+    // Usage
+    if (weight.usage) {
       params.set('usage', answer.selectedOptions[0]);
     }
-    if (answer.questionId === 'budget' && answer.selectedOptions[0]) {
-      params.set('budget', answer.selectedOptions[0]);
+
+    // Budget -> quota range
+    if (weight.budget) {
+      const budgetMap: Record<string, string> = {
+        low: '0-80',
+        medium: '80-150',
+        high: '150-250',
+        premium: '250-500',
+      };
+      const range = budgetMap[weight.budget as string];
+      if (range) {
+        params.set('quota', range);
+      }
     }
-    if (answer.questionId === 'brand_preference' && answer.selectedOptions[0] !== 'any') {
-      params.set('brand', answer.selectedOptions[0]);
+
+    // Brand
+    if (weight.brand && weight.brand !== 'any') {
+      params.set('brand', (weight.brand as string).toLowerCase());
+    }
+
+    // RAM
+    if (weight.ram && typeof weight.ram === 'number') {
+      params.set('ram', String(weight.ram));
+    }
+
+    // GPU
+    if (weight.gpu) {
+      params.set('gpu', weight.gpu as string);
+    }
+
+    // Storage
+    if (weight.storage && typeof weight.storage === 'number') {
+      params.set('storage', String(weight.storage));
+    }
+
+    // Display size
+    if (weight.display && typeof weight.display === 'number') {
+      // No hay filtro directo por display en URL, pero se puede agregar si es necesario
+    }
+
+    // Stock (inStock)
+    if (weight.inStock === true) {
+      params.set('stock', 'available');
+    }
+
+    // Condition
+    if (weight.condition && weight.condition !== 'any') {
+      params.set('condition', weight.condition as string);
     }
   });
 

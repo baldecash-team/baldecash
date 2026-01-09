@@ -18,6 +18,7 @@ import {
   Trash2,
   HelpCircle,
   Heart,
+  ShoppingCart,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -29,6 +30,9 @@ import { CatalogoSettingsModal } from '../components/catalog/CatalogoSettingsMod
 import { ProductCard } from '../components/catalog/cards/ProductCard';
 import { ProductCardSkeleton } from '../components/catalog/ProductCardSkeleton';
 import { LoadMoreButton } from '../components/catalog/LoadMoreButton';
+import { CartSelectionModal } from '../components/catalog/CartSelectionModal';
+import { CartBar } from '../components/catalog/CartBar';
+import { CartDrawer } from '../components/catalog/CartDrawer';
 
 // Empty state
 import { EmptyState } from '../components/empty';
@@ -115,12 +119,12 @@ const mapQuizAnswersToFilters = (answers: QuizAnswer[], currentFilters: FilterSt
 
     const weight = selectedOption.weight as Record<string, unknown>;
 
-    // Mapear usage
+    // Mapear usage (valores deben coincidir con los del catálogo)
     if (weight.usage) {
       const usageMap: Record<string, string> = {
-        study: 'estudiante',
+        study: 'estudios',
         gaming: 'gaming',
-        design: 'creativo',
+        design: 'diseño',
         office: 'oficina',
         coding: 'programacion',
       };
@@ -166,8 +170,34 @@ const mapQuizAnswersToFilters = (answers: QuizAnswer[], currentFilters: FilterSt
     }
 
     // Mapear GPU
-    if (weight.gpu === 'dedicated') {
-      newFilters.gpuType = ['dedicated'];
+    if (weight.gpu) {
+      if (weight.gpu === 'dedicated') {
+        newFilters.gpuType = ['dedicated'];
+      } else if (weight.gpu === 'integrated') {
+        newFilters.gpuType = ['integrated'];
+      }
+    }
+
+    // Mapear Storage
+    if (weight.storage && typeof weight.storage === 'number') {
+      newFilters.storage = [weight.storage];
+    }
+
+    // Mapear Stock (inStock)
+    if (weight.inStock === true) {
+      newFilters.stock = ['available'];
+    }
+
+    // Mapear Condition (valores deben coincidir con los del catálogo)
+    if (weight.condition && weight.condition !== 'any') {
+      const conditionMap: Record<string, string> = {
+        new: 'nuevo',
+        refurbished: 'reacondicionado',
+      };
+      const mappedCondition = conditionMap[weight.condition as string];
+      if (mappedCondition) {
+        newFilters.condition = [mappedCondition as 'nuevo' | 'reacondicionado'];
+      }
     }
   });
 
@@ -249,10 +279,11 @@ function CatalogPreviewContent() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const isFirstRender = useRef(true);
 
-  // Comparison state
+  // Comparison state with localStorage persistence
   const [compareList, setCompareList] = useState<string[]>([]);
   const [isComparatorOpen, setIsComparatorOpen] = useState(false);
   const [comparisonState, setComparisonState] = useState<ComparisonState>(defaultComparisonState);
+  const [isCompareListLoaded, setIsCompareListLoaded] = useState(false);
   const maxCompareProducts = useMemo(() => getMaxProducts(comparatorConfig.layoutVersion), []);
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
@@ -271,6 +302,13 @@ function CatalogPreviewContent() {
   const [viewMode, setViewMode] = useState<CatalogViewMode>('all');
   const [isWishlistLoaded, setIsWishlistLoaded] = useState(false);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+  // Cart state with localStorage persistence
+  const [cart, setCart] = useState<string[]>([]);
+  const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+  const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
+  const [isCartLoaded, setIsCartLoaded] = useState(false);
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
 
   // Load wishlist from localStorage on mount (client-side only)
   useEffect(() => {
@@ -291,6 +329,46 @@ function CatalogPreviewContent() {
       localStorage.setItem('baldecash-wishlist', JSON.stringify(wishlist));
     }
   }, [wishlist, isWishlistLoaded]);
+
+  // Load cart from localStorage on mount (client-side only)
+  useEffect(() => {
+    const saved = localStorage.getItem('baldecash-cart');
+    if (saved) {
+      try {
+        setCart(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error parsing cart from localStorage:', e);
+      }
+    }
+    setIsCartLoaded(true);
+  }, []);
+
+  // Persist cart to localStorage (only after initial load)
+  useEffect(() => {
+    if (isCartLoaded) {
+      localStorage.setItem('baldecash-cart', JSON.stringify(cart));
+    }
+  }, [cart, isCartLoaded]);
+
+  // Load compareList from localStorage on mount (client-side only)
+  useEffect(() => {
+    const saved = localStorage.getItem('baldecash-compare');
+    if (saved) {
+      try {
+        setCompareList(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error parsing compareList from localStorage:', e);
+      }
+    }
+    setIsCompareListLoaded(true);
+  }, []);
+
+  // Persist compareList to localStorage (only after initial load)
+  useEffect(() => {
+    if (isCompareListLoaded) {
+      localStorage.setItem('baldecash-compare', JSON.stringify(compareList));
+    }
+  }, [compareList, isCompareListLoaded]);
 
   // Read filters from URL on mount
   const isFiltersInitialized = useRef(false);
@@ -317,6 +395,44 @@ function CatalogPreviewContent() {
         : [...prev, productId]
     );
   }, []);
+
+  // Cart handlers
+  const handleOpenCartModal = useCallback((product: CatalogProduct) => {
+    setSelectedProductForCart(product);
+    setIsCartModalOpen(true);
+  }, []);
+
+  const handleAddToCart = useCallback((productId: string) => {
+    if (!cart.includes(productId)) {
+      setCart((prev) => [...prev, productId]);
+      showToast('Producto añadido al carrito', 'success');
+    }
+  }, [cart, showToast]);
+
+  const handleRemoveFromCart = useCallback((productId: string) => {
+    setCart((prev) => prev.filter((id) => id !== productId));
+  }, []);
+
+  const handleClearCart = useCallback(() => {
+    setCart([]);
+  }, []);
+
+  const handleCartContinue = useCallback(() => {
+    if (cart.length > 1) {
+      showToast('Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.', 'warning');
+      return;
+    }
+    if (cart.length === 1) {
+      router.push(getWizardUrl(isCleanMode));
+    }
+  }, [cart, router, isCleanMode, showToast]);
+
+  // Get cart products
+  const cartProducts = useMemo(() => {
+    return cart
+      .map((id) => mockProducts.find((p) => p.id === id))
+      .filter((p): p is CatalogProduct => p !== undefined);
+  }, [cart]);
 
 
 
@@ -359,36 +475,7 @@ function CatalogPreviewContent() {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    const products = getFilteredProducts({
-      deviceTypes: filters.deviceTypes,
-      brands: filters.brands,
-      priceRange: filters.priceRange,
-      quotaRange: filters.quotaRange,
-      usage: filters.usage,
-      ram: filters.ram,
-      storage: filters.storage,
-      storageType: filters.storageType,
-      processorBrand: filters.processorBrand,
-      displaySize: filters.displaySize,
-      displayType: filters.displayType,
-      resolution: filters.resolution,
-      refreshRate: filters.refreshRate,
-      gpuType: filters.gpuType,
-      touchScreen: filters.touchScreen,
-      ramExpandable: filters.ramExpandable,
-      backlitKeyboard: filters.backlitKeyboard,
-      numericKeypad: filters.numericKeypad,
-      fingerprint: filters.fingerprint,
-      hasWindows: filters.hasWindows,
-      hasThunderbolt: filters.hasThunderbolt,
-      hasEthernet: filters.hasEthernet,
-      hasSDCard: filters.hasSDCard,
-      hasHDMI: filters.hasHDMI,
-      minUSBPorts: filters.minUSBPorts,
-      gama: filters.gama,
-      condition: filters.condition,
-      stock: filters.stock,
-    });
+    const products = getFilteredProducts(filters);
     return sortProducts(products, sort);
   }, [filters, sort]);
 
@@ -560,7 +647,7 @@ function CatalogPreviewContent() {
                 key={product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
-                onAddToCart={() => router.push(getUpsellUrl(isCleanMode))}
+                onAddToCart={() => handleOpenCartModal(product)}
                 onFavorite={() => handleToggleWishlist(product.id)}
                 isFavorite={wishlist.includes(product.id)}
                 onViewDetail={() => router.push(getDetailUrl(product.id, product.deviceType, isCleanMode))}
@@ -664,9 +751,50 @@ function CatalogPreviewContent() {
         )}
       </CatalogLayout>
 
+      {/* Cart Selection Modal */}
+      <CartSelectionModal
+        isOpen={isCartModalOpen}
+        onClose={() => setIsCartModalOpen(false)}
+        product={selectedProductForCart}
+        onRequestEquipment={() => router.push(getWizardUrl(isCleanMode))}
+        onAddToCart={() => {
+          if (selectedProductForCart) {
+            handleAddToCart(selectedProductForCart.id);
+          }
+        }}
+      />
+
+      {/* Cart Bar - Desktop only */}
+      {cart.length > 0 && !isQuizOpen && !isComparatorOpen && (
+        <CartBar
+          items={cartProducts}
+          onRemoveItem={handleRemoveFromCart}
+          onClearAll={handleClearCart}
+          onContinue={handleCartContinue}
+        />
+      )}
+
+      {/* Cart Drawer - Mobile only */}
+      <CartDrawer
+        isOpen={isCartDrawerOpen}
+        onClose={() => setIsCartDrawerOpen(false)}
+        items={cartProducts}
+        onRemoveItem={handleRemoveFromCart}
+        onClearAll={() => {
+          handleClearCart();
+          setIsCartDrawerOpen(false);
+        }}
+        onContinue={() => {
+          handleCartContinue();
+          setIsCartDrawerOpen(false);
+        }}
+      />
+
       {/* Floating Comparison Bar - Desktop only */}
       {compareList.length > 0 && !isComparatorOpen && !isQuizOpen && (
-        <div className="hidden lg:flex fixed left-1/2 -translate-x-1/2 bottom-6 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 items-center gap-4">
+        <div className={`hidden lg:flex fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 items-center gap-4 transition-all ${
+          cart.length > 0 ? 'bottom-24' : 'bottom-6'
+        }`}>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
               <Scale className="w-5 h-5 text-[#4654CD]" />
@@ -732,8 +860,8 @@ function CatalogPreviewContent() {
         />
       )}
 
-      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, or filter drawer is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && (
+      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, or cart modal is open) */}
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isCartModalOpen && (
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
           {compareList.length > 0 && (
@@ -756,6 +884,20 @@ function CatalogPreviewContent() {
                 compareList.length >= 2 ? 'bg-white text-[#4654CD]' : 'bg-[#4654CD] text-white'
               }`}>
                 {compareList.length}/{maxCompareProducts}
+              </span>
+            </Button>
+          )}
+
+          {/* Cart button - mobile only, visible when cart has items */}
+          {cart.length > 0 && (
+            <Button
+              className="lg:hidden shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-4 bg-[#4654CD] text-white hover:bg-[#3a47b3]"
+              onPress={() => setIsCartDrawerOpen(true)}
+            >
+              <ShoppingCart className="w-5 h-5" />
+              <span className="hidden sm:inline lg:hidden">Carrito</span>
+              <span className="text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 bg-white text-[#4654CD]">
+                {cart.length}
               </span>
             </Button>
           )}

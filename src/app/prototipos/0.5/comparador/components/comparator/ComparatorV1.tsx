@@ -177,26 +177,19 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           {renderDesignStyle()}
         </ModalBody>
 
-        <ModalFooter className="flex justify-between">
+        <ModalFooter className="flex flex-col-reverse md:flex-row md:justify-between gap-3">
           <Button
             variant="light"
-            startContent={<Trash2 className="w-4 h-4" />}
+            isIconOnly
             onPress={onClearAll}
-            className="cursor-pointer text-neutral-600 hover:text-red-500"
+            className="cursor-pointer text-neutral-600 hover:text-red-500 hidden md:flex"
           >
-            Limpiar comparación
+            <Trash2 className="w-4 h-4" />
           </Button>
-          <div className="flex gap-3">
-            <Button
-              variant="bordered"
-              onPress={onClose}
-              className="cursor-pointer border-neutral-200"
-            >
-              Cerrar
-            </Button>
+          <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-full md:w-auto">
             {!showBestOption ? (
               <Button
-                className="bg-[#4654CD] text-white cursor-pointer font-semibold"
+                className="bg-[#4654CD] text-white cursor-pointer font-semibold w-full md:w-auto order-1 md:order-2"
                 onPress={handleShowBestOption}
                 startContent={<Trophy className="w-4 h-4" />}
               >
@@ -204,14 +197,30 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
               </Button>
             ) : (
               <Button
-                className="bg-[#22c55e] text-white cursor-pointer font-semibold shadow-md hover:shadow-lg hover:scale-105 transition-all"
+                className="bg-[#22c55e] text-white cursor-pointer font-semibold shadow-md hover:shadow-lg hover:scale-105 transition-all w-full md:w-auto order-1 md:order-2"
                 onPress={handleContinueWithBest}
                 endContent={<ArrowRight className="w-4 h-4" />}
               >
                 Elegir ganador
               </Button>
             )}
+            <Button
+              variant="bordered"
+              onPress={onClose}
+              className="cursor-pointer border-neutral-200 w-full md:w-auto order-2 md:order-1"
+            >
+              Cerrar
+            </Button>
           </div>
+          {/* Mobile: Limpiar button at bottom */}
+          <Button
+            variant="light"
+            startContent={<Trash2 className="w-4 h-4" />}
+            onPress={onClearAll}
+            className="cursor-pointer text-neutral-600 hover:text-red-500 md:hidden w-full"
+          >
+            Limpiar comparación
+          </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
