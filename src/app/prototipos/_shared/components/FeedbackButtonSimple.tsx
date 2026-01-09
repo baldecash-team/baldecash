@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { domToPng } from 'modern-screenshot';
+import { domToJpeg } from 'modern-screenshot';
 
 interface FeedbackButtonSimpleProps {
   /** Clases adicionales para el contenedor */
@@ -73,9 +73,12 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
         }
       });
 
-      capturedDataUrl = await domToPng(document.body, {
-        scale: 1,
-        quality: 0.8,
+      // Detectar si es mobile para ajustar calidad
+      const isMobile = window.innerWidth < 768;
+
+      capturedDataUrl = await domToJpeg(document.body, {
+        scale: isMobile ? 0.75 : 1,
+        quality: isMobile ? 0.6 : 0.8,
         width: window.innerWidth,
         height: window.innerHeight,
         style: {
