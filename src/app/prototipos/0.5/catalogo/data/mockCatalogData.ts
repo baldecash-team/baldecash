@@ -134,17 +134,18 @@ export const usageOptions: FilterOption[] = [
 ];
 
 // Device type options for filtering
+// Counts se actualizan dinámicamente via applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType)
 export const deviceTypeOptions: FilterOption[] = [
-  { value: 'laptop', label: 'Laptop', count: 30, icon: 'Laptop' },
-  { value: 'tablet', label: 'Tablet', count: 15, icon: 'Tablet' },
-  { value: 'celular', label: 'Celular', count: 20, icon: 'Smartphone' },
+  { value: 'laptop', label: 'Laptop', count: 66, icon: 'Laptop' },
+  { value: 'tablet', label: 'Tablet', count: 26, icon: 'Tablet' },
+  { value: 'celular', label: 'Celular', count: 26, icon: 'Smartphone' },
 ];
 
 // Brand options by device type (for dynamic filtering)
 export const brandsByDeviceType: Record<string, string[]> = {
   laptop: ['lenovo', 'hp', 'asus', 'acer', 'dell', 'msi', 'apple'],
-  tablet: ['apple', 'samsung', 'lenovo', 'huawei'],
-  celular: ['apple', 'samsung', 'xiaomi', 'huawei', 'motorola'],
+  tablet: ['samsung', 'apple', 'xiaomi', 'lenovo', 'huawei'],
+  celular: ['samsung', 'xiaomi', 'motorola', 'huawei', 'realme'],
 };
 
 export const brandOptions: FilterOption[] = [
@@ -182,7 +183,7 @@ export const brandOptions: FilterOption[] = [
     value: 'msi',
     label: 'MSI',
     count: 5,
-    logo: 'https://asset.msi.com/global/picture/image/feature/nb/2022-B12-Katana/msi-logo.svg',
+    logo: 'https://cdn.worldvectorlogo.com/logos/msi-3.svg',
   },
   {
     value: 'apple',
@@ -194,7 +195,7 @@ export const brandOptions: FilterOption[] = [
     value: 'samsung',
     label: 'Samsung',
     count: 15,
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Samsung_Logo.svg/200px-Samsung_Logo.svg.png',
+    logo: 'https://cdn.worldvectorlogo.com/logos/samsung-8.svg',
   },
   {
     value: 'xiaomi',
@@ -206,13 +207,19 @@ export const brandOptions: FilterOption[] = [
     value: 'huawei',
     label: 'Huawei',
     count: 8,
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Huawei_Logo.svg/200px-Huawei_Logo.svg.png',
+    logo: 'https://cdn.worldvectorlogo.com/logos/huawei.svg',
   },
   {
     value: 'motorola',
     label: 'Motorola',
-    count: 6,
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/Motorola_logo.svg/200px-Motorola_logo.svg.png',
+    count: 5,
+    logo: 'https://cdn.simpleicons.org/motorola',
+  },
+  {
+    value: 'realme',
+    label: 'Realme',
+    count: 3,
+    logo: 'https://cdn.worldvectorlogo.com/logos/realme-1.svg',
   },
 ];
 
@@ -366,11 +373,11 @@ const featuredTablet: CatalogProduct = {
   name: 'Samsung Galaxy Tab S9 128GB',
   displayName: 'Tablet Samsung 11"',
   brand: 'samsung',
-  thumbnail: 'https://pngimg.com/d/tablet_PNG8576.png',
+  thumbnail: '/images/tablets/equipo-696025d65fda1-1767908822.png',
   images: [
-    'https://pngimg.com/d/tablet_PNG8576.png',
-    'https://pngimg.com/d/tablet_PNG8571.png',
-    'https://pngimg.com/d/tablet_PNG8562.png',
+    '/images/tablets/equipo-696025d65fda1-1767908822.png',
+    '/images/tablets/equipo-6894be1650c5f-1754578454.png',
+    '/images/tablets/equipo-690a057859e07-1762264440.png',
   ],
   colors: [
     { id: 'tablet-graphite', name: 'Grafito', hex: '#2C2C2C' },
@@ -416,11 +423,11 @@ const featuredCelular: CatalogProduct = {
   name: 'Samsung Galaxy A54 5G 128GB',
   displayName: 'Celular Samsung 6.4"',
   brand: 'samsung',
-  thumbnail: 'https://pngimg.com/d/smartphone_PNG8534.png',
+  thumbnail: '/images/celulares/equipo-6941e1dc19ba1-1765925340.png',
   images: [
-    'https://pngimg.com/d/smartphone_PNG8534.png',
-    'https://pngimg.com/d/smartphone_PNG8545.png',
-    'https://pngimg.com/d/smartphone_PNG8507.png',
+    '/images/celulares/equipo-6941e1dc19ba1-1765925340.png',
+    '/images/celulares/equipo-6941d4d3d080a-1765922003.webp',
+    '/images/celulares/equipo-6941db08b786d-1765923592.webp',
   ],
   colors: [
     { id: 'cel-black', name: 'Negro Increíble', hex: '#1C1C1C' },
@@ -474,17 +481,48 @@ const webflowLaptops = [
   'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/623f67d5dc3c331e102b1f23_mac-grey.png',
 ];
 
+// Local celular images
+const celularImages = [
+  '/images/celulares/equipo-674f8732a3a3e-1733265202.webp',
+  '/images/celulares/equipo-69288a0ab5af2-1764264458.webp',
+  '/images/celulares/equipo-693c5cac94532-1765563564.jpg',
+  '/images/celulares/equipo-693c734d0e4b2-1765569357.webp',
+  '/images/celulares/equipo-693c867c17eeb-1765574268.webp',
+  '/images/celulares/equipo-69406c18a6ce4-1765829656.jpg',
+  '/images/celulares/equipo-6941c1e02b936-1765917152.jpg',
+  '/images/celulares/equipo-6941c366b177e-1765917542.jpg',
+  '/images/celulares/equipo-6941d2c0b20f5-1765921472.webp',
+  '/images/celulares/equipo-6941d4d3d080a-1765922003.webp',
+  '/images/celulares/equipo-6941d4fa8d54d-1765922042.webp',
+  '/images/celulares/equipo-6941d5dd5b6e6-1765922269.webp',
+  '/images/celulares/equipo-6941d7d610b3e-1765922774.webp',
+  '/images/celulares/equipo-6941db08b786d-1765923592.webp',
+  '/images/celulares/equipo-6941ddc1eefdd-1765924289.jpg',
+  '/images/celulares/equipo-6941ded9b6ee2-1765924569.webp',
+  '/images/celulares/equipo-6941e149858a8-1765925193.webp',
+  '/images/celulares/equipo-6941e1dc19ba1-1765925340.png',
+];
+
+// Local tablet images
+const tabletImages = [
+  '/images/tablets/equipo-65e296f838a4fa8ca14b6aec.png',
+  '/images/tablets/equipo-6834dcf1032d5-1748294897.webp',
+  '/images/tablets/equipo-6894be1650c5f-1754578454.png',
+  '/images/tablets/equipo-690a057859e07-1762264440.png',
+  '/images/tablets/equipo-696025d65fda1-1767908822.png',
+];
+
 function generateProducts(): CatalogProduct[] {
   const products: CatalogProduct[] = [];
   let id = 1;
 
   const brands = [
-    { name: 'Lenovo', count: 11 },
-    { name: 'HP', count: 10 },
-    { name: 'ASUS', count: 9 },
-    { name: 'Acer', count: 8 },
-    { name: 'Dell', count: 7 },
-    { name: 'MSI', count: 5 },
+    { name: 'Lenovo', count: 14 },
+    { name: 'HP', count: 13 },
+    { name: 'ASUS', count: 12 },
+    { name: 'Acer', count: 11 },
+    { name: 'Dell', count: 9 },
+    { name: 'MSI', count: 6 },
   ];
 
   const gamaDistribution: { gama: GamaTier; priceRange: [number, number]; quota: [number, number] }[] = [
@@ -571,6 +609,7 @@ function generateProducts(): CatalogProduct[] {
         name: `${brand.name} Laptop ${processorModel.split(' ')[1]} ${ramSize}GB`,
         displayName: `Laptop ${brand.name} ${displaySize}"`,
         brand: brand.name.toLowerCase(),
+        deviceType: 'laptop',
         thumbnail: webflowLaptops[id % webflowLaptops.length],
         images: [
           webflowLaptops[id % webflowLaptops.length],
@@ -672,12 +711,374 @@ function generateProducts(): CatalogProduct[] {
   return products;
 }
 
+// Generate 25 celulares
+function generateCelulares(): CatalogProduct[] {
+  const products: CatalogProduct[] = [];
+  let id = 100; // Start at 100 to avoid conflicts with laptop IDs
+
+  const brands = [
+    { name: 'Samsung', count: 8 },
+    { name: 'Xiaomi', count: 6 },
+    { name: 'Motorola', count: 5 },
+    { name: 'Huawei', count: 3 },
+    { name: 'Realme', count: 3 },
+  ];
+
+  const gamaDistribution: { gama: GamaTier; priceRange: [number, number]; quota: [number, number] }[] = [
+    { gama: 'economica', priceRange: [600, 1000], quota: [25, 45] },
+    { gama: 'estudiante', priceRange: [1000, 1800], quota: [45, 75] },
+    { gama: 'profesional', priceRange: [1800, 3000], quota: [75, 120] },
+    { gama: 'creativa', priceRange: [3000, 4500], quota: [120, 180] },
+    { gama: 'gamer', priceRange: [2500, 4000], quota: [100, 160] },
+  ];
+
+  const usages: UsageType[][] = [
+    ['estudios', 'oficina'],
+    ['estudios'],
+    ['gaming'],
+    ['diseño'],
+    ['oficina'],
+  ];
+
+  const processors = [
+    { brand: 'amd' as const, models: ['Snapdragon 680', 'Snapdragon 7 Gen 1', 'Snapdragon 8 Gen 2', 'Dimensity 1080', 'Dimensity 9200'] },
+    { brand: 'amd' as const, models: ['Exynos 1380', 'Exynos 2200', 'Helio G99', 'Helio G96'] },
+  ];
+
+  const conditions: ProductCondition[] = ['nuevo', 'nuevo', 'nuevo', 'reacondicionado'];
+  const stockStatuses: StockStatus[] = ['available', 'available', 'limited', 'on_demand'];
+
+  brands.forEach((brand) => {
+    for (let i = 0; i < brand.count; i++) {
+      const gamaIndex = Math.floor(seededRandom() * gamaDistribution.length);
+      const gamaInfo = gamaDistribution[gamaIndex];
+      const price = Math.floor(
+        gamaInfo.priceRange[0] + seededRandom() * (gamaInfo.priceRange[1] - gamaInfo.priceRange[0])
+      );
+      const quota = Math.floor(
+        gamaInfo.quota[0] + seededRandom() * (gamaInfo.quota[1] - gamaInfo.quota[0])
+      );
+
+      const processorInfo = processors[Math.floor(seededRandom() * processors.length)];
+      const processorModel = processorInfo.models[Math.floor(seededRandom() * processorInfo.models.length)];
+
+      const ramSizes = gamaInfo.gama === 'economica' ? [4, 6] : gamaInfo.gama === 'estudiante' ? [6, 8] : [8, 12];
+      const ramSize = ramSizes[Math.floor(seededRandom() * ramSizes.length)];
+
+      const storageSizes = gamaInfo.gama === 'economica' ? [64, 128] : gamaInfo.gama === 'estudiante' ? [128, 256] : [256, 512];
+      const storageSize = storageSizes[Math.floor(seededRandom() * storageSizes.length)];
+
+      const displaySizes = [6.1, 6.4, 6.5, 6.7, 6.8];
+      const displaySize = displaySizes[Math.floor(seededRandom() * displaySizes.length)];
+
+      const refreshRates = gamaInfo.gama === 'gamer' || gamaInfo.gama === 'creativa' ? [90, 120, 144] : [60, 90];
+      const refreshRate = refreshRates[Math.floor(seededRandom() * refreshRates.length)];
+
+      const hasDiscount = seededRandom() > 0.7;
+      const discountPercent = hasDiscount ? Math.floor(seededRandom() * 15) + 5 : 0;
+      const originalPrice = hasDiscount ? Math.floor(price / (1 - discountPercent / 100)) : price;
+
+      const productTags: ProductTagType[] = [];
+      if (seededRandom() > 0.7) productTags.push('mas_vendido');
+      if ((gamaInfo.gama === 'estudiante' || gamaInfo.gama === 'profesional') && seededRandom() > 0.6) productTags.push('recomendado');
+      if (quota < 60 && seededRandom() > 0.5) productTags.push('cuota_baja');
+      if (hasDiscount) productTags.push('oferta');
+
+      const imageIndex = (id - 100) % celularImages.length;
+
+      const product: CatalogProduct = {
+        id: `cel-${id}`,
+        slug: `${brand.name.toLowerCase()}-celular-${id}`,
+        name: `${brand.name} ${storageSize}GB ${processorModel.split(' ')[0]}`,
+        displayName: `Celular ${brand.name} ${displaySize}"`,
+        brand: brand.name.toLowerCase(),
+        deviceType: 'celular',
+        thumbnail: celularImages[imageIndex],
+        images: [
+          celularImages[imageIndex],
+          celularImages[(imageIndex + 1) % celularImages.length],
+          celularImages[(imageIndex + 2) % celularImages.length],
+        ],
+        colors: productColorOptions[id % productColorOptions.length],
+        price,
+        originalPrice: hasDiscount ? originalPrice : undefined,
+        discount: hasDiscount ? discountPercent : undefined,
+        quotaMonthly: quota,
+        quotaBiweekly: Math.floor(quota / 2),
+        quotaWeekly: Math.floor(quota / 4),
+        maxTermMonths: 24,
+        gama: gamaInfo.gama,
+        condition: conditions[Math.floor(seededRandom() * conditions.length)],
+        stock: stockStatuses[Math.floor(seededRandom() * stockStatuses.length)],
+        stockQuantity: Math.floor(seededRandom() * 20) + 1,
+        usage: usages[i % usages.length],
+        isFeatured: seededRandom() > 0.85,
+        isNew: seededRandom() > 0.7,
+        tags: productTags,
+        specs: {
+          processor: {
+            brand: processorInfo.brand,
+            model: processorModel,
+            cores: 8,
+            speed: `${(2.0 + seededRandom()).toFixed(1)} GHz`,
+          },
+          ram: {
+            size: ramSize,
+            type: 'LPDDR5',
+            maxSize: ramSize,
+            expandable: false,
+          },
+          storage: {
+            size: storageSize,
+            type: 'ssd',
+            hasSecondSlot: false,
+          },
+          display: {
+            size: displaySize,
+            resolution: gamaInfo.gama === 'economica' ? 'hd' : 'fhd',
+            resolutionPixels: gamaInfo.gama === 'economica' ? '1600x720' : '2400x1080',
+            type: gamaInfo.gama === 'creativa' || gamaInfo.gama === 'profesional' ? 'oled' : 'ips',
+            refreshRate,
+            touchScreen: true,
+          },
+          gpu: {
+            type: 'integrated',
+            brand: 'Qualcomm',
+            model: 'Adreno',
+          },
+          connectivity: {
+            wifi: 'WiFi 6',
+            bluetooth: '5.3',
+            hasEthernet: false,
+          },
+          ports: {
+            usb: 0,
+            usbC: 1,
+            hdmi: false,
+            thunderbolt: false,
+            sdCard: seededRandom() > 0.5,
+            headphone: seededRandom() > 0.6,
+          },
+          keyboard: {
+            backlit: false,
+            numericPad: false,
+            language: 'Virtual',
+          },
+          security: {
+            fingerprint: true,
+            facialRecognition: gamaInfo.gama !== 'economica',
+            tpmChip: false,
+          },
+          os: {
+            hasWindows: false,
+          },
+          battery: {
+            capacity: `${Math.floor(4000 + seededRandom() * 1500)}mAh`,
+            life: `${Math.floor(1 + seededRandom() * 2)} días`,
+          },
+          dimensions: {
+            weight: Number((0.16 + seededRandom() * 0.05).toFixed(3)),
+            thickness: Number((7.5 + seededRandom() * 2).toFixed(1)),
+          },
+        },
+        createdAt: new Date(1703030400000 - Math.floor(seededRandom() * 90) * 24 * 60 * 60 * 1000).toISOString(),
+      };
+
+      products.push(product);
+      id++;
+    }
+  });
+
+  return products;
+}
+
+// Generate 25 tablets
+function generateTablets(): CatalogProduct[] {
+  const products: CatalogProduct[] = [];
+  let id = 200; // Start at 200 to avoid conflicts
+
+  const brands = [
+    { name: 'Samsung', count: 8 },
+    { name: 'Apple', count: 6 },
+    { name: 'Xiaomi', count: 5 },
+    { name: 'Lenovo', count: 3 },
+    { name: 'Huawei', count: 3 },
+  ];
+
+  const gamaDistribution: { gama: GamaTier; priceRange: [number, number]; quota: [number, number] }[] = [
+    { gama: 'economica', priceRange: [800, 1400], quota: [35, 60] },
+    { gama: 'estudiante', priceRange: [1400, 2200], quota: [60, 95] },
+    { gama: 'profesional', priceRange: [2200, 3500], quota: [95, 150] },
+    { gama: 'creativa', priceRange: [3500, 5500], quota: [150, 230] },
+  ];
+
+  const usages: UsageType[][] = [
+    ['estudios', 'oficina'],
+    ['estudios', 'diseño'],
+    ['diseño'],
+    ['oficina'],
+  ];
+
+  const processors = [
+    { brand: 'amd' as const, models: ['Snapdragon 870', 'Snapdragon 8 Gen 1', 'Snapdragon 8 Gen 2', 'Dimensity 9000'] },
+    { brand: 'amd' as const, models: ['Apple M1', 'Apple M2', 'A14 Bionic', 'A15 Bionic'] },
+  ];
+
+  const conditions: ProductCondition[] = ['nuevo', 'nuevo', 'nuevo', 'reacondicionado'];
+  const stockStatuses: StockStatus[] = ['available', 'available', 'limited', 'on_demand'];
+
+  brands.forEach((brand) => {
+    for (let i = 0; i < brand.count; i++) {
+      const gamaIndex = Math.floor(seededRandom() * gamaDistribution.length);
+      const gamaInfo = gamaDistribution[gamaIndex];
+      const price = Math.floor(
+        gamaInfo.priceRange[0] + seededRandom() * (gamaInfo.priceRange[1] - gamaInfo.priceRange[0])
+      );
+      const quota = Math.floor(
+        gamaInfo.quota[0] + seededRandom() * (gamaInfo.quota[1] - gamaInfo.quota[0])
+      );
+
+      const processorInfo = brand.name === 'Apple' ? processors[1] : processors[0];
+      const processorModel = processorInfo.models[Math.floor(seededRandom() * processorInfo.models.length)];
+
+      const ramSizes = gamaInfo.gama === 'economica' ? [4, 6] : gamaInfo.gama === 'estudiante' ? [6, 8] : [8, 12, 16];
+      const ramSize = ramSizes[Math.floor(seededRandom() * ramSizes.length)];
+
+      const storageSizes = gamaInfo.gama === 'economica' ? [64, 128] : gamaInfo.gama === 'estudiante' ? [128, 256] : [256, 512];
+      const storageSize = storageSizes[Math.floor(seededRandom() * storageSizes.length)];
+
+      const displaySizes = [10.1, 10.9, 11, 11.5, 12.4, 12.9];
+      const displaySize = displaySizes[Math.floor(seededRandom() * displaySizes.length)];
+
+      const refreshRates = gamaInfo.gama === 'creativa' ? [120, 144] : [60, 90, 120];
+      const refreshRate = refreshRates[Math.floor(seededRandom() * refreshRates.length)];
+
+      const hasDiscount = seededRandom() > 0.7;
+      const discountPercent = hasDiscount ? Math.floor(seededRandom() * 15) + 5 : 0;
+      const originalPrice = hasDiscount ? Math.floor(price / (1 - discountPercent / 100)) : price;
+
+      const productTags: ProductTagType[] = [];
+      if (seededRandom() > 0.7) productTags.push('mas_vendido');
+      if ((gamaInfo.gama === 'estudiante' || gamaInfo.gama === 'profesional') && seededRandom() > 0.6) productTags.push('recomendado');
+      if (quota < 80 && seededRandom() > 0.5) productTags.push('cuota_baja');
+      if (hasDiscount) productTags.push('oferta');
+
+      const imageIndex = (id - 200) % tabletImages.length;
+
+      const product: CatalogProduct = {
+        id: `tab-${id}`,
+        slug: `${brand.name.toLowerCase()}-tablet-${id}`,
+        name: `${brand.name} Tab ${storageSize}GB ${displaySize}"`,
+        displayName: `Tablet ${brand.name} ${displaySize}"`,
+        brand: brand.name.toLowerCase(),
+        deviceType: 'tablet',
+        thumbnail: tabletImages[imageIndex],
+        images: [
+          tabletImages[imageIndex],
+          tabletImages[(imageIndex + 1) % tabletImages.length],
+          tabletImages[(imageIndex + 2) % tabletImages.length],
+        ],
+        colors: productColorOptions[id % productColorOptions.length],
+        price,
+        originalPrice: hasDiscount ? originalPrice : undefined,
+        discount: hasDiscount ? discountPercent : undefined,
+        quotaMonthly: quota,
+        quotaBiweekly: Math.floor(quota / 2),
+        quotaWeekly: Math.floor(quota / 4),
+        maxTermMonths: 36,
+        gama: gamaInfo.gama,
+        condition: conditions[Math.floor(seededRandom() * conditions.length)],
+        stock: stockStatuses[Math.floor(seededRandom() * stockStatuses.length)],
+        stockQuantity: Math.floor(seededRandom() * 15) + 1,
+        usage: usages[i % usages.length],
+        isFeatured: seededRandom() > 0.85,
+        isNew: seededRandom() > 0.7,
+        tags: productTags,
+        specs: {
+          processor: {
+            brand: processorInfo.brand,
+            model: processorModel,
+            cores: 8,
+            speed: `${(2.5 + seededRandom() * 0.8).toFixed(1)} GHz`,
+          },
+          ram: {
+            size: ramSize,
+            type: 'LPDDR5',
+            maxSize: ramSize,
+            expandable: false,
+          },
+          storage: {
+            size: storageSize,
+            type: 'ssd',
+            hasSecondSlot: false,
+          },
+          display: {
+            size: displaySize,
+            resolution: gamaInfo.gama === 'economica' ? 'fhd' : 'qhd',
+            resolutionPixels: gamaInfo.gama === 'economica' ? '1920x1200' : '2560x1600',
+            type: gamaInfo.gama === 'creativa' || gamaInfo.gama === 'profesional' ? 'oled' : 'ips',
+            refreshRate,
+            touchScreen: true,
+          },
+          gpu: {
+            type: 'integrated',
+            brand: brand.name === 'Apple' ? 'Apple' : 'Qualcomm',
+            model: brand.name === 'Apple' ? 'Apple GPU' : 'Adreno',
+          },
+          connectivity: {
+            wifi: 'WiFi 6',
+            bluetooth: '5.2',
+            hasEthernet: false,
+          },
+          ports: {
+            usb: 0,
+            usbC: 1,
+            hdmi: false,
+            thunderbolt: brand.name === 'Apple' && gamaInfo.gama === 'creativa',
+            sdCard: brand.name !== 'Apple' && seededRandom() > 0.4,
+            headphone: seededRandom() > 0.5,
+          },
+          keyboard: {
+            backlit: false,
+            numericPad: false,
+            language: 'Virtual',
+          },
+          security: {
+            fingerprint: gamaInfo.gama !== 'economica',
+            facialRecognition: gamaInfo.gama === 'profesional' || gamaInfo.gama === 'creativa',
+            tpmChip: false,
+          },
+          os: {
+            hasWindows: false,
+          },
+          battery: {
+            capacity: `${Math.floor(7000 + seededRandom() * 4000)}mAh`,
+            life: `${Math.floor(10 + seededRandom() * 6)} horas`,
+          },
+          dimensions: {
+            weight: Number((0.4 + seededRandom() * 0.2).toFixed(2)),
+            thickness: Number((5.5 + seededRandom() * 2).toFixed(1)),
+          },
+        },
+        createdAt: new Date(1703030400000 - Math.floor(seededRandom() * 90) * 24 * 60 * 60 * 1000).toISOString(),
+      };
+
+      products.push(product);
+      id++;
+    }
+  });
+
+  return products;
+}
+
 // Combine featured products (first) with generated products
 export const mockProducts: CatalogProduct[] = [
   featuredLaptop,
   featuredTablet,
   featuredCelular,
   ...generateProducts(),
+  ...generateCelulares(),
+  ...generateTablets(),
 ];
 
 // ============================================
@@ -697,6 +1098,7 @@ export function getProductsByUsage(usage: UsageType): CatalogProduct[] {
 }
 
 export function getFilteredProducts(filters: Partial<{
+  deviceTypes: CatalogDeviceType[];
   brands: string[];
   priceRange: [number, number];
   quotaRange: [number, number];
@@ -726,6 +1128,10 @@ export function getFilteredProducts(filters: Partial<{
   stock: StockStatus[];
 }>): CatalogProduct[] {
   return mockProducts.filter((product) => {
+    // Device type filter
+    if (filters.deviceTypes?.length && product.deviceType && !filters.deviceTypes.includes(product.deviceType)) {
+      return false;
+    }
     // Brand filter
     if (filters.brands?.length && !filters.brands.includes(product.brand)) {
       return false;
@@ -870,6 +1276,7 @@ export function getFilteredProducts(filters: Partial<{
 // ============================================
 
 export interface FilterCounts {
+  deviceType: Record<string, number>;
   brands: Record<string, number>;
   usage: Record<string, number>;
   ram: Record<number, number>;
@@ -888,6 +1295,7 @@ export interface FilterCounts {
 
 export function getFilterCounts(products: CatalogProduct[]): FilterCounts {
   const counts: FilterCounts = {
+    deviceType: {},
     brands: {},
     usage: {},
     ram: {},
@@ -905,6 +1313,11 @@ export function getFilterCounts(products: CatalogProduct[]): FilterCounts {
   };
 
   products.forEach((product) => {
+    // Device type
+    if (product.deviceType) {
+      counts.deviceType[product.deviceType] = (counts.deviceType[product.deviceType] || 0) + 1;
+    }
+
     // Brand
     counts.brands[product.brand] = (counts.brands[product.brand] || 0) + 1;
 

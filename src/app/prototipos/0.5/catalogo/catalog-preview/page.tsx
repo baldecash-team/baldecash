@@ -326,6 +326,7 @@ function CatalogPreviewContent() {
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     const products = getFilteredProducts({
+      deviceTypes: filters.deviceTypes,
       brands: filters.brands,
       priceRange: filters.priceRange,
       quotaRange: filters.quotaRange,

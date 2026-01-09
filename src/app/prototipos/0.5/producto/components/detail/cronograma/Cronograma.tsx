@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Calendar, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale } from 'lucide-react';
+import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
 import { CronogramaProps } from '../../../types/detail';
 import { formatMoney } from '../../../../utils/formatMoney';

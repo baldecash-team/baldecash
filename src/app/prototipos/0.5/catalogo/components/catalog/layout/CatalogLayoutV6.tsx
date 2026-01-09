@@ -423,7 +423,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                           }
                         }}
                       >
-                        {opt.label}
+                        {opt.label} ({opt.count})
                       </Chip>
                     );
                   })}

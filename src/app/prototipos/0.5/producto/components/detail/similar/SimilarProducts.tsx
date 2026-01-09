@@ -7,7 +7,7 @@
  * Incluye galería de imágenes con miniaturas y selector de colores
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Card, CardBody, Button } from '@nextui-org/react';
 import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, Cpu, MemoryStick, HardDrive, Monitor, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -36,6 +36,18 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
     });
     return initial;
   });
+
+  // Reinitialize state when products change (e.g., device type change)
+  useEffect(() => {
+    const newStates: Record<string, ProductCardState> = {};
+    products.forEach((p) => {
+      newStates[p.id] = {
+        selectedImageIndex: 0,
+        selectedColorId: p.colors?.[0]?.id || null,
+      };
+    });
+    setProductStates(newStates);
+  }, [products]);
 
   const updateProductState = (productId: string, updates: Partial<ProductCardState>) => {
     setProductStates((prev) => ({
@@ -136,7 +148,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
           return (
             <motion.div
               key={product.id}
-              className="min-w-[280px] md:min-w-[300px] snap-start"
+              className="w-[280px] md:w-[300px] snap-start flex-shrink-0"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.02 }}
@@ -354,7 +366,6 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                             : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
                         }`}
-                        endContent={<ArrowRight className="w-5 h-5" />}
                         onPress={() => handleProductClick(product.slug)}
                       >
                         {isCheaper ? 'Ahorrar' : 'Lo quiero'}

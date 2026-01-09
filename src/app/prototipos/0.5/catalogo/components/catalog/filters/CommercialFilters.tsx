@@ -80,8 +80,7 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
                 }}
                 onClick={() => toggleGama(opt.value as GamaTier)}
               >
-                {opt.label}
-                {showCounts && <span className="ml-1 opacity-70">({opt.count})</span>}
+                {opt.label} ({opt.count})
               </Chip>
             );
           })}
@@ -106,8 +105,7 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
                     icon: 'text-white transition-opacity',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>

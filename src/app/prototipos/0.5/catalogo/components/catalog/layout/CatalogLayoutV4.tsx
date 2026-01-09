@@ -103,6 +103,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     filterCounts ? applyDynamicCounts(displayTypeOptions, filterCounts.displayType) : displayTypeOptions,
     [filterCounts]
   );
+  const dynamicDeviceTypeOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType) : deviceTypeOptions,
+    [filterCounts]
+  );
 
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -408,7 +412,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           {/* Floating Filter Card - Sticky */}
           <aside className="hidden lg:block w-[320px] p-6 pt-0 sticky top-0 self-start">
             <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200/50">
-              <CardBody className="p-4 max-h-[calc(100vh-24px)] overflow-y-auto">
+              <CardBody className="p-4 max-h-[calc(100vh-24px)] overflow-y-auto lg:pb-30">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-200">
                   <h2 className="font-semibold text-neutral-800">Filtros</h2>
@@ -428,7 +432,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 {/* Device Type Filter */}
                 <FilterSection title="Tipo de equipo" defaultExpanded={true}>
                   <div className="grid grid-cols-3 gap-2">
-                    {deviceTypeOptions.map((opt) => {
+                    {dynamicDeviceTypeOptions.map((opt) => {
                       const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
                       const Icon = deviceTypeIcons[opt.value];
                       return (
@@ -463,7 +467,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                           <span className={`text-xs font-medium ${
                             isSelected ? 'text-[#4654CD]' : 'text-neutral-600'
                           }`}>
-                            {opt.label}
+                            {opt.label} ({opt.count})
                           </span>
                         </button>
                       );
@@ -655,7 +659,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                       <span className={`text-xs font-medium ${
                         isSelected ? 'text-[#4654CD]' : 'text-neutral-600'
                       }`}>
-                        {opt.label}
+                        {opt.label} ({opt.count})
                       </span>
                     </button>
                   );

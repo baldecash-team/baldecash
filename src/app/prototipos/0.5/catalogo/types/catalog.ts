@@ -213,8 +213,8 @@ export interface FilterState {
 export const defaultFilterState: FilterState = {
   deviceTypes: [],
   brands: [],
-  priceRange: [1000, 8000],
-  quotaRange: [40, 400],
+  priceRange: [600, 8000],
+  quotaRange: [25, 400],
   quotaFrequency: 'monthly',
   usage: [],
   ram: [],
@@ -546,6 +546,7 @@ export const brandFilterVersionDescriptions = {
 // ============================================
 
 export interface FilterCounts {
+  deviceType: Record<string, number>;
   brands: Record<string, number>;
   usage: Record<string, number>;
   ram: Record<number, number>;

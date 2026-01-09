@@ -277,7 +277,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                 }
                               }}
                             >
-                              {opt.label}
+                              {opt.label} ({opt.count})
                             </Chip>
                           );
                         })}
@@ -333,7 +333,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                 }
                               }}
                             >
-                              {opt.label}
+                              {opt.label} ({opt.count})
                             </Chip>
                           );
                         })}
@@ -364,7 +364,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                 icon: 'text-white',
                               }}
                             />
-                            <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
+                            <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
                           </label>
                         ))}
                       </div>
@@ -407,7 +407,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       icon: 'text-white',
                                     }}
                                   />
-                                  <span className="text-sm text-neutral-700">{opt.label}</span>
+                                  <span className="text-sm text-neutral-700">{opt.label} ({opt.count})</span>
                                 </label>
                               ))}
                             </div>
@@ -435,7 +435,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       icon: 'text-white',
                                     }}
                                   />
-                                  <span className="text-sm text-neutral-700">{opt.label}</span>
+                                  <span className="text-sm text-neutral-700">{opt.label} ({opt.count})</span>
                                 </label>
                               ))}
                             </div>
@@ -463,7 +463,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       icon: 'text-white',
                                     }}
                                   />
-                                  <span className="text-sm text-neutral-700">{opt.label}</span>
+                                  <span className="text-sm text-neutral-700">{opt.label} ({opt.count})</span>
                                 </label>
                               ))}
                             </div>
@@ -503,7 +503,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                     }
                                   }}
                                 >
-                                  {opt.label}
+                                  {opt.label} ({opt.count})
                                 </Chip>
                               ))}
                             </div>
@@ -531,7 +531,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       icon: 'text-white',
                                     }}
                                   />
-                                  <span className="text-sm text-neutral-700">{opt.label}</span>
+                                  <span className="text-sm text-neutral-700">{opt.label} ({opt.count})</span>
                                 </label>
                               ))}
                             </div>
@@ -559,7 +559,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       icon: 'text-white',
                                     }}
                                   />
-                                  <span className="text-sm text-neutral-700">{opt.label.toUpperCase()}</span>
+                                  <span className="text-sm text-neutral-700">{opt.label.toUpperCase()} ({opt.count})</span>
                                 </label>
                               ))}
                             </div>

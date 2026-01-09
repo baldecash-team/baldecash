@@ -28,6 +28,7 @@
 | **Cursor, hover, elementos clickeables** | **9.3.2** Cursor Pointer - Elementos Clickeables |
 | **Colores, estilos visuales** | **9** Colores y Estilos |
 | **Toast / Notificaciones / Mensajes** | **9.5** Toast Notifications |
+| **Filtros con conteo de resultados** | **16** Filtros con Conteo |
 
 > Esta tabla existe para evitar implementaciones incorrectas. El asistente debe leer la sección completa antes de escribir código.
 
@@ -3170,7 +3171,100 @@ interface SectionStatus {
 
 ---
 
-## 15. Versionado de Documento
+## 16. Filtros con Conteo
+
+### 16.1 Regla General
+
+**TODOS los filtros de selección múltiple DEBEN mostrar la cantidad de resultados** junto al label de cada opción.
+
+```tsx
+// ✅ CORRECTO - Muestra el count
+{opt.label} ({opt.count})
+
+// ❌ INCORRECTO - Sin count
+{opt.label}
+```
+
+### 16.2 Formato Estándar
+
+El conteo se muestra entre paréntesis inmediatamente después del label:
+
+```tsx
+// En Chips
+<Chip>
+  {opt.label} ({opt.count})
+</Chip>
+
+// En Buttons/Cards
+<span className="text-xs font-medium">
+  {opt.label} ({opt.count})
+</span>
+
+// En Checkboxes con label separado
+<span className="text-sm flex-1">{opt.label}</span>
+<span className="text-xs text-neutral-400">({opt.count})</span>
+```
+
+### 16.3 Filtros Afectados
+
+Esta regla aplica a:
+
+| Filtro | Componente | Formato |
+|--------|------------|---------|
+| Tipo de equipo | Chip/Card | `Laptop (30)` |
+| Marca | BrandFilterV6 | `Lenovo (11)` |
+| Uso recomendado | Checkbox/Chip | `Gaming (12)` |
+| Gama | Chip con color | `Profesional (25)` |
+| Condición | Checkbox | `Nuevo (40)` |
+| RAM | Checkbox/Chip | `16 GB (18)` |
+| Almacenamiento | Checkbox/Chip | `512 GB (22)` |
+
+### 16.4 Prop `showCounts`
+
+Algunos componentes exponen el prop `showCounts` para controlar la visibilidad:
+
+```tsx
+interface FilterProps {
+  showCounts?: boolean; // default: true
+}
+
+// Uso
+<UsageFilter
+  options={usageOptions}
+  selected={filters.usage}
+  onChange={handleChange}
+  showCounts={config.showFilterCounts}
+/>
+```
+
+### 16.5 Datos Requeridos
+
+Las opciones de filtro DEBEN incluir el campo `count`:
+
+```tsx
+// ✅ CORRECTO
+const deviceTypeOptions: FilterOption[] = [
+  { value: 'laptop', label: 'Laptop', count: 30 },
+  { value: 'tablet', label: 'Tablet', count: 15 },
+];
+
+// ❌ INCORRECTO - Falta count
+const deviceTypeOptions = [
+  { value: 'laptop', label: 'Laptop' },
+];
+```
+
+### 16.6 Verificación
+
+Antes de dar por terminado un filtro, verificar:
+
+- [ ] Cada opción muestra `(count)` después del label
+- [ ] El count refleja la cantidad real de productos disponibles
+- [ ] El formato es consistente con otros filtros de la misma página
+
+---
+
+## 17. Versionado de Documento
 
 | Versión | Fecha | Cambios |
 |---------|-------|---------|
@@ -3196,6 +3290,7 @@ interface SectionStatus {
 | 2.9 | 2026-01-09 | Sección 9.3.1: Prohibición de Gradientes expandida con ejemplos, verificación y casos de uso |
 | 3.0 | 2026-01-09 | Sección 9.5: Toast Notifications estandarizado con componente `Toast` y hook `useToast` |
 | 3.1 | 2026-01-09 | Sección 9.5.7: Prohibición explícita de toasts inline con ejemplos de código prohibido y verificación |
+| 3.2 | 2026-01-09 | Sección 16: Filtros con Conteo - estándar para mostrar cantidad de resultados en filtros |
 
 ---
 

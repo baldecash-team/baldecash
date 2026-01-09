@@ -138,8 +138,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -163,8 +162,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -189,8 +187,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -214,8 +211,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -239,8 +235,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -264,8 +259,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -289,8 +283,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label.toUpperCase()}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label.toUpperCase()} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -314,8 +307,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-                {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -358,12 +350,7 @@ const ChipFilterContent: React.FC<{
           }}
           onClick={() => onToggle(value)}
         >
-          {opt.label}
-          {showCounts && (
-            <span className={`ml-1 ${isSelected ? 'opacity-80' : 'opacity-50'}`}>
-              ({opt.count})
-            </span>
-          )}
+          {opt.label} ({opt.count})
         </Chip>
       );
     })}
@@ -551,11 +538,9 @@ const IconCardFilterWithMappingContent: React.FC<{
           <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
             {opt.label}
           </span>
-          {showCounts && (
-            <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
-              {opt.count} equipos
-            </span>
-          )}
+          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
+            {opt.count} equipos
+          </span>
         </button>
       );
     })}
@@ -594,11 +579,9 @@ const IconCardFilterContent: React.FC<{
           <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
             {opt.label}
           </span>
-          {showCounts && (
-            <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
-              {opt.count} equipos
-            </span>
-          )}
+          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
+            {opt.count} equipos
+          </span>
         </button>
       );
     })}

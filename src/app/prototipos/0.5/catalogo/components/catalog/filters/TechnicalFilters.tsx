@@ -125,8 +125,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-              {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
           <div className="flex items-center justify-between p-2 mt-2 border-t border-neutral-100">
@@ -163,8 +162,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-              {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
         </div>
@@ -187,8 +185,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-              {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
         </div>
@@ -211,8 +208,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-              {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
         </div>
@@ -235,8 +231,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label.toUpperCase()}</span>
-              {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+              <span className="text-sm text-neutral-700 flex-1">{opt.label.toUpperCase()} ({opt.count})</span>
             </label>
           ))}
           <div className="flex items-center justify-between p-2 mt-2 border-t border-neutral-100">
@@ -273,8 +268,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                   icon: 'text-white transition-opacity',
                 }}
               />
-              <span className="text-sm text-neutral-700 flex-1">{opt.label}</span>
-              {showCounts && <span className="text-xs text-neutral-400">({opt.count})</span>}
+              <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
             </label>
           ))}
         </div>
