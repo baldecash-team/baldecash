@@ -876,7 +876,7 @@ function CatalogPreviewContent() {
       {/* Floating Comparison Bar - Desktop only */}
       {compareList.length > 0 && !isComparatorOpen && !isQuizOpen && (
         <div className={`hidden lg:flex fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 items-center gap-4 transition-all ${
-          cart.length > 0 ? 'bottom-24' : 'bottom-6'
+          cart.length > 0 ? 'bottom-[6.5rem]' : 'bottom-6'
         }`}>
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
