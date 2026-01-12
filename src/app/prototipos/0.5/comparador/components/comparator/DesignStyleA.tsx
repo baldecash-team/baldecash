@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Trophy, TrendingDown, Check, X } from 'lucide-react';
-import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference } from '../../types/comparator';
+import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../../utils/formatMoney';
 
 interface DesignStyleAProps {
@@ -139,7 +139,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                           </p>
                           <div className="mt-1">
                             <span className={`font-bold text-base ${isBest ? 'text-[#22c55e]' : 'text-[#4654CD]'}`}>
-                              S/{formatMoney(product.quotaMonthly)}
+                              S/{formatMoney(getDisplayQuota(product))}
                             </span>
                             <span className="text-xs font-normal text-neutral-500">/mes</span>
                             {renderPriceDiff(index)}

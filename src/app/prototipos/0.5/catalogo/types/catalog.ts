@@ -180,7 +180,6 @@ export type Resolution = 'hd' | 'fhd' | 'qhd' | '4k';
 export interface FilterState {
   deviceTypes: CatalogDeviceType[];
   brands: string[];
-  priceRange: [number, number];
   quotaRange: [number, number];
   quotaFrequency: QuotaFrequency;
   usage: UsageType[];
@@ -208,12 +207,12 @@ export interface FilterState {
   condition: ProductCondition[];
   stock: StockStatus[];
   gama: GamaTier[];
+  tags: ProductTagType[];
 }
 
 export const defaultFilterState: FilterState = {
   deviceTypes: [],
   brands: [],
-  priceRange: [600, 8000],
   quotaRange: [25, 400],
   quotaFrequency: 'monthly',
   usage: [],
@@ -241,6 +240,7 @@ export const defaultFilterState: FilterState = {
   condition: [],
   stock: [],
   gama: [],
+  tags: [],
 };
 
 // ============================================
@@ -561,6 +561,7 @@ export interface FilterCounts {
   gama: Record<string, number>;
   condition: Record<string, number>;
   stock: Record<string, number>;
+  tags: Record<string, number>;
 }
 
 // View mode for catalog (all products vs favorites)

@@ -256,6 +256,13 @@ export const conditionOptions: FilterOption[] = [
   { value: 'reacondicionado', label: 'Reacondicionado', count: 9 },
 ];
 
+export const tagOptions: FilterOption[] = [
+  { value: 'oferta', label: 'Oferta', count: 0 },
+  { value: 'mas_vendido', label: 'Más vendido', count: 0 },
+  { value: 'recomendado', label: 'Recomendado', count: 0 },
+  { value: 'cuota_baja', label: 'Cuota baja', count: 0 },
+];
+
 export const resolutionOptions: FilterOption[] = [
   { value: 'hd', label: 'HD (1366x768)', count: 8 },
   { value: 'fhd', label: 'Full HD (1920x1080)', count: 26 },
@@ -1100,7 +1107,6 @@ export function getProductsByUsage(usage: UsageType): CatalogProduct[] {
 export function getFilteredProducts(filters: Partial<{
   deviceTypes: CatalogDeviceType[];
   brands: string[];
-  priceRange: [number, number];
   quotaRange: [number, number];
   usage: UsageType[];
   ram: number[];
@@ -1126,6 +1132,7 @@ export function getFilteredProducts(filters: Partial<{
   gama: GamaTier[];
   condition: ProductCondition[];
   stock: StockStatus[];
+  tags: ProductTagType[];
 }>): CatalogProduct[] {
   return mockProducts.filter((product) => {
     // Device type filter
@@ -1135,12 +1142,6 @@ export function getFilteredProducts(filters: Partial<{
     // Brand filter
     if (filters.brands?.length && !filters.brands.includes(product.brand)) {
       return false;
-    }
-    // Price range filter
-    if (filters.priceRange) {
-      if (product.price < filters.priceRange[0] || product.price > filters.priceRange[1]) {
-        return false;
-      }
     }
     // Quota range filter
     if (filters.quotaRange) {
@@ -1267,6 +1268,10 @@ export function getFilteredProducts(filters: Partial<{
     if (filters.stock?.length && !filters.stock.includes(product.stock)) {
       return false;
     }
+    // Tags filter - producto debe tener al menos uno de los tags filtrados
+    if (filters.tags?.length && !filters.tags.some((t) => product.tags.includes(t))) {
+      return false;
+    }
     return true;
   });
 }
@@ -1291,6 +1296,7 @@ export interface FilterCounts {
   gama: Record<string, number>;
   condition: Record<string, number>;
   stock: Record<string, number>;
+  tags: Record<string, number>;
 }
 
 export function getFilterCounts(products: CatalogProduct[]): FilterCounts {
@@ -1310,6 +1316,7 @@ export function getFilterCounts(products: CatalogProduct[]): FilterCounts {
     gama: {},
     condition: {},
     stock: {},
+    tags: {},
   };
 
   products.forEach((product) => {
@@ -1361,6 +1368,11 @@ export function getFilterCounts(products: CatalogProduct[]): FilterCounts {
 
     // Stock
     counts.stock[product.stock] = (counts.stock[product.stock] || 0) + 1;
+
+    // Tags (multiple values)
+    product.tags.forEach((tag) => {
+      counts.tags[tag] = (counts.tags[tag] || 0) + 1;
+    });
   });
 
   return counts;

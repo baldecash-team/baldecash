@@ -3,16 +3,15 @@
 /**
  * Cronograma - Tabla de Cuotas Mensual (basado en V2)
  * Detailed table showing each month's payment with collapsible sections.
+ * Usa datos de ejemplo (paymentPlans) para mostrar cuotas consistentes por plazo.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
 import { CronogramaProps } from '../../../types/detail';
 import { formatMoney } from '../../../../utils/formatMoney';
 import { Toast } from '@/app/prototipos/_shared';
-
-const TERMS = [12, 18, 24, 36, 48];
 
 const FINANCIAL_DATA = {
   tea: 49.36,
@@ -25,7 +24,7 @@ const FINANCIAL_DATA = {
 };
 
 export const Cronograma: React.FC<CronogramaProps> = ({
-  monthlyQuota,
+  paymentPlans,
   term = 36,
   startDate = new Date(),
 }) => {
@@ -34,8 +33,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
-  const baseTotal = monthlyQuota * term;
-  const adjustedQuota = baseTotal / selectedTerm;
+  // Obtener cuota del plan según el plazo seleccionado
+  const currentPlan = useMemo(() => {
+    return paymentPlans.find(p => p.term === selectedTerm) || paymentPlans[0];
+  }, [paymentPlans, selectedTerm]);
+
+  const adjustedQuota = currentPlan.monthlyQuota;
 
   const getMonthDate = (monthIndex: number) => {
     const date = new Date(startDate);
@@ -69,17 +72,17 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
           {/* Term Pills */}
           <div className="flex gap-1 flex-wrap">
-            {TERMS.map((t) => (
+            {paymentPlans.map((plan) => (
               <button
-                key={t}
-                onClick={() => { setSelectedTerm(t); setShowAll(false); }}
+                key={plan.term}
+                onClick={() => { setSelectedTerm(plan.term); setShowAll(false); }}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
-                  selectedTerm === t
+                  selectedTerm === plan.term
                     ? 'bg-[#4654CD] text-white'
                     : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                 }`}
               >
-                {t}m
+                {plan.term}m
               </button>
             ))}
           </div>

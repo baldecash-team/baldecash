@@ -12,9 +12,14 @@ import React from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@nextui-org/react';
 import { ShoppingCart, ArrowRight, X, GripHorizontal } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { CatalogProduct } from '../../types/catalog';
+import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney } from '../../../utils/formatMoney';
+
 import { useIsMobile } from '@/app/prototipos/_shared';
+
+// Configuración fija igual que ProductCard
+const SELECTED_TERM = 24;
+const SELECTED_INITIAL = 10;
 
 interface CartSelectionModalProps {
   isOpen: boolean;
@@ -30,7 +35,11 @@ const ModalContentShared: React.FC<{
   onRequestEquipment: () => void;
   onAddToCart: () => void;
   onClose: () => void;
-}> = ({ product, onRequestEquipment, onAddToCart, onClose }) => (
+}> = ({ product, onRequestEquipment, onAddToCart, onClose }) => {
+  // Calcular cuota igual que ProductCard
+  const { quota } = calculateQuotaWithInitial(product.price, SELECTED_TERM, SELECTED_INITIAL);
+
+  return (
   <div className="space-y-4">
     {/* Product Preview */}
     <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-xl">
@@ -49,7 +58,7 @@ const ModalContentShared: React.FC<{
           {product.displayName}
         </h3>
         <p className="text-base lg:text-lg font-bold text-[#4654CD] mt-0.5">
-          S/{formatMoney(product.quotaMonthly)}/mes
+          S/{formatMoney(quota)}/mes
         </p>
       </div>
     </div>
@@ -100,6 +109,7 @@ const ModalContentShared: React.FC<{
     </div>
   </div>
 );
+};
 
 // Desktop Modal (NextUI)
 const DesktopModal: React.FC<CartSelectionModalProps & { product: CatalogProduct }> = ({

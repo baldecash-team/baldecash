@@ -3,11 +3,15 @@
 /**
  * WizardLayout - Main layout wrapper for wizard steps
  * Provides consistent structure across all wizard pages
+ *
+ * Desktop (lg:): Two-column layout with motivational card on right
+ * Mobile: Single column, motivational card hidden
  */
 
 import React from 'react';
 import { WizardProgress } from './WizardProgress';
 import { WizardNavigation } from './WizardNavigation';
+import { MotivationalCard } from './MotivationalCard';
 import { SelectedProductBar, SelectedProductSpacer } from '../product';
 import { WizardStepId } from '../../../types/wizard-solicitud';
 
@@ -57,40 +61,53 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
       {/* Spacer for fixed header */}
       <div className="h-[68px]" />
 
-      {/* Content */}
-      <div className="relative z-10 max-w-2xl mx-auto px-4 pt-14 pb-24 lg:pb-8">
-        {/* Progress Indicator */}
-        <WizardProgress currentStep={currentStep} />
+      {/* Content Container */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 pt-14 pb-24 lg:pb-8">
+        {/* Two-column grid on desktop */}
+        <div className="lg:grid lg:grid-cols-[1fr_420px] lg:gap-10">
+          {/* Left Column - Form */}
+          <div className="max-w-2xl mx-auto lg:mx-0 lg:max-w-none">
+            {/* Progress Indicator */}
+            <WizardProgress currentStep={currentStep} />
 
-        {/* Selected Product Bar (Desktop: top position) */}
-        <div className="mt-6">
-          <SelectedProductBar />
+            {/* Selected Product Bar (Desktop: top position) */}
+            <div className="mt-6">
+              <SelectedProductBar />
+            </div>
+
+            {/* Header */}
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold text-neutral-800">{title}</h1>
+              <p className="text-neutral-600 mt-1">{description}</p>
+            </div>
+
+            {/* Content */}
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+              {children}
+            </div>
+
+            {/* Navigation */}
+            <WizardNavigation
+              onBack={onBack}
+              onNext={onNext}
+              onSubmit={onSubmit}
+              isFirstStep={isFirstStep}
+              isLastStep={isLastStep}
+              isSubmitting={isSubmitting}
+              canProceed={canProceed}
+            />
+
+            {/* Bottom Spacer for Mobile fixed product bar */}
+            <SelectedProductSpacer />
+          </div>
+
+          {/* Right Column - Motivational Card (Desktop only) */}
+          <div className="hidden lg:block">
+            <div className="sticky top-24">
+              <MotivationalCard currentStep={currentStep} />
+            </div>
+          </div>
         </div>
-
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-neutral-800">{title}</h1>
-          <p className="text-neutral-600 mt-1">{description}</p>
-        </div>
-
-        {/* Content */}
-        <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
-          {children}
-        </div>
-
-        {/* Navigation */}
-        <WizardNavigation
-          onBack={onBack}
-          onNext={onNext}
-          onSubmit={onSubmit}
-          isFirstStep={isFirstStep}
-          isLastStep={isLastStep}
-          isSubmitting={isSubmitting}
-          canProceed={canProceed}
-        />
-
-        {/* Bottom Spacer for Mobile fixed product bar */}
-        <SelectedProductSpacer />
       </div>
     </div>
   );

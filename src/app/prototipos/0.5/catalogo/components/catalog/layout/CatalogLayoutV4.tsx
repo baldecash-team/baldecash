@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { CatalogLayoutProps, CatalogDeviceType } from '../../../types/catalog';
+import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import { FilterSection } from '../filters/FilterSection';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
 import { CommercialFilters } from '../filters/CommercialFilters';
 import { TechnicalFiltersStyled } from '../filters/TechnicalFiltersStyled';
 import { FilterChips } from '../filters/FilterChips';
+import { TagsFilter } from '../filters/TagsFilter';
 import { SortDropdown } from '../sorting/SortDropdown';
 import { QuickUsageCards } from '../QuickUsageCards';
 import {
@@ -30,6 +31,7 @@ import {
   displaySizeOptions,
   gamaOptions,
   conditionOptions,
+  tagOptions,
   resolutionOptions,
   displayTypeOptions,
   processorModelOptions,
@@ -107,6 +109,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     filterCounts ? applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType) : deviceTypeOptions,
     [filterCounts]
   );
+  const dynamicTagOptions = React.useMemo(() =>
+    filterCounts ? applyDynamicCounts(tagOptions, filterCounts.tags) : tagOptions,
+    [filterCounts]
+  );
 
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -114,6 +120,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
   const appliedFilters = React.useMemo(() => {
     const applied: { id: string; category: string; label: string; value: string | number | boolean }[] = [];
+
+    filters.deviceTypes.forEach((deviceType) => {
+      const opt = deviceTypeOptions.find((o) => o.value === deviceType);
+      applied.push({ id: `deviceType-${deviceType}`, category: 'Tipo', label: opt?.label || deviceType, value: deviceType });
+    });
 
     filters.brands.forEach((brand) => {
       const opt = brandOptions.find((o) => o.value === brand);
@@ -133,6 +144,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     filters.condition.forEach((condition) => {
       const opt = conditionOptions.find((o) => o.value === condition);
       applied.push({ id: `condition-${condition}`, category: 'Condición', label: opt?.label || condition, value: condition });
+    });
+
+    filters.tags.forEach((tag) => {
+      const opt = tagOptions.find((o) => o.value === tag);
+      applied.push({ id: `tag-${tag}`, category: 'Destacados', label: opt?.label || tag, value: tag });
     });
 
     // Technical filters
@@ -202,16 +218,23 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       applied.push({ id: 'ramExpandable-true', category: 'RAM', label: 'Expandible', value: true });
     }
 
+    // Quota range (si difiere del default)
+    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 400) {
+      applied.push({ id: 'quota-range', category: 'Cuota', label: `S/${filters.quotaRange[0]} - S/${filters.quotaRange[1]}/mes`, value: `${filters.quotaRange[0]}-${filters.quotaRange[1]}` });
+    }
+
     return applied;
   }, [filters]);
 
   const appliedFiltersCount = React.useMemo(() => {
     return (
+      filters.deviceTypes.length +
       filters.brands.length +
       filters.usage.length +
       filters.ram.length +
       filters.gama.length +
       filters.condition.length +
+      filters.tags.length +
       filters.storage.length +
       filters.processorModel.length +
       filters.displaySize.length +
@@ -225,13 +248,17 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       (filters.hasWindows ? 1 : 0) +
       (filters.hasThunderbolt ? 1 : 0) +
       (filters.hasEthernet ? 1 : 0) +
-      (filters.ramExpandable ? 1 : 0)
+      (filters.ramExpandable ? 1 : 0) +
+      (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 400 ? 1 : 0)
     );
   }, [filters]);
 
   const handleRemoveFilter = (id: string) => {
     const [category, value] = id.split('-');
     switch (category) {
+      case 'deviceType':
+        updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== value));
+        break;
       case 'brand':
         updateFilter('brands', filters.brands.filter((b) => b !== value));
         break;
@@ -243,6 +270,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         break;
       case 'condition':
         updateFilter('condition', filters.condition.filter((c) => c !== value));
+        break;
+      case 'tag':
+        updateFilter('tags', filters.tags.filter((t) => t !== value));
         break;
       case 'ram':
         updateFilter('ram', filters.ram.filter((r) => r !== parseInt(value)));
@@ -289,16 +319,21 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       case 'ramExpandable':
         updateFilter('ramExpandable', false);
         break;
+      case 'quota':
+        updateFilter('quotaRange', [25, 400]);
+        break;
     }
   };
 
   const handleClearAll = () => {
     onFiltersChange({
       ...filters,
+      deviceTypes: [],
       brands: [],
       usage: [],
       gama: [],
       condition: [],
+      tags: [],
       stock: [],
       ram: [],
       storage: [],
@@ -321,8 +356,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       hasHDMI: null,
       minUSBPorts: null,
       ramExpandable: null,
-      priceRange: [1000, 8000],
-      quotaRange: [40, 400],
+      quotaRange: [25, 400],
     });
   };
 
@@ -474,6 +508,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     })}
                   </div>
                 </FilterSection>
+
+                {/* Tags Filter */}
+                <TagsFilter
+                  tagOptions={dynamicTagOptions}
+                  selectedTags={filters.tags}
+                  onTagsChange={(tags) => updateFilter('tags', tags)}
+                  showCounts={config.showFilterCounts}
+                />
 
                 {/* Brand Filter */}
                 <FilterSection title="Marca" defaultExpanded={true}>
@@ -666,6 +708,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 })}
               </div>
             </FilterSection>
+
+            {/* Tags Filter */}
+            <TagsFilter
+              tagOptions={dynamicTagOptions}
+              selectedTags={filters.tags}
+              onTagsChange={(tags) => updateFilter('tags', tags)}
+              showCounts={config.showFilterCounts}
+            />
 
             {/* Brand Filter */}
             <FilterSection title="Marca" defaultExpanded={true}>

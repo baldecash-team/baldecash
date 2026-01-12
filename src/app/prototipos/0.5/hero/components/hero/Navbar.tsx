@@ -10,40 +10,67 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
 import { Menu, X, Zap, User, Laptop, ChevronDown, Smartphone, Tablet, ArrowRight } from 'lucide-react';
 
-// Helper function to build internal URLs with mode propagation
-const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
-  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+// Helper function to build internal URLs with mode propagation and optional query params
+const buildInternalUrl = (basePath: string, isCleanMode: boolean, params?: Record<string, string>) => {
+  const searchParams = new URLSearchParams();
+
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      searchParams.set(key, value);
+    });
+  }
+
+  if (isCleanMode) {
+    searchParams.set('mode', 'clean');
+  }
+
+  const queryString = searchParams.toString();
+  return queryString ? `${basePath}?${queryString}` : basePath;
 };
 
 const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
-  if (href.startsWith('#')) {
+  // Check if href contains an anchor
+  const hashIndex = href.indexOf('#');
+  if (hashIndex === -1) return; // No anchor, let it navigate normally
+
+  const anchor = href.substring(hashIndex);
+  const pathBeforeAnchor = href.substring(0, hashIndex);
+
+  // Check if we're already on the target page (or it's just an anchor)
+  const currentPath = window.location.pathname;
+  const isOnTargetPage = href.startsWith('#') || currentPath.includes('hero-preview');
+
+  if (isOnTargetPage) {
     e.preventDefault();
-    const element = document.querySelector(href);
+    const element = document.querySelector(anchor);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
+  // Otherwise, let the link navigate normally to the target page with anchor
 };
 
 interface NavbarProps {
   isCleanMode?: boolean;
+  hidePromoBanner?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false }) => {
-  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
+export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBanner = false }) => {
+  const catalogBasePath = '/prototipos/0.5/catalogo/catalog-preview';
+  const catalogUrl = buildInternalUrl(catalogBasePath, isCleanMode);
   const heroUrl = buildInternalUrl('/prototipos/0.5/hero/hero-preview', isCleanMode);
 
   const megaMenuItems = [
-    { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
-    { label: 'Tablets', href: catalogUrl, icon: Tablet, description: 'Tablets para toda ocasión' },
-    { label: 'Celulares', href: catalogUrl, icon: Smartphone, description: 'Smartphones de todas las marcas' },
+    { label: 'Laptops', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop' }), icon: Laptop, description: 'Portátiles para trabajo y estudio' },
+    { label: 'Tablets', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'tablet' }), icon: Tablet, description: 'Tablets para toda ocasión' },
+    { label: 'Celulares', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'celular' }), icon: Smartphone, description: 'Smartphones de todas las marcas' },
     { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
   ];
 
   const navItems = [
     { label: 'Equipos', href: catalogUrl, megaMenuType: 'equipos' as const },
-    { label: 'Convenios', href: '#convenios' },
-    { label: '¿Tienes dudas?', href: '#faq' },
+    { label: 'Convenios', href: `${heroUrl}#convenios` },
+    { label: '¿Tienes dudas?', href: `${heroUrl}#faq` },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPromo, setShowPromo] = useState(true);
@@ -54,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false }) => {
     <>
       {/* Promo Banner */}
       <AnimatePresence>
-        {showPromo && (
+        {showPromo && !hidePromoBanner && (
           <motion.div
             className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[#4654CD] to-[#5B68D8] text-white text-center py-2.5 px-4 text-sm"
             initial={{ height: 0, opacity: 0 }}
@@ -67,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false }) => {
               <span>
                 <strong>Oferta especial:</strong> 0% interés en tu primera cuota
               </span>
-              <a href="#ofertas" className="underline font-semibold ml-2 hover:no-underline hidden sm:inline">
+              <a href={buildInternalUrl(catalogBasePath, isCleanMode, { tag: 'oferta' })} className="underline font-semibold ml-2 hover:no-underline hidden sm:inline">
                 Ver más
               </a>
               <button
@@ -84,7 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false }) => {
 
       <nav
         className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
-        style={{ top: showPromo ? '40px' : 0 }}
+        style={{ top: showPromo && !hidePromoBanner ? '40px' : 0 }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -261,15 +288,24 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false }) => {
                         href={item.href}
                         className="block py-3 text-neutral-600 hover:text-[#4654CD] font-medium"
                         onClick={(e) => {
-                          if (item.href.startsWith('#')) {
-                            e.preventDefault();
-                            setIsMenuOpen(false);
-                            setTimeout(() => {
-                              const element = document.querySelector(item.href);
-                              if (element) {
-                                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                              }
-                            }, 300);
+                          const hashIndex = item.href.indexOf('#');
+                          if (hashIndex !== -1) {
+                            const anchor = item.href.substring(hashIndex);
+                            const currentPath = window.location.pathname;
+                            const isOnTargetPage = item.href.startsWith('#') || currentPath.includes('hero-preview');
+
+                            if (isOnTargetPage) {
+                              e.preventDefault();
+                              setIsMenuOpen(false);
+                              setTimeout(() => {
+                                const element = document.querySelector(anchor);
+                                if (element) {
+                                  element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }
+                              }, 300);
+                            } else {
+                              setIsMenuOpen(false);
+                            }
                           }
                         }}
                       >

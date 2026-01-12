@@ -14,13 +14,13 @@ import { formatMoney } from '../../../../utils/formatMoney';
 interface ConvenioHeroProps {
   convenio: ConvenioData;
   cuotaDesde?: number;
-  onVerEquipos?: () => void;
+  catalogUrl: string;
 }
 
 export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   convenio,
   cuotaDesde = 49,
-  onVerEquipos,
+  catalogUrl,
 }) => {
   const cuotaConDescuento = calcularCuotaConDescuento(cuotaDesde, convenio.descuentoCuota);
 
@@ -87,11 +87,12 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
 
           {/* CTA */}
           <Button
+            as="a"
+            href={catalogUrl}
             size="lg"
             className="text-white font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
             style={{ backgroundColor: convenio.colorPrimario }}
             endContent={<ArrowRight className="w-5 h-5" />}
-            onPress={onVerEquipos}
           >
             Ver equipos disponibles
           </Button>

@@ -232,6 +232,60 @@ export const instituciones: InstitucionEducativa[] = [
 ];
 
 // ============================================
+// Promo Products Data (for V1-V3 promo landings)
+// ============================================
+
+export const promoProductCountdown = {
+  id: 'promo-countdown',
+  nombre: 'HP Pavilion 15.6" AMD Ryzen 5',
+  marca: 'HP',
+  imagen: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8af9ed1fbf48ea397396_hp15.png',
+  precioOriginal: 3499,
+  precioPromo: 2799,
+  cuotaOriginal: 145,
+  cuotaPromo: 116,
+  specs: ['AMD Ryzen 5', '8GB RAM', '512GB SSD', 'Full HD'],
+};
+
+export const promoProductGift = {
+  id: 'promo-gift',
+  nombre: 'Lenovo IdeaPad 3 15.6" Intel Core i5',
+  marca: 'Lenovo',
+  imagen: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7929bd7b580e6de7247d_Lenovo%20Chromebook%20S330.jpg',
+  precioTotal: 2999,
+  cuotaMensual: 125,
+  specs: ['Intel Core i5', '8GB RAM', '256GB SSD', 'Full HD'],
+};
+
+export const promoGift = {
+  nombre: 'Mochila Porta Laptop HP',
+  imagen: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=200&h=200&fit=crop',
+  valorEstimado: 149,
+};
+
+export const promoProductFlash = {
+  id: 'promo-flash',
+  nombre: 'ASUS VivoBook 15 OLED',
+  marca: 'ASUS',
+  imagen: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad78aca11478d9ed058463_laptop_asus_x515ea.jpg',
+  precioOriginal: 3999,
+  precioFlash: 2999,
+  cuotaOriginal: 166,
+  cuotaFlash: 125,
+  specs: ['Intel Core i7', '16GB RAM', '512GB SSD', 'OLED Display'],
+  stockTotal: 50,
+  stockVendido: 43,
+};
+
+// Helper to get promo end date (3 days from now)
+export const getPromoEndDate = () => {
+  const date = new Date();
+  date.setDate(date.getDate() + 3);
+  date.setHours(23, 59, 59, 999);
+  return date;
+};
+
+// ============================================
 // Helper Functions
 // ============================================
 

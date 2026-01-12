@@ -1,7 +1,20 @@
 // types/comparator.ts - BaldeCash Comparator Types v0.5
 // V1-V2 según convenciones v0.5, con excepción de designStyle (V1-V3)
 
-import { CatalogProduct, TermMonths, InitialPaymentPercent } from '../../catalogo/types/catalog';
+import { CatalogProduct, TermMonths, InitialPaymentPercent, calculateQuotaWithInitial } from '../../catalogo/types/catalog';
+
+// Configuración fija para cálculo de cuota (igual que ProductCard)
+const COMPARATOR_TERM = 24;
+const COMPARATOR_INITIAL = 10;
+
+/**
+ * Calcula la cuota mensual real para mostrar en el comparador.
+ * Usa la misma fórmula que ProductCard del catálogo.
+ */
+export const getDisplayQuota = (product: CatalogProduct): number => {
+  const { quota } = calculateQuotaWithInitial(product.price, COMPARATOR_TERM, COMPARATOR_INITIAL);
+  return quota;
+};
 
 // ============================================
 // Configuración del Comparador v0.5
@@ -354,9 +367,9 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     isDifferent: !priceRaw.every(v => v === priceRaw[0]),
   });
 
-  // Quota
-  const quotaValues = products.map(p => `S/${p.quotaMonthly}/mes`);
-  const quotaRaw = products.map(p => p.quotaMonthly);
+  // Quota (calculada con la misma fórmula que ProductCard)
+  const quotaRaw = products.map(p => getDisplayQuota(p));
+  const quotaValues = quotaRaw.map(q => `S/${q}/mes`);
   specs.push({
     key: 'quota',
     label: 'Cuota Mensual',
@@ -375,12 +388,13 @@ export function calculatePriceDifference(products: ComparisonProduct[]): { absol
   if (products.length < 2) return { absolute: [], quota: [], annualSaving: 0 };
 
   const minPrice = Math.min(...products.map(p => p.price));
-  const minQuota = Math.min(...products.map(p => p.quotaMonthly));
+  const quotas = products.map(p => getDisplayQuota(p));
+  const minQuota = Math.min(...quotas);
 
   const absolute = products.map(p => p.price - minPrice);
-  const quota = products.map(p => p.quotaMonthly - minQuota);
+  const quota = quotas.map(q => q - minQuota);
 
-  const maxQuota = Math.max(...products.map(p => p.quotaMonthly));
+  const maxQuota = Math.max(...quotas);
   const annualSaving = (maxQuota - minQuota) * 12;
 
   return { absolute, quota, annualSaving };

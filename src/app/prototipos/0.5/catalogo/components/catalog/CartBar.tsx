@@ -9,8 +9,12 @@ import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
 import { ShoppingCart, Trash2, ArrowRight, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CatalogProduct } from '../../types/catalog';
+import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney } from '../../../utils/formatMoney';
+
+// Configuración fija igual que ProductCard
+const SELECTED_TERM = 24;
+const SELECTED_INITIAL = 10;
 
 interface CartBarProps {
   items: CatalogProduct[];
@@ -28,8 +32,6 @@ export const CartBar: React.FC<CartBarProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (items.length === 0) return null;
-
-  const totalMonthly = items.reduce((sum, item) => sum + item.quotaMonthly, 0);
 
   return (
     <>
@@ -52,37 +54,40 @@ export const CartBar: React.FC<CartBarProps> = ({
               >
                 <div className="p-4 max-h-[300px] overflow-y-auto">
                   <div className="space-y-3">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl"
-                      >
-                        <div className="w-14 h-14 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
-                          <img
-                            src={item.thumbnail}
-                            alt={item.displayName}
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-neutral-500 uppercase">
-                            {item.brand}
-                          </p>
-                          <p className="text-sm font-medium text-neutral-800 truncate">
-                            {item.displayName}
-                          </p>
-                          <p className="text-sm font-bold text-[#4654CD]">
-                            S/{formatMoney(item.quotaMonthly)}/mes
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => onRemoveItem(item.id)}
-                          className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer"
+                    {items.map((item) => {
+                      const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl"
                         >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                          <div className="w-14 h-14 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
+                            <img
+                              src={item.thumbnail}
+                              alt={item.displayName}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-neutral-500 uppercase">
+                              {item.brand}
+                            </p>
+                            <p className="text-sm font-medium text-neutral-800 truncate">
+                              {item.displayName}
+                            </p>
+                            <p className="text-sm font-bold text-[#4654CD]">
+                              S/{formatMoney(quota)}/mes
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => onRemoveItem(item.id)}
+                            className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </motion.div>
@@ -139,17 +144,6 @@ export const CartBar: React.FC<CartBarProps> = ({
                 <ChevronUp className="w-5 h-5" />
               )}
             </button>
-
-            {/* Divider */}
-            <div className="h-10 w-px bg-neutral-200" />
-
-            {/* Total */}
-            <div className="text-right">
-              <p className="text-xs text-neutral-500">Total mensual</p>
-              <p className="text-lg font-bold text-[#4654CD]">
-                S/{formatMoney(totalMonthly)}/mes
-              </p>
-            </div>
 
             {/* Actions */}
             <div className="flex items-center gap-2 border-l border-neutral-200 pl-4">

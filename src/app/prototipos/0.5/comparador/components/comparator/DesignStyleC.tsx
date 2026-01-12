@@ -4,7 +4,7 @@ import React from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown, Filter } from 'lucide-react';
-import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference } from '../../types/comparator';
+import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../../utils/formatMoney';
 
 interface DesignStyleCProps {
@@ -169,7 +169,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         className="flex items-baseline gap-2 mb-6"
                       >
                         <span className="text-4xl font-bold text-[#4654CD]">
-                          S/{formatMoney(bestProduct.quotaMonthly)}
+                          S/{formatMoney(getDisplayQuota(bestProduct))}
                         </span>
                         <span className="text-lg text-neutral-500">/mes</span>
                         <div className="ml-2 px-3 py-1 bg-[#4654CD]/10 rounded-full">
@@ -311,7 +311,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             {/* Price */}
                             <div className="flex items-baseline gap-1 mb-2">
                               <span className="text-lg font-bold text-[#4654CD]">
-                                S/{formatMoney(product.quotaMonthly)}
+                                S/{formatMoney(getDisplayQuota(product))}
                               </span>
                               <span className="text-xs text-neutral-500">/mes</span>
                               {renderPriceDiff(originalIndex)}

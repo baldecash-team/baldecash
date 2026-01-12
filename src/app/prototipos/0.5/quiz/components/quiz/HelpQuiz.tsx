@@ -27,6 +27,7 @@ import {
   QuizQuestion,
   QuizAnswer,
   QuizResult,
+  QuizProduct,
   HelpQuizProps,
 } from '../../types/quiz';
 
@@ -53,6 +54,31 @@ const layoutComponents = {
 const getWizardUrl = (isCleanMode: boolean) => {
   const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
   return isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
+};
+
+// Configuración para guardar producto en localStorage
+const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-wizard-selected-product';
+const WIZARD_SELECTED_TERM = 24;
+
+// Guarda el producto del quiz en localStorage para el wizard
+const saveQuizProductForWizard = (product: QuizProduct) => {
+  const selectedProduct = {
+    id: product.id,
+    name: product.displayName,
+    shortName: product.name,
+    brand: product.brand,
+    price: product.price,
+    monthlyPayment: product.lowestQuota,
+    months: WIZARD_SELECTED_TERM,
+    image: product.thumbnail || product.image,
+    specs: {
+      processor: product.specs?.processor || '',
+      ram: product.specs?.ram ? `${product.specs.ram}GB RAM` : '',
+      storage: product.specs?.storage ? `${product.specs.storage}GB ${product.specs.storageType?.toUpperCase() || 'SSD'}` : '',
+    },
+  };
+
+  localStorage.setItem(WIZARD_PRODUCT_STORAGE_KEY, JSON.stringify(selectedProduct));
 };
 
 const getCatalogUrlWithFilters = (answers: QuizAnswer[], isCleanMode: boolean) => {
@@ -212,6 +238,14 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   // Handle "Lo quiero" - navegar al wizard
   const handleViewProduct = useCallback(
     (productId: string) => {
+      // Guardar el producto seleccionado en localStorage
+      if (results) {
+        const selectedResult = results.find((r) => r.product.id === productId);
+        if (selectedResult) {
+          saveQuizProductForWizard(selectedResult.product);
+        }
+      }
+
       // Cerrar modal y resetear
       onClose();
       handleRestart();
@@ -219,7 +253,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       // Navegar al wizard
       router.push(getWizardUrl(isCleanMode));
     },
-    [onClose, handleRestart, router, isCleanMode]
+    [results, onClose, handleRestart, router, isCleanMode]
   );
 
   // Handle "Ver otras opciones"

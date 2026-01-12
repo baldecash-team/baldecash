@@ -13,9 +13,22 @@ import { HeroBannerProps } from '../../types/hero';
 import { UnderlinedText } from './common/UnderlinedText';
 import { formatMoney } from '../../../utils/formatMoney';
 
-// Helper function to build internal URLs with mode propagation
-const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
-  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+// Helper function to build internal URLs with mode propagation and optional query params
+const buildInternalUrl = (basePath: string, isCleanMode: boolean, params?: Record<string, string>) => {
+  const searchParams = new URLSearchParams();
+
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      searchParams.set(key, value);
+    });
+  }
+
+  if (isCleanMode) {
+    searchParams.set('mode', 'clean');
+  }
+
+  const queryString = searchParams.toString();
+  return queryString ? `${basePath}?${queryString}` : basePath;
 };
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
@@ -27,7 +40,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   isCleanMode = false,
 }) => {
   const router = useRouter();
-  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
+  const catalogBasePath = '/prototipos/0.5/catalogo/catalog-preview';
+  const catalogUrl = buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop' });
 
   return (
     <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden">

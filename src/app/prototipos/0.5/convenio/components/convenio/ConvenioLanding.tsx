@@ -28,10 +28,6 @@ interface ConvenioLandingProps {
 export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({ convenio, isCleanMode = false }) => {
   const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
 
-  const handleVerEquipos = () => {
-    window.location.href = catalogUrl;
-  };
-
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
@@ -40,7 +36,7 @@ export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({ convenio, isCl
       {/* Main content */}
       <main>
         {/* Hero Section */}
-        <ConvenioHero convenio={convenio} onVerEquipos={handleVerEquipos} />
+        <ConvenioHero convenio={convenio} catalogUrl={catalogUrl} />
 
         {/* Benefits Section */}
         <ConvenioBenefits convenio={convenio} />
@@ -52,7 +48,7 @@ export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({ convenio, isCl
         <ConvenioFaq convenio={convenio} />
 
         {/* CTA Section */}
-        <ConvenioCta convenio={convenio} onVerEquipos={handleVerEquipos} />
+        <ConvenioCta convenio={convenio} catalogUrl={catalogUrl} />
       </main>
 
       {/* Footer */}

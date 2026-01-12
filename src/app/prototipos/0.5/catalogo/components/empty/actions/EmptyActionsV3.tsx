@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Chip } from '@nextui-org/react';
-import { RefreshCw, TrendingUp, Layers, X } from 'lucide-react';
+import { RefreshCw, Layers } from 'lucide-react';
 import { EmptyActionsProps } from '../../../types/empty';
 
 /**
@@ -13,7 +13,6 @@ import { EmptyActionsProps } from '../../../types/empty';
 export const EmptyActionsV3: React.FC<EmptyActionsProps> = ({
   appliedFilters,
   onClearFilters,
-  onExpandPriceRange,
   onRemoveFilter,
 }) => {
   return (
@@ -32,20 +31,6 @@ export const EmptyActionsV3: React.FC<EmptyActionsProps> = ({
           }}
         >
           Reiniciar búsqueda
-        </Chip>
-
-        <Chip
-          as="button"
-          onClick={onExpandPriceRange}
-          startContent={<TrendingUp className="w-4 h-4" />}
-          className="bg-[#03DBD0]/10 text-[#03DBD0] px-4 py-2 h-auto cursor-pointer hover:bg-[#03DBD0]/20 transition-colors"
-          radius="lg"
-          classNames={{
-            base: 'cursor-pointer',
-            content: 'font-medium',
-          }}
-        >
-          Ampliar precio
         </Chip>
 
         <Chip

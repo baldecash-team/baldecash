@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef } from 'react';
-import { Button, Spinner } from '@nextui-org/react';
+import { Button } from '@nextui-org/react';
 import {
   Settings,
   Code,
@@ -19,6 +19,7 @@ import {
   HelpCircle,
   Heart,
   ShoppingCart,
+  Loader2,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -37,6 +38,10 @@ import { CartDrawer } from '../components/catalog/CartDrawer';
 // Empty state
 import { EmptyState } from '../components/empty';
 
+// Hero components (Navbar & Footer)
+import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
+
 
 // Types
 import {
@@ -51,6 +56,7 @@ import {
   GpuType,
   CatalogProduct,
   CatalogViewMode,
+  calculateQuotaWithInitial,
 } from '../types/catalog';
 
 // Data
@@ -104,6 +110,34 @@ const getDetailUrl = (productId: string, deviceType: string | undefined, isClean
 const getUpsellUrl = (isCleanMode: boolean) => {
   const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
   return isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
+};
+
+// Configuración fija para cálculo de cuota (igual que CartSelectionModal)
+const WIZARD_SELECTED_TERM = 24;
+const WIZARD_SELECTED_INITIAL = 10;
+const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-wizard-selected-product';
+
+// Guarda el producto seleccionado en localStorage para el wizard
+const saveProductForWizard = (product: CatalogProduct) => {
+  const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+
+  const selectedProduct = {
+    id: product.id,
+    name: product.displayName,
+    shortName: product.name,
+    brand: product.brand,
+    price: product.price,
+    monthlyPayment: quota,
+    months: WIZARD_SELECTED_TERM,
+    image: product.thumbnail,
+    specs: {
+      processor: product.specs?.processor?.model || '',
+      ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
+      storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
+    },
+  };
+
+  localStorage.setItem(WIZARD_PRODUCT_STORAGE_KEY, JSON.stringify(selectedProduct));
 };
 
 // Mapear respuestas del quiz a filtros del catálogo
@@ -215,15 +249,17 @@ const comparatorConfig: ComparatorConfig = {
   defaultInitial: 10,
 };
 
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+    </div>
+  );
+}
+
 export default function CatalogPreviewPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <Spinner size="lg" color="primary" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingFallback />}>
       <CatalogPreviewContent />
     </Suspense>
   );
@@ -274,10 +310,19 @@ function CatalogPreviewContent() {
   // UI state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const isFirstRender = useRef(true);
+
+  // Preloading: dar tiempo a la página para cargar recursos
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsPageLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Comparison state with localStorage persistence
   const [compareList, setCompareList] = useState<string[]>([]);
@@ -411,10 +456,24 @@ function CatalogPreviewContent() {
 
   const handleRemoveFromCart = useCallback((productId: string) => {
     setCart((prev) => prev.filter((id) => id !== productId));
+
+    // Limpiar localStorage si el producto eliminado es el guardado para el wizard
+    try {
+      const savedProduct = localStorage.getItem(WIZARD_PRODUCT_STORAGE_KEY);
+      if (savedProduct) {
+        const parsed = JSON.parse(savedProduct);
+        if (parsed.id === productId) {
+          localStorage.removeItem(WIZARD_PRODUCT_STORAGE_KEY);
+        }
+      }
+    } catch {
+      // Ignorar errores de parsing
+    }
   }, []);
 
   const handleClearCart = useCallback(() => {
     setCart([]);
+    localStorage.removeItem(WIZARD_PRODUCT_STORAGE_KEY);
   }, []);
 
   const handleCartContinue = useCallback(() => {
@@ -423,6 +482,11 @@ function CatalogPreviewContent() {
       return;
     }
     if (cart.length === 1) {
+      // Guardar el producto del carrito antes de navegar
+      const productToSave = mockProducts.find((p) => p.id === cart[0]);
+      if (productToSave) {
+        saveProductForWizard(productToSave);
+      }
       router.push(getWizardUrl(isCleanMode));
     }
   }, [cart, router, isCleanMode, showToast]);
@@ -469,7 +533,8 @@ function CatalogPreviewContent() {
     // Preserve mode param
     if (isCleanMode) filterParams.set('mode', 'clean');
 
-    const queryString = filterParams.toString();
+    // Decode commas for cleaner URLs (e.g., device=tablet,celular instead of device=tablet%2Ccelular)
+    const queryString = filterParams.toString().replace(/%2C/g, ',');
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
   }, [filters, sort, config.colorSelectorVersion, router, isCleanMode]);
 
@@ -488,7 +553,7 @@ function CatalogPreviewContent() {
     return filteredProducts;
   }, [viewMode, filteredProducts, wishlist]);
 
-  const filterCounts = useMemo(() => getFilterCounts(mockProducts), []);
+  const filterCounts = useMemo(() => getFilterCounts(filteredProducts), [filteredProducts]);
 
   // Loading effect
   useEffect(() => {
@@ -529,8 +594,8 @@ function CatalogPreviewContent() {
         result.push({ key: 'brand', label: brand.charAt(0).toUpperCase() + brand.slice(1), value: brand });
       });
     }
-    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 10000) {
-      result.push({ key: 'price', label: `S/${filters.priceRange[0]} - S/${filters.priceRange[1]}`, value: filters.priceRange });
+    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 400) {
+      result.push({ key: 'quota', label: `S/${filters.quotaRange[0]} - S/${filters.quotaRange[1]}/mes`, value: filters.quotaRange });
     }
     if (filters.ram.length > 0) {
       filters.ram.forEach((ram) => {
@@ -550,7 +615,7 @@ function CatalogPreviewContent() {
     setFilters((prev) => {
       const newFilters = { ...prev };
       if (key === 'brand') newFilters.brands = [];
-      if (key === 'price') newFilters.priceRange = [0, 10000];
+      if (key === 'quota') newFilters.quotaRange = [25, 400];
       if (key === 'ram') newFilters.ram = [];
       if (key === 'gama') newFilters.gama = [];
       return newFilters;
@@ -623,10 +688,20 @@ function CatalogPreviewContent() {
       .filter((p): p is ComparisonProduct => p !== undefined);
   }, [compareList, filteredProducts]);
 
+  // Show loading while page preloads
+  if (isPageLoading) {
+    return <LoadingFallback />;
+  }
+
   return (
     <div className="min-h-screen relative">
-      {/* Catalog Layout with Products */}
-      <CatalogLayout
+      {/* Navbar from Hero */}
+      <Navbar isCleanMode={isCleanMode} hidePromoBanner={isComparatorOpen} />
+
+      {/* Main Content with padding for fixed navbar */}
+      <main className="pt-24">
+        {/* Catalog Layout with Products */}
+        <CatalogLayout
         products={displayedProducts}
         filters={filters}
         onFiltersChange={setFilters}
@@ -716,7 +791,6 @@ function CatalogPreviewContent() {
                 <EmptyState
                   appliedFilters={appliedFilters}
                   onClearFilters={() => setFilters(defaultFilterState)}
-                  onExpandPriceRange={() => setFilters((prev) => ({ ...prev, priceRange: [0, 10000] }))}
                   onRemoveFilter={handleRemoveFilter}
                   totalProductsIfExpanded={mockProducts.length}
                   config={{ illustrationVersion: 5, actionsVersion: 6 }}
@@ -750,13 +824,22 @@ function CatalogPreviewContent() {
           </div>
         )}
       </CatalogLayout>
+      </main>
+
+      {/* Footer from Hero */}
+      <Footer isCleanMode={isCleanMode} />
 
       {/* Cart Selection Modal */}
       <CartSelectionModal
         isOpen={isCartModalOpen}
         onClose={() => setIsCartModalOpen(false)}
         product={selectedProductForCart}
-        onRequestEquipment={() => router.push(getWizardUrl(isCleanMode))}
+        onRequestEquipment={() => {
+          if (selectedProductForCart) {
+            saveProductForWizard(selectedProductForCart);
+          }
+          router.push(getWizardUrl(isCleanMode));
+        }}
         onAddToCart={() => {
           if (selectedProductForCart) {
             handleAddToCart(selectedProductForCart.id);

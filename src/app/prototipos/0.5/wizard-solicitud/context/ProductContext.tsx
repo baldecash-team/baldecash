@@ -11,6 +11,7 @@ import type { Accessory } from '@/app/prototipos/0.5/upsell/types/upsell';
 
 const STORAGE_KEY = 'baldecash-wizard-selected-product';
 const ACCESSORIES_STORAGE_KEY = 'baldecash-wizard-selected-accessories';
+const COUPON_STORAGE_KEY = 'baldecash-wizard-applied-coupon';
 
 export interface SelectedProduct {
   id: string;
@@ -30,6 +31,12 @@ export interface SelectedProduct {
 
 export type { Accessory };
 
+export interface AppliedCoupon {
+  code: string;
+  discount: number;
+  label: string;
+}
+
 interface ProductContextValue {
   selectedProduct: SelectedProduct | null;
   setSelectedProduct: (product: SelectedProduct | null) => void;
@@ -38,8 +45,12 @@ interface ProductContextValue {
   setSelectedAccessories: (accessories: Accessory[]) => void;
   toggleAccessory: (accessory: Accessory) => void;
   clearAccessories: () => void;
+  appliedCoupon: AppliedCoupon | null;
+  setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
+  clearCoupon: () => void;
   getTotalPrice: () => number;
   getTotalMonthlyPayment: () => number;
+  getDiscountedMonthlyPayment: () => number;
   isHydrated: boolean;
 }
 
@@ -60,6 +71,7 @@ interface ProductProviderProps {
 export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) => {
   const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
+  const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Load from localStorage on mount (client-side only)
@@ -72,6 +84,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
       const storedAccessories = localStorage.getItem(ACCESSORIES_STORAGE_KEY);
       if (storedAccessories) {
         setSelectedAccessoriesState(JSON.parse(storedAccessories));
+      }
+      const storedCoupon = localStorage.getItem(COUPON_STORAGE_KEY);
+      if (storedCoupon) {
+        setAppliedCouponState(JSON.parse(storedCoupon));
       }
     } catch {
       // localStorage not available or invalid JSON
@@ -146,6 +162,29 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     }
   }, []);
 
+  // Coupon functions
+  const setAppliedCoupon = useCallback((coupon: AppliedCoupon | null) => {
+    setAppliedCouponState(coupon);
+    try {
+      if (coupon) {
+        localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(coupon));
+      } else {
+        localStorage.removeItem(COUPON_STORAGE_KEY);
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
+  const clearCoupon = useCallback(() => {
+    setAppliedCouponState(null);
+    try {
+      localStorage.removeItem(COUPON_STORAGE_KEY);
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
   // Calculate totals
   const getTotalPrice = useCallback(() => {
     const productPrice = selectedProduct?.price || 0;
@@ -159,6 +198,12 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     return productMonthly + accessoriesMonthly;
   }, [selectedProduct, selectedAccessories]);
 
+  const getDiscountedMonthlyPayment = useCallback(() => {
+    const total = getTotalMonthlyPayment();
+    const discount = appliedCoupon?.discount || 0;
+    return Math.max(0, total - discount);
+  }, [getTotalMonthlyPayment, appliedCoupon]);
+
   return (
     <ProductContext.Provider
       value={{
@@ -169,8 +214,12 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
         setSelectedAccessories,
         toggleAccessory,
         clearAccessories,
+        appliedCoupon,
+        setAppliedCoupon,
+        clearCoupon,
         getTotalPrice,
         getTotalMonthlyPayment,
+        getDiscountedMonthlyPayment,
         isHydrated,
       }}
     >

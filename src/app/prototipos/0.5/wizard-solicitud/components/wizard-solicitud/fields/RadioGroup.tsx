@@ -101,40 +101,22 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
               ${(option.disabled || disabled) ? 'opacity-50 cursor-not-allowed' : ''}
             `}
           >
-            {/* Radio circle */}
-            <div className="flex items-center gap-3">
-              <div
-                className={`
-                  w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0
-                  transition-all duration-200
-                  ${value === option.value
-                    ? 'border-[#4654CD] bg-[#4654CD]'
-                    : 'border-neutral-300 bg-white'
-                  }
-                `}
-              >
-                {value === option.value && (
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1">
+            {/* Content */}
+            <div>
+              <p className={`
+                font-medium text-base
+                ${value === option.value ? 'text-[#4654CD]' : 'text-neutral-800'}
+              `}>
+                {option.label}
+              </p>
+              {option.description && (
                 <p className={`
-                  font-medium text-base
-                  ${value === option.value ? 'text-[#4654CD]' : 'text-neutral-800'}
+                  text-sm mt-0.5
+                  ${value === option.value ? 'text-[#4654CD]/70' : 'text-neutral-500'}
                 `}>
-                  {option.label}
+                  {option.description}
                 </p>
-                {option.description && (
-                  <p className={`
-                    text-sm mt-0.5
-                    ${value === option.value ? 'text-[#4654CD]/70' : 'text-neutral-500'}
-                  `}>
-                    {option.description}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
 
             <input

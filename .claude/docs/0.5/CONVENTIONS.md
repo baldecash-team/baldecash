@@ -727,7 +727,7 @@ Usado para campos con pocas opciones mutuamente excluyentes (ej: Tipo de Documen
   <button className="flex-1 py-2.5 text-sm font-medium rounded-lg">
     Opción A
   </button>
-  <button className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-[#4654CD] text-white">
+  <button className="flex-1 py-2.5 text-sm font-medium rounded-lg bg-[#4654CD]/15 text-[#4654CD]">
     Opción B (seleccionada)
   </button>
 </div>
@@ -736,7 +736,7 @@ Usado para campos con pocas opciones mutuamente excluyentes (ej: Tipo de Documen
 **Estilos:**
 - Contenedor: `flex w-full bg-neutral-100 rounded-xl p-1 border border-neutral-200`
 - Botones: `flex-1 py-2.5` (distribuidos equitativamente, ocupan 100% del ancho)
-- Opción seleccionada: `bg-[#4654CD] text-white rounded-lg shadow-sm`
+- Opción seleccionada: `bg-[#4654CD]/15 text-[#4654CD] rounded-lg` (fondo tenue, texto primario)
 - Opción no seleccionada: `text-neutral-600 hover:text-neutral-800`
 - Animación: Framer Motion `layoutId` para transición suave
 
@@ -744,24 +744,24 @@ Usado para campos con pocas opciones mutuamente excluyentes (ej: Tipo de Documen
 
 **Ubicación:** `wizard-solicitud/components/wizard-solicitud/fields/RadioGroup.tsx`
 
-Usado para campos con más opciones que necesitan descripción.
+Usado para campos con más opciones que necesitan descripción. Cards clickeables sin círculo radio.
 
 ```tsx
 // Estructura visual - Estado seleccionado
 <button className="w-full p-4 rounded-xl border-2 bg-[#4654CD]/5 border-[#4654CD]">
-  <div className="flex items-center gap-3">
-    <div className="w-5 h-5 rounded-full bg-[#4654CD] border-[#4654CD]">
-      <div className="w-2 h-2 rounded-full bg-white" />
-    </div>
-    <span className="text-[#4654CD] font-medium">Opción seleccionada</span>
-  </div>
+  <p className="text-[#4654CD] font-medium">Opción seleccionada</p>
+</button>
+
+// Estructura visual - Estado no seleccionado
+<button className="w-full p-4 rounded-xl border-2 bg-white border-neutral-200">
+  <p className="text-neutral-800 font-medium">Opción no seleccionada</p>
 </button>
 ```
 
 **Estilos:**
 - Seleccionado: `bg-[#4654CD]/5 border-[#4654CD]`, texto `text-[#4654CD]`
-- No seleccionado: `bg-white border-neutral-200`, texto `text-neutral-800`
-- Radio circle seleccionado: `bg-[#4654CD]` con punto `bg-white`
+- No seleccionado: `bg-white border-neutral-200 hover:border-[#4654CD]/50`, texto `text-neutral-800`
+- **Sin círculo radio** - la selección se indica solo con borde y fondo
 
 ### 8.4 SelectInput con buscador (6+ opciones)
 
@@ -2873,6 +2873,152 @@ const handleAuthorChange = (value: string) => {
 - [ ] Atributo `data-feedback-overlay` en el overlay
 - [ ] Estados de loading/success/error en modal
 
+### 12.9 Función `buildInternalUrl` con Query Params
+
+Cuando un link interno necesita pasar **query params adicionales** (filtros, configuración, etc.), usar la versión extendida de `buildInternalUrl`:
+
+```tsx
+// Helper function con soporte para params adicionales
+const buildInternalUrl = (basePath: string, isCleanMode: boolean, params?: Record<string, string>) => {
+  const searchParams = new URLSearchParams();
+
+  // Agregar params personalizados primero
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      searchParams.set(key, value);
+    });
+  }
+
+  // Siempre preservar mode=clean al final
+  if (isCleanMode) {
+    searchParams.set('mode', 'clean');
+  }
+
+  const queryString = searchParams.toString();
+  return queryString ? `${basePath}?${queryString}` : basePath;
+};
+```
+
+#### Ejemplos de Uso
+
+```tsx
+// Link a catálogo filtrado por tipo de equipo
+const laptopsUrl = buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop' });
+// → /catalogo/catalog-preview?device=laptop
+// → /catalogo/catalog-preview?device=laptop&mode=clean (si isCleanMode)
+
+// Link a catálogo filtrado por tag
+const ofertasUrl = buildInternalUrl(catalogBasePath, isCleanMode, { tag: 'oferta' });
+// → /catalogo/catalog-preview?tag=oferta
+
+// Múltiples params
+const url = buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop', tag: 'oferta' });
+// → /catalogo/catalog-preview?device=laptop&tag=oferta
+```
+
+### 12.10 Query Params para Filtros del Catálogo
+
+El catálogo sincroniza los filtros con la URL para permitir compartir links con filtros aplicados.
+
+#### Params Disponibles
+
+| Param | Descripción | Ejemplo | Valores |
+|-------|-------------|---------|---------|
+| `device` | Tipo de equipo | `?device=laptop,tablet` | `laptop`, `tablet`, `celular` |
+| `brand` | Marcas | `?brand=lenovo,hp` | Nombres de marca |
+| `tag` | Tags destacados | `?tag=oferta,mas_vendido` | `oferta`, `mas_vendido`, `recomendado`, `cuota_baja` |
+| `usage` | Uso recomendado | `?usage=gaming,estudios` | `estudios`, `gaming`, `diseño`, `oficina`, `programacion` |
+| `gama` | Gama/Tier | `?gama=profesional` | `economica`, `estudiante`, `profesional`, `creativa`, `gamer` |
+| `ram` | Memoria RAM | `?ram=8,16` | Valores numéricos (GB) |
+| `storage` | Almacenamiento | `?storage=256,512` | Valores numéricos (GB) |
+| `quota` | Rango de cuota mensual | `?quota=40,100` | `min,max` en soles (default: `25,400`) |
+| `sort` | Ordenamiento | `?sort=price_asc` | `recommended`, `price_asc`, `price_desc`, `newest`, `quota_asc`, `popular` |
+
+> **Nota:** El filtro `priceRange` (rango de precio total del producto) fue eliminado. Solo existe `quotaRange` para filtrar por cuota mensual.
+
+#### Múltiples Valores
+
+Usar comas para múltiples valores del mismo filtro:
+
+```
+?device=laptop,tablet&tag=oferta,recomendado
+```
+
+#### Implementación en `queryFilters.ts`
+
+```tsx
+// Lectura de params
+const tag = searchParams.get('tag');
+if (tag) {
+  const validTags: ProductTagType[] = ['mas_vendido', 'recomendado', 'cuota_baja', 'oferta'];
+  filters.tags = tag
+    .split(',')
+    .filter((t) => validTags.includes(t as ProductTagType)) as ProductTagType[];
+}
+
+// Escritura de params
+if (filters.tags.length > 0) {
+  params.set('tag', filters.tags.join(','));
+}
+```
+
+### 12.11 URLs Limpias (Decodificar Comas)
+
+Por defecto, `URLSearchParams.toString()` codifica las comas como `%2C`, haciendo las URLs menos legibles.
+
+```
+❌ ?device=laptop%2Ctablet&tag=oferta%2Cmas_vendido
+✅ ?device=laptop,tablet&tag=oferta,mas_vendido
+```
+
+#### Solución
+
+Decodificar las comas al generar el query string:
+
+```tsx
+// Al actualizar la URL en el catálogo
+const queryString = filterParams.toString().replace(/%2C/g, ',');
+router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
+```
+
+> **Nota:** Las comas son caracteres válidos en URLs y no requieren codificación.
+
+### 12.12 Scroll a Secciones con Offset
+
+Cuando hay un header fijo, los anchor links (`#seccion`) posicionan el contenido debajo del header, tapándolo.
+
+#### Solución: `scroll-mt-{size}`
+
+Agregar la clase `scroll-mt-24` (96px) a las secciones target para compensar el header:
+
+```tsx
+// ✅ CORRECTO - Tiene scroll-mt-24
+<section id="como-funciona" className="scroll-mt-24">
+  <HowItWorks />
+</section>
+
+// ❌ INCORRECTO - Sin offset, el header tapa el contenido
+<section id="como-funciona">
+  <HowItWorks />
+</section>
+```
+
+#### Secciones que Requieren `scroll-mt-24`
+
+Toda sección con `id` que sea target de un anchor link:
+
+| Sección | ID | Clase |
+|---------|-----|-------|
+| Cómo funciona | `#como-funciona` | `scroll-mt-24` |
+| Convenios | `#convenios` | `scroll-mt-24` |
+| FAQ | `#faq` | `scroll-mt-24` |
+
+#### Checklist Scroll a Secciones
+
+- [ ] Sección tiene `id="nombre-seccion"`
+- [ ] Sección tiene `className="scroll-mt-24"`
+- [ ] Links usan `href="#nombre-seccion"` o `scrollIntoView`
+
 ---
 
 ## 13. Checklist de Validación
@@ -3278,6 +3424,159 @@ Antes de dar por terminado un filtro, verificar:
 - [ ] El count refleja la cantidad real de productos disponibles
 - [ ] El formato es consistente con otros filtros de la misma página
 
+### 16.7 Agregar Nuevo Filtro al Catálogo (Checklist Completo)
+
+Al agregar un nuevo tipo de filtro al catálogo, seguir estos pasos en orden:
+
+#### 1. Tipos (`types/catalog.ts`)
+
+```tsx
+// Agregar al FilterState
+export interface FilterState {
+  // ... otros campos
+  tags: ProductTagType[];  // ← Nuevo campo
+}
+
+// Agregar al defaultFilterState
+export const defaultFilterState: FilterState = {
+  // ... otros campos
+  tags: [],  // ← Valor por defecto
+};
+
+// Agregar a FilterCounts
+export interface FilterCounts {
+  // ... otros campos
+  tags: Record<string, number>;  // ← Para conteos dinámicos
+}
+```
+
+#### 2. Query Params (`utils/queryFilters.ts`)
+
+```tsx
+// Agregar al SyncedFilterKey
+type SyncedFilterKey =
+  | 'deviceTypes'
+  | 'tags'  // ← Nuevo
+  // ...
+
+// Agregar al PARAM_MAP
+const PARAM_MAP: Record<string, SyncedFilterKey> = {
+  tag: 'tags',  // ← query param → filter key
+  // ...
+};
+
+// Agregar parsing en parseFiltersFromParams
+const tag = searchParams.get('tag');
+if (tag) {
+  filters.tags = tag.split(',').filter(Boolean) as ProductTagType[];
+}
+
+// Agregar building en buildParamsFromFilters
+if (filters.tags.length > 0) {
+  params.set('tag', filters.tags.join(','));
+}
+```
+
+#### 3. Mock Data (`data/mockCatalogData.ts`)
+
+```tsx
+// Agregar opciones
+export const tagOptions: FilterOption[] = [
+  { value: 'oferta', label: 'Oferta', count: 0 },
+  // ...
+];
+
+// Agregar conteo en getFilterCounts
+product.tags.forEach((tag) => {
+  counts.tags[tag] = (counts.tags[tag] || 0) + 1;
+});
+
+// Agregar filtro en getFilteredProducts
+if (filters.tags?.length && !filters.tags.some((t) => product.tags.includes(t))) {
+  return false;
+}
+```
+
+#### 4. Componente de Filtro (`components/catalog/filters/`)
+
+Crear componente similar a `CommercialFilters.tsx` o `TagsFilter.tsx`.
+
+#### 5. Layout (`CatalogLayoutV4.tsx`)
+
+**5.1 Imports:**
+```tsx
+import { TagsFilter } from '../filters/TagsFilter';
+import { tagOptions } from '../../../data/mockCatalogData';
+```
+
+**5.2 Dynamic Options (useMemo):**
+```tsx
+const dynamicTagOptions = React.useMemo(() =>
+  filterCounts ? applyDynamicCounts(tagOptions, filterCounts.tags) : tagOptions,
+  [filterCounts]
+);
+```
+
+**5.3 Applied Filters (chips arriba del grid):**
+```tsx
+filters.tags.forEach((tag) => {
+  const opt = tagOptions.find((o) => o.value === tag);
+  applied.push({
+    id: `tag-${tag}`,
+    category: 'Destacados',
+    label: opt?.label || tag,
+    value: tag
+  });
+});
+```
+
+**5.4 Applied Filters Count:**
+```tsx
+filters.tags.length +
+```
+
+**5.5 Handle Remove Filter:**
+```tsx
+case 'tag':
+  updateFilter('tags', filters.tags.filter((t) => t !== value));
+  break;
+```
+
+**5.6 Handle Clear All:**
+```tsx
+tags: [],
+```
+
+**5.7 Render en Sidebar (Desktop) y Modal (Mobile):**
+```tsx
+<TagsFilter
+  tagOptions={dynamicTagOptions}
+  selectedTags={filters.tags}
+  onTagsChange={(tags) => updateFilter('tags', tags)}
+  showCounts={config.showFilterCounts}
+/>
+```
+
+#### Checklist Nuevo Filtro
+
+- [ ] Campo agregado a `FilterState`
+- [ ] Default agregado a `defaultFilterState`
+- [ ] Campo agregado a `FilterCounts`
+- [ ] Query param mapeado en `queryFilters.ts`
+- [ ] Parsing implementado en `parseFiltersFromParams`
+- [ ] Building implementado en `buildParamsFromFilters`
+- [ ] Opciones creadas en `mockCatalogData.ts`
+- [ ] Conteo agregado en `getFilterCounts`
+- [ ] Filtrado agregado en `getFilteredProducts`
+- [ ] Componente de filtro creado
+- [ ] `dynamicOptions` con useMemo en layout
+- [ ] Agregado a `appliedFilters` (chips)
+- [ ] Agregado a `appliedFiltersCount`
+- [ ] Caso en `handleRemoveFilter`
+- [ ] Reset en `handleClearAll`
+- [ ] Renderizado en sidebar desktop
+- [ ] Renderizado en modal mobile
+
 ---
 
 ## 17. Versionado de Documento
@@ -3308,6 +3607,10 @@ Antes de dar por terminado un filtro, verificar:
 | 3.1 | 2026-01-09 | Sección 9.5.7: Prohibición explícita de toasts inline con ejemplos de código prohibido y verificación |
 | 3.2 | 2026-01-09 | Sección 16: Filtros con Conteo - estándar para mostrar cantidad de resultados en filtros |
 | 3.3 | 2026-01-09 | Sección 12.8: Campo "Responsable" como selector (no input), lista de responsables sin tildes en mayúsculas |
+| 3.4 | 2026-01-12 | Secciones 12.9-12.12: `buildInternalUrl` con params, query params filtros catálogo, URLs limpias (decodificar comas), scroll a secciones con offset |
+| 3.5 | 2026-01-12 | Sección 16.7: Checklist completo para agregar nuevo filtro al catálogo (17 pasos) |
+| 3.6 | 2026-01-12 | Sección 12.10: Eliminado `priceRange`, solo existe `quotaRange` (cuota mensual). Formato URL: `quota=40,100` (coma, no guion). Default: `[25, 400]` |
+| 3.7 | 2026-01-12 | Sección 8.2-8.3: SegmentedControl con fondo tenue (`bg-[#4654CD]/15`), RadioGroup sin círculo radio |
 
 ---
 

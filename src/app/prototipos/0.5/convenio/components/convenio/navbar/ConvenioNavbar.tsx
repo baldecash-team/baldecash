@@ -10,9 +10,19 @@ import { Button, Chip } from '@nextui-org/react';
 import { Menu, X, Percent, User, Laptop, ChevronDown, Smartphone, Tablet, ArrowRight } from 'lucide-react';
 import { ConvenioData } from '../../../types/convenio';
 
-// Helper function to build internal URLs with mode propagation
-const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
-  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+// Helper function to build internal URLs with mode propagation and query params
+const buildInternalUrl = (basePath: string, isCleanMode: boolean, params?: Record<string, string>) => {
+  const searchParams = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      searchParams.set(key, value);
+    });
+  }
+  if (isCleanMode) {
+    searchParams.set('mode', 'clean');
+  }
+  const queryString = searchParams.toString();
+  return queryString ? `${basePath}?${queryString}` : basePath;
 };
 
 interface ConvenioNavbarProps {
@@ -25,12 +35,13 @@ export const ConvenioNavbar: React.FC<ConvenioNavbarProps> = ({ convenio, isClea
   const [showPromo, setShowPromo] = useState(true);
   const [showMegaMenu, setShowMegaMenu] = useState(false);
 
-  const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
+  const catalogBasePath = '/prototipos/0.5/catalogo/catalog-preview';
+  const catalogUrl = buildInternalUrl(catalogBasePath, isCleanMode);
 
   const megaMenuItems = [
-    { label: 'Laptops', href: catalogUrl, icon: Laptop, description: 'Portátiles para trabajo y estudio' },
-    { label: 'Tablets', href: catalogUrl, icon: Tablet, description: 'Tablets para toda ocasión' },
-    { label: 'Celulares', href: catalogUrl, icon: Smartphone, description: 'Smartphones de todas las marcas' },
+    { label: 'Laptops', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop' }), icon: Laptop, description: 'Portátiles para trabajo y estudio' },
+    { label: 'Tablets', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'tablet' }), icon: Tablet, description: 'Tablets para toda ocasión' },
+    { label: 'Celulares', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'celular' }), icon: Smartphone, description: 'Smartphones de todas las marcas' },
     { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
   ];
 

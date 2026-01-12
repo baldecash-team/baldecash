@@ -72,12 +72,15 @@ export interface QuizProduct {
     resolution: string;
     gpu?: string;
     gpuType?: 'integrated' | 'dedicated';
+    weight?: number; // kg - para scoring de portabilidad
+    batteryLife?: number; // horas - para scoring de batería
   };
   tags: string[];
   gama: 'entrada' | 'media' | 'alta' | 'premium';
   isNew?: boolean;
   discount?: number;
   stock?: 'available' | 'limited' | 'out';
+  condition?: 'nuevo' | 'reacondicionado'; // para filtro de condición
   matchScore?: number;
 }
 

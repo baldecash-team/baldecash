@@ -277,8 +277,7 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
       hasHDMI: null,
       minUSBPorts: null,
       ramExpandable: null,
-      priceRange: [1000, 8000],
-      quotaRange: [40, 400],
+      quotaRange: [25, 400],
     });
   };
 

@@ -15,6 +15,7 @@ import { useProduct } from '../../context/ProductContext';
 import { formatMoney } from '../../../utils/formatMoney';
 import { FeedbackButton } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
 // Upsell components
 import {
@@ -302,6 +303,7 @@ function SegurosContent() {
     return (
       <>
         {pageContent}
+        <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="wizard-solicitud-seguros"
           config={WIZARD_CONFIG as unknown as Record<string, unknown>}
@@ -315,6 +317,7 @@ function SegurosContent() {
   return (
     <div className="relative">
       {pageContent}
+      <Footer isCleanMode={isCleanMode} />
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-24 right-6 z-[100] flex flex-col gap-2 lg:bottom-6">

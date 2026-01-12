@@ -13,6 +13,7 @@ import {
   GpuType,
   StockStatus,
   ProductCondition,
+  ProductTagType,
 } from '../types/catalog';
 
 // Filtros que se sincronizan con la URL
@@ -20,21 +21,20 @@ type SyncedFilterKey =
   | 'deviceTypes'
   | 'brands'
   | 'usage'
-  | 'priceRange'
   | 'quotaRange'
   | 'ram'
   | 'storage'
   | 'gama'
   | 'gpuType'
   | 'stock'
-  | 'condition';
+  | 'condition'
+  | 'tags';
 
 // Mapeo de query param name -> filter key
 const PARAM_MAP: Record<string, SyncedFilterKey> = {
   device: 'deviceTypes',
   brand: 'brands',
   usage: 'usage',
-  price: 'priceRange',
   quota: 'quotaRange',
   ram: 'ram',
   storage: 'storage',
@@ -42,6 +42,7 @@ const PARAM_MAP: Record<string, SyncedFilterKey> = {
   gpu: 'gpuType',
   stock: 'stock',
   condition: 'condition',
+  tag: 'tags',
 };
 
 /**
@@ -87,19 +88,10 @@ export const parseFiltersFromParams = (
       .filter(Boolean) as UsageType[];
   }
 
-  // Price range (formato: min-max)
-  const price = searchParams.get('price');
-  if (price) {
-    const [min, max] = price.split('-').map(Number);
-    if (!isNaN(min) && !isNaN(max)) {
-      filters.priceRange = [min, max];
-    }
-  }
-
-  // Quota range (formato: min-max)
+  // Quota range (formato: min,max)
   const quota = searchParams.get('quota');
   if (quota) {
-    const [min, max] = quota.split('-').map(Number);
+    const [min, max] = quota.split(',').map(Number);
     if (!isNaN(min) && !isNaN(max)) {
       filters.quotaRange = [min, max];
     }
@@ -156,6 +148,15 @@ export const parseFiltersFromParams = (
       .filter(Boolean) as ProductCondition[];
   }
 
+  // Tags (array de strings)
+  const tag = searchParams.get('tag');
+  if (tag) {
+    const validTags: ProductTagType[] = ['mas_vendido', 'recomendado', 'cuota_baja', 'oferta'];
+    filters.tags = tag
+      .split(',')
+      .filter((t) => validTags.includes(t as ProductTagType)) as ProductTagType[];
+  }
+
   // Sort
   const sort = searchParams.get('sort');
   if (sort) {
@@ -169,20 +170,6 @@ export const parseFiltersFromParams = (
     ];
     if (validSorts.includes(sort as SortOption)) {
       filters.sort = sort as SortOption;
-    }
-  }
-
-  // Budget del quiz -> mapear a priceRange
-  const budget = searchParams.get('budget');
-  if (budget && !price) {
-    const budgetMap: Record<string, [number, number]> = {
-      low: [600, 2000],
-      medium: [2000, 3500],
-      high: [3500, 5000],
-      premium: [5000, 8000],
-    };
-    if (budgetMap[budget]) {
-      filters.priceRange = budgetMap[budget];
     }
   }
 
@@ -214,20 +201,12 @@ export const buildParamsFromFilters = (
     params.set('usage', filters.usage.join(','));
   }
 
-  // Price range (solo si difiere del default)
-  if (
-    filters.priceRange[0] !== defaultFilterState.priceRange[0] ||
-    filters.priceRange[1] !== defaultFilterState.priceRange[1]
-  ) {
-    params.set('price', `${filters.priceRange[0]}-${filters.priceRange[1]}`);
-  }
-
   // Quota range (solo si difiere del default)
   if (
     filters.quotaRange[0] !== defaultFilterState.quotaRange[0] ||
     filters.quotaRange[1] !== defaultFilterState.quotaRange[1]
   ) {
-    params.set('quota', `${filters.quotaRange[0]}-${filters.quotaRange[1]}`);
+    params.set('quota', `${filters.quotaRange[0]},${filters.quotaRange[1]}`);
   }
 
   // RAM
@@ -243,6 +222,11 @@ export const buildParamsFromFilters = (
   // Gama
   if (filters.gama.length > 0) {
     params.set('gama', filters.gama.join(','));
+  }
+
+  // Tags
+  if (filters.tags.length > 0) {
+    params.set('tag', filters.tags.join(','));
   }
 
   // Sort (solo si no es el default)
@@ -273,8 +257,6 @@ export const hasActiveFilters = (filters: FilterState): boolean => {
     filters.deviceTypes.length > 0 ||
     filters.brands.length > 0 ||
     filters.usage.length > 0 ||
-    filters.priceRange[0] !== defaultFilterState.priceRange[0] ||
-    filters.priceRange[1] !== defaultFilterState.priceRange[1] ||
     filters.quotaRange[0] !== defaultFilterState.quotaRange[0] ||
     filters.quotaRange[1] !== defaultFilterState.quotaRange[1] ||
     filters.ram.length > 0 ||

@@ -6,12 +6,12 @@
  * Botones flotantes estándar v0.5
  */
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button, Popover, PopoverTrigger, PopoverContent, Tooltip } from '@nextui-org/react';
+import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { ArrowLeft, Code, Loader2, RefreshCw } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButtonSimple } from '@/app/prototipos/_shared';
+import { FeedbackButton } from '@/app/prototipos/_shared';
 import { ConvenioLanding } from '../components/convenio/ConvenioLanding';
 import { convenios, getConvenioBySlug, defaultConvenio } from '../data/mockConvenioData';
 
@@ -30,6 +30,15 @@ function ConvenioPreviewContent() {
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
   const [showConfig, setShowConfig] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Preloading: dar tiempo a la página para cargar recursos
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Get convenio from URL or use default
   const convenioSlug = searchParams.get('convenio');
@@ -45,6 +54,11 @@ function ConvenioPreviewContent() {
       router.replace(`?${params.toString()}`, { scroll: false });
     }
   };
+
+  // Show loading while preloading
+  if (isLoading) {
+    return <LoadingFallback />;
+  }
 
   // Render content with floating controls
   return (
@@ -75,31 +89,24 @@ function ConvenioPreviewContent() {
               <p className="text-xs font-medium text-neutral-500 px-1">Cambiar convenio</p>
               <div className="grid grid-cols-3 gap-2">
                 {convenios.map((conv) => (
-                  <Tooltip
+                  <button
                     key={conv.slug}
-                    content={conv.nombreCorto}
-                    placement="top"
-                    delay={300}
-                    classNames={{ content: 'text-xs' }}
+                    onClick={() => handleConvenioChange(conv.slug)}
+                    className={`
+                      w-14 h-14 rounded-xl border-2 flex items-center justify-center p-2
+                      transition-all cursor-pointer hover:scale-105
+                      ${selectedConvenio.slug === conv.slug
+                        ? 'border-[#4654CD] bg-[#4654CD]/5'
+                        : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                      }
+                    `}
                   >
-                    <button
-                      onClick={() => handleConvenioChange(conv.slug)}
-                      className={`
-                        w-14 h-14 rounded-xl border-2 flex items-center justify-center p-2
-                        transition-all cursor-pointer hover:scale-105
-                        ${selectedConvenio.slug === conv.slug
-                          ? 'border-[#4654CD] bg-[#4654CD]/5'
-                          : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                        }
-                      `}
-                    >
-                      <img
-                        src={conv.logo}
-                        alt={conv.nombreCorto}
-                        className="w-full h-full object-contain"
-                      />
-                    </button>
-                  </Tooltip>
+                    <img
+                      src={conv.logo}
+                      alt={conv.nombreCorto}
+                      className="w-full h-full object-contain"
+                    />
+                  </button>
                 ))}
               </div>
             </div>
@@ -145,8 +152,10 @@ function ConvenioPreviewContent() {
         </div>
       )}
 
-      {/* Feedback Button */}
-      <FeedbackButtonSimple />
+      {/* Feedback Button - only in clean mode */}
+      {isCleanMode && (
+        <FeedbackButton sectionId="convenio" config={FIXED_CONFIG} />
+      )}
     </div>
   );
 }

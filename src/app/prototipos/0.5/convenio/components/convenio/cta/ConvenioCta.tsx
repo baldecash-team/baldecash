@@ -14,13 +14,13 @@ import { formatMoney } from '../../../../utils/formatMoney';
 interface ConvenioCtaProps {
   convenio: ConvenioData;
   cuotaDesde?: number;
-  onVerEquipos?: () => void;
+  catalogUrl: string;
 }
 
 export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
   convenio,
   cuotaDesde = 49,
-  onVerEquipos,
+  catalogUrl,
 }) => {
   const cuotaConDescuento = calcularCuotaConDescuento(cuotaDesde, convenio.descuentoCuota);
 
@@ -90,13 +90,13 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
             <h3 className="text-white font-semibold mb-4">También puedes:</h3>
 
             <div className="space-y-3">
-              <button
-                onClick={onVerEquipos}
+              <a
+                href={catalogUrl}
                 className="w-full flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
               >
                 <span className="text-white">Ver equipos disponibles</span>
                 <ArrowRight className="w-5 h-5 text-white" />
-              </button>
+              </a>
 
               <a
                 href="#faq"

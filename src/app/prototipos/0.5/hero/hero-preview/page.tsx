@@ -14,10 +14,10 @@
  * Sin iteraciones - diseño único optimizado
  */
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Button, Spinner } from '@nextui-org/react';
-import { ArrowLeft, Code } from 'lucide-react';
+import { Button } from '@nextui-org/react';
+import { ArrowLeft, Code, Loader2 } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { FeedbackButton } from '@/app/prototipos/_shared';
 
@@ -35,15 +35,17 @@ const fixedConfig = {
   footer: 'V2 (Newsletter)',
 };
 
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+    </div>
+  );
+}
+
 export default function HeroPreviewPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-white">
-          <Spinner size="lg" color="primary" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingFallback />}>
       <HeroPreviewContent />
     </Suspense>
   );
@@ -55,6 +57,20 @@ function HeroPreviewContent() {
   const isCleanMode = searchParams.get('mode') === 'clean';
 
   const [showConfigBadge, setShowConfigBadge] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Preloading: dar tiempo a la página para cargar recursos
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading while preloading
+  if (isLoading) {
+    return <LoadingFallback />;
+  }
 
   // In clean mode, just render the hero section without controls
   if (isCleanMode) {

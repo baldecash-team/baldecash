@@ -16,6 +16,7 @@ import {
   getSimilarProductsByDeviceType,
   getLimitationsByDeviceType,
   getCertificationsByDeviceType,
+  mockPaymentPlans,
 } from '../../data/mockDetailData';
 
 import {
@@ -58,13 +59,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
 
-  // Get category label for breadcrumb
-  const categoryLabels: Record<string, string> = {
-    laptops: 'Laptops',
-    tablets: 'Tablets',
-    celulares: 'Celulares',
-  };
-
   const handleSolicitar = () => {
     const baseWizardUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview';
     const wizardUrl = isCleanMode ? `${baseWizardUrl}?mode=clean` : baseWizardUrl;
@@ -74,17 +68,6 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   return (
     <div className="min-h-screen bg-neutral-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-6">
-        {/* Breadcrumb */}
-        <nav className="text-sm text-neutral-500 mb-4">
-          <span className="hover:text-[#4654CD] cursor-pointer">Inicio</span>
-          <span className="mx-2">/</span>
-          <span className="hover:text-[#4654CD] cursor-pointer">
-            {categoryLabels[product.category] || product.category}
-          </span>
-          <span className="mx-2">/</span>
-          <span className="text-neutral-700">{product.displayName}</span>
-        </nav>
-
         {/* Main Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Gallery */}
@@ -106,8 +89,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             {/* Pricing Calculator + CTA */}
             <div id="section-pricing" className="space-y-4">
               <PricingCalculator
-                monthlyQuota={product.lowestQuota}
-                originalQuota={product.originalQuota}
+                paymentPlans={mockPaymentPlans}
                 defaultTerm={36}
               />
               {/* CTA Button */}
@@ -146,7 +128,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         {/* Cronograma Section - Full Width */}
         <div id="section-cronograma" className="mt-12">
           <Cronograma
-            monthlyQuota={product.lowestQuota}
+            paymentPlans={mockPaymentPlans}
             term={36}
             startDate={new Date()}
           />

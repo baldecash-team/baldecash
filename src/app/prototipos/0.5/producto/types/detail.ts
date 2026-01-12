@@ -211,8 +211,7 @@ export interface SpecsProps {
 }
 
 export interface PricingCalculatorProps {
-  monthlyQuota: number;
-  originalQuota?: number;
+  paymentPlans: PaymentPlan[];
   defaultTerm?: number;
 }
 
@@ -231,7 +230,7 @@ export interface CertificationsProps {
 }
 
 export interface CronogramaProps {
-  monthlyQuota: number;
+  paymentPlans: PaymentPlan[];
   term?: number;
   startDate?: Date;
 }

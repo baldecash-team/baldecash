@@ -30,7 +30,6 @@ import { EmptyActionsV6 } from './actions/EmptyActionsV6';
 export const EmptyState: React.FC<EmptyStateProps> = ({
   appliedFilters,
   onClearFilters,
-  onExpandPriceRange,
   onRemoveFilter,
   suggestedProducts,
   totalProductsIfExpanded,
@@ -63,7 +62,6 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     const actionsProps = {
       appliedFilters,
       onClearFilters,
-      onExpandPriceRange,
       onRemoveFilter,
       totalProductsIfExpanded,
     };

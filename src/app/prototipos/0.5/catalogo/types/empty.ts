@@ -58,7 +58,6 @@ export interface AppliedFilter {
 export interface EmptyStateProps {
   appliedFilters: AppliedFilter[];
   onClearFilters: () => void;
-  onExpandPriceRange: () => void;
   onRemoveFilter: (key: string) => void;
   suggestedProducts?: CatalogProduct[];
   totalProductsIfExpanded?: number;
@@ -72,7 +71,6 @@ export interface EmptyIllustrationProps {
 export interface EmptyActionsProps {
   appliedFilters: AppliedFilter[];
   onClearFilters: () => void;
-  onExpandPriceRange: () => void;
   onRemoveFilter: (key: string) => void;
   totalProductsIfExpanded?: number;
 }

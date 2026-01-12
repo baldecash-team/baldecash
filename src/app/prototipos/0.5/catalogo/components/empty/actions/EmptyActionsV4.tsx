@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { RefreshCw, Sparkles } from 'lucide-react';
 import { EmptyActionsProps } from '../../../types/empty';
 
 /**
@@ -12,8 +12,6 @@ import { EmptyActionsProps } from '../../../types/empty';
  */
 export const EmptyActionsV4: React.FC<EmptyActionsProps> = ({
   onClearFilters,
-  onExpandPriceRange,
-  totalProductsIfExpanded,
 }) => {
   const pills = [
     {
@@ -24,18 +22,6 @@ export const EmptyActionsV4: React.FC<EmptyActionsProps> = ({
       bgColor: 'bg-[#4654CD]',
       hoverColor: 'hover:bg-[#3a47b3]',
       textColor: 'text-white',
-    },
-    {
-      id: 'expand',
-      label: totalProductsIfExpanded
-        ? `Ampliar precio (${totalProductsIfExpanded})`
-        : 'Ampliar precio',
-      icon: SlidersHorizontal,
-      onClick: onExpandPriceRange,
-      bgColor: 'bg-white',
-      hoverColor: 'hover:bg-neutral-50',
-      textColor: 'text-neutral-800',
-      border: true,
     },
     {
       id: 'discover',
@@ -57,7 +43,6 @@ export const EmptyActionsV4: React.FC<EmptyActionsProps> = ({
           className={`
             flex items-center gap-2 px-5 py-3 rounded-full font-medium
             ${pill.bgColor} ${pill.textColor} ${pill.hoverColor}
-            ${pill.border ? 'border border-neutral-200 hover:border-[#4654CD]/50' : ''}
             cursor-pointer shadow-sm hover:shadow-md transition-all
           `}
           initial={{ opacity: 0, y: 20 }}

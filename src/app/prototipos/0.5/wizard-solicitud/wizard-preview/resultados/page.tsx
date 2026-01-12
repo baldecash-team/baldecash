@@ -12,6 +12,7 @@ import { CheckCircle2, XCircle, Clock, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { FeedbackButton } from '@/app/prototipos/_shared';
+import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
 const FIXED_CONFIG = {
   section: 'wizard-solicitud',
@@ -62,7 +63,7 @@ function ResultadosContent() {
     router.push(url);
   };
 
-  return (
+  const pageContent = (
     <div className="min-h-screen bg-neutral-50 relative">
       {/* Header con fondo primario - fixed con sombra */}
       <div className="bg-[#4654CD] py-5 fixed top-0 left-0 right-0 z-50 shadow-lg shadow-[#4654CD]/20">
@@ -78,7 +79,7 @@ function ResultadosContent() {
       {/* Spacer for fixed header */}
       <div className="h-[68px]" />
 
-      <div className="max-w-2xl mx-auto px-4 pt-14 pb-12 md:pb-16">
+      <div className="max-w-2xl mx-auto px-4 pt-14 pb-32 lg:pb-16">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -139,28 +140,41 @@ function ResultadosContent() {
           </p>
         </motion.div>
       </div>
+    </div>
+  );
 
-      {/* Floating Back Button - hidden in clean mode */}
-      {!isCleanMode && (
-        <div className="fixed bottom-6 right-6 z-[100]">
-          <Button
-            isIconOnly
-            radius="md"
-            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-            onPress={() => router.push('/prototipos/0.5')}
-          >
-            <ArrowLeft className="w-5 h-5 text-neutral-600" />
-          </Button>
-        </div>
-      )}
-
-      {/* Feedback Button - only in clean mode */}
-      {isCleanMode && (
+  // Clean mode: only content + feedback button
+  if (isCleanMode) {
+    return (
+      <>
+        {pageContent}
+        <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="wizard-solicitud-resultados"
           config={FIXED_CONFIG as unknown as Record<string, unknown>}
+          className="bottom-24 lg:bottom-6"
         />
-      )}
+      </>
+    );
+  }
+
+  // Normal mode: content + floating controls
+  return (
+    <div className="relative">
+      {pageContent}
+      <Footer isCleanMode={isCleanMode} />
+
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-24 right-6 z-[100] flex flex-col gap-2 lg:bottom-6">
+        <Button
+          isIconOnly
+          radius="md"
+          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          onPress={() => router.push('/prototipos/0.5')}
+        >
+          <ArrowLeft className="w-5 h-5 text-neutral-600" />
+        </Button>
+      </div>
     </div>
   );
 }

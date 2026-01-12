@@ -95,10 +95,6 @@ function EmptyStatePreviewContent() {
     setAppliedFilters([]);
   };
 
-  const handleExpandPriceRange = () => {
-    setAppliedFilters((prev) => prev.filter((f) => f.key !== 'price'));
-  };
-
   const handleRemoveFilter = (key: string) => {
     setAppliedFilters((prev) => prev.filter((f) => f.key !== key));
   };
@@ -125,7 +121,6 @@ function EmptyStatePreviewContent() {
           <EmptyState
             appliedFilters={appliedFilters}
             onClearFilters={handleClearFilters}
-            onExpandPriceRange={handleExpandPriceRange}
             onRemoveFilter={handleRemoveFilter}
             totalProductsIfExpanded={24}
             config={fixedConfig}

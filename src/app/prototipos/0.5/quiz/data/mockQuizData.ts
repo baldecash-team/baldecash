@@ -1,7 +1,14 @@
 // Mock Quiz Data - BaldeCash v0.5
 // 7 preguntas, Focus V1: Solo por uso
+// Usa productos del catálogo real
 
 import { QuizQuestion, QuizProduct, QuizResult, QuizAnswer } from '../types/quiz';
+import { mockProducts } from '@/app/prototipos/0.5/catalogo/data/mockCatalogData';
+import { CatalogProduct, calculateQuotaWithInitial } from '@/app/prototipos/0.5/catalogo/types/catalog';
+
+// Configuración fija para cálculo de cuota (igual que ProductCard)
+const QUIZ_TERM = 24;
+const QUIZ_INITIAL = 10;
 
 // ============================================
 // Predefined Quiz Questions - 7 preguntas
@@ -167,236 +174,346 @@ export const quizQuestionsUsage: QuizQuestion[] = [
 ];
 
 // ============================================
-// Mock Products for Results
+// Convertidor de CatalogProduct a QuizProduct
 // ============================================
 
-// Imágenes del banco de imágenes (Webflow CDN)
-const laptopImages = {
-  hp15: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8af9ed1fbf48ea397396_hp15.png',
-  hpVictus: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad8633afc74e8146b99e4a_VICTUS-15-FA0031DX-1.jpg',
-  lenovo: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7929bd7b580e6de7247d_Lenovo%20Chromebook%20S330.jpg',
-  asusVivobook: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad78aca11478d9ed058463_laptop_asus_x515ea.jpg',
-  dell: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad7ac27cd445765564b11b_Dell%201505.jpg',
-  hyundai: 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/64ad79b64b6011e52725b3a7_hyndai_hybook.png',
+// Mapeo de gama del catálogo a gama del quiz
+const mapGamaToQuiz = (gama: CatalogProduct['gama']): QuizProduct['gama'] => {
+  const gamaMap: Record<CatalogProduct['gama'], QuizProduct['gama']> = {
+    economica: 'entrada',
+    estudiante: 'media',
+    profesional: 'alta',
+    creativa: 'alta',
+    gamer: 'premium',
+  };
+  return gamaMap[gama] || 'media';
 };
 
-export const mockQuizProducts: QuizProduct[] = [
-  {
-    id: 'hp-245-g9',
-    name: 'HP 245 G9',
-    displayName: 'HP 245 G9 - Ideal para estudios',
-    brand: 'HP',
-    image: laptopImages.hp15,
-    thumbnail: laptopImages.hp15,
-    price: 1899,
-    lowestQuota: 79,
+// Mapeo de stock del catálogo a stock del quiz
+const mapStockToQuiz = (stock: CatalogProduct['stock']): QuizProduct['stock'] => {
+  const stockMap: Record<CatalogProduct['stock'], NonNullable<QuizProduct['stock']>> = {
+    available: 'available',
+    limited: 'limited',
+    on_demand: 'limited',
+    out_of_stock: 'out',
+  };
+  return stockMap[stock];
+};
+
+const convertCatalogToQuizProduct = (product: CatalogProduct): QuizProduct => {
+  // Mapear tags del catálogo a tags del quiz
+  const quizTags: string[] = [];
+
+  // Mapear usage a tags
+  if (product.usage.includes('estudios')) quizTags.push('estudios');
+  if (product.usage.includes('gaming')) quizTags.push('gaming');
+  if (product.usage.includes('diseño')) quizTags.push('diseno');
+  if (product.usage.includes('oficina')) quizTags.push('oficina');
+  if (product.usage.includes('programacion')) quizTags.push('programacion');
+
+  // Agregar tags basados en specs
+  if (product.specs.ram.size >= 16) quizTags.push('potente');
+  if (product.specs.gpu?.type === 'dedicated') quizTags.push('gaming', 'potente');
+  if (product.gama === 'gamer') quizTags.push('premium', 'gaming');
+  if (product.gama === 'economica') quizTags.push('basico');
+
+  const quizGama = mapGamaToQuiz(product.gama);
+
+  // Calcular cuota igual que ProductCard del catálogo
+  const { quota } = calculateQuotaWithInitial(product.price, QUIZ_TERM, QUIZ_INITIAL);
+
+  // Extraer horas de batería del string (ej: "8 horas" -> 8)
+  const batteryHours = parseInt(product.specs.battery.life) || 6;
+
+  return {
+    id: product.id,
+    name: product.name,
+    displayName: product.displayName,
+    brand: product.brand,
+    image: product.thumbnail,
+    thumbnail: product.thumbnail,
+    price: product.price,
+    lowestQuota: quota,
     specs: {
-      ram: 8,
-      ramType: 'DDR4',
-      ramExpandable: true,
-      storage: 256,
-      storageType: 'ssd',
-      processor: 'AMD Ryzen 5 5625U',
-      displaySize: 14,
-      resolution: 'HD',
-      gpuType: 'integrated',
+      ram: product.specs.ram.size,
+      ramType: product.specs.ram.type,
+      ramExpandable: product.specs.ram.expandable,
+      storage: product.specs.storage.size,
+      storageType: product.specs.storage.type as 'ssd' | 'hdd' | 'emmc',
+      processor: product.specs.processor.model,
+      displaySize: product.specs.display.size,
+      resolution: product.specs.display.resolution,
+      gpu: product.specs.gpu?.model,
+      gpuType: product.specs.gpu?.type,
+      weight: product.specs.dimensions.weight,
+      batteryLife: batteryHours,
     },
-    tags: ['estudios', 'oficina', 'basico'],
-    gama: 'entrada',
-    isNew: false,
-    stock: 'available',
-  },
-  {
-    id: 'lenovo-ideapad-3',
-    name: 'Lenovo IdeaPad 3',
-    displayName: 'Lenovo IdeaPad 3 - Versátil y potente',
-    brand: 'Lenovo',
-    image: laptopImages.lenovo,
-    thumbnail: laptopImages.lenovo,
-    price: 2499,
-    lowestQuota: 104,
-    specs: {
-      ram: 8,
-      ramType: 'DDR4',
-      ramExpandable: true,
-      storage: 512,
-      storageType: 'ssd',
-      processor: 'Intel Core i5-1235U',
-      displaySize: 15.6,
-      resolution: 'FHD',
-      gpuType: 'integrated',
-    },
-    tags: ['estudios', 'programacion', 'versatil'],
-    gama: 'media',
-    isNew: true,
-    stock: 'available',
-  },
-  {
-    id: 'acer-aspire-5',
-    name: 'Acer Aspire 5',
-    displayName: 'Acer Aspire 5 - Rendimiento confiable',
-    brand: 'Acer',
-    image: laptopImages.dell,
-    thumbnail: laptopImages.dell,
-    price: 2799,
-    lowestQuota: 117,
-    specs: {
-      ram: 16,
-      ramType: 'DDR4',
-      ramExpandable: true,
-      storage: 512,
-      storageType: 'ssd',
-      processor: 'Intel Core i5-1335U',
-      displaySize: 15.6,
-      resolution: 'FHD',
-      gpuType: 'integrated',
-    },
-    tags: ['programacion', 'diseno', 'potente'],
-    gama: 'media',
-    isNew: false,
-    stock: 'available',
-  },
-  {
-    id: 'asus-vivobook-15',
-    name: 'ASUS VivoBook 15',
-    displayName: 'ASUS VivoBook 15 - Elegante y eficiente',
-    brand: 'ASUS',
-    image: laptopImages.asusVivobook,
-    thumbnail: laptopImages.asusVivobook,
-    price: 2399,
-    lowestQuota: 100,
-    specs: {
-      ram: 8,
-      ramType: 'DDR4',
-      ramExpandable: true,
-      storage: 512,
-      storageType: 'ssd',
-      processor: 'AMD Ryzen 5 5500U',
-      displaySize: 15.6,
-      resolution: 'FHD',
-      gpuType: 'integrated',
-    },
-    tags: ['estudios', 'diseno', 'elegante'],
-    gama: 'media',
-    isNew: false,
-    stock: 'limited',
-  },
-  {
-    id: 'hp-victus-16',
-    name: 'HP Victus 16',
-    displayName: 'HP Victus 16 - Gaming y rendimiento',
-    brand: 'HP',
-    image: laptopImages.hpVictus,
-    thumbnail: laptopImages.hpVictus,
-    price: 4299,
-    lowestQuota: 179,
-    specs: {
-      ram: 16,
-      ramType: 'DDR5',
-      ramExpandable: true,
-      storage: 512,
-      storageType: 'ssd',
-      processor: 'Intel Core i5-12500H',
-      displaySize: 16.1,
-      resolution: 'FHD',
-      gpu: 'NVIDIA RTX 3050',
-      gpuType: 'dedicated',
-    },
-    tags: ['gaming', 'diseno', 'potente'],
-    gama: 'alta',
-    isNew: true,
-    discount: 300,
-    stock: 'available',
-  },
-  {
-    id: 'lenovo-legion-5',
-    name: 'Lenovo Legion 5',
-    displayName: 'Lenovo Legion 5 - El mejor para gaming',
-    brand: 'Lenovo',
-    image: laptopImages.hyundai,
-    thumbnail: laptopImages.hyundai,
-    price: 5499,
-    lowestQuota: 229,
-    specs: {
-      ram: 16,
-      ramType: 'DDR5',
-      ramExpandable: true,
-      storage: 1000,
-      storageType: 'ssd',
-      processor: 'AMD Ryzen 7 6800H',
-      displaySize: 15.6,
-      resolution: 'FHD',
-      gpu: 'NVIDIA RTX 4060',
-      gpuType: 'dedicated',
-    },
-    tags: ['gaming', 'diseno', 'premium'],
-    gama: 'premium',
-    isNew: true,
-    stock: 'limited',
-  },
-];
+    tags: [...new Set(quizTags)], // Eliminar duplicados
+    gama: quizGama,
+    isNew: product.isNew,
+    discount: product.discount,
+    stock: mapStockToQuiz(product.stock),
+    condition: product.condition,
+  };
+};
+
+// Filtrar solo laptops del catálogo y convertirlas a QuizProduct
+export const mockQuizProducts: QuizProduct[] = mockProducts
+  .filter(p => !p.deviceType || p.deviceType === 'laptop')
+  .map(convertCatalogToQuizProduct);
 
 // ============================================
 // Mock Results Generator
 // ============================================
 
+/**
+ * Calcula una puntuación de match basada en las preferencias del usuario.
+ * Usada para ordenar productos cuando hay múltiples coincidencias.
+ */
+const calculateMatchScore = (
+  product: QuizProduct,
+  priorityAnswer: string | undefined,
+  screenSizeAnswer: string | undefined
+): number => {
+  let score = 50; // Base score
+
+  // Scoring por priority (hasta +30 puntos)
+  if (priorityAnswer) {
+    switch (priorityAnswer) {
+      case 'portabilidad':
+        // Peso ≤ 1.5kg = +30, ≤ 1.8kg = +20, ≤ 2kg = +10
+        const weight = product.specs.weight || 2;
+        if (weight <= 1.5) score += 30;
+        else if (weight <= 1.8) score += 20;
+        else if (weight <= 2) score += 10;
+        break;
+      case 'bateria':
+        // Batería ≥ 10h = +30, ≥ 8h = +20, ≥ 6h = +10
+        const battery = product.specs.batteryLife || 6;
+        if (battery >= 10) score += 30;
+        else if (battery >= 8) score += 20;
+        else if (battery >= 6) score += 10;
+        break;
+      case 'pantalla':
+        // Pantalla ≥ 16" = +30, ≥ 15" = +20
+        const displaySize = product.specs.displaySize;
+        if (displaySize >= 16) score += 30;
+        else if (displaySize >= 15) score += 20;
+        break;
+      case 'rendimiento':
+        // RAM ≥ 16 = +15, GPU dedicada = +15
+        if (product.specs.ram >= 16) score += 15;
+        if (product.specs.gpuType === 'dedicated') score += 15;
+        break;
+    }
+  }
+
+  // Scoring por screen_size (hasta +20 puntos)
+  if (screenSizeAnswer) {
+    const displaySize = product.specs.displaySize;
+    switch (screenSizeAnswer) {
+      case 'small': // 13-14"
+        if (displaySize >= 13 && displaySize <= 14.1) score += 20;
+        else if (displaySize < 15) score += 10;
+        break;
+      case 'medium': // 15.6"
+        if (displaySize >= 15 && displaySize <= 16) score += 20;
+        else if (displaySize >= 14 && displaySize <= 17) score += 10;
+        break;
+      case 'large': // 16-17"
+        if (displaySize >= 16) score += 20;
+        else if (displaySize >= 15) score += 10;
+        break;
+    }
+  }
+
+  return score;
+};
+
 export const generateMockResults = (answers: QuizAnswer[]): QuizResult[] => {
+  // Extraer todas las respuestas
   const usageAnswer = answers.find(a => a.questionId === 'usage')?.selectedOptions[0];
   const budgetAnswer = answers.find(a => a.questionId === 'budget')?.selectedOptions[0];
+  const brandAnswer = answers.find(a => a.questionId === 'brand_preference')?.selectedOptions[0];
+  const priorityAnswer = answers.find(a => a.questionId === 'priority')?.selectedOptions[0];
+  const screenSizeAnswer = answers.find(a => a.questionId === 'screen_size')?.selectedOptions[0];
+  const deliveryAnswer = answers.find(a => a.questionId === 'delivery')?.selectedOptions[0];
+  const conditionAnswer = answers.find(a => a.questionId === 'condition')?.selectedOptions[0];
 
   let filteredProducts = [...mockQuizProducts];
 
-  // Filter by usage
+  // ============================================
+  // FILTROS ESTRICTOS (con fallback)
+  // ============================================
+
+  // 1. Filter by usage (estricto)
   if (usageAnswer === 'estudios' || usageAnswer === 'oficina') {
-    filteredProducts = filteredProducts.filter(p => p.tags.includes('estudios') || p.tags.includes('basico'));
+    filteredProducts = filteredProducts.filter(p =>
+      p.tags.includes('estudios') || p.tags.includes('oficina') || p.tags.includes('basico')
+    );
   } else if (usageAnswer === 'gaming') {
-    filteredProducts = filteredProducts.filter(p => p.tags.includes('gaming'));
+    filteredProducts = filteredProducts.filter(p =>
+      p.tags.includes('gaming') || p.tags.includes('potente')
+    );
   } else if (usageAnswer === 'diseno' || usageAnswer === 'programacion') {
-    filteredProducts = filteredProducts.filter(p => p.tags.includes('potente') || p.tags.includes('diseno'));
+    filteredProducts = filteredProducts.filter(p =>
+      p.tags.includes('potente') || p.tags.includes('diseno') || p.tags.includes('programacion')
+    );
   }
 
-  // Filter by budget
+  // 2. Filter by budget (estricto)
   if (budgetAnswer === 'low') {
-    filteredProducts = filteredProducts.filter(p => p.price <= 2000);
+    filteredProducts = filteredProducts.filter(p => p.lowestQuota <= 80);
   } else if (budgetAnswer === 'medium') {
-    filteredProducts = filteredProducts.filter(p => p.price <= 3500);
+    filteredProducts = filteredProducts.filter(p => p.lowestQuota <= 150);
   } else if (budgetAnswer === 'high') {
-    filteredProducts = filteredProducts.filter(p => p.price <= 5000);
+    filteredProducts = filteredProducts.filter(p => p.lowestQuota <= 250);
   }
 
-  // If no products match, return top 3 by lowest quota
+  // 3. Filter by brand preference (con fallback)
+  if (brandAnswer && brandAnswer !== 'any') {
+    const brandFiltered = filteredProducts.filter(p =>
+      p.brand.toLowerCase() === brandAnswer.toLowerCase()
+    );
+    if (brandFiltered.length > 0) {
+      filteredProducts = brandFiltered;
+    }
+  }
+
+  // 4. Filter by condition (nuevo) - con fallback
+  if (conditionAnswer === 'new') {
+    const newOnly = filteredProducts.filter(p => p.condition === 'nuevo');
+    if (newOnly.length > 0) {
+      filteredProducts = newOnly;
+    }
+    // Si no hay nuevos, seguimos con todos (fallback silencioso)
+  }
+
+  // 5. Filter by delivery/stock - con fallback
+  if (deliveryAnswer === 'urgent' || deliveryAnswer === 'week') {
+    const inStock = filteredProducts.filter(p => p.stock === 'available' || p.stock === 'limited');
+    if (inStock.length > 0) {
+      filteredProducts = inStock;
+    }
+    // Si no hay en stock, seguimos con todos (fallback silencioso)
+  }
+
+  // ============================================
+  // FALLBACK PROGRESIVO si no hay resultados
+  // ============================================
+
+  if (filteredProducts.length === 0) {
+    // Intentar solo con budget más relajado
+    filteredProducts = [...mockQuizProducts];
+    if (budgetAnswer === 'low') {
+      filteredProducts = filteredProducts.filter(p => p.lowestQuota <= 100);
+    } else if (budgetAnswer === 'medium') {
+      filteredProducts = filteredProducts.filter(p => p.lowestQuota <= 180);
+    }
+  }
+
+  // Si aún no hay resultados, devolver los 3 más económicos
   if (filteredProducts.length === 0) {
     filteredProducts = [...mockQuizProducts].sort((a, b) => a.lowestQuota - b.lowestQuota).slice(0, 3);
   }
 
-  // Generate results with match scores
-  return filteredProducts.slice(0, 3).map((product, index) => ({
-    matchScore: 95 - (index * 8),
+  // ============================================
+  // SCORING Y ORDENAMIENTO
+  // ============================================
+
+  // Calcular score para cada producto
+  const scoredProducts = filteredProducts.map(product => ({
     product,
-    reasons: getMatchReasons(product, usageAnswer || '', budgetAnswer || ''),
+    score: calculateMatchScore(product, priorityAnswer, screenSizeAnswer),
+  }));
+
+  // Ordenar por score (mayor primero), luego por cuota (menor primero)
+  scoredProducts.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.product.lowestQuota - b.product.lowestQuota;
+  });
+
+  // Generate results con match scores normalizados
+  const maxScore = Math.max(...scoredProducts.map(s => s.score));
+
+  return scoredProducts.slice(0, 3).map(({ product, score }, index) => ({
+    matchScore: Math.round((score / maxScore) * 100),
+    product,
+    reasons: getMatchReasons(product, usageAnswer || '', budgetAnswer || '', priorityAnswer, screenSizeAnswer),
   }));
 };
 
-const getMatchReasons = (product: QuizProduct, usage: string, budget: string): string[] => {
+const getMatchReasons = (
+  product: QuizProduct,
+  usage: string,
+  budget: string,
+  priority?: string,
+  screenSize?: string
+): string[] => {
   const reasons: string[] = [];
 
-  if (product.tags.includes('estudios')) {
+  // Razones basadas en uso
+  if (product.tags.includes('estudios') && (usage === 'estudios' || usage === 'oficina')) {
     reasons.push('Ideal para tareas académicas');
   }
-  if (product.tags.includes('gaming')) {
-    reasons.push('Excelente para juegos');
+  if (product.tags.includes('gaming') && usage === 'gaming') {
+    reasons.push('Optimizada para juegos');
   }
-  if (product.tags.includes('potente')) {
-    reasons.push('Alto rendimiento garantizado');
+  if (product.tags.includes('diseno') && usage === 'diseno') {
+    reasons.push('Perfecta para diseño y edición');
   }
-  if (product.specs.ram >= 16) {
-    reasons.push('RAM suficiente para multitarea');
-  }
-  if (product.specs.storage >= 512) {
-    reasons.push('Amplio almacenamiento');
+  if (product.tags.includes('programacion') && usage === 'programacion') {
+    reasons.push('Excelente para desarrollo');
   }
 
-  reasons.push(`Cuota accesible de S/${product.lowestQuota}/mes`);
+  // Razones basadas en priority
+  if (priority === 'portabilidad' && (product.specs.weight || 2) <= 1.8) {
+    reasons.push(`Ultraliviana: solo ${product.specs.weight}kg`);
+  }
+  if (priority === 'bateria' && (product.specs.batteryLife || 6) >= 8) {
+    reasons.push(`Batería de larga duración: ${product.specs.batteryLife}h`);
+  }
+  if (priority === 'pantalla' && product.specs.displaySize >= 15.6) {
+    reasons.push(`Pantalla amplia de ${product.specs.displaySize}"`);
+  }
+  if (priority === 'rendimiento' && (product.specs.ram >= 16 || product.specs.gpuType === 'dedicated')) {
+    reasons.push('Alto rendimiento garantizado');
+  }
+
+  // Razones basadas en screen_size
+  if (screenSize === 'small' && product.specs.displaySize <= 14.1) {
+    reasons.push('Tamaño compacto ideal para movilidad');
+  }
+  if (screenSize === 'large' && product.specs.displaySize >= 16) {
+    reasons.push('Pantalla grande para mayor comodidad');
+  }
+
+  // Razones basadas en specs (solo si no hay suficientes razones aún)
+  if (reasons.length < 3 && product.specs.ram >= 16) {
+    reasons.push('16GB RAM para multitarea fluida');
+  } else if (reasons.length < 3 && product.specs.ram >= 8) {
+    reasons.push('8GB RAM suficiente para tus tareas');
+  }
+
+  if (reasons.length < 3 && product.specs.gpuType === 'dedicated') {
+    reasons.push('Gráfica dedicada para alto rendimiento');
+  }
+
+  if (reasons.length < 3 && product.specs.storage >= 512) {
+    reasons.push('Amplio almacenamiento SSD');
+  }
+
+  // Razones basadas en gama
+  if (reasons.length < 3 && product.gama === 'premium') {
+    reasons.push('Equipo de gama premium');
+  } else if (reasons.length < 3 && product.gama === 'alta') {
+    reasons.push('Excelente relación calidad-precio');
+  }
+
+  // Siempre incluir la cuota si hay espacio
+  if (reasons.length < 3) {
+    reasons.push(`Cuota accesible de S/${product.lowestQuota}/mes`);
+  }
 
   return reasons.slice(0, 3);
 };

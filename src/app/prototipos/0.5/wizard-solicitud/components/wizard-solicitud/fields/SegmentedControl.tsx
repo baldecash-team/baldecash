@@ -101,14 +101,14 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
               className={`
                 relative flex-1 py-2.5 text-sm font-medium rounded-lg cursor-pointer
                 transition-colors duration-200 z-10
-                ${isSelected ? 'text-white' : 'text-neutral-600 hover:text-neutral-800'}
+                ${isSelected ? 'text-[#4654CD]' : 'text-neutral-600 hover:text-neutral-800'}
                 ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
               {isSelected && (
                 <motion.div
                   layoutId={`segmented-bg-${id}`}
-                  className="absolute inset-0 bg-[#4654CD] rounded-lg shadow-sm"
+                  className="absolute inset-0 bg-[#4654CD]/15 rounded-lg"
                   initial={false}
                   transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
                   style={{ zIndex: -1 }}

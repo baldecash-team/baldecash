@@ -9,13 +9,41 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FileText, Clock, Shield, ArrowRight, Loader2, Code, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@nextui-org/react';
-import { useProduct, SelectedProduct } from '../context/ProductContext';
+import { useProduct } from '../context/ProductContext';
 import { FeedbackButton } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
 // Upsell components
 import { AccessoryIntro, AccessoryCard } from '@/app/prototipos/0.5/upsell/components/upsell';
 import { mockAccessories } from '@/app/prototipos/0.5/upsell/data/mockUpsellData';
+
+// Coupon component
+import { CouponInput } from '../components/wizard-solicitud/coupon';
+
+// Fields component
+import { SelectInput } from '../components/wizard-solicitud/fields';
+
+// Opciones para selectores
+const PAYMENT_TERM_OPTIONS = [
+  { value: '6', label: '6 meses' },
+  { value: '12', label: '12 meses' },
+  { value: '18', label: '18 meses' },
+  { value: '24', label: '24 meses' },
+  { value: '36', label: '36 meses (Recomendado)' },
+  { value: '48', label: '48 meses' },
+];
+
+const REFERRAL_SOURCE_OPTIONS = [
+  { value: 'redes', label: 'Redes sociales (Instagram, TikTok, Facebook)' },
+  { value: 'google', label: 'Buscador (Google)' },
+  { value: 'amigo', label: 'Amigo o familiar' },
+  { value: 'universidad', label: 'Mi universidad o instituto' },
+  { value: 'publicidad', label: 'Publicidad online' },
+  { value: 'email', label: 'Correo electrónico' },
+  { value: 'evento', label: 'Evento o feria' },
+  { value: 'otro', label: 'Otro' },
+];
 
 // Fixed config for wizard
 const WIZARD_CONFIG = {
@@ -24,36 +52,30 @@ const WIZARD_CONFIG = {
   steps: ['intro', 'datos-personales', 'datos-academicos', 'datos-economicos', 'resumen'],
 };
 
-// Mock product for testing
-const MOCK_PRODUCT: SelectedProduct = {
-  id: 'macbook-air-m3',
-  name: 'MacBook Air 13" M3',
-  shortName: 'MacBook Air M3',
-  brand: 'Apple',
-  price: 5499,
-  monthlyPayment: 458,
-  months: 12,
-  image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/mba13-midnight-select-202402?wid=400&hei=400&fmt=jpeg&qlt=95&.v=1708367688034',
-  specs: {
-    processor: 'Apple M3 8-core',
-    ram: '8GB RAM',
-    storage: '256GB SSD',
-  },
-};
-
 function WizardPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
-  const { setSelectedProduct, selectedAccessories, toggleAccessory } = useProduct();
+  const { selectedProduct, setSelectedProduct, selectedAccessories, toggleAccessory, isHydrated } = useProduct();
   const [showConfig, setShowConfig] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
+  const [paymentTerm, setPaymentTerm] = useState('36');
+  const [referralSource, setReferralSource] = useState('');
 
-  // Set mock product on mount for testing purposes
+  // Redirect to catalog if no product was selected
   useEffect(() => {
-    setSelectedProduct(MOCK_PRODUCT);
-  }, [setSelectedProduct]);
+    // Wait for hydration from localStorage before deciding
+    if (!isHydrated) return;
+
+    // If no product was selected, redirect to catalog
+    if (!selectedProduct) {
+      const catalogUrl = isCleanMode
+        ? '/prototipos/0.5/catalogo/catalog-preview?mode=clean'
+        : '/prototipos/0.5/catalogo/catalog-preview';
+      router.replace(catalogUrl);
+    }
+  }, [isHydrated, selectedProduct, router, isCleanMode]);
 
   const handleStart = () => {
     const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/datos-personales';
@@ -137,7 +159,7 @@ function WizardPreviewContent() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
             <Clock className="w-6 h-6 text-[#4654CD] mx-auto mb-2" />
-            <p className="text-sm font-medium text-neutral-800">5-10 minutos</p>
+            <p className="text-sm font-medium text-neutral-800">1-2 minutos</p>
             <p className="text-xs text-neutral-500">Tiempo estimado</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
@@ -188,6 +210,33 @@ function WizardPreviewContent() {
           </ul>
         </div>
 
+        {/* Payment Preferences */}
+        <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
+          <h2 className="text-lg font-semibold text-neutral-800 mb-4">
+            Preferencias de pago
+          </h2>
+          <div className="space-y-4">
+            <SelectInput
+              id="paymentTerm"
+              label="¿Cuándo te gustaría pagar tu préstamo?"
+              value={paymentTerm}
+              onChange={setPaymentTerm}
+              options={PAYMENT_TERM_OPTIONS}
+              placeholder="Selecciona un plazo"
+              required={false}
+            />
+            <SelectInput
+              id="referralSource"
+              label="¿Cómo te enteraste de nosotros?"
+              value={referralSource}
+              onChange={setReferralSource}
+              options={REFERRAL_SOURCE_OPTIONS}
+              placeholder="Selecciona una opción"
+              required={false}
+            />
+          </div>
+        </div>
+
         {/* Accessories Upsell Section */}
         <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
           <AccessoryIntro />
@@ -224,6 +273,11 @@ function WizardPreviewContent() {
           </div>
         </div>
 
+        {/* Cupón de Descuento */}
+        <div className="mb-8">
+          <CouponInput />
+        </div>
+
         {/* CTA Button */}
         <button
           onClick={handleStart}
@@ -242,11 +296,17 @@ function WizardPreviewContent() {
     </div>
   );
 
+  // Show loading while checking hydration or if no product selected (redirect will happen)
+  if (!isHydrated || !selectedProduct) {
+    return <LoadingFallback />;
+  }
+
   // Clean mode: only content + feedback button
   if (isCleanMode) {
     return (
       <>
         <PageContent />
+        <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="wizard-solicitud-intro"
           config={WIZARD_CONFIG as unknown as Record<string, unknown>}
@@ -259,6 +319,7 @@ function WizardPreviewContent() {
   return (
     <div className="relative">
       <PageContent />
+      <Footer isCleanMode={isCleanMode} />
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">

@@ -72,7 +72,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ isCleanMode = false })
         </section>
 
         {/* How It Works Section */}
-        <section id="como-funciona">
+        <section id="como-funciona" className="scroll-mt-24">
           <HowItWorks data={mockHowItWorksData} underlineStyle={UNDERLINE_STYLE} />
         </section>
 

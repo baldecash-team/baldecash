@@ -19,12 +19,16 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Button, Spinner } from '@nextui-org/react';
-import { ArrowLeft, Code, Settings } from 'lucide-react';
+import { Button } from '@nextui-org/react';
+import { ArrowLeft, Code, Settings, Loader2 } from 'lucide-react';
 import { ProductDetail } from '../components/detail/ProductDetail';
 import { DetalleSettingsModal } from '../components/detail';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { FeedbackButton } from '@/app/prototipos/_shared';
+
+// Hero components (Navbar & Footer)
+import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
+import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 import {
   DetalleConfig,
   DeviceType,
@@ -38,6 +42,15 @@ function DetailPreviewContent() {
   const isCleanMode = searchParams.get('mode') === 'clean';
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Preloading: dar tiempo a la página para cargar recursos
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Config state - read from URL params
   const [config, setConfig] = useState<DetalleConfig>(() => {
@@ -75,11 +88,20 @@ function DetailPreviewContent() {
     deviceType: config.deviceType,
   };
 
+  // Show loading while preloading
+  if (isLoading) {
+    return <LoadingFallback />;
+  }
+
   // In clean mode, just render the product detail without controls
   if (isCleanMode) {
     return (
       <div className="min-h-screen bg-neutral-50 relative">
-        <ProductDetail deviceType={config.deviceType} />
+        <Navbar isCleanMode={isCleanMode} />
+        <main className="pt-24">
+          <ProductDetail deviceType={config.deviceType} />
+        </main>
+        <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="detalle"
           config={componentConfig as unknown as Record<string, unknown>}
@@ -91,8 +113,12 @@ function DetailPreviewContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {/* Main content */}
-      <ProductDetail deviceType={config.deviceType} />
+      <Navbar isCleanMode={isCleanMode} />
+      <main className="pt-24">
+        {/* Main content */}
+        <ProductDetail deviceType={config.deviceType} />
+      </main>
+      <Footer isCleanMode={isCleanMode} />
 
       {/* Floating action buttons */}
       <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
@@ -147,15 +173,17 @@ function DetailPreviewContent() {
   );
 }
 
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+    </div>
+  );
+}
+
 export default function DetailPreviewPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-          <Spinner size="lg" color="primary" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingFallback />}>
       <DetailPreviewContent />
     </Suspense>
   );

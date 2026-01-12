@@ -9,8 +9,12 @@ import React from 'react';
 import { Button } from '@nextui-org/react';
 import { ShoppingCart, Trash2, X, ArrowRight, GripHorizontal } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { CatalogProduct } from '../../types/catalog';
+import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney } from '../../../utils/formatMoney';
+
+// Configuración fija igual que ProductCard
+const SELECTED_TERM = 24;
+const SELECTED_INITIAL = 10;
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -30,7 +34,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onContinue,
 }) => {
   const dragControls = useDragControls();
-  const totalMonthly = items.reduce((sum, item) => sum + item.quotaMonthly, 0);
 
   return (
     <AnimatePresence mode="wait">
@@ -113,37 +116,40 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 p-3 bg-white rounded-xl border border-neutral-200"
-                    >
-                      <div className="w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={item.thumbnail}
-                          alt={item.displayName}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-neutral-500 uppercase">
-                          {item.brand}
-                        </p>
-                        <p className="text-sm font-medium text-neutral-800 line-clamp-2">
-                          {item.displayName}
-                        </p>
-                        <p className="text-sm font-bold text-[#4654CD] mt-1">
-                          S/{formatMoney(item.quotaMonthly)}/mes
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => onRemoveItem(item.id)}
-                        className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                  {items.map((item) => {
+                    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-3 p-3 bg-white rounded-xl border border-neutral-200"
                       >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
+                          <img
+                            src={item.thumbnail}
+                            alt={item.displayName}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-neutral-500 uppercase">
+                            {item.brand}
+                          </p>
+                          <p className="text-sm font-medium text-neutral-800 line-clamp-2">
+                            {item.displayName}
+                          </p>
+                          <p className="text-sm font-bold text-[#4654CD] mt-1">
+                            S/{formatMoney(quota)}/mes
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => onRemoveItem(item.id)}
+                          className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -151,14 +157,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {/* Footer */}
             {items.length > 0 && (
               <div className="border-t border-neutral-200 bg-white p-4 space-y-3">
-                {/* Total */}
-                <div className="flex items-center justify-between py-2 border-b border-neutral-100">
-                  <span className="text-sm text-neutral-600">Total mensual</span>
-                  <span className="text-xl font-bold text-[#4654CD]">
-                    S/{formatMoney(totalMonthly)}/mes
-                  </span>
-                </div>
-
                 {/* Warning for multiple items */}
                 {items.length > 1 && (
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">

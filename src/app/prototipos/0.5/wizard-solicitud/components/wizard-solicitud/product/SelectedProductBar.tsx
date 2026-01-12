@@ -10,12 +10,12 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, Package, Plus } from 'lucide-react';
+import { ChevronUp, ChevronDown, Package, Plus, Tag } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import Image from 'next/image';
 
 export const SelectedProductBar: React.FC = () => {
-  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment } = useProduct();
+  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment } = useProduct();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
 
@@ -31,7 +31,9 @@ export const SelectedProductBar: React.FC = () => {
 
   const totalPrice = getTotalPrice();
   const totalMonthlyPayment = getTotalMonthlyPayment();
+  const discountedMonthlyPayment = getDiscountedMonthlyPayment();
   const hasAccessories = selectedAccessories.length > 0;
+  const hasCoupon = !!appliedCoupon;
 
   return (
     <>
@@ -90,9 +92,16 @@ export const SelectedProductBar: React.FC = () => {
 
             {/* Price & Expand Icon */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-sm font-semibold text-[#4654CD]">
-                {formatPrice(totalMonthlyPayment)}/mes
-              </span>
+              <div className="text-right">
+                {hasCoupon && (
+                  <span className="text-xs text-neutral-400 line-through block">
+                    {formatPrice(totalMonthlyPayment)}/mes
+                  </span>
+                )}
+                <span className={`text-sm font-semibold ${hasCoupon ? 'text-green-600' : 'text-[#4654CD]'}`}>
+                  {formatPrice(discountedMonthlyPayment)}/mes
+                </span>
+              </div>
               {isExpanded ? (
                 <ChevronDown className="w-5 h-5 text-neutral-400" />
               ) : (
@@ -167,13 +176,29 @@ export const SelectedProductBar: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Coupon Applied Badge */}
+                  {hasCoupon && appliedCoupon && (
+                    <div className="mt-3 flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                      <Tag className="w-3 h-3" />
+                      <span className="font-medium">{appliedCoupon.code}</span>
+                      <span className="text-green-500">-{formatPrice(appliedCoupon.discount)}/mes</span>
+                    </div>
+                  )}
+
                   {/* Monthly Payment Summary */}
-                  <div className="mt-4 p-3 bg-[#4654CD]/5 rounded-lg">
+                  <div className={`mt-4 p-3 rounded-lg ${hasCoupon ? 'bg-green-50' : 'bg-[#4654CD]/5'}`}>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-neutral-700">Cuota mensual</span>
-                      <span className="text-lg font-bold text-[#4654CD]">
-                        {formatPrice(totalMonthlyPayment)}/mes
-                      </span>
+                      <div className="text-right">
+                        {hasCoupon && (
+                          <span className="text-sm text-neutral-400 line-through block">
+                            {formatPrice(totalMonthlyPayment)}/mes
+                          </span>
+                        )}
+                        <span className={`text-lg font-bold ${hasCoupon ? 'text-green-600' : 'text-[#4654CD]'}`}>
+                          {formatPrice(discountedMonthlyPayment)}/mes
+                        </span>
+                      </div>
                     </div>
                     <p className="text-xs text-neutral-500 mt-1">
                       {selectedProduct.months} meses
@@ -228,14 +253,37 @@ export const SelectedProductBar: React.FC = () => {
 
             {/* Pricing - Monthly Only */}
             <div className="text-right flex-shrink-0">
-              <p className="text-lg font-bold text-[#4654CD]">
-                {formatPrice(selectedProduct.monthlyPayment)}/mes
-              </p>
+              {hasCoupon ? (
+                <>
+                  <p className="text-sm text-neutral-400 line-through">
+                    {formatPrice(totalMonthlyPayment)}/mes
+                  </p>
+                  <p className="text-lg font-bold text-green-600">
+                    {formatPrice(discountedMonthlyPayment)}/mes
+                  </p>
+                </>
+              ) : (
+                <p className="text-lg font-bold text-[#4654CD]">
+                  {formatPrice(selectedProduct.monthlyPayment)}/mes
+                </p>
+              )}
               <p className="text-sm text-neutral-500">
                 {selectedProduct.months} meses
               </p>
             </div>
           </div>
+
+          {/* Coupon Badge - Desktop */}
+          {hasCoupon && appliedCoupon && (
+            <div className="mt-3 flex items-center justify-between px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-green-700">
+                <Tag className="w-4 h-4" />
+                <span className="font-medium">{appliedCoupon.code}</span>
+                <span className="text-green-600">{appliedCoupon.label}</span>
+              </div>
+              <span className="font-bold text-green-600">-{formatPrice(appliedCoupon.discount)}/mes</span>
+            </div>
+          )}
         </div>
 
         {/* Accessories Card with Accordion - Only visible when accessories are selected */}
@@ -295,9 +343,16 @@ export const SelectedProductBar: React.FC = () => {
                     {/* Total Summary */}
                     <div className="mt-3 pt-3 border-t border-[#4654CD]/10 flex justify-between items-center">
                       <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
-                      <span className="text-lg font-bold text-[#4654CD]">
-                        {formatPrice(totalMonthlyPayment)}/mes
-                      </span>
+                      <div className="text-right">
+                        {hasCoupon && (
+                          <span className="text-sm text-neutral-400 line-through block">
+                            {formatPrice(totalMonthlyPayment)}/mes
+                          </span>
+                        )}
+                        <span className={`text-lg font-bold ${hasCoupon ? 'text-green-600' : 'text-[#4654CD]'}`}>
+                          {formatPrice(discountedMonthlyPayment)}/mes
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>

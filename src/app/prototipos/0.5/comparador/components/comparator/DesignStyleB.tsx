@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardBody, CardHeader, CardFooter, Button } from '@nextui-org/react';
 import { Trophy, TrendingDown, Check, X, ArrowRight, Cpu, HardDrive, Monitor, MemoryStick, Zap } from 'lucide-react';
-import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference } from '../../types/comparator';
+import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../../utils/formatMoney';
 
 interface DesignStyleBProps {
@@ -150,7 +150,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               {/* Price */}
               <div className="text-center">
                 <span className={`text-2xl font-bold ${isBest ? 'text-[#22c55e]' : 'text-[#4654CD]'}`}>
-                  S/{formatMoney(product.quotaMonthly)}
+                  S/{formatMoney(getDisplayQuota(product))}
                 </span>
                 <span className="text-sm font-normal text-neutral-500">/mes</span>
                 {renderPriceDiff(index)}

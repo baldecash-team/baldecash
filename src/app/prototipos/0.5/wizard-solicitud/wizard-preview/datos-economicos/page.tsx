@@ -18,6 +18,7 @@ import { Loader2, Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { FeedbackButton } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
+import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
 const WIZARD_CONFIG = {
   section: 'wizard-solicitud',
@@ -177,6 +178,7 @@ function DatosEconomicosContent() {
     return (
       <>
         {pageContent}
+        <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="wizard-solicitud-datos-economicos"
           config={WIZARD_CONFIG as unknown as Record<string, unknown>}
@@ -190,6 +192,7 @@ function DatosEconomicosContent() {
   return (
     <div className="relative">
       {pageContent}
+      <Footer isCleanMode={isCleanMode} />
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-24 right-6 z-[100] flex flex-col gap-2 lg:bottom-6">

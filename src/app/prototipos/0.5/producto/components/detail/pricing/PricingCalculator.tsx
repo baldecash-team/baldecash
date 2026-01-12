@@ -2,13 +2,13 @@
 
 /**
  * PricingCalculator - Cards por plazo con animacion (basado en V4)
+ * Usa datos de ejemplo (paymentPlans) para mostrar cuotas diferentes por plazo
  */
 
-import { useState } from 'react';
-import { PricingCalculatorProps } from '../../../types/detail';
+import { useState, useMemo } from 'react';
+import { PricingCalculatorProps, PaymentPlan } from '../../../types/detail';
 import { formatMoney } from '../../../../utils/formatMoney';
 
-const TERMS = [12, 18, 24, 36, 48];
 const INITIAL_PAYMENT_OPTIONS = [
   { value: '0', label: '0%' },
   { value: '10', label: '10%' },
@@ -17,26 +17,30 @@ const INITIAL_PAYMENT_OPTIONS = [
 ];
 
 export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
-  monthlyQuota,
-  originalQuota,
+  paymentPlans,
   defaultTerm = 36,
 }) => {
   const [selectedTerm, setSelectedTerm] = useState(defaultTerm);
   const [initialPayment, setInitialPayment] = useState('0');
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
 
-  const calculateQuota = (term: number) => {
-    const initialPercent = parseInt(initialPayment);
-    if (initialPercent === 0) return monthlyQuota;
+  // Obtener cuota del plan según el plazo
+  const getQuotaForTerm = (term: number): { quota: number; originalQuota?: number } => {
+    const plan = paymentPlans.find(p => p.term === term);
+    if (!plan) return { quota: 0 };
 
-    const reduction = (monthlyQuota * initialPercent) / 100 / term;
-    return monthlyQuota - reduction;
+    const initialPercent = parseInt(initialPayment);
+    // Aplicar descuento por cuota inicial
+    const quota = Math.ceil(plan.monthlyQuota * (1 - initialPercent / 100));
+    const originalQuota = plan.originalQuota
+      ? Math.ceil(plan.originalQuota * (1 - initialPercent / 100))
+      : undefined;
+
+    return { quota, originalQuota };
   };
 
-  const calculatedQuota = calculateQuota(selectedTerm);
-  const calculatedOriginalQuota = originalQuota
-    ? originalQuota - ((originalQuota * parseInt(initialPayment)) / 100 / selectedTerm)
-    : undefined;
+  // Cuota del plazo seleccionado
+  const selectedPlan = useMemo(() => getQuotaForTerm(selectedTerm), [selectedTerm, initialPayment, paymentPlans]);
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow-lg">
@@ -71,16 +75,16 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
 
       {/* Term Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {TERMS.map((term) => {
-          const quota = calculateQuota(term);
-          const isSelected = selectedTerm === term;
-          const isHovered = hoveredTerm === term;
+        {paymentPlans.map((plan) => {
+          const { quota, originalQuota: originalQuotaForTerm } = getQuotaForTerm(plan.term);
+          const isSelected = selectedTerm === plan.term;
+          const isHovered = hoveredTerm === plan.term;
 
           return (
             <div
-              key={term}
-              onClick={() => setSelectedTerm(term)}
-              onMouseEnter={() => setHoveredTerm(term)}
+              key={plan.term}
+              onClick={() => setSelectedTerm(plan.term)}
+              onMouseEnter={() => setHoveredTerm(plan.term)}
               onMouseLeave={() => setHoveredTerm(null)}
               className={`
                 relative p-4 rounded-xl cursor-pointer transition-all duration-300
@@ -104,21 +108,21 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                     isSelected ? 'text-white/80' : 'text-neutral-500'
                   }`}
                 >
-                  {term} meses
+                  {plan.term} meses
                 </p>
 
-                {originalQuota && (
+                {originalQuotaForTerm && (
                   <p
                     className={`text-xs line-through mb-1 ${
                       isSelected ? 'text-white/60' : 'text-neutral-400'
                     }`}
                   >
-                    S/{formatMoney(originalQuota)}
+                    S/{formatMoney(originalQuotaForTerm)}
                   </p>
                 )}
 
                 <p
-                  className={`text-2xl font-bold ${
+                  className={`text-xl font-bold ${
                     isSelected ? 'text-white' : 'text-[#4654CD]'
                   }`}
                 >
@@ -141,14 +145,14 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       {/* Selected Quote Summary */}
       <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
         <div className="text-center">
-          <p className="text-sm text-neutral-600 mb-2">Pagarias</p>
-          {calculatedOriginalQuota && (
+          <p className="text-sm text-neutral-600 mb-2">Pagarías</p>
+          {selectedPlan.originalQuota && (
             <p className="line-through text-neutral-400 text-xl mb-1">
-              S/{formatMoney(calculatedOriginalQuota)}/mes
+              S/{formatMoney(selectedPlan.originalQuota)}/mes
             </p>
           )}
           <p className="text-4xl font-bold text-[#4654CD]">
-            S/{formatMoney(calculatedQuota)}/mes
+            S/{formatMoney(selectedPlan.quota)}/mes
           </p>
           <p className="text-sm text-neutral-500 mt-2">
             durante {selectedTerm} meses
