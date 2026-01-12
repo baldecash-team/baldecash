@@ -513,13 +513,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className={`grid gap-4 ${
-            config.productsPerRow.desktop === 4
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-              : config.productsPerRow.desktop === 5
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
-              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-          }`}
+          className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
         >
           {children}
         </motion.div>

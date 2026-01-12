@@ -904,19 +904,20 @@ function CatalogPreviewContent() {
 
           {/* Favoritos button - toggles view mode */}
           <Button
-            className={`shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-4 ${
+            size="sm"
+            className={`shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg ${
               viewMode === 'favorites'
                 ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
                 : 'bg-white text-[#4654CD] border border-[#4654CD]/20 hover:bg-neutral-100'
             }`}
             onPress={() => setViewMode(viewMode === 'favorites' ? 'all' : 'favorites')}
           >
-            <Heart className={`w-5 h-5 ${viewMode === 'favorites' || wishlist.length > 0 ? 'fill-current' : ''}`} />
+            <Heart className={`w-4 h-4 ${viewMode === 'favorites' || wishlist.length > 0 ? 'fill-current' : ''}`} />
             <span className="hidden sm:inline">
               {viewMode === 'favorites' ? 'Ver todos' : 'Favoritos'}
             </span>
             {wishlist.length > 0 && (
-              <span className={`text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 ${
+              <span className={`text-xs font-semibold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ${
                 viewMode === 'favorites' ? 'bg-white text-[#4654CD]' : 'bg-[#4654CD] text-white'
               }`}>
                 {wishlist.length}
@@ -926,10 +927,11 @@ function CatalogPreviewContent() {
 
           {/* Quiz button */}
           <Button
-            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-4"
+            size="sm"
+            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg"
             onPress={() => setIsQuizOpen(true)}
           >
-            <HelpCircle className="w-5 h-5" />
+            <HelpCircle className="w-4 h-4" />
             <span className="hidden sm:inline">¿Necesitas ayuda?</span>
           </Button>
         </div>

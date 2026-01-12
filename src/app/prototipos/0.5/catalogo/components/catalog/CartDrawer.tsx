@@ -169,30 +169,33 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center justify-center">
                   <Button
+                    size="lg"
                     variant="light"
-                    startContent={<Trash2 className="w-4 h-4" />}
+                    startContent={<Trash2 className="w-5 h-5" />}
                     onPress={onClearAll}
-                    className="cursor-pointer text-neutral-500 hover:text-red-500"
+                    className="px-6 font-bold cursor-pointer text-neutral-500 hover:text-red-500 rounded-xl"
                   >
                     Vaciar
                   </Button>
                   <Button
+                    size="lg"
                     variant="bordered"
                     onPress={onClose}
-                    className="cursor-pointer border-neutral-200"
+                    className="px-6 font-bold cursor-pointer border-neutral-300 rounded-xl"
                   >
                     Cerrar
                   </Button>
                   <Button
-                    className={`flex-1 font-semibold cursor-pointer ${
+                    size="lg"
+                    className={`px-8 !font-bold cursor-pointer rounded-xl ${
                       items.length === 1
                         ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                     }`}
                     onPress={onContinue}
-                    endContent={<ArrowRight className="w-4 h-4" />}
+                    endContent={<ArrowRight className="w-5 h-5" />}
                     isDisabled={items.length !== 1}
                   >
                     Continuar
