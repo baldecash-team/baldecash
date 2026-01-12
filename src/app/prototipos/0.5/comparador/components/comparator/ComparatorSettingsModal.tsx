@@ -56,7 +56,8 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
     }
 
     const queryString = params.toString();
-    const url = `${window.location.origin}${window.location.pathname}${queryString ? `?${queryString}` : ''}`;
+    const pathname = window.location.pathname.replace(/\/$/, ''); // Remove trailing slash
+    const url = `${window.location.origin}${pathname}${queryString ? `?${queryString}` : ''}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

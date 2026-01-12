@@ -157,10 +157,10 @@ export const CartBar: React.FC<CartBarProps> = ({
                 <Trash2 className="w-4 h-4" />
               </Button>
               <Button
-                size="sm"
-                className="bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]"
+                size="lg"
+                className="px-6 bg-[#4654CD] text-white !font-bold cursor-pointer hover:bg-[#3a47b3] rounded-xl"
                 onPress={onContinue}
-                endContent={<ArrowRight className="w-4 h-4" />}
+                endContent={<ArrowRight className="w-5 h-5" />}
               >
                 Continuar
               </Button>

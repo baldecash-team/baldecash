@@ -44,7 +44,8 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
     }
 
     const queryString = params.toString();
-    const url = `${window.location.origin}${window.location.pathname}${queryString ? `?${queryString}` : ''}`;
+    const pathname = window.location.pathname.replace(/\/$/, ''); // Remove trailing slash
+    const url = `${window.location.origin}${pathname}${queryString ? `?${queryString}` : ''}`;
 
     navigator.clipboard.writeText(url);
     setCopied(true);

@@ -224,11 +224,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex-1" />
 
             {/* CTAs */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center justify-center mx-auto">
               <Button
                 size="lg"
                 variant="bordered"
-                className="flex-1 border-[#4654CD] text-[#4654CD] font-bold cursor-pointer hover:bg-[#4654CD]/5 rounded-xl"
+                className="px-6 border-[#4654CD] text-[#4654CD] font-bold cursor-pointer hover:bg-[#4654CD]/5 rounded-xl"
                 startContent={<Eye className="w-5 h-5" />}
                 onPress={onViewDetail}
               >
@@ -236,7 +236,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </Button>
               <Button
                 size="lg"
-                className="flex-1 bg-[#4654CD] text-white font-bold cursor-pointer hover:bg-[#3a47b3] rounded-xl"
+                className="px-6 bg-[#4654CD] text-white font-bold cursor-pointer hover:bg-[#3a47b3] rounded-xl"
                 endContent={<ArrowRight className="w-5 h-5" />}
                 onPress={onAddToCart}
               >
