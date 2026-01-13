@@ -94,10 +94,7 @@ function LandingPreviewContent() {
           bannerVersion={config.bannerVersion}
           isCleanMode={isCleanMode}
         />
-        <FeedbackButton
-          sectionId="landing"
-          className="bottom-20 md:bottom-6"
-        />
+        <FeedbackButton sectionId="landing" />
       </>
     );
   }

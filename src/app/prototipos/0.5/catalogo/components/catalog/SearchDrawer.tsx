@@ -28,6 +28,18 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
   const dragControls = useDragControls();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Block body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   // Focus input when drawer opens
   useEffect(() => {
     if (isOpen && inputRef.current) {

@@ -3858,7 +3858,7 @@ Este patrón aplica a **TODOS** los popups, modals, drawers y overlays que apare
 ```tsx
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@nextui-org/react';
 import { X, GripHorizontal, IconName } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -3874,6 +3874,18 @@ export const BottomSheetComponent: React.FC<BottomSheetProps> = ({
   onClose,
 }) => {
   const dragControls = useDragControls();
+
+  // OBLIGATORIO: Bloquear scroll del body cuando el drawer está abierto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
@@ -3904,7 +3916,7 @@ export const BottomSheetComponent: React.FC<BottomSheetProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 max-h-[calc(100vh-9rem)] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[calc(100vh-9rem)] flex flex-col"
           >
             {/* Drag Handle */}
             <div
@@ -3961,14 +3973,39 @@ export const BottomSheetComponent: React.FC<BottomSheetProps> = ({
 
 | Propiedad | Valor | Descripción |
 |-----------|-------|-------------|
+| `min-h` | `50vh` | Altura mínima consistente |
 | `max-h` | `calc(100vh-9rem)` | ~40px gap del header |
 | `z-index` backdrop | `z-40` | Debajo del sheet |
 | `z-index` sheet | `z-50` | Encima del backdrop |
 | `rounded` | `rounded-t-3xl` | Esquinas superiores |
 | `bg` backdrop | `bg-black/50` | 50% opacidad |
 | `drag threshold` | `100px` | Umbral para cerrar |
+| `body overflow` | `hidden` | Bloquear scroll del body |
 
-### 20.4 Animaciones Obligatorias
+### 20.4 Bloqueo de Scroll del Body (OBLIGATORIO)
+
+Cuando un bottom sheet está abierto, se DEBE bloquear el scroll del body para evitar scroll dual:
+
+```tsx
+// OBLIGATORIO en todo bottom sheet
+useEffect(() => {
+  if (isOpen) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+  return () => {
+    document.body.style.overflow = '';
+  };
+}, [isOpen]);
+```
+
+**¿Por qué es necesario?**
+- Evita que el usuario haga scroll en el contenido de fondo mientras navega el drawer
+- Mejora la experiencia en dispositivos táctiles
+- El cleanup en el return asegura que el scroll se restaure al desmontar
+
+### 20.5 Animaciones Obligatorias
 
 **Backdrop:**
 ```tsx
@@ -3986,7 +4023,7 @@ exit={{ y: '100%' }}
 transition={{ type: 'spring', damping: 30, stiffness: 300 }}
 ```
 
-### 20.5 Tres Puntos de Cierre Obligatorios
+### 20.6 Tres Puntos de Cierre Obligatorios
 
 Todo bottom sheet DEBE poder cerrarse de estas 3 formas:
 
@@ -3994,7 +4031,7 @@ Todo bottom sheet DEBE poder cerrarse de estas 3 formas:
 2. **Click en backdrop**: `onClick={onClose}`
 3. **Drag hacia abajo**: `onDragEnd` con threshold de 100px
 
-### 20.6 Comportamiento Multi-Popup
+### 20.7 Comportamiento Multi-Popup
 
 Solo puede haber **UN popup abierto a la vez**. Cuando se abre uno nuevo, los demás se cierran automáticamente.
 
@@ -4025,7 +4062,7 @@ const handleOpenCart = () => {
 // ... etc
 ```
 
-### 20.7 Patrón Híbrido (Desktop + Mobile)
+### 20.8 Patrón Híbrido (Desktop + Mobile)
 
 Para componentes que tienen diferente UI en desktop vs mobile:
 
@@ -4043,23 +4080,26 @@ export const HybridDrawer: React.FC<Props> = (props) => {
 };
 ```
 
-### 20.8 Banner Promocional
+### 20.9 Banner Promocional
 
 El banner promocional (PromoBanner) **NO debe ocultarse** cuando se abre un bottom sheet. El `max-h-[calc(100vh-9rem)]` ya considera el espacio necesario.
 
-### 20.9 Checklist de Implementación
+### 20.10 Checklist de Implementación
 
+- [ ] Import `useEffect` de React
 - [ ] Import `useDragControls` de Framer Motion
+- [ ] `useEffect` para bloquear scroll del body (ver 20.4)
+- [ ] `min-h-[50vh]` en el sheet
 - [ ] `max-h-[calc(100vh-9rem)]` en el sheet
 - [ ] Backdrop con `onClick={onClose}` y `transition={{ duration: 0.2 }}`
 - [ ] Spring animation: `damping: 30, stiffness: 300`
 - [ ] Drag handle con `GripHorizontal`
 - [ ] Header con icono, título, subtítulo y botón X
-- [ ] Body con `overflow-y-auto overscroll-contain`
+- [ ] Body con `flex-1 overflow-y-auto overscroll-contain`
 - [ ] `onDragEnd` con threshold de 100px
 - [ ] Integrado en `closeAllDrawers()` si aplica
 
-### 20.10 Componentes Estandarizados
+### 20.11 Componentes Estandarizados
 
 | Componente | Archivo | Estado |
 |------------|---------|--------|
@@ -4110,6 +4150,7 @@ El banner promocional (PromoBanner) **NO debe ocultarse** cuando se abre un bott
 | 4.1 | 2026-01-13 | Sección 19: Responsive Card Grid Pattern (auto-fit, minmax 280-360px, w-full obligatorio) |
 | 4.2 | 2026-01-13 | Sección 20: Mobile Bottom Sheet Pattern (estructura, animaciones, 3 puntos de cierre, multi-popup) |
 | 4.3 | 2026-01-13 | Sección 6.4.1: Botón Settings y Modal con border-radius 14px estándar |
+| 4.4 | 2026-01-13 | Sección 20.4: Bloqueo scroll body (useEffect obligatorio), min-h-[50vh], checklist actualizado |
 
 ---
 

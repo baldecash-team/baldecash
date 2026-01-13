@@ -464,15 +464,15 @@ export const CaptacionBanner: React.FC<CaptacionBannerProps> = ({
   const renderSplitClasico = () => (
     <section className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)]">
       {/* Left: Hero Image + Message */}
-      <div className="relative w-full lg:w-[55%] min-h-[400px] lg:min-h-full overflow-hidden">
+      <div className="relative w-full lg:w-[55%] min-h-[calc(100vh-4rem)] lg:min-h-full overflow-hidden">
         <img
           src={data.image}
           alt="Banner de captación"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover object-top lg:object-center"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
-        <div className="relative z-10 h-full flex flex-col justify-center p-8 lg:p-12">
+        <div className="relative z-10 h-full flex flex-col justify-center pt-20 px-8 pb-8 lg:p-12">
           <Chip
             size="sm"
             radius="sm"
@@ -514,11 +514,11 @@ export const CaptacionBanner: React.FC<CaptacionBannerProps> = ({
   const renderSplitInvertido = () => (
     <section className="flex flex-col lg:flex-row-reverse min-h-[calc(100vh-4rem)]">
       {/* Right: Hero Image + Message (visually on right) */}
-      <div className="relative w-full lg:w-[55%] min-h-[400px] lg:min-h-full overflow-hidden">
+      <div className="relative w-full lg:w-[55%] min-h-[calc(100vh-4rem)] lg:min-h-full overflow-hidden">
         <img
           src={data.image}
           alt="Banner de captación"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover object-top lg:object-center"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-l from-black/80 via-black/60 to-black/40" />
@@ -567,7 +567,7 @@ export const CaptacionBanner: React.FC<CaptacionBannerProps> = ({
       <img
         src={data.image}
         alt="Banner de captación"
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover object-top lg:object-center"
         loading="lazy"
       />
       <div className="absolute inset-0 bg-black/70" />
@@ -618,7 +618,7 @@ export const CaptacionBanner: React.FC<CaptacionBannerProps> = ({
       <img
         src={data.image}
         alt="Banner de captación"
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover object-top lg:object-center"
         loading="lazy"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
@@ -722,7 +722,7 @@ export const CaptacionBanner: React.FC<CaptacionBannerProps> = ({
         muted
         loop
         playsInline
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover object-top lg:object-center"
       >
         <source src={data.video} type="video/mp4" />
       </video>

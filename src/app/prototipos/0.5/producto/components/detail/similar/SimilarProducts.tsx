@@ -366,7 +366,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                         size="lg"
                         variant="bordered"
                         className="flex-1 border-[#4654CD] text-[#4654CD] font-bold cursor-pointer hover:bg-[#4654CD]/5 rounded-xl"
-                        startContent={<Eye className="w-5 h-5" />}
+                        startContent={<Eye className="w-5 h-5 hidden md:block" />}
                         onPress={() => handleProductClick(product.slug)}
                       >
                         Detalle

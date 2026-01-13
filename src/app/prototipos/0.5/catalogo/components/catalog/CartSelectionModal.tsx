@@ -8,7 +8,7 @@
  * Mobile (< lg): Bottom sheet con Framer Motion (igual que Quiz)
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@nextui-org/react';
 import { ShoppingCart, ArrowRight, X, GripHorizontal } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -165,6 +165,18 @@ const MobileBottomSheet: React.FC<CartSelectionModalProps & { product: CatalogPr
 }) => {
   const dragControls = useDragControls();
 
+  // Block body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
@@ -196,7 +208,7 @@ const MobileBottomSheet: React.FC<CartSelectionModalProps & { product: CatalogPr
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col max-h-[calc(100vh-9rem)]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col min-h-[50vh] max-h-[calc(100vh-9rem)]"
           >
             {/* Drag Handle */}
             <div
@@ -232,8 +244,8 @@ const MobileBottomSheet: React.FC<CartSelectionModalProps & { product: CatalogPr
               </Button>
             </div>
 
-            {/* Body */}
-            <div className="p-4">
+            {/* Body - scrollable */}
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4">
               <ModalContentShared
                 product={product}
                 onRequestEquipment={onRequestEquipment}

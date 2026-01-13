@@ -454,12 +454,16 @@ function CatalogPreviewContent() {
   }, [searchParams]);
 
   const handleToggleWishlist = useCallback((productId: string) => {
-    setWishlist((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
-  }, []);
+    setWishlist((prev) => {
+      const isAdding = !prev.includes(productId);
+      if (isAdding) {
+        showToast('Producto añadido a favoritos', 'success');
+      }
+      return isAdding
+        ? [...prev, productId]
+        : prev.filter((id) => id !== productId);
+    });
+  }, [showToast]);
 
   // Cart handlers
   const handleOpenCartModal = useCallback((product: CatalogProduct) => {

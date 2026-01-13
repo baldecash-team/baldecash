@@ -123,8 +123,8 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
         {/* Payment Table - Version 1: Simple */}
         {version === 1 && (
-          <div className="overflow-hidden rounded-xl border border-neutral-200">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-xl border border-neutral-200">
+            <table className="w-full min-w-[400px]">
               <thead>
                 <tr className="bg-neutral-50">
                   <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Cuota</th>
@@ -166,7 +166,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
         {/* Payment Table - Version 2: Detallado */}
         {version === 2 && (
-          <div className="overflow-hidden rounded-xl border border-neutral-200 overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-neutral-200">
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="bg-neutral-50">
@@ -325,6 +325,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
         onClose={() => setIsModalOpen(false)}
         size="lg"
         classNames={{
+          wrapper: "z-[70]",
           backdrop: "bg-black/50 backdrop-blur-sm",
           base: "bg-white",
           closeButton: "right-4 top-4 hover:bg-neutral-100 rounded-lg cursor-pointer",

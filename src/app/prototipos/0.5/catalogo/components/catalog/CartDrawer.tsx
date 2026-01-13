@@ -5,7 +5,7 @@
  * Diseño y animación igual que QuizLayoutV4
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@nextui-org/react';
 import { ShoppingCart, Trash2, X, ArrowRight, GripHorizontal } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -34,6 +34,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onContinue,
 }) => {
   const dragControls = useDragControls();
+
+  // Block body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   return (
     <AnimatePresence mode="wait">

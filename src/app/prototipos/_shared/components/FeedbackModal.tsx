@@ -290,12 +290,13 @@ export function FeedbackModal({
       backdrop="blur"
       placement="center"
       hideCloseButton
+      scrollBehavior="inside"
       classNames={{
         wrapper: 'z-[150]',
-        base: 'bg-white rounded-2xl',
+        base: 'bg-white rounded-2xl max-h-[90vh]',
         backdrop: 'bg-black/50 z-[149]',
         header: 'border-b border-neutral-100 pb-4',
-        body: 'py-5',
+        body: 'py-5 overflow-y-auto',
         footer: 'border-t border-neutral-100 pt-4',
       }}
     >

@@ -6,7 +6,7 @@
  * Mobile: Bottom sheet con Framer Motion (patrón estándar)
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { X, Heart, Trash2, GitCompare, GripHorizontal } from 'lucide-react';
@@ -227,6 +227,18 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
 }) => {
   const dragControls = useDragControls();
 
+  // Block body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
@@ -258,7 +270,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col max-h-[calc(100vh-9rem)]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col min-h-[50vh] max-h-[calc(100vh-9rem)]"
           >
             {/* Drag Handle */}
             <div

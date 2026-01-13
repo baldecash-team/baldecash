@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Modal,
   ModalContent,
@@ -219,6 +219,18 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
   const dragControls = useDragControls();
   const shouldShow = isOpen && accessory;
 
+  // Block body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   return (
     <AnimatePresence mode="wait">
       {shouldShow && (
@@ -250,7 +262,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col max-h-[calc(100vh-9rem)] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col min-h-[50vh] max-h-[calc(100vh-9rem)]"
           >
             {/* Drag Handle */}
             <div
@@ -261,7 +273,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 pb-3">
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-neutral-100">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
                   <Package className="w-4 h-4 text-[#4654CD]" />
@@ -286,13 +298,15 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
               </Button>
             </div>
 
-            {/* Content */}
-            <ModalContentShared
-              accessory={accessory}
-              isSelected={isSelected}
-              onToggle={onToggle}
-              onClose={onClose}
-            />
+            {/* Body - scrollable */}
+            <div className="flex-1 overflow-y-auto overscroll-contain">
+              <ModalContentShared
+                accessory={accessory}
+                isSelected={isSelected}
+                onToggle={onToggle}
+                onClose={onClose}
+              />
+            </div>
           </motion.div>
         </>
       )}

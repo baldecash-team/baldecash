@@ -5,7 +5,7 @@
  * Sheet que aparece desde abajo, común en apps mobile.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@nextui-org/react';
 import { X, HelpCircle, GripHorizontal } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -19,6 +19,18 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
   totalSteps,
 }) => {
   const dragControls = useDragControls();
+
+  // Block body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
@@ -49,7 +61,7 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 max-h-[calc(100vh-9rem)] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[calc(100vh-9rem)] flex flex-col"
           >
             {/* Drag Handle */}
             <div
@@ -70,7 +82,7 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
                     Encuentra tu laptop
                   </h2>
                   <p className="text-xs text-neutral-500">
-                    Pregunta {currentStep + 1}/{totalSteps}
+                    {currentStep >= totalSteps ? 'Resultados' : `Pregunta ${currentStep + 1}/${totalSteps}`}
                   </p>
                 </div>
               </div>
