@@ -142,7 +142,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
       <div
         ref={scrollRef}
         onScroll={checkScroll}
-        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 -mx-2 px-2"
+        className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-6 -mx-2 px-2"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {products.map((product) => {
@@ -235,6 +235,11 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
 
                   {/* Content - Estilo catálogo centrado */}
                   <div className="p-5 text-center flex flex-col flex-1">
+                    {/* Imagen referencial */}
+                    <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-2">
+                      Imagen referencial
+                    </p>
+
                     {/* Brand */}
                     <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider mb-1">
                       {product.brand}

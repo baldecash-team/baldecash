@@ -9,8 +9,33 @@
 import React, { useState, useMemo } from 'react';
 import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
-import { CronogramaProps } from '../../../types/detail';
+import { CronogramaProps, CronogramaVersion } from '../../../types/detail';
 import { formatMoney } from '../../../../utils/formatMoney';
+
+// Cálculo de amortización francesa (cuota fija)
+const calculateAmortization = (principal: number, annualRate: number, months: number) => {
+  const monthlyRate = annualRate / 100 / 12;
+  const schedule = [];
+  let balance = principal;
+
+  for (let i = 0; i < months; i++) {
+    const interest = balance * monthlyRate;
+    const quota = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+    const capital = quota - interest;
+    balance = Math.max(0, balance - capital);
+
+    schedule.push({
+      month: i + 1,
+      capital,
+      interest,
+      quota,
+      balance,
+    });
+  }
+
+  return schedule;
+};
+
 import { Toast } from '@/app/prototipos/_shared';
 
 const FINANCIAL_DATA = {
@@ -27,6 +52,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   paymentPlans,
   term = 36,
   startDate = new Date(),
+  version = 1,
 }) => {
   const [selectedTerm, setSelectedTerm] = useState(term);
   const [showAll, setShowAll] = useState(false);
@@ -39,6 +65,13 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   }, [paymentPlans, selectedTerm]);
 
   const adjustedQuota = currentPlan.monthlyQuota;
+
+  // Calcular amortización para versión detallada
+  const amortizationSchedule = useMemo(() => {
+    // Estimación del principal basado en la cuota y plazo
+    const estimatedPrincipal = adjustedQuota * selectedTerm * 0.7; // Aproximación
+    return calculateAmortization(estimatedPrincipal, FINANCIAL_DATA.tea, selectedTerm);
+  }, [adjustedQuota, selectedTerm]);
 
   const getMonthDate = (monthIndex: number) => {
     const date = new Date(startDate);
@@ -88,46 +121,151 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           </div>
         </div>
 
-        {/* Payment Table */}
-        <div className="overflow-hidden rounded-xl border border-neutral-200">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-neutral-50">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Cuota</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Fecha</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: visibleMonths }, (_, i) => (
-                <tr
-                  key={i}
-                  className={`border-t border-neutral-100 ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-white to-transparent' : ''}`}
-                >
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        i === selectedTerm - 1
-                          ? 'bg-green-100 text-green-600'
-                          : 'bg-[#4654CD]/10 text-[#4654CD]'
-                      }`}>
-                        {i + 1}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-neutral-600 capitalize">
-                    {getMonthDate(i)}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <span className="text-sm font-semibold text-neutral-900">
-                      S/{formatMoney(adjustedQuota)}
-                    </span>
-                  </td>
+        {/* Payment Table - Version 1: Simple */}
+        {version === 1 && (
+          <div className="overflow-hidden rounded-xl border border-neutral-200">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-neutral-50">
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Cuota</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Fecha</th>
+                  <th className="text-right py-3 px-4 text-xs font-semibold text-neutral-500 uppercase">Monto</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {Array.from({ length: visibleMonths }, (_, i) => (
+                  <tr
+                    key={i}
+                    className={`border-t border-neutral-100 ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-white to-transparent' : ''}`}
+                  >
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          i === selectedTerm - 1
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-[#4654CD]/10 text-[#4654CD]'
+                        }`}>
+                          {i + 1}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-sm text-neutral-600 capitalize">
+                      {getMonthDate(i)}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="text-sm font-semibold text-neutral-900">
+                        S/{formatMoney(adjustedQuota)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Payment Table - Version 2: Detallado */}
+        {version === 2 && (
+          <div className="overflow-hidden rounded-xl border border-neutral-200 overflow-x-auto">
+            <table className="w-full min-w-[600px]">
+              <thead>
+                <tr className="bg-neutral-50">
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Cuota</th>
+                  <th className="text-left py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Fecha</th>
+                  <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Capital</th>
+                  <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Interés</th>
+                  <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Monto</th>
+                  <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: visibleMonths }, (_, i) => {
+                  const amort = amortizationSchedule[i];
+                  return (
+                    <tr
+                      key={i}
+                      className={`border-t border-neutral-100 ${i === visibleMonths - 1 && !showAll ? 'bg-gradient-to-t from-white to-transparent' : ''}`}
+                    >
+                      <td className="py-3 px-3">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          i === selectedTerm - 1
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-[#4654CD]/10 text-[#4654CD]'
+                        }`}>
+                          {i + 1}
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-sm text-neutral-600 capitalize">
+                        {getMonthDate(i)}
+                      </td>
+                      <td className="py-3 px-3 text-right text-sm text-neutral-700">
+                        S/{formatMoney(amort?.capital || 0)}
+                      </td>
+                      <td className="py-3 px-3 text-right text-sm text-neutral-500">
+                        S/{formatMoney(amort?.interest || 0)}
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <span className="text-sm font-semibold text-neutral-900">
+                          S/{formatMoney(adjustedQuota)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-right text-sm text-neutral-600">
+                        S/{formatMoney(amort?.balance || 0)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Payment Table - Version 3: Cards */}
+        {version === 3 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {Array.from({ length: visibleMonths }, (_, i) => {
+              const amort = amortizationSchedule[i];
+              const isLast = i === selectedTerm - 1;
+              return (
+                <div
+                  key={i}
+                  className={`p-3 rounded-xl border transition-all ${
+                    isLast
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-white border-neutral-200 hover:border-[#4654CD]/30'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isLast
+                        ? 'bg-green-100 text-green-600'
+                        : 'bg-[#4654CD]/10 text-[#4654CD]'
+                    }`}>
+                      {i + 1}
+                    </div>
+                    {isLast && <Check className="w-4 h-4 text-green-500" />}
+                  </div>
+                  <p className="text-xs text-neutral-500 capitalize mb-1">
+                    {getMonthDate(i)}
+                  </p>
+                  <p className="text-sm font-bold text-neutral-900">
+                    S/{formatMoney(adjustedQuota)}
+                  </p>
+                  <div className="mt-2 pt-2 border-t border-neutral-100">
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-neutral-400">Capital</span>
+                      <span className="text-neutral-600">S/{formatMoney(amort?.capital || 0)}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-neutral-400">Interés</span>
+                      <span className="text-neutral-600">S/{formatMoney(amort?.interest || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Show More/Less */}
         {hasMore && (

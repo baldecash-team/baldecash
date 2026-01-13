@@ -32,6 +32,7 @@ import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 import {
   DetalleConfig,
   DeviceType,
+  CronogramaVersion,
   defaultDetalleConfig,
   deviceTypeLabels,
 } from '../types/detail';
@@ -55,12 +56,20 @@ function DetailPreviewContent() {
   // Config state - read from URL params
   const [config, setConfig] = useState<DetalleConfig>(() => {
     const deviceParam = searchParams.get('device');
+    const cronogramaParam = searchParams.get('cronograma');
+
     const validDevices: DeviceType[] = ['laptop', 'tablet', 'celular'];
+    const validCronogramaVersions: CronogramaVersion[] = [1, 2, 3];
+
     const deviceType = deviceParam && validDevices.includes(deviceParam as DeviceType)
       ? (deviceParam as DeviceType)
       : defaultDetalleConfig.deviceType;
 
-    return { deviceType };
+    const cronogramaVersion = cronogramaParam && validCronogramaVersions.includes(parseInt(cronogramaParam) as CronogramaVersion)
+      ? (parseInt(cronogramaParam) as CronogramaVersion)
+      : defaultDetalleConfig.cronogramaVersion;
+
+    return { deviceType, cronogramaVersion };
   });
 
   // Update URL when config changes
@@ -69,10 +78,13 @@ function DetailPreviewContent() {
     if (config.deviceType !== defaultDetalleConfig.deviceType) {
       params.set('device', config.deviceType);
     }
+    if (config.cronogramaVersion !== defaultDetalleConfig.cronogramaVersion) {
+      params.set('cronograma', config.cronogramaVersion.toString());
+    }
     if (isCleanMode) params.set('mode', 'clean');
     const queryString = params.toString();
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
-  }, [config.deviceType, router, isCleanMode]);
+  }, [config.deviceType, config.cronogramaVersion, router, isCleanMode]);
 
   // Fixed config for display (components)
   const componentConfig = {
@@ -81,11 +93,12 @@ function DetailPreviewContent() {
     tabs: 'V1',
     specs: 'V2',
     pricing: 'V4',
-    cronograma: 'V2',
+    cronograma: `V${config.cronogramaVersion}`,
     similar: 'V2',
     limitations: 'V6',
     certifications: 'V1',
     deviceType: config.deviceType,
+    cronogramaVersion: config.cronogramaVersion,
   };
 
   // Show loading while preloading
@@ -99,7 +112,7 @@ function DetailPreviewContent() {
       <div className="min-h-screen bg-neutral-50 relative">
         <Navbar isCleanMode={isCleanMode} />
         <main className="pt-24">
-          <ProductDetail deviceType={config.deviceType} />
+          <ProductDetail deviceType={config.deviceType} cronogramaVersion={config.cronogramaVersion} />
         </main>
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
@@ -116,7 +129,7 @@ function DetailPreviewContent() {
       <Navbar isCleanMode={isCleanMode} />
       <main className="pt-24">
         {/* Main content */}
-        <ProductDetail deviceType={config.deviceType} />
+        <ProductDetail deviceType={config.deviceType} cronogramaVersion={config.cronogramaVersion} />
       </main>
       <Footer isCleanMode={isCleanMode} />
 

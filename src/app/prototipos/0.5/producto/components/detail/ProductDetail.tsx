@@ -10,7 +10,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DeviceType } from '../../types/detail';
+import { DeviceType, CronogramaVersion } from '../../types/detail';
 import {
   getProductByDeviceType,
   getSimilarProductsByDeviceType,
@@ -34,10 +34,12 @@ import {
 
 interface ProductDetailProps {
   deviceType?: DeviceType;
+  cronogramaVersion?: CronogramaVersion;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
   deviceType = 'laptop',
+  cronogramaVersion = 1,
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -131,6 +133,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             paymentPlans={mockPaymentPlans}
             term={36}
             startDate={new Date()}
+            version={cronogramaVersion}
           />
         </div>
 

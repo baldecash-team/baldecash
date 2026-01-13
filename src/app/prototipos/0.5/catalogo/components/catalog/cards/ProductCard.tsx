@@ -145,8 +145,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Content - Centered */}
           <div className="p-5 text-center flex flex-col flex-1">
+            {/* Imagen referencial */}
+            <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-2">
+              Imagen referencial
+            </p>
+
             {/* Brand */}
-            <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider mb-2">
+            <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider mb-1">
               {product.brand}
             </p>
 

@@ -71,6 +71,13 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ images, productN
           </div>
         )}
 
+        {/* Imagen referencial */}
+        <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center">
+          <span className="text-[10px] uppercase tracking-wider text-white/80 leading-none">
+            Imagen referencial
+          </span>
+        </div>
+
         {/* Image Counter */}
         <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5">
           <span className="text-xs font-medium text-white">

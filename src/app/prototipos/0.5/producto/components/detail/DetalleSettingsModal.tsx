@@ -16,12 +16,14 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Link2, Check, Laptop, Tablet, Smartphone } from 'lucide-react';
+import { Settings, RotateCcw, Link2, Check, Laptop, Tablet, Smartphone, Calendar, Table, LayoutGrid } from 'lucide-react';
 import {
   DetalleConfig,
   DeviceType,
+  CronogramaVersion,
   defaultDetalleConfig,
   deviceTypeLabels,
+  cronogramaVersionLabels,
 } from '../../types/detail';
 
 interface DetalleSettingsModalProps {
@@ -35,6 +37,12 @@ const deviceTypeIcons: Record<DeviceType, React.ReactNode> = {
   laptop: <Laptop className="w-5 h-5" />,
   tablet: <Tablet className="w-5 h-5" />,
   celular: <Smartphone className="w-5 h-5" />,
+};
+
+const cronogramaVersionIcons: Record<CronogramaVersion, React.ReactNode> = {
+  1: <Calendar className="w-5 h-5" />,
+  2: <Table className="w-5 h-5" />,
+  3: <LayoutGrid className="w-5 h-5" />,
 };
 
 export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
@@ -51,6 +59,9 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
     // Solo incluir si difiere del default
     if (config.deviceType !== defaultDetalleConfig.deviceType) {
       params.set('device', config.deviceType);
+    }
+    if (config.cronogramaVersion !== defaultDetalleConfig.cronogramaVersion) {
+      params.set('cronograma', config.cronogramaVersion.toString());
     }
 
     const queryString = params.toString();
@@ -144,12 +155,56 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
             </RadioGroup>
           </div>
 
+          {/* Selector de Versión del Cronograma */}
+          <div className="mt-6 pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Detalle de Cuotas</h3>
+            </div>
+            <RadioGroup
+              value={config.cronogramaVersion.toString()}
+              onValueChange={(val) =>
+                onConfigChange({
+                  ...config,
+                  cronogramaVersion: parseInt(val) as CronogramaVersion,
+                })
+              }
+              classNames={{ wrapper: 'gap-2' }}
+            >
+              {([1, 2, 3] as CronogramaVersion[]).map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${
+                        config.cronogramaVersion === version
+                          ? 'border-[#4654CD] bg-[#4654CD]/5'
+                          : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm font-medium',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={cronogramaVersionLabels[version].description}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={config.cronogramaVersion === version ? 'text-[#4654CD]' : 'text-neutral-500'}>
+                      {cronogramaVersionIcons[version]}
+                    </span>
+                    <span>{cronogramaVersionLabels[version].name}</span>
+                  </div>
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
+
           {/* Nota informativa */}
           <div className="mt-6 pt-4 border-t border-neutral-200">
             <p className="text-xs text-neutral-400">
               <span className="font-medium">Nota:</span> Los demás componentes del detalle
-              (layout, pricing, similar products) están fijos en esta versión. Solo el tipo
-              de dispositivo y sus características cambian.
+              (layout, pricing, similar products) están fijos en esta versión.
             </p>
           </div>
         </ModalBody>

@@ -7,12 +7,32 @@
 
 export type DeviceType = 'laptop' | 'tablet' | 'celular';
 
+// Cronograma Versions
+export type CronogramaVersion = 1 | 2 | 3;
+
 export interface DetalleConfig {
   deviceType: DeviceType;
+  cronogramaVersion: CronogramaVersion;
 }
 
 export const defaultDetalleConfig: DetalleConfig = {
   deviceType: 'laptop',
+  cronogramaVersion: 2,
+};
+
+export const cronogramaVersionLabels: Record<CronogramaVersion, { name: string; description: string }> = {
+  1: {
+    name: 'Simple',
+    description: 'Tabla básica con cuota, fecha y monto',
+  },
+  2: {
+    name: 'Detallado',
+    description: 'Incluye capital, interés y saldo restante',
+  },
+  3: {
+    name: 'Cards',
+    description: 'Vista en tarjetas compactas',
+  },
 };
 
 export const deviceTypeLabels: Record<DeviceType, { name: string; description: string }> = {
@@ -233,6 +253,7 @@ export interface CronogramaProps {
   paymentPlans: PaymentPlan[];
   term?: number;
   startDate?: Date;
+  version?: CronogramaVersion;
 }
 
 export interface PortsDisplayProps {
