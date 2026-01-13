@@ -88,6 +88,7 @@ import { HelpQuiz } from '@/app/prototipos/0.5/quiz/components/quiz';
 import { QuizAnswer } from '@/app/prototipos/0.5/quiz/types/quiz';
 import { quizQuestionsUsage } from '@/app/prototipos/0.5/quiz/data/mockQuizData';
 import { AppliedFilter } from '../types/empty';
+import { useProduct } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
 
 // URLs
 const getWizardUrl = (isCleanMode: boolean) => {
@@ -117,29 +118,6 @@ const getUpsellUrl = (isCleanMode: boolean) => {
 const WIZARD_SELECTED_TERM = 24;
 const WIZARD_SELECTED_INITIAL = 10;
 const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-wizard-selected-product';
-
-// Guarda el producto seleccionado en localStorage para el wizard
-const saveProductForWizard = (product: CatalogProduct) => {
-  const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
-
-  const selectedProduct = {
-    id: product.id,
-    name: product.displayName,
-    shortName: product.name,
-    brand: product.brand,
-    price: product.price,
-    monthlyPayment: quota,
-    months: WIZARD_SELECTED_TERM,
-    image: product.thumbnail,
-    specs: {
-      processor: product.specs?.processor?.model || '',
-      ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
-      storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
-    },
-  };
-
-  localStorage.setItem(WIZARD_PRODUCT_STORAGE_KEY, JSON.stringify(selectedProduct));
-};
 
 // Mapear respuestas del quiz a filtros del catálogo
 const mapQuizAnswersToFilters = (answers: QuizAnswer[], currentFilters: FilterState): Partial<FilterState> => {
@@ -271,6 +249,28 @@ function CatalogPreviewContent() {
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
   const isMobile = useIsMobile();
+  const { setSelectedProduct } = useProduct();
+
+  // Helper to save product to context (replaces saveProductForWizard)
+  const selectProductForWizard = useCallback((product: CatalogProduct) => {
+    const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+
+    setSelectedProduct({
+      id: product.id,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      monthlyPayment: quota,
+      months: WIZARD_SELECTED_TERM,
+      image: product.thumbnail,
+      specs: {
+        processor: product.specs?.processor?.model || '',
+        ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
+        storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
+      },
+    });
+  }, [setSelectedProduct]);
 
   // Config state - FIJO excepto colorSelectorVersion
   const [config, setConfig] = useState<CatalogLayoutConfig & { colorSelectorVersion: ColorSelectorVersion }>(() => {
@@ -505,11 +505,11 @@ function CatalogPreviewContent() {
       // Guardar el producto del carrito antes de navegar
       const productToSave = mockProducts.find((p) => p.id === cart[0]);
       if (productToSave) {
-        saveProductForWizard(productToSave);
+        selectProductForWizard(productToSave);
       }
       router.push(getWizardUrl(isCleanMode));
     }
-  }, [cart, router, isCleanMode, showToast]);
+  }, [cart, router, isCleanMode, showToast, selectProductForWizard]);
 
   // Get cart products
   const cartProducts = useMemo(() => {
@@ -948,7 +948,7 @@ function CatalogPreviewContent() {
         product={selectedProductForCart}
         onRequestEquipment={() => {
           if (selectedProductForCart) {
-            saveProductForWizard(selectedProductForCart);
+            selectProductForWizard(selectedProductForCart);
           }
           router.push(getWizardUrl(isCleanMode));
         }}

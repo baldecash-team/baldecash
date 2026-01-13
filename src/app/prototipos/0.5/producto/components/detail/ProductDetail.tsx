@@ -10,6 +10,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useProduct } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
 import { DeviceType, CronogramaVersion } from '../../types/detail';
 import {
   getProductByDeviceType,
@@ -44,6 +45,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+  const { setSelectedProduct } = useProduct();
 
   // Get data based on device type
   const product = getProductByDeviceType(deviceType);
@@ -61,7 +63,34 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
 
+  // Helper to extract spec value
+  const getSpecValue = (category: string, label: string): string | undefined => {
+    const specCategory = product.specs.find((s) => s.category.toLowerCase() === category.toLowerCase());
+    if (!specCategory) return undefined;
+    const spec = specCategory.specs.find((s) => s.label.toLowerCase().includes(label.toLowerCase()));
+    return spec?.value;
+  };
+
   const handleSolicitar = () => {
+    // Save product to context before navigating
+    const mainImage = product.images.find((img) => img.type === 'main')?.url || product.images[0]?.url || '';
+
+    setSelectedProduct({
+      id: product.id,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      monthlyPayment: product.lowestQuota,
+      months: 36, // Default term
+      image: mainImage,
+      specs: {
+        processor: getSpecValue('Procesador', 'Modelo') || getSpecValue('Rendimiento', 'Procesador'),
+        ram: getSpecValue('Memoria', 'RAM') || getSpecValue('Rendimiento', 'RAM'),
+        storage: getSpecValue('Almacenamiento', 'Capacidad') || getSpecValue('Rendimiento', 'Almacenamiento'),
+      },
+    });
+
     const baseWizardUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview';
     const wizardUrl = isCleanMode ? `${baseWizardUrl}?mode=clean` : baseWizardUrl;
     router.push(wizardUrl);

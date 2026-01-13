@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { Trash2, Scale, ArrowRight, Trophy } from 'lucide-react';
@@ -9,34 +9,11 @@ import { DesignStyleA } from './DesignStyleA';
 import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
 import { calculateQuotaWithInitial } from '@/app/prototipos/0.5/catalogo/types/catalog';
+import { useProduct } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
 
-// Configuración para guardar producto en localStorage
-const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-wizard-selected-product';
+// Configuración para cálculo de cuota
 const WIZARD_SELECTED_TERM = 24;
 const WIZARD_SELECTED_INITIAL = 10;
-
-// Guarda el producto del comparador en localStorage para el wizard
-const saveComparatorProductForWizard = (product: ComparisonProduct) => {
-  const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
-
-  const selectedProduct = {
-    id: product.id,
-    name: product.displayName,
-    shortName: product.name,
-    brand: product.brand,
-    price: product.price,
-    monthlyPayment: quota,
-    months: WIZARD_SELECTED_TERM,
-    image: product.thumbnail,
-    specs: {
-      processor: product.specs?.processor?.model || '',
-      ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
-      storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
-    },
-  };
-
-  localStorage.setItem(WIZARD_PRODUCT_STORAGE_KEY, JSON.stringify(selectedProduct));
-};
 
 /**
  * ComparatorV1 - Modal Fullscreen
@@ -56,9 +33,31 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+  const { setSelectedProduct } = useProduct();
   const specs = compareSpecs(products);
   const priceDiff = calculatePriceDifference(products);
   const [showBestOption, setShowBestOption] = useState(false);
+
+  // Helper to save product to context
+  const selectProductForWizard = useCallback((product: ComparisonProduct) => {
+    const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+
+    setSelectedProduct({
+      id: product.id,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      monthlyPayment: quota,
+      months: WIZARD_SELECTED_TERM,
+      image: product.thumbnail,
+      specs: {
+        processor: product.specs?.processor?.model || '',
+        ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
+        storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
+      },
+    });
+  }, [setSelectedProduct]);
 
   // Reset showBestOption when comparator opens
   useEffect(() => {
@@ -87,7 +86,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   const handleContinueWithBest = () => {
     // Guardar el mejor producto antes de navegar
     if (bestProduct) {
-      saveComparatorProductForWizard(bestProduct);
+      selectProductForWizard(bestProduct);
     }
     const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
     router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
@@ -111,9 +110,9 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   // Handler for selecting a product from DesignStyleB/C
   const handleSelectProduct = (productId: string) => {
     // Guardar el producto seleccionado antes de navegar
-    const selectedProduct = products.find((p) => p.id === productId);
-    if (selectedProduct) {
-      saveComparatorProductForWizard(selectedProduct);
+    const product = products.find((p) => p.id === productId);
+    if (product) {
+      selectProductForWizard(product);
     }
     const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
     router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);

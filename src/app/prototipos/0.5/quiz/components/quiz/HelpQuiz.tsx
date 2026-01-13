@@ -20,6 +20,7 @@ import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useProduct } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
 
 // Types
 import {
@@ -56,30 +57,8 @@ const getWizardUrl = (isCleanMode: boolean) => {
   return isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
 };
 
-// Configuración para guardar producto en localStorage
-const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-wizard-selected-product';
+// Configuración para cálculo de cuota
 const WIZARD_SELECTED_TERM = 24;
-
-// Guarda el producto del quiz en localStorage para el wizard
-const saveQuizProductForWizard = (product: QuizProduct) => {
-  const selectedProduct = {
-    id: product.id,
-    name: product.displayName,
-    shortName: product.name,
-    brand: product.brand,
-    price: product.price,
-    monthlyPayment: product.lowestQuota,
-    months: WIZARD_SELECTED_TERM,
-    image: product.thumbnail || product.image,
-    specs: {
-      processor: product.specs?.processor || '',
-      ram: product.specs?.ram ? `${product.specs.ram}GB RAM` : '',
-      storage: product.specs?.storage ? `${product.specs.storage}GB ${product.specs.storageType?.toUpperCase() || 'SSD'}` : '',
-    },
-  };
-
-  localStorage.setItem(WIZARD_PRODUCT_STORAGE_KEY, JSON.stringify(selectedProduct));
-};
 
 const getCatalogUrlWithFilters = (answers: QuizAnswer[], isCleanMode: boolean) => {
   const baseUrl = '/prototipos/0.5/catalogo/catalog-preview';
@@ -167,11 +146,31 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   isCleanMode = false,
 }) => {
   const router = useRouter();
+  const { setSelectedProduct } = useProduct();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswer[]>([]);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [results, setResults] = useState<QuizResult[] | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+
+  // Helper to save product to context
+  const selectProductForWizard = useCallback((product: QuizProduct) => {
+    setSelectedProduct({
+      id: product.id,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      monthlyPayment: product.lowestQuota,
+      months: WIZARD_SELECTED_TERM,
+      image: product.thumbnail || product.image,
+      specs: {
+        processor: product.specs?.processor || '',
+        ram: product.specs?.ram ? `${product.specs.ram}GB RAM` : '',
+        storage: product.specs?.storage ? `${product.specs.storage}GB ${product.specs.storageType?.toUpperCase() || 'SSD'}` : '',
+      },
+    });
+  }, [setSelectedProduct]);
 
   // Get questions (fijo: 7 preguntas, focus usage)
   const questions = useMemo((): QuizQuestion[] => {
@@ -238,11 +237,11 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   // Handle "Lo quiero" - navegar al wizard
   const handleViewProduct = useCallback(
     (productId: string) => {
-      // Guardar el producto seleccionado en localStorage
+      // Guardar el producto seleccionado en el contexto
       if (results) {
         const selectedResult = results.find((r) => r.product.id === productId);
         if (selectedResult) {
-          saveQuizProductForWizard(selectedResult.product);
+          selectProductForWizard(selectedResult.product);
         }
       }
 
@@ -253,7 +252,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       // Navegar al wizard
       router.push(getWizardUrl(isCleanMode));
     },
-    [results, onClose, handleRestart, router, isCleanMode]
+    [results, onClose, handleRestart, router, isCleanMode, selectProductForWizard]
   );
 
   // Handle "Ver otras opciones"
