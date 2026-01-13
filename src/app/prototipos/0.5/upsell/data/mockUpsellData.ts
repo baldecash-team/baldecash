@@ -17,6 +17,12 @@ export const mockAccessories: Accessory[] = [
     category: 'conectividad',
     isRecommended: true,
     compatibleWith: ['all'],
+    specs: [
+      { label: 'Conexión', value: 'USB 2.4GHz inalámbrico' },
+      { label: 'Batería', value: '12 meses (1 pila AA)' },
+      { label: 'DPI', value: '1000' },
+      { label: 'Botones', value: '3 (izq, der, scroll)' },
+    ],
   },
   {
     id: 'funda-1',
@@ -28,6 +34,12 @@ export const mockAccessories: Accessory[] = [
     category: 'protección',
     isRecommended: true,
     compatibleWith: ['all'],
+    specs: [
+      { label: 'Tamaño', value: 'Laptops hasta 15.6"' },
+      { label: 'Material', value: 'Nylon resistente al agua' },
+      { label: 'Interior', value: 'Forro de felpa suave' },
+      { label: 'Bolsillos', value: '2 externos + 1 interno' },
+    ],
   },
   {
     id: 'audifonos-1',
@@ -39,6 +51,12 @@ export const mockAccessories: Accessory[] = [
     category: 'audio',
     isRecommended: false,
     compatibleWith: ['all'],
+    specs: [
+      { label: 'Conexión', value: 'USB-A plug & play' },
+      { label: 'Micrófono', value: 'Omnidireccional con cancelación' },
+      { label: 'Frecuencia', value: '20Hz - 20kHz' },
+      { label: 'Cable', value: '1.8m con control de volumen' },
+    ],
   },
   {
     id: 'hub-1',
@@ -50,6 +68,12 @@ export const mockAccessories: Accessory[] = [
     category: 'conectividad',
     isRecommended: false,
     compatibleWith: ['all'],
+    specs: [
+      { label: 'Entrada', value: 'USB-C (Thunderbolt 3)' },
+      { label: 'HDMI', value: '4K @ 30Hz' },
+      { label: 'USB-A', value: '2x USB 3.0 (5Gbps)' },
+      { label: 'Tarjetas', value: 'SD + MicroSD' },
+    ],
   },
   {
     id: 'cooler-1',
@@ -61,6 +85,12 @@ export const mockAccessories: Accessory[] = [
     category: 'protección',
     isRecommended: false,
     compatibleWith: ['all'],
+    specs: [
+      { label: 'Ventiladores', value: '2x 140mm LED azul' },
+      { label: 'Ruido', value: '< 21 dB' },
+      { label: 'Compatible', value: 'Laptops 12" - 17"' },
+      { label: 'Ángulos', value: '5 posiciones ajustables' },
+    ],
   },
   {
     id: 'ssd-1',
@@ -72,6 +102,12 @@ export const mockAccessories: Accessory[] = [
     category: 'almacenamiento',
     isRecommended: false,
     compatibleWith: ['all'],
+    specs: [
+      { label: 'Capacidad', value: '500GB' },
+      { label: 'Interfaz', value: 'USB 3.0' },
+      { label: 'Lectura', value: 'Hasta 400 MB/s' },
+      { label: 'Escritura', value: 'Hasta 380 MB/s' },
+    ],
   },
 ];
 

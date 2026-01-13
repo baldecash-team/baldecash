@@ -16,6 +16,7 @@ import { formatMoney } from '../../../utils/formatMoney';
 import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
+import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 
 // Upsell components
 import {
@@ -32,8 +33,6 @@ const WIZARD_CONFIG = {
   version: '0.5',
 };
 
-// Logo URL de BaldeCash
-const BALDECASH_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
 
 function SegurosContent() {
   const router = useRouter();
@@ -68,19 +67,11 @@ function SegurosContent() {
 
   const pageContent = (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Header con fondo primario - fixed con sombra */}
-      <div className="bg-[#4654CD] py-5 fixed top-0 left-0 right-0 z-50 shadow-lg shadow-[#4654CD]/20">
-        <div className="flex justify-center">
-          <img
-            src={BALDECASH_LOGO}
-            alt="BaldeCash"
-            className="h-12 object-contain brightness-0 invert"
-          />
-        </div>
-      </div>
+      {/* Navbar del Hero */}
+      <Navbar isCleanMode={isCleanMode} />
 
-      {/* Spacer for fixed header */}
-      <div className="h-[68px]" />
+      {/* Spacer for fixed navbar + promo banner */}
+      <div className="h-[104px]" />
 
       <div className="max-w-3xl mx-auto px-4 pt-14 pb-32 lg:pb-6">
         {/* Alert Banner */}

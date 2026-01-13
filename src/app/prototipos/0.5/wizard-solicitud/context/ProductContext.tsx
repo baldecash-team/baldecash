@@ -135,23 +135,25 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
   const toggleAccessory = useCallback((accessory: Accessory) => {
     setSelectedAccessoriesState((prev) => {
       const exists = prev.find((a) => a.id === accessory.id);
-      const newAccessories = exists
+      return exists
         ? prev.filter((a) => a.id !== accessory.id)
         : [...prev, accessory];
-
-      try {
-        if (newAccessories.length > 0) {
-          localStorage.setItem(ACCESSORIES_STORAGE_KEY, JSON.stringify(newAccessories));
-        } else {
-          localStorage.removeItem(ACCESSORIES_STORAGE_KEY);
-        }
-      } catch {
-        // localStorage not available
-      }
-
-      return newAccessories;
     });
   }, []);
+
+  // Sync accessories to localStorage via useEffect (async, doesn't block animation)
+  useEffect(() => {
+    if (!isHydrated) return;
+    try {
+      if (selectedAccessories.length > 0) {
+        localStorage.setItem(ACCESSORIES_STORAGE_KEY, JSON.stringify(selectedAccessories));
+      } else {
+        localStorage.removeItem(ACCESSORIES_STORAGE_KEY);
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, [selectedAccessories, isHydrated]);
 
   const clearAccessories = useCallback(() => {
     setSelectedAccessoriesState([]);

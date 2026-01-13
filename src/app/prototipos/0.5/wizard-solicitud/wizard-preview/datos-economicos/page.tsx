@@ -9,6 +9,7 @@ import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
+import { WizardStepId } from '../../types/wizard-solicitud';
 import { TextInput, RadioGroup, TextArea } from '../../components/wizard-solicitud/fields';
 import { datosEconomicosTooltips } from '../../data/fieldTooltips';
 import { StepSuccessMessage } from '../../components/wizard-solicitud/celebration/StepSuccessMessage';
@@ -82,9 +83,35 @@ function DatosEconomicosContent() {
     return touched[fieldId] && !!value && !getFieldError(fieldId);
   };
 
+  // Validar campos requeridos
+  const validateStep = (): boolean => {
+    let isValid = true;
+
+    const situacionLaboral = getFieldValue('situacionLaboral') as string;
+    if (!situacionLaboral) {
+      setFieldError('situacionLaboral', 'Selecciona tu situación laboral');
+      isValid = false;
+    }
+
+    const ingresoMensual = getFieldValue('ingresoMensual') as string;
+    if (!ingresoMensual || !ingresoMensual.trim()) {
+      setFieldError('ingresoMensual', 'Este campo es requerido');
+      isValid = false;
+    } else if (isNaN(Number(ingresoMensual)) || Number(ingresoMensual) < 0) {
+      setFieldError('ingresoMensual', 'Ingresa un monto válido');
+      isValid = false;
+    }
+
+    // comentarios es opcional, no validar
+
+    return isValid;
+  };
+
   const handleNext = () => {
-    markStepCompleted('datos-economicos');
-    setShowCelebration(true);
+    if (validateStep()) {
+      markStepCompleted('datos-economicos');
+      setShowCelebration(true);
+    }
   };
 
   const handleCelebrationComplete = () => {
@@ -99,7 +126,12 @@ function DatosEconomicosContent() {
     router.push(url);
   };
 
-  // Sin validación para fines prácticos
+  const handleStepClick = (stepId: WizardStepId) => {
+    const baseUrl = `/prototipos/0.5/wizard-solicitud/wizard-preview/${stepId}`;
+    const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
+    router.push(url);
+  };
+
   const canProceed = true;
 
   const pageContent = (
@@ -120,7 +152,9 @@ function DatosEconomicosContent() {
         description={step.description}
         onBack={handleBack}
         onNext={handleNext}
+        onStepClick={handleStepClick}
         canProceed={canProceed}
+        isCleanMode={isCleanMode}
       >
         <div className="space-y-6">
           <RadioGroup
@@ -167,6 +201,7 @@ function DatosEconomicosContent() {
             tooltip={datosEconomicosTooltips.comentarios}
             maxLength={500}
             rows={4}
+            required={false}
           />
         </div>
       </WizardLayout>

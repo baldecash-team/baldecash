@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardBody, Chip } from '@nextui-org/react';
-import { Check, Plus } from 'lucide-react';
+import { Check, Plus, Info } from 'lucide-react';
 import type { Accessory } from '../../types/upsell';
 import { formatMoney } from '../../../utils/formatMoney';
 
@@ -10,6 +10,7 @@ interface AccessoryCardProps {
   accessory: Accessory;
   isSelected: boolean;
   onToggle: () => void;
+  onViewDetails?: () => void;
 }
 
 /**
@@ -20,7 +21,10 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
   accessory,
   isSelected,
   onToggle,
+  onViewDetails,
 }) => {
+  const hasSpecs = accessory.specs && accessory.specs.length > 0;
+
   return (
     <Card
       isPressable
@@ -71,9 +75,32 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
         <h4 className="font-semibold text-sm text-neutral-800 mb-1 line-clamp-2">
           {accessory.name}
         </h4>
-        <p className="text-xs text-neutral-500 mb-3 line-clamp-2">
+        <p className="text-xs text-neutral-500 mb-2 line-clamp-2">
           {accessory.description}
         </p>
+
+        {/* Ver características button */}
+        {onViewDetails && hasSpecs && (
+          <div
+            role="button"
+            tabIndex={0}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+                onViewDetails();
+              }
+            }}
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-[#4654CD] bg-[#4654CD]/10 hover:bg-[#4654CD]/20 font-medium py-2 px-3 rounded-lg mb-3 cursor-pointer transition-colors"
+          >
+            <Info className="w-3.5 h-3.5" />
+            Ver características
+          </div>
+        )}
 
         {/* Price */}
         <div className="mt-auto flex items-center justify-between">

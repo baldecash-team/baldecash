@@ -50,8 +50,14 @@ const PARAM_MAP: Record<string, SyncedFilterKey> = {
  */
 export const parseFiltersFromParams = (
   searchParams: URLSearchParams
-): Partial<FilterState> & { sort?: SortOption } => {
-  const filters: Partial<FilterState> & { sort?: SortOption } = {};
+): Partial<FilterState> & { sort?: SortOption; searchQuery?: string } => {
+  const filters: Partial<FilterState> & { sort?: SortOption; searchQuery?: string } = {};
+
+  // Search query
+  const q = searchParams.get('q');
+  if (q) {
+    filters.searchQuery = q;
+  }
 
   // Device types (array de strings)
   const device = searchParams.get('device');
@@ -182,9 +188,15 @@ export const parseFiltersFromParams = (
  */
 export const buildParamsFromFilters = (
   filters: FilterState,
-  sort: SortOption
+  sort: SortOption,
+  searchQuery?: string
 ): URLSearchParams => {
   const params = new URLSearchParams();
+
+  // Search query
+  if (searchQuery && searchQuery.trim()) {
+    params.set('q', searchQuery.trim());
+  }
 
   // Device types
   if (filters.deviceTypes.length > 0) {

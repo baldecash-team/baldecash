@@ -14,9 +14,7 @@ import { WizardNavigation } from './WizardNavigation';
 import { MotivationalCard } from './MotivationalCard';
 import { SelectedProductBar, SelectedProductSpacer } from '../product';
 import { WizardStepId } from '../../../types/wizard-solicitud';
-
-// Logo URL de BaldeCash
-const BALDECASH_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
+import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 
 interface WizardLayoutProps {
   currentStep: WizardStepId;
@@ -26,10 +24,12 @@ interface WizardLayoutProps {
   onBack?: () => void;
   onNext?: () => void;
   onSubmit?: () => void;
+  onStepClick?: (stepId: WizardStepId) => void;
   isLastStep?: boolean;
   isFirstStep?: boolean;
   isSubmitting?: boolean;
   canProceed?: boolean;
+  isCleanMode?: boolean;
 }
 
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -40,26 +40,20 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   onBack,
   onNext,
   onSubmit,
+  onStepClick,
   isLastStep = false,
   isFirstStep = false,
   isSubmitting = false,
   canProceed = true,
+  isCleanMode = false,
 }) => {
   return (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Header con fondo primario - fixed con sombra */}
-      <div className="bg-[#4654CD] py-5 fixed top-0 left-0 right-0 z-50 shadow-lg shadow-[#4654CD]/20">
-        <div className="flex justify-center">
-          <img
-            src={BALDECASH_LOGO}
-            alt="BaldeCash"
-            className="h-12 object-contain brightness-0 invert"
-          />
-        </div>
-      </div>
+      {/* Navbar del Hero */}
+      <Navbar isCleanMode={isCleanMode} />
 
-      {/* Spacer for fixed header */}
-      <div className="h-[68px]" />
+      {/* Spacer for fixed navbar + promo banner */}
+      <div className="h-[104px]" />
 
       {/* Content Container */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 pt-14 pb-24 lg:pb-8">
@@ -68,7 +62,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
           {/* Left Column - Form */}
           <div className="max-w-2xl mx-auto lg:mx-0 lg:max-w-none">
             {/* Progress Indicator */}
-            <WizardProgress currentStep={currentStep} />
+            <WizardProgress currentStep={currentStep} onStepClick={onStepClick} />
 
             {/* Selected Product Bar (Desktop: top position) */}
             <div className="mt-6">

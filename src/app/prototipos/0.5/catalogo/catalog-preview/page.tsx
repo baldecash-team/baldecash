@@ -31,8 +31,10 @@ import { ProductCard } from '../components/catalog/cards/ProductCard';
 import { ProductCardSkeleton } from '../components/catalog/ProductCardSkeleton';
 import { LoadMoreButton } from '../components/catalog/LoadMoreButton';
 import { CartSelectionModal } from '../components/catalog/CartSelectionModal';
-import { CartBar } from '../components/catalog/CartBar';
 import { CartDrawer } from '../components/catalog/CartDrawer';
+import { NavbarSearch, NavbarWishlist, NavbarCart, NavbarCartButton, NavbarSearchButton, NavbarWishlistButton } from '../components/catalog/NavbarActions';
+import { SearchDrawer } from '../components/catalog/SearchDrawer';
+import { WishlistDrawer } from '../components/wishlist/WishlistDrawer';
 
 // Empty state
 import { EmptyState } from '../components/empty';
@@ -347,12 +349,28 @@ function CatalogPreviewContent() {
   const [isWishlistLoaded, setIsWishlistLoaded] = useState(false);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
+  const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
+
   // Cart state with localStorage persistence
   const [cart, setCart] = useState<string[]>([]);
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [isCartLoaded, setIsCartLoaded] = useState(false);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+
+  // Helper to close all drawers/popups before opening a new one (mobile)
+  const closeAllDrawers = useCallback(() => {
+    setIsSearchDrawerOpen(false);
+    setIsCartDrawerOpen(false);
+    setIsWishlistDrawerOpen(false);
+    setIsQuizOpen(false);
+    setIsComparatorOpen(false);
+    setIsFilterDrawerOpen(false);
+    setIsCartModalOpen(false);
+  }, []);
 
   // Load wishlist from localStorage on mount (client-side only)
   useEffect(() => {
@@ -422,12 +440,15 @@ function CatalogPreviewContent() {
 
     const urlFilters = parseFiltersFromParams(searchParams);
     if (Object.keys(urlFilters).length > 0) {
-      const { sort: urlSort, ...filterParams } = urlFilters;
+      const { sort: urlSort, searchQuery: urlSearchQuery, ...filterParams } = urlFilters;
       if (Object.keys(filterParams).length > 0) {
         setFilters(mergeFiltersWithDefaults(filterParams));
       }
       if (urlSort) {
         setSort(urlSort);
+      }
+      if (urlSearchQuery) {
+        setSearchQuery(urlSearchQuery);
       }
     }
   }, [searchParams]);
@@ -497,6 +518,13 @@ function CatalogPreviewContent() {
       .filter((p): p is CatalogProduct => p !== undefined);
   }, [cart]);
 
+  // Get wishlist products
+  const wishlistProducts = useMemo(() => {
+    return wishlist
+      .map((id) => mockProducts.find((p) => p.id === id))
+      .filter((p): p is CatalogProduct => p !== undefined);
+  }, [wishlist]);
+
 
 
   // Pagination
@@ -516,13 +544,18 @@ function CatalogPreviewContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Update URL when filters, sort, or colorSelectorVersion change
+  // Handler to clear search
+  const handleSearchClear = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
+  // Update URL when filters, sort, searchQuery, or colorSelectorVersion change
   useEffect(() => {
     // Skip URL update during initial filter loading
     if (!isFiltersInitialized.current) return;
 
-    // Build filter params
-    const filterParams = buildParamsFromFilters(filters, sort);
+    // Build filter params (include searchQuery)
+    const filterParams = buildParamsFromFilters(filters, sort, searchQuery);
 
     // Add colorSelectorVersion if not default
     if (config.colorSelectorVersion !== 1) {
@@ -535,7 +568,7 @@ function CatalogPreviewContent() {
     // Decode commas for cleaner URLs (e.g., device=tablet,celular instead of device=tablet%2Ccelular)
     const queryString = filterParams.toString().replace(/%2C/g, ',');
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
-  }, [filters, sort, config.colorSelectorVersion, router, isCleanMode]);
+  }, [filters, sort, searchQuery, config.colorSelectorVersion, router, isCleanMode]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -543,14 +576,27 @@ function CatalogPreviewContent() {
     return sortProducts(products, sort);
   }, [filters, sort]);
 
-  // Products to display based on viewMode
+  // Products to display based on viewMode and search
   const displayedProducts = useMemo(() => {
-    if (viewMode === 'favorites') {
-      // When in favorites view, show wishlist products that also match current filters
-      return filteredProducts.filter((p) => wishlist.includes(p.id));
+    let products = filteredProducts;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      products = products.filter((p) =>
+        p.displayName.toLowerCase().includes(query) ||
+        p.brand.toLowerCase().includes(query) ||
+        p.name.toLowerCase().includes(query)
+      );
     }
-    return filteredProducts;
-  }, [viewMode, filteredProducts, wishlist]);
+
+    // Apply favorites filter
+    if (viewMode === 'favorites') {
+      products = products.filter((p) => wishlist.includes(p.id));
+    }
+
+    return products;
+  }, [viewMode, filteredProducts, wishlist, searchQuery]);
 
   const filterCounts = useMemo(() => getFilterCounts(filteredProducts), [filteredProducts]);
 
@@ -695,7 +741,61 @@ function CatalogPreviewContent() {
   return (
     <div className="min-h-screen relative">
       {/* Navbar from Hero */}
-      <Navbar isCleanMode={isCleanMode} hidePromoBanner={isComparatorOpen} />
+      <Navbar
+        isCleanMode={isCleanMode}
+        hidePromoBanner={isComparatorOpen || isFilterDrawerOpen}
+        fullWidth
+        minimal
+        rightContent={
+          <>
+            <NavbarSearch
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onClear={handleSearchClear}
+            />
+            <NavbarWishlist
+              items={wishlistProducts}
+              onRemoveItem={handleToggleWishlist}
+              onClearAll={() => setWishlist([])}
+              onViewProduct={(productId) => {
+                const product = mockProducts.find((p) => p.id === productId);
+                router.push(getDetailUrl(productId, product?.deviceType, isCleanMode));
+              }}
+            />
+            <NavbarCart
+              items={cartProducts}
+              onRemoveItem={handleRemoveFromCart}
+              onClearAll={handleClearCart}
+              onContinue={handleCartContinue}
+            />
+          </>
+        }
+        mobileRightContent={
+          <>
+            <NavbarSearchButton
+              isActive={isSearchDrawerOpen || searchQuery.length > 0}
+              onClick={() => {
+                closeAllDrawers();
+                setIsSearchDrawerOpen(true);
+              }}
+            />
+            <NavbarWishlistButton
+              count={wishlist.length}
+              onClick={() => {
+                closeAllDrawers();
+                setIsWishlistDrawerOpen(true);
+              }}
+            />
+            <NavbarCartButton
+              count={cart.length}
+              onClick={() => {
+                closeAllDrawers();
+                setIsCartDrawerOpen(true);
+              }}
+            />
+          </>
+        }
+      />
 
       {/* Main Content with padding for fixed navbar */}
       <main className="pt-24">
@@ -708,7 +808,14 @@ function CatalogPreviewContent() {
         onSortChange={setSort}
         config={config}
         filterCounts={filterCounts}
-        onFilterDrawerChange={setIsFilterDrawerOpen}
+        onFilterDrawerChange={(isOpen) => {
+          if (isOpen) {
+            closeAllDrawers();
+          }
+          setIsFilterDrawerOpen(isOpen);
+        }}
+        searchQuery={searchQuery}
+        onSearchClear={handleSearchClear}
       >
         {isLoading ? (
           Array.from({ length: visibleProductsCount }).map((_, index) => (
@@ -789,7 +896,10 @@ function CatalogPreviewContent() {
               <>
                 <EmptyState
                   appliedFilters={appliedFilters}
-                  onClearFilters={() => setFilters(defaultFilterState)}
+                  onClearFilters={() => {
+                    setFilters(defaultFilterState);
+                    setSearchQuery('');
+                  }}
                   onRemoveFilter={handleRemoveFilter}
                   totalProductsIfExpanded={mockProducts.length}
                   config={{ illustrationVersion: 5, actionsVersion: 6 }}
@@ -810,7 +920,10 @@ function CatalogPreviewContent() {
                       </div>
                       <Button
                         className="bg-[#4654CD] text-white font-medium cursor-pointer hover:bg-[#3a47b3] transition-colors"
-                        onPress={() => setIsQuizOpen(true)}
+                        onPress={() => {
+                          closeAllDrawers();
+                          setIsQuizOpen(true);
+                        }}
                         startContent={<HelpCircle className="w-4 h-4" />}
                       >
                         Iniciar asistente
@@ -846,15 +959,7 @@ function CatalogPreviewContent() {
         }}
       />
 
-      {/* Cart Bar - Desktop only */}
-      {cart.length > 0 && !isQuizOpen && !isComparatorOpen && (
-        <CartBar
-          items={cartProducts}
-          onRemoveItem={handleRemoveFromCart}
-          onClearAll={handleClearCart}
-          onContinue={handleCartContinue}
-        />
-      )}
+      {/* Cart Bar - Removed from here, now in Navbar for desktop */}
 
       {/* Cart Drawer - Mobile only */}
       <CartDrawer
@@ -872,11 +977,35 @@ function CatalogPreviewContent() {
         }}
       />
 
+      {/* Search Drawer - Mobile only */}
+      <SearchDrawer
+        isOpen={isSearchDrawerOpen}
+        onClose={() => setIsSearchDrawerOpen(false)}
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onClear={handleSearchClear}
+      />
+
+      {/* Wishlist Drawer - Mobile only */}
+      <WishlistDrawer
+        isOpen={isWishlistDrawerOpen}
+        onClose={() => setIsWishlistDrawerOpen(false)}
+        products={wishlistProducts}
+        onRemoveProduct={handleToggleWishlist}
+        onClearAll={() => setWishlist([])}
+        onViewProduct={(productId) => {
+          setIsWishlistDrawerOpen(false);
+          const product = mockProducts.find((p) => p.id === productId);
+          router.push(getDetailUrl(productId, product?.deviceType, isCleanMode));
+        }}
+        onAddToCompare={handleToggleCompare}
+        compareList={compareList}
+        maxCompareProducts={maxCompareProducts}
+      />
+
       {/* Floating Comparison Bar - Desktop only */}
-      {compareList.length > 0 && !isComparatorOpen && !isQuizOpen && (
-        <div className={`hidden lg:flex fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 items-center gap-4 transition-all ${
-          cart.length > 0 ? 'bottom-[6.5rem]' : 'bottom-6'
-        }`}>
+      {compareList.length > 0 && !isComparatorOpen && !isQuizOpen && !isCartModalOpen && !isSettingsOpen && (
+        <div className="hidden lg:flex fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 items-center gap-4 transition-all bottom-6">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
               <Scale className="w-5 h-5 text-[#4654CD]" />
@@ -913,14 +1042,18 @@ function CatalogPreviewContent() {
             </Button>
             <Button
               size="sm"
-              className={`${
+              className={`px-6 font-bold ${
                 compareList.length >= 2
-                  ? 'bg-[#4654CD] text-white cursor-pointer'
+                  ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
                   : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
               }`}
-              onPress={() => setIsComparatorOpen(true)}
+              style={{ borderRadius: '14px' }}
+              onPress={() => {
+                closeAllDrawers();
+                setIsComparatorOpen(true);
+              }}
               isDisabled={compareList.length < 2}
-              endContent={<ArrowRight className="w-4 h-4" />}
+              endContent={<ArrowRight className="w-5 h-5" />}
             >
               Comparar
             </Button>
@@ -942,8 +1075,8 @@ function CatalogPreviewContent() {
         />
       )}
 
-      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, or cart modal is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isCartModalOpen && (
+      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, or settings is open) */}
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && (
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
           {compareList.length > 0 && (
@@ -955,6 +1088,7 @@ function CatalogPreviewContent() {
               }`}
               onPress={() => {
                 if (compareList.length >= 2) {
+                  closeAllDrawers();
                   setIsComparatorOpen(true);
                 }
               }}
@@ -970,48 +1104,16 @@ function CatalogPreviewContent() {
             </Button>
           )}
 
-          {/* Cart button - mobile only, visible when cart has items */}
-          {cart.length > 0 && (
-            <Button
-              className="lg:hidden shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-4 bg-[#4654CD] text-white hover:bg-[#3a47b3]"
-              onPress={() => setIsCartDrawerOpen(true)}
-            >
-              <ShoppingCart className="w-5 h-5" />
-              <span className="hidden sm:inline lg:hidden">Carrito</span>
-              <span className="text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 bg-white text-[#4654CD]">
-                {cart.length}
-              </span>
-            </Button>
-          )}
-
-          {/* Favoritos button - toggles view mode */}
-          <Button
-            size="sm"
-            className={`shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg ${
-              viewMode === 'favorites'
-                ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
-                : 'bg-white text-[#4654CD] border border-[#4654CD]/20 hover:bg-neutral-100'
-            }`}
-            onPress={() => setViewMode(viewMode === 'favorites' ? 'all' : 'favorites')}
-          >
-            <Heart className={`w-4 h-4 ${viewMode === 'favorites' || wishlist.length > 0 ? 'fill-current' : ''}`} />
-            <span className="hidden sm:inline">
-              {viewMode === 'favorites' ? 'Ver todos' : 'Favoritos'}
-            </span>
-            {wishlist.length > 0 && (
-              <span className={`text-xs font-semibold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ${
-                viewMode === 'favorites' ? 'bg-white text-[#4654CD]' : 'bg-[#4654CD] text-white'
-              }`}>
-                {wishlist.length}
-              </span>
-            )}
-          </Button>
+          {/* Cart button - Removed, now in Navbar header for mobile */}
 
           {/* Quiz button */}
           <Button
             size="sm"
             className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg"
-            onPress={() => setIsQuizOpen(true)}
+            onPress={() => {
+              closeAllDrawers();
+              setIsQuizOpen(true);
+            }}
           >
             <HelpCircle className="w-4 h-4" />
             <span className="hidden sm:inline">¿Necesitas ayuda?</span>
@@ -1039,7 +1141,7 @@ function CatalogPreviewContent() {
       />
 
       {/* Back to top button - visible ONLY in clean mode (above FeedbackButton) */}
-      {isCleanMode && showScrollTop && (
+      {isCleanMode && showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && (
         <div className="fixed bottom-20 right-6 z-[100]">
           <Button
             isIconOnly
@@ -1052,8 +1154,8 @@ function CatalogPreviewContent() {
         </div>
       )}
 
-      {/* Floating Action Buttons - hidden in clean mode */}
-      {!isCleanMode && (
+      {/* Floating Action Buttons - hidden in clean mode and when modals/drawers are open */}
+      {!isCleanMode && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && (
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
           {showScrollTop && (
             <Button
@@ -1068,8 +1170,8 @@ function CatalogPreviewContent() {
           <TokenCounter sectionId="PROMPT_02" version="0.5" />
           <Button
             isIconOnly
-            radius="md"
             className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+            style={{ borderRadius: '14px' }}
             onPress={() => setIsSettingsOpen(true)}
           >
             <Settings className="w-5 h-5" />

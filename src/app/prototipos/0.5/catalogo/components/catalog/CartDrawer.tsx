@@ -66,7 +66,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[90vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[calc(100vh-9rem)] flex flex-col"
           >
             {/* Drag Handle */}
             <div

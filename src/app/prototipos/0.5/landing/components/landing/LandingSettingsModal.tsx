@@ -71,12 +71,12 @@ export const LandingSettingsModal: React.FC<LandingSettingsModalProps> = ({
       backdrop="blur"
       placement="center"
       classNames={{
-        base: 'bg-white my-8',
+        base: 'bg-white my-8 rounded-[14px]',
         wrapper: 'items-center justify-center py-8 min-h-full',
         backdrop: 'bg-black/50',
-        header: 'border-b border-neutral-200 bg-white py-4 pr-12',
+        header: 'border-b border-neutral-200 bg-white py-4 pr-12 rounded-t-[14px]',
         body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
-        footer: 'border-t border-neutral-200 bg-white',
+        footer: 'border-t border-neutral-200 bg-white rounded-b-[14px]',
         closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
       }}
     >

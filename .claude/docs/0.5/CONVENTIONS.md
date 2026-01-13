@@ -21,14 +21,20 @@
 | **Selector con 4-5 opciones** | **8.3** RadioGroup |
 | **Selector con 6+ opciones** | **8.4** SelectInput con buscador |
 | **Modal de configuración** | **6** Settings Modal Pattern |
+| **Botón Settings / Tuerca** | **6.4.1** Botón Settings (border-radius 14px) |
 | **Formato de dinero/precios** | **7** Formato de Moneda |
 | **FeedbackButton** | **12.8** Feedback en Modo Clean |
 | **mode=clean** | **12.2** Modo Clean |
 | **Fondos, efectos glow, cards destacadas** | **9.3.1** Prohibición de Gradientes |
 | **Cursor, hover, elementos clickeables** | **9.3.2** Cursor Pointer - Elementos Clickeables |
+| **Sombras, bordes, estilos de cards** | **9.3.3** Card Styling Standards |
 | **Colores, estilos visuales** | **9** Colores y Estilos |
 | **Toast / Notificaciones / Mensajes** | **9.5** Toast Notifications |
 | **Filtros con conteo de resultados** | **16** Filtros con Conteo |
+| **Validación de campos en wizard** | **8.7.11** Validación de Campos en Wizard |
+| **localStorage / persistencia de estado** | **18** localStorage Persistence Pattern |
+| **Grid de cards / catálogo** | **19** Responsive Card Grid Pattern |
+| **Popup / Modal / Drawer en Mobile** | **20** Mobile Bottom Sheet Pattern |
 
 > Esta tabla existe para evitar implementaciones incorrectas. El asistente debe leer la sección completa antes de escribir código.
 
@@ -467,16 +473,41 @@ interface SectionSettingsModalProps {
   backdrop="blur"
   placement="center"
   classNames={{
-    base: 'bg-white my-8',
+    base: 'bg-white my-8 rounded-[14px]',
     wrapper: 'items-center justify-center py-8 min-h-full',
     backdrop: 'bg-black/50',
-    header: 'border-b border-neutral-200 bg-white py-4 pr-12',
+    header: 'border-b border-neutral-200 bg-white py-4 pr-12 rounded-t-[14px]',
     body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
-    footer: 'border-t border-neutral-200 bg-white',
+    footer: 'border-t border-neutral-200 bg-white rounded-b-[14px]',
     closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
   }}
 >
 ```
+
+### 6.4.1 Botón Settings (Tuerca)
+
+El botón flotante que abre el modal de configuración debe usar `borderRadius: 14px`:
+
+```tsx
+<Button
+  isIconOnly
+  className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+  style={{ borderRadius: '14px' }}
+  onPress={() => setIsSettingsOpen(true)}
+>
+  <Settings className="w-5 h-5" />
+</Button>
+```
+
+**Estándar de border-radius 14px:**
+
+| Elemento | Implementación |
+|----------|----------------|
+| Botón Settings | `style={{ borderRadius: '14px' }}` |
+| Modal base | `base: '... rounded-[14px]'` |
+| Modal header | `header: '... rounded-t-[14px]'` |
+| Modal footer | `footer: '... rounded-b-[14px]'` |
+| Botón Comparar | `style={{ borderRadius: '14px' }}` |
 
 ### 6.5 Header
 
@@ -1154,6 +1185,63 @@ import { Check, AlertCircle, Info, ChevronDown, Search, Upload, X, FileText, Ima
 - [ ] **Todos**: `disabled` usa opacity-50 y bg-neutral-50
 - [ ] **Todos**: Estado `touched` para mostrar validación solo después de interacción
 
+#### 8.7.11 Validación de Campos en Wizard
+
+**Campos Requeridos vs Opcionales:**
+
+| Prop | Comportamiento |
+|------|----------------|
+| `required` (default) | Muestra asterisco, valida en submit |
+| `required={false}` | Muestra "(Opcional)", no valida |
+
+**Función validateStep() - Patrón Estándar:**
+
+```tsx
+const validateStep = (): boolean => {
+  let isValid = true;
+
+  const campo = getFieldValue('campo') as string;
+  if (!campo || !campo.trim()) {
+    setFieldError('campo', 'Este campo es requerido');
+    isValid = false;
+  }
+
+  // Validación condicional (campo visible solo cuando otro tiene valor específico)
+  if (campoTipo === 'otro') {
+    const otroCampo = getFieldValue('otroCampo') as string;
+    if (!otroCampo || !otroCampo.trim()) {
+      setFieldError('otroCampo', 'Este campo es requerido');
+      isValid = false;
+    }
+  }
+
+  return isValid;
+};
+
+const handleNext = () => {
+  if (validateStep()) {
+    markStepCompleted('step-id');
+    setShowCelebration(true);
+  }
+};
+```
+
+**Toggle Behavior en SegmentedControl/RadioGroup:**
+
+Permite deseleccionar haciendo clic en la opción ya seleccionada:
+
+```tsx
+onClick={() => {
+  if (option.disabled || disabled) return;
+  // Toggle: si ya está seleccionado, limpiar
+  if (value === option.value) {
+    onChange('');
+  } else {
+    onChange(option.value);
+  }
+}}
+```
+
 ---
 
 ## 9. Colores y Estilos
@@ -1287,6 +1375,37 @@ Si el resultado no está vacío, hay violaciones que corregir.
 ```
 
 **Nota sobre NextUI:** Los componentes `<Button>` de NextUI ya incluyen `cursor-pointer` por defecto. Esta regla aplica principalmente a elementos `<button>`, `<div>`, `<span>` con handlers onClick personalizados.
+
+#### 9.3.3 Card Styling Standards
+
+**REGLA:** Todas las cards de contenido deben usar el mismo estilo unificado para mantener consistencia visual.
+
+| Propiedad | Valor | Clase Tailwind |
+|-----------|-------|----------------|
+| Shadow | Sutil | `shadow-sm` |
+| Border | Neutral-200 | `border border-neutral-200` |
+| Border Radius | 12px | `rounded-xl` |
+| Background | Blanco | `bg-white` |
+| Padding | 24px | `p-6` |
+
+```tsx
+// ✅ CORRECTO - Card de contenido estándar
+className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6"
+
+// ❌ INCORRECTO - Estilos inconsistentes
+className="bg-white rounded-3xl shadow-lg border border-neutral-100 p-8"  // shadow muy prominente
+className="bg-white rounded-2xl shadow-md border border-neutral-300 p-4"  // border muy oscuro
+```
+
+**Aplica a:**
+- Cards de formulario (wizard steps)
+- Cards motivacionales (MotivationalCard)
+- Cards de información
+- Secciones de contenido destacado
+
+**Excepciones permitidas:**
+- Cards de producto (pueden tener hover effects adicionales)
+- Modales y popovers (usan `shadow-lg`)
 
 ### 9.4 Floating UI Elements (Popover, Tooltip, Dropdown)
 
@@ -3579,6 +3698,380 @@ tags: [],
 
 ---
 
+## 18. localStorage Persistence Pattern
+
+### 18.1 Problema de Hidratación
+
+Cuando se usa `useState` con valor inicial y `useEffect` para cargar de localStorage, puede ocurrir que el effect de guardar sobrescriba el valor guardado antes de que el effect de carga se ejecute.
+
+**Problema:**
+```tsx
+// ❌ INCORRECTO - Race condition
+const [value, setValue] = useState('default');
+
+useEffect(() => {
+  const saved = localStorage.getItem('key');
+  if (saved) setValue(saved);
+}, []);
+
+useEffect(() => {
+  localStorage.setItem('key', value);  // Se ejecuta con 'default' antes de cargar
+}, [value]);
+```
+
+### 18.2 Solución con isHydrated Flag
+
+```tsx
+// ✅ CORRECTO - Con flag de hidratación
+const [value, setValue] = useState('');
+const [isHydrated, setIsHydrated] = useState(false);
+
+// Cargar desde localStorage
+useEffect(() => {
+  try {
+    const saved = localStorage.getItem('key');
+    if (saved !== null) {
+      setValue(saved);  // Incluye valores vacíos ''
+    } else {
+      setValue('default');  // Solo si nunca se guardó
+    }
+  } catch {}
+  setIsHydrated(true);
+}, []);
+
+// Guardar en localStorage (solo después de hidratar)
+useEffect(() => {
+  if (!isHydrated) return;
+  try {
+    localStorage.setItem('key', value);
+  } catch {}
+}, [value, isHydrated]);
+```
+
+### 18.3 Puntos Clave
+
+| Aspecto | Detalle |
+|---------|---------|
+| Estado inicial | Usar `''` vacío, NO el valor default |
+| Verificación null | `saved !== null` (no `saved`) para permitir strings vacíos |
+| Default value | Solo asignar si `localStorage.getItem()` retorna `null` |
+| Flag isHydrated | Previene guardado antes de cargar |
+| Dependencias | Incluir `isHydrated` en el array de deps del save effect |
+
+### 18.4 Casos de Uso
+
+- Wizard form fields (acceptTerms, paymentTerm, referralSource)
+- Preferencias de usuario
+- Filtros persistentes
+- Estado de UI (collapsed/expanded)
+
+### 18.5 Checklist localStorage
+
+- [ ] Estado inicial vacío (`''`) para strings
+- [ ] Flag `isHydrated` inicializado en `false`
+- [ ] Load effect marca `setIsHydrated(true)` al final
+- [ ] Save effect verifica `if (!isHydrated) return`
+- [ ] Usar `!== null` para detectar valores vacíos guardados
+- [ ] Try/catch para manejar errores de storage
+
+---
+
+## 19. Responsive Card Grid Pattern
+
+### 19.1 Regla General
+
+El grid de cards del catálogo usa `auto-fit` con `minmax()` para adaptarse automáticamente a cualquier tamaño de pantalla.
+
+```tsx
+// ✅ Correcto - Grid responsive con auto-fit (IMPORTANTE: w-full es obligatorio)
+<div className="w-full grid gap-6 grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(280px,360px))]">
+  {children}
+</div>
+
+// ❌ Incorrecto - Sin w-full (el grid no calcula el ancho correctamente)
+<div className="grid gap-6 grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(280px,360px))]">
+  {children}
+</div>
+
+// ❌ Incorrecto - Columnas fijas por breakpoint
+<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+  {children}
+</div>
+```
+
+### 19.2 Comportamiento por Dispositivo
+
+| Dispositivo | Ancho viewport | Columnas | Ancho por card |
+|-------------|----------------|----------|----------------|
+| Mobile pequeño | 320px | 1 | ~288px |
+| Mobile | 375px | 1 | ~343px |
+| Mobile grande | 428px | 1 | ~360px (max) |
+| Tablet portrait | 768px | 2 | ~360px |
+| Tablet landscape | 1024px | 3 | ~320px |
+| Desktop | 1280px | 3-4 | ~280-360px |
+| Desktop grande | 1536px | 4 | ~352px |
+| 4K/Ultrawide | 1920px+ | 5+ | ~360px |
+
+### 19.3 Parámetros de Diseño
+
+- **Mínimo:** 280px (cards nunca más pequeñas)
+- **Máximo:** 360px (cards nunca más grandes)
+- **Gap:** 24px (`gap-6`)
+- **Mobile forzado:** `grid-cols-1` para <640px
+
+### 19.4 Archivos Afectados
+
+Todos los layouts de catálogo en v0.5:
+- `CatalogLayoutV1.tsx`
+- `CatalogLayoutV2.tsx`
+- `CatalogLayoutV3.tsx`
+- `CatalogLayoutV4.tsx`
+- `CatalogLayoutV5.tsx`
+- `CatalogLayoutV6.tsx`
+
+### 19.5 Ventajas
+
+1. **Automático:** No requiere breakpoints manuales
+2. **Fluido:** Cards se redistribuyen suavemente
+3. **Consistente:** Mismo ancho de card en todos los dispositivos
+4. **Futuro-proof:** Funciona con cualquier tamaño de pantalla nuevo
+
+---
+
+## 20. Mobile Bottom Sheet Pattern
+
+### 20.1 Cuándo Usar
+
+Este patrón aplica a **TODOS** los popups, modals, drawers y overlays que aparecen en mobile dentro de v0.5:
+
+- Filtros del catálogo
+- Carrito de compras
+- Lista de deseos (wishlist)
+- Búsqueda
+- Quiz/Cuestionarios
+- Comparador
+- Detalle de productos/accesorios
+- Selección de productos (cart modal)
+
+### 20.2 Estructura Base
+
+```tsx
+'use client';
+
+import React from 'react';
+import { Button } from '@nextui-org/react';
+import { X, GripHorizontal, IconName } from 'lucide-react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+
+interface BottomSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  // ... props específicos
+}
+
+export const BottomSheetComponent: React.FC<BottomSheetProps> = ({
+  isOpen,
+  onClose,
+}) => {
+  const dragControls = useDragControls();
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-40"
+          />
+
+          {/* Bottom Sheet */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            drag="y"
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) {
+                onClose();
+              }
+            }}
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 max-h-[calc(100vh-9rem)] flex flex-col"
+          >
+            {/* Drag Handle */}
+            <div
+              onPointerDown={(e) => dragControls.start(e)}
+              className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
+            >
+              <GripHorizontal className="w-8 h-1.5 text-neutral-300" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3 border-b border-neutral-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+                  <IconName className="w-4 h-4 text-[#4654CD]" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-neutral-800">
+                    Título del Sheet
+                  </h2>
+                  <p className="text-xs text-neutral-500">
+                    Subtítulo descriptivo
+                  </p>
+                </div>
+              </div>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                onPress={onClose}
+                className="cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Body - scrollable */}
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+              {/* Contenido */}
+            </div>
+
+            {/* Footer (opcional) */}
+            <div className="border-t border-neutral-200 bg-white p-4">
+              {/* Botones de acción */}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+```
+
+### 20.3 Propiedades Estándar
+
+| Propiedad | Valor | Descripción |
+|-----------|-------|-------------|
+| `max-h` | `calc(100vh-9rem)` | ~40px gap del header |
+| `z-index` backdrop | `z-40` | Debajo del sheet |
+| `z-index` sheet | `z-50` | Encima del backdrop |
+| `rounded` | `rounded-t-3xl` | Esquinas superiores |
+| `bg` backdrop | `bg-black/50` | 50% opacidad |
+| `drag threshold` | `100px` | Umbral para cerrar |
+
+### 20.4 Animaciones Obligatorias
+
+**Backdrop:**
+```tsx
+initial={{ opacity: 0 }}
+animate={{ opacity: 1 }}
+exit={{ opacity: 0 }}
+transition={{ duration: 0.2 }}
+```
+
+**Bottom Sheet:**
+```tsx
+initial={{ y: '100%' }}
+animate={{ y: 0 }}
+exit={{ y: '100%' }}
+transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+```
+
+### 20.5 Tres Puntos de Cierre Obligatorios
+
+Todo bottom sheet DEBE poder cerrarse de estas 3 formas:
+
+1. **Botón X** en header: `onPress={onClose}`
+2. **Click en backdrop**: `onClick={onClose}`
+3. **Drag hacia abajo**: `onDragEnd` con threshold de 100px
+
+### 20.6 Comportamiento Multi-Popup
+
+Solo puede haber **UN popup abierto a la vez**. Cuando se abre uno nuevo, los demás se cierran automáticamente.
+
+**Implementación en página principal:**
+
+```tsx
+// Función helper para cerrar todos los drawers
+const closeAllDrawers = useCallback(() => {
+  setIsSearchDrawerOpen(false);
+  setIsCartDrawerOpen(false);
+  setIsWishlistDrawerOpen(false);
+  setIsQuizOpen(false);
+  setIsComparatorOpen(false);
+  setIsFilterDrawerOpen(false);
+  // ... otros estados
+}, []);
+
+// Uso al abrir cualquier drawer
+const handleOpenSearch = () => {
+  closeAllDrawers();
+  setIsSearchDrawerOpen(true);
+};
+
+const handleOpenCart = () => {
+  closeAllDrawers();
+  setIsCartDrawerOpen(true);
+};
+// ... etc
+```
+
+### 20.7 Patrón Híbrido (Desktop + Mobile)
+
+Para componentes que tienen diferente UI en desktop vs mobile:
+
+```tsx
+import { useIsMobile } from '@/hooks/useIsMobile';
+
+export const HybridDrawer: React.FC<Props> = (props) => {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileBottomSheet {...props} />;
+  }
+
+  return <DesktopModal {...props} />;
+};
+```
+
+### 20.8 Banner Promocional
+
+El banner promocional (PromoBanner) **NO debe ocultarse** cuando se abre un bottom sheet. El `max-h-[calc(100vh-9rem)]` ya considera el espacio necesario.
+
+### 20.9 Checklist de Implementación
+
+- [ ] Import `useDragControls` de Framer Motion
+- [ ] `max-h-[calc(100vh-9rem)]` en el sheet
+- [ ] Backdrop con `onClick={onClose}` y `transition={{ duration: 0.2 }}`
+- [ ] Spring animation: `damping: 30, stiffness: 300`
+- [ ] Drag handle con `GripHorizontal`
+- [ ] Header con icono, título, subtítulo y botón X
+- [ ] Body con `overflow-y-auto overscroll-contain`
+- [ ] `onDragEnd` con threshold de 100px
+- [ ] Integrado en `closeAllDrawers()` si aplica
+
+### 20.10 Componentes Estandarizados
+
+| Componente | Archivo | Estado |
+|------------|---------|--------|
+| SearchDrawer | `catalog/SearchDrawer.tsx` | ✅ |
+| CartDrawer | `catalog/CartDrawer.tsx` | ✅ |
+| CartSelectionModal | `catalog/CartSelectionModal.tsx` | ✅ |
+| WishlistDrawer | `catalog/WishlistDrawer.tsx` | ✅ |
+| AccessoryDetailModal | `upsell/AccessoryDetailModal.tsx` | ✅ |
+| QuizLayoutV4 | `quiz/layout/QuizLayoutV4.tsx` | ✅ |
+
+---
+
 ## 17. Versionado de Documento
 
 | Versión | Fecha | Cambios |
@@ -3611,6 +4104,12 @@ tags: [],
 | 3.5 | 2026-01-12 | Sección 16.7: Checklist completo para agregar nuevo filtro al catálogo (17 pasos) |
 | 3.6 | 2026-01-12 | Sección 12.10: Eliminado `priceRange`, solo existe `quotaRange` (cuota mensual). Formato URL: `quota=40,100` (coma, no guion). Default: `[25, 400]` |
 | 3.7 | 2026-01-12 | Sección 8.2-8.3: SegmentedControl con fondo tenue (`bg-[#4654CD]/15`), RadioGroup sin círculo radio |
+| 3.8 | 2026-01-13 | Sección 9.3.3: Card Styling Standards (shadow-sm, border-neutral-200, rounded-xl) |
+| 3.9 | 2026-01-13 | Sección 8.7.11: Validación de Campos en Wizard (validateStep, toggle behavior) |
+| 4.0 | 2026-01-13 | Sección 18: localStorage Persistence Pattern (isHydrated flag, race condition fix) |
+| 4.1 | 2026-01-13 | Sección 19: Responsive Card Grid Pattern (auto-fit, minmax 280-360px, w-full obligatorio) |
+| 4.2 | 2026-01-13 | Sección 20: Mobile Bottom Sheet Pattern (estructura, animaciones, 3 puntos de cierre, multi-popup) |
+| 4.3 | 2026-01-13 | Sección 6.4.1: Botón Settings y Modal con border-radius 14px estándar |
 
 ---
 

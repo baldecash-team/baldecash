@@ -9,6 +9,7 @@ import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
+import { WizardStepId } from '../../types/wizard-solicitud';
 import { SegmentedControl, SelectInput, FileUpload, TextInput } from '../../components/wizard-solicitud/fields';
 import { datosAcademicosTooltips } from '../../data/fieldTooltips';
 import { StepSuccessMessage } from '../../components/wizard-solicitud/celebration/StepSuccessMessage';
@@ -77,9 +78,67 @@ function DatosAcademicosContent() {
     return touched[fieldId] && hasValue && !getFieldError(fieldId);
   };
 
+  // Validar campos requeridos
+  const validateStep = (): boolean => {
+    let isValid = true;
+
+    const tipoInstitucion = getFieldValue('tipoInstitucion') as string;
+    if (!tipoInstitucion) {
+      setFieldError('tipoInstitucion', 'Selecciona un tipo de institución');
+      isValid = false;
+    }
+
+    const institucion = getFieldValue('institucion') as string;
+    if (!institucion) {
+      setFieldError('institucion', 'Selecciona una institución');
+      isValid = false;
+    }
+
+    // otraInstitucion requerido cuando se selecciona "otra/otro"
+    if (institucion === 'otra' || institucion === 'otro') {
+      const otraInstitucion = getFieldValue('otraInstitucion') as string;
+      if (!otraInstitucion || !otraInstitucion.trim()) {
+        setFieldError('otraInstitucion', 'Este campo es requerido');
+        isValid = false;
+      }
+    }
+
+    const carrera = getFieldValue('carrera') as string;
+    if (!carrera) {
+      setFieldError('carrera', 'Selecciona una carrera');
+      isValid = false;
+    }
+    // otraCarrera es opcional, no validar
+
+    const ciclo = getFieldValue('ciclo') as string;
+    if (!ciclo) {
+      setFieldError('ciclo', 'Selecciona tu ciclo actual');
+      isValid = false;
+    }
+
+    // otroCiclo requerido cuando se selecciona "otro"
+    if (ciclo === 'otro') {
+      const otroCiclo = getFieldValue('otroCiclo') as string;
+      if (!otroCiclo || !otroCiclo.trim()) {
+        setFieldError('otroCiclo', 'Este campo es requerido');
+        isValid = false;
+      }
+    }
+
+    const constanciaEstudios = getFieldValue('constanciaEstudios') as unknown[];
+    if (!constanciaEstudios || !Array.isArray(constanciaEstudios) || constanciaEstudios.length === 0) {
+      setFieldError('constanciaEstudios', 'Sube tu constancia de estudios');
+      isValid = false;
+    }
+
+    return isValid;
+  };
+
   const handleNext = () => {
-    markStepCompleted('datos-academicos');
-    setShowCelebration(true);
+    if (validateStep()) {
+      markStepCompleted('datos-academicos');
+      setShowCelebration(true);
+    }
   };
 
   const handleCelebrationComplete = () => {
@@ -90,6 +149,12 @@ function DatosAcademicosContent() {
 
   const handleBack = () => {
     const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/datos-personales';
+    const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
+    router.push(url);
+  };
+
+  const handleStepClick = (stepId: WizardStepId) => {
+    const baseUrl = `/prototipos/0.5/wizard-solicitud/wizard-preview/${stepId}`;
     const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
     router.push(url);
   };
@@ -203,7 +268,9 @@ function DatosAcademicosContent() {
         description={step.description}
         onBack={handleBack}
         onNext={handleNext}
+        onStepClick={handleStepClick}
         canProceed={true}
+        isCleanMode={isCleanMode}
       >
         <div className="space-y-6">
           <SegmentedControl
@@ -223,7 +290,7 @@ function DatosAcademicosContent() {
             error={getFieldError('tipoInstitucion')}
             success={isFieldValid('tipoInstitucion')}
             tooltip={datosAcademicosTooltips.tipoInstitucion}
-            required={false}
+            required
           />
 
           <SelectInput
@@ -236,7 +303,7 @@ function DatosAcademicosContent() {
             error={getFieldError('institucion')}
             success={isFieldValid('institucion')}
             tooltip={datosAcademicosTooltips.institucion}
-            required={false}
+            required
             searchable
           />
 
@@ -257,7 +324,7 @@ function DatosAcademicosContent() {
               }
               error={getFieldError('otraInstitucion')}
               success={isFieldValid('otraInstitucion')}
-              required={false}
+              required
             />
           )}
 
@@ -271,7 +338,7 @@ function DatosAcademicosContent() {
             error={getFieldError('carrera')}
             success={isFieldValid('carrera')}
             tooltip={datosAcademicosTooltips.carrera}
-            required={false}
+            required
             searchable
           />
 
@@ -298,7 +365,7 @@ function DatosAcademicosContent() {
             error={getFieldError('ciclo')}
             success={isFieldValid('ciclo')}
             tooltip={datosAcademicosTooltips.ciclo}
-            required={false}
+            required
           />
 
           {getFieldValue('ciclo') === 'otro' && (
@@ -313,7 +380,7 @@ function DatosAcademicosContent() {
               placeholder="Ej: 11"
               error={getFieldError('otroCiclo')}
               success={isFieldValid('otroCiclo')}
-              required={false}
+              required
               maxLength={2}
               inputMode="numeric"
             />
@@ -329,7 +396,7 @@ function DatosAcademicosContent() {
             helpText="Sube tu constancia de estudios (PDF o imagen)"
             error={getFieldError('constanciaEstudios')}
             tooltip={datosAcademicosTooltips.constanciaEstudios}
-            required={false}
+            required
           />
         </div>
       </WizardLayout>

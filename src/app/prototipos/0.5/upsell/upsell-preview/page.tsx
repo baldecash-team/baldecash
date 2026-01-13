@@ -23,12 +23,14 @@ import { formatMoney } from '../../utils/formatMoney';
 import {
   AccessoryIntro,
   AccessoryCard,
+  AccessoryDetailModal,
   InsuranceIntro,
   PlanComparison,
 } from '../components/upsell';
 
 // Data
 import { mockAccessories, mockInsurancePlans, mockProductContext } from '../data/mockUpsellData';
+import type { Accessory } from '../types/upsell';
 
 export default function UpsellPreviewPage() {
   return (
@@ -56,6 +58,7 @@ function UpsellPreviewContent() {
   const [selectedInsurance, setSelectedInsurance] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'accessories' | 'insurance'>('accessories');
   const [showConfigBadge, setShowConfigBadge] = useState(false);
+  const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
   // Accessory handlers
   const toggleAccessory = useCallback((id: string) => {
@@ -129,6 +132,7 @@ function UpsellPreviewContent() {
                     accessory={accessory}
                     isSelected={selectedAccessories.includes(accessory.id)}
                     onToggle={() => toggleAccessory(accessory.id)}
+                    onViewDetails={() => setDetailAccessory(accessory)}
                   />
                 ))}
               </div>
@@ -141,6 +145,19 @@ function UpsellPreviewContent() {
                 </div>
               </div>
             </div>
+
+            {/* Accessory Detail Modal */}
+            <AccessoryDetailModal
+              accessory={detailAccessory}
+              isOpen={!!detailAccessory}
+              onClose={() => setDetailAccessory(null)}
+              isSelected={detailAccessory ? selectedAccessories.includes(detailAccessory.id) : false}
+              onToggle={() => {
+                if (detailAccessory) {
+                  toggleAccessory(detailAccessory.id);
+                }
+              }}
+            />
           </Tab>
 
           <Tab

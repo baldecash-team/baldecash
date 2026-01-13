@@ -13,37 +13,15 @@ import { useProduct } from '../context/ProductContext';
 import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
+import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 
 // Upsell components
-import { AccessoryIntro, AccessoryCard } from '@/app/prototipos/0.5/upsell/components/upsell';
+import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from '@/app/prototipos/0.5/upsell/components/upsell';
 import { mockAccessories } from '@/app/prototipos/0.5/upsell/data/mockUpsellData';
+import type { Accessory } from '@/app/prototipos/0.5/upsell/types/upsell';
 
 // Coupon component
 import { CouponInput } from '../components/wizard-solicitud/coupon';
-
-// Fields component
-import { SelectInput } from '../components/wizard-solicitud/fields';
-
-// Opciones para selectores
-const PAYMENT_TERM_OPTIONS = [
-  { value: '6', label: '6 meses' },
-  { value: '12', label: '12 meses' },
-  { value: '18', label: '18 meses' },
-  { value: '24', label: '24 meses' },
-  { value: '36', label: '36 meses (Recomendado)' },
-  { value: '48', label: '48 meses' },
-];
-
-const REFERRAL_SOURCE_OPTIONS = [
-  { value: 'redes', label: 'Redes sociales (Instagram, TikTok, Facebook)' },
-  { value: 'google', label: 'Buscador (Google)' },
-  { value: 'amigo', label: 'Amigo o familiar' },
-  { value: 'universidad', label: 'Mi universidad o instituto' },
-  { value: 'publicidad', label: 'Publicidad online' },
-  { value: 'email', label: 'Correo electrónico' },
-  { value: 'evento', label: 'Evento o feria' },
-  { value: 'otro', label: 'Otro' },
-];
 
 // Fixed config for wizard
 const WIZARD_CONFIG = {
@@ -60,8 +38,35 @@ function WizardPreviewContent() {
   const [showConfig, setShowConfig] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
-  const [paymentTerm, setPaymentTerm] = useState('36');
-  const [referralSource, setReferralSource] = useState('');
+  const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
+  const [isTermsHydrated, setIsTermsHydrated] = useState(false);
+
+  // Cargar valores desde localStorage al montar
+  useEffect(() => {
+    try {
+      const savedAcceptTerms = localStorage.getItem('wizard_acceptTerms');
+      const savedAcceptPromos = localStorage.getItem('wizard_acceptPromos');
+      if (savedAcceptTerms !== null) setAcceptTerms(savedAcceptTerms === 'true');
+      if (savedAcceptPromos !== null) setAcceptPromos(savedAcceptPromos === 'true');
+    } catch {}
+    setIsTermsHydrated(true);
+  }, []);
+
+  // Guardar acceptTerms en localStorage
+  useEffect(() => {
+    if (!isTermsHydrated) return;
+    try {
+      localStorage.setItem('wizard_acceptTerms', String(acceptTerms));
+    } catch {}
+  }, [acceptTerms, isTermsHydrated]);
+
+  // Guardar acceptPromos en localStorage
+  useEffect(() => {
+    if (!isTermsHydrated) return;
+    try {
+      localStorage.setItem('wizard_acceptPromos', String(acceptPromos));
+    } catch {}
+  }, [acceptPromos, isTermsHydrated]);
 
   // Redirect to catalog if no product was selected
   useEffect(() => {
@@ -121,25 +126,14 @@ function WizardPreviewContent() {
     </button>
   );
 
-  // Logo URL de BaldeCash
-  const BALDECASH_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
-
-  // Content component to avoid duplication
-  const PageContent = () => (
+  // Content JSX (no es componente para evitar remount en cada render)
+  const pageContent = (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Header con fondo primario - fixed con sombra */}
-      <div className="bg-[#4654CD] py-5 fixed top-0 left-0 right-0 z-50 shadow-lg shadow-[#4654CD]/20">
-        <div className="flex justify-center">
-          <img
-            src={BALDECASH_LOGO}
-            alt="BaldeCash"
-            className="h-12 object-contain brightness-0 invert"
-          />
-        </div>
-      </div>
+      {/* Navbar del Hero */}
+      <Navbar isCleanMode={isCleanMode} />
 
-      {/* Spacer for fixed header */}
-      <div className="h-[68px]" />
+      {/* Spacer for fixed navbar + promo banner */}
+      <div className="h-[104px]" />
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 pt-14 pb-12">
         {/* Header */}
@@ -210,33 +204,6 @@ function WizardPreviewContent() {
           </ul>
         </div>
 
-        {/* Payment Preferences */}
-        <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
-          <h2 className="text-lg font-semibold text-neutral-800 mb-4">
-            Preferencias de pago
-          </h2>
-          <div className="space-y-4">
-            <SelectInput
-              id="paymentTerm"
-              label="¿Cuándo te gustaría pagar tu préstamo?"
-              value={paymentTerm}
-              onChange={setPaymentTerm}
-              options={PAYMENT_TERM_OPTIONS}
-              placeholder="Selecciona un plazo"
-              required={false}
-            />
-            <SelectInput
-              id="referralSource"
-              label="¿Cómo te enteraste de nosotros?"
-              value={referralSource}
-              onChange={setReferralSource}
-              options={REFERRAL_SOURCE_OPTIONS}
-              placeholder="Selecciona una opción"
-              required={false}
-            />
-          </div>
-        </div>
-
         {/* Accessories Upsell Section */}
         <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
           <AccessoryIntro />
@@ -247,10 +214,24 @@ function WizardPreviewContent() {
                 accessory={accessory}
                 isSelected={selectedAccessories.some((a) => a.id === accessory.id)}
                 onToggle={() => toggleAccessory(accessory)}
+                onViewDetails={() => setDetailAccessory(accessory)}
               />
             ))}
           </div>
         </div>
+
+        {/* Accessory Detail Modal */}
+        <AccessoryDetailModal
+          accessory={detailAccessory}
+          isOpen={!!detailAccessory}
+          onClose={() => setDetailAccessory(null)}
+          isSelected={detailAccessory ? selectedAccessories.some((a) => a.id === detailAccessory.id) : false}
+          onToggle={() => {
+            if (detailAccessory) {
+              toggleAccessory(detailAccessory);
+            }
+          }}
+        />
 
         {/* Términos y Condiciones */}
         <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
@@ -305,7 +286,7 @@ function WizardPreviewContent() {
   if (isCleanMode) {
     return (
       <>
-        <PageContent />
+        {pageContent}
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="wizard-solicitud-intro"
@@ -318,7 +299,7 @@ function WizardPreviewContent() {
   // Normal mode: content + floating controls
   return (
     <div className="relative">
-      <PageContent />
+      {pageContent}
       <Footer isCleanMode={isCleanMode} />
 
       {/* Floating Action Buttons */}

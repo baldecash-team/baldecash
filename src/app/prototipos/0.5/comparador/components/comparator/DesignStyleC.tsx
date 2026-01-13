@@ -95,16 +95,16 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                 <CardBody className="p-0">
                   <div className="flex flex-col md:flex-row">
                     {/* Hero Image & Badge */}
-                    <div className="relative md:w-1/3 p-6 flex flex-col items-center justify-center bg-[#4654CD]/5">
+                    <div className="relative md:w-1/3 p-4 md:p-6 flex flex-col items-center justify-center bg-[#4654CD]/5">
                       {/* Winner crown badge */}
                       <motion.div
                         initial={{ scale: 0, rotate: -10 }}
                         animate={{ scale: 1, rotate: 0 }}
                         transition={{ delay: 0.3, type: 'spring', bounce: 0.5 }}
-                        className="absolute top-4 left-4 right-4 flex justify-center"
+                        className="absolute top-3 md:top-4 left-3 right-3 md:left-4 md:right-4 flex justify-center"
                       >
-                        <div className="bg-[#4654CD] text-white text-sm font-bold px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
-                          <Trophy className="w-5 h-5" />
+                        <div className="bg-[#4654CD] text-white text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-1.5 md:gap-2 shadow-lg">
+                          <Trophy className="w-4 h-4 md:w-5 md:h-5" />
                           Mejor opción para ti
                         </div>
                       </motion.div>
@@ -114,7 +114,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         initial={{ scale: 0.8, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.4, type: 'spring' }}
-                        className="mt-12 w-40 h-40 rounded-2xl bg-white shadow-md flex items-center justify-center p-4"
+                        className="mt-8 md:mt-12 w-28 h-28 md:w-40 md:h-40 rounded-2xl bg-white shadow-md flex items-center justify-center p-3 md:p-4"
                       >
                         <img
                           src={bestProduct.thumbnail}
@@ -128,7 +128,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
-                        className="flex items-center gap-1 mt-4"
+                        className="flex items-center gap-0.5 md:gap-1 mt-3 md:mt-4"
                       >
                         {[...Array(5)].map((_, i) => (
                           <motion.div
@@ -137,26 +137,26 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.5 + i * 0.1 }}
                           >
-                            <Star className="w-4 h-4 fill-[#4654CD] text-[#4654CD]" />
+                            <Star className="w-3 h-3 md:w-4 md:h-4 fill-[#4654CD] text-[#4654CD]" />
                           </motion.div>
                         ))}
                       </motion.div>
                     </div>
 
                     {/* Hero Content */}
-                    <div className="md:w-2/3 p-6">
+                    <div className="md:w-2/3 p-4 md:p-6">
                       {/* Product Info */}
                       <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="mb-4"
+                        className="mb-3 md:mb-4"
                       >
-                        <p className="text-sm text-neutral-500 mb-1">{bestProduct.brand}</p>
-                        <h3 className="text-2xl font-bold text-neutral-800 mb-2">
+                        <p className="text-xs md:text-sm text-neutral-500 mb-1">{bestProduct.brand}</p>
+                        <h3 className="text-lg md:text-2xl font-bold text-neutral-800 mb-1 md:mb-2 line-clamp-2">
                           {bestProduct.displayName}
                         </h3>
-                        <p className="text-sm text-neutral-600">
+                        <p className="text-xs md:text-sm text-neutral-600">
                           La mejor relación precio-calidad basada en tus preferencias
                         </p>
                       </motion.div>
@@ -166,14 +166,16 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="flex items-baseline gap-2 mb-6"
+                        className="mb-4 md:mb-6"
                       >
-                        <span className="text-4xl font-bold text-[#4654CD]">
-                          S/{formatMoney(getDisplayQuota(bestProduct))}
-                        </span>
-                        <span className="text-lg text-neutral-500">/mes</span>
-                        <div className="ml-2 px-3 py-1 bg-[#4654CD]/10 rounded-full">
-                          <span className="text-sm font-semibold text-[#4654CD]">
+                        <div className="flex items-baseline gap-1 md:gap-2 flex-wrap">
+                          <span className="text-2xl md:text-4xl font-bold text-[#4654CD]">
+                            S/{formatMoney(getDisplayQuota(bestProduct))}
+                          </span>
+                          <span className="text-base md:text-lg text-neutral-500">/mes</span>
+                        </div>
+                        <div className="mt-2 inline-block px-3 py-1 bg-[#4654CD]/10 rounded-full">
+                          <span className="text-xs md:text-sm font-semibold text-[#4654CD]">
                             {countWins(bestProductIndex)}/{specs.filter(s => s.isDifferent).length} ventajas
                           </span>
                         </div>
@@ -184,7 +186,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.5 }}
-                        className="grid grid-cols-2 gap-3 mb-6"
+                        className="grid grid-cols-2 gap-2 md:gap-3 mb-4 md:mb-6"
                       >
                         {keySpecs.map((spec, index) => {
                           const isWinner = spec.isDifferent && spec.winner === bestProductIndex;
@@ -194,16 +196,16 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: 0.5 + index * 0.05 }}
-                              className={`flex items-center justify-between p-3 rounded-xl ${
+                              className={`flex items-center justify-between p-2 md:p-3 rounded-lg md:rounded-xl ${
                                 isWinner ? 'bg-[#4654CD]/10' : 'bg-neutral-50'
                               }`}
                             >
-                              <span className="text-xs text-neutral-500">{spec.label}</span>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-sm font-semibold ${isWinner ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
+                              <span className="text-[10px] md:text-xs text-neutral-500">{spec.label}</span>
+                              <div className="flex items-center gap-1">
+                                <span className={`text-xs md:text-sm font-semibold ${isWinner ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
                                   {spec.values[bestProductIndex]}
                                 </span>
-                                {isWinner && <Check className="w-3.5 h-3.5 text-[#4654CD]" />}
+                                {isWinner && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#4654CD]" />}
                               </div>
                             </motion.div>
                           );
@@ -217,11 +219,11 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         transition={{ delay: 0.6 }}
                       >
                         <Button
-                          size="lg"
-                          className="bg-[#4654CD] text-white cursor-pointer font-bold px-8 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
+                          size="md"
+                          className="bg-[#4654CD] text-white cursor-pointer font-bold px-4 md:px-8 shadow-lg hover:shadow-xl hover:scale-105 transition-all md:text-base"
                           onPress={() => onSelectProduct?.(bestProduct.id)}
-                          startContent={<Sparkles className="w-5 h-5" />}
-                          endContent={<ArrowRight className="w-5 h-5" />}
+                          startContent={<Sparkles className="w-4 h-4 md:w-5 md:h-5" />}
+                          endContent={<ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
                         >
                           Lo quiero
                         </Button>

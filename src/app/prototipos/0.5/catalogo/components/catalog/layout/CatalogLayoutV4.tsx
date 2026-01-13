@@ -53,6 +53,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   filterCounts,
   children,
   onFilterDrawerChange,
+  searchQuery,
+  onSearchClear,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -120,6 +122,11 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
   const appliedFilters = React.useMemo(() => {
     const applied: { id: string; category: string; label: string; value: string | number | boolean }[] = [];
+
+    // Search query chip (mostrar primero)
+    if (searchQuery && searchQuery.trim()) {
+      applied.push({ id: 'search-query', category: 'Búsqueda', label: searchQuery.trim(), value: searchQuery.trim() });
+    }
 
     filters.deviceTypes.forEach((deviceType) => {
       const opt = deviceTypeOptions.find((o) => o.value === deviceType);
@@ -224,7 +231,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
 
     return applied;
-  }, [filters]);
+  }, [filters, searchQuery]);
 
   const appliedFiltersCount = React.useMemo(() => {
     return (
@@ -256,6 +263,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   const handleRemoveFilter = (id: string) => {
     const [category, value] = id.split('-');
     switch (category) {
+      case 'search':
+        onSearchClear?.();
+        break;
       case 'deviceType':
         updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== value));
         break;
@@ -358,6 +368,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       ramExpandable: null,
       quotaRange: [25, 400],
     });
+    // También limpiar búsqueda
+    onSearchClear?.();
   };
 
   // Device type icons mapping
@@ -610,7 +622,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="grid gap-6 pb-20 lg:pb-0 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              className="w-full grid gap-6 pb-20 lg:pb-0 grid-cols-[repeat(auto-fill,minmax(min(305px,100%),1fr))] justify-items-center"
             >
               {children}
             </motion.div>

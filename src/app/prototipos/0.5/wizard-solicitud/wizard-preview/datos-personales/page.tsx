@@ -9,6 +9,7 @@ import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
+import { WizardStepId } from '../../types/wizard-solicitud';
 import { TextInput, SegmentedControl } from '../../components/wizard-solicitud/fields';
 import { datosPersonalesTooltips } from '../../data/fieldTooltips';
 import { StepSuccessMessage } from '../../components/wizard-solicitud/celebration/StepSuccessMessage';
@@ -145,6 +146,36 @@ function DatosPersonalesContent() {
       isValid = false;
     }
 
+    const sexo = getFieldValue('sexo') as string;
+    if (!sexo) {
+      setFieldError('sexo', 'Selecciona una opción');
+      isValid = false;
+    }
+
+    const fechaNacimiento = getFieldValue('fechaNacimiento') as string;
+    if (!fechaNacimiento) {
+      setFieldError('fechaNacimiento', 'Este campo es requerido');
+      isValid = false;
+    }
+
+    const celular = getFieldValue('celular') as string;
+    if (!celular || !celular.trim()) {
+      setFieldError('celular', 'Este campo es requerido');
+      isValid = false;
+    } else if (!/^\d{9}$/.test(celular.trim())) {
+      setFieldError('celular', 'El celular debe tener 9 dígitos');
+      isValid = false;
+    }
+
+    const email = getFieldValue('email') as string;
+    if (!email || !email.trim()) {
+      setFieldError('email', 'Este campo es requerido');
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setFieldError('email', 'Ingresa un correo electrónico válido');
+      isValid = false;
+    }
+
     return isValid;
   };
 
@@ -167,6 +198,12 @@ function DatosPersonalesContent() {
     router.push(url);
   };
 
+  const handleStepClick = (stepId: WizardStepId) => {
+    const baseUrl = `/prototipos/0.5/wizard-solicitud/wizard-preview/${stepId}`;
+    const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
+    router.push(url);
+  };
+
   const pageContent = (
     <>
       <AnimatePresence>
@@ -185,8 +222,10 @@ function DatosPersonalesContent() {
         description={step.description}
         onBack={handleBack}
         onNext={handleNext}
+        onStepClick={handleStepClick}
         isFirstStep={false}
         canProceed={true}
+        isCleanMode={isCleanMode}
       >
         <div className="space-y-6">
           <TextInput
@@ -274,7 +313,7 @@ function DatosPersonalesContent() {
             ]}
             error={getFieldError('sexo')}
             success={isFieldValid('sexo')}
-            required={false}
+            required
           />
 
           <TextInput
@@ -287,7 +326,7 @@ function DatosPersonalesContent() {
             error={getFieldError('fechaNacimiento')}
             success={isFieldValid('fechaNacimiento')}
             tooltip={datosPersonalesTooltips.fechaNacimiento}
-            required={false}
+            required
           />
 
           <TextInput
@@ -302,7 +341,7 @@ function DatosPersonalesContent() {
             success={isFieldValid('celular')}
             tooltip={datosPersonalesTooltips.celular}
             maxLength={9}
-            required={false}
+            required
           />
 
           <TextInput
@@ -316,7 +355,7 @@ function DatosPersonalesContent() {
             error={getFieldError('email')}
             success={isFieldValid('email')}
             tooltip={datosPersonalesTooltips.email}
-            required={false}
+            required
           />
         </div>
       </WizardLayout>

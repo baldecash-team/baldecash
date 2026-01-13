@@ -5,11 +5,13 @@
  * Summary and submission page
  */
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
+import { WizardStepId } from '../../types/wizard-solicitud';
 import { useWizard } from '../../context/WizardContext';
-import { User, GraduationCap, Wallet, AlertCircle, Edit2, Code, ArrowLeft } from 'lucide-react';
+import { User, GraduationCap, Wallet, AlertCircle, Edit2, Code, ArrowLeft, CreditCard } from 'lucide-react';
+import { SelectInput } from '../../components/wizard-solicitud/fields';
 import { Button } from '@nextui-org/react';
 import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -21,6 +23,32 @@ const WIZARD_CONFIG = {
   version: '0.5',
 };
 
+// Opciones para selectores de preferencias de pago
+const PAYMENT_DAY_OPTIONS = [
+  { value: '3', label: 'Día 3 de cada mes' },
+  { value: '10', label: 'Día 10 de cada mes' },
+  { value: '18', label: 'Día 18 de cada mes' },
+  { value: '25', label: 'Día 25 de cada mes' },
+];
+
+const REFERRAL_SOURCE_OPTIONS = [
+  { value: '1', label: 'Grupo de Facebook de mi universidad/instituto' },
+  { value: '2', label: 'Anuncio de Facebook' },
+  { value: '3', label: 'Anuncio de Instagram' },
+  { value: '4', label: 'Me refirió un amigo(a)' },
+  { value: '5', label: 'Anuncio por correo electrónico' },
+  { value: '7', label: 'Intranet de mi universidad/instituto' },
+  { value: '8', label: 'Activación en campus' },
+  { value: '12', label: 'Panel publicitario en vía pública' },
+  { value: '13', label: 'Aviso por mensaje de texto' },
+  { value: '14', label: 'Activación en sede' },
+  { value: '15', label: 'Activación en un colegio o evento' },
+  { value: '16', label: 'Anuncio en Tik Tok' },
+  { value: '17', label: 'Aviso por Whatsapp' },
+  { value: '18', label: 'Llamada telefónica' },
+  { value: '6', label: 'Otros' },
+];
+
 function ResumenContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,6 +57,44 @@ function ResumenContent() {
   const { getFieldValue } = useWizard();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [paymentTerm, setPaymentTerm] = useState('');
+  const [referralSource, setReferralSource] = useState('');
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // Cargar valores desde localStorage al montar
+  useEffect(() => {
+    try {
+      const savedPaymentTerm = localStorage.getItem('wizard_paymentTerm');
+      const savedReferralSource = localStorage.getItem('wizard_referralSource');
+      // Si existe en localStorage (incluso vacío), usar ese valor
+      // Si no existe (null), usar valor por defecto
+      if (savedPaymentTerm !== null) {
+        setPaymentTerm(savedPaymentTerm);
+      } else {
+        setPaymentTerm('3'); // Default solo si nunca se guardó
+      }
+      if (savedReferralSource !== null) {
+        setReferralSource(savedReferralSource);
+      }
+    } catch {}
+    setIsHydrated(true);
+  }, []);
+
+  // Guardar paymentTerm en localStorage (siempre, incluso vacío)
+  useEffect(() => {
+    if (!isHydrated) return; // No guardar hasta que se cargue el valor inicial
+    try {
+      localStorage.setItem('wizard_paymentTerm', paymentTerm);
+    } catch {}
+  }, [paymentTerm, isHydrated]);
+
+  // Guardar referralSource en localStorage (siempre, incluso vacío)
+  useEffect(() => {
+    if (!isHydrated) return; // No guardar hasta que se cargue el valor inicial
+    try {
+      localStorage.setItem('wizard_referralSource', referralSource);
+    } catch {}
+  }, [referralSource, isHydrated]);
 
   const handleBack = () => {
     const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/datos-economicos';
@@ -49,6 +115,10 @@ function ResumenContent() {
     const baseUrl = `/prototipos/0.5/wizard-solicitud/wizard-preview/${stepPath}`;
     const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
     router.push(url);
+  };
+
+  const handleStepClick = (stepId: WizardStepId) => {
+    navigateToStep(stepId);
   };
 
   const getDocumentoLabel = (value: string) => {
@@ -215,9 +285,11 @@ function ResumenContent() {
       description="Revisa tu información antes de enviar"
       onBack={handleBack}
       onSubmit={handleSubmit}
+      onStepClick={handleStepClick}
       isLastStep
       isSubmitting={isSubmitting}
       canProceed={!!isDataComplete}
+      isCleanMode={isCleanMode}
     >
       {!isDataComplete ? (
         <div className="flex flex-col items-center py-8">
@@ -321,6 +393,36 @@ function ResumenContent() {
               </div>
             )}
           </SummarySection>
+
+          {/* Información adicional */}
+          <div className="bg-neutral-50 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <CreditCard className="w-5 h-5 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Información adicional</h3>
+            </div>
+            <div className="space-y-4">
+              <SelectInput
+                id="paymentDay"
+                label="¿Qué día del mes prefieres pagar?"
+                value={paymentTerm}
+                onChange={setPaymentTerm}
+                options={PAYMENT_DAY_OPTIONS}
+                placeholder="Selecciona un día"
+                success={!!paymentTerm}
+                required={false}
+              />
+              <SelectInput
+                id="referralSource"
+                label="¿Cómo te enteraste de nosotros?"
+                value={referralSource}
+                onChange={setReferralSource}
+                options={REFERRAL_SOURCE_OPTIONS}
+                placeholder="Selecciona una opción"
+                success={!!referralSource}
+                required={false}
+              />
+            </div>
+          </div>
         </div>
       )}
     </WizardLayout>

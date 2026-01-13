@@ -125,8 +125,8 @@ function DetailPreviewContent() {
         <TokenCounter sectionId="PROMPT_04" version="0.5" />
         <Button
           isIconOnly
-          radius="md"
           className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
+          style={{ borderRadius: '14px' }}
           onPress={() => setIsSettingsOpen(true)}
         >
           <Settings className="w-5 h-5" />

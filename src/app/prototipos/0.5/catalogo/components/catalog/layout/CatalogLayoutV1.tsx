@@ -429,8 +429,8 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
           onClearAll={handleClearAll}
         />
 
-        {/* Products Grid */}
-        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {/* Products Grid - Responsive con auto-fill */}
+        <div className="w-full grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(305px,100%),1fr))] justify-items-center">
           {children}
         </div>
       </main>

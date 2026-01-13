@@ -65,7 +65,7 @@ export const MotivationalCard: React.FC<MotivationalCardProps> = ({ currentStep 
   if (!content) return null;
 
   return (
-    <div className="bg-white rounded-3xl shadow-lg border border-neutral-100 p-8 lg:p-10 sticky top-24">
+    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 lg:p-10 sticky top-24">
       {/* Contenido de texto */}
       <div className="mb-6">
         <h2 className="text-2xl lg:text-3xl font-bold text-neutral-800 leading-tight">

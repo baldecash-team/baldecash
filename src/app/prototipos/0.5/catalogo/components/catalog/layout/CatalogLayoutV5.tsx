@@ -358,8 +358,8 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
           />
         </div>
 
-        {/* Products Grid with hover preview */}
-        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {/* Products Grid with hover preview - Responsive con auto-fill */}
+        <div className="w-full grid gap-6 grid-cols-[repeat(auto-fill,minmax(min(305px,100%),1fr))] justify-items-center">
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
               // Check if child is a Fragment - if so, process its children

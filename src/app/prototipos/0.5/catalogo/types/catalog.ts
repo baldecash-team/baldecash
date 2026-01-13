@@ -578,6 +578,9 @@ export interface CatalogLayoutProps {
   children?: ReactNode;
   // Filter drawer state callback (for mobile)
   onFilterDrawerChange?: (isOpen: boolean) => void;
+  // Search query for chip display
+  searchQuery?: string;
+  onSearchClear?: () => void;
 }
 
 export interface BrandFilterProps {

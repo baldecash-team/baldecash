@@ -89,7 +89,15 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
           <button
             key={option.value}
             type="button"
-            onClick={() => !option.disabled && !disabled && onChange(option.value)}
+            onClick={() => {
+              if (option.disabled || disabled) return;
+              // Toggle: si ya está seleccionado, limpiar
+              if (value === option.value) {
+                onChange('');
+              } else {
+                onChange(option.value);
+              }
+            }}
             disabled={option.disabled || disabled}
             className={`
               relative w-full p-4 rounded-xl text-left

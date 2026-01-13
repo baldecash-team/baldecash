@@ -53,9 +53,14 @@ const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string)
 interface NavbarProps {
   isCleanMode?: boolean;
   hidePromoBanner?: boolean;
+  fullWidth?: boolean;
+  minimal?: boolean;
+  logoOnly?: boolean;
+  rightContent?: React.ReactNode;
+  mobileRightContent?: React.ReactNode;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBanner = false }) => {
+export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent }) => {
   const catalogBasePath = '/prototipos/0.5/catalogo/catalog-preview';
   const catalogUrl = buildInternalUrl(catalogBasePath, isCleanMode);
   const heroUrl = buildInternalUrl('/prototipos/0.5/hero/hero-preview', isCleanMode);
@@ -76,6 +81,21 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
   const [showPromo, setShowPromo] = useState(true);
   const [activeMegaMenu, setActiveMegaMenu] = useState<'equipos' | 'convenios' | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+
+  // Logo Only mode: blue background with centered white logo
+  if (logoOnly) {
+    return (
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#4654CD] shadow-lg shadow-[#4654CD]/20">
+        <div className="flex justify-center py-5">
+          <img
+            src="https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png"
+            alt="BaldeCash"
+            className="h-12 object-contain brightness-0 invert"
+          />
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <>
@@ -113,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
         className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
         style={{ top: showPromo && !hidePromoBanner ? '40px' : 0 }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={fullWidth ? "px-4 lg:px-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <a href={heroUrl} className="flex items-center">
@@ -125,108 +145,128 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
             </a>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              {navItems.map((item, index) => (
-                <div
-                  key={item.label}
-                  className="relative"
-                  onMouseEnter={() => item.megaMenuType && setActiveMegaMenu(item.megaMenuType)}
-                  onMouseLeave={() => item.megaMenuType && setActiveMegaMenu(null)}
-                >
-                  <a
-                    href={item.href}
-                    onClick={(e) => handleAnchorClick(e, item.href)}
-                    className="flex items-center gap-1 text-neutral-600 hover:text-[#4654CD] text-sm font-medium transition-colors"
+            {!minimal && (
+              <div className="hidden md:flex items-center gap-8">
+                {navItems.map((item, index) => (
+                  <div
+                    key={item.label}
+                    className="relative"
+                    onMouseEnter={() => item.megaMenuType && setActiveMegaMenu(item.megaMenuType)}
+                    onMouseLeave={() => item.megaMenuType && setActiveMegaMenu(null)}
                   >
-                    {item.label}
-                    {item.megaMenuType && <ChevronDown className={`w-3 h-3 transition-transform ${activeMegaMenu === item.megaMenuType ? 'rotate-180' : ''}`} />}
-                    {index === 0 && (
-                      <Chip
-                        size="sm"
-                        radius="sm"
-                        classNames={{
-                          base: 'absolute -top-4 -right-6 bg-[#03DBD0] px-1 py-0 h-4 min-w-0',
-                          content: 'text-[10px] font-bold text-white px-1',
-                        }}
-                      >
-                        NUEVO
-                      </Chip>
-                    )}
-                  </a>
-
-                  {/* MegaMenu - Equipos */}
-                  {item.megaMenuType === 'equipos' && (
-                    <AnimatePresence>
-                      {activeMegaMenu === 'equipos' && (
-                        <motion.div
-                          className="absolute top-full left-0 pt-2 w-80"
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.15 }}
+                    <a
+                      href={item.href}
+                      onClick={(e) => handleAnchorClick(e, item.href)}
+                      className="flex items-center gap-1 text-neutral-600 hover:text-[#4654CD] text-sm font-medium transition-colors"
+                    >
+                      {item.label}
+                      {item.megaMenuType && <ChevronDown className={`w-3 h-3 transition-transform ${activeMegaMenu === item.megaMenuType ? 'rotate-180' : ''}`} />}
+                      {index === 0 && (
+                        <Chip
+                          size="sm"
+                          radius="sm"
+                          classNames={{
+                            base: 'absolute -top-4 -right-6 bg-[#03DBD0] px-1 py-0 h-4 min-w-0',
+                            content: 'text-[10px] font-bold text-white px-1',
+                          }}
                         >
-                          <div className="bg-white rounded-xl shadow-xl border border-neutral-100 p-4 grid gap-2">
-                            {megaMenuItems.map((menuItem) => (
-                              <a
-                                key={menuItem.label}
-                                href={menuItem.href}
-                                className="flex items-start gap-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors group"
-                              >
-                                <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center shrink-0 group-hover:bg-[#4654CD]/20 transition-colors">
-                                  <menuItem.icon className="w-5 h-5 text-[#4654CD]" />
-                                </div>
-                                <div>
-                                  <p className="font-medium text-neutral-800 group-hover:text-[#4654CD] transition-colors">
-                                    {menuItem.label}
-                                  </p>
-                                  <p className="text-xs text-neutral-500">{menuItem.description}</p>
-                                </div>
-                              </a>
-                            ))}
-                          </div>
-                        </motion.div>
+                          NUEVO
+                        </Chip>
                       )}
-                    </AnimatePresence>
-                  )}
+                    </a>
 
-                </div>
-              ))}
-            </div>
+                    {/* MegaMenu - Equipos */}
+                    {item.megaMenuType === 'equipos' && (
+                      <AnimatePresence>
+                        {activeMegaMenu === 'equipos' && (
+                          <motion.div
+                            className="absolute top-full left-0 pt-2 w-80"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.15 }}
+                          >
+                            <div className="bg-white rounded-xl shadow-xl border border-neutral-100 p-4 grid gap-2">
+                              {megaMenuItems.map((menuItem) => (
+                                <a
+                                  key={menuItem.label}
+                                  href={menuItem.href}
+                                  className="flex items-start gap-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors group"
+                                >
+                                  <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center shrink-0 group-hover:bg-[#4654CD]/20 transition-colors">
+                                    <menuItem.icon className="w-5 h-5 text-[#4654CD]" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-neutral-800 group-hover:text-[#4654CD] transition-colors">
+                                      {menuItem.label}
+                                    </p>
+                                    <p className="text-xs text-neutral-500">{menuItem.description}</p>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
+
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Desktop CTA */}
-            <div className="hidden md:flex items-center gap-3">
-              <Button
-                as="a"
-                href="https://zonaclientes.baldecash.com"
-                target="_blank"
-                variant="bordered"
-                radius="lg"
-                className="border-[#4654CD] text-[#4654CD] font-medium cursor-pointer hover:bg-[#4654CD] hover:text-white transition-colors"
-                startContent={<User className="w-4 h-4" />}
-              >
-                Mi cuenta
-              </Button>
-            </div>
+            {!minimal && (
+              <div className="hidden md:flex items-center gap-3">
+                <Button
+                  as="a"
+                  href="https://zonaclientes.baldecash.com"
+                  target="_blank"
+                  variant="bordered"
+                  radius="lg"
+                  className="border-[#4654CD] text-[#4654CD] font-medium cursor-pointer hover:bg-[#4654CD] hover:text-white transition-colors"
+                  startContent={<User className="w-4 h-4" />}
+                >
+                  Mi cuenta
+                </Button>
+              </div>
+            )}
+
+            {/* Custom Right Content - Desktop (for minimal mode) */}
+            {minimal && rightContent && (
+              <div className="hidden lg:flex items-center gap-3">
+                {rightContent}
+              </div>
+            )}
+
+            {/* Custom Right Content - Mobile (for minimal mode) */}
+            {minimal && mobileRightContent && (
+              <div className="flex lg:hidden items-center gap-2">
+                {mobileRightContent}
+              </div>
+            )}
 
             {/* Mobile buttons */}
-            <div className="flex md:hidden items-center gap-2">
-              <button
-                className="p-2 rounded-lg hover:bg-neutral-100 cursor-pointer"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
-                {isMenuOpen ? (
-                  <X className="w-6 h-6 text-neutral-600" />
-                ) : (
-                  <Menu className="w-6 h-6 text-neutral-600" />
-                )}
-              </button>
-            </div>
+            {!minimal && (
+              <div className="flex md:hidden items-center gap-2">
+                <button
+                  className="p-2 rounded-lg hover:bg-neutral-100 cursor-pointer"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                >
+                  {isMenuOpen ? (
+                    <X className="w-6 h-6 text-neutral-600" />
+                  ) : (
+                    <Menu className="w-6 h-6 text-neutral-600" />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Mobile Menu */}
         <AnimatePresence>
-          {isMenuOpen && (
+          {!minimal && isMenuOpen && (
             <motion.div
               className="md:hidden bg-white border-t border-neutral-100"
               initial={{ height: 0, opacity: 0 }}

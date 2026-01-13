@@ -2,6 +2,11 @@
 
 export type AccessoryCategory = 'protección' | 'audio' | 'almacenamiento' | 'conectividad';
 
+export interface AccessorySpec {
+  label: string;
+  value: string;
+}
+
 export interface Accessory {
   id: string;
   name: string;
@@ -12,6 +17,7 @@ export interface Accessory {
   category: AccessoryCategory;
   isRecommended: boolean;
   compatibleWith: string[];
+  specs?: AccessorySpec[];
 }
 
 export type InsuranceTier = 'basic' | 'standard' | 'premium';

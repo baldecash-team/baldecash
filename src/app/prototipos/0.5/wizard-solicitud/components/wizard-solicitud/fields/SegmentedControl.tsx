@@ -96,7 +96,15 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
             <button
               key={option.value}
               type="button"
-              onClick={() => !option.disabled && !disabled && onChange(option.value)}
+              onClick={() => {
+                if (option.disabled || disabled) return;
+                // Toggle: si ya está seleccionado, limpiar
+                if (value === option.value) {
+                  onChange('');
+                } else {
+                  onChange(option.value);
+                }
+              }}
               disabled={option.disabled || disabled}
               className={`
                 relative flex-1 py-2.5 text-sm font-medium rounded-lg cursor-pointer

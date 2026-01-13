@@ -196,7 +196,7 @@ const MobileBottomSheet: React.FC<CartSelectionModalProps & { product: CatalogPr
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col max-h-[calc(100vh-9rem)]"
           >
             {/* Drag Handle */}
             <div

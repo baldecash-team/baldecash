@@ -63,7 +63,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <motion.div
-      className="h-full"
+      className="h-full w-full min-w-[min(305px,100%)] max-w-[398px]"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ scale: 1.02 }}
