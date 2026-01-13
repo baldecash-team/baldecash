@@ -29,7 +29,7 @@ export const NotFoundContent: React.FC = () => {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5, ease: 'easeOut' },
+      transition: { duration: 0.5, ease: 'easeOut' as const },
     },
   };
 
@@ -50,7 +50,7 @@ export const NotFoundContent: React.FC = () => {
     transition: {
       duration: 4,
       repeat: Infinity,
-      ease: 'easeInOut',
+      ease: 'easeInOut' as const,
     },
   };
 
@@ -59,7 +59,7 @@ export const NotFoundContent: React.FC = () => {
     transition: {
       duration: 2,
       repeat: Infinity,
-      ease: 'easeInOut',
+      ease: 'easeInOut' as const,
     },
   };
 
@@ -76,7 +76,7 @@ export const NotFoundContent: React.FC = () => {
           transition={{
             duration: 8,
             repeat: Infinity,
-            ease: 'easeInOut',
+            ease: 'easeInOut' as const,
           }}
         />
         <motion.div
@@ -88,7 +88,7 @@ export const NotFoundContent: React.FC = () => {
           transition={{
             duration: 10,
             repeat: Infinity,
-            ease: 'easeInOut',
+            ease: 'easeInOut' as const,
           }}
         />
       </div>
@@ -128,7 +128,7 @@ export const NotFoundContent: React.FC = () => {
                 transition={{
                   duration: 2,
                   repeat: Infinity,
-                  ease: 'easeOut',
+                  ease: 'easeOut' as const,
                 }}
               />
             </motion.div>
@@ -212,7 +212,7 @@ export const NotFoundContent: React.FC = () => {
           transition={{
             duration: 5,
             repeat: Infinity,
-            ease: 'easeInOut',
+            ease: 'easeInOut' as const,
           }}
         />
         <motion.div
@@ -224,7 +224,7 @@ export const NotFoundContent: React.FC = () => {
           transition={{
             duration: 6,
             repeat: Infinity,
-            ease: 'easeInOut',
+            ease: 'easeInOut' as const,
           }}
         />
         <motion.div
@@ -236,7 +236,7 @@ export const NotFoundContent: React.FC = () => {
           transition={{
             duration: 7,
             repeat: Infinity,
-            ease: 'easeInOut',
+            ease: 'easeInOut' as const,
           }}
         />
       </motion.div>
