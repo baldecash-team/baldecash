@@ -17,9 +17,9 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { ArrowLeft, Code, Loader2 } from 'lucide-react';
+import { ArrowLeft, Code } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 
 // Hero Section component
 import { HeroSection } from '../components/hero';
@@ -38,7 +38,7 @@ const fixedConfig = {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }
@@ -77,7 +77,7 @@ function HeroPreviewContent() {
     return (
       <>
         <HeroSection isCleanMode={isCleanMode} />
-        <FeedbackButton sectionId="hero" config={fixedConfig} />
+        <FeedbackButton sectionId="hero" />
       </>
     );
   }

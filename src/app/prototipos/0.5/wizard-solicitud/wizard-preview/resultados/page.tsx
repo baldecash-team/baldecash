@@ -8,10 +8,10 @@
 
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CheckCircle2, XCircle, Clock, ArrowLeft, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
 const FIXED_CONFIG = {
@@ -182,7 +182,7 @@ function ResultadosContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }

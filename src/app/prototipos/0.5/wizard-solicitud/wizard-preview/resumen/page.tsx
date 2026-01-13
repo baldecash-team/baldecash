@@ -9,9 +9,9 @@ import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
 import { useWizard } from '../../context/WizardContext';
-import { User, GraduationCap, Wallet, AlertCircle, Edit2, Loader2, Code, ArrowLeft } from 'lucide-react';
+import { User, GraduationCap, Wallet, AlertCircle, Edit2, Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
@@ -384,7 +384,7 @@ function ResumenContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }

@@ -118,7 +118,7 @@ function QuizPreviewContent() {
           </div>
         )}
 
-        <FeedbackButton sectionId="quiz" config={fixedConfigDisplay} />
+        <FeedbackButton sectionId="quiz" />
       </div>
     );
   }

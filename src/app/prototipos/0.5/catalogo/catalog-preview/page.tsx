@@ -19,11 +19,10 @@ import {
   HelpCircle,
   Heart,
   ShoppingCart,
-  Loader2,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, useIsMobile, Toast, useToast } from '@/app/prototipos/_shared';
+import { FeedbackButton, useIsMobile, Toast, useToast, CubeGridSpinner } from '@/app/prototipos/_shared';
 
 // Catalog components
 import { CatalogLayout } from '../components/catalog/CatalogLayout';
@@ -252,7 +251,7 @@ const comparatorConfig: ComparatorConfig = {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }
@@ -1096,7 +1095,7 @@ function CatalogPreviewContent() {
 
       {/* Clean mode: FeedbackButton */}
       {isCleanMode && (
-        <FeedbackButton sectionId="catalogo" config={config as unknown as Record<string, unknown>} />
+        <FeedbackButton sectionId="catalogo" />
       )}
 
       {/* Config Badge */}

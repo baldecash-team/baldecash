@@ -9,9 +9,9 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
-import { ArrowLeft, Code, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Code, RefreshCw } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { ConvenioLanding } from '../components/convenio/ConvenioLanding';
 import { convenios, getConvenioBySlug, defaultConvenio } from '../data/mockConvenioData';
 
@@ -154,7 +154,7 @@ function ConvenioPreviewContent() {
 
       {/* Feedback Button - only in clean mode */}
       {isCleanMode && (
-        <FeedbackButton sectionId="convenio" config={FIXED_CONFIG} />
+        <FeedbackButton sectionId="convenio" />
       )}
     </div>
   );
@@ -163,7 +163,7 @@ function ConvenioPreviewContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }

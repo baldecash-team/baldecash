@@ -20,11 +20,11 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { ArrowLeft, Code, Settings, Loader2 } from 'lucide-react';
+import { ArrowLeft, Code, Settings } from 'lucide-react';
 import { ProductDetail } from '../components/detail/ProductDetail';
 import { DetalleSettingsModal } from '../components/detail';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
@@ -176,7 +176,7 @@ function DetailPreviewContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }

@@ -198,12 +198,107 @@ wizard-solicitud/
 
 ---
 
+### 5. FeedbackModal Mejorado
+
+**Archivo:** `_shared/components/FeedbackModal.tsx`
+
+#### 5.1 Selector de Responsable con Buscador
+
+Se reemplazó el `<select>` nativo por `SelectInput` del wizard-solicitud:
+
+```typescript
+import { SelectInput } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
+
+const RESPONSABLES_OPTIONS = RESPONSABLES.map((name) => ({
+  value: name,
+  label: name,
+}));
+
+<SelectInput
+  id="responsable"
+  label="Responsable"
+  value={responsable}
+  onChange={handleResponsableChange}
+  options={RESPONSABLES_OPTIONS}
+  placeholder="Selecciona un responsable"
+  error={responsableHasError ? 'Este campo es requerido' : undefined}
+  success={responsableIsValid}
+  disabled={isFormDisabled}
+  required={true}
+  searchable={true}
+/>
+```
+
+**Beneficios:**
+- Búsqueda en tiempo real (41 responsables)
+- Click outside para cerrar
+- Botón X para limpiar selección
+- Estados visuales consistentes con wizard-solicitud
+
+#### 5.2 Subida de Múltiples Archivos
+
+Se reemplazó la captura automática de screenshot por FileUpload:
+
+| Característica | Valor |
+|---------------|-------|
+| Máximo archivos | 10 |
+| Tamaño máximo | 5MB por archivo |
+| Formatos | JPG, JPEG, PNG, GIF, WebP |
+| Drag & drop | Sí |
+
+#### 5.3 Nuevos Campos Enviados al API
+
+```typescript
+formData.append('user', responsable);
+formData.append('comments', feedbackText);
+formData.append('url', pageUrl);
+formData.append('section', sectionId);
+formData.append('attachment', file);      // archivo 1
+formData.append('attachment2', file);     // archivo 2
+// ... hasta attachment10
+```
+
+#### 5.4 Backend Actualizado
+
+**Nuevos archivos:**
+- `migrations/2026_01_12_150000_create_baldecash_feedback_attachments_table.php`
+- `migrations/2026_01_12_150001_modify_baldecash_feedback_table.php`
+- `app/BaldecashFeedbackAttachment.php`
+
+**Archivos modificados:**
+- `app/BaldecashFeedback.php` - nuevos campos y relación
+- `app/Http/Controllers/API/BaldecashFeedbackController.php` - múltiples archivos
+
+**Estructura de tablas:**
+
+```
+baldecash_feedback
+├── id
+├── user
+├── comments
+├── url (nuevo)
+├── section (nuevo)
+├── created_at
+└── updated_at
+
+baldecash_feedback_attachments (nueva)
+├── id
+├── baldecash_feedback_id (FK)
+├── attachment
+├── created_at
+└── updated_at
+```
+
+---
+
 ## Convenciones Aplicadas
 
 | Regla | Aplicación |
 |-------|------------|
-| 6+ opciones → SelectInput | Ambos selectores usan `SelectInput` con buscador |
+| 6+ opciones → SelectInput | Selectores de preferencias y Responsable en FeedbackModal |
 | Imágenes locales | Reemplazadas URLs externas por `/images/baldi/` |
 | Mobile-first | WizardProgress tiene diseño específico para mobile |
-| Persistencia localStorage | Cupón se guarda y restaura automáticamente |
+| Persistencia localStorage | Cupón y responsable se guardan automáticamente |
 | Animaciones Framer Motion | CouponInput usa animaciones para feedback |
+| Reutilización de componentes | FeedbackModal importa SelectInput del wizard-solicitud |
+| FileUpload con drag & drop | FeedbackModal permite subir múltiples imágenes |

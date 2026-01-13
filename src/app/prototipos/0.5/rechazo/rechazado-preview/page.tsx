@@ -9,9 +9,9 @@
 import React, { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { ArrowLeft, Code, Loader2 } from 'lucide-react';
+import { ArrowLeft, Code } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 import { RejectionScreen } from '../components/rejection';
 import { mockRejectionData } from '../data/mockRejectionData';
@@ -122,7 +122,7 @@ function RechazadoPreviewContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }

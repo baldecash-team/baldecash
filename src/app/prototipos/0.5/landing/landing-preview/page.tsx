@@ -9,9 +9,9 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { ArrowLeft, Code, Loader2, Settings } from 'lucide-react';
+import { ArrowLeft, Code, Settings } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { LandingPage } from '../components/landing';
 import { PromoLandingV1, PromoLandingV2, PromoLandingV3 } from '../components/landing/promo';
 import {
@@ -190,7 +190,7 @@ function LandingPreviewContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }

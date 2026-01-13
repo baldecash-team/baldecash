@@ -67,7 +67,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ isCleanMode = false })
         </section>
 
         {/* Social Proof */}
-        <section className="py-12 bg-neutral-50">
+        <section className="pt-12 bg-neutral-50">
           <SocialProof data={mockSocialProof} underlineStyle={UNDERLINE_STYLE} />
         </section>
 

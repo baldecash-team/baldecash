@@ -14,9 +14,9 @@ import { datosPersonalesTooltips } from '../../data/fieldTooltips';
 import { StepSuccessMessage } from '../../components/wizard-solicitud/celebration/StepSuccessMessage';
 import { useWizard } from '../../context/WizardContext';
 import { getStepById } from '../../data/wizardSteps';
-import { Loader2, Code, ArrowLeft } from 'lucide-react';
+import { Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
@@ -381,7 +381,7 @@ function DatosPersonalesContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-[#4654CD]" />
+      <CubeGridSpinner size="3rem" />
     </div>
   );
 }

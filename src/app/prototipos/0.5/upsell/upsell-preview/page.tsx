@@ -212,7 +212,7 @@ function UpsellPreviewContent() {
 
       {/* Clean mode: FeedbackButton */}
       {isCleanMode && (
-        <FeedbackButton sectionId="upsell" config={config as unknown as Record<string, unknown>} />
+        <FeedbackButton sectionId="upsell" />
       )}
 
       {/* Config Badge - hidden in clean mode */}
