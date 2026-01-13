@@ -40,7 +40,7 @@ export const NotFoundContent: React.FC = () => {
       scale: 1,
       transition: {
         duration: 0.6,
-        ease: [0.175, 0.885, 0.32, 1.275],
+        ease: [0.175, 0.885, 0.32, 1.275] as [number, number, number, number],
       },
     },
   };
