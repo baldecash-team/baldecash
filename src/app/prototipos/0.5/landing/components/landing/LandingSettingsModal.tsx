@@ -2,7 +2,9 @@
 
 /**
  * LandingSettingsModal - Modal de configuración v0.5
- * Selector de versión de Landing: Original, Countdown, Regalo, Flash Sale
+ * Dos selectores:
+ * 1. Layout (L1-L6): Estructura visual del banner
+ * 2. Mensaje (V1-V3): Contenido/gancho del banner
  */
 
 import React, { useState } from 'react';
@@ -16,42 +18,75 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Link2, Check, Layout } from 'lucide-react';
-
-export type LandingVersion = 'original' | 'countdown' | 'gift' | 'flash';
-
-export const LANDING_VERSIONS: { id: LandingVersion; label: string; description: string }[] = [
-  { id: 'original', label: 'Original', description: 'Landing estándar con carrusel de productos' },
-  { id: 'countdown', label: 'V1 - Countdown', description: 'Promo con tiempo limitado y contador regresivo' },
-  { id: 'gift', label: 'V2 - Regalo', description: 'Promo con regalo incluido por la compra' },
-  { id: 'flash', label: 'V3 - Flash Sale', description: 'Venta flash con stock limitado' },
-];
+import {
+  Settings,
+  RotateCcw,
+  Link2,
+  Check,
+  Sparkles,
+  CreditCard,
+  Gift,
+  LayoutGrid,
+  SplitSquareHorizontal,
+  Square,
+  Layers,
+  Minus,
+  Play,
+} from 'lucide-react';
+import {
+  BannerVersion,
+  LayoutVersion,
+  LandingConfig,
+  defaultLandingConfig,
+  bannerVersionLabels,
+  layoutVersionLabels,
+} from '../../types/landing';
 
 interface LandingSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  currentVersion: LandingVersion;
-  onVersionChange: (version: LandingVersion) => void;
+  config: LandingConfig;
+  onConfigChange: (config: LandingConfig) => void;
 }
+
+// Icons for banner versions (content)
+const bannerVersionIcons: Record<BannerVersion, React.ReactNode> = {
+  1: <Sparkles className="w-4 h-4" />,
+  2: <CreditCard className="w-4 h-4" />,
+  3: <Gift className="w-4 h-4" />,
+};
+
+// Icons for layout versions
+const layoutVersionIcons: Record<LayoutVersion, React.ReactNode> = {
+  1: <SplitSquareHorizontal className="w-4 h-4" />,
+  2: <SplitSquareHorizontal className="w-4 h-4 rotate-180" />,
+  3: <Square className="w-4 h-4" />,
+  4: <Layers className="w-4 h-4" />,
+  5: <Minus className="w-4 h-4" />,
+  6: <Play className="w-4 h-4" />,
+};
 
 export const LandingSettingsModal: React.FC<LandingSettingsModalProps> = ({
   isOpen,
   onClose,
-  currentVersion,
-  onVersionChange,
+  config,
+  onConfigChange,
 }) => {
   const [copied, setCopied] = useState(false);
 
   const handleGenerateUrl = () => {
     const params = new URLSearchParams();
 
-    // Solo incluir si difiere del default
-    if (currentVersion !== 'original') {
-      params.set('version', currentVersion);
+    if (config.layoutVersion !== defaultLandingConfig.layoutVersion) {
+      params.set('layout', config.layoutVersion.toString());
+    }
+    if (config.bannerVersion !== defaultLandingConfig.bannerVersion) {
+      params.set('banner', config.bannerVersion.toString());
     }
 
     const queryString = params.toString();
-    const url = `${window.location.origin}${window.location.pathname}${queryString ? `?${queryString}` : ''}`;
+    const pathname = window.location.pathname.replace(/\/$/, '');
+    const url = `${window.location.origin}${pathname}${queryString ? `?${queryString}` : ''}`;
 
     navigator.clipboard.writeText(url);
     setCopied(true);
@@ -59,8 +94,11 @@ export const LandingSettingsModal: React.FC<LandingSettingsModalProps> = ({
   };
 
   const handleReset = () => {
-    onVersionChange('original');
+    onConfigChange(defaultLandingConfig);
   };
+
+  // Calculate total combinations
+  const totalCombinations = 6 * 3; // 6 layouts × 3 messages
 
   return (
     <Modal
@@ -85,35 +123,46 @@ export const LandingSettingsModal: React.FC<LandingSettingsModalProps> = ({
           <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
             <Settings className="w-4 h-4 text-[#4654CD]" />
           </div>
-          <span className="text-lg font-semibold text-neutral-800">
-            Configuración del Landing
-          </span>
+          <div>
+            <span className="text-lg font-semibold text-neutral-800">
+              Configuración del Landing
+            </span>
+            <span className="ml-2 text-xs text-neutral-400 font-normal">
+              {totalCombinations} combinaciones
+            </span>
+          </div>
         </ModalHeader>
 
         <ModalBody className="py-6 bg-white">
-          <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
-            Selecciona la versión de landing page que deseas visualizar.
+          <p className="text-sm text-neutral-600 mb-6 pb-4 border-b border-neutral-200">
+            Selecciona el layout y mensaje del banner de captación.
           </p>
 
-          {/* Selector de Versión */}
-          <div>
+          {/* Layout Selector */}
+          <div className="mb-8">
             <div className="flex items-center gap-2 mb-3">
-              <Layout className="w-4 h-4 text-[#4654CD]" />
-              <h3 className="font-semibold text-neutral-800">Versión del Landing</h3>
+              <LayoutGrid className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Layout</h3>
+              <span className="text-xs text-neutral-400">(estructura visual)</span>
             </div>
             <RadioGroup
-              value={currentVersion}
-              onValueChange={(val) => onVersionChange(val as LandingVersion)}
+              value={config.layoutVersion.toString()}
+              onValueChange={(val) =>
+                onConfigChange({
+                  ...config,
+                  layoutVersion: parseInt(val) as LayoutVersion,
+                })
+              }
               classNames={{ wrapper: 'gap-2' }}
             >
-              {LANDING_VERSIONS.map((version) => (
+              {([1, 2, 3, 4, 5, 6] as LayoutVersion[]).map((version) => (
                 <Radio
-                  key={version.id}
-                  value={version.id}
+                  key={version}
+                  value={version.toString()}
                   classNames={{
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${
-                        currentVersion === version.id
+                        config.layoutVersion === version
                           ? 'border-[#4654CD] bg-[#4654CD]/5'
                           : 'border-neutral-200 hover:border-[#4654CD]/50'
                       }`,
@@ -122,20 +171,78 @@ export const LandingSettingsModal: React.FC<LandingSettingsModalProps> = ({
                     label: 'text-sm font-medium',
                     description: 'text-xs text-neutral-500',
                   }}
-                  description={version.description}
+                  description={layoutVersionLabels[version].description}
                 >
-                  {version.label}
+                  <div className="flex items-center gap-2">
+                    <span className={config.layoutVersion === version ? 'text-[#4654CD]' : 'text-neutral-500'}>
+                      {layoutVersionIcons[version]}
+                    </span>
+                    <span>L{version} - {layoutVersionLabels[version].name}</span>
+                  </div>
                 </Radio>
               ))}
             </RadioGroup>
           </div>
 
-          {/* Nota informativa */}
+          {/* Banner Content Selector */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Mensaje</h3>
+              <span className="text-xs text-neutral-400">(contenido/gancho)</span>
+            </div>
+            <RadioGroup
+              value={config.bannerVersion.toString()}
+              onValueChange={(val) =>
+                onConfigChange({
+                  ...config,
+                  bannerVersion: parseInt(val) as BannerVersion,
+                })
+              }
+              classNames={{ wrapper: 'gap-2' }}
+            >
+              {([1, 2, 3] as BannerVersion[]).map((version) => (
+                <Radio
+                  key={version}
+                  value={version.toString()}
+                  classNames={{
+                    base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                      ${
+                        config.bannerVersion === version
+                          ? 'border-[#4654CD] bg-[#4654CD]/5'
+                          : 'border-neutral-200 hover:border-[#4654CD]/50'
+                      }`,
+                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    labelWrapper: 'ml-2',
+                    label: 'text-sm font-medium',
+                    description: 'text-xs text-neutral-500',
+                  }}
+                  description={bannerVersionLabels[version].description}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={config.bannerVersion === version ? 'text-[#4654CD]' : 'text-neutral-500'}>
+                      {bannerVersionIcons[version]}
+                    </span>
+                    <span>V{version} - {bannerVersionLabels[version].name}</span>
+                  </div>
+                </Radio>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Current config summary */}
           <div className="mt-6 pt-4 border-t border-neutral-200">
-            <p className="text-xs text-neutral-400">
-              <span className="font-medium">Nota:</span> Cada versión muestra un tipo diferente
-              de promoción con el formulario de captura de leads integrado.
+            <p className="text-xs text-neutral-400 mb-2">
+              <span className="font-medium">Configuración actual:</span>
             </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="px-2 py-1 bg-[#4654CD]/10 text-[#4654CD] text-xs rounded-md font-medium">
+                L{config.layoutVersion}: {layoutVersionLabels[config.layoutVersion].name}
+              </span>
+              <span className="px-2 py-1 bg-[#03DBD0]/20 text-neutral-700 text-xs rounded-md font-medium">
+                V{config.bannerVersion}: {bannerVersionLabels[config.bannerVersion].name}
+              </span>
+            </div>
           </div>
         </ModalBody>
 

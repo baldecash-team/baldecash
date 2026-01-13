@@ -122,7 +122,7 @@ export interface QuizResultsProps {
   onViewOtherOptions?: () => void;
 }
 
-export type QuizContext = 'hero' | 'catalog';
+export type QuizContext = 'hero' | 'catalog' | 'landing';
 
 export interface HelpQuizProps {
   config: QuizConfig;

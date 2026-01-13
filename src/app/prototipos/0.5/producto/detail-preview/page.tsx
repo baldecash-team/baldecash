@@ -117,7 +117,6 @@ function DetailPreviewContent() {
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="detalle"
-          config={componentConfig as unknown as Record<string, unknown>}
           className="bottom-20 md:bottom-6"
         />
       </div>
@@ -189,7 +188,7 @@ function DetailPreviewContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <CubeGridSpinner size="3rem" />
+      <CubeGridSpinner />
     </div>
   );
 }

@@ -1,0 +1,1 @@
+export { CaptacionBanner } from './CaptacionBanner';

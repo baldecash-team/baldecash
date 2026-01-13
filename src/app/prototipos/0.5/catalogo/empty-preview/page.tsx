@@ -232,7 +232,6 @@ function EmptyStatePreviewContent() {
       {isCleanMode && (
         <FeedbackButton
           sectionId="estados-vacios"
-          config={fixedConfig as unknown as Record<string, unknown>}
         />
       )}
 

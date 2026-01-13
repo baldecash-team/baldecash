@@ -306,7 +306,6 @@ function ComparatorPreviewContent() {
         {/* Feedback Button */}
         <FeedbackButton
           sectionId="comparador"
-          config={config as unknown as Record<string, unknown>}
         />
       </div>
     );

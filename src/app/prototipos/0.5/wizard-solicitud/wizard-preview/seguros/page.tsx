@@ -297,7 +297,6 @@ function SegurosContent() {
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="wizard-solicitud-seguros"
-          config={WIZARD_CONFIG as unknown as Record<string, unknown>}
           className="bottom-24 lg:bottom-6"
         />
       </>
@@ -347,7 +346,7 @@ function SegurosContent() {
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <CubeGridSpinner size="3rem" />
+      <CubeGridSpinner />
     </div>
   );
 }
