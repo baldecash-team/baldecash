@@ -53,22 +53,32 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   required = false,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [sizeError, setSizeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showError = !!error;
+  const showError = !!error || !!sizeError;
   const hasFiles = value.length > 0;
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   const handleFiles = useCallback(
     (fileList: FileList | null) => {
       if (!fileList || disabled) return;
 
+      setSizeError(null);
       const newFiles: UploadedFile[] = [];
+      const rejectedFiles: string[] = [];
 
       for (let i = 0; i < fileList.length && newFiles.length < maxFiles; i++) {
         const file = fileList[i];
 
         // Check size
         if (file.size > maxSize) {
+          rejectedFiles.push(file.name);
           continue;
         }
 
@@ -83,7 +93,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         newFiles.push(uploadedFile);
       }
 
+      if (rejectedFiles.length > 0) {
+        setSizeError(`El archivo excede el tamaño máximo de ${formatSize(maxSize)}`);
+      }
+
       if (newFiles.length > 0) {
+        setSizeError(null);
         // When maxFiles is 1, replace existing file; otherwise append
         if (maxFiles === 1) {
           onChange(newFiles);
@@ -124,12 +139,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const handleRemove = (fileId: string) => {
     onChange(value.filter((f) => f.id !== fileId));
-  };
-
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    setSizeError(null);
   };
 
   const getFileIcon = () => {
@@ -251,13 +261,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       )}
 
       {/* Help Text or Error */}
-      {(helpText || error) && (
+      {(helpText || error || sizeError) && (
         <p
           className={`text-xs ${
             showError ? 'text-red-500' : 'text-neutral-500'
           }`}
         >
-          {error || helpText}
+          {error || sizeError || helpText}
         </p>
       )}
     </div>

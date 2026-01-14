@@ -538,7 +538,7 @@ export function FeedbackModal({
                           maxLength={500}
                           rows={4}
                           style={{ fontSize: '16px' }}
-                          className="w-full min-h-[120px] px-3 py-2.5 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 resize-none"
+                          className="w-full min-h-[120px] pl-3 pr-10 py-2.5 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 resize-none"
                         />
                         <div className="absolute top-3 right-3">
                           {feedbackIsValid && <Check className="w-5 h-5 text-[#22c55e]" />}
@@ -773,7 +773,7 @@ export function FeedbackModal({
                       maxLength={500}
                       rows={5}
                       style={{ fontSize: '16px' }}
-                      className="w-full min-h-[140px] px-3 py-2.5 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed resize-none"
+                      className="w-full min-h-[140px] pl-3 pr-10 py-2.5 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed resize-none"
                     />
                     <div className="absolute top-3 right-3">
                       {feedbackIsValid && <Check className="w-5 h-5 text-[#22c55e]" />}

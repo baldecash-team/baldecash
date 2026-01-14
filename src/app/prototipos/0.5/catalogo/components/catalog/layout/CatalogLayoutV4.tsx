@@ -672,7 +672,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             {/* Device Type Filter */}
             <FilterSection title="Tipo de equipo" defaultExpanded={true}>
               <div className="grid grid-cols-3 gap-2">
-                {deviceTypeOptions.map((opt) => {
+                {dynamicDeviceTypeOptions.map((opt) => {
                   const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
                   const Icon = deviceTypeIcons[opt.value];
                   return (

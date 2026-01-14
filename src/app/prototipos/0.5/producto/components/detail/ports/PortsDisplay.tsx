@@ -60,15 +60,15 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({ ports }) => {
       </div>
 
       {/* Visual Layout */}
-      <div className="relative flex items-center justify-center gap-4">
+      <div className="relative flex items-start justify-center gap-4">
         {/* Left Side */}
-        <div className="flex flex-col gap-2 items-end">
+        <div className="flex flex-col gap-2 items-end min-w-[140px]">
           <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Izquierda</span>
           {leftPorts.map((port, idx) => renderPort(port, idx))}
         </div>
 
         {/* Laptop Visual */}
-        <div className="flex-shrink-0 w-32 h-24 bg-gradient-to-b from-neutral-200 to-neutral-300 rounded-lg flex items-center justify-center relative">
+        <div className="flex-shrink-0 w-32 h-24 bg-gradient-to-b from-neutral-200 to-neutral-300 rounded-lg flex items-center justify-center relative mt-6">
           <Laptop className="w-12 h-12 text-neutral-500" />
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#4654CD]/30 rounded-r" />
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#4654CD]/30 rounded-l" />
@@ -78,7 +78,7 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({ ports }) => {
         </div>
 
         {/* Right Side */}
-        <div className="flex flex-col gap-2 items-start">
+        <div className="flex flex-col gap-2 items-start min-w-[140px]">
           <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">Derecha</span>
           {rightPorts.map((port, idx) => renderPort(port, idx))}
         </div>
@@ -101,7 +101,7 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({ ports }) => {
             {ports.reduce((acc, p) => acc + p.count, 0)} puertos totales
           </span>
           <span className="px-3 py-1 bg-neutral-100 text-neutral-600 rounded-full text-xs font-medium">
-            {leftPorts.length} izquierda • {rightPorts.length} derecha
+            {leftPorts.reduce((acc, p) => acc + p.count, 0)} izquierda • {rightPorts.reduce((acc, p) => acc + p.count, 0)} derecha
           </span>
         </div>
       </div>

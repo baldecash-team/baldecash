@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardBody, Button, Checkbox, Switch, Chip } from '@nextui-org/react';
 import { Minus, Maximize2, GripHorizontal, SlidersHorizontal, Trash2, ChevronDown, Settings2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FilterState, CatalogLayoutConfig, CatalogDeviceType, GamaTier, ProductCondition, ProcessorModel, Resolution, DisplayType } from '../../types/catalog';
+import { FilterState, CatalogLayoutConfig, CatalogDeviceType, GamaTier, ProductCondition, ProcessorModel, Resolution, DisplayType, FilterCounts } from '../../types/catalog';
 import { FilterSection } from './filters/FilterSection';
 import { QuotaRangeFilter } from './filters/QuotaRangeFilter';
 import { UsageFilter } from './filters/UsageFilter';
@@ -29,6 +29,7 @@ import {
   processorModelOptions,
   resolutionOptions,
   displayTypeOptions,
+  applyDynamicCounts,
 } from '../../data/mockCatalogData';
 import { Laptop, Tablet, Smartphone } from 'lucide-react';
 
@@ -39,6 +40,7 @@ interface FloatingFilterPanelProps {
   config: CatalogLayoutConfig;
   appliedFiltersCount: number;
   onClearAll: () => void;
+  filterCounts?: FilterCounts | null;
 }
 
 export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
@@ -48,6 +50,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
   config,
   appliedFiltersCount,
   onClearAll,
+  filterCounts,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -66,6 +69,12 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
       });
     }
   }, []);
+
+  // Dynamic device type options with counts
+  const dynamicDeviceTypeOptions = useMemo(() =>
+    filterCounts ? applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType) : deviceTypeOptions,
+    [filterCounts]
+  );
 
   const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -253,7 +262,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                     {/* Device Type Filter */}
                     <FilterSection title="Tipo de equipo" defaultExpanded={true}>
                       <div className="flex flex-wrap gap-2">
-                        {deviceTypeOptions.map((opt) => {
+                        {dynamicDeviceTypeOptions.map((opt) => {
                           const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
                           const Icon = deviceTypeIcons[opt.value];
                           return (
