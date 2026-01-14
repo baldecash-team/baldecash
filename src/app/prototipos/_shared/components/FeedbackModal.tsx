@@ -789,7 +789,6 @@ export function FeedbackModal({
       size="lg"
       backdrop="blur"
       placement="center"
-      hideCloseButton
       scrollBehavior="inside"
       classNames={{
         wrapper: 'z-[150]',
@@ -798,6 +797,7 @@ export function FeedbackModal({
         header: 'border-b border-neutral-100 pb-4',
         body: 'py-5 overflow-y-auto',
         footer: 'border-t border-neutral-100 pt-4',
+        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>

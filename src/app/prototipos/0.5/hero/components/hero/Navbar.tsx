@@ -100,34 +100,26 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
   return (
     <>
       {/* Promo Banner */}
-      <AnimatePresence>
-        {showPromo && !hidePromoBanner && (
-          <motion.div
-            className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[#4654CD] to-[#5B68D8] text-white text-center py-2.5 px-4 text-sm"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
-              <Zap className="w-4 h-4 text-[#03DBD0]" />
-              <span>
-                <strong>Oferta especial:</strong> 0% interés en tu primera cuota
-              </span>
-              <a href={buildInternalUrl(catalogBasePath, isCleanMode, { tag: 'oferta' })} className="underline font-semibold ml-2 hover:no-underline hidden sm:inline">
-                Ver más
-              </a>
-              <button
-                className="absolute right-0 p-1.5 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
-                onClick={() => setShowPromo(false)}
-                aria-label="Cerrar promoción"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showPromo && !hidePromoBanner && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[#4654CD] to-[#5B68D8] text-white text-center py-2.5 px-4 text-sm">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
+            <Zap className="w-4 h-4 text-[#03DBD0]" />
+            <span>
+              <strong>Oferta especial:</strong> 0% interés en tu primera cuota
+            </span>
+            <a href={buildInternalUrl(catalogBasePath, isCleanMode, { tag: 'oferta' })} className="underline font-semibold ml-2 hover:no-underline hidden sm:inline">
+              Ver más
+            </a>
+            <button
+              className="absolute right-0 p-1.5 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+              onClick={() => setShowPromo(false)}
+              aria-label="Cerrar promoción"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <nav
         className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
