@@ -105,7 +105,22 @@ export function FeedbackModal({
   const [files, setFiles] = useState<File[]>([]);
   const [filesTouched, setFilesTouched] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper para manejar focus en inputs (iOS keyboard fix)
+  const handleInputFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+    setIsInputFocused(true);
+    // Scroll al input después de que el teclado aparezca
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  };
+
+  const handleInputBlur = () => {
+    setIsInputFocused(false);
+    setFeedbackTouched(true);
+  };
 
   // OBLIGATORIO: Bloquear scroll del body cuando está abierto (sección 20.4)
   useEffect(() => {
@@ -449,11 +464,13 @@ export function FeedbackModal({
                 placeholder="¿Qué te parece este diseño? ¿Qué mejorarías?"
                 value={feedbackText}
                 onChange={(e) => handleFeedbackChange(e.target.value)}
-                onBlur={() => setFeedbackTouched(true)}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
                 disabled={isFormDisabled}
                 maxLength={500}
                 rows={5}
-                className="w-full min-h-[140px] px-3 py-2.5 text-base bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed resize-none"
+                style={{ fontSize: '16px' }}
+                className="w-full min-h-[140px] px-3 py-2.5 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed resize-none"
               />
               <div className="absolute top-3 right-3">
                 {feedbackIsValid && <Check className="w-5 h-5 text-[#22c55e]" />}
@@ -543,7 +560,7 @@ export function FeedbackModal({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              drag="y"
+              drag={isInputFocused ? false : "y"}
               dragControls={dragControls}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0, bottom: 0.5 }}
