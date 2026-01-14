@@ -156,7 +156,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 )}
               </div>
             }
-            trigger="press"
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}

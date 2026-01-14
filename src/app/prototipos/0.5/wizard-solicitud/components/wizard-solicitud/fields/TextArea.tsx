@@ -79,7 +79,6 @@ export const TextArea: React.FC<TextAreaProps> = ({
                 )}
               </div>
             }
-            trigger="press"
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}

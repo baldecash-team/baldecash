@@ -71,7 +71,6 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
                 )}
               </div>
             }
-            trigger="press"
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}
