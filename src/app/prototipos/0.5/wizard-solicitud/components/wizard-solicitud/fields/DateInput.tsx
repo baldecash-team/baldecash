@@ -149,7 +149,8 @@ export const DateInput: React.FC<DateInputProps> = ({
                 )}
               </div>
             }
-            trigger="press"
+            delay={0}
+            closeDelay={0}
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}
