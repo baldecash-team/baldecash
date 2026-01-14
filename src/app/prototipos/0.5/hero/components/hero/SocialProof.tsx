@@ -134,11 +134,11 @@ export const SocialProof: React.FC<SocialProofProps> = ({ data, underlineStyle =
             <ChevronRight className="w-4 h-4 text-neutral-600" />
           </Button>
 
-          <div className="overflow-hidden px-2 md:px-10">
+          <div className="overflow-hidden px-4 md:px-12 py-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={page}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                className="grid grid-cols-1 md:grid-cols-2 gap-4 -mx-1"
                 initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
