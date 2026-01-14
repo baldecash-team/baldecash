@@ -179,7 +179,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                     placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="flex-1 bg-transparent outline-none text-sm text-neutral-800 placeholder:text-neutral-400"
+                    style={{ fontSize: '16px' }}
+                    className="flex-1 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400"
                   />
                 </div>
               </div>

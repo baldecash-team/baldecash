@@ -105,7 +105,22 @@ export function FeedbackModal({
   const [files, setFiles] = useState<File[]>([]);
   const [filesTouched, setFilesTouched] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper para manejar focus en inputs (iOS keyboard fix)
+  const handleInputFocus = (e: React.FocusEvent<HTMLTextAreaElement>) => {
+    setIsInputFocused(true);
+    // Scroll al input después de que el teclado aparezca
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  };
+
+  const handleInputBlur = () => {
+    setIsInputFocused(false);
+    setFeedbackTouched(true);
+  };
 
   // OBLIGATORIO: Bloquear scroll del body cuando está abierto (sección 20.4)
   useEffect(() => {
@@ -449,11 +464,13 @@ export function FeedbackModal({
                 placeholder="¿Qué te parece este diseño? ¿Qué mejorarías?"
                 value={feedbackText}
                 onChange={(e) => handleFeedbackChange(e.target.value)}
-                onBlur={() => setFeedbackTouched(true)}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
                 disabled={isFormDisabled}
                 maxLength={500}
                 rows={5}
-                className="w-full min-h-[140px] px-3 py-2.5 text-base bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed resize-none"
+                style={{ fontSize: '16px' }}
+                className="w-full min-h-[140px] px-3 py-2.5 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed resize-none"
               />
               <div className="absolute top-3 right-3">
                 {feedbackIsValid && <Check className="w-5 h-5 text-[#22c55e]" />}
@@ -543,7 +560,7 @@ export function FeedbackModal({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              drag="y"
+              drag={isInputFocused ? false : "y"}
               dragControls={dragControls}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0, bottom: 0.5 }}
@@ -588,9 +605,168 @@ export function FeedbackModal({
                 </Button>
               </div>
 
-              {/* Body - scrollable */}
+              {/* Body - scrollable (contenido inline para evitar re-renders en iOS) */}
               <div className="flex-1 overflow-y-auto overscroll-contain p-4">
-                <FormContent />
+                {status === 'success' ? (
+                  <div className="py-8 flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle2 className="w-8 h-8 text-[#22c55e]" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-neutral-800 mb-2">
+                      ¡Gracias por tu feedback!
+                    </h3>
+                    <p className="text-sm text-neutral-500">
+                      Tu opinión ha sido enviada correctamente
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    {/* File Upload Area */}
+                    <div className="mb-5">
+                      <p className="text-sm font-medium text-neutral-700 mb-2">
+                        Adjuntar imágenes <span className="text-neutral-400 font-normal">(opcional, máx. 10)</span>
+                      </p>
+                      <div
+                        onClick={() => !isFormDisabled && fileInputRef.current?.click()}
+                        className={`
+                          relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer
+                          transition-all duration-200 border-neutral-300
+                          ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+                          ${files.length >= MAX_FILES ? 'opacity-50 cursor-not-allowed' : ''}
+                        `}
+                      >
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".jpg,.jpeg,.png,.gif,.webp"
+                          multiple
+                          onChange={(e) => e.target.files && handleFilesAdd(e.target.files)}
+                          disabled={isFormDisabled || files.length >= MAX_FILES}
+                          className="hidden"
+                        />
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-neutral-400" />
+                        <p className="text-sm text-neutral-600">
+                          {files.length >= MAX_FILES
+                            ? 'Límite de archivos alcanzado'
+                            : 'Toca para seleccionar imágenes'
+                          }
+                        </p>
+                        <p className="text-xs text-neutral-400 mt-1">
+                          JPG, PNG, GIF, WebP (máx. 5MB)
+                        </p>
+                      </div>
+
+                      {files.length > 0 && (
+                        <div className="mt-3 grid grid-cols-5 gap-2">
+                          {files.map((file, index) => (
+                            <div
+                              key={`${file.name}-${index}`}
+                              className="relative aspect-square rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50"
+                            >
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={file.name}
+                                className="w-full h-full object-cover"
+                              />
+                              {!isFormDisabled && (
+                                <button
+                                  onClick={() => handleFileRemove(index)}
+                                  className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full
+                                    flex items-center justify-center cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {files.length > 0 && (
+                        <p className="text-xs text-neutral-500 mt-2">
+                          {files.length} de {MAX_FILES} archivos
+                        </p>
+                      )}
+                    </div>
+
+                    {/* URL de la página */}
+                    {pageUrl && (
+                      <div className="mb-5">
+                        <p className="text-sm font-medium text-neutral-700 mb-2">URL</p>
+                        <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5">
+                          <Link className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                          <p className="text-sm text-neutral-600 truncate flex-1">{pageUrl}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Campo Responsable */}
+                    <div className="mb-5">
+                      <SelectInput
+                        id="responsable-mobile"
+                        label="Responsable"
+                        value={responsable}
+                        onChange={handleResponsableChange}
+                        options={RESPONSABLES_OPTIONS}
+                        placeholder="Selecciona un responsable"
+                        error={responsableHasError ? 'Este campo es requerido' : undefined}
+                        success={responsableIsValid}
+                        disabled={isFormDisabled}
+                        required={true}
+                        searchable={true}
+                      />
+                    </div>
+
+                    {/* Textarea para feedback */}
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-neutral-700">Tu opinión</label>
+                      <div
+                        className={`
+                          relative rounded-lg border-2 transition-colors bg-white
+                          ${getFeedbackBorderColor()}
+                          ${isFormDisabled ? 'opacity-50 bg-neutral-50' : ''}
+                        `}
+                      >
+                        <textarea
+                          id="feedback-textarea-mobile"
+                          placeholder="¿Qué te parece este diseño?"
+                          value={feedbackText}
+                          onChange={(e) => handleFeedbackChange(e.target.value)}
+                          onFocus={handleInputFocus}
+                          onBlur={handleInputBlur}
+                          disabled={isFormDisabled}
+                          maxLength={500}
+                          rows={4}
+                          style={{ fontSize: '16px' }}
+                          className="w-full min-h-[120px] px-3 py-2.5 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 resize-none"
+                        />
+                        <div className="absolute top-3 right-3">
+                          {feedbackIsValid && <Check className="w-5 h-5 text-[#22c55e]" />}
+                          {feedbackHasError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        {feedbackHasError ? (
+                          <p className="text-sm text-[#ef4444] flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4" />
+                            Requerido
+                          </p>
+                        ) : (
+                          <span />
+                        )}
+                        <p className="text-xs text-neutral-400">{feedbackText.length}/500</p>
+                      </div>
+                    </div>
+
+                    {/* Error de API */}
+                    {status === 'error' && (
+                      <div className="flex items-center gap-2 text-[#ef4444] text-sm mt-4 bg-red-50 p-3 rounded-lg">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Error al enviar. Intenta de nuevo.</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
