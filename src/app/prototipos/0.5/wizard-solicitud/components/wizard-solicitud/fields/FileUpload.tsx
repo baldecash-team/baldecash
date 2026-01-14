@@ -221,7 +221,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       {hasFiles && (
         <div className="space-y-2">
           {value.map((file) => {
-            const FileIcon = getFileIcon(file.type);
+            const FileIcon = getFileIcon();
             return (
               <div
                 key={file.id}
