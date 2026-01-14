@@ -17,7 +17,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import { ArrowLeft, Code, Settings } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 import { LandingSection } from '../components/landing/LandingSection';
 import { LandingSettingsModal } from '../components/landing/LandingSettingsModal';
@@ -34,6 +34,9 @@ function LandingPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
 
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);

@@ -142,6 +142,11 @@ export const TextInput: React.FC<TextInputProps> = ({
             placeholder:text-neutral-400
             ${disabled ? 'cursor-not-allowed' : ''}
           `}
+          style={{
+            // Override browser autofill background
+            WebkitBoxShadow: '0 0 0 1000px white inset',
+            WebkitTextFillColor: '#262626',
+          }}
         />
 
         {/* Status icons */}

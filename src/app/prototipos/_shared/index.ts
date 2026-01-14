@@ -8,6 +8,7 @@ export { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 export type { ShortcutConfig, ComponentVersion as ShortcutComponentVersion } from './hooks/useKeyboardShortcuts';
 export { useIsMobile } from './hooks/useIsMobile';
 export { useScreenshot } from './hooks/useScreenshot';
+export { useScrollToTop } from './hooks/useScrollToTop';
 
 // Components
 export { SettingsButton } from './components/SettingsButton';

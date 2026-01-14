@@ -8,7 +8,7 @@ import {
   Button,
   Chip,
 } from '@nextui-org/react';
-import { X, Check, Plus, Tag, Sparkles, GripHorizontal, Package } from 'lucide-react';
+import { X, Check, Plus, Tag, Sparkles, Package } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import type { Accessory } from '../../types/upsell';
 import { formatMoney } from '../../../utils/formatMoney';
@@ -219,15 +219,36 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
   const dragControls = useDragControls();
   const shouldShow = isOpen && accessory;
 
-  // Block body scroll when drawer is open
+  // Block body scroll when drawer is open (iOS Safari fix)
   useEffect(() => {
     if (isOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
     } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
     }
     return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
     };
   }, [isOpen]);
 
@@ -243,7 +264,9 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
+            onTouchMove={(e) => e.preventDefault()}
             className="fixed inset-0 bg-black/50 z-40"
+            style={{ touchAction: 'none' }}
           />
 
           {/* Bottom Sheet */}
@@ -262,18 +285,19 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col min-h-[50vh] max-h-[calc(100vh-9rem)]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col min-h-[50vh] max-h-[calc(100vh-12rem)]"
+            style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <GripHorizontal className="w-8 h-1.5 text-neutral-300" />
+              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 pb-3 border-b border-neutral-100">
+            <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
                   <Package className="w-4 h-4 text-[#4654CD]" />
@@ -299,7 +323,10 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
             </div>
 
             {/* Body - scrollable */}
-            <div className="flex-1 overflow-y-auto overscroll-contain">
+            <div
+              className="flex-1 overflow-y-auto"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+            >
               <ModalContentShared
                 accessory={accessory}
                 isSelected={isSelected}

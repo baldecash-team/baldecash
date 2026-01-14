@@ -19,7 +19,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Spinner } from '@nextui-org/react';
 import { ArrowLeft, Code, HelpCircle, Play, RotateCcw } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, useIsMobile } from '@/app/prototipos/_shared';
+import { FeedbackButton, useIsMobile, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Quiz components
 import { HelpQuiz } from '../components/quiz';
@@ -60,6 +60,9 @@ function QuizPreviewContent() {
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
   const isMobile = useIsMobile();
+
+  // Scroll to top on page load
+  useScrollToTop();
 
   const [isQuizOpen, setIsQuizOpen] = useState(true); // Abierto por defecto
   const [showConfigBadge, setShowConfigBadge] = useState(false);

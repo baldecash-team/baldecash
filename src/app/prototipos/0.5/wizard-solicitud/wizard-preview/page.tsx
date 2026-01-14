@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { FileText, Clock, Shield, ArrowRight, Code, ArrowLeft, Check } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { useProduct } from '../context/ProductContext';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
@@ -34,6 +34,10 @@ function WizardPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const { selectedProduct, setSelectedProduct, selectedAccessories, toggleAccessory, isHydrated } = useProduct();
   const [showConfig, setShowConfig] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -282,15 +286,17 @@ function WizardPreviewContent() {
     return <LoadingFallback />;
   }
 
-  // Clean mode: only content + feedback button
+  // Clean mode: only content + feedback button (hidden when accessory detail drawer is open)
   if (isCleanMode) {
     return (
       <>
         {pageContent}
         <Footer isCleanMode={isCleanMode} />
-        <FeedbackButton
-          sectionId="wizard-solicitud-intro"
-        />
+        {!detailAccessory && (
+          <FeedbackButton
+            sectionId="wizard-solicitud-intro"
+          />
+        )}
       </>
     );
   }

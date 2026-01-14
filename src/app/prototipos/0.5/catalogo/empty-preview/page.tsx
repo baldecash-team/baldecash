@@ -14,7 +14,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Spinner } from '@nextui-org/react';
 import { ArrowLeft, Code, Sparkles, ArrowRight } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Empty state component
 import { EmptyState } from '../components/empty';
@@ -82,6 +82,9 @@ function EmptyStatePreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
 
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilter[]>(mockAppliedFilters);
   const [showConfigBadge, setShowConfigBadge] = useState(false);

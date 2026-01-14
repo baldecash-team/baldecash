@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import { ArrowLeft, Code } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 import { ReceivedScreen } from '../components/received';
@@ -29,6 +29,10 @@ function RecibidoPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showConfig, setShowConfig] = useState(false);
 
   const pageContent = (
@@ -51,7 +55,7 @@ function RecibidoPreviewContent() {
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="recibido"
-          className="bottom-24 lg:bottom-6"
+          className="bottom-6"
         />
       </>
     );

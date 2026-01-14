@@ -17,7 +17,7 @@ import { useWizard } from '../../context/WizardContext';
 import { getStepById } from '../../data/wizardSteps';
 import { Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
@@ -31,8 +31,13 @@ function DatosAcademicosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showCelebration, setShowCelebration] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
 
   const {
@@ -135,6 +140,7 @@ function DatosAcademicosContent() {
   };
 
   const handleNext = () => {
+    setSubmitted(true);
     if (validateStep()) {
       markStepCompleted('datos-academicos');
       setShowCelebration(true);
@@ -287,7 +293,7 @@ function DatosAcademicosContent() {
               { value: 'instituto', label: 'Instituto' },
               { value: 'colegio', label: 'Colegio' },
             ]}
-            error={getFieldError('tipoInstitucion')}
+            error={submitted ? getFieldError('tipoInstitucion') : undefined}
             success={isFieldValid('tipoInstitucion')}
             tooltip={datosAcademicosTooltips.tipoInstitucion}
             required
@@ -300,7 +306,7 @@ function DatosAcademicosContent() {
             onChange={(v) => handleFieldChange('institucion', v)}
             options={institucionOptions}
             placeholder="Busca tu institución..."
-            error={getFieldError('institucion')}
+            error={submitted ? getFieldError('institucion') : undefined}
             success={isFieldValid('institucion')}
             tooltip={datosAcademicosTooltips.institucion}
             required
@@ -322,7 +328,7 @@ function DatosAcademicosContent() {
                 tipoInstitucion === 'colegio' ? 'Nombre del colegio' :
                 'Nombre de la universidad'
               }
-              error={getFieldError('otraInstitucion')}
+              error={submitted ? getFieldError('otraInstitucion') : undefined}
               success={isFieldValid('otraInstitucion')}
               required
             />
@@ -335,7 +341,7 @@ function DatosAcademicosContent() {
             onChange={(v) => handleFieldChange('carrera', v)}
             options={carreraOptions}
             placeholder="Busca tu carrera..."
-            error={getFieldError('carrera')}
+            error={submitted ? getFieldError('carrera') : undefined}
             success={isFieldValid('carrera')}
             tooltip={datosAcademicosTooltips.carrera}
             required
@@ -349,7 +355,7 @@ function DatosAcademicosContent() {
               value={(getFieldValue('otraCarrera') as string) || ''}
               onChange={(v) => handleFieldChange('otraCarrera', v)}
               placeholder="Nombre de la carrera"
-              error={getFieldError('otraCarrera')}
+              error={submitted ? getFieldError('otraCarrera') : undefined}
               success={isFieldValid('otraCarrera')}
               required={false}
             />
@@ -362,7 +368,7 @@ function DatosAcademicosContent() {
             onChange={(v) => handleFieldChange('ciclo', v)}
             options={cicloOptions}
             placeholder="Selecciona tu ciclo"
-            error={getFieldError('ciclo')}
+            error={submitted ? getFieldError('ciclo') : undefined}
             success={isFieldValid('ciclo')}
             tooltip={datosAcademicosTooltips.ciclo}
             required
@@ -378,7 +384,7 @@ function DatosAcademicosContent() {
                 handleFieldChange('otroCiclo', numericValue);
               }}
               placeholder="Ej: 11"
-              error={getFieldError('otroCiclo')}
+              error={submitted ? getFieldError('otroCiclo') : undefined}
               success={isFieldValid('otroCiclo')}
               required
               maxLength={2}
@@ -394,7 +400,7 @@ function DatosAcademicosContent() {
             accept=".pdf,.jpg,.jpeg,.png"
             maxFiles={1}
             helpText="Sube tu constancia de estudios (PDF o imagen)"
-            error={getFieldError('constanciaEstudios')}
+            error={submitted ? getFieldError('constanciaEstudios') : undefined}
             tooltip={datosAcademicosTooltips.constanciaEstudios}
             required
           />

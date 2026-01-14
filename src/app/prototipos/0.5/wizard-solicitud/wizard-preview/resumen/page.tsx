@@ -13,7 +13,7 @@ import { useWizard } from '../../context/WizardContext';
 import { User, GraduationCap, Wallet, AlertCircle, Edit2, Code, ArrowLeft, CreditCard } from 'lucide-react';
 import { SelectInput } from '../../components/wizard-solicitud/fields';
 import { Button } from '@nextui-org/react';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
@@ -53,6 +53,9 @@ function ResumenContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
 
   const { getFieldValue } = useWizard();
   const [isSubmitting, setIsSubmitting] = useState(false);

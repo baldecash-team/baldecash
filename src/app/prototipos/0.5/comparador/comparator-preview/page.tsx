@@ -20,7 +20,7 @@ import {
 } from '../components/comparator';
 import { availableProducts, getProductsByIds } from '../data/mockComparatorData';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, Toast, useToast } from '@/app/prototipos/_shared';
+import { FeedbackButton, Toast, useToast, useScrollToTop } from '@/app/prototipos/_shared';
 import type { ToastType } from '@/app/prototipos/_shared';
 
 /**
@@ -45,6 +45,9 @@ function ComparatorPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
 
   // Config state - parse from URL params
   const [config, setConfig] = useState<ComparatorConfig>(() => {

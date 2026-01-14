@@ -6,10 +6,10 @@
  * Mobile: Bottom sheet con Framer Motion (patrón estándar)
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { X, Heart, Trash2, GitCompare, GripHorizontal } from 'lucide-react';
+import { X, Heart, Trash2, GitCompare } from 'lucide-react';
 import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney } from '../../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
@@ -227,16 +227,35 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
 }) => {
   const dragControls = useDragControls();
 
-  // Block body scroll when drawer is open
+  // Block body scroll when drawer is open (iOS Safari fix)
+  // Note: In catalog page, scroll lock is managed centrally - this is a fallback for standalone usage
+  const scrollYRef = useRef<number>(0);
+  const didLockRef = useRef<boolean>(false);
+
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      // Only lock if not already locked by parent
+      if (document.body.style.position !== 'fixed') {
+        scrollYRef.current = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollYRef.current}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.overflow = 'hidden';
+        didLockRef.current = true;
+      }
     } else {
-      document.body.style.overflow = '';
+      // Only unlock if we were the one who locked
+      if (didLockRef.current) {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollYRef.current);
+        didLockRef.current = false;
+      }
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [isOpen]);
 
   return (
@@ -251,7 +270,9 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
+            onTouchMove={(e) => e.preventDefault()}
             className="fixed inset-0 bg-black/50 z-40"
+            style={{ touchAction: 'none' }}
           />
 
           {/* Bottom Sheet */}
@@ -270,14 +291,15 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col min-h-[50vh] max-h-[calc(100vh-9rem)]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col min-h-[50vh] max-h-[calc(100vh-12rem)]"
+            style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <GripHorizontal className="w-8 h-1.5 text-neutral-300" />
+              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
             </div>
 
             {/* Header */}
@@ -307,7 +329,10 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
             </div>
 
             {/* Body - scrollable */}
-            <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-4">
+            <div
+              className="flex-1 overflow-y-auto px-4 pb-4"
+              style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+            >
               <WishlistContentShared
                 products={products}
                 onRemoveProduct={onRemoveProduct}

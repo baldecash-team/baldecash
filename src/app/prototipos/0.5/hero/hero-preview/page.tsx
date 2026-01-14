@@ -19,7 +19,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import { ArrowLeft, Code } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Hero Section component
 import { HeroSection } from '../components/hero';
@@ -56,8 +56,12 @@ function HeroPreviewContent() {
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
 
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   // Preloading: dar tiempo a la página para cargar recursos
   useEffect(() => {
@@ -76,8 +80,14 @@ function HeroPreviewContent() {
   if (isCleanMode) {
     return (
       <>
-        <HeroSection isCleanMode={isCleanMode} />
-        <FeedbackButton sectionId="hero" />
+        <HeroSection
+          isCleanMode={isCleanMode}
+          isQuizOpen={isQuizOpen}
+          onQuizOpen={() => setIsQuizOpen(true)}
+          onQuizClose={() => setIsQuizOpen(false)}
+        />
+        {/* FeedbackButton oculto cuando Quiz está abierto */}
+        {!isQuizOpen && <FeedbackButton sectionId="hero" />}
       </>
     );
   }

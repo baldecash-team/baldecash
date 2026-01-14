@@ -16,7 +16,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Button, Spinner, Tabs, Tab } from '@nextui-org/react';
 import { ArrowLeft, Package, Shield, Code } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton } from '@/app/prototipos/_shared';
+import { FeedbackButton, useScrollToTop } from '@/app/prototipos/_shared';
 import { formatMoney } from '../../utils/formatMoney';
 
 // Upsell components
@@ -52,6 +52,9 @@ function UpsellPreviewContent() {
 
   // Parse mode from URL
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
 
   // State
   const [selectedAccessories, setSelectedAccessories] = useState<string[]>([]);
@@ -227,8 +230,8 @@ function UpsellPreviewContent() {
         </div>
       )}
 
-      {/* Clean mode: FeedbackButton */}
-      {isCleanMode && (
+      {/* Clean mode: FeedbackButton - hidden when accessory detail drawer is open */}
+      {isCleanMode && !detailAccessory && (
         <FeedbackButton sectionId="upsell" />
       )}
 

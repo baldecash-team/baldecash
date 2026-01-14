@@ -15,7 +15,7 @@ import {
   ModalFooter,
   Button,
 } from '@nextui-org/react';
-import { MessageCircle, Send, AlertCircle, Check, CheckCircle2, Loader2, Link, Upload, X, GripHorizontal } from 'lucide-react';
+import { MessageCircle, Send, AlertCircle, Check, CheckCircle2, Loader2, Upload, X } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { SelectInput } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -122,15 +122,36 @@ export function FeedbackModal({
     setFeedbackTouched(true);
   };
 
-  // OBLIGATORIO: Bloquear scroll del body cuando está abierto (sección 20.4)
+  /// OBLIGATORIO: Bloquear scroll del body cuando está abierto (iOS Safari fix)
   useEffect(() => {
     if (isOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
     } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
     }
     return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
     };
   }, [isOpen]);
 
@@ -416,21 +437,6 @@ export function FeedbackModal({
             )}
           </div>
 
-          {/* URL de la página */}
-          {pageUrl && (
-            <div className="mb-5">
-              <p className="text-sm font-medium text-neutral-700 mb-2">
-                URL de la página
-              </p>
-              <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5">
-                <Link className="w-4 h-4 text-neutral-400 flex-shrink-0" />
-                <p className="text-sm text-neutral-600 truncate flex-1" title={pageUrl}>
-                  {pageUrl}
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Campo Responsable */}
           <div className="mb-5">
             <SelectInput
@@ -544,14 +550,16 @@ export function FeedbackModal({
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop - touch-action:none previene scroll en iOS */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={handleClose}
+              onTouchMove={(e) => e.preventDefault()}
               className="fixed inset-0 bg-black/50 z-[149]"
+              style={{ touchAction: 'none' }}
             />
 
             {/* Bottom Sheet */}
@@ -569,7 +577,8 @@ export function FeedbackModal({
                   handleClose();
                 }
               }}
-              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] max-h-[calc(100vh-3rem)] flex flex-col"
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] max-h-[calc(100vh-12rem)] flex flex-col"
+              style={{ overscrollBehavior: 'contain' }}
             >
               {/* Drag Handle */}
               <div
@@ -606,7 +615,10 @@ export function FeedbackModal({
               </div>
 
               {/* Body - scrollable (contenido inline para evitar re-renders en iOS) */}
-              <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+              <div
+                className="flex-1 overflow-y-auto p-4"
+                style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+              >
                 {status === 'success' ? (
                   <div className="py-8 flex flex-col items-center justify-center text-center">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -689,17 +701,6 @@ export function FeedbackModal({
                       )}
                     </div>
 
-                    {/* URL de la página */}
-                    {pageUrl && (
-                      <div className="mb-5">
-                        <p className="text-sm font-medium text-neutral-700 mb-2">URL</p>
-                        <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5">
-                          <Link className="w-4 h-4 text-neutral-400 flex-shrink-0" />
-                          <p className="text-sm text-neutral-600 truncate flex-1">{pageUrl}</p>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Campo Responsable */}
                     <div className="mb-5">
                       <SelectInput
@@ -749,7 +750,7 @@ export function FeedbackModal({
                         {feedbackHasError ? (
                           <p className="text-sm text-[#ef4444] flex items-center gap-1">
                             <AlertCircle className="w-4 h-4" />
-                            Requerido
+                            Este campo es requerido
                           </p>
                         ) : (
                           <span />

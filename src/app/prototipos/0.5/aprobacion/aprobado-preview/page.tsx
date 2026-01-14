@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import { ArrowLeft, Code, Trophy } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 import { ApprovalScreen } from '../components/approval';
@@ -30,6 +30,10 @@ function AprobadoPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showConfig, setShowConfig] = useState(false);
   const [key, setKey] = useState(0);
 
@@ -55,7 +59,7 @@ function AprobadoPreviewContent() {
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="aprobacion"
-          className="bottom-24 lg:bottom-6"
+          className="bottom-6"
         />
       </>
     );

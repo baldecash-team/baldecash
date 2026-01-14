@@ -24,7 +24,7 @@ import { ArrowLeft, Code, Settings } from 'lucide-react';
 import { ProductDetail } from '../components/detail/ProductDetail';
 import { DetalleSettingsModal } from '../components/detail';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
@@ -41,6 +41,10 @@ function DetailPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);

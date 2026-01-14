@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, useIsMobile, Toast, useToast, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, useIsMobile, Toast, useToast, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Catalog components
 import { CatalogLayout } from '../components/catalog/CatalogLayout';
@@ -251,6 +251,9 @@ function CatalogPreviewContent() {
   const isMobile = useIsMobile();
   const { setSelectedProduct } = useProduct();
 
+  // Scroll to top on page load
+  useScrollToTop();
+
   // Helper to save product to context (replaces saveProductForWizard)
   const selectProductForWizard = useCallback((product: CatalogProduct) => {
     const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
@@ -371,6 +374,36 @@ function CatalogPreviewContent() {
     setIsFilterDrawerOpen(false);
     setIsCartModalOpen(false);
   }, []);
+
+  // Ref to store scroll position when any drawer opens
+  const scrollYRef = useRef<number>(0);
+
+  // Centralized scroll lock for all drawers (iOS Safari fix)
+  const isAnyDrawerOpen = isSearchDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen ||
+                          isQuizOpen || isComparatorOpen || isCartModalOpen;
+
+  useEffect(() => {
+    if (isAnyDrawerOpen) {
+      // Only save scroll position if body is not already fixed
+      if (document.body.style.position !== 'fixed') {
+        scrollYRef.current = window.scrollY;
+      }
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollYRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restore scroll position when all drawers are closed
+      const savedScrollY = scrollYRef.current;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, savedScrollY);
+    }
+  }, [isAnyDrawerOpen]);
 
   // Load wishlist from localStorage on mount (client-side only)
   useEffect(() => {

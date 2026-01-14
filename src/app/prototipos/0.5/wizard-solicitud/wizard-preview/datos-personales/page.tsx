@@ -17,7 +17,7 @@ import { useWizard } from '../../context/WizardContext';
 import { getStepById } from '../../data/wizardSteps';
 import { Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
@@ -31,8 +31,13 @@ function DatosPersonalesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showCelebration, setShowCelebration] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
 
   const {
@@ -180,6 +185,7 @@ function DatosPersonalesContent() {
   };
 
   const handleNext = () => {
+    setSubmitted(true);
     if (validateStep()) {
       markStepCompleted('datos-personales');
       setShowCelebration(true);
@@ -235,7 +241,7 @@ function DatosPersonalesContent() {
             onChange={(v) => handleFieldChange('nombres', v)}
             onBlur={() => handleFieldBlur('nombres')}
             placeholder="Ej: Juan Carlos"
-            error={getFieldError('nombres')}
+            error={submitted ? getFieldError('nombres') : undefined}
             success={isFieldValid('nombres')}
             tooltip={datosPersonalesTooltips.nombres}
             required
@@ -248,7 +254,7 @@ function DatosPersonalesContent() {
             onChange={(v) => handleFieldChange('apellidos', v)}
             onBlur={() => handleFieldBlur('apellidos')}
             placeholder="Ej: Pérez García"
-            error={getFieldError('apellidos')}
+            error={submitted ? getFieldError('apellidos') : undefined}
             success={isFieldValid('apellidos')}
             tooltip={datosPersonalesTooltips.apellidos}
             required
@@ -268,7 +274,7 @@ function DatosPersonalesContent() {
               { value: 'ce', label: 'CE' },
               { value: 'pasaporte', label: 'Pasaporte' },
             ]}
-            error={getFieldError('tipoDocumento')}
+            error={submitted ? getFieldError('tipoDocumento') : undefined}
             success={isFieldValid('tipoDocumento')}
             tooltip={datosPersonalesTooltips.tipoDocumento}
             required
@@ -294,7 +300,7 @@ function DatosPersonalesContent() {
               (getFieldValue('tipoDocumento') as string) === 'pasaporte' ? 'Ej: AB123456' :
               'Selecciona tipo de documento'
             }
-            error={getFieldError('numeroDocumento')}
+            error={submitted ? getFieldError('numeroDocumento') : undefined}
             success={isFieldValid('numeroDocumento')}
             tooltip={datosPersonalesTooltips.numeroDocumento}
             maxLength={12}
@@ -311,7 +317,7 @@ function DatosPersonalesContent() {
               { value: 'femenino', label: 'Femenino' },
               { value: 'otro', label: 'Otro' },
             ]}
-            error={getFieldError('sexo')}
+            error={submitted ? getFieldError('sexo') : undefined}
             success={isFieldValid('sexo')}
             required
           />
@@ -322,7 +328,7 @@ function DatosPersonalesContent() {
             value={(getFieldValue('fechaNacimiento') as string) || ''}
             onChange={(v) => handleFieldChange('fechaNacimiento', v)}
             onBlur={() => handleFieldBlur('fechaNacimiento')}
-            error={getFieldError('fechaNacimiento')}
+            error={submitted ? getFieldError('fechaNacimiento') : undefined}
             success={isFieldValid('fechaNacimiento')}
             tooltip={datosPersonalesTooltips.fechaNacimiento}
             required
@@ -336,7 +342,7 @@ function DatosPersonalesContent() {
             onChange={(v) => handleFieldChange('celular', v)}
             onBlur={() => handleFieldBlur('celular')}
             placeholder="Ej: 999 999 999"
-            error={getFieldError('celular')}
+            error={submitted ? getFieldError('celular') : undefined}
             success={isFieldValid('celular')}
             tooltip={datosPersonalesTooltips.celular}
             maxLength={9}
@@ -351,7 +357,7 @@ function DatosPersonalesContent() {
             onChange={(v) => handleFieldChange('email', v)}
             onBlur={() => handleFieldBlur('email')}
             placeholder="Ej: juan@universidad.edu.pe"
-            error={getFieldError('email')}
+            error={submitted ? getFieldError('email') : undefined}
             success={isFieldValid('email')}
             tooltip={datosPersonalesTooltips.email}
             required

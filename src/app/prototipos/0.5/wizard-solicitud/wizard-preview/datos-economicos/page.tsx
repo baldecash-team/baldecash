@@ -17,7 +17,7 @@ import { useWizard } from '../../context/WizardContext';
 import { getStepById } from '../../data/wizardSteps';
 import { Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
@@ -31,8 +31,13 @@ function DatosEconomicosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showCelebration, setShowCelebration] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
 
   const {
@@ -108,6 +113,7 @@ function DatosEconomicosContent() {
   };
 
   const handleNext = () => {
+    setSubmitted(true);
     if (validateStep()) {
       markStepCompleted('datos-economicos');
       setShowCelebration(true);
@@ -168,7 +174,7 @@ function DatosEconomicosContent() {
               { value: 'practicante', label: 'Practicante' },
               { value: 'desempleado', label: 'Sin empleo actual' },
             ]}
-            error={getFieldError('situacionLaboral')}
+            error={submitted ? getFieldError('situacionLaboral') : undefined}
             success={isFieldValid('situacionLaboral')}
             tooltip={datosEconomicosTooltips.situacionLaboral}
             required
@@ -182,7 +188,7 @@ function DatosEconomicosContent() {
             onChange={(v) => handleFieldChange('ingresoMensual', v)}
             onBlur={() => handleFieldBlur('ingresoMensual', step.fields.find((f) => f.id === 'ingresoMensual')?.validation)}
             placeholder="0.00"
-            error={getFieldError('ingresoMensual')}
+            error={submitted ? getFieldError('ingresoMensual') : undefined}
             success={isFieldValid('ingresoMensual')}
             tooltip={datosEconomicosTooltips.ingresoMensual}
             required
@@ -196,7 +202,7 @@ function DatosEconomicosContent() {
             onBlur={() => handleFieldBlur('comentarios')}
             placeholder="Cuéntanos más sobre tu situación..."
             helpText="Opcional: cualquier información que consideres relevante"
-            error={getFieldError('comentarios')}
+            error={submitted ? getFieldError('comentarios') : undefined}
             success={isFieldValid('comentarios')}
             tooltip={datosEconomicosTooltips.comentarios}
             maxLength={500}

@@ -6,9 +6,11 @@
  * Usa datos de ejemplo (paymentPlans) para mostrar cuotas consistentes por plazo.
  */
 
-import React, { useState, useMemo } from 'react';
-import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale, X } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { useIsMobile } from '@/app/prototipos/_shared';
 import { CronogramaProps, CronogramaVersion } from '../../../types/detail';
 import { formatMoney } from '../../../../utils/formatMoney';
 
@@ -54,10 +56,45 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   startDate = new Date(),
   version = 1,
 }) => {
+  const isMobile = useIsMobile();
+  const dragControls = useDragControls();
   const [selectedTerm, setSelectedTerm] = useState(term);
   const [showAll, setShowAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
+
+  // Block body scroll when modal is open (iOS Safari fix)
+  useEffect(() => {
+    if (isModalOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
+    }
+    return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
+    };
+  }, [isModalOpen]);
 
   // Obtener cuota del plan según el plazo seleccionado
   const currentPlan = useMemo(() => {
@@ -319,131 +356,311 @@ export const Cronograma: React.FC<CronogramaProps> = ({
         </div>
       </div>
 
-      {/* Payment Details Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        size="lg"
-        classNames={{
-          wrapper: "z-[70]",
-          backdrop: "bg-black/50 backdrop-blur-sm",
-          base: "bg-white",
-          closeButton: "right-4 top-4 hover:bg-neutral-100 rounded-lg cursor-pointer",
-        }}
-      >
-        <ModalContent className="bg-white">
-          <ModalHeader className="flex items-center gap-3 border-b border-neutral-100">
-            <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-[#4654CD]" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-neutral-900">Detalle del Financiamiento</h3>
-              <p className="text-sm font-normal text-neutral-500">Informacion completa de tu credito</p>
-            </div>
-          </ModalHeader>
-          <ModalBody className="py-6">
-            {/* Summary */}
-            <div className="bg-[#4654CD]/5 rounded-xl p-4 mb-6">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-neutral-600">Cuota mensual</span>
-                <span className="text-xl font-bold text-[#4654CD]">S/{formatMoney(adjustedQuota)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-neutral-600">Plazo</span>
-                <span className="font-semibold text-neutral-900">{selectedTerm} meses</span>
-              </div>
-            </div>
+      {/* Payment Details - Mobile: Bottom Sheet */}
+      {isMobile ? (
+        <AnimatePresence>
+          {isModalOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setIsModalOpen(false)}
+                onTouchMove={(e) => e.preventDefault()}
+                className="fixed inset-0 bg-black/50 z-[149]"
+                style={{ touchAction: 'none' }}
+              />
 
-            {/* Financial Details */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
-                <Percent className="w-4 h-4 text-[#4654CD]" />
-                Tasas de Interes
-              </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-neutral-50 rounded-lg p-3">
-                  <p className="text-xs text-neutral-500 mb-1">TEA (Tasa Efectiva Anual)</p>
-                  <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tea}%</p>
+              {/* Bottom Sheet */}
+              <motion.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                drag="y"
+                dragControls={dragControls}
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.5 }}
+                onDragEnd={(_, info) => {
+                  if (info.offset.y > 100) {
+                    setIsModalOpen(false);
+                  }
+                }}
+                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] max-h-[calc(100vh-12rem)] flex flex-col"
+                style={{ overscrollBehavior: 'contain' }}
+              >
+                {/* Drag Handle */}
+                <div
+                  onPointerDown={(e) => dragControls.start(e)}
+                  className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
+                >
+                  <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
                 </div>
-                <div className="bg-neutral-50 rounded-lg p-3">
-                  <p className="text-xs text-neutral-500 mb-1">TCEA (Tasa de Costo Efectivo Anual)</p>
-                  <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tcea}%</p>
-                </div>
-              </div>
 
-              <Divider className="my-4" />
-
-              <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-[#4654CD]" />
-                Comisiones y Seguros
-              </h4>
-              <div className="space-y-2">
-                <div className="flex justify-between py-2 border-b border-neutral-100">
-                  <span className="text-sm text-neutral-600">Comision de desembolso</span>
-                  <span className="text-sm font-medium text-neutral-900">
-                    {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
-                  </span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-neutral-100">
-                  <span className="text-sm text-neutral-600">Seguro de desgravamen</span>
-                  <span className="text-sm font-medium text-neutral-900">{FINANCIAL_DATA.seguroDesgravamen}% mensual</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-neutral-100">
-                  <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
-                  <span className="text-sm font-medium text-neutral-900">
-                    {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
-                  </span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-neutral-100">
-                  <span className="text-sm text-neutral-600">Gastos notariales</span>
-                  <span className="text-sm font-medium text-neutral-900">
-                    {FINANCIAL_DATA.gastoNotarial > 0 ? `S/${FINANCIAL_DATA.gastoNotarial}` : 'Sin costo'}
-                  </span>
-                </div>
-              </div>
-
-              <Divider className="my-4" />
-
-              {/* Total */}
-              <div className="bg-green-50 rounded-xl p-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-neutral-600">Monto total a pagar</p>
-                    <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{formatMoney(adjustedQuota)}</p>
+                {/* Header */}
+                <div className="flex items-center justify-between px-4 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-[#4654CD]" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold text-neutral-800">
+                        Detalle del Financiamiento
+                      </p>
+                      <p className="text-xs text-neutral-500 font-normal">
+                        Información completa de tu crédito
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-2xl font-bold text-green-600">S/{formatMoney(totalPayment)}</p>
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="light"
+                    onPress={() => setIsModalOpen(false)}
+                    className="cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+
+                {/* Body - scrollable */}
+                <div
+                  className="flex-1 overflow-y-auto px-4 pb-4"
+                  style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+                >
+                  {/* Summary */}
+                  <div className="bg-[#4654CD]/5 rounded-xl p-4 mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-neutral-600">Cuota mensual</span>
+                      <span className="text-xl font-bold text-[#4654CD]">S/{formatMoney(adjustedQuota)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-600">Plazo</span>
+                      <span className="font-semibold text-neutral-900">{selectedTerm} meses</span>
+                    </div>
+                  </div>
+
+                  {/* Financial Details */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                      <Percent className="w-4 h-4 text-[#4654CD]" />
+                      Tasas de Interés
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-neutral-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-500 mb-1">TEA</p>
+                        <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tea}%</p>
+                      </div>
+                      <div className="bg-neutral-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-500 mb-1">TCEA</p>
+                        <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tcea}%</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-neutral-200 my-4" />
+
+                    <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-[#4654CD]" />
+                      Comisiones y Seguros
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between py-2 border-b border-neutral-100">
+                        <span className="text-sm text-neutral-600">Comisión de desembolso</span>
+                        <span className="text-sm font-medium text-neutral-900">
+                          {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-neutral-100">
+                        <span className="text-sm text-neutral-600">Seguro de desgravamen</span>
+                        <span className="text-sm font-medium text-neutral-900">{FINANCIAL_DATA.seguroDesgravamen}% mensual</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-neutral-100">
+                        <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
+                        <span className="text-sm font-medium text-neutral-900">
+                          {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b border-neutral-100">
+                        <span className="text-sm text-neutral-600">Gastos notariales</span>
+                        <span className="text-sm font-medium text-neutral-900">
+                          {FINANCIAL_DATA.gastoNotarial > 0 ? `S/${FINANCIAL_DATA.gastoNotarial}` : 'Sin costo'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-neutral-200 my-4" />
+
+                    {/* Total */}
+                    <div className="bg-green-50 rounded-xl p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-neutral-600">Monto total a pagar</p>
+                          <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{formatMoney(adjustedQuota)}</p>
+                        </div>
+                        <p className="text-2xl font-bold text-green-600">S/{formatMoney(totalPayment)}</p>
+                      </div>
+                    </div>
+
+                    {/* Legal Notice */}
+                    <div className="flex items-start gap-2 text-xs text-neutral-500 mt-4">
+                      <Scale className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <p>
+                        Esta información es referencial. Las tasas y condiciones finales serán confirmadas al momento de la aprobación.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="border-t border-neutral-200 bg-white p-4 flex gap-3">
+                  <Button
+                    variant="bordered"
+                    className="flex-1 border-neutral-300 cursor-pointer"
+                    onPress={() => setIsModalOpen(false)}
+                  >
+                    Cerrar
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#4654CD] text-white cursor-pointer"
+                    startContent={<Download className="w-4 h-4" />}
+                    onPress={handleDownloadPDF}
+                  >
+                    Descargar PDF
+                  </Button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      ) : (
+        /* Payment Details - Desktop: Modal */
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          size="lg"
+          classNames={{
+            wrapper: "z-[150]",
+            backdrop: "bg-black/50 backdrop-blur-sm z-[149]",
+            base: "bg-white",
+            closeButton: "right-4 top-4 hover:bg-neutral-100 rounded-lg cursor-pointer",
+          }}
+        >
+          <ModalContent className="bg-white">
+            <ModalHeader className="flex items-center gap-3 border-b border-neutral-100">
+              <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-[#4654CD]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-neutral-900">Detalle del Financiamiento</h3>
+                <p className="text-sm font-normal text-neutral-500">Información completa de tu crédito</p>
+              </div>
+            </ModalHeader>
+            <ModalBody className="py-6">
+              {/* Summary */}
+              <div className="bg-[#4654CD]/5 rounded-xl p-4 mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-neutral-600">Cuota mensual</span>
+                  <span className="text-xl font-bold text-[#4654CD]">S/{formatMoney(adjustedQuota)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-neutral-600">Plazo</span>
+                  <span className="font-semibold text-neutral-900">{selectedTerm} meses</span>
                 </div>
               </div>
 
-              {/* Legal Notice */}
-              <div className="flex items-start gap-2 text-xs text-neutral-500 mt-4">
-                <Scale className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <p>
-                  Esta informacion es referencial. Las tasas y condiciones finales seran confirmadas al momento de la aprobacion.
-                  Consulta nuestros <a href="/prototipos/0.5/legal/terminos" className="text-[#4654CD] underline">Terminos y Condiciones</a> y
-                  <a href="/prototipos/0.5/legal/privacidad" className="text-[#4654CD] underline ml-1">Politica de Privacidad</a>.
-                </p>
+              {/* Financial Details */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                  <Percent className="w-4 h-4 text-[#4654CD]" />
+                  Tasas de Interés
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-neutral-50 rounded-lg p-3">
+                    <p className="text-xs text-neutral-500 mb-1">TEA (Tasa Efectiva Anual)</p>
+                    <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tea}%</p>
+                  </div>
+                  <div className="bg-neutral-50 rounded-lg p-3">
+                    <p className="text-xs text-neutral-500 mb-1">TCEA (Tasa de Costo Efectivo Anual)</p>
+                    <p className="text-lg font-bold text-neutral-900">{FINANCIAL_DATA.tcea}%</p>
+                  </div>
+                </div>
+
+                <Divider className="my-4" />
+
+                <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-[#4654CD]" />
+                  Comisiones y Seguros
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Comisión de desembolso</span>
+                    <span className="text-sm font-medium text-neutral-900">
+                      {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Seguro de desgravamen</span>
+                    <span className="text-sm font-medium text-neutral-900">{FINANCIAL_DATA.seguroDesgravamen}% mensual</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
+                    <span className="text-sm font-medium text-neutral-900">
+                      {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b border-neutral-100">
+                    <span className="text-sm text-neutral-600">Gastos notariales</span>
+                    <span className="text-sm font-medium text-neutral-900">
+                      {FINANCIAL_DATA.gastoNotarial > 0 ? `S/${FINANCIAL_DATA.gastoNotarial}` : 'Sin costo'}
+                    </span>
+                  </div>
+                </div>
+
+                <Divider className="my-4" />
+
+                {/* Total */}
+                <div className="bg-green-50 rounded-xl p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-neutral-600">Monto total a pagar</p>
+                      <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{formatMoney(adjustedQuota)}</p>
+                    </div>
+                    <p className="text-2xl font-bold text-green-600">S/{formatMoney(totalPayment)}</p>
+                  </div>
+                </div>
+
+                {/* Legal Notice */}
+                <div className="flex items-start gap-2 text-xs text-neutral-500 mt-4">
+                  <Scale className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <p>
+                    Esta información es referencial. Las tasas y condiciones finales serán confirmadas al momento de la aprobación.
+                    Consulta nuestros <a href="/prototipos/0.5/legal/terminos" className="text-[#4654CD] underline">Términos y Condiciones</a> y
+                    <a href="/prototipos/0.5/legal/privacidad" className="text-[#4654CD] underline ml-1">Política de Privacidad</a>.
+                  </p>
+                </div>
               </div>
-            </div>
-          </ModalBody>
-          <ModalFooter className="border-t border-neutral-100">
-            <Button
-              variant="bordered"
-              className="border-neutral-300 cursor-pointer"
-              onPress={() => setIsModalOpen(false)}
-            >
-              Cerrar
-            </Button>
-            <Button
-              className="bg-[#4654CD] text-white cursor-pointer"
-              startContent={<Download className="w-4 h-4" />}
-              onPress={handleDownloadPDF}
-            >
-              Descargar PDF
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+            </ModalBody>
+            <ModalFooter className="border-t border-neutral-100">
+              <Button
+                variant="bordered"
+                className="border-neutral-300 cursor-pointer"
+                onPress={() => setIsModalOpen(false)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                className="bg-[#4654CD] text-white cursor-pointer"
+                startContent={<Download className="w-4 h-4" />}
+                onPress={handleDownloadPDF}
+              >
+                Descargar PDF
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
 
       {/* Toast - Success */}
       <Toast

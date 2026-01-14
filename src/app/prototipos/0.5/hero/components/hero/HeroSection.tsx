@@ -32,11 +32,25 @@ const UNDERLINE_STYLE = 4;
 
 interface HeroSectionProps {
   isCleanMode?: boolean;
+  isQuizOpen?: boolean;
+  onQuizOpen?: () => void;
+  onQuizClose?: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ isCleanMode = false }) => {
-  const [isQuizOpen, setIsQuizOpen] = useState(false);
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  isCleanMode = false,
+  isQuizOpen: externalIsQuizOpen,
+  onQuizOpen,
+  onQuizClose,
+}) => {
+  // Estado interno si no se provee externamente (backwards compatibility)
+  const [internalIsQuizOpen, setInternalIsQuizOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  // Usar estado externo si está disponible, sino interno
+  const isQuizOpen = externalIsQuizOpen !== undefined ? externalIsQuizOpen : internalIsQuizOpen;
+  const handleQuizOpen = onQuizOpen || (() => setInternalIsQuizOpen(true));
+  const handleQuizClose = onQuizClose || (() => setInternalIsQuizOpen(false));
 
   const quizConfig = {
     layoutVersion: (isMobile ? 4 : 5) as 4 | 5,
@@ -92,7 +106,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ isCleanMode = false })
 
             {/* CTA Component */}
             <div className="flex justify-center mb-6">
-              <HeroCta onQuizOpen={() => setIsQuizOpen(true)} isCleanMode={isCleanMode} />
+              <HeroCta onQuizOpen={handleQuizOpen} isCleanMode={isCleanMode} />
             </div>
 
             {/* Microcopy */}
@@ -118,7 +132,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ isCleanMode = false })
       <HelpQuiz
         config={quizConfig}
         isOpen={isQuizOpen}
-        onClose={() => setIsQuizOpen(false)}
+        onClose={handleQuizClose}
         context="hero"
         isCleanMode={isCleanMode}
       />

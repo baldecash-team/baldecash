@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 
@@ -56,6 +56,9 @@ function ResultadosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
 
   const handleSelectResult = (path: string) => {
     const url = isCleanMode ? `${path}?mode=clean` : path;
@@ -142,7 +145,7 @@ function ResultadosContent() {
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="wizard-solicitud-resultados"
-          className="bottom-24 lg:bottom-6"
+          className="bottom-6"
         />
       </>
     );

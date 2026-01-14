@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import { ArrowLeft, Code, RefreshCw } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { ConvenioLanding } from '../components/convenio/ConvenioLanding';
 import { convenios, getConvenioBySlug, defaultConvenio } from '../data/mockConvenioData';
 
@@ -29,6 +29,10 @@ function ConvenioPreviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showConfig, setShowConfig] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 

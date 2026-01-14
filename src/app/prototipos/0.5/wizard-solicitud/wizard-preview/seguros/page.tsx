@@ -13,7 +13,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Code, Loader2, Package, Plus, Shield
 import Image from 'next/image';
 import { useProduct } from '../../context/ProductContext';
 import { formatMoney } from '../../../utils/formatMoney';
-import { FeedbackButton, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
@@ -38,6 +38,10 @@ function SegurosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
   const [showConfig, setShowConfig] = useState(false);
   const [selectedInsurance, setSelectedInsurance] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -297,7 +301,7 @@ function SegurosContent() {
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="wizard-solicitud-seguros"
-          className="bottom-24 lg:bottom-6"
+          className="bottom-6"
         />
       </>
     );

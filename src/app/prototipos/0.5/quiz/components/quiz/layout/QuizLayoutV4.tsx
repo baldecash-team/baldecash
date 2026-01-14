@@ -7,7 +7,7 @@
 
 import React, { useEffect } from 'react';
 import { Button } from '@nextui-org/react';
-import { X, HelpCircle, GripHorizontal } from 'lucide-react';
+import { X, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { QuizLayoutProps } from '../../../types/quiz';
 
@@ -20,15 +20,36 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
 }) => {
   const dragControls = useDragControls();
 
-  // Block body scroll when drawer is open
+  // Block body scroll when drawer is open (iOS Safari fix)
   useEffect(() => {
     if (isOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
     } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
     }
     return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY) * -1);
+      }
     };
   }, [isOpen]);
 
@@ -61,18 +82,18 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[calc(100vh-9rem)] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[calc(100vh-12rem)] flex flex-col"
           >
             {/* Drag Handle */}
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <GripHorizontal className="w-8 h-1.5 text-neutral-300" />
+              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 pb-3 border-b border-neutral-100">
+            <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
                   <HelpCircle className="w-4 h-4 text-[#4654CD]" />
