@@ -49,7 +49,8 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                   )}
                 </div>
               }
-              trigger="press"
+              delay={0}
+              closeDelay={0}
               classNames={{
                 content: 'bg-white shadow-lg border border-neutral-200',
               }}
