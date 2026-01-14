@@ -22,6 +22,7 @@ Este archivo contiene instrucciones que Claude debe seguir en todas las conversa
 | Textarea | 8.7.3 TextArea |
 | Select / Dropdown | 8.7.4 SelectInput |
 | File Upload / Drag & Drop | 8.7.5 FileUpload |
+| Fecha / DatePicker | 8.7.5.1 DateInput |
 | Validación de formularios | 8.7.8 Validación de Estados |
 | Selector con 2-3 opciones | 8.2 SegmentedControl |
 | Selector con 4-5 opciones | 8.3 RadioGroup |

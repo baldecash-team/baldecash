@@ -1199,8 +1199,8 @@ function CatalogPreviewContent() {
         </div>
       )}
 
-      {/* Clean mode: FeedbackButton */}
-      {isCleanMode && (
+      {/* Clean mode: FeedbackButton - oculto cuando hay drawers abiertos */}
+      {isCleanMode && !isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && (
         <FeedbackButton sectionId="catalogo" />
       )}
 

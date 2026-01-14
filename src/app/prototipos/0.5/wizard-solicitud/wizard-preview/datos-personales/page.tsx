@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
 import { WizardStepId } from '../../types/wizard-solicitud';
-import { TextInput, SegmentedControl } from '../../components/wizard-solicitud/fields';
+import { TextInput, DateInput, SegmentedControl } from '../../components/wizard-solicitud/fields';
 import { datosPersonalesTooltips } from '../../data/fieldTooltips';
 import { StepSuccessMessage } from '../../components/wizard-solicitud/celebration/StepSuccessMessage';
 import { useWizard } from '../../context/WizardContext';
@@ -316,10 +316,9 @@ function DatosPersonalesContent() {
             required
           />
 
-          <TextInput
+          <DateInput
             id="fechaNacimiento"
             label="Fecha de Nacimiento"
-            type="date"
             value={(getFieldValue('fechaNacimiento') as string) || ''}
             onChange={(v) => handleFieldChange('fechaNacimiento', v)}
             onBlur={() => handleFieldBlur('fechaNacimiento')}

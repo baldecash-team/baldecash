@@ -145,11 +145,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Content - Centered */}
           <div className="p-5 text-center flex flex-col flex-1">
-            {/* Imagen referencial */}
-            <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-2">
-              Imagen referencial
-            </p>
-
             {/* Brand */}
             <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider mb-1">
               {product.brand}
@@ -212,18 +207,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 en {selectedTerm} meses · inicial S/{formatMoney(initialAmount)}
               </p>
             </div>
-
-            {/* Stock */}
-            {product.stock === 'limited' && (
-              <motion.p
-                className="text-xs text-amber-600 mb-4 flex items-center justify-center gap-1"
-                animate={{ opacity: [1, 0.6, 1] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                Solo quedan {product.stockQuantity} unidades
-              </motion.p>
-            )}
 
             {/* Spacer */}
             <div className="flex-1" />

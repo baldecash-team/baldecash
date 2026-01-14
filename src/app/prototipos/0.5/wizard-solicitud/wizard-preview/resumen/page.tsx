@@ -70,8 +70,6 @@ function ResumenContent() {
       // Si no existe (null), usar valor por defecto
       if (savedPaymentTerm !== null) {
         setPaymentTerm(savedPaymentTerm);
-      } else {
-        setPaymentTerm('3'); // Default solo si nunca se guardó
       }
       if (savedReferralSource !== null) {
         setReferralSource(savedReferralSource);
@@ -275,8 +273,10 @@ function ResumenContent() {
     </div>
   );
 
-  // Sin validación para fines prácticos
+  // Validación de pasos anteriores (para mostrar el formulario)
   const isDataComplete = true;
+  // Validación de campos requeridos en este paso (para el botón)
+  const canSubmit = !!paymentTerm;
 
   const pageContent = (
     <WizardLayout
@@ -288,7 +288,7 @@ function ResumenContent() {
       onStepClick={handleStepClick}
       isLastStep
       isSubmitting={isSubmitting}
-      canProceed={!!isDataComplete}
+      canProceed={canSubmit}
       isCleanMode={isCleanMode}
     >
       {!isDataComplete ? (
@@ -409,7 +409,7 @@ function ResumenContent() {
                 options={PAYMENT_DAY_OPTIONS}
                 placeholder="Selecciona un día"
                 success={!!paymentTerm}
-                required={false}
+                required={true}
               />
               <SelectInput
                 id="referralSource"

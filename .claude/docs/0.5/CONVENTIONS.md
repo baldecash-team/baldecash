@@ -16,6 +16,7 @@
 | **Textarea** | **8.7.3** TextArea - Estructura Estándar |
 | **Select / Dropdown** | **8.7.4** SelectInput - Estructura Estándar |
 | **File Upload / Drag & Drop** | **8.7.5** FileUpload - Estructura Estándar |
+| **Fecha / DatePicker** | **8.7.5.1** DateInput - Calendario Popup |
 | **Validación de formularios** | **8.7.8** Validación de Estados |
 | **Selector con 2-3 opciones** | **8.2** SegmentedControl |
 | **Selector con 4-5 opciones** | **8.3** RadioGroup |
@@ -1107,6 +1108,76 @@ interface FileUploadProps {
 )}
 ```
 
+#### 8.7.5.1 DateInput - Calendario Popup
+
+**Ubicación:** `wizard-solicitud/components/wizard-solicitud/fields/DateInput.tsx`
+
+**IMPORTANTE:** Para campos de fecha de nacimiento u otras fechas, usar SIEMPRE `DateInput` en lugar de `TextInput` con `type="date"`.
+
+```tsx
+interface DateInputProps {
+  id: string;
+  label: string;
+  value: string;                    // Formato: 'YYYY-MM-DD'
+  onChange: (value: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;             // Default: 'Selecciona una fecha'
+  error?: string;
+  success?: boolean;
+  helpText?: string;
+  tooltip?: FieldTooltipInfo;
+  disabled?: boolean;
+  required?: boolean;               // Default: true
+  minAge?: number;                  // Edad mínima requerida (default: 18)
+}
+```
+
+**Ejemplo de uso:**
+
+```tsx
+import { DateInput } from '../../components/wizard-solicitud/fields';
+
+<DateInput
+  id="fechaNacimiento"
+  label="Fecha de Nacimiento"
+  value={(getFieldValue('fechaNacimiento') as string) || ''}
+  onChange={(v) => handleFieldChange('fechaNacimiento', v)}
+  onBlur={() => handleFieldBlur('fechaNacimiento')}
+  error={getFieldError('fechaNacimiento')}
+  success={isFieldValid('fechaNacimiento')}
+  tooltip={datosPersonalesTooltips.fechaNacimiento}
+  required
+/>
+```
+
+**Características:**
+- Calendario popup con Popover de NextUI
+- Navegación mes/año con flechas
+- Selector rápido de años (1990, 1995, 2000, 2005)
+- Restricción de edad mínima configurable (`minAge` prop)
+- Fechas futuras o muy recientes deshabilitadas automáticamente
+- Formato de display: "DD de mes de YYYY" (ej: "15 de marzo de 2000")
+- Mismo estilo visual que otros campos (border-2, iconos de estado, colores)
+
+**❌ NO usar:**
+```tsx
+// INCORRECTO - No usar TextInput para fechas
+<TextInput
+  id="fechaNacimiento"
+  type="date"
+  ...
+/>
+```
+
+**✅ Usar:**
+```tsx
+// CORRECTO - Usar DateInput
+<DateInput
+  id="fechaNacimiento"
+  ...
+/>
+```
+
 #### 8.7.6 Función getBorderColor
 
 Todos los campos usan la misma lógica para determinar el color del borde:
@@ -1175,6 +1246,7 @@ import { Check, AlertCircle, Info, ChevronDown, Search, Upload, X, FileText, Ima
 #### 8.7.10 Checklist Campos de Formulario
 
 - [ ] **TextInput**: border-2, h-11, iconos dentro del container (lado derecho)
+- [ ] **DateInput**: Usar para campos de fecha (NO usar TextInput type="date")
 - [ ] **TextArea**: border-2, iconos posición absoluta (top-3 right-3)
 - [ ] **TextArea**: SIEMPRE incluir maxLength y contador de caracteres
 - [ ] **SelectInput**: Dropdown con búsqueda para 6+ opciones

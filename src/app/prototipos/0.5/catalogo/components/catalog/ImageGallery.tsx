@@ -37,6 +37,9 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
         className="w-full h-44 object-contain transition-opacity duration-200"
         loading="lazy"
       />
+      <p className="text-[10px] text-neutral-400 uppercase tracking-wider text-center mt-2">
+        Imagen referencial
+      </p>
       <div className="flex gap-1 mt-2 justify-center">
         {displayImages.map((img, index) => (
           <button

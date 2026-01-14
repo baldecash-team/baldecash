@@ -2,6 +2,7 @@
 // Form input components for wizard steps
 
 export { TextInput } from './TextInput';
+export { DateInput } from './DateInput';
 export { RadioGroup } from './RadioGroup';
 export { SegmentedControl } from './SegmentedControl';
 export { SelectInput } from './SelectInput';

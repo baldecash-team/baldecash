@@ -182,6 +182,10 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                       </AnimatePresence>
                     </div>
 
+                    <p className="text-[10px] text-neutral-400 uppercase tracking-wider text-center mb-2">
+                      Imagen referencial
+                    </p>
+
                     {/* Image Thumbnails */}
                     {images.length > 1 && (
                       <div className="flex justify-center gap-1.5">
@@ -235,11 +239,6 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
 
                   {/* Content - Estilo catálogo centrado */}
                   <div className="p-5 text-center flex flex-col flex-1">
-                    {/* Imagen referencial */}
-                    <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-2">
-                      Imagen referencial
-                    </p>
-
                     {/* Brand */}
                     <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider mb-1">
                       {product.brand}

@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * FeedbackModal - Modal para enviar feedback con archivos adjuntos
- * Permite subir 1-10 imágenes, campo responsable requerido y textarea para comentarios
- * Diseño de inputs basado en wizard-solicitud (success/error states)
+ * FeedbackModal - Modal/Drawer híbrido para enviar feedback
+ * - Desktop: Modal centrado (NextUI)
+ * - Mobile: Bottom Sheet con drag to close (patrón sección 20)
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -15,9 +15,10 @@ import {
   ModalFooter,
   Button,
 } from '@nextui-org/react';
-import { MessageCircle, Send, AlertCircle, Check, CheckCircle2, Loader2, Link, Upload, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { MessageCircle, Send, AlertCircle, Check, CheckCircle2, Loader2, Link, Upload, X, GripHorizontal } from 'lucide-react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { SelectInput } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 const RESPONSABLE_STORAGE_KEY = 'baldecash-feedback-responsable';
 
@@ -92,6 +93,9 @@ export function FeedbackModal({
   sectionId,
   pageUrl,
 }: FeedbackModalProps) {
+  const isMobile = useIsMobile();
+  const dragControls = useDragControls();
+
   const [responsable, setResponsable] = useState('');
   const [feedbackText, setFeedbackText] = useState('');
   const [status, setStatus] = useState<SubmitStatus>('idle');
@@ -102,6 +106,18 @@ export function FeedbackModal({
   const [filesTouched, setFilesTouched] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // OBLIGATORIO: Bloquear scroll del body cuando está abierto (sección 20.4)
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   // Load responsable from localStorage on mount
   useEffect(() => {
@@ -117,7 +133,6 @@ export function FeedbackModal({
     setResponsable(value);
     localStorage.setItem(RESPONSABLE_STORAGE_KEY, value);
     setResponsableTouched(true);
-    // Clear validation when user selects
     if (status === 'validation') {
       setStatus('idle');
       setValidationMessage('');
@@ -126,7 +141,6 @@ export function FeedbackModal({
 
   const handleFeedbackChange = (value: string) => {
     setFeedbackText(value);
-    // Clear validation when user types
     if (status === 'validation') {
       setStatus('idle');
       setValidationMessage('');
@@ -138,18 +152,9 @@ export function FeedbackModal({
     const validFiles: File[] = [];
 
     for (const file of fileArray) {
-      // Check type
-      if (!ACCEPTED_TYPES.includes(file.type)) {
-        continue;
-      }
-      // Check size
-      if (file.size > MAX_FILE_SIZE) {
-        continue;
-      }
-      // Check if already added (by name and size)
-      if (files.some(f => f.name === file.name && f.size === file.size)) {
-        continue;
-      }
+      if (!ACCEPTED_TYPES.includes(file.type)) continue;
+      if (file.size > MAX_FILE_SIZE) continue;
+      if (files.some(f => f.name === file.name && f.size === file.size)) continue;
       validFiles.push(file);
     }
 
@@ -214,14 +219,10 @@ export function FeedbackModal({
     setStatus('loading');
 
     try {
-      // Crear FormData
       const formData = new FormData();
-
-      // Agregar archivos (pueden ser 0 o más)
       files.forEach((file, index) => {
         formData.append(`attachment${index > 0 ? index + 1 : ''}`, file);
       });
-
       formData.append('user', responsable);
       formData.append('comments', feedbackText);
       formData.append('url', pageUrl);
@@ -239,12 +240,7 @@ export function FeedbackModal({
         setStatus('success');
         setTimeout(() => {
           onClose();
-          setFeedbackText('');
-          setFiles([]);
-          setStatus('idle');
-          setValidationMessage('');
-          setFeedbackTouched(false);
-          setFilesTouched(false);
+          resetForm();
         }, 2000);
       } else {
         setStatus('error');
@@ -254,34 +250,361 @@ export function FeedbackModal({
     }
   };
 
+  const resetForm = () => {
+    setFeedbackText('');
+    setFiles([]);
+    setStatus('idle');
+    setValidationMessage('');
+    setFeedbackTouched(false);
+    setFilesTouched(false);
+  };
+
   const handleClose = () => {
     if (status !== 'loading') {
       onClose();
-      setFeedbackText('');
-      setFiles([]);
-      setStatus('idle');
-      setValidationMessage('');
-      setFeedbackTouched(false);
-      setFilesTouched(false);
+      resetForm();
     }
   };
 
   const isFormDisabled = status === 'loading' || status === 'success';
 
-  // Field states siguiendo patrón wizard-solicitud
+  // Field states
   const responsableHasError = status === 'validation' && !responsable;
   const responsableIsValid = responsableTouched && responsable.length > 0 && status !== 'validation';
-
   const feedbackHasError = status === 'validation' && !feedbackText.trim();
   const feedbackIsValid = feedbackTouched && feedbackText.trim().length > 0 && status !== 'validation';
 
-  // Border color para feedback
   const getFeedbackBorderColor = () => {
     if (feedbackHasError) return 'border-[#ef4444]';
     if (feedbackIsValid) return 'border-[#22c55e]';
     return 'border-neutral-300';
   };
 
+  // Contenido compartido del formulario
+  const FormContent = () => (
+    <AnimatePresence mode="wait">
+      {status === 'success' ? (
+        <motion.div
+          key="success"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.3 }}
+          className="py-8 flex flex-col items-center justify-center text-center"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+            className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"
+          >
+            <CheckCircle2 className="w-8 h-8 text-[#22c55e]" />
+          </motion.div>
+          <motion.h3
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-xl font-semibold text-neutral-800 mb-2"
+          >
+            ¡Gracias por tu feedback!
+          </motion.h3>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-sm text-neutral-500"
+          >
+            Tu opinión ha sido enviada correctamente
+          </motion.p>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="form"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          {/* File Upload Area */}
+          <div className="mb-5">
+            <p className="text-sm font-medium text-neutral-700 mb-2">
+              Adjuntar imágenes <span className="text-neutral-400 font-normal">(opcional, máx. 10)</span>
+            </p>
+
+            <div
+              onClick={() => !isFormDisabled && fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`
+                relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer
+                transition-all duration-200
+                ${isDragging ? 'border-[#4654CD] bg-[#4654CD]/5' : 'border-neutral-300 hover:border-neutral-400'}
+                ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+                ${files.length >= MAX_FILES ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.gif,.webp"
+                multiple
+                onChange={(e) => e.target.files && handleFilesAdd(e.target.files)}
+                disabled={isFormDisabled || files.length >= MAX_FILES}
+                className="hidden"
+              />
+              <Upload className={`w-8 h-8 mx-auto mb-2 ${isDragging ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
+              <p className="text-sm text-neutral-600">
+                {files.length >= MAX_FILES
+                  ? 'Límite de archivos alcanzado'
+                  : 'Arrastra imágenes aquí o haz clic para seleccionar'
+                }
+              </p>
+              <p className="text-xs text-neutral-400 mt-1">
+                JPG, PNG, GIF, WebP (máx. 5MB por archivo)
+              </p>
+            </div>
+
+            {files.length > 0 && (
+              <div className="mt-3 grid grid-cols-5 gap-2">
+                {files.map((file, index) => (
+                  <div
+                    key={`${file.name}-${index}`}
+                    className="relative group aspect-square rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50"
+                  >
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={file.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {!isFormDisabled && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFileRemove(index);
+                        }}
+                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full
+                          flex items-center justify-center opacity-0 group-hover:opacity-100
+                          transition-opacity cursor-pointer hover:bg-red-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {files.length > 0 && (
+              <p className="text-xs text-neutral-500 mt-2">
+                {files.length} de {MAX_FILES} archivos seleccionados
+              </p>
+            )}
+          </div>
+
+          {/* URL de la página */}
+          {pageUrl && (
+            <div className="mb-5">
+              <p className="text-sm font-medium text-neutral-700 mb-2">
+                URL de la página
+              </p>
+              <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5">
+                <Link className="w-4 h-4 text-neutral-400 flex-shrink-0" />
+                <p className="text-sm text-neutral-600 truncate flex-1" title={pageUrl}>
+                  {pageUrl}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Campo Responsable */}
+          <div className="mb-5">
+            <SelectInput
+              id="responsable"
+              label="Responsable"
+              value={responsable}
+              onChange={handleResponsableChange}
+              options={RESPONSABLES_OPTIONS}
+              placeholder="Selecciona un responsable"
+              error={responsableHasError ? 'Este campo es requerido' : undefined}
+              success={responsableIsValid}
+              disabled={isFormDisabled}
+              required={true}
+              searchable={true}
+            />
+          </div>
+
+          {/* Textarea para feedback */}
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+              Tu opinión
+            </label>
+            <div
+              className={`
+                relative rounded-lg border-2 transition-all duration-200 bg-white
+                ${getFeedbackBorderColor()}
+                ${isFormDisabled ? 'opacity-50 bg-neutral-50' : ''}
+              `}
+            >
+              <textarea
+                placeholder="¿Qué te parece este diseño? ¿Qué mejorarías?"
+                value={feedbackText}
+                onChange={(e) => handleFeedbackChange(e.target.value)}
+                onBlur={() => setFeedbackTouched(true)}
+                disabled={isFormDisabled}
+                maxLength={500}
+                rows={5}
+                className="w-full min-h-[140px] px-3 py-2.5 text-base bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed resize-none"
+              />
+              <div className="absolute top-3 right-3">
+                {feedbackIsValid && <Check className="w-5 h-5 text-[#22c55e]" />}
+                {feedbackHasError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              {feedbackHasError ? (
+                <p className="text-sm text-[#ef4444] flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  Este campo es requerido
+                </p>
+              ) : (
+                <span />
+              )}
+              <p className="text-xs text-neutral-400 flex-shrink-0">
+                {feedbackText.length}/500
+              </p>
+            </div>
+          </div>
+
+          {/* Error de API */}
+          <AnimatePresence>
+            {status === 'error' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex items-center gap-2 text-[#ef4444] text-sm mt-4 bg-red-50 p-3 rounded-lg"
+              >
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>Error al enviar. Intenta de nuevo.</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  // Footer con botones
+  const FooterButtons = () => (
+    <>
+      {status !== 'success' && (
+        <div className="flex gap-3 justify-end">
+          <Button
+            variant="flat"
+            onPress={handleClose}
+            isDisabled={status === 'loading'}
+            className="cursor-pointer bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onPress={handleSubmit}
+            isLoading={status === 'loading'}
+            spinner={<Loader2 className="w-5 h-5 animate-spin" />}
+            startContent={status !== 'loading' ? <Send className="w-4 h-4" /> : null}
+            className="cursor-pointer font-medium bg-[#4654CD] text-white hover:bg-[#3a47b3]"
+          >
+            Enviar Feedback
+          </Button>
+        </div>
+      )}
+    </>
+  );
+
+  // ========== MOBILE: Bottom Sheet (sección 20) ==========
+  if (isMobile) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={handleClose}
+              className="fixed inset-0 bg-black/50 z-[149]"
+            />
+
+            {/* Bottom Sheet */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              drag="y"
+              dragControls={dragControls}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.5 }}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 100) {
+                  handleClose();
+                }
+              }}
+              className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] max-h-[calc(100vh-3rem)] flex flex-col"
+            >
+              {/* Drag Handle */}
+              <div
+                onPointerDown={(e) => dragControls.start(e)}
+                className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
+              >
+                <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              </div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+                    <MessageCircle className="w-5 h-5 text-[#4654CD]" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold text-neutral-800">
+                      Enviar Feedback
+                    </p>
+                    <p className="text-xs text-neutral-500 font-normal">
+                      Tu opinión nos ayuda a mejorar
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  onPress={handleClose}
+                  className="cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              {/* Body - scrollable */}
+              <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+                <FormContent />
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-neutral-200 bg-white p-4">
+                <FooterButtons />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    );
+  }
+
+  // ========== DESKTOP: Modal (NextUI) ==========
   return (
     <Modal
       isOpen={isOpen}
@@ -316,246 +639,12 @@ export function FeedbackModal({
         </ModalHeader>
 
         <ModalBody>
-          <AnimatePresence mode="wait">
-            {status === 'success' ? (
-              /* Success State */
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3 }}
-                className="py-8 flex flex-col items-center justify-center text-center"
-              >
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
-                  className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"
-                >
-                  <CheckCircle2 className="w-8 h-8 text-[#22c55e]" />
-                </motion.div>
-                <motion.h3
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-xl font-semibold text-neutral-800 mb-2"
-                >
-                  ¡Gracias por tu feedback!
-                </motion.h3>
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-sm text-neutral-500"
-                >
-                  Tu opinión ha sido enviada correctamente
-                </motion.p>
-              </motion.div>
-            ) : (
-              /* Form State */
-              <motion.div
-                key="form"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {/* File Upload Area */}
-                <div className="mb-5">
-                  <p className="text-sm font-medium text-neutral-700 mb-2">
-                    Adjuntar imágenes <span className="text-neutral-400 font-normal">(opcional, máx. 10)</span>
-                  </p>
-
-                  {/* Drop Zone */}
-                  <div
-                    onClick={() => !isFormDisabled && fileInputRef.current?.click()}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    className={`
-                      relative border-2 border-dashed rounded-xl p-4 text-center cursor-pointer
-                      transition-all duration-200
-                      ${isDragging ? 'border-[#4654CD] bg-[#4654CD]/5' : 'border-neutral-300 hover:border-neutral-400'}
-                      ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}
-                      ${files.length >= MAX_FILES ? 'opacity-50 cursor-not-allowed' : ''}
-                    `}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".jpg,.jpeg,.png,.gif,.webp"
-                      multiple
-                      onChange={(e) => e.target.files && handleFilesAdd(e.target.files)}
-                      disabled={isFormDisabled || files.length >= MAX_FILES}
-                      className="hidden"
-                    />
-                    <Upload className={`w-8 h-8 mx-auto mb-2 ${isDragging ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
-                    <p className="text-sm text-neutral-600">
-                      {files.length >= MAX_FILES
-                        ? 'Límite de archivos alcanzado'
-                        : 'Arrastra imágenes aquí o haz clic para seleccionar'
-                      }
-                    </p>
-                    <p className="text-xs text-neutral-400 mt-1">
-                      JPG, PNG, GIF, WebP (máx. 5MB por archivo)
-                    </p>
-                  </div>
-
-                  {/* File Previews */}
-                  {files.length > 0 && (
-                    <div className="mt-3 grid grid-cols-5 gap-2">
-                      {files.map((file, index) => (
-                        <div
-                          key={`${file.name}-${index}`}
-                          className="relative group aspect-square rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50"
-                        >
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={file.name}
-                            className="w-full h-full object-cover"
-                          />
-                          {!isFormDisabled && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleFileRemove(index);
-                              }}
-                              className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full
-                                flex items-center justify-center opacity-0 group-hover:opacity-100
-                                transition-opacity cursor-pointer hover:bg-red-600"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* File count */}
-                  {files.length > 0 && (
-                    <p className="text-xs text-neutral-500 mt-2">
-                      {files.length} de {MAX_FILES} archivos seleccionados
-                    </p>
-                  )}
-                </div>
-
-                {/* URL de la página */}
-                {pageUrl && (
-                  <div className="mb-5">
-                    <p className="text-sm font-medium text-neutral-700 mb-2">
-                      URL de la página
-                    </p>
-                    <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2.5">
-                      <Link className="w-4 h-4 text-neutral-400 flex-shrink-0" />
-                      <p className="text-sm text-neutral-600 truncate flex-1" title={pageUrl}>
-                        {pageUrl}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Campo Responsable - selector con buscador */}
-                <div className="mb-5">
-                  <SelectInput
-                    id="responsable"
-                    label="Responsable"
-                    value={responsable}
-                    onChange={handleResponsableChange}
-                    options={RESPONSABLES_OPTIONS}
-                    placeholder="Selecciona un responsable"
-                    error={responsableHasError ? 'Este campo es requerido' : undefined}
-                    success={responsableIsValid}
-                    disabled={isFormDisabled}
-                    required={true}
-                    searchable={true}
-                  />
-                </div>
-
-                {/* Textarea para feedback - estilo wizard-solicitud */}
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
-                    Tu opinión
-                  </label>
-                  <div
-                    className={`
-                      relative rounded-lg border-2 transition-all duration-200 bg-white
-                      ${getFeedbackBorderColor()}
-                      ${isFormDisabled ? 'opacity-50 bg-neutral-50' : ''}
-                    `}
-                  >
-                    <textarea
-                      placeholder="¿Qué te parece este diseño? ¿Qué mejorarías?"
-                      value={feedbackText}
-                      onChange={(e) => handleFeedbackChange(e.target.value)}
-                      onBlur={() => setFeedbackTouched(true)}
-                      disabled={isFormDisabled}
-                      maxLength={500}
-                      rows={5}
-                      className="w-full min-h-[140px] px-3 py-2.5 text-base bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400 disabled:cursor-not-allowed resize-none"
-                    />
-                    {/* Status icons - positioned at top right */}
-                    <div className="absolute top-3 right-3">
-                      {feedbackIsValid && <Check className="w-5 h-5 text-[#22c55e]" />}
-                      {feedbackHasError && <AlertCircle className="w-5 h-5 text-[#ef4444]" />}
-                    </div>
-                  </div>
-                  {/* Character counter & Error message */}
-                  <div className="flex items-center justify-between gap-2">
-                    {feedbackHasError ? (
-                      <p className="text-sm text-[#ef4444] flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        Este campo es requerido
-                      </p>
-                    ) : (
-                      <span />
-                    )}
-                    <p className="text-xs text-neutral-400 flex-shrink-0">
-                      {feedbackText.length}/500
-                    </p>
-                  </div>
-                </div>
-
-                {/* Mensaje de error de API */}
-                <AnimatePresence>
-                  {status === 'error' && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="flex items-center gap-2 text-[#ef4444] text-sm mt-4 bg-red-50 p-3 rounded-lg"
-                    >
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span>Error al enviar. Intenta de nuevo.</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <FormContent />
         </ModalBody>
 
-        {status !== 'success' && (
-          <ModalFooter className="gap-3">
-            <Button
-              variant="flat"
-              onPress={handleClose}
-              isDisabled={status === 'loading'}
-              className="cursor-pointer bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onPress={handleSubmit}
-              isLoading={status === 'loading'}
-              spinner={<Loader2 className="w-5 h-5 animate-spin" />}
-              startContent={status !== 'loading' ? <Send className="w-4 h-4" /> : null}
-              className="cursor-pointer font-medium bg-[#4654CD] text-white hover:bg-[#3a47b3]"
-            >
-              Enviar Feedback
-            </Button>
-          </ModalFooter>
-        )}
+        <ModalFooter className="gap-3">
+          <FooterButtons />
+        </ModalFooter>
       </ModalContent>
     </Modal>
   );
