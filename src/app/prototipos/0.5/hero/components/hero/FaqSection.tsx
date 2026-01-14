@@ -65,7 +65,7 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ data = mockFaqData, unde
               base: 'bg-white border border-neutral-200 rounded-xl px-4 shadow-sm hover:shadow-md transition-all',
               title: 'font-medium text-neutral-800 text-left',
               trigger: 'py-4 data-[hover=true]:bg-transparent cursor-pointer',
-              indicator: 'text-[#4654CD]',
+              indicator: 'text-[#4654CD] transition-transform data-[open=true]:rotate-90',
               content: 'pb-4 pt-0 text-neutral-600',
             }}
           >
