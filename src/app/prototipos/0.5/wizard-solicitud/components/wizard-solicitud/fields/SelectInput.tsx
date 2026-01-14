@@ -106,6 +106,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                 )}
               </div>
             }
+            trigger="press"
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}

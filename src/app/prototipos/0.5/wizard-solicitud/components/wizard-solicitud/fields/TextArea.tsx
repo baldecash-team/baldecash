@@ -79,6 +79,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
                 )}
               </div>
             }
+            trigger="press"
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}
@@ -98,7 +99,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
       {/* Textarea */}
       <div
         className={`
-          relative rounded-lg border-2 transition-all duration-200 bg-white
+          relative rounded-lg border-2 transition-all duration-200 bg-white overflow-hidden
           ${getBorderColor()}
           ${disabled ? 'opacity-50 bg-neutral-50' : ''}
         `}

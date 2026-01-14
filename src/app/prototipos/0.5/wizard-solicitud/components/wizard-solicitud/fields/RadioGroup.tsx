@@ -72,6 +72,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
                 )}
               </div>
             }
+            trigger="press"
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}

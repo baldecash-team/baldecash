@@ -149,6 +149,7 @@ export const DateInput: React.FC<DateInputProps> = ({
                 )}
               </div>
             }
+            trigger="press"
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}

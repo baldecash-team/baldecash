@@ -7,7 +7,7 @@
 
 import React, { useCallback, useState, useRef } from 'react';
 import { Tooltip } from '@nextui-org/react';
-import { Upload, X, FileText, Image, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Upload, X, FileText, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -21,7 +21,6 @@ interface UploadedFile {
   name: string;
   size: number;
   type: string;
-  preview?: string;
 }
 
 interface FileUploadProps {
@@ -64,18 +63,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       if (!fileList || disabled) return;
 
       const newFiles: UploadedFile[] = [];
-      const existingCount = value.length;
 
-      for (let i = 0; i < fileList.length && existingCount + newFiles.length < maxFiles; i++) {
+      for (let i = 0; i < fileList.length && newFiles.length < maxFiles; i++) {
         const file = fileList[i];
 
         // Check size
         if (file.size > maxSize) {
-          continue;
-        }
-
-        // Check if already exists
-        if (value.some((f) => f.name === file.name && f.size === file.size)) {
           continue;
         }
 
@@ -87,16 +80,18 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           type: file.type,
         };
 
-        // Generate preview for images
-        if (file.type.startsWith('image/')) {
-          uploadedFile.preview = URL.createObjectURL(file);
-        }
-
         newFiles.push(uploadedFile);
       }
 
       if (newFiles.length > 0) {
-        onChange([...value, ...newFiles]);
+        // When maxFiles is 1, replace existing file; otherwise append
+        if (maxFiles === 1) {
+          onChange(newFiles);
+        } else {
+          // For multiple files, append up to maxFiles limit
+          const combined = [...value, ...newFiles].slice(0, maxFiles);
+          onChange(combined);
+        }
       }
     },
     [value, onChange, maxFiles, maxSize, disabled]
@@ -128,10 +123,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   const handleRemove = (fileId: string) => {
-    const fileToRemove = value.find((f) => f.id === fileId);
-    if (fileToRemove?.preview) {
-      URL.revokeObjectURL(fileToRemove.preview);
-    }
     onChange(value.filter((f) => f.id !== fileId));
   };
 
@@ -141,8 +132,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const getFileIcon = (type: string) => {
-    if (type.startsWith('image/')) return Image;
+  const getFileIcon = () => {
     return FileText;
   };
 
@@ -166,6 +156,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 )}
               </div>
             }
+            trigger="press"
             classNames={{
               content: 'bg-white shadow-lg border border-neutral-200',
             }}
@@ -237,17 +228,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 key={file.id}
                 className="flex items-center gap-3 p-3 bg-white rounded-lg border border-neutral-200"
               >
-                {file.preview ? (
-                  <img
-                    src={file.preview}
-                    alt={file.name}
-                    className="w-10 h-10 object-cover rounded"
-                  />
-                ) : (
-                  <div className="w-10 h-10 bg-neutral-100 rounded flex items-center justify-center">
-                    <FileIcon className="w-5 h-5 text-neutral-500" />
-                  </div>
-                )}
+                <div className="w-10 h-10 bg-neutral-100 rounded flex items-center justify-center">
+                <FileIcon className="w-5 h-5 text-neutral-500" />
+              </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-neutral-800 truncate">{file.name}</p>
                   <p className="text-xs text-neutral-500">{formatSize(file.size)}</p>

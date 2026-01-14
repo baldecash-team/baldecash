@@ -32,6 +32,7 @@ export const ColorSelectorV2: React.FC<ColorSelectorV2Props> = ({
         <Tooltip
           key={color.id}
           content={color.name}
+          trigger="press"
           classNames={{
             content: 'bg-white shadow-lg border border-neutral-200 text-xs px-2 py-1',
           }}
