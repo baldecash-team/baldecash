@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardBody } from "@nextui-org/react";
 import { motion } from "framer-motion";
-import { Palette, Layers, Rocket, ArrowLeft, CheckCircle, AlertCircle, SearchX, FileText, GitCompare, HelpCircle, ClipboardList, ShoppingCart, CheckCircle2, XCircle, Building2, Keyboard, Command, Presentation, Layout, Settings2 } from "lucide-react";
+import { Palette, Layers, Rocket, ArrowLeft, CheckCircle, AlertCircle, SearchX, FileText, GitCompare, HelpCircle, ClipboardList, ShoppingCart, CheckCircle2, XCircle, Building2, Keyboard, Command, Presentation, Layout, Settings2, MessageSquareText, Wrench } from "lucide-react";
 import { VersionNav } from "../_shared/components/VersionNav";
 import { getVersionByNumber } from "../_registry";
 
@@ -333,6 +333,33 @@ export default function Version05Page() {
                 <strong>Nota:</strong> Los atajos se desactivan automáticamente cuando escribes en campos de búsqueda o formularios.
               </p>
             </div>
+          </div>
+        </section>
+
+        {/* Internal Tools Section */}
+        <section className="max-w-4xl mx-auto mt-12">
+          <h2 className="text-xl font-semibold text-neutral-900 mb-6 flex items-center gap-2">
+            <Wrench className="w-5 h-5 text-neutral-400" />
+            Herramientas Internas
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Card
+              isPressable
+              onPress={() => router.push('/prototipos/0.5/feedback/feedback-preview')}
+              className="bg-white border border-neutral-100 hover:border-[#4654CD]/50 hover:shadow-md transition-all cursor-pointer"
+            >
+              <CardBody className="p-4 flex flex-col">
+                <div className="w-10 h-10 rounded-lg bg-[#4654CD]/20 flex items-center justify-center mb-3">
+                  <MessageSquareText className="w-5 h-5 text-[#4654CD]" />
+                </div>
+                <h3 className="text-sm font-semibold text-neutral-900 mb-0.5">Reporte Feedback</h3>
+                <p className="text-neutral-400 text-xs mb-2">QA & Testing</p>
+                <div className="mt-auto flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-[#4654CD]" />
+                  <span className="text-xs text-[#4654CD]">Disponible</span>
+                </div>
+              </CardBody>
+            </Card>
           </div>
         </section>
 
