@@ -96,6 +96,7 @@ export interface QuizResult {
 
 export interface QuizLayoutProps {
   children: React.ReactNode;
+  footer?: React.ReactNode;
   isOpen: boolean;
   onClose: () => void;
   currentStep: number;

@@ -277,6 +277,20 @@ function WizardPreviewContent() {
           <span>Comenzar Solicitud</span>
           <ArrowRight className="w-5 h-5" />
         </button>
+
+        {/* Back to catalog link */}
+        <button
+          onClick={() => {
+            const catalogUrl = isCleanMode
+              ? '/prototipos/0.5/catalogo/catalog-preview?mode=clean'
+              : '/prototipos/0.5/catalogo/catalog-preview';
+            router.push(catalogUrl);
+          }}
+          className="w-full flex items-center justify-center gap-2 mt-4 py-2 text-neutral-500 hover:text-[#4654CD] transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Volver al catálogo</span>
+        </button>
       </div>
     </div>
   );

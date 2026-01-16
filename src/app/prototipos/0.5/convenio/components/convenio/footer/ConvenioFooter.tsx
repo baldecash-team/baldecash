@@ -26,11 +26,14 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({ convenio }) => {
               className="h-8 object-contain brightness-0 invert"
             />
             <span className="text-neutral-500">×</span>
-            <img
-              src={convenio.logo}
-              alt={convenio.nombre}
-              className="h-6 object-contain brightness-0 invert opacity-80"
-            />
+            {/* Logo del convenio con fondo para garantizar visibilidad */}
+            <div className="bg-white rounded-lg px-3 py-1.5">
+              <img
+                src={convenio.logo}
+                alt={convenio.nombre}
+                className="h-5 object-contain"
+              />
+            </div>
           </div>
 
           {/* Description */}

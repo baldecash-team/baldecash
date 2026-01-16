@@ -79,7 +79,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             transition={{ duration: 0.2 }}
             onClick={onClose}
             onTouchMove={(e) => e.preventDefault()}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-[149]"
             style={{ touchAction: 'none' }}
           />
 
@@ -99,7 +99,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[calc(100vh-12rem)] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] min-h-[50vh] max-h-[calc(100vh-12rem)] flex flex-col"
             style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}

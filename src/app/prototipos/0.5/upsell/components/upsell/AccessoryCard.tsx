@@ -29,10 +29,10 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
     <Card
       isPressable
       onPress={onToggle}
-      className={`transition-all cursor-pointer h-full ${
+      className={`transition-all !cursor-pointer h-full border-2 ${
         isSelected
-          ? 'border-2 border-[#22c55e] bg-[#22c55e]/5'
-          : 'border border-neutral-200 hover:border-[#4654CD]/50'
+          ? 'border-[#22c55e] bg-[#22c55e]/5'
+          : 'border-transparent hover:border-[#4654CD]/30'
       }`}
     >
       <CardBody className="p-4">
@@ -50,11 +50,13 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
               Popular
             </Chip>
           )}
-          {isSelected && (
-            <div className="w-6 h-6 bg-[#22c55e] rounded-full flex items-center justify-center ml-auto">
-              <Check className="w-4 h-4 text-white" />
-            </div>
-          )}
+          <div
+            className={`w-6 h-6 bg-[#22c55e] rounded-full flex items-center justify-center ml-auto transition-all duration-200 ${
+              isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-0'
+            }`}
+          >
+            <Check className="w-4 h-4 text-white" />
+          </div>
         </div>
 
         {/* Image */}
@@ -107,9 +109,11 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
           <span className="text-[#4654CD] font-bold">
             +S/{formatMoney(accessory.monthlyQuota)}/mes
           </span>
-          {!isSelected && (
-            <Plus className="w-5 h-5 text-neutral-400" />
-          )}
+          <Plus
+            className={`w-5 h-5 text-neutral-400 transition-all duration-200 ${
+              isSelected ? 'opacity-0 scale-0' : 'opacity-100 scale-100'
+            }`}
+          />
         </div>
       </CardBody>
     </Card>

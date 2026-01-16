@@ -246,12 +246,15 @@ export function FeedbackModal({
   };
 
   const handleSubmit = async () => {
-    setResponsableTouched(true);
-    setFeedbackTouched(true);
-    setFilesTouched(true);
+    // Validar primero - solo marcar como touched si hay error
+    if (!validateForm()) {
+      setResponsableTouched(true);
+      setFeedbackTouched(true);
+      setFilesTouched(true);
+      return;
+    }
 
-    if (!validateForm()) return;
-
+    // Si pasa validación, continuar directamente sin re-render previo
     setStatus('loading');
 
     try {
@@ -316,31 +319,27 @@ export function FeedbackModal({
     return 'border-neutral-300';
   };
 
-  // Footer con botones
-  const FooterButtons = () => (
-    <>
-      {status !== 'success' && (
-        <div className="flex gap-3 justify-end">
-          <Button
-            variant="flat"
-            onPress={handleClose}
-            isDisabled={status === 'loading'}
-            className="cursor-pointer bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onPress={handleSubmit}
-            isLoading={status === 'loading'}
-            spinner={<Loader2 className="w-5 h-5 animate-spin" />}
-            startContent={status !== 'loading' ? <Send className="w-4 h-4" /> : null}
-            className="cursor-pointer font-medium bg-[#4654CD] text-white hover:bg-[#3a47b3]"
-          >
-            Enviar Feedback
-          </Button>
-        </div>
-      )}
-    </>
+  // Footer buttons JSX (inline para evitar re-render issues)
+  const footerButtonsJSX = status !== 'success' && (
+    <div className="flex gap-3 justify-end">
+      <Button
+        variant="flat"
+        onPress={handleClose}
+        isDisabled={status === 'loading'}
+        className="cursor-pointer bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+      >
+        Cancelar
+      </Button>
+      <Button
+        onPress={handleSubmit}
+        isLoading={status === 'loading'}
+        spinner={<Loader2 className="w-5 h-5 animate-spin" />}
+        startContent={status !== 'loading' ? <Send className="w-4 h-4" /> : null}
+        className="cursor-pointer font-medium bg-[#4654CD] text-white hover:bg-[#3a47b3]"
+      >
+        Enviar Feedback
+      </Button>
+    </div>
   );
 
   // ========== MOBILE: Bottom Sheet (sección 20) ==========
@@ -571,7 +570,7 @@ export function FeedbackModal({
 
               {/* Footer */}
               <div className="border-t border-neutral-200 bg-white p-4">
-                <FooterButtons />
+                {footerButtonsJSX}
               </div>
             </motion.div>
           </>
@@ -815,7 +814,7 @@ export function FeedbackModal({
         </ModalBody>
 
         <ModalFooter className="gap-3">
-          <FooterButtons />
+          {footerButtonsJSX}
         </ModalFooter>
       </ModalContent>
     </Modal>

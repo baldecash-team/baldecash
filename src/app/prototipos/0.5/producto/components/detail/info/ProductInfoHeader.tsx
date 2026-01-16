@@ -79,7 +79,20 @@ export const ProductInfoHeader: React.FC<ProductInfoHeaderProps> = ({
             <span className="text-neutral-600">15.6" FHD</span>
           </div>
 
-          <button className="w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0 flex items-center justify-center sm:justify-start gap-1 text-[#4654CD] font-medium hover:underline cursor-pointer">
+          <button
+            onClick={() => {
+              const element = document.getElementById('section-specs');
+              if (element) {
+                const offset = 120; // Navbar + promo banner offset
+                const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+                window.scrollTo({
+                  top: elementPosition - offset,
+                  behavior: 'smooth',
+                });
+              }
+            }}
+            className="w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0 flex items-center justify-center sm:justify-start gap-1 text-[#4654CD] font-medium hover:underline cursor-pointer"
+          >
             <span>Ver todo</span>
             <ChevronRight className="w-4 h-4" />
           </button>

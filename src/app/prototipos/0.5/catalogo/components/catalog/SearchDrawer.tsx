@@ -92,7 +92,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
             transition={{ duration: 0.2 }}
             onClick={onClose}
             onTouchMove={(e) => e.preventDefault()}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-[149]"
             style={{ touchAction: 'none' }}
           />
 
@@ -112,7 +112,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 flex flex-col max-h-[calc(100vh-12rem)]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] flex flex-col max-h-[calc(100vh-12rem)]"
             style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}

@@ -98,21 +98,21 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
                 <ArrowRight className="w-5 h-5 text-white" />
               </a>
 
-              <a
-                href="#faq"
+              <button
+                onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                 className="w-full flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
               >
                 <span className="text-white">Ver preguntas frecuentes</span>
                 <ArrowRight className="w-5 h-5 text-white" />
-              </a>
+              </button>
 
-              <a
-                href="#beneficios"
+              <button
+                onClick={() => document.getElementById('beneficios')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                 className="w-full flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
               >
                 <span className="text-white">Conocer beneficios del convenio</span>
                 <ArrowRight className="w-5 h-5 text-white" />
-              </a>
+              </button>
             </div>
 
             <div className="mt-6 pt-6 border-t border-white/20 text-center">

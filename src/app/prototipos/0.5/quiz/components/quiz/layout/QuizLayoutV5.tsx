@@ -11,6 +11,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  ModalFooter,
   Button,
 } from '@nextui-org/react';
 import { X, HelpCircle } from 'lucide-react';
@@ -18,6 +19,7 @@ import { QuizLayoutProps } from '../../../types/quiz';
 
 export const QuizLayoutV5: React.FC<QuizLayoutProps> = ({
   children,
+  footer,
   isOpen,
   onClose,
   currentStep,
@@ -69,11 +71,18 @@ export const QuizLayoutV5: React.FC<QuizLayoutProps> = ({
         </ModalHeader>
 
         {/* Body - scrollable */}
-        <ModalBody className="py-8 px-6 sm:px-10 bg-white min-h-[300px] max-h-[calc(90vh-120px)] overflow-y-auto overscroll-contain flex flex-col">
+        <ModalBody className="py-8 px-6 sm:px-10 bg-white min-h-[300px] max-h-[calc(90vh-200px)] overflow-y-auto overscroll-contain flex flex-col">
           <div className="min-h-0">
             {children}
           </div>
         </ModalBody>
+
+        {/* Footer - fixed at bottom */}
+        {footer && (
+          <ModalFooter className="border-t border-neutral-200 bg-white px-6 py-4">
+            {footer}
+          </ModalFooter>
+        )}
       </ModalContent>
     </Modal>
   );

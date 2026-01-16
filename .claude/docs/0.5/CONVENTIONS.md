@@ -3970,7 +3970,7 @@ export const BottomSheetComponent: React.FC<BottomSheetProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-[149]"
           />
 
           {/* Bottom Sheet */}
@@ -3988,7 +3988,7 @@ export const BottomSheetComponent: React.FC<BottomSheetProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[calc(100vh-9rem)] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] min-h-[50vh] max-h-[calc(100vh-9rem)] flex flex-col"
           >
             {/* Drag Handle */}
             <div
@@ -4047,12 +4047,14 @@ export const BottomSheetComponent: React.FC<BottomSheetProps> = ({
 |-----------|-------|-------------|
 | `min-h` | `50vh` | Altura mínima consistente |
 | `max-h` | `calc(100vh-9rem)` | ~40px gap del header |
-| `z-index` backdrop | `z-40` | Debajo del sheet |
-| `z-index` sheet | `z-50` | Encima del backdrop |
+| `z-index` backdrop | `z-[149]` | Por encima del Navbar (z-50) y PromoBanner (z-[60]) |
+| `z-index` sheet | `z-[150]` | Encima del backdrop |
 | `rounded` | `rounded-t-3xl` | Esquinas superiores |
 | `bg` backdrop | `bg-black/50` | 50% opacidad |
 | `drag threshold` | `100px` | Umbral para cerrar |
 | `body overflow` | `hidden` | Bloquear scroll del body |
+
+> **IMPORTANTE - Z-Index:** Los valores `z-[149]` y `z-[150]` son obligatorios para que el backdrop oscurezca TODO el contenido, incluyendo el Navbar fijo. El Navbar usa `z-50` y el PromoBanner usa `z-[60]`, por lo que el backdrop debe estar por encima de ambos.
 
 ### 20.4 Bloqueo de Scroll del Body (OBLIGATORIO)
 
@@ -4223,6 +4225,7 @@ El banner promocional (PromoBanner) **NO debe ocultarse** cuando se abre un bott
 | 4.2 | 2026-01-13 | Sección 20: Mobile Bottom Sheet Pattern (estructura, animaciones, 3 puntos de cierre, multi-popup) |
 | 4.3 | 2026-01-13 | Sección 6.4.1: Botón Settings y Modal con border-radius 14px estándar |
 | 4.4 | 2026-01-13 | Sección 20.4: Bloqueo scroll body (useEffect obligatorio), min-h-[50vh], checklist actualizado |
+| 4.5 | 2026-01-15 | Sección 20.3: Z-index estandarizado a `z-[149]` (backdrop) y `z-[150]` (sheet) para cubrir Navbar (z-50) y PromoBanner (z-[60]) |
 
 ---
 

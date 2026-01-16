@@ -27,7 +27,7 @@ export const ConvenioBenefits: React.FC<ConvenioBenefitsProps> = ({ convenio }) 
   const benefits = getBenefitsByConvenio(convenio);
 
   return (
-    <section id="beneficios" className="py-16 md:py-24 bg-neutral-50">
+    <section id="beneficios" className="py-16 md:py-24 bg-neutral-50 scroll-mt-24">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">

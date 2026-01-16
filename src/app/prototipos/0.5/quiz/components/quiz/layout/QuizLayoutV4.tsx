@@ -13,6 +13,7 @@ import { QuizLayoutProps } from '../../../types/quiz';
 
 export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
   children,
+  footer,
   isOpen,
   onClose,
   currentStep,
@@ -64,7 +65,7 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-[149]"
           />
 
           {/* Bottom Sheet */}
@@ -82,7 +83,7 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 min-h-[50vh] max-h-[70vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] min-h-[50vh] max-h-[70vh] flex flex-col"
           >
             {/* Drag Handle */}
             <div
@@ -127,11 +128,18 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
             </div>
 
             {/* Body - scrollable */}
-            <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-8">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-4">
               <div className="min-h-0">
                 {children}
               </div>
             </div>
+
+            {/* Footer - fixed at bottom */}
+            {footer && (
+              <div className="border-t border-neutral-200 bg-white p-4">
+                {footer}
+              </div>
+            )}
           </motion.div>
         </>
       )}

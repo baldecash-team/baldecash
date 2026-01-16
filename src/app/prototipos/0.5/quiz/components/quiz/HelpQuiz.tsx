@@ -18,7 +18,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useProduct } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
 
@@ -317,51 +317,66 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     // Mostrar pregunta actual
     if (currentQuestion) {
       return (
-        <div className="flex flex-col h-full">
-          <div className="flex-1">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentQuestion.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <QuizQuestionV1
-                  question={currentQuestion}
-                  selectedOption={selectedOption}
-                  onSelect={handleSelectOption}
-                />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-100">
-            <Button
-              variant="light"
-              isDisabled={currentStep === 0}
-              startContent={<ArrowLeft className="w-4 h-4" />}
-              onPress={handleBack}
-              className="cursor-pointer"
-            >
-              Anterior
-            </Button>
-
-            <Button
-              className="bg-[#4654CD] text-white font-semibold cursor-pointer"
-              size="lg"
-              isDisabled={!selectedOption}
-              endContent={<ArrowRight className="w-4 h-4" />}
-              onPress={handleNext}
-            >
-              {currentStep >= totalSteps - 1 ? 'Ver resultados' : 'Siguiente'}
-            </Button>
-          </div>
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentQuestion.id}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            <QuizQuestionV1
+              question={currentQuestion}
+              selectedOption={selectedOption}
+              onSelect={handleSelectOption}
+            />
+          </motion.div>
+        </AnimatePresence>
       );
     }
 
     return null;
+  };
+
+  // Render footer with navigation buttons (only for questions, not results)
+  const renderFooter = () => {
+    if (results || isCalculating || !currentQuestion) {
+      return null;
+    }
+
+    return (
+      <div className="flex items-center justify-between w-full">
+        {currentStep === 0 ? (
+          <Button
+            variant="light"
+            startContent={<X className="w-4 h-4" />}
+            onPress={handleClose}
+            className="cursor-pointer"
+          >
+            Cancelar
+          </Button>
+        ) : (
+          <Button
+            variant="light"
+            startContent={<ArrowLeft className="w-4 h-4" />}
+            onPress={handleBack}
+            className="cursor-pointer"
+          >
+            Anterior
+          </Button>
+        )}
+
+        <Button
+          className="bg-[#4654CD] text-white font-semibold cursor-pointer"
+          size="lg"
+          isDisabled={!selectedOption}
+          endContent={<ArrowRight className="w-4 h-4" />}
+          onPress={handleNext}
+        >
+          {currentStep >= totalSteps - 1 ? 'Ver resultados' : 'Siguiente'}
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -370,6 +385,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       onClose={handleClose}
       currentStep={results ? totalSteps : currentStep}
       totalSteps={totalSteps}
+      footer={renderFooter()}
     >
       {renderContent()}
     </LayoutComponent>

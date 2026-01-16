@@ -21,7 +21,8 @@ import { mockTestimonials, mockInstitutions } from '../../data/mockHeroData';
 import { UnderlinedText } from './common/UnderlinedText';
 
 export const SocialProof: React.FC<SocialProofProps> = ({ data, underlineStyle = 4 }) => {
-  const allLogos = [...conveniosLogos, ...conveniosLogos, ...conveniosLogos];
+  // Solo usamos el array original, la duplicación se hace en el render
+  const logos = conveniosLogos;
 
   const [page, setPage] = useState(0);
   const testimonialsPerPage = 2;
@@ -77,28 +78,51 @@ export const SocialProof: React.FC<SocialProofProps> = ({ data, underlineStyle =
       </div>
 
       {/* Marquee Container */}
-      <div className="relative w-full mb-12">
+      <div className="relative w-full mb-12 overflow-hidden">
         <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none" />
 
-        <div className="flex animate-marquee hover:[animation-play-state:paused]">
-          {allLogos.map((logo, index) => (
-            <div
-              key={`${logo.id}-${index}`}
-              className="flex-shrink-0 h-14 w-24 md:w-32 mx-3 md:mx-6 flex items-center justify-center grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300 cursor-pointer"
-            >
-              <img
-                src={logo.url}
-                alt={logo.name}
-                className="max-h-8 md:max-h-10 max-w-20 md:max-w-28 object-contain"
-                loading="lazy"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
-            </div>
-          ))}
+        <div className="flex hover:[animation-play-state:paused] group">
+          {/* Primer set de logos */}
+          <div className="flex animate-marquee group-hover:[animation-play-state:paused]">
+            {logos.map((logo, index) => (
+              <div
+                key={`a-${logo.id}-${index}`}
+                className="flex-shrink-0 h-14 w-24 md:w-32 mx-3 md:mx-6 flex items-center justify-center grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300 cursor-pointer"
+              >
+                <img
+                  src={logo.url}
+                  alt={logo.name}
+                  className="max-h-8 md:max-h-10 max-w-20 md:max-w-28 object-contain"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          {/* Segundo set de logos (duplicado para loop infinito) */}
+          <div className="flex animate-marquee group-hover:[animation-play-state:paused]">
+            {logos.map((logo, index) => (
+              <div
+                key={`b-${logo.id}-${index}`}
+                className="flex-shrink-0 h-14 w-24 md:w-32 mx-3 md:mx-6 flex items-center justify-center grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300 cursor-pointer"
+              >
+                <img
+                  src={logo.url}
+                  alt={logo.name}
+                  className="max-h-8 md:max-h-10 max-w-20 md:max-w-28 object-contain"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -243,15 +267,15 @@ export const SocialProof: React.FC<SocialProofProps> = ({ data, underlineStyle =
             transform: translateX(0);
           }
           100% {
-            transform: translateX(-33.33%);
+            transform: translateX(-100%);
           }
         }
         .animate-marquee {
-          animation: marquee 25s linear infinite;
+          animation: marquee 60s linear infinite;
         }
         @media (max-width: 768px) {
           .animate-marquee {
-            animation: marquee 15s linear infinite;
+            animation: marquee 45s linear infinite;
           }
         }
       `}</style>
