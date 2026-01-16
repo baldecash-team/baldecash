@@ -8,10 +8,18 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
 import { Home, ArrowLeft, Search, RefreshCw } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Navbar, Footer } from '@/app/prototipos/0.5/hero/components/hero';
 
-export const NotFoundContent: React.FC = () => {
+interface NotFoundContentProps {
+  isCleanMode?: boolean;
+}
+
+export const NotFoundContent: React.FC<NotFoundContentProps> = ({ isCleanMode: isCleanModeProp }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isCleanMode = isCleanModeProp ?? searchParams.get('mode') === 'clean';
+  const heroUrl = isCleanMode ? '/prototipos/0.5/hero/hero-preview?mode=clean' : '/prototipos/0.5/hero/hero-preview';
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -64,7 +72,12 @@ export const NotFoundContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-[#4654CD]/5 flex items-center justify-center px-4 py-12 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-[#4654CD]/5 flex flex-col overflow-hidden">
+      {/* Navbar */}
+      <Navbar isCleanMode={isCleanMode} hidePromoBanner />
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center px-4 pt-40 pb-24 relative">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -168,7 +181,7 @@ export const NotFoundContent: React.FC = () => {
             size="lg"
             className="w-full sm:w-auto bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] px-8"
             startContent={<Home className="w-5 h-5" />}
-            onPress={() => router.push('/prototipos/0.5/hero/hero-preview')}
+            onPress={() => router.push(heroUrl)}
           >
             Ir al inicio
           </Button>
@@ -240,6 +253,10 @@ export const NotFoundContent: React.FC = () => {
           }}
         />
       </motion.div>
+      </div>
+
+      {/* Footer */}
+      <Footer isCleanMode={isCleanMode} />
     </div>
   );
 };

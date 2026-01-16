@@ -86,13 +86,13 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ data = mockFaqData, unde
                     </div>
                   }
                   title={
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span>{item.question}</span>
+                    <div className="flex items-center justify-between gap-3 w-full">
+                      <span className="flex-1">{item.question}</span>
                       <Chip
                         size="sm"
                         radius="sm"
                         classNames={{
-                          base: 'px-2 py-0.5 h-auto',
+                          base: 'px-2 py-0.5 h-auto flex-shrink-0',
                           content: 'text-xs font-medium',
                         }}
                         style={{

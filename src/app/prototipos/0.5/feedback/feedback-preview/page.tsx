@@ -32,17 +32,48 @@ const API_URL = 'https://ws.baldecash.com/api/feedback';
 const BEARER_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI3IiwianRpIjoiMmMyZWE0ZDc3OTQwZWY2ZTdmMzJlOGRkMjUwNjRhYTdhNjIyNDRmMzUzMDBkOTcyMGFjY2FhMWQxZmU4OTE2MzUxOGEwMDkzMGViZTc2NGQiLCJpYXQiOjE3NDIzMzc0OTEuMjExMzUsIm5iZiI6MTc0MjMzNzQ5MS4yMTEzNTMsImV4cCI6MTc3Mzg3MzQ5MS4xOTQ0NTUsInN1YiI6IjEiLCJzY29wZXMiOlsiKiJdfQ.GmljQKk_hSEzVFlRfZMYRpt1jtBc_Fl27Vt2UEeMT5lwN4ms1w84f-dJOObRDUyzh4--DONHc7O1WZ36SjttIqmPotbSw9UWRlrA0cDrhGzmwt6nQGAAqCth1g8pkgu5tXb737wbDq8hTHtu5FU05nLrs2bYqxtbjgp500VoQB23_xEi-5FybCX0pM3i38F6VeyPoduIiY7-FRiUq6tw153uSIcCjNpZGwkffBqw6hxQ0rgGe8G_ytFbMxha_Z0zuDL5oqXtEE2U2w4mIG2_cKygysbyPOd3Qkq_LLD_lRpOWHPASrxLdVQGpLkayCBXzHb4B-Qr0Z7zQz9LqZADqojck5J8R4ZitmPpGwHbQvh6t6IbsJuXRq9mFE37VPpqxvmHyJzo_4uM5Rm0K-jKvZ4WggUddAjDn8untElx1ncMjCmFs_kOcpnoUStv3aOQGk75635_WImjTStt05BQ_EmDoRZizUqZ2zVhlrxjmgnv1SxEiPL4jDK9jaLJWUnS2MPQX4yzhd6xwhFk0LI677xpMOiag-kFU5nC3naIc9bZBKj_Ekt1UyMejPL4KqMQsBk6g40eD6ju8qVEjNEZxYCLtgD6Qr8_dheXfXiDTQQltgrG-qSzio888E_ygdq2cawS73zf5edQiau_p_wpodbCl1O6r5BzZhRuaFF0zAA';
 
 const SECTION_LABELS: Record<string, string> = {
-  hero: 'Hero',
-  detalle: 'Detalle Producto',
-  catalogo: 'Catálogo',
-  'wizard-solicitud-intro': 'Wizard Solicitud',
+  // Hero & Landing
+  'hero': 'Hero',
+  'landing': 'Landing',
+
+  // Catálogo
+  'catalogo': 'Catálogo',
+  'estados-vacios': 'Estados Vacíos',
+  'detalle': 'Detalle Producto',
+  'comparador': 'Comparador',
+  'quiz': 'Quiz',
+  'upsell': 'Upsell',
+
+  // Convenio
+  'convenio': 'Convenio',
+
+  // Wizard Solicitud
+  'wizard-solicitud-intro': 'Wizard Solicitud Intro',
+  'wizard-solicitud-datos-personales': 'Wizard Solicitud Datos Personales',
+  'wizard-solicitud-datos-academicos': 'Wizard Solicitud Datos Académicos',
+  'wizard-solicitud-datos-economicos': 'Wizard Solicitud Datos Económicos',
+  'wizard-solicitud-resumen': 'Wizard Solicitud Resumen',
+  'wizard-solicitud-seguros': 'Wizard Solicitud Seguros',
+  'wizard-solicitud-resultados': 'Wizard Solicitud Resultados',
+
+  // Resultados
+  'aprobacion': 'Aprobación',
+  'rechazo': 'Rechazo',
+  'recibido': 'Recibido',
+
+  // Legal
+  'legal': 'Legal',
+  'libro-reclamaciones': 'Libro de Reclamaciones',
+
+  // Otros
+  'proximamente': 'Próximamente',
 };
 
 const ISSUE_CATEGORIES = {
-  ui: { label: 'UI/Visual', color: 'warning' as const },
-  functionality: { label: 'Funcionalidad', color: 'danger' as const },
-  ux: { label: 'UX/Usabilidad', color: 'primary' as const },
-  system: { label: 'Sistema', color: 'default' as const },
+  ui: { label: 'Visual', className: 'bg-amber-100 text-amber-700' },
+  functionality: { label: 'Funcionalidad', className: 'bg-red-100 text-red-700' },
+  ux: { label: 'Usabilidad', className: 'bg-blue-100 text-blue-700' },
+  system: { label: 'Otros', className: 'bg-neutral-100 text-neutral-600' },
 };
 
 function classifyIssue(comment: string): keyof typeof ISSUE_CATEGORIES {
@@ -65,7 +96,11 @@ function classifyIssue(comment: string): keyof typeof ISSUE_CATEGORIES {
     'estilo', 'margen', 'padding', 'borde', 'espaciado', 'fuente',
     'imagen', 'icono', 'animación', 'drawer', 'modal', 'altura', 'ancho',
     'visible', 'oculto', 'transparente', 'estandarizar', 'consistente',
-    'desalineado', 'encuadre', 'visual', 'tag', 'badge', 'card'
+    'desalineado', 'encuadre', 'visual', 'tag', 'badge', 'card',
+    // Nuevos keywords detectados del análisis de feedback real
+    'botón', 'botones', 'mobile', 'desktop', 'tapa', 'tapan', 'posición',
+    'fijo', 'fija', 'formato', 'tooltip', 'tooltips', 'px', 'porcentaje',
+    'letra', 'texto', 'resaltar', 'sticky', 'navbar', 'footer', 'header'
   ];
   if (uiKeywords.some(kw => lower.includes(kw))) {
     return 'ui';
@@ -75,7 +110,11 @@ function classifyIssue(comment: string): keyof typeof ISSUE_CATEGORIES {
   const uxKeywords = [
     'utilidad', 'diferencia', 'dinámicas', 'interactivo', 'confuso',
     'difícil', 'navegación', 'flujo', 'experiencia', 'intuitivo',
-    'feedback', 'click', 'doble click', 'scroll', 'usabilidad'
+    'feedback', 'click', 'doble click', 'scroll', 'usabilidad',
+    // Nuevos keywords detectados del análisis de feedback real
+    'disabled', 'deshabilitado', 'validación', 'problema', 'claro',
+    'debería', 'reemplazar', 'cambiar', 'agregar', 'quitar', 'mostrar',
+    'ocultar', 'seleccionar', 'selección', 'opción', 'opciones'
   ];
   if (uxKeywords.some(kw => lower.includes(kw))) {
     return 'ux';
@@ -241,7 +280,7 @@ function FeedbackReportContent() {
         );
         // Mostrar toast de confirmación
         if (!currentFixed) {
-          showToast('Feedback marcado como arreglado', 'success');
+          showToast('Feedback marcado como revisado', 'success');
         } else {
           showToast('Feedback marcado como pendiente', 'warning');
         }
@@ -376,7 +415,7 @@ function FeedbackReportContent() {
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Check className="w-5 h-5 text-emerald-500" />
-                    <span className="text-sm text-neutral-600">Arreglados:</span>
+                    <span className="text-sm text-neutral-600">Revisados:</span>
                     <span className="text-lg font-bold text-emerald-600">{stats.fixedCount}</span>
                   </div>
                   <div className="h-6 w-px bg-neutral-200" />
@@ -752,7 +791,7 @@ function FeedbackReportContent() {
                       }}
                     >
                       <SelectItem key="pending" textValue="Pendiente" classNames={{ base: 'px-3 py-2 rounded-md text-sm cursor-pointer transition-colors text-neutral-700 data-[hover=true]:bg-[#4654CD]/10 data-[hover=true]:text-[#4654CD] data-[selected=true]:bg-[#4654CD] data-[selected=true]:text-white' }}>Pendiente</SelectItem>
-                      <SelectItem key="fixed" textValue="Arreglado" classNames={{ base: 'px-3 py-2 rounded-md text-sm cursor-pointer transition-colors text-neutral-700 data-[hover=true]:bg-[#4654CD]/10 data-[hover=true]:text-[#4654CD] data-[selected=true]:bg-[#4654CD] data-[selected=true]:text-white' }}>Arreglado</SelectItem>
+                      <SelectItem key="fixed" textValue="Revisado" classNames={{ base: 'px-3 py-2 rounded-md text-sm cursor-pointer transition-colors text-neutral-700 data-[hover=true]:bg-[#4654CD]/10 data-[hover=true]:text-[#4654CD] data-[selected=true]:bg-[#4654CD] data-[selected=true]:text-white' }}>Revisado</SelectItem>
                     </Select>
                   </div>
                 </div>
@@ -776,8 +815,7 @@ function FeedbackReportContent() {
                           <Chip
                             size="sm"
                             variant="flat"
-                            color={cat.color}
-                            className="cursor-pointer"
+                            className={`cursor-pointer ${cat.className}`}
                             onClick={() => toggleSetValue(filterCategory, category, setFilterCategory)}
                           >
                             {cat.label}
@@ -829,7 +867,7 @@ function FeedbackReportContent() {
                           onPress={() => toggleFixed(item.id, item.fixed)}
                           className="cursor-pointer no-print"
                         >
-                          {item.fixed ? "Arreglado" : "Pendiente"}
+                          {item.fixed ? "Revisado" : "Pendiente"}
                         </Button>
                         <Button
                           isIconOnly
