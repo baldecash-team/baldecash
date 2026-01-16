@@ -8,6 +8,7 @@ export { SegmentedControl } from './SegmentedControl';
 export { SelectInput } from './SelectInput';
 export { TextArea } from './TextArea';
 export { FileUpload } from './FileUpload';
+export { FieldTooltip } from './FieldTooltip';
 
 // Re-export tooltip type
 export type { FieldTooltipInfo } from './TextInput';
