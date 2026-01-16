@@ -59,6 +59,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && (
           <Tooltip
+            trigger="press"
             content={
               <div className="max-w-xs p-2">
                 <p className="font-semibold text-neutral-800">{tooltip.title}</p>

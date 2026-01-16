@@ -67,6 +67,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && (
           <Tooltip
+            trigger="press"
             content={
               <div className="max-w-xs p-2">
                 <p className="font-semibold text-neutral-800">{tooltip.title}</p>
@@ -118,7 +119,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
           maxLength={maxLength}
           rows={rows}
           className={`
-            w-full p-3 bg-transparent outline-none text-base text-neutral-800
+            w-full pl-3 pr-10 py-3 bg-transparent outline-none text-base text-neutral-800
             placeholder:text-neutral-400 resize-none
             ${disabled ? 'cursor-not-allowed' : ''}
           `}

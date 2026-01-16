@@ -425,6 +425,11 @@ function ResumenContent() {
                 error={paymentTermError || undefined}
                 success={!!paymentTerm && !paymentTermError}
                 required={true}
+                tooltip={{
+                  title: '¿Por qué elegir un día?',
+                  description: 'Selecciona el día del mes que te resulte más cómodo para realizar tus pagos mensuales.',
+                  recommendation: 'Te recomendamos elegir una fecha cercana a cuando recibes tus ingresos.',
+                }}
               />
               <SelectInput
                 id="referralSource"
@@ -435,6 +440,10 @@ function ResumenContent() {
                 placeholder="Selecciona una opción"
                 success={!!referralSource}
                 required={false}
+                tooltip={{
+                  title: '¿Para qué sirve esto?',
+                  description: 'Esta información nos ayuda a mejorar nuestros canales de comunicación para llegar a más estudiantes.',
+                }}
               />
             </div>
           </div>

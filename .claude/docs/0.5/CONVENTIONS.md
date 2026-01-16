@@ -962,7 +962,7 @@ interface TextAreaProps {
     <textarea
       rows={rows || 4}
       maxLength={maxLength}
-      className="w-full p-3 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400 resize-none"
+      className="w-full pl-3 pr-10 py-3 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400 resize-none"
       ...
     />
     {/* Status icons - esquina superior derecha */}
@@ -987,7 +987,9 @@ interface TextAreaProps {
 </div>
 ```
 
-**Regla:** Los textareas SIEMPRE deben tener `maxLength` definido y mostrar contador de caracteres.
+**Reglas:**
+- Los textareas SIEMPRE deben tener `maxLength` definido y mostrar contador de caracteres.
+- El textarea debe usar `pl-3 pr-10 py-3` (NO `p-3`) para evitar que el texto se superponga con el ícono de status en la esquina superior derecha.
 
 #### 8.7.4 SelectInput - Estructura Estándar
 
