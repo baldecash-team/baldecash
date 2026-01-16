@@ -78,9 +78,9 @@ export const TextInput: React.FC<TextInputProps> = ({
   };
 
   return (
-    <div className="space-y-1.5">
+    <div id={id} className="space-y-1.5">
       {/* Label */}
-      <label htmlFor={id} className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
         {label}
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && (
@@ -123,7 +123,6 @@ export const TextInput: React.FC<TextInputProps> = ({
         `}
       >
         <input
-          id={id}
           name={id}
           type={type}
           inputMode={getInputMode()}

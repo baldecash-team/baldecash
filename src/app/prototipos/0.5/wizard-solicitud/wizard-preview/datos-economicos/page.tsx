@@ -88,36 +88,40 @@ function DatosEconomicosContent() {
     return touched[fieldId] && !!value && !getFieldError(fieldId);
   };
 
-  // Validar campos requeridos
-  const validateStep = (): boolean => {
-    let isValid = true;
+  // Validar campos requeridos - retorna el primer campo con error o null
+  const validateStep = (): string | null => {
+    let firstErrorField: string | null = null;
 
     const situacionLaboral = getFieldValue('situacionLaboral') as string;
     if (!situacionLaboral) {
       setFieldError('situacionLaboral', 'Selecciona tu situación laboral');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'situacionLaboral';
     }
 
     const ingresoMensual = getFieldValue('ingresoMensual') as string;
     if (!ingresoMensual || !ingresoMensual.trim()) {
       setFieldError('ingresoMensual', 'Este campo es requerido');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'ingresoMensual';
     } else if (isNaN(Number(ingresoMensual)) || Number(ingresoMensual) < 0) {
       setFieldError('ingresoMensual', 'Ingresa un monto válido');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'ingresoMensual';
     }
 
     // comentarios es opcional, no validar
 
-    return isValid;
+    return firstErrorField;
   };
 
   const handleNext = () => {
     setSubmitted(true);
-    if (validateStep()) {
-      markStepCompleted('datos-economicos');
-      setShowCelebration(true);
+    const firstErrorField = validateStep();
+    if (firstErrorField) {
+      // Scroll al primer campo con error
+      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
+    markStepCompleted('datos-economicos');
+    setShowCelebration(true);
   };
 
   const handleCelebrationComplete = () => {

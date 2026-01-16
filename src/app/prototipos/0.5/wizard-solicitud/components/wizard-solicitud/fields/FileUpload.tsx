@@ -147,7 +147,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div id={id} className="space-y-2">
       {/* Label */}
       <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
         {label}

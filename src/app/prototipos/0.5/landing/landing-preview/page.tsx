@@ -65,6 +65,13 @@ function LandingPreviewContent() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
+      // Scroll al anchor si existe en la URL (para navegación desde otras páginas)
+      const hash = window.location.hash;
+      if (hash) {
+        setTimeout(() => {
+          document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
     }, 500);
     return () => clearTimeout(timer);
   }, []);

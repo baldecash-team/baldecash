@@ -61,6 +61,7 @@ function ResumenContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [paymentTerm, setPaymentTerm] = useState('');
+  const [paymentTermError, setPaymentTermError] = useState<string | null>(null);
   const [referralSource, setReferralSource] = useState('');
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -104,6 +105,15 @@ function ResumenContent() {
   };
 
   const handleSubmit = async () => {
+    // Validar campo requerido
+    if (!paymentTerm) {
+      setPaymentTermError('Selecciona un día de pago');
+      // Scroll al campo con error
+      document.getElementById('paymentDay')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    setPaymentTermError(null);
     setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
     // Redirigir a página de seguros (opcional)
@@ -278,8 +288,6 @@ function ResumenContent() {
 
   // Validación de pasos anteriores (para mostrar el formulario)
   const isDataComplete = true;
-  // Validación de campos requeridos en este paso (para el botón)
-  const canSubmit = !!paymentTerm;
 
   const pageContent = (
     <WizardLayout
@@ -291,7 +299,7 @@ function ResumenContent() {
       onStepClick={handleStepClick}
       isLastStep
       isSubmitting={isSubmitting}
-      canProceed={canSubmit}
+      canProceed={true}
       isCleanMode={isCleanMode}
     >
       {!isDataComplete ? (
@@ -408,10 +416,14 @@ function ResumenContent() {
                 id="paymentDay"
                 label="¿Qué día del mes prefieres pagar?"
                 value={paymentTerm}
-                onChange={setPaymentTerm}
+                onChange={(value) => {
+                  setPaymentTerm(value);
+                  if (value) setPaymentTermError(null); // Limpiar error al seleccionar
+                }}
                 options={PAYMENT_DAY_OPTIONS}
                 placeholder="Selecciona un día"
-                success={!!paymentTerm}
+                error={paymentTermError || undefined}
+                success={!!paymentTerm && !paymentTermError}
                 required={true}
               />
               <SelectInput

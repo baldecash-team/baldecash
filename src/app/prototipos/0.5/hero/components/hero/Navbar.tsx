@@ -38,7 +38,8 @@ const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string)
 
   // Check if we're already on the target page (or it's just an anchor)
   const currentPath = window.location.pathname;
-  const isOnTargetPage = href.startsWith('#') || currentPath.includes('hero-preview');
+  // Hero y Landing tienen las mismas secciones (#convenios, #faq)
+  const isOnTargetPage = href.startsWith('#') || currentPath.includes('hero-preview') || currentPath.includes('landing-preview');
 
   if (isOnTargetPage) {
     e.preventDefault();
@@ -324,7 +325,8 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
                           if (hashIndex !== -1) {
                             const anchor = item.href.substring(hashIndex);
                             const currentPath = window.location.pathname;
-                            const isOnTargetPage = item.href.startsWith('#') || currentPath.includes('hero-preview');
+                            // Hero y Landing tienen las mismas secciones (#convenios, #faq)
+                            const isOnTargetPage = item.href.startsWith('#') || currentPath.includes('hero-preview') || currentPath.includes('landing-preview');
 
                             if (isOnTargetPage) {
                               e.preventDefault();

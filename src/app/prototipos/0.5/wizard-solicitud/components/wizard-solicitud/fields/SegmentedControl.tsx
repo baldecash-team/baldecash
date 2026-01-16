@@ -52,7 +52,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
 }) => {
   const showSuccess = success && !error && !!value;
   return (
-    <div className="space-y-3">
+    <div id={id} className="space-y-3">
       {/* Label */}
       <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
         {label}

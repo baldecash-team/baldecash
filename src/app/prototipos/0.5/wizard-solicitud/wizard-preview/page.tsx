@@ -44,6 +44,7 @@ function WizardPreviewContent() {
   const [acceptPromos, setAcceptPromos] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
   const [isTermsHydrated, setIsTermsHydrated] = useState(false);
+  const [termsError, setTermsError] = useState<string | null>(null);
 
   // Cargar valores desde localStorage al montar
   useEffect(() => {
@@ -87,6 +88,15 @@ function WizardPreviewContent() {
   }, [isHydrated, selectedProduct, router, isCleanMode]);
 
   const handleStart = () => {
+    // Validar términos antes de continuar
+    if (!acceptTerms) {
+      setTermsError('Debes aceptar los términos y condiciones para continuar');
+      // Scroll al checkbox de términos
+      document.getElementById('terms-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    setTermsError(null);
     const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/datos-personales';
     const url = isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
     router.push(url);
@@ -99,35 +109,44 @@ function WizardPreviewContent() {
     onChange,
     label,
     description,
+    error,
   }: {
     id: string;
     checked: boolean;
     onChange: (checked: boolean) => void;
     label: string;
     description: string;
+    error?: string | null;
   }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="flex items-start gap-3 w-full text-left cursor-pointer"
-    >
-      <div
-        className={`
-          w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
-          transition-all duration-200
-          ${checked
-            ? 'bg-[#4654CD] border-[#4654CD]'
-            : 'bg-white border-neutral-300 hover:border-[#4654CD]/50'
-          }
-        `}
+    <div>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className="flex items-start gap-3 w-full text-left cursor-pointer"
       >
-        {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-      </div>
-      <div className="flex-1">
-        <p className="text-sm font-medium text-neutral-800">{label}</p>
-        <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
-      </div>
-    </button>
+        <div
+          className={`
+            w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
+            transition-all duration-200
+            ${checked
+              ? 'bg-[#4654CD] border-[#4654CD]'
+              : error
+                ? 'bg-white border-red-500 ring-2 ring-red-500/20'
+                : 'bg-white border-neutral-300 hover:border-[#4654CD]/50'
+            }
+          `}
+        >
+          {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+        </div>
+        <div className="flex-1">
+          <p className={`text-sm font-medium ${error ? 'text-red-600' : 'text-neutral-800'}`}>{label}</p>
+          <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
+        </div>
+      </button>
+      {error && (
+        <p className="text-xs text-red-500 mt-2 ml-9">{error}</p>
+      )}
+    </div>
   );
 
   // Content JSX (no es componente para evitar remount en cada render)
@@ -238,15 +257,19 @@ function WizardPreviewContent() {
         />
 
         {/* Términos y Condiciones */}
-        <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
+        <div id="terms-section" className={`bg-white rounded-xl p-6 border mb-8 transition-colors ${termsError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
           <h3 className="font-semibold text-neutral-800 mb-4">Términos y Condiciones</h3>
           <div className="space-y-4">
             <Checkbox
               id="acceptTerms"
               checked={acceptTerms}
-              onChange={setAcceptTerms}
+              onChange={(checked) => {
+                setAcceptTerms(checked);
+                if (checked) setTermsError(null); // Limpiar error al marcar
+              }}
               label="Acepto los términos y condiciones"
               description="He leído y acepto los términos de uso y la política de privacidad"
+              error={termsError}
             />
             <Checkbox
               id="acceptPromos"
@@ -266,13 +289,9 @@ function WizardPreviewContent() {
         {/* CTA Button */}
         <button
           onClick={handleStart}
-          disabled={!acceptTerms}
-          className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
                      font-semibold text-lg transition-colors shadow-lg
-                     ${acceptTerms
-                       ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3] shadow-[#4654CD]/25 cursor-pointer'
-                       : 'bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-neutral-300/25'
-                     }`}
+                     bg-[#4654CD] text-white hover:bg-[#3a47b3] shadow-[#4654CD]/25 cursor-pointer"
         >
           <span>Comenzar Solicitud</span>
           <ArrowRight className="w-5 h-5" />

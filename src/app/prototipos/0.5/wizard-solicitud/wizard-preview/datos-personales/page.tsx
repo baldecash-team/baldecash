@@ -122,74 +122,78 @@ function DatosPersonalesContent() {
     return null;
   };
 
-  // Validar campos requeridos
-  const validateStep = (): boolean => {
-    let isValid = true;
+  // Validar campos requeridos - retorna el primer campo con error o null
+  const validateStep = (): string | null => {
+    let firstErrorField: string | null = null;
 
     const nombres = getFieldValue('nombres') as string;
     if (!nombres || !nombres.trim()) {
       setFieldError('nombres', 'Este campo es requerido');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'nombres';
     }
 
     const apellidos = getFieldValue('apellidos') as string;
     if (!apellidos || !apellidos.trim()) {
       setFieldError('apellidos', 'Este campo es requerido');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'apellidos';
     }
 
     const tipoDocumento = getFieldValue('tipoDocumento') as string;
     if (!tipoDocumento) {
       setFieldError('tipoDocumento', 'Selecciona un tipo de documento');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'tipoDocumento';
     }
 
     const numeroDocumento = getFieldValue('numeroDocumento') as string;
     const docError = validateNumeroDocumento(tipoDocumento, numeroDocumento);
     if (docError) {
       setFieldError('numeroDocumento', docError);
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'numeroDocumento';
     }
 
     const sexo = getFieldValue('sexo') as string;
     if (!sexo) {
       setFieldError('sexo', 'Selecciona una opción');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'sexo';
     }
 
     const fechaNacimiento = getFieldValue('fechaNacimiento') as string;
     if (!fechaNacimiento) {
       setFieldError('fechaNacimiento', 'Este campo es requerido');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'fechaNacimiento';
     }
 
     const celular = getFieldValue('celular') as string;
     if (!celular || !celular.trim()) {
       setFieldError('celular', 'Este campo es requerido');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'celular';
     } else if (!/^\d{9}$/.test(celular.trim())) {
       setFieldError('celular', 'El celular debe tener 9 dígitos');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'celular';
     }
 
     const email = getFieldValue('email') as string;
     if (!email || !email.trim()) {
       setFieldError('email', 'Este campo es requerido');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'email';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setFieldError('email', 'Ingresa un correo electrónico válido');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'email';
     }
 
-    return isValid;
+    return firstErrorField;
   };
 
   const handleNext = () => {
     setSubmitted(true);
-    if (validateStep()) {
-      markStepCompleted('datos-personales');
-      setShowCelebration(true);
+    const firstErrorField = validateStep();
+    if (firstErrorField) {
+      // Scroll al primer campo con error
+      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
+    markStepCompleted('datos-personales');
+    setShowCelebration(true);
   };
 
   const handleCelebrationComplete = () => {

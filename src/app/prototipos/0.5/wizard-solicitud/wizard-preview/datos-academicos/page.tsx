@@ -83,20 +83,20 @@ function DatosAcademicosContent() {
     return touched[fieldId] && hasValue && !getFieldError(fieldId);
   };
 
-  // Validar campos requeridos
-  const validateStep = (): boolean => {
-    let isValid = true;
+  // Validar campos requeridos - retorna el primer campo con error o null
+  const validateStep = (): string | null => {
+    let firstErrorField: string | null = null;
 
     const tipoInstitucion = getFieldValue('tipoInstitucion') as string;
     if (!tipoInstitucion) {
       setFieldError('tipoInstitucion', 'Selecciona un tipo de institución');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'tipoInstitucion';
     }
 
     const institucion = getFieldValue('institucion') as string;
     if (!institucion) {
       setFieldError('institucion', 'Selecciona una institución');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'institucion';
     }
 
     // otraInstitucion requerido cuando se selecciona "otra/otro"
@@ -104,21 +104,21 @@ function DatosAcademicosContent() {
       const otraInstitucion = getFieldValue('otraInstitucion') as string;
       if (!otraInstitucion || !otraInstitucion.trim()) {
         setFieldError('otraInstitucion', 'Este campo es requerido');
-        isValid = false;
+        if (!firstErrorField) firstErrorField = 'otraInstitucion';
       }
     }
 
     const carrera = getFieldValue('carrera') as string;
     if (!carrera) {
       setFieldError('carrera', 'Selecciona una carrera');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'carrera';
     }
     // otraCarrera es opcional, no validar
 
     const ciclo = getFieldValue('ciclo') as string;
     if (!ciclo) {
       setFieldError('ciclo', 'Selecciona tu ciclo actual');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'ciclo';
     }
 
     // otroCiclo requerido cuando se selecciona "otro"
@@ -126,25 +126,29 @@ function DatosAcademicosContent() {
       const otroCiclo = getFieldValue('otroCiclo') as string;
       if (!otroCiclo || !otroCiclo.trim()) {
         setFieldError('otroCiclo', 'Este campo es requerido');
-        isValid = false;
+        if (!firstErrorField) firstErrorField = 'otroCiclo';
       }
     }
 
     const constanciaEstudios = getFieldValue('constanciaEstudios') as unknown[];
     if (!constanciaEstudios || !Array.isArray(constanciaEstudios) || constanciaEstudios.length === 0) {
       setFieldError('constanciaEstudios', 'Sube tu constancia de estudios');
-      isValid = false;
+      if (!firstErrorField) firstErrorField = 'constanciaEstudios';
     }
 
-    return isValid;
+    return firstErrorField;
   };
 
   const handleNext = () => {
     setSubmitted(true);
-    if (validateStep()) {
-      markStepCompleted('datos-academicos');
-      setShowCelebration(true);
+    const firstErrorField = validateStep();
+    if (firstErrorField) {
+      // Scroll al primer campo con error
+      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
+    markStepCompleted('datos-academicos');
+    setShowCelebration(true);
   };
 
   const handleCelebrationComplete = () => {
