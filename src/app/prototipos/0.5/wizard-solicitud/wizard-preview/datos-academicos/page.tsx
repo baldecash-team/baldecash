@@ -18,6 +18,7 @@ import { getStepById } from '../../data/wizardSteps';
 import { Code, ArrowLeft } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { useProduct } from '../../context/ProductContext';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
@@ -47,6 +48,8 @@ function DatosAcademicosContent() {
     setFieldError,
     markStepCompleted,
   } = useWizard();
+
+  const { isProductBarExpanded } = useProduct();
 
   const step = getStepById('datos-academicos')!;
 
@@ -419,10 +422,12 @@ function DatosAcademicosContent() {
       <>
         {pageContent}
         <Footer isCleanMode={isCleanMode} />
-        <FeedbackButton
-          sectionId="wizard-solicitud-datos-academicos"
-          className="bottom-24 lg:bottom-6"
-        />
+        {!isProductBarExpanded && (
+          <FeedbackButton
+            sectionId="wizard-solicitud-datos-academicos"
+            className="bottom-24 lg:bottom-6"
+          />
+        )}
       </>
     );
   }

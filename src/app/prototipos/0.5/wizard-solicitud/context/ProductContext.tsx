@@ -52,6 +52,9 @@ interface ProductContextValue {
   getTotalMonthlyPayment: () => number;
   getDiscountedMonthlyPayment: () => number;
   isHydrated: boolean;
+  // Estado de la barra de producto (mobile)
+  isProductBarExpanded: boolean;
+  setIsProductBarExpanded: (expanded: boolean) => void;
 }
 
 const ProductContext = createContext<ProductContextValue | undefined>(undefined);
@@ -73,6 +76,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
   const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
 
   // Load from localStorage on mount (client-side only)
   useEffect(() => {
@@ -223,6 +227,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
         getTotalMonthlyPayment,
         getDiscountedMonthlyPayment,
         isHydrated,
+        isProductBarExpanded,
+        setIsProductBarExpanded,
       }}
     >
       {children}

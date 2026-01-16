@@ -14,10 +14,18 @@ import { ChevronUp, ChevronDown, Package, Plus, Tag } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import Image from 'next/image';
 
-export const SelectedProductBar: React.FC = () => {
-  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment } = useProduct();
-  const [isExpanded, setIsExpanded] = useState(false);
+interface SelectedProductBarProps {
+  isCleanMode?: boolean;
+  mobileOnly?: boolean;
+}
+
+export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
+  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded } = useProduct();
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
+
+  // Usar el estado del contexto para la expansión
+  const isExpanded = isProductBarExpanded;
+  const setIsExpanded = setIsProductBarExpanded;
 
   if (!selectedProduct) return null;
 
@@ -212,7 +220,8 @@ export const SelectedProductBar: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Desktop: Top Bar */}
+      {/* Desktop: Top Bar - Hidden when mobileOnly is true */}
+      {!mobileOnly && (
       <div className="hidden lg:block mb-6 space-y-3">
         {/* Product Card */}
         <div className="bg-white rounded-xl border border-neutral-200 p-4">
@@ -361,6 +370,7 @@ export const SelectedProductBar: React.FC = () => {
           </div>
         )}
       </div>
+      )}
 
     </>
   );

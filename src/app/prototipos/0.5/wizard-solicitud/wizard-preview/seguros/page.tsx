@@ -12,6 +12,7 @@ import { Button } from '@nextui-org/react';
 import { ArrowLeft, ChevronDown, ChevronUp, Code, Loader2, Package, Plus, Shield, AlertTriangle } from 'lucide-react';
 import Image from 'next/image';
 import { useProduct } from '../../context/ProductContext';
+import { SelectedProductBar, SelectedProductSpacer } from '../../components/wizard-solicitud/product/SelectedProductBar';
 import { formatMoney } from '../../../utils/formatMoney';
 import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -47,7 +48,7 @@ function SegurosContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
 
-  const { selectedProduct, selectedAccessories, getTotalMonthlyPayment } = useProduct();
+  const { selectedProduct, selectedAccessories, getTotalMonthlyPayment, isProductBarExpanded } = useProduct();
 
   const handleBack = () => {
     const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/resumen';
@@ -99,13 +100,13 @@ function SegurosContent() {
           </div>
         </motion.div>
 
-        {/* Selected Product Card */}
+        {/* Selected Product Card - Desktop only (mobile uses sticky bar) */}
         {selectedProduct && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl border border-neutral-200 p-4 mb-4"
+            className="hidden lg:block bg-white rounded-xl border border-neutral-200 p-4 mb-4"
           >
             <div className="flex items-center gap-4">
               {/* Product Image */}
@@ -155,13 +156,13 @@ function SegurosContent() {
           </motion.div>
         )}
 
-        {/* Accessories Accordion */}
+        {/* Accessories Accordion - Desktop only (mobile uses sticky bar) */}
         {selectedAccessories.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="bg-[#4654CD]/5 rounded-xl border border-[#4654CD]/10 overflow-hidden mb-6"
+            className="hidden lg:block bg-[#4654CD]/5 rounded-xl border border-[#4654CD]/10 overflow-hidden mb-6"
           >
             {/* Accordion Header */}
             <button
@@ -264,19 +265,19 @@ function SegurosContent() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mt-6 flex gap-3"
+          className="mt-6 flex flex-col-reverse gap-3 lg:flex-row"
         >
           <Button
             size="lg"
             variant="bordered"
-            className="flex-1 border-neutral-300 text-neutral-700 cursor-pointer"
+            className="w-full lg:flex-1 border-neutral-300 text-neutral-700 cursor-pointer"
             onPress={handleBack}
           >
             Atrás
           </Button>
           <Button
             size="lg"
-            className="flex-1 bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
+            className="w-full lg:flex-1 bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
             onPress={handleContinue}
             isLoading={isSubmitting}
             spinner={<Loader2 className="w-5 h-5 animate-spin" />}
@@ -298,11 +299,15 @@ function SegurosContent() {
     return (
       <>
         {pageContent}
+        <SelectedProductSpacer />
         <Footer isCleanMode={isCleanMode} />
-        <FeedbackButton
-          sectionId="wizard-solicitud-seguros"
-          className="bottom-6"
-        />
+        <SelectedProductBar mobileOnly />
+        {!isProductBarExpanded && (
+          <FeedbackButton
+            sectionId="wizard-solicitud-seguros"
+            className="bottom-24 lg:bottom-6"
+          />
+        )}
       </>
     );
   }
@@ -311,7 +316,9 @@ function SegurosContent() {
   return (
     <div className="relative">
       {pageContent}
+      <SelectedProductSpacer />
       <Footer isCleanMode={isCleanMode} />
+      <SelectedProductBar mobileOnly />
 
       {/* Floating Action Buttons */}
       <div className="fixed bottom-24 right-6 z-[100] flex flex-col gap-2 lg:bottom-6">

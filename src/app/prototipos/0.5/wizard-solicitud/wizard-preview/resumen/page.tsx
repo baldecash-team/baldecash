@@ -14,6 +14,7 @@ import { User, GraduationCap, Wallet, AlertCircle, Edit2, Code, ArrowLeft, Credi
 import { SelectInput } from '../../components/wizard-solicitud/fields';
 import { Button } from '@nextui-org/react';
 import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { useProduct } from '../../context/ProductContext';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
@@ -58,6 +59,7 @@ function ResumenContent() {
   useScrollToTop();
 
   const { getFieldValue } = useWizard();
+  const { isProductBarExpanded } = useProduct();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [paymentTerm, setPaymentTerm] = useState('');
@@ -261,7 +263,7 @@ function ResumenContent() {
     onEdit: () => void;
     children: React.ReactNode;
   }) => (
-    <div className="bg-neutral-50 rounded-xl p-4">
+    <div className="bg-neutral-50 rounded-xl p-4 overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Icon className="w-5 h-5 text-[#4654CD]" />
@@ -280,9 +282,9 @@ function ResumenContent() {
   );
 
   const SummaryItem = ({ label, value }: { label: string; value: string }) => (
-    <div className="flex justify-between text-sm">
-      <span className="text-neutral-500">{label}</span>
-      <span className="text-neutral-800 font-medium">{value || '-'}</span>
+    <div className="flex justify-between gap-4 text-sm">
+      <span className="text-neutral-500 flex-shrink-0">{label}</span>
+      <span className="text-neutral-800 font-medium text-right break-words min-w-0">{value || '-'}</span>
     </div>
   );
 
@@ -400,7 +402,7 @@ function ResumenContent() {
             {getFieldValue('comentarios') && (
               <div className="pt-2 border-t border-neutral-200 mt-2">
                 <p className="text-xs text-neutral-500 mb-1">Comentarios:</p>
-                <p className="text-sm text-neutral-700">{getFieldValue('comentarios') as string}</p>
+                <p className="text-sm text-neutral-700 break-words">{getFieldValue('comentarios') as string}</p>
               </div>
             )}
           </SummarySection>
@@ -458,10 +460,12 @@ function ResumenContent() {
       <>
         {pageContent}
         <Footer isCleanMode={isCleanMode} />
-        <FeedbackButton
-          sectionId="wizard-solicitud-resumen"
-          className="bottom-24 lg:bottom-6"
-        />
+        {!isProductBarExpanded && (
+          <FeedbackButton
+            sectionId="wizard-solicitud-resumen"
+            className="bottom-24 lg:bottom-6"
+          />
+        )}
       </>
     );
   }

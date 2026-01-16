@@ -76,7 +76,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             </div>
 
             {/* Content */}
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 overflow-hidden">
               {children}
             </div>
 

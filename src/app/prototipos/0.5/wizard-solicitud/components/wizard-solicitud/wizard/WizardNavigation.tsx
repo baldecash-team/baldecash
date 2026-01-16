@@ -28,21 +28,22 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
   canProceed = true,
 }) => {
   return (
-    <div className="flex items-center justify-between mt-8">
+    <div className="flex flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between mt-8">
       {/* Back Button */}
       {!isFirstStep && onBack ? (
         <button
           type="button"
           onClick={onBack}
           disabled={isSubmitting}
-          className="flex items-center gap-2 px-4 py-2 text-neutral-600 hover:text-neutral-800
+          className="w-full lg:w-auto flex items-center justify-center gap-2 px-4 py-3 lg:py-2
+                     text-neutral-600 hover:text-neutral-800 border border-neutral-300 rounded-xl lg:border-0
                      transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Atrás</span>
         </button>
       ) : (
-        <div />
+        <div className="hidden lg:block" />
       )}
 
       {/* Next / Submit Button */}
@@ -51,7 +52,7 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
           type="button"
           onClick={onSubmit}
           disabled={isSubmitting || !canProceed}
-          className="flex items-center gap-2 px-6 py-3 bg-[#4654CD] text-white rounded-xl
+          className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#4654CD] text-white rounded-xl
                      font-semibold hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25
                      cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -72,7 +73,7 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
           type="button"
           onClick={onNext}
           disabled={isSubmitting || !canProceed}
-          className="flex items-center gap-2 px-6 py-3 bg-[#4654CD] text-white rounded-xl
+          className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#4654CD] text-white rounded-xl
                      font-semibold hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25
                      cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
