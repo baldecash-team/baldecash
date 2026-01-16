@@ -67,7 +67,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && (
           <Tooltip
-            trigger="press"
+            trigger={'press' as 'focus'}
             content={
               <div className="max-w-xs p-2">
                 <p className="font-semibold text-neutral-800">{tooltip.title}</p>
