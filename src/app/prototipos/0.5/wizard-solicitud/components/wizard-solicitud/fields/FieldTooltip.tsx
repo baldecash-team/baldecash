@@ -5,9 +5,10 @@
  * Works on both desktop (hover) and mobile (tap)
  * - Desktop: hover to show/hide
  * - Mobile: tap to toggle, tap outside to close
+ * - Dynamic positioning to avoid viewport edges
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Info } from 'lucide-react';
 
 export interface FieldTooltipInfo {
@@ -20,15 +21,54 @@ interface FieldTooltipProps {
   tooltip: FieldTooltipInfo;
 }
 
+type HorizontalAlign = 'left' | 'center' | 'right';
+
+const TOOLTIP_WIDTH = 256; // w-64 = 256px
+const VIEWPORT_PADDING = 16; // Minimum distance from viewport edge
+
 export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [alignment, setAlignment] = useState<HorizontalAlign>('center');
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Detect touch device on mount
   useEffect(() => {
     setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
+
+  // Calculate optimal position when tooltip opens
+  const calculatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const iconCenterX = rect.left + rect.width / 2;
+    const viewportWidth = window.innerWidth;
+
+    // Calculate where tooltip edges would be if centered
+    const tooltipLeftIfCentered = iconCenterX - TOOLTIP_WIDTH / 2;
+    const tooltipRightIfCentered = iconCenterX + TOOLTIP_WIDTH / 2;
+
+    // Check if tooltip would overflow
+    if (tooltipLeftIfCentered < VIEWPORT_PADDING) {
+      // Too close to left edge - align left
+      setAlignment('left');
+    } else if (tooltipRightIfCentered > viewportWidth - VIEWPORT_PADDING) {
+      // Too close to right edge - align right
+      setAlignment('right');
+    } else {
+      // Enough space - center it
+      setAlignment('center');
+    }
+  }, []);
+
+  // Recalculate position when opening
+  useEffect(() => {
+    if (isOpen) {
+      calculatePosition();
+    }
+  }, [isOpen, calculatePosition]);
 
   // Close tooltip when clicking outside
   useEffect(() => {
@@ -73,6 +113,32 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
     }
   };
 
+  // Get tooltip position classes based on alignment
+  const getTooltipPositionClasses = () => {
+    switch (alignment) {
+      case 'left':
+        return 'left-0';
+      case 'right':
+        return 'right-0';
+      case 'center':
+      default:
+        return 'left-1/2 -translate-x-1/2';
+    }
+  };
+
+  // Get arrow position classes based on alignment
+  const getArrowPositionClasses = () => {
+    switch (alignment) {
+      case 'left':
+        return 'left-3';
+      case 'right':
+        return 'right-3';
+      case 'center':
+      default:
+        return 'left-1/2 -translate-x-1/2';
+    }
+  };
+
   return (
     <div ref={containerRef} className="relative inline-flex">
       <span
@@ -85,10 +151,13 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
       </span>
 
       {isOpen && (
-        <div className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 max-w-xs p-3 bg-white rounded-lg shadow-lg border border-neutral-200">
+        <div
+          ref={tooltipRef}
+          className={`absolute z-50 bottom-full mb-2 w-64 p-3 bg-white rounded-lg shadow-lg border border-neutral-200 ${getTooltipPositionClasses()}`}
+        >
           {/* Arrow */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white" />
-          <div className="absolute left-1/2 -translate-x-1/2 top-full mt-[-1px] w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-neutral-200 -z-10" />
+          <div className={`absolute top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white ${getArrowPositionClasses()}`} />
+          <div className={`absolute top-full mt-[-1px] w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-neutral-200 -z-10 ${getArrowPositionClasses()}`} />
 
           <p className="font-semibold text-neutral-800 text-sm">{tooltip.title}</p>
           <p className="text-xs text-neutral-500 mt-1">{tooltip.description}</p>
