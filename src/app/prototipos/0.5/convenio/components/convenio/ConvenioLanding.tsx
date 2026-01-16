@@ -52,7 +52,7 @@ export const ConvenioLanding: React.FC<ConvenioLandingProps> = ({ convenio, isCl
       </main>
 
       {/* Footer */}
-      <ConvenioFooter convenio={convenio} />
+      <ConvenioFooter convenio={convenio} isCleanMode={isCleanMode} />
     </div>
   );
 };

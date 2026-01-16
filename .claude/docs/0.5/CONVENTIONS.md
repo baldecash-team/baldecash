@@ -36,6 +36,7 @@
 | **localStorage / persistencia de estado** | **18** localStorage Persistence Pattern |
 | **Grid de cards / catálogo** | **19** Responsive Card Grid Pattern |
 | **Popup / Modal / Drawer en Mobile** | **20** Mobile Bottom Sheet Pattern |
+| **Tooltip / Ayuda contextual** | **21** FieldTooltip Component |
 
 > Esta tabla existe para evitar implementaciones incorrectas. El asistente debe leer la sección completa antes de escribir código.
 
@@ -4188,6 +4189,142 @@ El banner promocional (PromoBanner) **NO debe ocultarse** cuando se abre un bott
 
 ---
 
+## 21. FieldTooltip Component
+
+### 21.1 Problema con NextUI Tooltip
+
+**NUNCA usar el Tooltip de NextUI directamente.** Tiene dos problemas críticos:
+
+1. **No funciona en mobile**: React Aria deshabilita eventos hover en touch devices
+2. **Error en React 19**: `Accessing element.ref was removed in React 19`
+
+### 21.2 Componente Estándar
+
+Usar siempre `FieldTooltip` ubicado en:
+```
+src/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields/FieldTooltip.tsx
+```
+
+**Import:**
+```tsx
+import { FieldTooltip } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
+```
+
+### 21.3 Características
+
+| Característica | Descripción |
+|----------------|-------------|
+| **Desktop** | Hover para mostrar/ocultar |
+| **Mobile** | Tap para toggle, tap fuera para cerrar |
+| **Posicionamiento** | Dinámico - evita bordes del viewport |
+| **Overflow** | Usa Portal (renderiza en `document.body`) - no se recorta por contenedores con `overflow: hidden` |
+| **Z-index** | `z-[9999]` para estar siempre visible |
+
+### 21.4 Tipos de Contenido Soportados
+
+```tsx
+// 1. String simple
+<FieldTooltip content="Texto de ayuda" />
+
+// 2. Objeto estructurado (recomendado para campos de formulario)
+<FieldTooltip
+  content={{
+    title: "Título del tooltip",
+    description: "Descripción detallada",
+    recommendation: "Recomendación opcional"  // Muestra con icono Info
+  }}
+/>
+
+// 3. ReactNode custom
+<FieldTooltip
+  content={
+    <div>
+      <p>Contenido personalizado</p>
+    </div>
+  }
+/>
+
+// 4. Backwards compatible con prop 'tooltip'
+<FieldTooltip tooltip={{ title: "...", description: "..." }} />
+```
+
+### 21.5 Icono Personalizado
+
+Por defecto usa el icono `Info`. Se puede personalizar:
+
+```tsx
+// Icono custom (ej: HelpCircle para specs técnicas)
+<FieldTooltip
+  content="Explicación técnica"
+  icon={<HelpCircle className="w-4 h-4 text-neutral-400 hover:text-[#4654CD]" />}
+/>
+
+// Elemento completo como trigger (ej: badges de certificación)
+<FieldTooltip
+  content={{ title: "ISO 9001", description: "Certificación de calidad" }}
+  icon={
+    <div className="px-3 py-1.5 bg-neutral-100 rounded-full">
+      <span className="text-xs">ISO</span>
+    </div>
+  }
+/>
+```
+
+### 21.6 Uso en Campos de Formulario
+
+Todos los campos del wizard ya incluyen soporte para tooltip:
+
+```tsx
+<TextInput
+  label="Nombres"
+  tooltip={{
+    title: "¿Qué debo poner?",
+    description: "Ingresa tus nombres tal como aparecen en tu documento.",
+    recommendation: "Escribe todos tus nombres completos."
+  }}
+  // ... otras props
+/>
+```
+
+### 21.7 Casos de Uso Comunes
+
+| Caso | Implementación |
+|------|----------------|
+| **Campos de formulario** | Usar prop `tooltip` del componente de campo |
+| **Specs técnicas** | `<FieldTooltip content="..." icon={<HelpCircle />} />` |
+| **Filtros del catálogo** | `<FieldTooltip content={{ title, description, recommendation }} />` |
+| **Badges/Certificaciones** | `<FieldTooltip content={{ title, description }} icon={<Badge />} />` |
+
+### 21.8 Código Prohibido
+
+```tsx
+// ❌ NUNCA usar Tooltip de NextUI directamente
+import { Tooltip } from '@nextui-org/react';
+
+<Tooltip content="...">
+  <span>Trigger</span>
+</Tooltip>
+
+// ❌ NUNCA usar trigger="press" (no funciona en mobile)
+<Tooltip trigger="press" content="...">
+
+// ✅ SIEMPRE usar FieldTooltip
+import { FieldTooltip } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
+
+<FieldTooltip content="..." />
+```
+
+### 21.9 Checklist de Implementación
+
+- [ ] Importar `FieldTooltip` desde la ruta correcta
+- [ ] Usar prop `content` (string, objeto, o ReactNode)
+- [ ] Para campos de formulario, usar la prop `tooltip` del componente
+- [ ] Para iconos custom, usar prop `icon`
+- [ ] NO usar Tooltip de NextUI directamente
+- [ ] Verificar funcionamiento en mobile (tap) y desktop (hover)
+
+---
+
 ## 17. Versionado de Documento
 
 | Versión | Fecha | Cambios |
@@ -4228,6 +4365,7 @@ El banner promocional (PromoBanner) **NO debe ocultarse** cuando se abre un bott
 | 4.3 | 2026-01-13 | Sección 6.4.1: Botón Settings y Modal con border-radius 14px estándar |
 | 4.4 | 2026-01-13 | Sección 20.4: Bloqueo scroll body (useEffect obligatorio), min-h-[50vh], checklist actualizado |
 | 4.5 | 2026-01-15 | Sección 20.3: Z-index estandarizado a `z-[149]` (backdrop) y `z-[150]` (sheet) para cubrir Navbar (z-50) y PromoBanner (z-[60]) |
+| 4.6 | 2026-01-15 | Sección 21: FieldTooltip Component - tooltip custom que funciona en mobile (tap) y desktop (hover), usa Portal para evitar overflow clipping, reemplaza Tooltip de NextUI |
 
 ---
 

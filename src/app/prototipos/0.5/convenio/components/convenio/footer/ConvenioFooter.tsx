@@ -7,12 +7,24 @@
 import React from 'react';
 import { ConvenioData } from '../../../types/convenio';
 
+// Helper function to build internal URLs with mode propagation
+const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
+  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+};
+
 interface ConvenioFooterProps {
   convenio: ConvenioData;
+  isCleanMode?: boolean;
 }
 
-export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({ convenio }) => {
+export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({ convenio, isCleanMode = false }) => {
   const currentYear = new Date().getFullYear();
+
+  const legalLinks = [
+    { label: 'Términos y condiciones', href: buildInternalUrl('/prototipos/0.5/legal/terminos-y-condiciones', isCleanMode) },
+    { label: 'Política de privacidad', href: buildInternalUrl('/prototipos/0.5/legal/politica-de-privacidad', isCleanMode) },
+    { label: 'Libro de reclamaciones', href: buildInternalUrl('/prototipos/0.5/legal/libro-reclamaciones', isCleanMode) },
+  ];
 
   return (
     <footer className="bg-neutral-900 text-white py-12">
@@ -44,15 +56,15 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({ convenio }) => {
 
           {/* Links */}
           <div className="flex flex-wrap justify-center gap-6 mb-8 text-sm">
-            <a href="#" className="text-neutral-400 hover:text-white transition-colors">
-              Términos y condiciones
-            </a>
-            <a href="#" className="text-neutral-400 hover:text-white transition-colors">
-              Política de privacidad
-            </a>
-            <a href="#" className="text-neutral-400 hover:text-white transition-colors">
-              Libro de reclamaciones
-            </a>
+            {legalLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className="text-neutral-400 hover:text-white transition-colors"
+              >
+                {link.label}
+              </a>
+            ))}
           </div>
 
           {/* Divider */}

@@ -105,7 +105,7 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
                     : 'border-2 border-[#4654CD]/20 bg-white hover:border-[#4654CD]/50 hover:shadow-sm'
                 }`}
               >
-                <CardBody className="p-4 flex flex-col items-start text-left gap-2">
+                <CardBody className="p-4 flex flex-col items-center text-center sm:items-start sm:text-left gap-2">
                   {/* Icon */}
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${

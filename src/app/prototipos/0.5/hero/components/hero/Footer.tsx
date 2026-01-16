@@ -6,19 +6,35 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Facebook, Instagram, Linkedin, Twitter, Phone, Send, AlertCircle, Check } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Phone, Send, AlertCircle, Check } from 'lucide-react';
 import { Toast } from '@/app/prototipos/_shared';
 
 // Helper function to build internal URLs with mode propagation
-const buildInternalUrl = (basePath: string, isCleanMode: boolean) => {
-  return isCleanMode ? `${basePath}?mode=clean` : basePath;
+const buildInternalUrl = (basePath: string, isCleanMode: boolean, params?: Record<string, string>) => {
+  const searchParams = new URLSearchParams();
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      searchParams.set(key, value);
+    });
+  }
+  if (isCleanMode) {
+    searchParams.set('mode', 'clean');
+  }
+  const queryString = searchParams.toString();
+  return queryString ? `${basePath}?${queryString}` : basePath;
 };
 
+// TikTok icon component (not available in lucide-react)
+const TikTokIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
+
 const socialLinks = [
-  { icon: Facebook, href: '#facebook', label: 'Facebook' },
-  { icon: Instagram, href: '#instagram', label: 'Instagram' },
-  { icon: Twitter, href: '#twitter', label: 'Twitter' },
-  { icon: Linkedin, href: '#linkedin', label: 'LinkedIn' },
+  { icon: Facebook, href: 'https://www.facebook.com/baldecash', label: 'Facebook' },
+  { icon: Instagram, href: 'https://www.instagram.com/baldecash/', label: 'Instagram' },
+  { icon: TikTokIcon, href: 'https://www.tiktok.com/@baldecash', label: 'TikTok' },
 ];
 
 interface FooterProps {
@@ -29,41 +45,43 @@ export const Footer: React.FC<FooterProps> = ({ isCleanMode = false }) => {
   const catalogUrl = buildInternalUrl('/prototipos/0.5/catalogo/catalog-preview', isCleanMode);
   const heroUrl = buildInternalUrl('/prototipos/0.5/hero/hero-preview', isCleanMode);
 
+  const proximamenteUrl = '/prototipos/0.5/proximamente';
+
   const columns = [
     {
       title: 'Productos',
       links: [
         { label: 'Equipos', href: catalogUrl },
-        { label: 'Accesorios', href: '#accesorios' },
-        { label: 'Seguros', href: '#seguros' },
-        { label: 'Promociones', href: '#promos' },
+        { label: 'Accesorios', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'accesorios' }) },
+        { label: 'Seguros', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'seguros' }) },
+        { label: 'Promociones', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'promos' }) },
       ],
     },
     {
       title: 'Empresa',
       links: [
-        { label: 'Sobre nosotros', href: '#nosotros' },
-        { label: 'Convenios', href: '#convenios' },
-        { label: 'Trabaja con nosotros', href: '#empleo' },
-        { label: 'Blog', href: '#blog' },
+        { label: 'Sobre nosotros', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'nosotros' }) },
+        { label: 'Convenios', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'convenios' }) },
+        { label: 'Trabaja con nosotros', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'empleo' }) },
+        { label: 'Blog', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'blog' }) },
       ],
     },
     {
       title: 'Soporte',
       links: [
-        { label: 'Centro de ayuda', href: '#ayuda' },
-        { label: 'FAQ', href: '#faq' },
-        { label: 'Estado de solicitud', href: '#estado' },
-        { label: 'Contacto', href: '#contacto' },
+        { label: 'Centro de ayuda', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'ayuda' }) },
+        { label: 'FAQ', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'faq' }) },
+        { label: 'Estado de solicitud', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'estado' }) },
+        { label: 'Contacto', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'contacto' }) },
       ],
     },
     {
       title: 'Legal',
       links: [
-        { label: 'Términos y condiciones', href: '#terminos' },
-        { label: 'Política de privacidad', href: '#privacidad' },
-        { label: 'Libro de reclamaciones', href: '#reclamos' },
-        { label: 'Regulación SBS', href: '#sbs' },
+        { label: 'Términos y condiciones', href: buildInternalUrl('/prototipos/0.5/legal/terminos-y-condiciones', isCleanMode) },
+        { label: 'Política de privacidad', href: buildInternalUrl('/prototipos/0.5/legal/politica-de-privacidad', isCleanMode) },
+        { label: 'Libro de reclamaciones', href: buildInternalUrl('/prototipos/0.5/legal/libro-reclamaciones', isCleanMode) },
+        { label: 'Regulación SBS', href: buildInternalUrl(proximamenteUrl, isCleanMode, { seccion: 'sbs' }) },
       ],
     },
   ];
@@ -193,6 +211,8 @@ export const Footer: React.FC<FooterProps> = ({ isCleanMode = false }) => {
                 <a
                   key={social.label}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center hover:bg-[#4654CD] transition-colors"
                   aria-label={social.label}
                 >
