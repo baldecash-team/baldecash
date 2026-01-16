@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { CheckCircle2, Award } from 'lucide-react';
-import { Tooltip } from '@nextui-org/react';
+import { FieldTooltip } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
 import { CertificationsProps } from '../../../types/detail';
 
 export const Certifications: React.FC<CertificationsProps> = ({ certifications }) => {
@@ -27,24 +27,19 @@ export const Certifications: React.FC<CertificationsProps> = ({ certifications }
       {/* Certification badges */}
       <div className="flex flex-wrap items-center gap-2">
         {certifications.map((cert) => (
-          <Tooltip
+          <FieldTooltip
             key={cert.code}
-            content={
-              <div className="max-w-[200px] p-2">
-                <p className="font-semibold text-sm">{cert.name}</p>
-                <p className="text-xs text-neutral-400 mt-1">{cert.description}</p>
+            content={{
+              title: cert.name,
+              description: cert.description,
+            }}
+            icon={
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 rounded-full border border-neutral-200 transition-colors cursor-default">
+                <Award className="w-3.5 h-3.5 text-[#4654CD]" />
+                <span className="text-xs font-medium text-neutral-700">{cert.code}</span>
               </div>
             }
-            placement="top"
-            classNames={{
-              content: 'bg-neutral-900 text-white rounded-lg',
-            }}
-          >
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 rounded-full border border-neutral-200 transition-colors cursor-default">
-              <Award className="w-3.5 h-3.5 text-[#4654CD]" />
-              <span className="text-xs font-medium text-neutral-700">{cert.code}</span>
-            </div>
-          </Tooltip>
+          />
         ))}
       </div>
     </div>

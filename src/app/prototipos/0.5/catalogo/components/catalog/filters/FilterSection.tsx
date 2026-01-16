@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Info } from 'lucide-react';
-import { Tooltip } from '@nextui-org/react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { FieldTooltip } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
 import { FilterTooltipInfo } from '../../../types/catalog';
 
 interface FilterSectionProps {
@@ -36,29 +36,13 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
             <span className="text-xs text-neutral-400">({count})</span>
           )}
           {tooltip && (
-            <Tooltip
-              content={
-                <div className="max-w-xs p-2">
-                  <p className="font-semibold text-neutral-800">{tooltip.title}</p>
-                  <p className="text-xs text-neutral-500 mt-1">{tooltip.description}</p>
-                  {tooltip.recommendation && (
-                    <p className="text-xs text-[#4654CD] mt-2 flex items-center gap-1">
-                      <Info className="w-3 h-3" />
-                      {tooltip.recommendation}
-                    </p>
-                  )}
-                </div>
-              }
-              delay={0}
-              closeDelay={0}
-              classNames={{
-                content: 'bg-white shadow-lg border border-neutral-200',
+            <FieldTooltip
+              content={{
+                title: tooltip.title,
+                description: tooltip.description,
+                recommendation: tooltip.recommendation,
               }}
-            >
-              <span className="inline-flex">
-                <Info className="w-4 h-4 text-neutral-400 hover:text-[#4654CD] cursor-help transition-colors" />
-              </span>
-            </Tooltip>
+            />
           )}
         </div>
         {expanded ? (

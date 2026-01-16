@@ -6,9 +6,16 @@
  * - Desktop: hover to show/hide
  * - Mobile: tap to toggle, tap outside to close
  * - Dynamic positioning to avoid viewport edges
+ * - Uses Portal to render outside overflow containers
+ *
+ * Supports multiple content formats:
+ * - string: Simple text tooltip
+ * - ReactNode: Custom content
+ * - FieldTooltipInfo: Structured { title, description, recommendation? }
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 
 export interface FieldTooltipInfo {
@@ -17,21 +24,47 @@ export interface FieldTooltipInfo {
   recommendation?: string;
 }
 
+export type TooltipContent = string | ReactNode | FieldTooltipInfo;
+
 interface FieldTooltipProps {
-  tooltip: FieldTooltipInfo;
+  tooltip?: FieldTooltipInfo;
+  content?: TooltipContent;
+  icon?: ReactNode;
 }
+
+// Type guard to check if content is FieldTooltipInfo
+const isFieldTooltipInfo = (content: TooltipContent): content is FieldTooltipInfo => {
+  return typeof content === 'object' && content !== null && 'title' in content && 'description' in content;
+};
 
 type HorizontalAlign = 'left' | 'center' | 'right';
 
+interface TooltipPosition {
+  top: number;
+  left: number;
+  arrowLeft: number;
+}
+
 const TOOLTIP_WIDTH = 256; // w-64 = 256px
 const VIEWPORT_PADDING = 16; // Minimum distance from viewport edge
+const TOOLTIP_OFFSET = 8; // Distance from trigger
 
-export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
+export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, icon }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0, arrowLeft: 0 });
   const [alignment, setAlignment] = useState<HorizontalAlign>('center');
+  const [isMounted, setIsMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Resolve content - prefer 'content' prop, fallback to 'tooltip' for backwards compatibility
+  const resolvedContent = content ?? tooltip;
+
+  // Check if mounted (for Portal)
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Detect touch device on mount
   useEffect(() => {
@@ -46,6 +79,11 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
     const iconCenterX = rect.left + rect.width / 2;
     const viewportWidth = window.innerWidth;
 
+    // Calculate tooltip left position
+    let tooltipLeft: number;
+    let arrowLeft: number;
+    let newAlignment: HorizontalAlign;
+
     // Calculate where tooltip edges would be if centered
     const tooltipLeftIfCentered = iconCenterX - TOOLTIP_WIDTH / 2;
     const tooltipRightIfCentered = iconCenterX + TOOLTIP_WIDTH / 2;
@@ -53,14 +91,30 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
     // Check if tooltip would overflow
     if (tooltipLeftIfCentered < VIEWPORT_PADDING) {
       // Too close to left edge - align left
-      setAlignment('left');
+      tooltipLeft = VIEWPORT_PADDING;
+      arrowLeft = iconCenterX - VIEWPORT_PADDING;
+      newAlignment = 'left';
     } else if (tooltipRightIfCentered > viewportWidth - VIEWPORT_PADDING) {
       // Too close to right edge - align right
-      setAlignment('right');
+      tooltipLeft = viewportWidth - VIEWPORT_PADDING - TOOLTIP_WIDTH;
+      arrowLeft = iconCenterX - tooltipLeft;
+      newAlignment = 'right';
     } else {
       // Enough space - center it
-      setAlignment('center');
+      tooltipLeft = iconCenterX - TOOLTIP_WIDTH / 2;
+      arrowLeft = TOOLTIP_WIDTH / 2;
+      newAlignment = 'center';
     }
+
+    // Calculate top position (above the trigger)
+    const tooltipTop = rect.top - TOOLTIP_OFFSET;
+
+    setPosition({
+      top: tooltipTop,
+      left: tooltipLeft,
+      arrowLeft: arrowLeft,
+    });
+    setAlignment(newAlignment);
   }, []);
 
   // Recalculate position when opening
@@ -75,7 +129,13 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
     if (!isOpen) return;
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        tooltipRef.current &&
+        !tooltipRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
@@ -113,31 +173,64 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
     }
   };
 
-  // Get tooltip position classes based on alignment
-  const getTooltipPositionClasses = () => {
-    switch (alignment) {
-      case 'left':
-        return 'left-0';
-      case 'right':
-        return 'right-0';
-      case 'center':
-      default:
-        return 'left-1/2 -translate-x-1/2';
+  // Render tooltip content based on type
+  const renderContent = () => {
+    if (!resolvedContent) return null;
+
+    // String content
+    if (typeof resolvedContent === 'string') {
+      return <p className="text-sm text-neutral-700">{resolvedContent}</p>;
     }
+
+    // FieldTooltipInfo content
+    if (isFieldTooltipInfo(resolvedContent)) {
+      return (
+        <>
+          <p className="font-semibold text-neutral-800 text-sm">{resolvedContent.title}</p>
+          <p className="text-xs text-neutral-500 mt-1">{resolvedContent.description}</p>
+          {resolvedContent.recommendation && (
+            <p className="text-xs text-[#4654CD] mt-2 flex items-center gap-1">
+              <Info className="w-3 h-3 flex-shrink-0" />
+              {resolvedContent.recommendation}
+            </p>
+          )}
+        </>
+      );
+    }
+
+    // ReactNode content (custom)
+    return resolvedContent;
   };
 
-  // Get arrow position classes based on alignment
-  const getArrowPositionClasses = () => {
-    switch (alignment) {
-      case 'left':
-        return 'left-3';
-      case 'right':
-        return 'right-3';
-      case 'center':
-      default:
-        return 'left-1/2 -translate-x-1/2';
-    }
-  };
+  if (!resolvedContent) return null;
+
+  // Render tooltip in portal
+  const tooltipElement = isOpen && isMounted ? createPortal(
+    <div
+      ref={tooltipRef}
+      className="fixed z-[9999] w-64 p-3 bg-white rounded-lg shadow-lg border border-neutral-200"
+      style={{
+        top: position.top,
+        left: position.left,
+        transform: 'translateY(-100%)',
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Arrow */}
+      <div
+        className="absolute top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"
+        style={{ left: position.arrowLeft - 8 }}
+      />
+      <div
+        className="absolute top-full mt-[-1px] w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-neutral-200 -z-10"
+        style={{ left: position.arrowLeft - 8 }}
+      />
+
+      {renderContent()}
+    </div>,
+    document.body
+  ) : null;
 
   return (
     <div ref={containerRef} className="relative inline-flex">
@@ -147,28 +240,10 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip }) => {
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <Info className="w-4 h-4 text-neutral-400 hover:text-[#4654CD] transition-colors" />
+        {icon ?? <Info className="w-4 h-4 text-neutral-400 hover:text-[#4654CD] transition-colors" />}
       </span>
 
-      {isOpen && (
-        <div
-          ref={tooltipRef}
-          className={`absolute z-50 bottom-full mb-2 w-64 p-3 bg-white rounded-lg shadow-lg border border-neutral-200 ${getTooltipPositionClasses()}`}
-        >
-          {/* Arrow */}
-          <div className={`absolute top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white ${getArrowPositionClasses()}`} />
-          <div className={`absolute top-full mt-[-1px] w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-neutral-200 -z-10 ${getArrowPositionClasses()}`} />
-
-          <p className="font-semibold text-neutral-800 text-sm">{tooltip.title}</p>
-          <p className="text-xs text-neutral-500 mt-1">{tooltip.description}</p>
-          {tooltip.recommendation && (
-            <p className="text-xs text-[#4654CD] mt-2 flex items-center gap-1">
-              <Info className="w-3 h-3 flex-shrink-0" />
-              {tooltip.recommendation}
-            </p>
-          )}
-        </div>
-      )}
+      {tooltipElement}
     </div>
   );
 };

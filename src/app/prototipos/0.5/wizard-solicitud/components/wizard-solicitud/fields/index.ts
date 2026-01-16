@@ -10,5 +10,5 @@ export { TextArea } from './TextArea';
 export { FileUpload } from './FileUpload';
 export { FieldTooltip } from './FieldTooltip';
 
-// Re-export tooltip type
-export type { FieldTooltipInfo } from './TextInput';
+// Re-export tooltip types
+export type { FieldTooltipInfo, TooltipContent } from './FieldTooltip';

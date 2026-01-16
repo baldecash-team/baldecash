@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Card, CardBody, Tooltip } from '@nextui-org/react';
+import { Card, CardBody } from '@nextui-org/react';
 import {
   Cpu,
   MemoryStick,
@@ -15,6 +15,7 @@ import {
   Wifi,
   HelpCircle
 } from 'lucide-react';
+import { FieldTooltip } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
 import { SpecsProps } from '../../../types/detail';
 
 const iconMap: Record<string, React.ElementType> = {
@@ -65,14 +66,10 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                         {spec.label}
                       </span>
                       {spec.tooltip && (
-                        <Tooltip
+                        <FieldTooltip
                           content={spec.tooltip}
-                          classNames={{
-                            content: 'bg-white shadow-lg border border-neutral-200 font-["Asap"]',
-                          }}
-                        >
-                          <HelpCircle className="w-4 h-4 text-neutral-400 cursor-pointer hover:text-[#4654CD] transition-colors" />
-                        </Tooltip>
+                          icon={<HelpCircle className="w-4 h-4 text-neutral-400 hover:text-[#4654CD] transition-colors" />}
+                        />
                       )}
                     </div>
                     <span
