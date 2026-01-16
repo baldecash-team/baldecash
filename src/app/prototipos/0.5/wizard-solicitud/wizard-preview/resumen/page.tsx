@@ -152,6 +152,16 @@ function ResumenContent() {
     return labels[value] || value;
   };
 
+  const formatFechaNacimiento = (value: string) => {
+    if (!value) return '-';
+    // Convertir de YYYY-MM-DD a DD/MM/YYYY
+    const parts = value.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return value;
+  };
+
   const getTipoInstitucionLabel = (value: string) => {
     const labels: Record<string, string> = {
       universidad: 'Universidad',
@@ -340,7 +350,7 @@ function ResumenContent() {
             )}
             <SummaryItem
               label="Fecha de nacimiento"
-              value={getFieldValue('fechaNacimiento') as string}
+              value={formatFechaNacimiento(getFieldValue('fechaNacimiento') as string)}
             />
             <SummaryItem label="Celular" value={getFieldValue('celular') as string} />
             <SummaryItem label="Email" value={getFieldValue('email') as string} />
