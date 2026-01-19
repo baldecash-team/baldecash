@@ -33,6 +33,11 @@ interface ProductCardProps {
   onCompare?: () => void;
   isCompareSelected?: boolean;
   compareDisabled?: boolean;
+  // Onboarding IDs (optional, only for first card)
+  favoriteButtonId?: string;
+  compareButtonId?: string;
+  detailButtonId?: string;
+  addToCartButtonId?: string;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -46,6 +51,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onCompare,
   isCompareSelected = false,
   compareDisabled = false,
+  favoriteButtonId,
+  compareButtonId,
+  detailButtonId,
+  addToCartButtonId,
 }) => {
   // Color selector state
   const [selectedColorId, setSelectedColorId] = useState<string>(
@@ -83,6 +92,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="absolute top-3 right-3 flex flex-col gap-1">
               {/* Favorite */}
               <button
+                id={favoriteButtonId}
                 onClick={(e) => {
                   e.stopPropagation();
                   onFavorite?.();
@@ -100,6 +110,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {/* Compare */}
               {onCompare && (
                 <button
+                  id={compareButtonId}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!compareDisabled || isCompareSelected) {
@@ -214,6 +225,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* CTAs */}
             <div className="flex gap-2 items-center justify-center mx-auto">
               <Button
+                id={detailButtonId}
                 size="lg"
                 variant="bordered"
                 className="px-6 border-[#4654CD] text-[#4654CD] font-bold cursor-pointer hover:bg-[#4654CD]/5 rounded-xl"
@@ -223,6 +235,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 Detalle
               </Button>
               <Button
+                id={addToCartButtonId}
                 size="lg"
                 className="px-6 bg-[#4654CD] text-white font-bold cursor-pointer hover:bg-[#3a47b3] rounded-xl"
                 endContent={<ArrowRight className="w-5 h-5" />}

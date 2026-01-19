@@ -1,8 +1,10 @@
 'use client';
 
 /**
- * CatalogoSettingsModal - Modal de configuración simplificado v0.5
- * Solo tiene UNA opción: Selector de Color (V1 Dots / V2 Swatches)
+ * CatalogoSettingsModal - Modal de configuración v0.5
+ * Opciones:
+ * - Selector de Color (V1 Dots / V2 Swatches)
+ * - Tour de Ayuda (cantidad de pasos, estilo de highlight)
  */
 
 import React, { useState } from 'react';
@@ -16,15 +18,30 @@ import {
   RadioGroup,
   Radio,
 } from '@nextui-org/react';
-import { Settings, RotateCcw, Link2, Check, Palette } from 'lucide-react';
-import type { CatalogConfig, ColorSelectorVersion } from '../../types/catalog';
-import { defaultCatalogConfig, colorSelectorVersionLabels } from '../../types/catalog';
+import { Settings, RotateCcw, Link2, Check, Palette, GraduationCap } from 'lucide-react';
+import type {
+  CatalogConfig,
+  ColorSelectorVersion,
+  OnboardingConfig,
+  OnboardingStepCount,
+  OnboardingHighlightStyle,
+} from '../../types/catalog';
+import {
+  defaultCatalogConfig,
+  colorSelectorVersionLabels,
+  defaultOnboardingConfig,
+  onboardingStepCountLabels,
+  onboardingHighlightLabels,
+} from '../../types/catalog';
 
 interface CatalogoSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   config: CatalogConfig;
   onConfigChange: (config: CatalogConfig) => void;
+  // Onboarding props
+  onboardingConfig: OnboardingConfig;
+  onOnboardingConfigChange: (config: OnboardingConfig) => void;
 }
 
 export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
@@ -32,6 +49,8 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
   onClose,
   config,
   onConfigChange,
+  onboardingConfig,
+  onOnboardingConfigChange,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -41,6 +60,14 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
     // Solo incluir si difiere del default
     if (config.colorSelectorVersion !== defaultCatalogConfig.colorSelectorVersion) {
       params.set('color', config.colorSelectorVersion.toString());
+    }
+
+    // Onboarding params
+    if (onboardingConfig.stepCount !== defaultOnboardingConfig.stepCount) {
+      params.set('tourSteps', onboardingConfig.stepCount);
+    }
+    if (onboardingConfig.highlightStyle !== defaultOnboardingConfig.highlightStyle) {
+      params.set('tourStyle', onboardingConfig.highlightStyle);
     }
 
     const queryString = params.toString();
@@ -54,6 +81,7 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
 
   const handleReset = () => {
     onConfigChange(defaultCatalogConfig);
+    onOnboardingConfigChange(defaultOnboardingConfig);
   };
 
   return (
@@ -127,6 +155,91 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
                 </Radio>
               ))}
             </RadioGroup>
+          </div>
+
+          {/* Separador */}
+          <div className="my-6 border-t border-neutral-200" />
+
+          {/* Tour de Ayuda */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <GraduationCap className="w-4 h-4 text-[#4654CD]" />
+              <h3 className="font-semibold text-neutral-800">Tour de Ayuda</h3>
+            </div>
+
+            {/* Cantidad de pasos */}
+            <div className="mb-5">
+              <p className="text-sm text-neutral-600 mb-3">Cantidad de pasos:</p>
+              <RadioGroup
+                value={onboardingConfig.stepCount}
+                onValueChange={(val) =>
+                  onOnboardingConfigChange({
+                    ...onboardingConfig,
+                    stepCount: val as OnboardingStepCount,
+                  })
+                }
+                classNames={{ wrapper: 'gap-2' }}
+              >
+                {(['minimal', 'complete'] as OnboardingStepCount[]).map((stepCount) => (
+                  <Radio
+                    key={stepCount}
+                    value={stepCount}
+                    classNames={{
+                      base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                        ${
+                          onboardingConfig.stepCount === stepCount
+                            ? 'border-[#4654CD] bg-[#4654CD]/5'
+                            : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        }`,
+                      wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                      labelWrapper: 'ml-2',
+                      label: 'text-sm font-medium',
+                      description: 'text-xs text-neutral-500',
+                    }}
+                    description={onboardingStepCountLabels[stepCount].description}
+                  >
+                    {onboardingStepCountLabels[stepCount].name}
+                  </Radio>
+                ))}
+              </RadioGroup>
+            </div>
+
+            {/* Estilo de highlight */}
+            <div className="mb-5">
+              <p className="text-sm text-neutral-600 mb-3">Estilo de highlight:</p>
+              <RadioGroup
+                value={onboardingConfig.highlightStyle}
+                onValueChange={(val) =>
+                  onOnboardingConfigChange({
+                    ...onboardingConfig,
+                    highlightStyle: val as OnboardingHighlightStyle,
+                  })
+                }
+                classNames={{ wrapper: 'gap-2' }}
+              >
+                {(['spotlight', 'pulse'] as OnboardingHighlightStyle[]).map((style) => (
+                  <Radio
+                    key={style}
+                    value={style}
+                    classNames={{
+                      base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
+                        ${
+                          onboardingConfig.highlightStyle === style
+                            ? 'border-[#4654CD] bg-[#4654CD]/5'
+                            : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        }`,
+                      wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                      labelWrapper: 'ml-2',
+                      label: 'text-sm font-medium',
+                      description: 'text-xs text-neutral-500',
+                    }}
+                    description={onboardingHighlightLabels[style].description}
+                  >
+                    {onboardingHighlightLabels[style].name}
+                  </Radio>
+                ))}
+              </RadioGroup>
+            </div>
           </div>
 
           {/* Nota informativa sobre configuración fija */}

@@ -414,6 +414,167 @@ export const colorSelectorVersionLabels: Record<ColorSelectorVersion, { name: st
 };
 
 // ============================================
+// ONBOARDING / TOUR DE AYUDA - v0.5
+// ============================================
+
+export type OnboardingStepCount = 'minimal' | 'complete';
+export type OnboardingHighlightStyle = 'spotlight' | 'pulse';
+
+export interface OnboardingConfig {
+  stepCount: OnboardingStepCount;
+  highlightStyle: OnboardingHighlightStyle;
+}
+
+export const defaultOnboardingConfig: OnboardingConfig = {
+  stepCount: 'complete',
+  highlightStyle: 'pulse',
+};
+
+export const onboardingStepCountLabels: Record<OnboardingStepCount, { name: string; description: string }> = {
+  minimal: { name: 'Mínimo (4 pasos)', description: 'Ayuda, Filtros, Favoritos, Carrito' },
+  complete: { name: 'Completo (10 pasos)', description: '+ Acciones de producto (favorito, comparar, detalle, solicitar)' },
+};
+
+export const onboardingHighlightLabels: Record<OnboardingHighlightStyle, { name: string; description: string }> = {
+  spotlight: { name: 'Spotlight', description: 'Overlay oscuro con foco en el elemento' },
+  pulse: { name: 'Pulso', description: 'Borde animado alrededor del elemento' },
+};
+
+export interface OnboardingStep {
+  id: string;
+  targetId: string;           // ID del elemento DOM a destacar
+  targetIdMobile?: string;    // ID alternativo para mobile
+  title: string;
+  description: string;
+  position: 'top' | 'bottom' | 'left' | 'right' | 'center';
+  positionMobile?: 'top' | 'bottom' | 'center';
+}
+
+export const onboardingStepsMinimal: OnboardingStep[] = [
+  {
+    id: 'help-button',
+    targetId: 'onboarding-help-button',
+    title: 'Tu asistente personal',
+    description: '¿No sabes qué laptop elegir? Responde 7 preguntas y te recomendamos la mejor opción.',
+    position: 'right',
+    positionMobile: 'top',
+  },
+  {
+    id: 'filters',
+    targetId: 'onboarding-filters-desktop',
+    targetIdMobile: 'onboarding-filters-mobile',
+    title: 'Filtros avanzados',
+    description: 'Ajusta marca, precio, RAM y más para encontrar exactamente lo que buscas.',
+    position: 'right',
+    positionMobile: 'bottom',
+  },
+  {
+    id: 'wishlist',
+    targetId: 'onboarding-wishlist',
+    targetIdMobile: 'onboarding-wishlist-mobile',
+    title: 'Guarda favoritos',
+    description: 'Marca los equipos que te gusten para compararlos después.',
+    position: 'bottom',
+    positionMobile: 'bottom',
+  },
+  {
+    id: 'cart',
+    targetId: 'onboarding-cart',
+    targetIdMobile: 'onboarding-cart-mobile',
+    title: 'Tu carrito',
+    description: 'Aquí verás los productos que quieres solicitar.',
+    position: 'bottom',
+    positionMobile: 'bottom',
+  },
+];
+
+export const onboardingStepsComplete: OnboardingStep[] = [
+  {
+    id: 'help-button',
+    targetId: 'onboarding-help-button',
+    title: 'Tu asistente personal',
+    description: '¿No sabes qué laptop elegir? Responde 7 preguntas y te recomendamos la mejor opción.',
+    position: 'right',
+    positionMobile: 'top',
+  },
+  {
+    id: 'quick-cards',
+    targetId: 'onboarding-quick-cards',
+    title: 'Filtra por uso',
+    description: 'Selecciona cómo usarás tu equipo: estudios, gaming, diseño u oficina.',
+    position: 'bottom',
+    positionMobile: 'bottom',
+  },
+  {
+    id: 'filters',
+    targetId: 'onboarding-filters-desktop',
+    targetIdMobile: 'onboarding-filters-mobile',
+    title: 'Filtros avanzados',
+    description: 'Ajusta marca, precio, RAM y más para encontrar exactamente lo que buscas.',
+    position: 'right',
+    positionMobile: 'bottom',
+  },
+  {
+    id: 'sort',
+    targetId: 'onboarding-sort',
+    title: 'Ordena resultados',
+    description: 'Ordena por precio, cuota mensual o popularidad.',
+    position: 'bottom',
+    positionMobile: 'bottom',
+  },
+  {
+    id: 'card-favorite',
+    targetId: 'onboarding-card-favorite',
+    title: 'Añadir a favoritos',
+    description: 'Haz clic en el corazón para guardar este equipo en tu lista de favoritos.',
+    position: 'left',
+    positionMobile: 'bottom',
+  },
+  {
+    id: 'card-compare',
+    targetId: 'onboarding-card-compare',
+    title: 'Comparar equipos',
+    description: 'Selecciona hasta 3 equipos para ver sus diferencias lado a lado.',
+    position: 'left',
+    positionMobile: 'bottom',
+  },
+  {
+    id: 'card-detail',
+    targetId: 'onboarding-card-detail',
+    title: 'Ver detalle',
+    description: 'Explora todas las especificaciones, fotos y características del equipo.',
+    position: 'top',
+    positionMobile: 'top',
+  },
+  {
+    id: 'card-add-to-cart',
+    targetId: 'onboarding-card-add-to-cart',
+    title: '¡Lo quiero!',
+    description: 'Agrega el equipo a tu carrito para iniciar tu solicitud de financiamiento.',
+    position: 'top',
+    positionMobile: 'top',
+  },
+  {
+    id: 'wishlist',
+    targetId: 'onboarding-wishlist',
+    targetIdMobile: 'onboarding-wishlist-mobile',
+    title: 'Tus favoritos',
+    description: 'Accede rápidamente a todos los equipos que has marcado como favoritos.',
+    position: 'bottom',
+    positionMobile: 'bottom',
+  },
+  {
+    id: 'cart',
+    targetId: 'onboarding-cart',
+    targetIdMobile: 'onboarding-cart-mobile',
+    title: 'Tu carrito',
+    description: 'Aquí verás los productos que quieres solicitar.',
+    position: 'bottom',
+    positionMobile: 'bottom',
+  },
+];
+
+// ============================================
 // Producto (para mock data)
 // ============================================
 

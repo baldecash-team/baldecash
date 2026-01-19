@@ -145,14 +145,17 @@ export const NavbarSearchButton: React.FC<NavbarSearchButtonProps> = ({
 interface NavbarCartButtonProps {
   count: number;
   onClick: () => void;
+  id?: string;
 }
 
 export const NavbarCartButton: React.FC<NavbarCartButtonProps> = ({
   count,
   onClick,
+  id,
 }) => {
   return (
     <button
+      id={id}
       onClick={onClick}
       className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         count > 0
@@ -176,14 +179,17 @@ export const NavbarCartButton: React.FC<NavbarCartButtonProps> = ({
 interface NavbarWishlistButtonProps {
   count: number;
   onClick: () => void;
+  id?: string;
 }
 
 export const NavbarWishlistButton: React.FC<NavbarWishlistButtonProps> = ({
   count,
   onClick,
+  id,
 }) => {
   return (
     <button
+      id={id}
       onClick={onClick}
       className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
         count > 0
@@ -209,6 +215,7 @@ interface NavbarWishlistProps {
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onViewProduct: (productId: string) => void;
+  id?: string;
 }
 
 export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
@@ -216,6 +223,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
   onRemoveItem,
   onClearAll,
   onViewProduct,
+  id,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -238,7 +246,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
   }, [isOpen]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} id={id}>
       {/* Wishlist Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -357,6 +365,7 @@ interface NavbarCartProps {
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onContinue: () => void;
+  id?: string;
 }
 
 export const NavbarCart: React.FC<NavbarCartProps> = ({
@@ -364,6 +373,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   onRemoveItem,
   onClearAll,
   onContinue,
+  id,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -386,7 +396,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   }, [isOpen]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} id={id}>
       {/* Cart Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}

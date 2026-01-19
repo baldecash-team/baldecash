@@ -436,19 +436,23 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   </p>
                 </div>
 
-                <SortDropdown
-                  value={sort}
-                  onChange={onSortChange}
-                  totalProducts={products.length}
-                />
+                <div id="onboarding-sort">
+                  <SortDropdown
+                    value={sort}
+                    onChange={onSortChange}
+                    totalProducts={products.length}
+                  />
+                </div>
               </motion.div>
 
               {/* Quick Usage Cards - "Encuentra tu laptop ideal" - Full Width */}
-              <QuickUsageCards
-                selected={filters.usage}
-                onChange={(usage) => updateFilter('usage', usage)}
-                className=""
-              />
+              <div id="onboarding-quick-cards">
+                <QuickUsageCards
+                  selected={filters.usage}
+                  onChange={(usage) => updateFilter('usage', usage)}
+                  className=""
+                />
+              </div>
             </CardBody>
           </Card>
         </div>
@@ -456,7 +460,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         {/* Content with Sidebar and Products */}
         <div className="flex items-start">
           {/* Floating Filter Card - Sticky */}
-          <aside className="hidden lg:block w-[320px] p-6 pt-0 sticky top-0 self-start">
+          <aside id="onboarding-filters-desktop" className="hidden lg:block w-[320px] p-6 pt-0 sticky top-0 self-start">
             <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200/50">
               <CardBody className="p-4 max-h-[calc(100vh-24px)] overflow-y-auto lg:pb-30">
                 {/* Header */}
@@ -633,6 +637,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       {/* Mobile Filter Button - Only visible on mobile (lg:hidden) */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 lg:hidden">
         <button
+          id="onboarding-filters-mobile"
           onClick={handleDrawerOpen}
           className="flex items-center gap-3 bg-[#4654CD] text-white shadow-xl hover:bg-[#3a47b3] transition-all cursor-pointer px-5 py-3 rounded-xl hover:shadow-2xl hover:scale-105"
         >

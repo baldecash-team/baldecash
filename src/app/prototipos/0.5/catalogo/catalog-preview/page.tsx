@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef } from 'react';
-import { Button } from '@nextui-org/react';
+import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import {
   Settings,
   Code,
@@ -19,6 +19,8 @@ import {
   HelpCircle,
   Heart,
   ShoppingCart,
+  Sparkles,
+  GraduationCap,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -39,6 +41,10 @@ import { WishlistDrawer } from '../components/wishlist/WishlistDrawer';
 // Empty state
 import { EmptyState } from '../components/empty';
 
+// Onboarding
+import { OnboardingWelcomeModal, OnboardingTour } from '../components/onboarding';
+import { useOnboarding } from '../hooks/useOnboarding';
+
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
@@ -58,6 +64,10 @@ import {
   CatalogProduct,
   CatalogViewMode,
   calculateQuotaWithInitial,
+  defaultOnboardingConfig,
+  OnboardingStepCount,
+  OnboardingHighlightStyle,
+  OnboardingConfig,
 } from '../types/catalog';
 
 // Data
@@ -320,6 +330,26 @@ function CatalogPreviewContent() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const isFirstRender = useRef(true);
 
+  // Onboarding state - read config from URL params
+  const onboardingInitialConfig = useMemo((): OnboardingConfig => {
+    const tourStepsParam = searchParams.get('tourSteps');
+    const tourStyleParam = searchParams.get('tourStyle');
+
+    const stepCount: OnboardingStepCount = tourStepsParam === 'complete'
+      ? 'complete'
+      : tourStepsParam === 'minimal'
+        ? 'minimal'
+        : defaultOnboardingConfig.stepCount;
+
+    const highlightStyle: OnboardingHighlightStyle = (['spotlight', 'pulse'] as const).includes(tourStyleParam as OnboardingHighlightStyle)
+      ? (tourStyleParam as OnboardingHighlightStyle)
+      : defaultOnboardingConfig.highlightStyle;
+
+    return { stepCount, highlightStyle };
+  }, [searchParams]);
+
+  const onboarding = useOnboarding(onboardingInitialConfig);
+
   // Preloading: dar tiempo a la página para cargar recursos
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -363,6 +393,7 @@ function CatalogPreviewContent() {
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [isCartLoaded, setIsCartLoaded] = useState(false);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
 
   // Helper to close all drawers/popups before opening a new one (mobile)
   const closeAllDrawers = useCallback(() => {
@@ -373,6 +404,7 @@ function CatalogPreviewContent() {
     setIsComparatorOpen(false);
     setIsFilterDrawerOpen(false);
     setIsCartModalOpen(false);
+    setIsHelpPopoverOpen(false);
   }, []);
 
   // Ref to store scroll position when any drawer opens
@@ -586,7 +618,7 @@ function CatalogPreviewContent() {
     setSearchQuery('');
   }, []);
 
-  // Update URL when filters, sort, searchQuery, or colorSelectorVersion change
+  // Update URL when filters, sort, searchQuery, colorSelectorVersion, or onboarding config change
   useEffect(() => {
     // Skip URL update during initial filter loading
     if (!isFiltersInitialized.current) return;
@@ -599,13 +631,21 @@ function CatalogPreviewContent() {
       filterParams.set('color', config.colorSelectorVersion.toString());
     }
 
+    // Add onboarding params if not default
+    if (onboarding.config.stepCount !== defaultOnboardingConfig.stepCount) {
+      filterParams.set('tourSteps', onboarding.config.stepCount);
+    }
+    if (onboarding.config.highlightStyle !== defaultOnboardingConfig.highlightStyle) {
+      filterParams.set('tourStyle', onboarding.config.highlightStyle);
+    }
+
     // Preserve mode param
     if (isCleanMode) filterParams.set('mode', 'clean');
 
     // Decode commas for cleaner URLs (e.g., device=tablet,celular instead of device=tablet%2Ccelular)
     const queryString = filterParams.toString().replace(/%2C/g, ',');
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
-  }, [filters, sort, searchQuery, config.colorSelectorVersion, router, isCleanMode]);
+  }, [filters, sort, searchQuery, config.colorSelectorVersion, onboarding.config.stepCount, onboarding.config.highlightStyle, router, isCleanMode]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -791,6 +831,7 @@ function CatalogPreviewContent() {
               onClear={handleSearchClear}
             />
             <NavbarWishlist
+              id="onboarding-wishlist"
               items={wishlistProducts}
               onRemoveItem={handleToggleWishlist}
               onClearAll={() => setWishlist([])}
@@ -800,6 +841,7 @@ function CatalogPreviewContent() {
               }}
             />
             <NavbarCart
+              id="onboarding-cart"
               items={cartProducts}
               onRemoveItem={handleRemoveFromCart}
               onClearAll={handleClearCart}
@@ -817,6 +859,7 @@ function CatalogPreviewContent() {
               }}
             />
             <NavbarWishlistButton
+              id="onboarding-wishlist-mobile"
               count={wishlist.length}
               onClick={() => {
                 closeAllDrawers();
@@ -824,6 +867,7 @@ function CatalogPreviewContent() {
               }}
             />
             <NavbarCartButton
+              id="onboarding-cart-mobile"
               count={cart.length}
               onClick={() => {
                 closeAllDrawers();
@@ -860,7 +904,7 @@ function CatalogPreviewContent() {
           ))
         ) : (
           <>
-            {visibleProducts.map((product) => (
+            {visibleProducts.map((product, index) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -872,6 +916,13 @@ function CatalogPreviewContent() {
                 onCompare={() => handleToggleCompare(product.id)}
                 isCompareSelected={compareList.includes(product.id)}
                 compareDisabled={compareList.length >= maxCompareProducts}
+                // Onboarding IDs only for first card
+                {...(index === 0 && {
+                  favoriteButtonId: 'onboarding-card-favorite',
+                  compareButtonId: 'onboarding-card-compare',
+                  detailButtonId: 'onboarding-card-detail',
+                  addToCartButtonId: 'onboarding-card-add-to-cart',
+                })}
               />
             ))}
             {isLoadingMore &&
@@ -1112,8 +1163,8 @@ function CatalogPreviewContent() {
         />
       )}
 
-      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, or settings is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && (
+      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, or welcome modal is open) */}
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
           {compareList.length > 0 && (
@@ -1143,18 +1194,64 @@ function CatalogPreviewContent() {
 
           {/* Cart button - Removed, now in Navbar header for mobile */}
 
-          {/* Quiz button */}
-          <Button
-            size="sm"
-            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg"
-            onPress={() => {
-              closeAllDrawers();
-              setIsQuizOpen(true);
+          {/* Help button with dropdown */}
+          <Popover
+            placement="top"
+            showArrow
+            isOpen={isHelpPopoverOpen}
+            onOpenChange={setIsHelpPopoverOpen}
+            classNames={{
+              content: 'p-0 bg-white border border-neutral-200 shadow-xl rounded-xl overflow-hidden',
             }}
           >
-            <HelpCircle className="w-4 h-4" />
-            <span className="hidden sm:inline">¿Necesitas ayuda?</span>
-          </Button>
+            <PopoverTrigger>
+              <Button
+                id="onboarding-help-button"
+                size="sm"
+                className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg"
+              >
+                <HelpCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">¿Necesitas ayuda?</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <div className="w-64">
+                {/* Option 1: Quiz */}
+                <button
+                  onClick={() => {
+                    setIsHelpPopoverOpen(false);
+                    setIsQuizOpen(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-5 h-5 text-[#4654CD]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-800">Encuentra tu laptop ideal</p>
+                    <p className="text-xs text-neutral-500">Responde 7 preguntas</p>
+                  </div>
+                </button>
+
+                {/* Option 2: Tour */}
+                <button
+                  onClick={() => {
+                    setIsHelpPopoverOpen(false);
+                    onboarding.restartTour();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-[#03DBD0]/10 flex items-center justify-center flex-shrink-0">
+                    <GraduationCap className="w-5 h-5 text-[#03DBD0]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-800">Ver tour guiado</p>
+                    <p className="text-xs text-neutral-500">Aprende a usar el catálogo</p>
+                  </div>
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
 
@@ -1178,7 +1275,7 @@ function CatalogPreviewContent() {
       />
 
       {/* Back to top button - visible ONLY in clean mode (above FeedbackButton) */}
-      {isCleanMode && showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && (
+      {isCleanMode && showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !onboarding.shouldShowWelcome && (
         <div className="fixed bottom-20 right-6 z-[100]">
           <Button
             isIconOnly
@@ -1192,7 +1289,7 @@ function CatalogPreviewContent() {
       )}
 
       {/* Floating Action Buttons - hidden in clean mode and when modals/drawers are open */}
-      {!isCleanMode && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && (
+      {!isCleanMode && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !onboarding.shouldShowWelcome && (
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
           {showScrollTop && (
             <Button
@@ -1232,8 +1329,8 @@ function CatalogPreviewContent() {
         </div>
       )}
 
-      {/* Clean mode: FeedbackButton - oculto cuando hay drawers abiertos */}
-      {isCleanMode && !isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && (
+      {/* Clean mode: FeedbackButton - oculto cuando hay drawers abiertos o welcome modal */}
+      {isCleanMode && !isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
         <FeedbackButton sectionId="catalogo" />
       )}
 
@@ -1254,6 +1351,8 @@ function CatalogPreviewContent() {
           onClose={() => setIsSettingsOpen(false)}
           config={config}
           onConfigChange={setConfig}
+          onboardingConfig={onboarding.config}
+          onOnboardingConfigChange={onboarding.setConfig}
         />
       )}
 
@@ -1268,6 +1367,25 @@ function CatalogPreviewContent() {
           position="bottom"
         />
       )}
+
+      {/* Onboarding - Welcome Modal */}
+      <OnboardingWelcomeModal
+        isOpen={onboarding.shouldShowWelcome && !isPageLoading}
+        onStartTour={onboarding.startTour}
+        onDismiss={onboarding.dismissWelcome}
+      />
+
+      {/* Onboarding - Tour */}
+      <OnboardingTour
+        isActive={onboarding.shouldShowTour}
+        currentStep={onboarding.currentStepData}
+        currentStepIndex={onboarding.state.currentStep}
+        totalSteps={onboarding.totalSteps}
+        highlightStyle={onboarding.config.highlightStyle}
+        onNext={onboarding.nextStep}
+        onPrev={onboarding.prevStep}
+        onSkip={onboarding.skipTour}
+      />
     </div>
   );
 }
