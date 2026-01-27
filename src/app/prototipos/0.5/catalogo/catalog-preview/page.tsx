@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   Sparkles,
   GraduationCap,
+  MessageCircle,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
@@ -37,6 +38,7 @@ import { CartDrawer } from '../components/catalog/CartDrawer';
 import { NavbarSearch, NavbarWishlist, NavbarCart, NavbarCartButton, NavbarSearchButton, NavbarWishlistButton } from '../components/catalog/NavbarActions';
 import { SearchDrawer } from '../components/catalog/SearchDrawer';
 import { WishlistDrawer } from '../components/wishlist/WishlistDrawer';
+import { WebchatDrawer } from '../components/webchat';
 
 // Empty state
 import { EmptyState } from '../components/empty';
@@ -394,6 +396,7 @@ function CatalogPreviewContent() {
   const [isCartLoaded, setIsCartLoaded] = useState(false);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
+  const [isWebchatOpen, setIsWebchatOpen] = useState(false);
 
   // Helper to close all drawers/popups before opening a new one (mobile)
   const closeAllDrawers = useCallback(() => {
@@ -405,14 +408,95 @@ function CatalogPreviewContent() {
     setIsFilterDrawerOpen(false);
     setIsCartModalOpen(false);
     setIsHelpPopoverOpen(false);
+    setIsWebchatOpen(false);
   }, []);
 
   // Ref to store scroll position when any drawer opens
   const scrollYRef = useRef<number>(0);
 
+  // Quiz hint - tracking last interaction for inactivity detection
+  const lastInteractionRef = useRef<number>(Date.now());
+  const lastScrollYRef = useRef<number>(0);
+
+  // Quiz hint - show tour at help button after 1 minute of inactivity
+  useEffect(() => {
+    const checkInactivity = () => {
+      const timeSinceLastInteraction = Date.now() - lastInteractionRef.current;
+      const oneMinute = 60000;
+      const secondsElapsed = Math.floor(timeSinceLastInteraction / 1000);
+
+      console.log(`[Quiz Hint] Inactividad: ${secondsElapsed}s / 60s`);
+
+      // Show help tour if 1 minute passed without interaction and nothing else is open
+      const canShowHint =
+        !isQuizOpen &&
+        !isHelpPopoverOpen &&
+        !onboarding.shouldShowTour &&
+        !onboarding.shouldShowWelcome &&
+        !isComparatorOpen &&
+        !isCartDrawerOpen &&
+        !isWishlistDrawerOpen &&
+        !isFilterDrawerOpen &&
+        !isSearchDrawerOpen &&
+        !isCartModalOpen &&
+        !isSettingsOpen &&
+        !isPageLoading &&
+        !isWebchatOpen;
+
+      if (timeSinceLastInteraction >= oneMinute && canShowHint) {
+        console.log('[Quiz Hint] ¡Mostrando tour de ayuda!');
+        onboarding.startTourAtHelpButton();
+        // Reset timer for next cycle
+        lastInteractionRef.current = Date.now();
+      }
+    };
+
+    // Check every 10 seconds
+    const interval = setInterval(checkInactivity, 10000);
+
+    return () => clearInterval(interval);
+  }, [
+    isQuizOpen,
+    isHelpPopoverOpen,
+    onboarding.shouldShowTour,
+    onboarding.shouldShowWelcome,
+    onboarding,
+    isComparatorOpen,
+    isCartDrawerOpen,
+    isWishlistDrawerOpen,
+    isFilterDrawerOpen,
+    isSearchDrawerOpen,
+    isCartModalOpen,
+    isSettingsOpen,
+    isPageLoading,
+    isWebchatOpen,
+  ]);
+
+  // Track scroll as interaction (significant scroll > 300px)
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollDelta = Math.abs(currentScrollY - lastScrollYRef.current);
+
+      // If user scrolled more than 300px, consider it an interaction
+      if (scrollDelta > 300) {
+        lastScrollYRef.current = currentScrollY;
+        lastInteractionRef.current = Date.now();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Reset interaction timer when filters change
+  useEffect(() => {
+    lastInteractionRef.current = Date.now();
+  }, [filters]);
+
   // Centralized scroll lock for all drawers (iOS Safari fix)
   const isAnyDrawerOpen = isSearchDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen ||
-                          isQuizOpen || isComparatorOpen || isCartModalOpen;
+                          isQuizOpen || isComparatorOpen || isCartModalOpen || isWebchatOpen;
 
   useEffect(() => {
     if (isAnyDrawerOpen) {
@@ -1163,8 +1247,8 @@ function CatalogPreviewContent() {
         />
       )}
 
-      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, or welcome modal is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
+      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, webchat, or welcome modal is open) */}
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isWebchatOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
           {compareList.length > 0 && (
@@ -1239,7 +1323,7 @@ function CatalogPreviewContent() {
                     setIsHelpPopoverOpen(false);
                     onboarding.restartTour();
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
                 >
                   <div className="w-9 h-9 rounded-lg bg-[#03DBD0]/10 flex items-center justify-center flex-shrink-0">
                     <GraduationCap className="w-5 h-5 text-[#03DBD0]" />
@@ -1247,6 +1331,23 @@ function CatalogPreviewContent() {
                   <div>
                     <p className="text-sm font-semibold text-neutral-800">Ver tour guiado</p>
                     <p className="text-xs text-neutral-500">Aprende a usar el catálogo</p>
+                  </div>
+                </button>
+
+                {/* Option 3: Webchat */}
+                <button
+                  onClick={() => {
+                    setIsHelpPopoverOpen(false);
+                    setIsWebchatOpen(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-[#22C55E]/10 flex items-center justify-center flex-shrink-0">
+                    <MessageCircle className="w-5 h-5 text-[#22C55E]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-neutral-800">Habla con nosotros</p>
+                    <p className="text-xs text-neutral-500">Te ayudamos al instante</p>
                   </div>
                 </button>
               </div>
@@ -1274,8 +1375,14 @@ function CatalogPreviewContent() {
         }}
       />
 
+      {/* Webchat Drawer */}
+      <WebchatDrawer
+        isOpen={isWebchatOpen}
+        onClose={() => setIsWebchatOpen(false)}
+      />
+
       {/* Back to top button - visible ONLY in clean mode (above FeedbackButton) */}
-      {isCleanMode && showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !onboarding.shouldShowWelcome && (
+      {isCleanMode && showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !isWebchatOpen && !onboarding.shouldShowWelcome && (
         <div className="fixed bottom-20 right-6 z-[100]">
           <Button
             isIconOnly
@@ -1289,7 +1396,7 @@ function CatalogPreviewContent() {
       )}
 
       {/* Floating Action Buttons - hidden in clean mode and when modals/drawers are open */}
-      {!isCleanMode && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !onboarding.shouldShowWelcome && (
+      {!isCleanMode && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !isWebchatOpen && !onboarding.shouldShowWelcome && (
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
           {showScrollTop && (
             <Button
@@ -1330,7 +1437,7 @@ function CatalogPreviewContent() {
       )}
 
       {/* Clean mode: FeedbackButton - oculto cuando hay drawers abiertos o welcome modal */}
-      {isCleanMode && !isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
+      {isCleanMode && !isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isWebchatOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
         <FeedbackButton sectionId="catalogo" />
       )}
 
@@ -1382,6 +1489,7 @@ function CatalogPreviewContent() {
         currentStepIndex={onboarding.state.currentStep}
         totalSteps={onboarding.totalSteps}
         highlightStyle={onboarding.config.highlightStyle}
+        isHelpOnlyMode={onboarding.isHelpOnlyMode}
         onNext={onboarding.nextStep}
         onPrev={onboarding.prevStep}
         onSkip={onboarding.skipTour}

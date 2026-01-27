@@ -76,6 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
   const navItems = [
     { label: 'Equipos', href: catalogUrl, megaMenuType: 'equipos' as const },
     { label: 'Convenios', href: `${heroUrl}#convenios` },
+    { label: 'Ver requisitos', href: `${heroUrl}#como-funciona` },
     { label: '¿Tienes dudas?', href: `${heroUrl}#faq` },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -220,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
                   className="border-[#4654CD] text-[#4654CD] font-medium cursor-pointer hover:bg-[#4654CD] hover:text-white transition-colors"
                   startContent={<User className="w-4 h-4" />}
                 >
-                  Mi cuenta
+                  Zona Estudiantes
                 </Button>
               </div>
             )}
@@ -358,7 +359,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
                     className="w-full border-[#4654CD] text-[#4654CD] font-medium cursor-pointer"
                     startContent={<User className="w-4 h-4" />}
                   >
-                    Mi cuenta
+                    Zona Estudiantes
                   </Button>
                 </div>
               </div>

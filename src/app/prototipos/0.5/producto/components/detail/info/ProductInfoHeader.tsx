@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Star, Package, ChevronRight } from 'lucide-react';
+import { Star, ChevronRight } from 'lucide-react';
 import { ProductInfoHeaderProps } from '../../../types/detail';
 import { ColorSelector } from '../color-selector/ColorSelector';
 
@@ -33,11 +33,7 @@ export const ProductInfoHeader: React.FC<ProductInfoHeaderProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-200">
-            <Package className="w-4 h-4 text-emerald-600" />
-            <span className="text-sm font-medium text-emerald-700">{product.stock} en stock</span>
           </div>
-        </div>
 
         {/* Product Name */}
         <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2'] leading-tight">

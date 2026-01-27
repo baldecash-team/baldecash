@@ -249,7 +249,7 @@ export const mockHowItWorksData: HowItWorksData = {
     },
   ],
   requirements: [
-    { id: 1, text: 'Ser estudiante universitario o técnico', icon: 'GraduationCap' },
+    { id: 1, text: 'Ser estudiante de colegio, instituto o universidad', icon: 'GraduationCap' },
     { id: 2, text: 'DNI o CE vigente', icon: 'CreditCard' },
     { id: 3, text: 'Celular con WhatsApp', icon: 'Smartphone' },
   ],

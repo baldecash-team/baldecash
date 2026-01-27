@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
-import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Check } from 'lucide-react';
+import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Check, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import { FilterSection } from '../filters/FilterSection';
@@ -425,15 +425,20 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
               >
-                <div>
-                  <h1 className="text-3xl font-bold text-[#4654CD] font-['Baloo_2']">
-                    Catálogo de Equipos
-                  </h1>
-                  <p className="text-sm text-neutral-500">
-                    Encuentra el equipo perfecto para tus estudios
-                  </p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+                    <Search className="w-5 h-5 text-[#4654CD]" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-neutral-800 font-['Baloo_2']">
+                      Encuentra tu laptop ideal
+                    </h2>
+                    <p className="text-sm text-neutral-500">
+                      Selecciona según tu necesidad principal
+                    </p>
+                  </div>
                 </div>
 
                 <div id="onboarding-sort">

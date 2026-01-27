@@ -20,6 +20,7 @@ interface OnboardingTourProps {
   currentStepIndex: number;
   totalSteps: number;
   highlightStyle: OnboardingHighlightStyle;
+  isHelpOnlyMode?: boolean;
   onNext: () => void;
   onPrev: () => void;
   onSkip: () => void;
@@ -40,6 +41,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   currentStepIndex,
   totalSteps,
   highlightStyle,
+  isHelpOnlyMode = false,
   onNext,
   onPrev,
   onSkip,
@@ -149,7 +151,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
     const padding = 16;
     const tooltipWidth = isMobile ? window.innerWidth - 32 : 320;
-    const tooltipHeight = isMobile ? 260 : 280;
+    // Smaller height for help-only mode (no step indicator, dots, prev button, skip link)
+    const tooltipHeight = isHelpOnlyMode ? (isMobile ? 180 : 200) : (isMobile ? 260 : 280);
 
     // For mobile, always center horizontally
     if (isMobile) {
@@ -158,8 +161,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
       let top: number;
       if (isNearBottom || position === 'top') {
-        // Position above the element
-        top = Math.max(padding, targetRect.top - tooltipHeight - padding);
+        // Position above the element - closer in help-only mode
+        top = targetRect.top - tooltipHeight - padding;
       } else {
         // Position below the element
         top = Math.min(targetRect.bottom + padding, window.innerHeight - tooltipHeight - padding);
@@ -311,12 +314,14 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
               <X className="w-4 h-4 text-neutral-400" />
             </button>
 
-            {/* Step indicator */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold text-[#4654CD] bg-[#4654CD]/10 px-2 py-1 rounded-full">
-                Paso {currentStepIndex + 1} de {totalSteps}
-              </span>
-            </div>
+            {/* Step indicator - hidden in help only mode */}
+            {!isHelpOnlyMode && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-semibold text-[#4654CD] bg-[#4654CD]/10 px-2 py-1 rounded-full">
+                  Paso {currentStepIndex + 1} de {totalSteps}
+                </span>
+              </div>
+            )}
 
             {/* Content */}
             <h3 className="text-lg font-bold text-neutral-800 mb-2 pr-6">
@@ -326,53 +331,59 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
               {currentStep.description}
             </p>
 
-            {/* Progress dots */}
-            <div className="flex items-center justify-center gap-1.5 mb-4">
-              {Array.from({ length: totalSteps }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`h-1.5 rounded-full transition-all ${
-                    idx === currentStepIndex
-                      ? 'w-6 bg-[#4654CD]'
-                      : idx < currentStepIndex
-                        ? 'w-1.5 bg-[#4654CD]/50'
-                        : 'w-1.5 bg-neutral-200'
-                  }`}
-                />
-              ))}
-            </div>
+            {/* Progress dots - hidden in help only mode */}
+            {!isHelpOnlyMode && (
+              <div className="flex items-center justify-center gap-1.5 mb-4">
+                {Array.from({ length: totalSteps }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`h-1.5 rounded-full transition-all ${
+                      idx === currentStepIndex
+                        ? 'w-6 bg-[#4654CD]'
+                        : idx < currentStepIndex
+                          ? 'w-1.5 bg-[#4654CD]/50'
+                          : 'w-1.5 bg-neutral-200'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Navigation buttons */}
-            <div className="flex items-center justify-between gap-3">
-              <Button
-                size="sm"
-                variant="light"
-                isDisabled={isFirstStep}
-                onPress={onPrev}
-                startContent={<ChevronLeft className="w-4 h-4" />}
-                className="cursor-pointer"
-              >
-                Anterior
-              </Button>
+            <div className={`flex items-center gap-3 ${isHelpOnlyMode ? 'justify-center' : 'justify-between'}`}>
+              {!isHelpOnlyMode && (
+                <Button
+                  size="sm"
+                  variant="light"
+                  isDisabled={isFirstStep}
+                  onPress={onPrev}
+                  startContent={<ChevronLeft className="w-4 h-4" />}
+                  className="cursor-pointer"
+                >
+                  Anterior
+                </Button>
+              )}
 
               <Button
                 size="sm"
-                className="bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
+                className={`bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] ${isHelpOnlyMode ? 'px-8' : ''}`}
                 style={{ borderRadius: '10px' }}
                 onPress={onNext}
-                endContent={!isLastStep && <ChevronRight className="w-4 h-4" />}
+                endContent={!isLastStep && !isHelpOnlyMode && <ChevronRight className="w-4 h-4" />}
               >
-                {isLastStep ? '¡Listo!' : 'Siguiente'}
+                {isHelpOnlyMode ? 'Entendido' : isLastStep ? '¡Listo!' : 'Siguiente'}
               </Button>
             </div>
 
-            {/* Skip link */}
-            <button
-              onClick={onSkip}
-              className="w-full text-center text-xs text-neutral-400 hover:text-neutral-600 mt-3 cursor-pointer"
-            >
-              Saltar tour
-            </button>
+            {/* Skip link - hidden in help only mode */}
+            {!isHelpOnlyMode && (
+              <button
+                onClick={onSkip}
+                className="w-full text-center text-xs text-neutral-400 hover:text-neutral-600 mt-3 cursor-pointer"
+              >
+                Saltar tour
+              </button>
+            )}
           </motion.div>
         </>
       )}

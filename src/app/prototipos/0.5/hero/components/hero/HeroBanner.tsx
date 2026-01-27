@@ -106,17 +106,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             >
               {primaryCta?.text || 'Ver laptops disponibles'}
             </Button>
-            <Button
-              size="lg"
-              radius="lg"
-              variant="bordered"
-              className="border-white/30 text-white font-medium cursor-pointer hover:bg-white/10 transition-colors"
-              onPress={() => {
-                document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-            >
-              Cómo funciona
-            </Button>
           </div>
 
           {/* Trust Signals */}

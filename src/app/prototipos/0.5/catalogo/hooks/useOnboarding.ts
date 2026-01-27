@@ -38,6 +38,7 @@ interface UseOnboardingReturn {
   state: OnboardingState;
   config: OnboardingConfig;
   isHydrated: boolean;
+  isHelpOnlyMode: boolean;
 
   // Computed
   shouldShowWelcome: boolean;
@@ -51,6 +52,7 @@ interface UseOnboardingReturn {
   setConfig: (config: OnboardingConfig) => void;
   startTour: () => void;
   restartTour: () => void;
+  startTourAtHelpButton: () => void;
   nextStep: () => void;
   prevStep: () => void;
   skipTour: () => void;
@@ -66,6 +68,7 @@ export function useOnboarding(
   const [config, setConfigState] = useState<OnboardingConfig>(initialConfig);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
+  const [isHelpOnlyMode, setIsHelpOnlyMode] = useState(false);
 
   // Get steps based on config
   const steps = config.stepCount === 'complete'
@@ -134,10 +137,30 @@ export function useOnboarding(
       currentStep: 0,
       dismissedAt: null,
     }));
+    setIsHelpOnlyMode(false);
+    setIsTourActive(true);
+  }, []);
+
+  // Start tour showing only the help button step (for inactivity hint)
+  const startTourAtHelpButton = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      hasSeenWelcome: true,
+      hasCompletedTour: false, // Reset to allow showing tour again
+      currentStep: 0, // Help button is always step 0
+    }));
+    setIsHelpOnlyMode(true);
     setIsTourActive(true);
   }, []);
 
   const nextStep = useCallback(() => {
+    // If in help-only mode, just close the tour
+    if (isHelpOnlyMode) {
+      setIsTourActive(false);
+      setIsHelpOnlyMode(false);
+      return;
+    }
+
     setState(prev => {
       const nextStepIndex = prev.currentStep + 1;
       if (nextStepIndex >= steps.length) {
@@ -154,7 +177,7 @@ export function useOnboarding(
         currentStep: nextStepIndex,
       };
     });
-  }, [steps.length]);
+  }, [steps.length, isHelpOnlyMode]);
 
   const prevStep = useCallback(() => {
     setState(prev => ({
@@ -164,6 +187,13 @@ export function useOnboarding(
   }, []);
 
   const skipTour = useCallback(() => {
+    // If in help-only mode, just close without marking as completed
+    if (isHelpOnlyMode) {
+      setIsTourActive(false);
+      setIsHelpOnlyMode(false);
+      return;
+    }
+
     setState(prev => ({
       ...prev,
       hasSeenWelcome: true,
@@ -171,7 +201,7 @@ export function useOnboarding(
       dismissedAt: new Date().toISOString(),
     }));
     setIsTourActive(false);
-  }, []);
+  }, [isHelpOnlyMode]);
 
   const completeTour = useCallback(() => {
     setState(prev => ({
@@ -200,6 +230,7 @@ export function useOnboarding(
     state,
     config,
     isHydrated,
+    isHelpOnlyMode,
 
     // Computed
     shouldShowWelcome,
@@ -213,6 +244,7 @@ export function useOnboarding(
     setConfig,
     startTour,
     restartTour,
+    startTourAtHelpButton,
     nextStep,
     prevStep,
     skipTour,
