@@ -1,6 +1,6 @@
 # Sistema de Landings Dinámicas y Tracking - BaldeCash
 
-**Versión:** 2.0 Rediseño | **Fecha:** Diciembre 2025 | **Tipo:** Arquitectura Nueva
+**Versión:** 3.0 Rediseño | **Fecha:** Enero 2026 | **Tipo:** Arquitectura Nueva + Frontend v0.5
 
 ---
 
@@ -18,15 +18,19 @@ Rediseño completo del sistema para:
 
 ### 1.2 Alcance
 
-**99 tablas** organizadas en 10 módulos:
+**127 tablas** organizadas en 14 módulos:
 
 | Módulo | Tablas | Función |
 |--------|--------|---------|
 | Core | 5 | Entidades base del negocio |
-| Products | 15 | Catálogo, specs EAV, precios, combos, accesorios (+1 pivot) |
+| Products | 20 | Catálogo, specs EAV, precios, combos, colores, uso, gama (+5 nuevas) |
 | Landing Configuration | 14 | Templates, herencia, config dinámica, versionado |
-| Form Builder | 8 | Pasos, campos, validaciones, opciones |
-| Catalog & Filters | 4 | Filtros dinámicos |
+| Landing Content | 9 | Testimonios, FAQs, pasos, requisitos, social proof (+9 nuevas) |
+| Form Builder | 9 | Pasos, campos, validaciones, opciones, tooltips (+1 nueva) |
+| Catalog & Filters | 6 | Filtros dinámicos, comparador (+2 nuevas) |
+| Quiz | 5 | Sistema de quiz configurable (+5 nuevas) |
+| Result Pages | 4 | Páginas de resultado configurables (+4 nuevas) |
+| Finance | 2 | Plazos y opciones de inicial (+2 nuevas) |
 | Event Tracking | 14 | Todas las interacciones + UTM + traffic source |
 | Person & Application | 16 | Solicitudes, personas, documentos |
 | Leads | 8 | Sesiones abandonadas, scoring, recuperación (+3 pivot) |
@@ -1785,6 +1789,11 @@ CREATE TABLE `landing` (
   `agreement_id` BIGINT UNSIGNED COMMENT 'Convenio asociado si aplica',
   `institution_id` BIGINT UNSIGNED COMMENT 'Institución asociada si aplica',
 
+  -- Versionamiento y Staging (v3.0)
+  `current_version_id` BIGINT UNSIGNED COMMENT 'Versión actualmente publicada en producción',
+  `staging_version_id` BIGINT UNSIGNED COMMENT 'Versión en staging/preview',
+  `status` ENUM('draft', 'staging', 'published', 'archived') DEFAULT 'draft' COMMENT 'Estado del landing',
+
   -- Identificación
   `code` VARCHAR(50) NOT NULL COMMENT 'Código interno',
   `slug` VARCHAR(100) NOT NULL COMMENT 'URL: prestamo, ucv-cachimbos',
@@ -1843,13 +1852,18 @@ CREATE TABLE `landing` (
   KEY `idx_landing_institution` (`institution_id`),
   KEY `idx_landing_active` (`is_active`, `valid_from`, `valid_until`),
   KEY `idx_landing_flow` (`flow_type`),
+  KEY `idx_landing_status` (`status`),
+  KEY `idx_landing_current_version` (`current_version_id`),
+  KEY `idx_landing_staging_version` (`staging_version_id`),
 
   CONSTRAINT `fk_landing_template` FOREIGN KEY (`template_id`) REFERENCES `landing_template` (`id`),
   CONSTRAINT `fk_landing_agreement` FOREIGN KEY (`agreement_id`) REFERENCES `agreement` (`id`),
   CONSTRAINT `fk_landing_institution` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`),
   CONSTRAINT `fk_landing_default_institution` FOREIGN KEY (`default_institution_id`) REFERENCES `institution` (`id`),
   CONSTRAINT `fk_landing_default_campus` FOREIGN KEY (`default_campus_id`) REFERENCES `institution_campus` (`id`),
-  CONSTRAINT `fk_landing_created_by` FOREIGN KEY (`created_by`) REFERENCES `user_account` (`id`)
+  CONSTRAINT `fk_landing_created_by` FOREIGN KEY (`created_by`) REFERENCES `user_account` (`id`),
+  CONSTRAINT `fk_landing_current_version` FOREIGN KEY (`current_version_id`) REFERENCES `landing_version` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_landing_staging_version` FOREIGN KEY (`staging_version_id`) REFERENCES `landing_version` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
@@ -4227,6 +4241,7 @@ CREATE TABLE `application` (
   `person_id` BIGINT UNSIGNED NOT NULL,
   `session_id` BIGINT UNSIGNED,
   `landing_id` BIGINT UNSIGNED,
+  `landing_version_id` BIGINT UNSIGNED COMMENT 'Versión de landing que generó esta solicitud (v3.0)',
 
   -- Referencias a versiones de datos usadas (para auditoría)
   `contact_version_id` BIGINT UNSIGNED COMMENT 'Versión de contacto usada',
@@ -4292,6 +4307,7 @@ CREATE TABLE `application` (
   KEY `idx_app_person` (`person_id`),
   KEY `idx_app_session` (`session_id`),
   KEY `idx_app_landing` (`landing_id`),
+  KEY `idx_app_landing_version` (`landing_version_id`),
   KEY `idx_app_product` (`product_id`),
   KEY `idx_app_status` (`status`),
   KEY `idx_app_created` (`created_at`),
@@ -4300,6 +4316,7 @@ CREATE TABLE `application` (
   CONSTRAINT `fk_app_person` FOREIGN KEY (`person_id`) REFERENCES `person` (`id`),
   CONSTRAINT `fk_app_session` FOREIGN KEY (`session_id`) REFERENCES `session` (`id`),
   CONSTRAINT `fk_app_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`),
+  CONSTRAINT `fk_app_landing_version` FOREIGN KEY (`landing_version_id`) REFERENCES `landing_version` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_app_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`),
   CONSTRAINT `fk_app_contact_ver` FOREIGN KEY (`contact_version_id`) REFERENCES `person_contact_history` (`id`),
   CONSTRAINT `fk_app_address_ver` FOREIGN KEY (`address_version_id`) REFERENCES `person_address_history` (`id`),
@@ -4588,6 +4605,7 @@ CREATE TABLE `lead` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `session_id` BIGINT UNSIGNED NOT NULL,
   `landing_id` BIGINT UNSIGNED,
+  `landing_version_id` BIGINT UNSIGNED COMMENT 'Versión de landing que generó este lead (v3.0)',
   `agreement_id` BIGINT UNSIGNED COMMENT 'Convenio si aplica',
 
   -- Datos capturados (parciales)
@@ -4650,6 +4668,7 @@ CREATE TABLE `lead` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_lead_session` (`session_id`),
   KEY `idx_lead_landing` (`landing_id`),
+  KEY `idx_lead_landing_version` (`landing_version_id`),
   KEY `idx_lead_status` (`status`),
   KEY `idx_lead_priority` (`priority`),
   KEY `idx_lead_email` (`email`),
@@ -4661,6 +4680,7 @@ CREATE TABLE `lead` (
 
   CONSTRAINT `fk_lead_session` FOREIGN KEY (`session_id`) REFERENCES `session` (`id`),
   CONSTRAINT `fk_lead_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`),
+  CONSTRAINT `fk_lead_landing_version` FOREIGN KEY (`landing_version_id`) REFERENCES `landing_version` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_lead_agreement` FOREIGN KEY (`agreement_id`) REFERENCES `agreement` (`id`),
   CONSTRAINT `fk_lead_institution` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`),
   CONSTRAINT `fk_lead_campus` FOREIGN KEY (`campus_id`) REFERENCES `institution_campus` (`id`),
@@ -9049,4 +9069,1029 @@ Table referral {
 
 ---
 
-*BaldeCash Platform v2.0 Rediseño - Diciembre 2025*
+## 18. CHANGELOG - Actualización v3.0 (Frontend v0.5)
+
+**Fecha:** Enero 2026 | **Motivo:** Soporte completo para Frontend v0.5
+
+Esta sección documenta todas las actualizaciones realizadas para soportar el frontend v0.5, incluyendo nuevas tablas, campos adicionales y datos semilla.
+
+### 18.1 Resumen de Cambios
+
+| Tipo | Cantidad | Descripción |
+|------|----------|-------------|
+| **Tablas Nuevas** | 28 | Colores, Quiz, Contenido Landing, Resultados, Finanzas |
+| **Tablas Modificadas** | 5 | Campos adicionales para soporte completo |
+| **Campos Nuevos** | ~70 | En tablas existentes |
+
+---
+
+### 18.2 NUEVAS TABLAS - Sistema de Colores
+
+#### 18.2.1 color
+
+Catálogo maestro de colores disponibles.
+
+```sql
+CREATE TABLE `color` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `code` VARCHAR(30) NOT NULL COMMENT 'Identificador único: silver, black, midnight',
+  `name` VARCHAR(50) NOT NULL COMMENT 'Nombre display: Plata, Negro, Medianoche',
+  `name_en` VARCHAR(50) COMMENT 'Nombre en inglés para SEO',
+  `hex_code` VARCHAR(7) NOT NULL COMMENT 'Código hex: #C0C0C0',
+  `rgb` VARCHAR(20) COMMENT 'RGB: 192,192,192',
+  `color_family` ENUM('neutral', 'warm', 'cool', 'metallic', 'accent') DEFAULT 'neutral',
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_color_code` (`code`),
+  KEY `idx_color_family` (`color_family`, `is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Datos iniciales
+INSERT INTO `color` (`code`, `name`, `hex_code`, `color_family`) VALUES
+('silver', 'Plata', '#C0C0C0', 'metallic'),
+('black', 'Negro', '#1a1a1a', 'neutral'),
+('white', 'Blanco', '#FFFFFF', 'neutral'),
+('gold', 'Dorado', '#FFD700', 'metallic'),
+('rose-gold', 'Oro Rosa', '#B76E79', 'metallic'),
+('space-gray', 'Gris Espacial', '#4A4A4A', 'neutral'),
+('midnight', 'Medianoche', '#191970', 'cool'),
+('starlight', 'Luz Estelar', '#F5F5DC', 'warm'),
+('blue', 'Azul', '#4654CD', 'cool'),
+('green', 'Verde', '#22c55e', 'cool'),
+('red', 'Rojo', '#ef4444', 'warm'),
+('purple', 'Morado', '#8b5cf6', 'cool');
+```
+
+#### 18.2.2 product_color
+
+Colores disponibles para cada producto.
+
+```sql
+CREATE TABLE `product_color` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `product_id` BIGINT UNSIGNED NOT NULL,
+  `color_id` BIGINT UNSIGNED NOT NULL,
+  `sku_suffix` VARCHAR(20) COMMENT 'Sufijo SKU: -SLV, -BLK',
+  `price_adjustment` DECIMAL(10,2) DEFAULT 0 COMMENT 'Ajuste de precio por color',
+  `stock_quantity` INT DEFAULT 0,
+  `image_url` VARCHAR(500) COMMENT 'Imagen del producto en este color',
+  `is_default` TINYINT(1) DEFAULT 0 COMMENT 'Color mostrado por defecto',
+  `display_order` INT DEFAULT 0,
+  `is_available` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_product_color` (`product_id`, `color_id`),
+  KEY `idx_color_product` (`color_id`, `product_id`),
+  KEY `idx_product_default` (`product_id`, `is_default`),
+  CONSTRAINT `fk_pc_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pc_color` FOREIGN KEY (`color_id`) REFERENCES `color` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
+### 18.3 NUEVAS TABLAS - Sistema de Uso y Gama
+
+#### 18.3.1 usage_type
+
+Tipos de uso recomendado para productos.
+
+```sql
+CREATE TABLE `usage_type` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `code` VARCHAR(30) NOT NULL COMMENT 'estudios, gaming, diseño, oficina, programacion',
+  `name` VARCHAR(50) NOT NULL,
+  `description` VARCHAR(200),
+  `icon` VARCHAR(50) NOT NULL COMMENT 'Icono Lucide: GraduationCap, Gamepad2',
+  `color` VARCHAR(7) COMMENT 'Color asociado: #4654CD',
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_usage_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Datos iniciales
+INSERT INTO `usage_type` (`code`, `name`, `icon`, `display_order`) VALUES
+('estudios', 'Estudios', 'GraduationCap', 1),
+('gaming', 'Gaming', 'Gamepad2', 2),
+('diseño', 'Diseño', 'Palette', 3),
+('oficina', 'Oficina', 'Briefcase', 4),
+('programacion', 'Programación', 'Code', 5);
+```
+
+#### 18.3.2 product_usage
+
+Relación producto-uso con nivel de compatibilidad.
+
+```sql
+CREATE TABLE `product_usage` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `product_id` BIGINT UNSIGNED NOT NULL,
+  `usage_type_id` BIGINT UNSIGNED NOT NULL,
+  `compatibility_level` ENUM('ideal', 'good', 'basic', 'not_recommended') NOT NULL DEFAULT 'good',
+  `compatibility_score` TINYINT UNSIGNED DEFAULT 80 COMMENT '0-100 score',
+  `notes` VARCHAR(200) COMMENT 'Notas específicas de compatibilidad',
+  `display_order` INT DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_product_usage` (`product_id`, `usage_type_id`),
+  KEY `idx_usage_product` (`usage_type_id`, `compatibility_level`),
+  CONSTRAINT `fk_pu_product` FOREIGN KEY (`product_id`) REFERENCES `product` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pu_usage` FOREIGN KEY (`usage_type_id`) REFERENCES `usage_type` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.3.3 gama_tier
+
+Niveles de gama de productos.
+
+```sql
+CREATE TABLE `gama_tier` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `code` VARCHAR(30) NOT NULL COMMENT 'economica, estudiante, profesional, creativa, gamer',
+  `name` VARCHAR(50) NOT NULL,
+  `description` VARCHAR(200),
+  `price_range_min` DECIMAL(10,2),
+  `price_range_max` DECIMAL(10,2),
+  `badge_color` VARCHAR(7) COMMENT 'Color del badge',
+  `badge_icon` VARCHAR(50),
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_gama_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Datos iniciales
+INSERT INTO `gama_tier` (`code`, `name`, `price_range_min`, `price_range_max`, `display_order`) VALUES
+('economica', 'Económica', 1000, 2000, 1),
+('estudiante', 'Estudiante', 2000, 3500, 2),
+('profesional', 'Profesional', 3500, 5500, 3),
+('creativa', 'Creativa', 5000, 8000, 4),
+('gamer', 'Gamer', 4000, 10000, 5);
+```
+
+---
+
+### 18.4 NUEVAS TABLAS - Sistema de Quiz
+
+#### 18.4.1 quiz
+
+Definición de quizzes por landing.
+
+```sql
+CREATE TABLE `quiz` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `code` VARCHAR(50) NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `description` TEXT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = quiz global',
+  `quiz_type` ENUM('product_finder', 'needs_assessment', 'eligibility') DEFAULT 'product_finder',
+  `intro_title` VARCHAR(200),
+  `intro_description` TEXT,
+  `intro_image_url` VARCHAR(500),
+  `results_title` VARCHAR(200),
+  `results_description` TEXT,
+  `min_questions` TINYINT UNSIGNED DEFAULT 1,
+  `max_questions` TINYINT UNSIGNED DEFAULT 10,
+  `show_progress` TINYINT(1) DEFAULT 1,
+  `allow_skip` TINYINT(1) DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_quiz_code` (`code`),
+  KEY `idx_quiz_landing` (`landing_id`),
+  CONSTRAINT `fk_quiz_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.4.2 quiz_question
+
+Preguntas del quiz.
+
+```sql
+CREATE TABLE `quiz_question` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `quiz_id` BIGINT UNSIGNED NOT NULL,
+  `code` VARCHAR(50) NOT NULL,
+  `question_text` VARCHAR(300) NOT NULL,
+  `question_subtext` VARCHAR(200),
+  `question_type` ENUM('single_choice', 'multiple_choice', 'scale', 'budget_range') DEFAULT 'single_choice',
+  `icon` VARCHAR(50),
+  `image_url` VARCHAR(500),
+  `display_style` ENUM('pills', 'cards', 'icons', 'images', 'slider') DEFAULT 'pills',
+  `display_order` INT NOT NULL,
+  `is_required` TINYINT(1) DEFAULT 1,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_quiz_question` (`quiz_id`, `code`),
+  KEY `idx_question_order` (`quiz_id`, `display_order`),
+  CONSTRAINT `fk_qq_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `quiz` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.4.3 quiz_option
+
+Opciones de respuesta para cada pregunta.
+
+```sql
+CREATE TABLE `quiz_option` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `question_id` BIGINT UNSIGNED NOT NULL,
+  `code` VARCHAR(50) NOT NULL,
+  `label` VARCHAR(100) NOT NULL,
+  `description` VARCHAR(200),
+  `icon` VARCHAR(50),
+  `image_url` VARCHAR(500),
+  `display_order` INT NOT NULL,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_option_code` (`question_id`, `code`),
+  KEY `idx_option_order` (`question_id`, `display_order`),
+  CONSTRAINT `fk_qo_question` FOREIGN KEY (`question_id`) REFERENCES `quiz_question` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.4.4 quiz_option_filter_mapping
+
+Mapeo de opciones a filtros del catálogo.
+
+```sql
+CREATE TABLE `quiz_option_filter_mapping` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `option_id` BIGINT UNSIGNED NOT NULL,
+  `filter_type` ENUM('brand', 'category', 'spec', 'usage', 'gama', 'price_range', 'condition') NOT NULL,
+  `filter_code` VARCHAR(50) NOT NULL COMMENT 'Código del filtro: ram_gb, brand_apple',
+  `filter_value` VARCHAR(100) COMMENT 'Valor específico o rango: 16, [2000,4000]',
+  `filter_operator` ENUM('equals', 'gte', 'lte', 'between', 'in', 'contains') DEFAULT 'equals',
+  `weight` DECIMAL(5,2) DEFAULT 1.00 COMMENT 'Peso para scoring',
+  `is_exclusive` TINYINT(1) DEFAULT 0 COMMENT 'Si excluye otros valores',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_mapping_option` (`option_id`),
+  KEY `idx_mapping_filter` (`filter_type`, `filter_code`),
+  CONSTRAINT `fk_qofm_option` FOREIGN KEY (`option_id`) REFERENCES `quiz_option` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.4.5 quiz_result_template
+
+Templates de resultados según combinaciones.
+
+```sql
+CREATE TABLE `quiz_result_template` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `quiz_id` BIGINT UNSIGNED NOT NULL,
+  `code` VARCHAR(50) NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `condition_json` JSON COMMENT 'Condiciones para mostrar este resultado',
+  `headline` VARCHAR(200),
+  `description` TEXT,
+  `recommendation_text` VARCHAR(300),
+  `fallback_priority` INT DEFAULT 100 COMMENT 'Menor = más prioritario como fallback',
+  `is_default` TINYINT(1) DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_result_code` (`quiz_id`, `code`),
+  CONSTRAINT `fk_qrt_quiz` FOREIGN KEY (`quiz_id`) REFERENCES `quiz` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
+### 18.5 NUEVAS TABLAS - Contenido de Landing
+
+#### 18.5.1 landing_nav_item
+
+Items de navegación por landing.
+
+```sql
+CREATE TABLE `landing_nav_item` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED NOT NULL,
+  `label` VARCHAR(50) NOT NULL,
+  `href` VARCHAR(300) NOT NULL,
+  `target` ENUM('_self', '_blank') DEFAULT '_self',
+  `icon` VARCHAR(50),
+  `is_highlighted` TINYINT(1) DEFAULT 0 COMMENT 'Botón destacado',
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `show_on_mobile` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_nav_landing` (`landing_id`, `display_order`),
+  CONSTRAINT `fk_lni_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.5.2 landing_testimonial
+
+Testimonios por landing.
+
+```sql
+CREATE TABLE `landing_testimonial` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = testimonios globales',
+  `name` VARCHAR(100) NOT NULL,
+  `institution_code` VARCHAR(20) COMMENT 'Código de institución',
+  `role` VARCHAR(100) COMMENT 'Estudiante de Ingeniería, Egresado',
+  `quote` TEXT NOT NULL,
+  `avatar_url` VARCHAR(500),
+  `rating` TINYINT UNSIGNED DEFAULT 5 COMMENT '1-5 estrellas',
+  `product_purchased` VARCHAR(200) COMMENT 'Producto que compró',
+  `verified` TINYINT(1) DEFAULT 0 COMMENT 'Testimonio verificado',
+  `video_url` VARCHAR(500),
+  `display_order` INT DEFAULT 0,
+  `is_featured` TINYINT(1) DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_testimonial_landing` (`landing_id`, `is_active`, `display_order`),
+  KEY `idx_testimonial_featured` (`is_featured`, `is_active`),
+  CONSTRAINT `fk_lt_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.5.3 landing_faq
+
+Preguntas frecuentes por landing.
+
+```sql
+CREATE TABLE `landing_faq` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = FAQ global',
+  `category` VARCHAR(50) NOT NULL COMMENT 'General, Pagos, Envío, Garantía',
+  `question` VARCHAR(300) NOT NULL,
+  `answer` TEXT NOT NULL,
+  `icon` VARCHAR(50),
+  `display_order` INT DEFAULT 0,
+  `is_featured` TINYINT(1) DEFAULT 0 COMMENT 'Mostrar en sección destacada',
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_faq_landing` (`landing_id`, `category`, `display_order`),
+  KEY `idx_faq_featured` (`is_featured`, `is_active`),
+  CONSTRAINT `fk_lf_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.5.4 landing_how_it_works_step
+
+Pasos de "Cómo Funciona" por landing.
+
+```sql
+CREATE TABLE `landing_how_it_works_step` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = pasos globales',
+  `step_number` TINYINT UNSIGNED NOT NULL,
+  `title` VARCHAR(100) NOT NULL,
+  `description` VARCHAR(300) NOT NULL,
+  `icon` VARCHAR(50) NOT NULL,
+  `icon_color` VARCHAR(7),
+  `image_url` VARCHAR(500),
+  `cta_text` VARCHAR(50),
+  `cta_url` VARCHAR(300),
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_hiw_landing` (`landing_id`, `display_order`),
+  CONSTRAINT `fk_hiw_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.5.5 landing_requirement
+
+Requisitos mostrados en landing.
+
+```sql
+CREATE TABLE `landing_requirement` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = requisitos globales',
+  `text` VARCHAR(200) NOT NULL,
+  `icon` VARCHAR(50) NOT NULL,
+  `tooltip` VARCHAR(300),
+  `is_mandatory` TINYINT(1) DEFAULT 1,
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_req_landing` (`landing_id`, `display_order`),
+  CONSTRAINT `fk_lr_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.5.6 landing_trust_signal
+
+Señales de confianza (SBS, 24h, etc).
+
+```sql
+CREATE TABLE `landing_trust_signal` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = señales globales',
+  `text` VARCHAR(100) NOT NULL,
+  `icon` VARCHAR(50) NOT NULL,
+  `tooltip` VARCHAR(300),
+  `url` VARCHAR(300),
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_trust_landing` (`landing_id`, `display_order`),
+  CONSTRAINT `fk_ts_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.5.7 landing_social_proof
+
+Métricas de social proof.
+
+```sql
+CREATE TABLE `landing_social_proof` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED NOT NULL,
+  `student_count` INT UNSIGNED DEFAULT 0 COMMENT 'Estudiantes atendidos',
+  `institution_count` INT UNSIGNED DEFAULT 0 COMMENT 'Instituciones aliadas',
+  `years_in_market` TINYINT UNSIGNED DEFAULT 0,
+  `approval_rate` DECIMAL(5,2) COMMENT 'Porcentaje de aprobación',
+  `nps_score` DECIMAL(4,2) COMMENT 'Net Promoter Score',
+  `google_rating` DECIMAL(2,1) COMMENT 'Rating de Google',
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_social_landing` (`landing_id`),
+  CONSTRAINT `fk_sp_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.5.8 media_mention
+
+Menciones en medios.
+
+```sql
+CREATE TABLE `media_mention` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(100) NOT NULL COMMENT 'RPP, Gestión, Forbes',
+  `logo_url` VARCHAR(500) NOT NULL,
+  `article_url` VARCHAR(500),
+  `article_title` VARCHAR(200),
+  `mention_date` DATE,
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.5.9 landing_footer_link
+
+Links del footer por landing.
+
+```sql
+CREATE TABLE `landing_footer_link` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = links globales',
+  `section` VARCHAR(50) NOT NULL COMMENT 'company, legal, support, social',
+  `label` VARCHAR(100) NOT NULL,
+  `href` VARCHAR(300) NOT NULL,
+  `icon` VARCHAR(50),
+  `target` ENUM('_self', '_blank') DEFAULT '_self',
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_footer_landing` (`landing_id`, `section`, `display_order`),
+  CONSTRAINT `fk_lfl_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
+### 18.6 NUEVAS TABLAS - Páginas de Resultado
+
+#### 18.6.1 result_page_config
+
+Configuración de páginas de resultado por landing.
+
+```sql
+CREATE TABLE `result_page_config` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = config global',
+  `result_type` ENUM('approved', 'rejected', 'received', 'pending', 'error') NOT NULL,
+
+  -- Contenido principal
+  `headline` VARCHAR(200) NOT NULL,
+  `subheadline` VARCHAR(300),
+  `message_template` TEXT COMMENT 'Con placeholders: {{nombre}}, {{producto}}',
+  `illustration_type` ENUM('celebration', 'document', 'waiting', 'sad', 'custom') DEFAULT 'celebration',
+  `illustration_url` VARCHAR(500),
+
+  -- CTAs
+  `primary_cta_text` VARCHAR(50),
+  `primary_cta_url` VARCHAR(300),
+  `secondary_cta_text` VARCHAR(50),
+  `secondary_cta_url` VARCHAR(300),
+
+  -- Configuración
+  `show_confetti` TINYINT(1) DEFAULT 0,
+  `show_share_buttons` TINYINT(1) DEFAULT 0,
+  `show_referral_cta` TINYINT(1) DEFAULT 0,
+  `show_create_account` TINYINT(1) DEFAULT 0,
+
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_result_config` (`landing_id`, `result_type`),
+  CONSTRAINT `fk_rpc_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.6.2 result_next_step
+
+Pasos siguientes para cada tipo de resultado.
+
+```sql
+CREATE TABLE `result_next_step` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `result_config_id` BIGINT UNSIGNED NOT NULL,
+  `step_number` TINYINT UNSIGNED NOT NULL,
+  `title` VARCHAR(100) NOT NULL,
+  `description` VARCHAR(300),
+  `icon` VARCHAR(50),
+  `estimated_time` VARCHAR(50) COMMENT '24-48 horas, 3-5 días',
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_step_config` (`result_config_id`, `display_order`),
+  CONSTRAINT `fk_rns_config` FOREIGN KEY (`result_config_id`) REFERENCES `result_page_config` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.6.3 rejection_reason
+
+Razones de rechazo configurables.
+
+```sql
+CREATE TABLE `rejection_reason` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `code` VARCHAR(50) NOT NULL,
+  `internal_name` VARCHAR(100) NOT NULL COMMENT 'Nombre interno para admins',
+  `display_title` VARCHAR(150) NOT NULL COMMENT 'Título mostrado al usuario',
+  `display_message` TEXT NOT NULL COMMENT 'Mensaje empático y constructivo',
+  `actionable_tip` VARCHAR(300) COMMENT 'Consejo accionable',
+  `retry_days` INT UNSIGNED DEFAULT 30 COMMENT 'Días para reintentar',
+  `show_alternatives` TINYINT(1) DEFAULT 1 COMMENT 'Mostrar productos alternativos',
+  `show_down_payment_calc` TINYINT(1) DEFAULT 1 COMMENT 'Mostrar calculadora con inicial',
+  `alternative_price_factor` DECIMAL(3,2) DEFAULT 0.70 COMMENT 'Factor para buscar alternativas (70%)',
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_rejection_code` (`code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Datos iniciales
+INSERT INTO `rejection_reason` (`code`, `internal_name`, `display_title`, `display_message`, `actionable_tip`, `retry_days`) VALUES
+('insufficient_income', 'Ingresos insuficientes', 'Tu capacidad de pago actual',
+ 'Basándonos en la información proporcionada, el monto mensual supera el 30% de tus ingresos declarados.',
+ 'Considera un equipo de menor valor o aumenta tu inicial para reducir la cuota mensual.', 30),
+('no_student_status', 'No es estudiante activo', 'Verificación de estudios',
+ 'No pudimos verificar tu condición de estudiante activo. Este programa está diseñado exclusivamente para estudiantes.',
+ 'Asegúrate de tener tu constancia de estudios actualizada del ciclo actual.', 15),
+('document_issues', 'Problemas con documentos', 'Documentación incompleta',
+ 'Algunos documentos no pudieron ser verificados correctamente.',
+ 'Revisa que tu DNI esté vigente y tu constancia de estudios sea del ciclo actual.', 7);
+```
+
+#### 18.6.4 rejection_educational_content
+
+Contenido educativo para rechazos.
+
+```sql
+CREATE TABLE `rejection_educational_content` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `rejection_reason_id` BIGINT UNSIGNED NOT NULL,
+  `content_type` ENUM('tip', 'resource', 'video', 'article') DEFAULT 'tip',
+  `title` VARCHAR(150) NOT NULL,
+  `content` TEXT,
+  `icon` VARCHAR(50),
+  `url` VARCHAR(500),
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_edu_reason` (`rejection_reason_id`, `display_order`),
+  CONSTRAINT `fk_rec_reason` FOREIGN KEY (`rejection_reason_id`) REFERENCES `rejection_reason` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
+### 18.7 NUEVAS TABLAS - Comparador
+
+#### 18.7.1 comparator_config
+
+Configuración del comparador por landing.
+
+```sql
+CREATE TABLE `comparator_config` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = config global',
+  `max_products` TINYINT UNSIGNED DEFAULT 4,
+  `layout_style` ENUM('modal', 'page', 'drawer') DEFAULT 'modal',
+  `highlight_winner` TINYINT(1) DEFAULT 1,
+  `highlight_style` ENUM('semantic', 'neutral', 'bold') DEFAULT 'semantic',
+  `show_price_diff` TINYINT(1) DEFAULT 1,
+  `default_term` TINYINT UNSIGNED DEFAULT 24,
+  `default_initial_percent` TINYINT UNSIGNED DEFAULT 10,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_comparator_landing` (`landing_id`),
+  CONSTRAINT `fk_cc_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 18.7.2 comparator_spec
+
+Specs a mostrar en comparador por landing.
+
+```sql
+CREATE TABLE `comparator_spec` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `comparator_config_id` BIGINT UNSIGNED NOT NULL,
+  `spec_definition_id` BIGINT UNSIGNED NOT NULL,
+  `display_order` INT DEFAULT 0,
+  `is_highlighted` TINYINT(1) DEFAULT 0 COMMENT 'Spec importante a destacar',
+  `comparison_type` ENUM('higher_better', 'lower_better', 'equal', 'none') DEFAULT 'none',
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_comparator_spec` (`comparator_config_id`, `spec_definition_id`),
+  CONSTRAINT `fk_cs_config` FOREIGN KEY (`comparator_config_id`) REFERENCES `comparator_config` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_cs_spec` FOREIGN KEY (`spec_definition_id`) REFERENCES `spec_definition` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
+### 18.8 NUEVAS TABLAS - Financiamiento
+
+#### 18.8.1 financing_term
+
+Plazos disponibles configurables.
+
+```sql
+CREATE TABLE `financing_term` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `months` TINYINT UNSIGNED NOT NULL,
+  `label` VARCHAR(50) NOT NULL COMMENT '12 meses, 1 año',
+  `label_short` VARCHAR(20) COMMENT '12m, 1a',
+  `default_tea` DECIMAL(6,3) NOT NULL,
+  `default_tcea` DECIMAL(6,3),
+  `interest_multiplier` DECIMAL(5,4) DEFAULT 1.0000 COMMENT 'Factor sobre precio base',
+  `is_featured` TINYINT(1) DEFAULT 0 COMMENT 'Mostrar destacado',
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_term_months` (`months`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Datos iniciales
+INSERT INTO `financing_term` (`months`, `label`, `label_short`, `default_tea`, `interest_multiplier`, `is_featured`, `display_order`) VALUES
+(6, '6 meses', '6m', 38.000, 1.08, 0, 1),
+(12, '12 meses', '12m', 42.500, 1.12, 1, 2),
+(18, '18 meses', '18m', 45.000, 1.15, 0, 3),
+(24, '24 meses', '24m', 48.000, 1.22, 1, 4),
+(36, '36 meses', '36m', 52.000, 1.30, 0, 5);
+```
+
+#### 18.8.2 down_payment_option
+
+Opciones de inicial.
+
+```sql
+CREATE TABLE `down_payment_option` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `percentage` TINYINT UNSIGNED NOT NULL,
+  `label` VARCHAR(50) NOT NULL COMMENT '10% inicial, Sin inicial',
+  `discount_on_total` DECIMAL(5,2) DEFAULT 0 COMMENT 'Descuento adicional por inicial',
+  `is_default` TINYINT(1) DEFAULT 0,
+  `display_order` INT DEFAULT 0,
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_down_payment` (`percentage`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Datos iniciales
+INSERT INTO `down_payment_option` (`percentage`, `label`, `is_default`, `display_order`) VALUES
+(0, 'Sin inicial', 0, 1),
+(10, '10% inicial', 1, 2),
+(15, '15% inicial', 0, 3),
+(20, '20% inicial', 0, 4),
+(30, '30% inicial', 0, 5);
+```
+
+---
+
+### 18.9 NUEVAS TABLAS - Form Builder
+
+#### 18.9.1 field_tooltip
+
+Tooltips personalizados por campo y landing.
+
+```sql
+CREATE TABLE `field_tooltip` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `field_id` BIGINT UNSIGNED NOT NULL,
+  `landing_id` BIGINT UNSIGNED COMMENT 'NULL = tooltip global para el campo',
+  `tooltip_text` VARCHAR(300),
+  `modal_title` VARCHAR(100),
+  `modal_content` TEXT,
+  `modal_image_url` VARCHAR(500),
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_field_tooltip` (`field_id`, `landing_id`),
+  CONSTRAINT `fk_ft_field` FOREIGN KEY (`field_id`) REFERENCES `form_field` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_ft_landing` FOREIGN KEY (`landing_id`) REFERENCES `landing` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
+### 18.10 TABLAS MODIFICADAS
+
+#### 18.10.1 Modificaciones a `spec_definition`
+
+```sql
+ALTER TABLE `spec_definition` ADD COLUMN `tooltip_title` VARCHAR(100) AFTER `icon`;
+ALTER TABLE `spec_definition` ADD COLUMN `tooltip_description` TEXT AFTER `tooltip_title`;
+ALTER TABLE `spec_definition` ADD COLUMN `tooltip_recommendation` VARCHAR(300) AFTER `tooltip_description`;
+ALTER TABLE `spec_definition` ADD COLUMN `min_value` DECIMAL(15,4) AFTER `tooltip_recommendation`;
+ALTER TABLE `spec_definition` ADD COLUMN `max_value` DECIMAL(15,4) AFTER `min_value`;
+ALTER TABLE `spec_definition` ADD COLUMN `step_value` DECIMAL(15,4) AFTER `max_value`;
+ALTER TABLE `spec_definition` ADD COLUMN `filter_display_type` ENUM('chips', 'slider', 'checkbox', 'radio', 'dropdown') DEFAULT 'chips' AFTER `step_value`;
+```
+
+#### 18.10.2 Modificaciones a `product`
+
+```sql
+ALTER TABLE `product` ADD COLUMN `gama_tier_id` BIGINT UNSIGNED AFTER `warranty_months`;
+ALTER TABLE `product` ADD COLUMN `stock_status` ENUM('in_stock', 'low_stock', 'out_of_stock', 'preorder', 'discontinued') DEFAULT 'in_stock' AFTER `min_stock_alert`;
+ALTER TABLE `product` ADD COLUMN `delivery_days_min` TINYINT UNSIGNED DEFAULT 3 AFTER `weight_kg`;
+ALTER TABLE `product` ADD COLUMN `delivery_days_max` TINYINT UNSIGNED DEFAULT 7 AFTER `delivery_days_min`;
+
+ALTER TABLE `product` ADD CONSTRAINT `fk_product_gama`
+  FOREIGN KEY (`gama_tier_id`) REFERENCES `gama_tier` (`id`);
+```
+
+#### 18.10.3 Modificaciones a `form_field`
+
+```sql
+ALTER TABLE `form_field` ADD COLUMN `tooltip_text` VARCHAR(300) AFTER `help_text`;
+ALTER TABLE `form_field` ADD COLUMN `info_modal_title` VARCHAR(100) AFTER `tooltip_text`;
+ALTER TABLE `form_field` ADD COLUMN `info_modal_content` TEXT AFTER `info_modal_title`;
+ALTER TABLE `form_field` ADD COLUMN `autocomplete` VARCHAR(50) AFTER `info_modal_content`;
+ALTER TABLE `form_field` ADD COLUMN `input_mode` VARCHAR(20) AFTER `autocomplete`;
+ALTER TABLE `form_field` ADD COLUMN `prefix` VARCHAR(20) AFTER `input_mode`;
+ALTER TABLE `form_field` ADD COLUMN `suffix` VARCHAR(20) AFTER `prefix`;
+ALTER TABLE `form_field` ADD COLUMN `mask` VARCHAR(50) AFTER `suffix`;
+```
+
+#### 18.10.4 Modificaciones a `landing`
+
+```sql
+-- Hero Configuration
+ALTER TABLE `landing` ADD COLUMN `hero_headline` VARCHAR(200) AFTER `hero_config`;
+ALTER TABLE `landing` ADD COLUMN `hero_subheadline` VARCHAR(300) AFTER `hero_headline`;
+ALTER TABLE `landing` ADD COLUMN `hero_image_url` VARCHAR(500) AFTER `hero_subheadline`;
+ALTER TABLE `landing` ADD COLUMN `hero_image_position` ENUM('left', 'right', 'center', 'background') DEFAULT 'right' AFTER `hero_image_url`;
+ALTER TABLE `landing` ADD COLUMN `hero_cta_text` VARCHAR(50) AFTER `hero_image_position`;
+ALTER TABLE `landing` ADD COLUMN `hero_cta_url` VARCHAR(300) AFTER `hero_cta_text`;
+ALTER TABLE `landing` ADD COLUMN `hero_secondary_cta_text` VARCHAR(50) AFTER `hero_cta_url`;
+ALTER TABLE `landing` ADD COLUMN `hero_secondary_cta_url` VARCHAR(300) AFTER `hero_secondary_cta_text`;
+
+-- Theme Configuration
+ALTER TABLE `landing` ADD COLUMN `primary_color` VARCHAR(7) DEFAULT '#4654CD' AFTER `theme_overrides`;
+ALTER TABLE `landing` ADD COLUMN `secondary_color` VARCHAR(7) DEFAULT '#03DBD0' AFTER `primary_color`;
+ALTER TABLE `landing` ADD COLUMN `accent_color` VARCHAR(7) AFTER `secondary_color`;
+ALTER TABLE `landing` ADD COLUMN `min_monthly_quota` DECIMAL(10,2) AFTER `accent_color`;
+
+-- Navbar Configuration
+ALTER TABLE `landing` ADD COLUMN `navbar_style` ENUM('transparent', 'solid', 'gradient') DEFAULT 'transparent' AFTER `min_monthly_quota`;
+ALTER TABLE `landing` ADD COLUMN `show_promo_banner` TINYINT(1) DEFAULT 0 AFTER `navbar_style`;
+ALTER TABLE `landing` ADD COLUMN `promo_banner_text` VARCHAR(200) AFTER `show_promo_banner`;
+ALTER TABLE `landing` ADD COLUMN `promo_banner_url` VARCHAR(300) AFTER `promo_banner_text`;
+
+-- WhatsApp Configuration
+ALTER TABLE `landing` ADD COLUMN `whatsapp_number` VARCHAR(20) AFTER `promo_banner_url`;
+ALTER TABLE `landing` ADD COLUMN `whatsapp_message` VARCHAR(300) AFTER `whatsapp_number`;
+ALTER TABLE `landing` ADD COLUMN `show_whatsapp_float` TINYINT(1) DEFAULT 1 AFTER `whatsapp_message`;
+```
+
+#### 18.10.5 Modificaciones a `filter_definition`
+
+```sql
+ALTER TABLE `filter_definition` ADD COLUMN `display_name` VARCHAR(100) AFTER `name`;
+ALTER TABLE `filter_definition` ADD COLUMN `tooltip_title` VARCHAR(100) AFTER `display_name`;
+ALTER TABLE `filter_definition` ADD COLUMN `tooltip_description` TEXT AFTER `tooltip_title`;
+ALTER TABLE `filter_definition` ADD COLUMN `tooltip_recommendation` VARCHAR(300) AFTER `tooltip_description`;
+ALTER TABLE `filter_definition` ADD COLUMN `icon` VARCHAR(50) AFTER `tooltip_recommendation`;
+ALTER TABLE `filter_definition` ADD COLUMN `collapsed_by_default` TINYINT(1) DEFAULT 0 AFTER `icon`;
+ALTER TABLE `filter_definition` ADD COLUMN `show_count` TINYINT(1) DEFAULT 1 AFTER `collapsed_by_default`;
+ALTER TABLE `filter_definition` ADD COLUMN `min_value` DECIMAL(15,4) AFTER `show_count`;
+ALTER TABLE `filter_definition` ADD COLUMN `max_value` DECIMAL(15,4) AFTER `min_value`;
+ALTER TABLE `filter_definition` ADD COLUMN `step_value` DECIMAL(15,4) AFTER `max_value`;
+```
+
+---
+
+### 18.11 Nuevas Relaciones (DBML)
+
+```dbml
+// PRODUCTS - Nuevas relaciones v3.0
+// product -< product_color (1:N)
+// color -< product_color (1:N)
+// product -< product_usage (1:N)
+// usage_type -< product_usage (1:N)
+// gama_tier -< product (1:N)
+
+// QUIZ
+// landing -< quiz (1:N)
+// quiz -< quiz_question (1:N)
+// quiz_question -< quiz_option (1:N)
+// quiz_option -< quiz_option_filter_mapping (1:N)
+// quiz -< quiz_result_template (1:N)
+
+// LANDING CONTENT
+// landing -< landing_nav_item (1:N)
+// landing -< landing_testimonial (1:N)
+// landing -< landing_faq (1:N)
+// landing -< landing_how_it_works_step (1:N)
+// landing -< landing_requirement (1:N)
+// landing -< landing_trust_signal (1:N)
+// landing -< landing_social_proof (1:1)
+// landing -< landing_footer_link (1:N)
+
+// RESULT PAGES
+// landing -< result_page_config (1:N)
+// result_page_config -< result_next_step (1:N)
+// rejection_reason -< rejection_educational_content (1:N)
+
+// COMPARATOR
+// landing -< comparator_config (1:1)
+// comparator_config -< comparator_spec (1:N)
+// spec_definition -< comparator_spec (1:N)
+
+// FORM BUILDER
+// form_field -< field_tooltip (1:N)
+// landing -< field_tooltip (1:N)
+```
+
+---
+
+### 18.12 Campos para Tracking de Versiones (API_ENDPOINTS.md)
+
+Campos agregados para soportar el tracking de qué versión de landing generó cada lead y solicitud, permitiendo A/B testing y análisis de conversión por versión.
+
+#### 18.12.1 Modificaciones a `landing`
+
+```sql
+-- Campos de versionamiento y staging
+ALTER TABLE `landing` ADD COLUMN `current_version_id` BIGINT UNSIGNED COMMENT 'Versión actualmente publicada en producción' AFTER `institution_id`;
+ALTER TABLE `landing` ADD COLUMN `staging_version_id` BIGINT UNSIGNED COMMENT 'Versión en staging/preview' AFTER `current_version_id`;
+ALTER TABLE `landing` ADD COLUMN `status` ENUM('draft', 'staging', 'published', 'archived') DEFAULT 'draft' COMMENT 'Estado del landing' AFTER `staging_version_id`;
+
+-- Índices
+ALTER TABLE `landing` ADD KEY `idx_landing_status` (`status`);
+ALTER TABLE `landing` ADD KEY `idx_landing_current_version` (`current_version_id`);
+ALTER TABLE `landing` ADD KEY `idx_landing_staging_version` (`staging_version_id`);
+
+-- Foreign keys (referencia circular, se crea después de landing_version)
+ALTER TABLE `landing` ADD CONSTRAINT `fk_landing_current_version` FOREIGN KEY (`current_version_id`) REFERENCES `landing_version` (`id`) ON DELETE SET NULL;
+ALTER TABLE `landing` ADD CONSTRAINT `fk_landing_staging_version` FOREIGN KEY (`staging_version_id`) REFERENCES `landing_version` (`id`) ON DELETE SET NULL;
+```
+
+#### 18.12.2 Modificaciones a `lead`
+
+```sql
+-- Campo para tracking de versión
+ALTER TABLE `lead` ADD COLUMN `landing_version_id` BIGINT UNSIGNED COMMENT 'Versión de landing que generó este lead' AFTER `landing_id`;
+
+-- Índice
+ALTER TABLE `lead` ADD KEY `idx_lead_landing_version` (`landing_version_id`);
+
+-- Foreign key
+ALTER TABLE `lead` ADD CONSTRAINT `fk_lead_landing_version` FOREIGN KEY (`landing_version_id`) REFERENCES `landing_version` (`id`) ON DELETE SET NULL;
+```
+
+#### 18.12.3 Modificaciones a `application`
+
+```sql
+-- Campo para tracking de versión
+ALTER TABLE `application` ADD COLUMN `landing_version_id` BIGINT UNSIGNED COMMENT 'Versión de landing que generó esta solicitud' AFTER `landing_id`;
+
+-- Índice
+ALTER TABLE `application` ADD KEY `idx_app_landing_version` (`landing_version_id`);
+
+-- Foreign key
+ALTER TABLE `application` ADD CONSTRAINT `fk_app_landing_version` FOREIGN KEY (`landing_version_id`) REFERENCES `landing_version` (`id`) ON DELETE SET NULL;
+```
+
+#### 18.12.4 Queries de Análisis por Versión
+
+```sql
+-- Leads por versión de landing
+SELECT
+  lv.id AS version_id,
+  lv.version_number,
+  lv.name AS version_name,
+  lv.status AS version_status,
+  COUNT(l.id) AS total_leads,
+  SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) AS converted_leads,
+  ROUND(SUM(CASE WHEN l.status = 'converted' THEN 1 ELSE 0 END) * 100.0 / COUNT(l.id), 2) AS conversion_rate
+FROM landing_version lv
+LEFT JOIN lead l ON l.landing_version_id = lv.id
+WHERE lv.landing_id = ?
+GROUP BY lv.id, lv.version_number, lv.name, lv.status
+ORDER BY lv.version_number DESC;
+
+-- Solicitudes por versión de landing
+SELECT
+  lv.id AS version_id,
+  lv.version_number,
+  lv.name AS version_name,
+  COUNT(a.id) AS total_applications,
+  SUM(CASE WHEN a.status = 'approved' THEN 1 ELSE 0 END) AS approved,
+  SUM(CASE WHEN a.status = 'rejected' THEN 1 ELSE 0 END) AS rejected,
+  SUM(CASE WHEN a.status = 'disbursed' THEN 1 ELSE 0 END) AS disbursed,
+  ROUND(SUM(CASE WHEN a.status IN ('approved', 'disbursed') THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(a.id), 0), 2) AS approval_rate
+FROM landing_version lv
+LEFT JOIN application a ON a.landing_version_id = lv.id
+WHERE lv.landing_id = ?
+GROUP BY lv.id, lv.version_number, lv.name
+ORDER BY lv.version_number DESC;
+
+-- Comparación de conversión entre versiones (A/B testing)
+SELECT
+  lv.version_number,
+  lv.name,
+  lv.published_at,
+  COUNT(DISTINCT l.id) AS leads,
+  COUNT(DISTINCT a.id) AS applications,
+  ROUND(COUNT(DISTINCT a.id) * 100.0 / NULLIF(COUNT(DISTINCT l.id), 0), 2) AS lead_to_app_rate
+FROM landing_version lv
+LEFT JOIN lead l ON l.landing_version_id = lv.id
+LEFT JOIN application a ON a.landing_version_id = lv.id
+WHERE lv.landing_id = ?
+  AND lv.status = 'published'
+GROUP BY lv.id, lv.version_number, lv.name, lv.published_at
+ORDER BY lv.published_at DESC;
+```
+
+---
+
+### 18.13 Resumen Final de Cambios v3.0
+
+| Categoría | v2.0 | v3.0 | Diferencia |
+|-----------|------|------|------------|
+| **Total Tablas** | 99 | 127 | +28 |
+| **Módulos** | 10 | 14 | +4 |
+| **Tablas Products** | 15 | 20 | +5 |
+| **Tablas Landing** | 14 | 23 | +9 |
+| **Tablas Form** | 8 | 9 | +1 |
+| **Tablas Filters** | 4 | 6 | +2 |
+| **Campos Nuevos** | - | ~75 | +75 |
+
+**Nuevos Módulos:**
+1. **Quiz** (5 tablas) - Sistema de quiz configurable con mapeo a filtros
+2. **Result Pages** (4 tablas) - Configuración de páginas de resultado
+3. **Finance** (2 tablas) - Plazos y opciones de inicial
+4. **Landing Content** (9 tablas) - Contenido dinámico de landing
+
+**Campos de Tracking Agregados (API_ENDPOINTS.md):**
+- `landing.current_version_id` - Versión publicada
+- `landing.staging_version_id` - Versión en preview
+- `landing.status` - Estado del landing
+- `lead.landing_version_id` - Tracking de versión en leads
+- `application.landing_version_id` - Tracking de versión en solicitudes
+
+**Documentación relacionada:**
+- Ver `Actualizaciones DB para Frontend v0.5.md` para detalles adicionales
+- Ver `Rediseño Baldecash 3.0 Tablas de UI.md` para tablas UI-específicas
+- Ver `API_ENDPOINTS.md` para endpoints de versionamiento
+
+---
+
+*BaldeCash Platform v3.0 Rediseño - Enero 2026*
