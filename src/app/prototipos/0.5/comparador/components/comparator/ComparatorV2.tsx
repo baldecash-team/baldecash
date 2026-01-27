@@ -157,7 +157,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 bg-white border-t border-neutral-200 shadow-2xl transition-all duration-300">
+    <div className="fixed inset-x-0 bottom-0 z-[100] bg-white border-t border-neutral-200 shadow-2xl transition-all duration-300">
       {/* Collapsible Header */}
       <div
         className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-neutral-50 transition-colors"

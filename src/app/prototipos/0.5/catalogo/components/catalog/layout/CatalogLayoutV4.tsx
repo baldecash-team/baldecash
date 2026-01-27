@@ -663,6 +663,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         size="full"
         scrollBehavior="inside"
         classNames={{
+          wrapper: 'z-[100]',
+          backdrop: 'z-[99]',
           base: 'bg-white m-0 rounded-none sm:rounded-l-xl sm:ml-auto sm:max-w-md h-full',
           header: 'border-b border-neutral-200 bg-white py-4',
           body: 'bg-white p-0',

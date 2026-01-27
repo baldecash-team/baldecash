@@ -37,9 +37,9 @@ export const QuizLayoutV5: React.FC<QuizLayoutProps> = ({
       isDismissable={false}
       classNames={{
         base: 'bg-white m-4 rounded-2xl max-h-[90vh]',
-        backdrop: 'bg-black/60',
+        backdrop: 'bg-black/60 z-[99]',
         body: 'p-0 overflow-hidden',
-        wrapper: 'overflow-hidden',
+        wrapper: 'overflow-hidden z-[100]',
       }}
     >
       <ModalContent className="bg-white overflow-hidden">

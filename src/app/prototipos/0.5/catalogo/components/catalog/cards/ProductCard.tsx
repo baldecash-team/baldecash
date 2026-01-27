@@ -70,6 +70,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     selectedInitial
   );
 
+  // Check if product has "oferta" tag and originalPrice for discount display
+  const hasOfertaTag = product.tags?.includes('oferta');
+  const originalQuota = product.originalPrice
+    ? calculateQuotaWithInitial(product.originalPrice, selectedTerm, selectedInitial).quota
+    : null;
+  const savings = originalQuota ? originalQuota - quota : 0;
+
   return (
     <motion.div
       className="h-full w-full min-w-[min(305px,100%)] max-w-[398px]"
@@ -213,10 +220,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-4xl font-black text-[#4654CD]">S/{formatMoney(quota)}</span>
                 <span className="text-lg text-neutral-400">/mes</span>
+                {hasOfertaTag && originalQuota && (
+                  <span className="text-base text-neutral-400 line-through ml-1">
+                    S/{formatMoney(originalQuota)}
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-neutral-500 mt-2">
-                en {selectedTerm} meses · inicial S/{formatMoney(initialAmount)}
-              </p>
+              {hasOfertaTag && savings > 0 ? (
+                <p className="text-xs text-emerald-600 font-medium mt-2">
+                  Ahorras S/{formatMoney(savings)}/mes
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-500 mt-2">
+                  en {selectedTerm} meses · inicial S/{formatMoney(initialAmount)}
+                </p>
+              )}
             </div>
 
             {/* Spacer */}

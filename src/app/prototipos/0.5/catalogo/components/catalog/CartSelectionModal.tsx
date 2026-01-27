@@ -126,7 +126,8 @@ const DesktopModal: React.FC<CartSelectionModalProps & { product: CatalogProduct
     backdrop="blur"
     placement="center"
     classNames={{
-      backdrop: 'bg-black/50 backdrop-blur-sm',
+      wrapper: 'z-[100]',
+      backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
       base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200',
       header: 'border-b border-neutral-100 pb-4',
       body: 'p-0',
@@ -209,7 +210,7 @@ const MobileBottomSheet: React.FC<CartSelectionModalProps & { product: CatalogPr
             transition={{ duration: 0.2 }}
             onClick={onClose}
             onTouchMove={(e) => e.preventDefault()}
-            className="fixed inset-0 bg-black/50 z-[149]"
+            className="fixed inset-0 bg-black/50 z-[9998]"
             style={{ touchAction: 'none' }}
           />
 
@@ -229,7 +230,7 @@ const MobileBottomSheet: React.FC<CartSelectionModalProps & { product: CatalogPr
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] flex flex-col min-h-[50vh] max-h-[calc(100vh-12rem)]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col min-h-[50vh] max-h-[calc(100vh-12rem)]"
             style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}

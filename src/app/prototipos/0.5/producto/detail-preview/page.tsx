@@ -17,7 +17,7 @@
  * - Certifications: V1 (Logos inline)
  */
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import { ArrowLeft, Code, Settings } from 'lucide-react';
@@ -29,6 +29,11 @@ import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipo
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
+
+// Catalog secondary navbar and data
+import { CatalogSecondaryNavbar } from '@/app/prototipos/0.5/catalogo/components/catalog/CatalogSecondaryNavbar';
+import { useCatalogSharedState } from '@/app/prototipos/0.5/catalogo/hooks/useCatalogSharedState';
+import { mockProducts } from '@/app/prototipos/0.5/catalogo/data/mockCatalogData';
 import {
   DetalleConfig,
   DeviceType,
@@ -48,6 +53,31 @@ function DetailPreviewContent() {
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Shared state for catalog (wishlist, cart)
+  const catalogState = useCatalogSharedState();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Get products for wishlist and cart display
+  const wishlistProducts = useMemo(
+    () => mockProducts.filter((p) => catalogState.wishlist.includes(p.id)),
+    [catalogState.wishlist]
+  );
+  const cartProducts = useMemo(
+    () => mockProducts.filter((p) => catalogState.cart.includes(p.id)),
+    [catalogState.cart]
+  );
+
+  // Build catalog URL helper
+  const getCatalogUrl = (params?: Record<string, string>) => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => searchParams.set(key, value));
+    }
+    if (isCleanMode) searchParams.set('mode', 'clean');
+    const queryString = searchParams.toString();
+    return `/prototipos/0.5/catalogo/catalog-preview${queryString ? `?${queryString}` : ''}`;
+  };
 
   // Preloading: dar tiempo a la página para cargar recursos
   useEffect(() => {
@@ -115,7 +145,31 @@ function DetailPreviewContent() {
     return (
       <div className="min-h-screen bg-neutral-50 relative">
         <Navbar isCleanMode={isCleanMode} />
-        <main className="pt-24">
+        <CatalogSecondaryNavbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSearchClear={() => setSearchQuery('')}
+          onSearchSubmit={() => {
+            if (searchQuery.trim()) {
+              router.push(getCatalogUrl({ search: searchQuery }));
+            }
+          }}
+          wishlistItems={wishlistProducts}
+          onWishlistRemove={catalogState.removeFromWishlist}
+          onWishlistClear={catalogState.clearWishlist}
+          onWishlistViewProduct={(productId) => {
+            const product = mockProducts.find((p) => p.id === productId);
+            router.push(`/prototipos/0.5/producto/detail-preview?device=${product?.deviceType || 'laptop'}${isCleanMode ? '&mode=clean' : ''}`);
+          }}
+          cartItems={cartProducts}
+          onCartRemove={catalogState.removeFromCart}
+          onCartClear={catalogState.clearCart}
+          onCartContinue={() => router.push(getCatalogUrl())}
+          onMobileSearchClick={() => router.push(getCatalogUrl())}
+          onMobileWishlistClick={() => router.push(getCatalogUrl())}
+          onMobileCartClick={() => router.push(getCatalogUrl())}
+        />
+        <main className="pt-40">
           <ProductDetail deviceType={config.deviceType} cronogramaVersion={config.cronogramaVersion} />
         </main>
         <Footer isCleanMode={isCleanMode} />
@@ -130,7 +184,31 @@ function DetailPreviewContent() {
   return (
     <div className="min-h-screen bg-neutral-50">
       <Navbar isCleanMode={isCleanMode} />
-      <main className="pt-24">
+      <CatalogSecondaryNavbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearchClear={() => setSearchQuery('')}
+        onSearchSubmit={() => {
+          if (searchQuery.trim()) {
+            router.push(getCatalogUrl({ search: searchQuery }));
+          }
+        }}
+        wishlistItems={wishlistProducts}
+        onWishlistRemove={catalogState.removeFromWishlist}
+        onWishlistClear={catalogState.clearWishlist}
+        onWishlistViewProduct={(productId) => {
+          const product = mockProducts.find((p) => p.id === productId);
+          router.push(`/prototipos/0.5/producto/detail-preview?device=${product?.deviceType || 'laptop'}${isCleanMode ? '&mode=clean' : ''}`);
+        }}
+        cartItems={cartProducts}
+        onCartRemove={catalogState.removeFromCart}
+        onCartClear={catalogState.clearCart}
+        onCartContinue={() => router.push(getCatalogUrl())}
+        onMobileSearchClick={() => router.push(getCatalogUrl())}
+        onMobileWishlistClick={() => router.push(getCatalogUrl())}
+        onMobileCartClick={() => router.push(getCatalogUrl())}
+      />
+      <main className="pt-40">
         {/* Main content */}
         <ProductDetail deviceType={config.deviceType} cronogramaVersion={config.cronogramaVersion} />
       </main>

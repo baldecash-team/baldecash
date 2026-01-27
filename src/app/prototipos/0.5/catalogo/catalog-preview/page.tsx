@@ -36,6 +36,7 @@ import { LoadMoreButton } from '../components/catalog/LoadMoreButton';
 import { CartSelectionModal } from '../components/catalog/CartSelectionModal';
 import { CartDrawer } from '../components/catalog/CartDrawer';
 import { NavbarSearch, NavbarWishlist, NavbarCart, NavbarCartButton, NavbarSearchButton, NavbarWishlistButton } from '../components/catalog/NavbarActions';
+import { CatalogSecondaryNavbar } from '../components/catalog/CatalogSecondaryNavbar';
 import { SearchDrawer } from '../components/catalog/SearchDrawer';
 import { WishlistDrawer } from '../components/wishlist/WishlistDrawer';
 import { WebchatDrawer } from '../components/webchat';
@@ -906,64 +907,43 @@ function CatalogPreviewContent() {
         isCleanMode={isCleanMode}
         hidePromoBanner={isComparatorOpen || isFilterDrawerOpen}
         fullWidth
-        minimal
-        rightContent={
-          <>
-            <NavbarSearch
-              value={searchQuery}
-              onChange={setSearchQuery}
-              onClear={handleSearchClear}
-            />
-            <NavbarWishlist
-              id="onboarding-wishlist"
-              items={wishlistProducts}
-              onRemoveItem={handleToggleWishlist}
-              onClearAll={() => setWishlist([])}
-              onViewProduct={(productId) => {
-                const product = mockProducts.find((p) => p.id === productId);
-                router.push(getDetailUrl(productId, product?.deviceType, isCleanMode));
-              }}
-            />
-            <NavbarCart
-              id="onboarding-cart"
-              items={cartProducts}
-              onRemoveItem={handleRemoveFromCart}
-              onClearAll={handleClearCart}
-              onContinue={handleCartContinue}
-            />
-          </>
-        }
-        mobileRightContent={
-          <>
-            <NavbarSearchButton
-              isActive={isSearchDrawerOpen || searchQuery.length > 0}
-              onClick={() => {
-                closeAllDrawers();
-                setIsSearchDrawerOpen(true);
-              }}
-            />
-            <NavbarWishlistButton
-              id="onboarding-wishlist-mobile"
-              count={wishlist.length}
-              onClick={() => {
-                closeAllDrawers();
-                setIsWishlistDrawerOpen(true);
-              }}
-            />
-            <NavbarCartButton
-              id="onboarding-cart-mobile"
-              count={cart.length}
-              onClick={() => {
-                closeAllDrawers();
-                setIsCartDrawerOpen(true);
-              }}
-            />
-          </>
-        }
       />
 
-      {/* Main Content with padding for fixed navbar */}
-      <main className="pt-24">
+      {/* Secondary Navbar with Search, Wishlist, Cart */}
+      <CatalogSecondaryNavbar
+        hidePromoBanner={isComparatorOpen || isFilterDrawerOpen}
+        fullWidth
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onSearchClear={handleSearchClear}
+        wishlistItems={wishlistProducts}
+        onWishlistRemove={handleToggleWishlist}
+        onWishlistClear={() => setWishlist([])}
+        onWishlistViewProduct={(productId) => {
+          const product = mockProducts.find((p) => p.id === productId);
+          router.push(getDetailUrl(productId, product?.deviceType, isCleanMode));
+        }}
+        cartItems={cartProducts}
+        onCartRemove={handleRemoveFromCart}
+        onCartClear={handleClearCart}
+        onCartContinue={handleCartContinue}
+        isSearchActive={isSearchDrawerOpen || searchQuery.length > 0}
+        onMobileSearchClick={() => {
+          closeAllDrawers();
+          setIsSearchDrawerOpen(true);
+        }}
+        onMobileWishlistClick={() => {
+          closeAllDrawers();
+          setIsWishlistDrawerOpen(true);
+        }}
+        onMobileCartClick={() => {
+          closeAllDrawers();
+          setIsCartDrawerOpen(true);
+        }}
+      />
+
+      {/* Main Content with padding for fixed navbars (promo + primary + secondary) */}
+      <main className="pt-40">
         {/* Catalog Layout with Products */}
         <CatalogLayout
         products={displayedProducts}
@@ -1285,6 +1265,7 @@ function CatalogPreviewContent() {
             isOpen={isHelpPopoverOpen}
             onOpenChange={setIsHelpPopoverOpen}
             classNames={{
+              base: 'z-[100]',
               content: 'p-0 bg-white border border-neutral-200 shadow-xl rounded-xl overflow-hidden',
             }}
           >

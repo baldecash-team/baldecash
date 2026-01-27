@@ -65,7 +65,7 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-[149]"
+            className="fixed inset-0 bg-black/50 z-[9998]"
           />
 
           {/* Bottom Sheet */}
@@ -83,7 +83,7 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] min-h-[50vh] max-h-[70vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] min-h-[50vh] max-h-[70vh] flex flex-col"
           >
             {/* Drag Handle */}
             <div

@@ -369,7 +369,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 transition={{ duration: 0.2 }}
                 onClick={() => setIsModalOpen(false)}
                 onTouchMove={(e) => e.preventDefault()}
-                className="fixed inset-0 bg-black/50 z-[149]"
+                className="fixed inset-0 bg-black/50 z-[9998]"
                 style={{ touchAction: 'none' }}
               />
 
@@ -388,7 +388,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     setIsModalOpen(false);
                   }
                 }}
-                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] max-h-[calc(100vh-12rem)] flex flex-col"
+                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] max-h-[calc(100vh-12rem)] flex flex-col"
                 style={{ overscrollBehavior: 'contain' }}
               >
                 {/* Drag Handle */}
@@ -541,8 +541,8 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           onClose={() => setIsModalOpen(false)}
           size="lg"
           classNames={{
-            wrapper: "z-[150]",
-            backdrop: "bg-black/50 backdrop-blur-sm z-[149]",
+            wrapper: "z-[9999]",
+            backdrop: "bg-black/50 backdrop-blur-sm z-[9998]",
             base: "bg-white",
             closeButton: "right-4 top-4 hover:bg-neutral-100 rounded-lg cursor-pointer",
           }}

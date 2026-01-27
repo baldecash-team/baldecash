@@ -44,12 +44,12 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   return (
     <div
       className={`relative flex items-center transition-all duration-200 ${
-        isFocused ? 'w-[480px]' : 'w-96'
+        isFocused ? 'w-[700px]' : 'w-[600px]'
       }`}
     >
       <div
-        className={`flex items-center w-full bg-neutral-100 rounded-xl border-2 transition-colors ${
-          isFocused ? 'border-[#4654CD] bg-white' : 'border-transparent'
+        className={`flex items-center w-full bg-white rounded-xl border-2 transition-colors ${
+          isFocused ? 'border-[#4654CD]' : 'border-[#4654CD]/30'
         }`}
       >
         <Search className="w-4 h-4 text-neutral-400 ml-3 flex-shrink-0" />
@@ -450,6 +450,14 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
               </div>
             ) : (
               <>
+                {/* Alert for multiple items */}
+                {items.length > 1 && (
+                  <div className="mx-3 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-700">
+                      Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.
+                    </p>
+                  </div>
+                )}
                 <div className="max-h-[280px] overflow-y-auto">
                   <div className="p-3 space-y-2">
                     {items.map((item) => {
@@ -492,12 +500,17 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                 {/* Footer */}
                 <div className="px-4 py-3 border-t border-neutral-100">
                   <Button
-                    className="w-full bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
+                    className={`w-full font-semibold ${
+                      items.length === 1
+                        ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
+                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                    }`}
                     onPress={() => {
                       onContinue();
                       setIsOpen(false);
                     }}
                     endContent={<ArrowRight className="w-4 h-4" />}
+                    isDisabled={items.length !== 1}
                   >
                     Continuar
                   </Button>

@@ -137,7 +137,7 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-24 right-6 z-[200] w-[380px] bg-white rounded-2xl shadow-2xl border border-neutral-200 flex flex-col overflow-hidden"
+            className="fixed bottom-24 right-6 z-[9998] w-[380px] bg-white rounded-2xl shadow-2xl border border-neutral-200 flex flex-col overflow-hidden"
             style={{ height: '500px', maxHeight: 'calc(100vh - 120px)' }}
           >
             {/* Header */}
@@ -199,7 +199,7 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
             transition={{ duration: 0.2 }}
             onClick={onClose}
             onTouchMove={(e) => e.preventDefault()}
-            className="fixed inset-0 bg-black/50 z-[149]"
+            className="fixed inset-0 bg-black/50 z-[9998]"
             style={{ touchAction: 'none' }}
           />
 
@@ -219,7 +219,7 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col"
             style={{ overscrollBehavior: 'contain', height: '85vh', maxHeight: '700px' }}
           >
             {/* Drag Handle */}

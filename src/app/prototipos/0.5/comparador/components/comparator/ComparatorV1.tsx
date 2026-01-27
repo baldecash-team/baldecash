@@ -166,8 +166,8 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       isDismissable={false}
       classNames={{
         base: 'bg-white m-0 rounded-none h-screen',
-        wrapper: 'p-0',
-        backdrop: 'bg-black/70',
+        wrapper: 'p-0 z-[100]',
+        backdrop: 'bg-black/70 z-[99]',
         header: 'border-b border-neutral-200 bg-white py-4 flex-shrink-0',
         body: 'bg-neutral-50 py-6 px-4 md:px-8 flex-1 overflow-y-auto',
         footer: 'border-t border-neutral-200 bg-white flex-shrink-0',

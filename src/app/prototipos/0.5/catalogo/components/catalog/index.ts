@@ -9,6 +9,7 @@ export { LoadMoreButton } from './LoadMoreButton';
 export { ImageGallery } from './ImageGallery';
 export { ProductTags } from './ProductTags';
 export { FloatingFilterPanel } from './FloatingFilterPanel';
+export { CatalogSecondaryNavbar } from './CatalogSecondaryNavbar';
 
 // Color selector (único iterable v0.5)
 export { ColorSelector, ColorSelectorV1, ColorSelectorV2 } from './color-selector';

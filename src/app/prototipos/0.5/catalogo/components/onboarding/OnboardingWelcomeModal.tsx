@@ -31,7 +31,8 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
       hideCloseButton
       classNames={{
         base: 'bg-white rounded-[14px] mx-4',
-        backdrop: 'bg-black/60',
+        wrapper: 'z-[100]',
+        backdrop: 'bg-black/60 z-[99]',
         body: 'py-6',
       }}
     >

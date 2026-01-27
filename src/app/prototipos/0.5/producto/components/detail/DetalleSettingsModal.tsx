@@ -87,8 +87,8 @@ export const DetalleSettingsModal: React.FC<DetalleSettingsModalProps> = ({
       placement="center"
       classNames={{
         base: 'bg-white my-8 rounded-[14px]',
-        wrapper: 'items-center justify-center py-8 min-h-full',
-        backdrop: 'bg-black/50',
+        wrapper: 'items-center justify-center py-8 min-h-full z-[100]',
+        backdrop: 'bg-black/50 z-[99]',
         header: 'border-b border-neutral-200 bg-white py-4 pr-12 rounded-t-[14px]',
         body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
         footer: 'border-t border-neutral-200 bg-white rounded-b-[14px]',

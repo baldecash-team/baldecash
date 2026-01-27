@@ -79,7 +79,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             transition={{ duration: 0.2 }}
             onClick={onClose}
             onTouchMove={(e) => e.preventDefault()}
-            className="fixed inset-0 bg-black/50 z-[149]"
+            className="fixed inset-0 bg-black/50 z-[9998]"
             style={{ touchAction: 'none' }}
           />
 
@@ -99,7 +99,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[150] min-h-[50vh] max-h-[calc(100vh-12rem)] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] min-h-[50vh] max-h-[calc(100vh-12rem)] flex flex-col"
             style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}
@@ -153,6 +153,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
+                  {/* Alert for multiple items */}
+                  {items.length > 1 && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-sm text-amber-700">
+                        Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.
+                      </p>
+                    </div>
+                  )}
                   {items.map((item) => {
                     const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
                     return (
@@ -193,16 +201,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-neutral-200 bg-white p-4 space-y-3">
-                {/* Warning for multiple items */}
-                {items.length > 1 && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-700">
-                      Solo puedes solicitar un producto a la vez. Elimina los demás para continuar.
-                    </p>
-                  </div>
-                )}
-
+              <div className="border-t border-neutral-200 bg-white p-4">
                 {/* Actions */}
                 <div className="flex gap-2 items-center justify-center">
                   <Button
