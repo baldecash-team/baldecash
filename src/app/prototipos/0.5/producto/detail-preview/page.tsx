@@ -30,6 +30,9 @@ import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipo
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
+// Product context for wizard integration
+import { ProductProvider } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
+
 // Catalog secondary navbar and data
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.5/catalogo/components/catalog/CatalogSecondaryNavbar';
 import { useCatalogSharedState } from '@/app/prototipos/0.5/catalogo/hooks/useCatalogSharedState';
@@ -277,8 +280,10 @@ function LoadingFallback() {
 
 export default function DetailPreviewPage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <DetailPreviewContent />
-    </Suspense>
+    <ProductProvider>
+      <Suspense fallback={<LoadingFallback />}>
+        <DetailPreviewContent />
+      </Suspense>
+    </ProductProvider>
   );
 }

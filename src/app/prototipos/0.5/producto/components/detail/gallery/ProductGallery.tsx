@@ -1,16 +1,39 @@
 'use client';
 
 /**
- * ProductGallery - Thumbnails inferiores + zoom hover (basado en V1)
- * Main image with thumbnails below, inline hover zoom effect.
+ * ProductGallery - Card unificada con galería + info del producto
+ * Incluye: imagen principal, thumbnails, marca, rating, nombre y selector de color
  */
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ZoomIn } from 'lucide-react';
+import { ZoomIn, Star } from 'lucide-react';
 import { ProductGalleryProps } from '../../../types/detail';
+import { ColorSelector } from '../color-selector/ColorSelector';
 
-export const ProductGallery: React.FC<ProductGalleryProps> = ({ images, productName }) => {
+interface ExtendedProductGalleryProps extends ProductGalleryProps {
+  // Product info
+  brand?: string;
+  rating?: number;
+  reviewCount?: number;
+  displayName?: string;
+  // Color selector
+  colors?: Array<{ id: string; name: string; hex: string }>;
+  selectedColorId?: string;
+  onColorSelect?: (colorId: string) => void;
+}
+
+export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
+  images,
+  productName,
+  brand,
+  rating,
+  reviewCount,
+  displayName,
+  colors,
+  selectedColorId,
+  onColorSelect,
+}) => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -28,10 +51,10 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ images, productN
   };
 
   return (
-    <div className="space-y-4">
+    <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
       {/* Main Image */}
       <div
-        className="relative bg-white rounded-xl overflow-hidden border border-neutral-200 aspect-square cursor-zoom-in group"
+        className="relative aspect-square cursor-zoom-in group"
         onMouseEnter={() => setIsZoomed(true)}
         onMouseLeave={() => setIsZoomed(false)}
         onMouseMove={handleMouseMove}
@@ -87,28 +110,71 @@ export const ProductGallery: React.FC<ProductGalleryProps> = ({ images, productN
       </div>
 
       {/* Thumbnails */}
-      <div className="grid grid-cols-5 md:grid-cols-6 gap-3">
-        {images.map((image, index) => (
-          <motion.div
-            key={image.id}
-            className={`relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
-              selectedImage === index
-                ? 'border-[#4654CD] ring-2 ring-[#4654CD]/20'
-                : 'border-neutral-200 hover:border-neutral-300'
-            }`}
-            onClick={() => setSelectedImage(index)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <img
-              src={image.url}
-              alt={image.alt}
-              className="w-full h-full object-contain p-2 bg-white"
-              loading="lazy"
-              onError={handleImageError}
+      <div className="px-4 py-3 border-t border-neutral-100">
+        <div className="grid grid-cols-5 md:grid-cols-6 gap-2">
+          {images.map((image, index) => (
+            <motion.div
+              key={image.id}
+              className={`relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                selectedImage === index
+                  ? 'border-[#4654CD] ring-2 ring-[#4654CD]/20'
+                  : 'border-neutral-200 hover:border-neutral-300'
+              }`}
+              onClick={() => setSelectedImage(index)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <img
+                src={image.url}
+                alt={image.alt}
+                className="w-full h-full object-contain p-1.5 bg-white"
+                loading="lazy"
+                onError={handleImageError}
+              />
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Product Info Section */}
+      <div className="p-5 border-t border-neutral-100">
+        {/* Brand + Rating Row */}
+        {(brand || rating) && (
+          <div className="flex items-center gap-3 mb-3">
+            {brand && (
+              <span className="px-3 py-1.5 bg-[#4654CD] text-white text-sm font-bold rounded-lg">
+                {brand}
+              </span>
+            )}
+            {rating && (
+              <div className="flex items-center gap-1.5">
+                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                <span className="text-base font-bold text-neutral-800">{rating}</span>
+                {reviewCount && (
+                  <span className="text-sm text-neutral-400">({reviewCount})</span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Product Name */}
+        {displayName && (
+          <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2'] leading-tight">
+            {displayName}
+          </h1>
+        )}
+
+        {/* Color Selector */}
+        {colors && colors.length > 0 && selectedColorId && onColorSelect && (
+          <div className="mt-4">
+            <ColorSelector
+              colors={colors}
+              selectedColorId={selectedColorId}
+              onColorSelect={onColorSelect}
             />
-          </motion.div>
-        ))}
+          </div>
+        )}
       </div>
     </div>
   );

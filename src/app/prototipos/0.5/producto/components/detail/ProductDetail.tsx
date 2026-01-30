@@ -4,8 +4,9 @@
  * ProductDetail - Wrapper component v0.5
  * Supports multiple device types: laptop, tablet, celular
  *
- * Config: InfoHeader V3, Gallery V1, Tabs V1, Specs V2,
- * Pricing V4, Cronograma V2, Similar V2, Limitations V6, Certifications V1
+ * Layout: 2 columnas
+ * - Izquierda: Card unificada (Gallery + Brand + Rating + Nombre + ColorSelector)
+ * - Derecha: Pricing sticky + CTA + Certifications
  */
 
 import React, { useState, useMemo } from 'react';
@@ -21,7 +22,6 @@ import {
 } from '../../data/mockDetailData';
 
 import {
-  ProductInfoHeader,
   ProductGallery,
   DetailTabs,
   SpecsDisplay,
@@ -100,23 +100,24 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     <div className="min-h-screen bg-neutral-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-6">
         {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Gallery */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          {/* Left Column - Unified Product Card (Gallery + Info) */}
           <div id="section-gallery">
-            <ProductGallery images={product.images} productName={product.displayName} />
+            <ProductGallery
+              images={product.images}
+              productName={product.displayName}
+              brand={product.brand}
+              rating={product.rating}
+              reviewCount={product.reviewCount}
+              displayName={product.displayName}
+              colors={product.colors}
+              selectedColorId={selectedColorId}
+              onColorSelect={setSelectedColorId}
+            />
           </div>
 
-          {/* Right Column - Product Info */}
-          <div className="space-y-6">
-            {/* Info Header */}
-            <div id="section-info">
-              <ProductInfoHeader
-                product={product}
-                selectedColorId={selectedColorId}
-                onColorSelect={setSelectedColorId}
-              />
-            </div>
-
+          {/* Right Column - Pricing (Sticky) */}
+          <div className="lg:sticky lg:top-[168px] space-y-6">
             {/* Pricing Calculator + CTA */}
             <div id="section-pricing" className="space-y-4">
               <PricingCalculator
