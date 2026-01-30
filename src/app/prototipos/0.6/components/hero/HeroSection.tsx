@@ -135,9 +135,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} isCleanMode={isCleanMode} />
               </div>
 
-              {/* Microcopy */}
+              {/* Microcopy con links dinámicos */}
               <p className="text-xs text-neutral-400">
-                {ctaData?.microcopy || ''}
+                {ctaData?.legalLinks ? (
+                  <>
+                    Al continuar, aceptas nuestros{' '}
+                    <a href={ctaData.legalLinks.terms.url} className="underline hover:text-neutral-600">
+                      {ctaData.legalLinks.terms.text}
+                    </a>
+                    {' '}y{' '}
+                    <a href={ctaData.legalLinks.privacy.url} className="underline hover:text-neutral-600">
+                      {ctaData.legalLinks.privacy.text}
+                    </a>
+                  </>
+                ) : (
+                  ctaData?.microcopy || ''
+                )}
               </p>
             </div>
           </section>

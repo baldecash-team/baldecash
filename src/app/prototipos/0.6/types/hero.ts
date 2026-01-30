@@ -272,6 +272,16 @@ export interface CtaButton {
   url?: string;
 }
 
+export interface LegalLink {
+  text: string;
+  url: string;
+}
+
+export interface LegalLinks {
+  terms: LegalLink;
+  privacy: LegalLink;
+}
+
 export interface CtaData {
   buttons: {
     catalog: CtaButton;
@@ -281,6 +291,7 @@ export interface CtaData {
   responseTime: string;
   microcopy?: string;
   highlightWord?: string;
+  legalLinks?: LegalLinks;
 }
 
 export interface HeroCtaProps {

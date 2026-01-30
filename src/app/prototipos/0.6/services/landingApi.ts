@@ -396,6 +396,19 @@ export function transformLandingData(data: LandingHeroResponse): {
     const ctaConfig = (ctaComponent.content_config || {}) as Record<string, unknown>;
     const buttons = (ctaConfig.buttons || {}) as Record<string, { text?: string; text_line2?: string; url?: string }>;
 
+    // Extraer legal_links si existen
+    const legalLinksRaw = ctaConfig.legal_links as { terms?: { text?: string; url?: string }; privacy?: { text?: string; url?: string } } | undefined;
+    const legalLinks = legalLinksRaw ? {
+      terms: {
+        text: legalLinksRaw.terms?.text || 'términos',
+        url: legalLinksRaw.terms?.url || '#terminos',
+      },
+      privacy: {
+        text: legalLinksRaw.privacy?.text || 'privacidad',
+        url: legalLinksRaw.privacy?.url || '#privacidad',
+      },
+    } : undefined;
+
     ctaData = {
       buttons: {
         catalog: {
@@ -414,6 +427,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       responseTime: (ctaConfig.response_time as string) || '',
       microcopy: (ctaConfig.microcopy as string) || undefined,
       highlightWord: (ctaConfig.highlight_word as string) || undefined,
+      legalLinks,
     };
   }
 
