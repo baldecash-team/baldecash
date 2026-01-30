@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   title: "BaldeCash - Prototipos UI/UX",
   description: "Prototipos de diseño para financiamiento estudiantil",
   icons: {
-    icon: "/baldecash/favicon.ico",
+    icon: "https://cdn.prod.website-files.com/62141f21700a64ab3f816206/62141f21700a649ad7816257_favicon.png",
   },
 };
 
