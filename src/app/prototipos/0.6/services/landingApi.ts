@@ -13,6 +13,11 @@ import type {
   TrustSignal,
   CtaData,
   PromoBannerData,
+  NavbarItemData,
+  MegaMenuItemData,
+  FooterData,
+  CompanyData,
+  CompanySocialLinks,
 } from '../types/hero';
 
 // API Base URL
@@ -80,7 +85,26 @@ interface ApiInstitution {
 }
 
 interface ApiCompanyInfo {
-  customer_portal_url?: string;
+  name?: string | null;
+  legal_name?: string | null;
+  logo_url?: string | null;
+  main_phone?: string | null;
+  main_email?: string | null;
+  website_url?: string | null;
+  customer_portal_url?: string | null;
+  support_phone?: string | null;
+  support_email?: string | null;
+  support_whatsapp?: string | null;
+  support_hours?: string | null;
+  sbs_registration?: string | null;
+  social_links?: {
+    facebook?: string | null;
+    instagram?: string | null;
+    twitter?: string | null;
+    linkedin?: string | null;
+    youtube?: string | null;
+    tiktok?: string | null;
+  } | null;
 }
 
 interface LandingHeroResponse {
@@ -148,12 +172,15 @@ export function transformLandingData(data: LandingHeroResponse): {
   faqData: FaqData | null;
   ctaData: CtaData | null;
   promoBannerData: PromoBannerData | null;
+  navbarItems: NavbarItemData[];
+  megamenuItems: MegaMenuItemData[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;
   customerPortalUrl?: string;
+  footerData: FooterData | null;
 } {
   const components = data.components || [];
 
@@ -171,6 +198,25 @@ export function transformLandingData(data: LandingHeroResponse): {
   const testimonialsComponent = components.find(c => c.component_code === 'testimonials');
   const ctaComponent = components.find(c => c.component_code === 'cta');
   const promoBannerComponent = components.find(c => c.component_code === 'promo_banner');
+  const navbarComponent = components.find(c => c.component_code === 'navbar');
+  const footerComponent = components.find(c => c.component_code === 'footer');
+
+  // Extraer items del navbar
+  const navbarConfig = (navbarComponent?.content_config || {}) as Record<string, unknown>;
+  const navbarItems: NavbarItemData[] = ((navbarConfig.items as NavbarItemData[]) || []).map(item => ({
+    label: item.label || '',
+    href: item.href || '',
+    section: item.section,
+    has_megamenu: item.has_megamenu,
+  }));
+
+  // Extraer megamenu items
+  const megamenuItems: MegaMenuItemData[] = ((navbarConfig.megamenu_items as MegaMenuItemData[]) || []).map(item => ({
+    label: item.label || '',
+    href: item.href || '',
+    icon: item.icon || '',
+    description: item.description || '',
+  }));
 
   // Determinar secciones activas para el navbar
   const activeSections: string[] = [];
@@ -386,6 +432,39 @@ export function transformLandingData(data: LandingHeroResponse): {
     };
   }
 
+  // Extraer datos de Footer (null si el componente no existe)
+  let footerData: FooterData | null = null;
+  if (footerComponent || data.company) {
+    const footerConfig = (footerComponent?.content_config || {}) as Record<string, unknown>;
+
+    // Transformar company data
+    const companyData: CompanyData | undefined = data.company ? {
+      name: data.company.name,
+      legal_name: data.company.legal_name,
+      logo_url: data.company.logo_url,
+      main_phone: data.company.main_phone,
+      main_email: data.company.main_email,
+      website_url: data.company.website_url,
+      customer_portal_url: data.company.customer_portal_url,
+      support_phone: data.company.support_phone,
+      support_email: data.company.support_email,
+      support_whatsapp: data.company.support_whatsapp,
+      support_hours: data.company.support_hours,
+      sbs_registration: data.company.sbs_registration,
+      social_links: data.company.social_links as CompanySocialLinks | null,
+    } : undefined;
+
+    footerData = {
+      tagline: (footerConfig.tagline as string) || undefined,
+      columns: (footerConfig.columns as { title: string; links: { label: string; href: string }[] }[]) || undefined,
+      newsletter: (footerConfig.newsletter as { title: string; description: string; placeholder: string; button_text: string }) || undefined,
+      sbs_text: (footerConfig.sbs_text as string) || undefined,
+      copyright_text: (footerConfig.copyright_text as string) || undefined,
+      social_links: (footerConfig.social_links as { platform: string; url: string }[]) || undefined,
+      company: companyData,
+    };
+  }
+
   return {
     heroContent,
     socialProof,
@@ -393,12 +472,15 @@ export function transformLandingData(data: LandingHeroResponse): {
     faqData,
     ctaData,
     promoBannerData,
+    navbarItems,
+    megamenuItems,
     testimonials,
     testimonialsTitle,
     activeSections,
     hasCta,
     logoUrl: data.landing.logo_url || undefined,
     customerPortalUrl: data.company?.customer_portal_url || undefined,
+    footerData,
   };
 }
 
@@ -413,12 +495,15 @@ export async function fetchHeroData(slug: string): Promise<{
   faqData: FaqData | null;
   ctaData: CtaData | null;
   promoBannerData: PromoBannerData | null;
+  navbarItems: NavbarItemData[];
+  megamenuItems: MegaMenuItemData[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;
   customerPortalUrl?: string;
+  footerData: FooterData | null;
 } | null> {
   const data = await getLandingHeroData(slug);
 

@@ -127,18 +127,68 @@ export interface FooterNavSection {
 }
 
 export interface FooterSocialLink {
-  platform: 'instagram' | 'facebook' | 'tiktok' | 'whatsapp';
+  platform: 'instagram' | 'facebook' | 'tiktok' | 'whatsapp' | 'twitter' | 'linkedin' | 'youtube';
   url: string;
-  label: string;
+  label?: string;
 }
 
+export interface FooterNewsletter {
+  title: string;
+  description: string;
+  placeholder: string;
+  button_text: string;
+}
+
+// Footer component data from API (content_config)
+export interface FooterComponentData {
+  tagline?: string;
+  columns?: FooterNavSection[];
+  newsletter?: FooterNewsletter;
+  sbs_text?: string;
+  copyright_text?: string;
+  social_links?: { platform: string; url: string }[];
+}
+
+// ============================================
+// Company Info Types (from company_info table)
+// ============================================
+
+export interface CompanySocialLinks {
+  facebook?: string | null;
+  instagram?: string | null;
+  twitter?: string | null;
+  linkedin?: string | null;
+  youtube?: string | null;
+  tiktok?: string | null;
+}
+
+export interface CompanyData {
+  name?: string | null;
+  legal_name?: string | null;
+  logo_url?: string | null;
+  main_phone?: string | null;
+  main_email?: string | null;
+  website_url?: string | null;
+  customer_portal_url?: string | null;
+  support_phone?: string | null;
+  support_email?: string | null;
+  support_whatsapp?: string | null;
+  support_hours?: string | null;
+  sbs_registration?: string | null;
+  social_links?: CompanySocialLinks | null;
+}
+
+// Combined Footer data for rendering
 export interface FooterData {
-  logo: { text: string; tagline: string };
-  navigation: FooterNavSection[];
-  social: FooterSocialLink[];
-  contact: { phone?: string; whatsapp?: string; email?: string };
-  certifications: { name: string; icon: string; description: string }[];
-  legal: { copyright: string; links: FooterLink[] };
+  // From component
+  tagline?: string;
+  columns?: FooterNavSection[];
+  newsletter?: FooterNewsletter;
+  sbs_text?: string;
+  copyright_text?: string;
+  social_links?: { platform: string; url: string }[];
+  // From company_info
+  company?: CompanyData;
 }
 
 // ============================================
@@ -251,4 +301,22 @@ export interface PromoBannerData {
   ctaUrl?: string;
   icon?: string;
   dismissible?: boolean;
+}
+
+// ============================================
+// Navbar Types
+// ============================================
+
+export interface NavbarItemData {
+  label: string;
+  href: string;
+  section: string | null;
+  has_megamenu?: boolean;
+}
+
+export interface MegaMenuItemData {
+  label: string;
+  href: string;
+  icon: string;
+  description: string;
 }

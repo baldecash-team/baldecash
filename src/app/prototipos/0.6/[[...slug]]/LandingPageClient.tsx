@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
 import { fetchHeroData } from '../services/landingApi';
-import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData } from '../types/hero';
+import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
 
 interface LandingPageClientProps {
   slug: string;
@@ -22,12 +22,15 @@ interface HeroData {
   faqData: FaqData | null;
   ctaData: CtaData | null;
   promoBannerData: PromoBannerData | null;
+  navbarItems: { label: string; href: string; section: string | null; has_megamenu?: boolean }[];
+  megamenuItems: { label: string; href: string; icon: string; description: string }[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;
   customerPortalUrl?: string;
+  footerData: FooterData | null;
 }
 
 export function LandingPageClient({ slug }: LandingPageClientProps) {
@@ -95,12 +98,15 @@ export function LandingPageClient({ slug }: LandingPageClientProps) {
       faqData={heroData.faqData}
       ctaData={heroData.ctaData}
       promoBannerData={heroData.promoBannerData}
+      navbarItems={heroData.navbarItems}
+      megamenuItems={heroData.megamenuItems}
       testimonials={heroData.testimonials}
       testimonialsTitle={heroData.testimonialsTitle}
       activeSections={heroData.activeSections}
       hasCta={heroData.hasCta}
       logoUrl={heroData.logoUrl}
       customerPortalUrl={heroData.customerPortalUrl}
+      footerData={heroData.footerData}
       isCleanMode={isCleanMode}
     />
   );

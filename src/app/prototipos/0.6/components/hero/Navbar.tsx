@@ -52,6 +52,20 @@ const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string)
   // Otherwise, let the link navigate normally to the target page with anchor
 };
 
+interface NavbarItemData {
+  label: string;
+  href: string;
+  section: string | null;
+  has_megamenu?: boolean;
+}
+
+interface MegaMenuItemData {
+  label: string;
+  href: string;
+  icon: string;
+  description: string;
+}
+
 interface NavbarProps {
   isCleanMode?: boolean;
   hidePromoBanner?: boolean;
@@ -64,35 +78,69 @@ interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
   logoUrl?: string;
   customerPortalUrl?: string;
+  navbarItems?: NavbarItemData[];
+  megamenuItems?: MegaMenuItemData[];
 }
 
 const DEFAULT_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
 const DEFAULT_CUSTOMER_PORTAL = 'https://zonaclientes.baldecash.com';
 
-export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl }) => {
+// Map de iconos para megamenu
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Laptop,
+  Tablet,
+  Smartphone,
+  ArrowRight,
+};
+
+export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [] }) => {
   const logo = logoUrl || DEFAULT_LOGO;
   const customerPortal = customerPortalUrl || DEFAULT_CUSTOMER_PORTAL;
   const catalogBasePath = '/prototipos/0.5/catalogo/catalog-preview';
   const catalogUrl = buildInternalUrl(catalogBasePath, isCleanMode);
   const heroUrl = buildInternalUrl('/prototipos/0.6', isCleanMode);
 
-  const megaMenuItems = [
+  // Fallback hardcoded megamenu items
+  const defaultMegaMenuItems = [
     { label: 'Laptops', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop' }), icon: Laptop, description: 'Portátiles para trabajo y estudio' },
     { label: 'Tablets', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'tablet' }), icon: Tablet, description: 'Tablets para toda ocasión' },
     { label: 'Celulares', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'celular' }), icon: Smartphone, description: 'Smartphones de todas las marcas' },
     { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
   ];
 
-  const allNavItems = [
+  // Transformar megamenuItems desde API o usar fallback
+  const megaMenuItems = megamenuItems.length > 0
+    ? megamenuItems.map(item => ({
+        label: item.label,
+        href: buildInternalUrl(item.href, isCleanMode),
+        icon: iconMap[item.icon] || ArrowRight,
+        description: item.description,
+      }))
+    : defaultMegaMenuItems;
+
+  // Fallback hardcoded items si no hay navbarItems desde API
+  const defaultNavItems = [
     { label: 'Equipos', href: catalogUrl, megaMenuType: 'equipos' as const, section: null },
     { label: 'Convenios', href: `${heroUrl}#convenios`, section: 'convenios' },
     { label: 'Ver requisitos', href: `${heroUrl}#como-funciona`, section: 'como-funciona' },
     { label: '¿Tienes dudas?', href: `${heroUrl}#faq`, section: 'faq' },
   ];
 
+  // Transformar navbarItems desde API o usar fallback
+  const allNavItems = navbarItems.length > 0
+    ? navbarItems.map(item => ({
+        label: item.label,
+        href: item.href.startsWith('#')
+          ? `${heroUrl}${item.href}`
+          : buildInternalUrl(item.href, isCleanMode),
+        megaMenuType: item.has_megamenu ? 'equipos' as const : undefined,
+        section: item.section,
+      }))
+    : defaultNavItems;
+
   // Filtrar items según secciones activas
   const navItems = allNavItems.filter(item =>
-    item.section === null || activeSections.includes(item.section)
+    item.section === null || activeSections.includes(item.section!)
   );
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPromo, setShowPromo] = useState(true);

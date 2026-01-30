@@ -18,7 +18,7 @@ import React from 'react';
 import { UnderlinedText } from './common/UnderlinedText';
 
 // Types
-import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData } from '../../types/hero';
+import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
 
 // Components
 import { Navbar } from './Navbar';
@@ -40,12 +40,15 @@ interface HeroSectionProps {
   faqData: FaqData | null;
   ctaData: CtaData | null;
   promoBannerData: PromoBannerData | null;
+  navbarItems?: { label: string; href: string; section: string | null; has_megamenu?: boolean }[];
+  megamenuItems?: { label: string; href: string; icon: string; description: string }[];
   testimonials?: Testimonial[];
   testimonialsTitle?: string;
   activeSections?: string[];
   hasCta?: boolean;
   logoUrl?: string;
   customerPortalUrl?: string;
+  footerData?: FooterData | null;
   // UI props
   isCleanMode?: boolean;
 }
@@ -57,12 +60,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   faqData,
   ctaData,
   promoBannerData,
+  navbarItems = [],
+  megamenuItems = [],
   testimonials = [],
   testimonialsTitle,
   activeSections = [],
   hasCta = true,
   logoUrl,
   customerPortalUrl,
+  footerData,
   isCleanMode = false,
 }) => {
   // Quiz handlers (placeholder para futuro)
@@ -74,7 +80,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <Navbar isCleanMode={isCleanMode} activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} />
+      <Navbar isCleanMode={isCleanMode} activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} navbarItems={navbarItems} megamenuItems={megamenuItems} />
 
       {/* Main Content */}
       <main className="flex-1 pt-16">
@@ -146,7 +152,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </main>
 
       {/* Footer */}
-      <Footer isCleanMode={isCleanMode} />
+      <Footer isCleanMode={isCleanMode} data={footerData} />
     </div>
   );
 };
