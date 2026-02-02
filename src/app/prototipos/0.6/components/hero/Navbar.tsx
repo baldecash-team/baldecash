@@ -75,6 +75,8 @@ interface NavbarProps {
   customerPortalUrl?: string;
   navbarItems?: NavbarItemData[];
   megamenuItems?: MegaMenuItemData[];
+  /** Landing slug for dynamic URL building (e.g., 'home', 'laptops-estudiantes') */
+  landing?: string;
 }
 
 const DEFAULT_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
@@ -88,12 +90,12 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [] }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [], landing = 'home' }) => {
   const logo = logoUrl || DEFAULT_LOGO;
   const customerPortal = customerPortalUrl || DEFAULT_CUSTOMER_PORTAL;
-  const catalogBasePath = '/prototipos/0.6/catalogo';
+  const catalogBasePath = `/prototipos/0.6/${landing}/catalogo`;
   const catalogUrl = catalogBasePath;
-  const heroUrl = '/prototipos/0.6/home';
+  const heroUrl = `/prototipos/0.6/${landing}`;
 
   // Fallback hardcoded megamenu items
   const defaultMegaMenuItems = [

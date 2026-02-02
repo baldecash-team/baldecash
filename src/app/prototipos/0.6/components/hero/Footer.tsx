@@ -44,14 +44,15 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
   const heroUrl = '/prototipos/0.6/home';
 
   // Default columns (fallback)
+  const catalogBasePath = '/prototipos/0.6/home/catalogo';
   const defaultColumns = [
     {
       title: 'Productos',
       links: [
-        { label: 'Laptops', href: '/catalogo/laptops' },
-        { label: 'Celulares', href: '/catalogo/celulares' },
-        { label: 'Tablets', href: '/catalogo/tablets' },
-        { label: 'Accesorios', href: '/catalogo/accesorios' },
+        { label: 'Laptops', href: `${catalogBasePath}?device=laptop` },
+        { label: 'Celulares', href: `${catalogBasePath}?device=celular` },
+        { label: 'Tablets', href: `${catalogBasePath}?device=tablet` },
+        { label: 'Ver catálogo', href: catalogBasePath },
       ],
     },
     {

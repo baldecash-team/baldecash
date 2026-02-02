@@ -103,6 +103,8 @@ export interface HeroBannerProps {
   trustSignals?: TrustSignal[];
   badgeText?: string;
   underlineStyle?: UnderlineStyle;
+  /** Landing slug for dynamic URL building */
+  landing?: string;
 }
 
 export interface SocialProofProps {
@@ -297,6 +299,8 @@ export interface HeroCtaProps {
   data?: CtaData;
   onCtaClick?: () => void;
   onQuizOpen?: () => void;
+  /** Landing slug for dynamic URL building */
+  landing?: string;
 }
 
 // ============================================

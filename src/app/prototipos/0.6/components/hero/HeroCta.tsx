@@ -17,9 +17,9 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen }) => {
+export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, landing = 'home' }) => {
   const router = useRouter();
-  const catalogUrl = data?.buttons.catalog.url || '/prototipos/0.6/catalogo';
+  const catalogUrl = data?.buttons.catalog.url || `/prototipos/0.6/${landing}/catalogo`;
   const whatsappUrl = data?.buttons.whatsapp.url || 'https://wa.link/osgxjf';
 
   const handleWhatsApp = () => {

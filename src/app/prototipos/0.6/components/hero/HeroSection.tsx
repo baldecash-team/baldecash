@@ -49,6 +49,8 @@ interface HeroSectionProps {
   logoUrl?: string;
   customerPortalUrl?: string;
   footerData?: FooterData | null;
+  /** Landing slug for dynamic URL building */
+  landing?: string;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -67,6 +69,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   logoUrl,
   customerPortalUrl,
   footerData,
+  landing = 'home',
 }) => {
   // Quiz handlers (placeholder para futuro)
   const handleQuizOpen = () => {
@@ -77,7 +80,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} navbarItems={navbarItems} megamenuItems={megamenuItems} />
+      <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} />
 
       {/* Main Content */}
       <main className="flex-1 pt-16">
@@ -93,6 +96,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               trustSignals={heroContent.trustSignals}
               badgeText={heroContent.badgeText}
               underlineStyle={UNDERLINE_STYLE}
+              landing={landing}
             />
           </section>
         )}
@@ -128,7 +132,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               {/* CTA Component */}
               <div className="flex justify-center mb-6">
-                <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} />
+                <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} landing={landing} />
               </div>
 
               {/* Microcopy con links dinámicos */}

@@ -24,9 +24,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   trustSignals = [],
   badgeText,
   underlineStyle = 4,
+  landing = 'home',
 }) => {
   const router = useRouter();
-  const catalogUrl = '/prototipos/0.6/catalogo?device=laptop';
+  const catalogUrl = `/prototipos/0.6/${landing}/catalogo?device=laptop`;
 
   // Map icon names to components
   const getIconComponent = (iconName: string) => {

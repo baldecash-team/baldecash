@@ -103,6 +103,7 @@ export function LandingPageClient({ slug }: LandingPageClientProps) {
       logoUrl={heroData.logoUrl}
       customerPortalUrl={heroData.customerPortalUrl}
       footerData={heroData.footerData}
+      landing={slug}
     />
   );
 }
