@@ -12,24 +12,6 @@ import { ArrowRight, Shield, Users, Building } from 'lucide-react';
 import { HeroBannerProps } from '../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 
-// Helper function to build internal URLs with mode propagation and optional query params
-const buildInternalUrl = (basePath: string, isCleanMode: boolean, params?: Record<string, string>) => {
-  const searchParams = new URLSearchParams();
-
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      searchParams.set(key, value);
-    });
-  }
-
-  if (isCleanMode) {
-    searchParams.set('mode', 'clean');
-  }
-
-  const queryString = searchParams.toString();
-  return queryString ? `${basePath}?${queryString}` : basePath;
-};
-
 // Default background image (fallback)
 const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80';
 
@@ -42,11 +24,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   trustSignals = [],
   badgeText,
   underlineStyle = 4,
-  isCleanMode = false,
 }) => {
   const router = useRouter();
-  const catalogBasePath = '/prototipos/0.5/catalogo/catalog-preview';
-  const catalogUrl = buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop' });
+  const catalogUrl = '/prototipos/0.6/catalogo?device=laptop';
 
   // Map icon names to components
   const getIconComponent = (iconName: string) => {

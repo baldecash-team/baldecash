@@ -49,8 +49,6 @@ interface HeroSectionProps {
   logoUrl?: string;
   customerPortalUrl?: string;
   footerData?: FooterData | null;
-  // UI props
-  isCleanMode?: boolean;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -69,7 +67,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   logoUrl,
   customerPortalUrl,
   footerData,
-  isCleanMode = false,
 }) => {
   // Quiz handlers (placeholder para futuro)
   const handleQuizOpen = () => {
@@ -80,7 +77,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <Navbar isCleanMode={isCleanMode} activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} navbarItems={navbarItems} megamenuItems={megamenuItems} />
+      <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} navbarItems={navbarItems} megamenuItems={megamenuItems} />
 
       {/* Main Content */}
       <main className="flex-1 pt-16">
@@ -96,7 +93,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               trustSignals={heroContent.trustSignals}
               badgeText={heroContent.badgeText}
               underlineStyle={UNDERLINE_STYLE}
-              isCleanMode={isCleanMode}
             />
           </section>
         )}
@@ -132,7 +128,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               {/* CTA Component */}
               <div className="flex justify-center mb-6">
-                <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} isCleanMode={isCleanMode} />
+                <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} />
               </div>
 
               {/* Microcopy con links dinámicos */}
@@ -165,7 +161,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </main>
 
       {/* Footer */}
-      <Footer isCleanMode={isCleanMode} data={footerData} />
+      <Footer data={footerData} />
     </div>
   );
 };

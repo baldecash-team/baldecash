@@ -6,7 +6,6 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
 import { fetchHeroData } from '../services/landingApi';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
@@ -34,9 +33,6 @@ interface HeroData {
 }
 
 export function LandingPageClient({ slug }: LandingPageClientProps) {
-  const searchParams = useSearchParams();
-  const isCleanMode = searchParams.get('clean') === 'true';
-
   const [heroData, setHeroData] = useState<HeroData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +103,6 @@ export function LandingPageClient({ slug }: LandingPageClientProps) {
       logoUrl={heroData.logoUrl}
       customerPortalUrl={heroData.customerPortalUrl}
       footerData={heroData.footerData}
-      isCleanMode={isCleanMode}
     />
   );
 }

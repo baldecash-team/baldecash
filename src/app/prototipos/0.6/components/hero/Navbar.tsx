@@ -11,22 +11,18 @@ import { Button, Chip } from '@nextui-org/react';
 import { Menu, X, Zap, User, Laptop, ChevronDown, Smartphone, Tablet, ArrowRight } from 'lucide-react';
 import type { PromoBannerData } from '../../types/hero';
 
-// Helper function to build internal URLs with mode propagation and optional query params
-const buildInternalUrl = (basePath: string, isCleanMode: boolean, params?: Record<string, string>) => {
+// Helper function to build internal URLs with optional query params
+const buildInternalUrl = (basePath: string, params?: Record<string, string>) => {
+  if (!params || Object.keys(params).length === 0) {
+    return basePath;
+  }
+
   const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    searchParams.set(key, value);
+  });
 
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      searchParams.set(key, value);
-    });
-  }
-
-  if (isCleanMode) {
-    searchParams.set('mode', 'clean');
-  }
-
-  const queryString = searchParams.toString();
-  return queryString ? `${basePath}?${queryString}` : basePath;
+  return `${basePath}?${searchParams.toString()}`;
 };
 
 const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -67,7 +63,6 @@ interface MegaMenuItemData {
 }
 
 interface NavbarProps {
-  isCleanMode?: boolean;
   hidePromoBanner?: boolean;
   fullWidth?: boolean;
   minimal?: boolean;
@@ -93,18 +88,18 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [] }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [] }) => {
   const logo = logoUrl || DEFAULT_LOGO;
   const customerPortal = customerPortalUrl || DEFAULT_CUSTOMER_PORTAL;
-  const catalogBasePath = '/prototipos/0.5/catalogo/catalog-preview';
-  const catalogUrl = buildInternalUrl(catalogBasePath, isCleanMode);
-  const heroUrl = buildInternalUrl('/prototipos/0.6', isCleanMode);
+  const catalogBasePath = '/prototipos/0.6/catalogo';
+  const catalogUrl = catalogBasePath;
+  const heroUrl = '/prototipos/0.6/home';
 
   // Fallback hardcoded megamenu items
   const defaultMegaMenuItems = [
-    { label: 'Laptops', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'laptop' }), icon: Laptop, description: 'Portátiles para trabajo y estudio' },
-    { label: 'Tablets', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'tablet' }), icon: Tablet, description: 'Tablets para toda ocasión' },
-    { label: 'Celulares', href: buildInternalUrl(catalogBasePath, isCleanMode, { device: 'celular' }), icon: Smartphone, description: 'Smartphones de todas las marcas' },
+    { label: 'Laptops', href: buildInternalUrl(catalogBasePath, { device: 'laptop' }), icon: Laptop, description: 'Portátiles para trabajo y estudio' },
+    { label: 'Tablets', href: buildInternalUrl(catalogBasePath, { device: 'tablet' }), icon: Tablet, description: 'Tablets para toda ocasión' },
+    { label: 'Celulares', href: buildInternalUrl(catalogBasePath, { device: 'celular' }), icon: Smartphone, description: 'Smartphones de todas las marcas' },
     { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
   ];
 
@@ -112,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
   const megaMenuItems = megamenuItems.length > 0
     ? megamenuItems.map(item => ({
         label: item.label,
-        href: buildInternalUrl(item.href, isCleanMode),
+        href: item.href,
         icon: iconMap[item.icon] || ArrowRight,
         description: item.description,
       }))
@@ -132,7 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
         label: item.label,
         href: item.href.startsWith('#')
           ? `${heroUrl}${item.href}`
-          : buildInternalUrl(item.href, isCleanMode),
+          : item.href,
         megaMenuType: item.has_megamenu ? 'equipos' as const : undefined,
         section: item.section,
       }))
@@ -173,7 +168,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isCleanMode = false, hidePromoBa
               {promoBannerData.highlight && <strong>{promoBannerData.highlight}</strong>} {promoBannerData.text}
             </span>
             {promoBannerData.ctaText && promoBannerData.ctaUrl && (
-              <a href={buildInternalUrl(promoBannerData.ctaUrl, isCleanMode)} className="underline font-semibold ml-2 hover:no-underline hidden sm:inline">
+              <a href={promoBannerData.ctaUrl} className="underline font-semibold ml-2 hover:no-underline hidden sm:inline">
                 {promoBannerData.ctaText}
               </a>
             )}

@@ -11,20 +11,6 @@ import { Facebook, Instagram, Linkedin, Phone, Send, AlertCircle, Check, Twitter
 import { Toast } from '@/app/prototipos/_shared';
 import type { FooterData } from '../../types/hero';
 
-// Helper function to build internal URLs with mode propagation
-const buildInternalUrl = (basePath: string, isCleanMode: boolean, params?: Record<string, string>) => {
-  const searchParams = new URLSearchParams();
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      searchParams.set(key, value);
-    });
-  }
-  if (isCleanMode) {
-    searchParams.set('mode', 'clean');
-  }
-  const queryString = searchParams.toString();
-  return queryString ? `${basePath}?${queryString}` : basePath;
-};
 
 // TikTok icon component (not available in lucide-react)
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -51,12 +37,11 @@ const socialIconMap: Record<string, React.ComponentType<{ className?: string }>>
 };
 
 interface FooterProps {
-  isCleanMode?: boolean;
   data?: FooterData | null;
 }
 
-export const Footer: React.FC<FooterProps> = ({ isCleanMode = false, data }) => {
-  const heroUrl = buildInternalUrl('/prototipos/0.6/home', isCleanMode);
+export const Footer: React.FC<FooterProps> = ({ data }) => {
+  const heroUrl = '/prototipos/0.6/home';
 
   // Default columns (fallback)
   const defaultColumns = [
@@ -279,13 +264,11 @@ export const Footer: React.FC<FooterProps> = ({ isCleanMode = false, data }) => 
               <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">{column.title}</h4>
               <ul className="space-y-2">
                 {column.links.map((link) => {
-                  // Build proper URL for internal links
                   const isInternalLink = link.href.startsWith('/') || link.href.startsWith('#');
-                  const href = isInternalLink ? buildInternalUrl(link.href, isCleanMode) : link.href;
                   return (
                     <li key={link.label}>
                       <a
-                        href={href}
+                        href={link.href}
                         className="text-sm text-neutral-400 hover:text-white transition-colors"
                         {...(!isInternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                       >

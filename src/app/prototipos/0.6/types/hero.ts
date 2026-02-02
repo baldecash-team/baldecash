@@ -103,7 +103,6 @@ export interface HeroBannerProps {
   trustSignals?: TrustSignal[];
   badgeText?: string;
   underlineStyle?: UnderlineStyle;
-  isCleanMode?: boolean;
 }
 
 export interface SocialProofProps {
@@ -298,7 +297,6 @@ export interface HeroCtaProps {
   data?: CtaData;
   onCtaClick?: () => void;
   onQuizOpen?: () => void;
-  isCleanMode?: boolean;
 }
 
 // ============================================

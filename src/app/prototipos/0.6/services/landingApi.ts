@@ -163,6 +163,60 @@ export async function getLandingHeroData(slug: string): Promise<LandingHeroRespo
 }
 
 /**
+ * Respuesta del endpoint /layout (navbar + footer + company)
+ */
+export interface LandingLayoutResponse {
+  navbar: HomeComponentResponse | null;
+  footer: HomeComponentResponse | null;
+  company: {
+    name?: string;
+    legal_name?: string;
+    logo_url?: string;
+    main_phone?: string;
+    main_email?: string;
+    website_url?: string;
+    customer_portal_url?: string;
+    support_phone?: string;
+    support_email?: string;
+    support_whatsapp?: string;
+    support_hours?: string;
+    sbs_registration?: string;
+    social_links?: {
+      facebook?: string;
+      instagram?: string;
+      twitter?: string;
+      linkedin?: string;
+      youtube?: string;
+      tiktok?: string;
+    };
+  } | null;
+}
+
+/**
+ * Obtiene solo los datos de layout (navbar + footer + company)
+ * Endpoint ligero para páginas secundarias (legal, about, etc.)
+ */
+export async function getLandingLayout(slug: string): Promise<LandingLayoutResponse | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/layout`, {
+      next: { revalidate: 60 },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching landing layout:', error);
+    return null;
+  }
+}
+
+/**
  * Transforma los datos de la API al formato esperado por los componentes
  */
 export function transformLandingData(data: LandingHeroResponse): {
