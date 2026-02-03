@@ -52,6 +52,10 @@ import { useOnboarding } from './hooks/useOnboarding';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
+// API service for layout data
+import { getLandingLayout, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
+import type { PromoBannerData, FooterData, CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
+
 
 // Types
 import {
@@ -331,6 +335,9 @@ function CatalogoContent() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const isFirstRender = useRef(true);
 
+  // Layout data from API (navbar, footer, company)
+  const [layoutData, setLayoutData] = useState<LandingLayoutResponse | null>(null);
+
   // Onboarding state - read config from URL params
   const onboardingInitialConfig = useMemo((): OnboardingConfig => {
     const tourStepsParam = searchParams.get('tourSteps');
@@ -358,6 +365,115 @@ function CatalogoContent() {
     }, 500);
     return () => clearTimeout(timer);
   }, []);
+
+  // Fetch layout data (navbar, footer, company) from API
+  useEffect(() => {
+    const fetchLayoutData = async () => {
+      const data = await getLandingLayout(landing);
+      setLayoutData(data);
+    };
+    fetchLayoutData();
+  }, [landing]);
+
+  // Transform layout data for Navbar props
+  const navbarProps = useMemo(() => {
+    if (!layoutData) return null;
+
+    const navbarConfig = layoutData.navbar?.content_config as Record<string, unknown> | undefined;
+    const promoConfig = layoutData.promo_banner?.content_config as Record<string, unknown> | undefined;
+
+    // Extract navbar items from navbar component
+    const navbarItems = navbarConfig?.items as { label: string; href: string; section: string | null; has_megamenu?: boolean }[] | undefined;
+    const megamenuItems = navbarConfig?.megamenu_items as { label: string; href: string; icon: string; description: string }[] | undefined;
+
+    // Extract promo banner data from promo_banner component
+    const promoBannerData: PromoBannerData | null = promoConfig ? {
+      text: (promoConfig.text as string) || '',
+      highlight: promoConfig.highlight as string | undefined,
+      ctaText: promoConfig.cta_text as string | undefined,
+      ctaUrl: promoConfig.cta_url as string | undefined,
+      icon: promoConfig.icon as string | undefined,
+      dismissible: (promoConfig.dismissible as boolean) ?? true,
+    } : null;
+
+    return {
+      promoBannerData,
+      logoUrl: layoutData.company?.logo_url,
+      customerPortalUrl: layoutData.company?.customer_portal_url,
+      navbarItems: navbarItems || [],
+      megamenuItems: megamenuItems || [],
+    };
+  }, [layoutData]);
+
+  // Transform layout data for Footer props
+  const footerData = useMemo((): FooterData | null => {
+    if (!layoutData) return null;
+
+    const footerConfig = layoutData.footer?.content_config as Record<string, unknown> | undefined;
+    if (!footerConfig) return null;
+
+    return {
+      tagline: footerConfig.tagline as string | undefined,
+      columns: footerConfig.columns as { title: string; links: { label: string; href: string }[] }[] | undefined,
+      newsletter: footerConfig.newsletter as { title: string; description: string; placeholder: string; button_text: string } | undefined,
+      sbs_text: footerConfig.sbs_text as string | undefined,
+      copyright_text: footerConfig.copyright_text as string | undefined,
+      social_links: footerConfig.social_links as { platform: string; url: string }[] | undefined,
+      company: layoutData.company ? {
+        name: layoutData.company.name,
+        legal_name: layoutData.company.legal_name,
+        logo_url: layoutData.company.logo_url,
+        main_phone: layoutData.company.main_phone,
+        main_email: layoutData.company.main_email,
+        website_url: layoutData.company.website_url,
+        customer_portal_url: layoutData.company.customer_portal_url,
+        support_phone: layoutData.company.support_phone,
+        support_email: layoutData.company.support_email,
+        support_whatsapp: layoutData.company.support_whatsapp,
+        support_hours: layoutData.company.support_hours,
+        sbs_registration: layoutData.company.sbs_registration,
+        social_links: layoutData.company.social_links as { facebook?: string; instagram?: string; twitter?: string; linkedin?: string; youtube?: string; tiktok?: string } | null,
+      } : undefined,
+    };
+  }, [layoutData]);
+
+  // Transform layout data for Catalog Secondary Navbar config
+  const catalogSecondaryNavbarConfig = useMemo((): CatalogSecondaryNavbarData | null => {
+    if (!layoutData?.catalog_secondary_navbar) return null;
+
+    const config = layoutData.catalog_secondary_navbar.content_config as Record<string, unknown> | undefined;
+    if (!config) return null;
+
+    const searchConfig = config.search as { placeholder?: string } | undefined;
+    const wishlistConfig = config.wishlist as Record<string, string> | undefined;
+    const cartConfig = config.cart as Record<string, string> | undefined;
+
+    return {
+      search: {
+        placeholder: searchConfig?.placeholder || 'Buscar equipos...',
+      },
+      wishlist: {
+        title: wishlistConfig?.title || 'Mis favoritos',
+        empty_title: wishlistConfig?.empty_title || 'Sin favoritos aún',
+        empty_description: wishlistConfig?.empty_description || 'Haz clic en el corazón de cualquier producto para agregarlo aquí',
+        empty_cta: wishlistConfig?.empty_cta || 'Explorar catálogo',
+        clear_button: wishlistConfig?.clear_button || 'Limpiar',
+        clear_all_button: wishlistConfig?.clear_all_button || 'Limpiar favoritos',
+        remove_button: wishlistConfig?.remove_button || 'Quitar',
+        compare_button: wishlistConfig?.compare_button || 'Comparar',
+        in_compare_button: wishlistConfig?.in_compare_button || 'En comparador',
+      },
+      cart: {
+        title: cartConfig?.title || 'Mi carrito',
+        empty_title: cartConfig?.empty_title || 'Tu carrito está vacío',
+        empty_description: cartConfig?.empty_description || 'Agrega productos para continuar',
+        clear_button: cartConfig?.clear_button || 'Vaciar',
+        close_button: cartConfig?.close_button || 'Cerrar',
+        continue_button: cartConfig?.continue_button || 'Continuar',
+        multiple_items_alert: cartConfig?.multiple_items_alert || 'Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.',
+      },
+    };
+  }, [layoutData]);
 
   // Comparison state with localStorage persistence
   const [compareList, setCompareList] = useState<string[]>([]);
@@ -902,6 +1018,12 @@ function CatalogoContent() {
         hidePromoBanner={isComparatorOpen || isFilterDrawerOpen}
         fullWidth
         landing={landing}
+        promoBannerData={navbarProps?.promoBannerData}
+        logoUrl={navbarProps?.logoUrl}
+        customerPortalUrl={navbarProps?.customerPortalUrl}
+        navbarItems={navbarProps?.navbarItems}
+        megamenuItems={navbarProps?.megamenuItems}
+        activeSections={['convenios', 'como-funciona', 'faq']}
       />
 
       {/* Secondary Navbar with Search, Wishlist, Cart */}
@@ -935,6 +1057,7 @@ function CatalogoContent() {
           closeAllDrawers();
           setIsCartDrawerOpen(true);
         }}
+        config={catalogSecondaryNavbarConfig}
       />
 
       {/* Main Content with padding for fixed navbars (promo + primary + secondary) */}
@@ -1086,7 +1209,7 @@ function CatalogoContent() {
       </main>
 
       {/* Footer from Hero */}
-      <Footer />
+      <Footer data={footerData} />
 
       {/* Cart Selection Modal */}
       <CartSelectionModal
@@ -1122,6 +1245,7 @@ function CatalogoContent() {
           handleCartContinue();
           setIsCartDrawerOpen(false);
         }}
+        config={catalogSecondaryNavbarConfig?.cart}
       />
 
       {/* Search Drawer - Mobile only */}
@@ -1148,6 +1272,7 @@ function CatalogoContent() {
         onAddToCompare={handleToggleCompare}
         compareList={compareList}
         maxCompareProducts={maxCompareProducts}
+        config={catalogSecondaryNavbarConfig?.wishlist}
       />
 
       {/* Floating Comparison Bar - Desktop only */}
@@ -1358,7 +1483,7 @@ function CatalogoContent() {
 
       {/* Back to top button */}
       {showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !isWebchatOpen && !onboarding.shouldShowWelcome && (
-        <div className="fixed bottom-20 right-6 z-[100]">
+        <div className="fixed bottom-6 right-6 z-[100]">
           <Button
             isIconOnly
             radius="md"
@@ -1367,47 +1492,6 @@ function CatalogoContent() {
           >
             <ArrowUp className="w-5 h-5" />
           </Button>
-        </div>
-      )}
-
-      {/* Floating Action Buttons - Dev tools */}
-      {!isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !isWebchatOpen && !onboarding.shouldShowWelcome && (
-        <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2">
-          <TokenCounter sectionId="PROMPT_02" version="0.6" />
-          <Button
-            isIconOnly
-            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-colors"
-            style={{ borderRadius: '14px' }}
-            onPress={() => setIsSettingsOpen(true)}
-          >
-            <Settings className="w-5 h-5" />
-          </Button>
-          <Button
-            isIconOnly
-            radius="md"
-            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-            onPress={() => setShowConfigBadge(!showConfigBadge)}
-          >
-            <Code className="w-5 h-5 text-neutral-600" />
-          </Button>
-          <Button
-            isIconOnly
-            radius="md"
-            className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-            onPress={() => router.push(`/prototipos/0.6/${landing}`)}
-          >
-            <ArrowLeft className="w-5 h-5 text-neutral-600" />
-          </Button>
-        </div>
-      )}
-
-      {/* Config Badge */}
-      {showConfigBadge && (
-        <div className="fixed bottom-20 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200 max-w-md">
-          <p className="text-xs text-neutral-500 mb-1">Configuración v0.6:</p>
-          <p className="text-xs font-mono text-neutral-700">
-            Layout: V4 (fijo) | Brand: V3 (fijo) | Card: V6 (fijo) | ColorSelector: V{config.colorSelectorVersion} (iterable)
-          </p>
         </div>
       )}
 

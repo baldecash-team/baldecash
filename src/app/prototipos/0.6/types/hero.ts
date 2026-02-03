@@ -317,6 +317,42 @@ export interface PromoBannerData {
 }
 
 // ============================================
+// Catalog Secondary Navbar Types
+// ============================================
+
+export interface CatalogSecondaryNavbarSearchConfig {
+  placeholder: string;
+}
+
+export interface CatalogSecondaryNavbarWishlistConfig {
+  title: string;
+  empty_title: string;
+  empty_description: string;
+  empty_cta: string;
+  clear_button: string;
+  clear_all_button: string;
+  remove_button: string;
+  compare_button: string;
+  in_compare_button: string;
+}
+
+export interface CatalogSecondaryNavbarCartConfig {
+  title: string;
+  empty_title: string;
+  empty_description: string;
+  clear_button: string;
+  close_button: string;
+  continue_button: string;
+  multiple_items_alert: string;
+}
+
+export interface CatalogSecondaryNavbarData {
+  search: CatalogSecondaryNavbarSearchConfig;
+  wishlist: CatalogSecondaryNavbarWishlistConfig;
+  cart: CatalogSecondaryNavbarCartConfig;
+}
+
+// ============================================
 // Navbar Types
 // ============================================
 

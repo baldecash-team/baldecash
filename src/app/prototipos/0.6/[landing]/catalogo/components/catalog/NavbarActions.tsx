@@ -24,6 +24,7 @@ interface NavbarSearchProps {
   onChange: (value: string) => void;
   onClear: () => void;
   onSubmit?: () => void;
+  placeholder?: string;
 }
 
 export const NavbarSearch: React.FC<NavbarSearchProps> = ({
@@ -31,6 +32,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   onChange,
   onClear,
   onSubmit,
+  placeholder = 'Buscar equipos...',
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -60,7 +62,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          placeholder="Buscar equipos..."
+          placeholder={placeholder}
           className="flex-1 bg-transparent px-3 py-2 text-sm text-neutral-800 placeholder-neutral-400 outline-none"
         />
         {value && (
@@ -210,12 +212,19 @@ export const NavbarWishlistButton: React.FC<NavbarWishlistButtonProps> = ({
 /**
  * NavbarWishlist - Botón de favoritos con dropdown en el navbar (desktop)
  */
+interface NavbarWishlistConfig {
+  title?: string;
+  empty_title?: string;
+  clear_button?: string;
+}
+
 interface NavbarWishlistProps {
   items: CatalogProduct[];
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onViewProduct: (productId: string) => void;
   id?: string;
+  config?: NavbarWishlistConfig;
 }
 
 export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
@@ -224,6 +233,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
   onClearAll,
   onViewProduct,
   id,
+  config,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -279,7 +289,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
               <div className="flex items-center gap-2">
                 <Heart className="w-4 h-4 text-[#4654CD] fill-[#4654CD]" />
                 <span className="text-sm font-semibold text-neutral-800">
-                  Mis favoritos ({items.length})
+                  {config?.title || 'Mis favoritos'} ({items.length})
                 </span>
               </div>
               {items.length > 0 && (
@@ -287,7 +297,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                   onClick={onClearAll}
                   className="text-xs text-neutral-500 hover:text-red-500 transition-colors cursor-pointer"
                 >
-                  Limpiar
+                  {config?.clear_button || 'Limpiar'}
                 </button>
               )}
             </div>
@@ -296,7 +306,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
             {items.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <Heart className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
-                <p className="text-sm text-neutral-500">Sin favoritos aún</p>
+                <p className="text-sm text-neutral-500">{config?.empty_title || 'Sin favoritos aún'}</p>
               </div>
             ) : (
               <div className="max-h-[280px] overflow-y-auto">
@@ -360,12 +370,21 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
 /**
  * NavbarCart - Botón de carrito con dropdown en el navbar
  */
+interface NavbarCartConfig {
+  title?: string;
+  empty_title?: string;
+  clear_button?: string;
+  continue_button?: string;
+  multiple_items_alert?: string;
+}
+
 interface NavbarCartProps {
   items: CatalogProduct[];
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onContinue: () => void;
   id?: string;
+  config?: NavbarCartConfig;
 }
 
 export const NavbarCart: React.FC<NavbarCartProps> = ({
@@ -374,6 +393,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   onClearAll,
   onContinue,
   id,
+  config,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -429,7 +449,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
                 <span className="text-sm font-semibold text-neutral-800">
-                  Mi carrito ({items.length})
+                  {config?.title || 'Mi carrito'} ({items.length})
                 </span>
               </div>
               {items.length > 0 && (
@@ -437,7 +457,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                   onClick={onClearAll}
                   className="text-xs text-neutral-500 hover:text-red-500 transition-colors cursor-pointer"
                 >
-                  Vaciar
+                  {config?.clear_button || 'Vaciar'}
                 </button>
               )}
             </div>
@@ -446,7 +466,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
             {items.length === 0 ? (
               <div className="px-4 py-8 text-center">
                 <ShoppingCart className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
-                <p className="text-sm text-neutral-500">Tu carrito está vacío</p>
+                <p className="text-sm text-neutral-500">{config?.empty_title || 'Tu carrito está vacío'}</p>
               </div>
             ) : (
               <>
@@ -454,7 +474,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                 {items.length > 1 && (
                   <div className="mx-3 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-xs text-amber-700">
-                      Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.
+                      {config?.multiple_items_alert || 'Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.'}
                     </p>
                   </div>
                 )}
@@ -512,7 +532,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                     endContent={<ArrowRight className="w-4 h-4" />}
                     isDisabled={items.length !== 1}
                   >
-                    Continuar
+                    {config?.continue_button || 'Continuar'}
                   </Button>
                 </div>
               </>

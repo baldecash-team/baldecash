@@ -14,6 +14,18 @@ import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
 
+interface WishlistConfig {
+  title?: string;
+  empty_title?: string;
+  empty_description?: string;
+  empty_cta?: string;
+  clear_button?: string;
+  clear_all_button?: string;
+  remove_button?: string;
+  compare_button?: string;
+  in_compare_button?: string;
+}
+
 interface WishlistDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -24,6 +36,7 @@ interface WishlistDrawerProps {
   onAddToCompare?: (productId: string) => void;
   compareList?: string[];
   maxCompareProducts?: number;
+  config?: WishlistConfig;
 }
 
 // Contenido compartido entre mobile y desktop
@@ -35,6 +48,7 @@ const WishlistContentShared: React.FC<{
   compareList: string[];
   maxCompareProducts: number;
   onClose: () => void;
+  config?: WishlistConfig;
 }> = ({
   products,
   onRemoveProduct,
@@ -43,6 +57,7 @@ const WishlistContentShared: React.FC<{
   compareList,
   maxCompareProducts,
   onClose,
+  config,
 }) => {
   if (products.length === 0) {
     return (
@@ -51,17 +66,17 @@ const WishlistContentShared: React.FC<{
           <Heart className="w-10 h-10 text-neutral-300" />
         </div>
         <h3 className="text-lg font-semibold text-neutral-700 mb-2">
-          Sin favoritos aún
+          {config?.empty_title || 'Sin favoritos aún'}
         </h3>
         <p className="text-sm text-neutral-500 mb-4">
-          Haz clic en el corazón de cualquier producto para agregarlo aquí
+          {config?.empty_description || 'Haz clic en el corazón de cualquier producto para agregarlo aquí'}
         </p>
         <Button
           variant="bordered"
           onPress={onClose}
           className="cursor-pointer"
         >
-          Explorar catálogo
+          {config?.empty_cta || 'Explorar catálogo'}
         </Button>
       </div>
     );
@@ -125,7 +140,7 @@ const WishlistContentShared: React.FC<{
                     }`}
                     startContent={<GitCompare className="w-3 h-3" />}
                   >
-                    {isInCompare ? 'En comparador' : 'Comparar'}
+                    {isInCompare ? (config?.in_compare_button || 'En comparador') : (config?.compare_button || 'Comparar')}
                   </Button>
                 )}
                 <Button
@@ -135,7 +150,7 @@ const WishlistContentShared: React.FC<{
                   className="cursor-pointer text-xs h-7 text-red-500 hover:bg-red-50"
                   startContent={<Trash2 className="w-3 h-3" />}
                 >
-                  Quitar
+                  {config?.remove_button || 'Quitar'}
                 </Button>
               </div>
             </div>
@@ -157,6 +172,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
   onAddToCompare,
   compareList = [],
   maxCompareProducts = 3,
+  config,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -177,7 +193,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
           <Heart className="w-5 h-5 text-[#4654CD] fill-[#4654CD]" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-neutral-800">Mis Favoritos</h2>
+          <h2 className="text-lg font-bold text-neutral-800">{config?.title || 'Mis Favoritos'}</h2>
           <p className="text-sm text-neutral-500 font-normal">
             {products.length} {products.length === 1 ? 'producto' : 'productos'}
           </p>
@@ -193,6 +209,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
           compareList={compareList}
           maxCompareProducts={maxCompareProducts}
           onClose={onClose}
+          config={config}
         />
       </ModalBody>
 
@@ -205,7 +222,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
             className="cursor-pointer text-neutral-600 hover:text-red-500"
             startContent={<Trash2 className="w-4 h-4" />}
           >
-            Limpiar favoritos
+            {config?.clear_all_button || 'Limpiar favoritos'}
           </Button>
         </ModalFooter>
       )}
@@ -224,6 +241,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
   onAddToCompare,
   compareList = [],
   maxCompareProducts = 3,
+  config,
 }) => {
   const dragControls = useDragControls();
 
@@ -310,7 +328,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">
-                    Mis Favoritos
+                    {config?.title || 'Mis Favoritos'}
                   </h2>
                   <p className="text-xs text-neutral-500">
                     {products.length} {products.length === 1 ? 'producto' : 'productos'}
@@ -341,6 +359,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                 compareList={compareList}
                 maxCompareProducts={maxCompareProducts}
                 onClose={onClose}
+                config={config}
               />
             </div>
 
@@ -354,7 +373,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                   className="cursor-pointer text-neutral-600 hover:text-red-500"
                   startContent={<Trash2 className="w-4 h-4" />}
                 >
-                  Limpiar favoritos
+                  {config?.clear_all_button || 'Limpiar favoritos'}
                 </Button>
               </div>
             )}

@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { CatalogProduct } from '../../types/catalog';
+import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 import {
   NavbarSearch,
   NavbarWishlist,
@@ -46,6 +47,9 @@ interface CatalogSecondaryNavbarProps {
 
   // State for mobile buttons
   isSearchActive?: boolean;
+
+  // Config from API
+  config?: CatalogSecondaryNavbarData | null;
 }
 
 export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
@@ -67,6 +71,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   onMobileWishlistClick,
   onMobileCartClick,
   isSearchActive = false,
+  config,
 }) => {
   // Position below navbar: 64px navbar + 40px promo banner (if visible)
   const topPosition = hidePromoBanner ? '64px' : '104px';
@@ -98,6 +103,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
               onChange={onSearchChange}
               onClear={onSearchClear}
               onSubmit={onSearchSubmit}
+              placeholder={config?.search?.placeholder}
             />
           </div>
 
@@ -114,6 +120,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
                 onRemoveItem={onWishlistRemove}
                 onClearAll={onWishlistClear}
                 onViewProduct={onWishlistViewProduct}
+                config={config?.wishlist}
               />
               <NavbarCart
                 id="secondary-navbar-cart"
@@ -121,6 +128,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
                 onRemoveItem={onCartRemove}
                 onClearAll={onCartClear}
                 onContinue={onCartContinue}
+                config={config?.cart}
               />
             </div>
 

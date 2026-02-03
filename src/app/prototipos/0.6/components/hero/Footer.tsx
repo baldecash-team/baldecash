@@ -19,13 +19,6 @@ const TikTokIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Default social links (fallback)
-const defaultSocialLinks = [
-  { icon: Facebook, href: 'https://www.facebook.com/baldecash', label: 'Facebook' },
-  { icon: Instagram, href: 'https://www.instagram.com/baldecash/', label: 'Instagram' },
-  { icon: TikTokIcon, href: 'https://www.tiktok.com/@baldecash', label: 'TikTok' },
-];
-
 // Icon map for dynamic social links
 const socialIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   facebook: Facebook,
@@ -43,51 +36,14 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ data }) => {
   const heroUrl = '/prototipos/0.6/home';
 
-  // Default columns (fallback)
-  const catalogBasePath = '/prototipos/0.6/home/catalogo';
-  const defaultColumns = [
-    {
-      title: 'Productos',
-      links: [
-        { label: 'Laptops', href: `${catalogBasePath}?device=laptop` },
-        { label: 'Celulares', href: `${catalogBasePath}?device=celular` },
-        { label: 'Tablets', href: `${catalogBasePath}?device=tablet` },
-        { label: 'Ver catálogo', href: catalogBasePath },
-      ],
-    },
-    {
-      title: 'Empresa',
-      links: [
-        { label: 'Sobre nosotros', href: '/nosotros' },
-        { label: 'Blog', href: '/blog' },
-        { label: 'Trabaja con nosotros', href: '/trabaja-con-nosotros' },
-        { label: 'Contacto', href: '/contacto' },
-      ],
-    },
-    {
-      title: 'Soporte',
-      links: [
-        { label: 'Centro de ayuda', href: '/ayuda' },
-        { label: 'Preguntas frecuentes', href: '/#faq' },
-        { label: 'Términos y condiciones', href: '/terminos' },
-        { label: 'Política de privacidad', href: '/privacidad' },
-      ],
-    },
-  ];
+  // Data from API (no fallbacks - data must come from backend)
+  const columns = data?.columns;
+  const tagline = data?.tagline;
+  const sbsText = data?.sbs_text;
+  const copyrightText = data?.copyright_text;
+  const newsletterConfig = data?.newsletter;
 
-  // Use data from API or fallback to defaults
-  const columns = data?.columns || defaultColumns;
-  const tagline = data?.tagline || 'Financiamiento para estudiantes';
-  const sbsText = data?.sbs_text || 'Empresa supervisada por la SBS';
-  const copyrightText = data?.copyright_text || `© ${new Date().getFullYear()} BaldeCash. Todos los derechos reservados.`;
-  const newsletterConfig = data?.newsletter || {
-    title: 'Recibe ofertas exclusivas',
-    description: 'Sé el primero en enterarte de promociones y nuevos equipos',
-    placeholder: '999 999 999',
-    button_text: 'Enviar',
-  };
-
-  // Build social links from API data (prefer company social_links, fallback to component social_links)
+  // Build social links from API data (no fallback - data must come from backend)
   const buildSocialLinks = () => {
     const companySocial = data?.company?.social_links;
     const componentSocial = data?.social_links;
@@ -101,7 +57,7 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
       if (companySocial.linkedin) links.push({ icon: Linkedin, href: companySocial.linkedin, label: 'LinkedIn' });
       if (companySocial.youtube) links.push({ icon: Youtube, href: companySocial.youtube, label: 'YouTube' });
       if (companySocial.tiktok) links.push({ icon: TikTokIcon, href: companySocial.tiktok, label: 'TikTok' });
-      if (links.length > 0) return links;
+      return links;
     }
 
     // If we have component social links, use those
@@ -115,14 +71,14 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
         }));
     }
 
-    // Fallback to defaults
-    return defaultSocialLinks;
+    // No fallback - return empty array
+    return [];
   };
 
   const socialLinks = buildSocialLinks();
 
-  // Logo URL from company or default
-  const logoUrl = data?.company?.logo_url || 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
+  // Logo URL from company (no fallback)
+  const logoUrl = data?.company?.logo_url;
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -166,69 +122,71 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
 
   return (
     <footer className="bg-neutral-900 text-white">
-      {/* Newsletter Section */}
-      <div className="bg-[#4654CD]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="text-center md:text-left">
-              <h3 className="text-xl font-bold mb-1">{newsletterConfig.title}</h3>
-              <p className="text-white/80 text-sm">
-                {newsletterConfig.description}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 w-full md:w-auto">
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Input con estilo estándar 8.7 */}
-                <div
-                  className={`
-                    flex items-center gap-2 h-11 px-3 w-full sm:w-72
-                    rounded-lg border-2 transition-all duration-200 bg-white
-                    ${validationState === 'error' ? 'border-[#ef4444]' : ''}
-                    ${validationState === 'success' ? 'border-[#22c55e]' : ''}
-                    ${validationState === 'default' ? 'border-transparent focus-within:border-[#4654CD]' : ''}
-                  `}
-                >
-                  <Phone className={`w-4 h-4 flex-shrink-0 ${validationState === 'error' ? 'text-[#ef4444]' : 'text-neutral-400'}`} />
-                  <input
-                    type="tel"
-                    placeholder={newsletterConfig.placeholder}
-                    value={whatsapp}
-                    maxLength={9}
-                    onChange={(e) => {
-                      // Solo permitir números
-                      const value = e.target.value.replace(/\D/g, '');
-                      setWhatsapp(value);
-                      if (error) setError(null);
-                    }}
-                    onBlur={() => setTouched(true)}
-                    className="flex-1 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400"
-                  />
-                  {/* Contador de caracteres */}
-                  <span className={`text-xs flex-shrink-0 ${whatsapp.length === 9 ? 'text-[#22c55e]' : 'text-neutral-400'}`}>
-                    {whatsapp.length}/9
-                  </span>
-                  {validationState === 'success' && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
-                  {validationState === 'error' && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
-                </div>
-                <Button
-                  radius="lg"
-                  className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors"
-                  endContent={<Send className="w-4 h-4" />}
-                  onPress={handleSubmit}
-                >
-                  {newsletterConfig.button_text}
-                </Button>
-              </div>
-              {error && (
-                <p className="text-sm text-red-200 flex items-center gap-1 ml-1">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {error}
+      {/* Newsletter Section - Only render if newsletterConfig exists */}
+      {newsletterConfig && (
+        <div className="bg-[#4654CD]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-center md:text-left">
+                <h3 className="text-xl font-bold mb-1">{newsletterConfig.title}</h3>
+                <p className="text-white/80 text-sm">
+                  {newsletterConfig.description}
                 </p>
-              )}
+              </div>
+              <div className="flex flex-col gap-2 w-full md:w-auto">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Input con estilo estándar 8.7 */}
+                  <div
+                    className={`
+                      flex items-center gap-2 h-11 px-3 w-full sm:w-72
+                      rounded-lg border-2 transition-all duration-200 bg-white
+                      ${validationState === 'error' ? 'border-[#ef4444]' : ''}
+                      ${validationState === 'success' ? 'border-[#22c55e]' : ''}
+                      ${validationState === 'default' ? 'border-transparent focus-within:border-[#4654CD]' : ''}
+                    `}
+                  >
+                    <Phone className={`w-4 h-4 flex-shrink-0 ${validationState === 'error' ? 'text-[#ef4444]' : 'text-neutral-400'}`} />
+                    <input
+                      type="tel"
+                      placeholder={newsletterConfig.placeholder}
+                      value={whatsapp}
+                      maxLength={9}
+                      onChange={(e) => {
+                        // Solo permitir números
+                        const value = e.target.value.replace(/\D/g, '');
+                        setWhatsapp(value);
+                        if (error) setError(null);
+                      }}
+                      onBlur={() => setTouched(true)}
+                      className="flex-1 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400"
+                    />
+                    {/* Contador de caracteres */}
+                    <span className={`text-xs flex-shrink-0 ${whatsapp.length === 9 ? 'text-[#22c55e]' : 'text-neutral-400'}`}>
+                      {whatsapp.length}/9
+                    </span>
+                    {validationState === 'success' && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
+                    {validationState === 'error' && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
+                  </div>
+                  <Button
+                    radius="lg"
+                    className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors"
+                    endContent={<Send className="w-4 h-4" />}
+                    onPress={handleSubmit}
+                  >
+                    {newsletterConfig.button_text}
+                  </Button>
+                </div>
+                {error && (
+                  <p className="text-sm text-red-200 flex items-center gap-1 ml-1">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {error}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -259,8 +217,8 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
             </div>
           </div>
 
-          {/* Link Columns */}
-          {columns.map((column) => (
+          {/* Link Columns - Only render if columns exist */}
+          {columns?.map((column) => (
             <div key={column.title}>
               <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">{column.title}</h4>
               <ul className="space-y-2">

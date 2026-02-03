@@ -16,6 +16,16 @@ import { formatMoney } from '../../utils/formatMoney';
 const SELECTED_TERM = 24;
 const SELECTED_INITIAL = 10;
 
+interface CartConfig {
+  title?: string;
+  empty_title?: string;
+  empty_description?: string;
+  clear_button?: string;
+  close_button?: string;
+  continue_button?: string;
+  multiple_items_alert?: string;
+}
+
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +33,7 @@ interface CartDrawerProps {
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onContinue: () => void;
+  config?: CartConfig;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -32,6 +43,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   onClearAll,
   onContinue,
+  config,
 }) => {
   const dragControls = useDragControls();
 
@@ -118,7 +130,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">
-                    Tu Carrito
+                    {config?.title || 'Tu Carrito'}
                   </h2>
                   <p className="text-xs text-neutral-500">
                     {items.length} {items.length === 1 ? 'producto' : 'productos'}
@@ -146,9 +158,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
                     <ShoppingCart className="w-8 h-8 text-neutral-300" />
                   </div>
-                  <p className="text-neutral-600 font-medium">Tu carrito está vacío</p>
+                  <p className="text-neutral-600 font-medium">{config?.empty_title || 'Tu carrito está vacío'}</p>
                   <p className="text-sm text-neutral-400 mt-1">
-                    Agrega productos para continuar
+                    {config?.empty_description || 'Agrega productos para continuar'}
                   </p>
                 </div>
               ) : (
@@ -157,7 +169,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   {items.length > 1 && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
                       <p className="text-sm text-amber-700">
-                        Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.
+                        {config?.multiple_items_alert || 'Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.'}
                       </p>
                     </div>
                   )}
@@ -211,7 +223,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     onPress={onClearAll}
                     className="px-6 font-bold cursor-pointer text-neutral-500 hover:text-red-500 rounded-xl"
                   >
-                    Vaciar
+                    {config?.clear_button || 'Vaciar'}
                   </Button>
                   <Button
                     size="lg"
@@ -219,7 +231,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     onPress={onClose}
                     className="px-6 font-bold cursor-pointer border-neutral-300 rounded-xl"
                   >
-                    Cerrar
+                    {config?.close_button || 'Cerrar'}
                   </Button>
                   <Button
                     size="lg"
@@ -232,7 +244,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     endContent={<ArrowRight className="w-5 h-5" />}
                     isDisabled={items.length !== 1}
                   >
-                    Continuar
+                    {config?.continue_button || 'Continuar'}
                   </Button>
                 </div>
               </div>

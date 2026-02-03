@@ -79,9 +79,6 @@ interface NavbarProps {
   landing?: string;
 }
 
-const DEFAULT_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
-const DEFAULT_CUSTOMER_PORTAL = 'https://zonaclientes.baldecash.com';
-
 // Map de iconos para megamenu
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Laptop,
@@ -91,49 +88,25 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 };
 
 export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [], landing = 'home' }) => {
-  const logo = logoUrl || DEFAULT_LOGO;
-  const customerPortal = customerPortalUrl || DEFAULT_CUSTOMER_PORTAL;
-  const catalogBasePath = `/prototipos/0.6/${landing}/catalogo`;
-  const catalogUrl = catalogBasePath;
   const heroUrl = `/prototipos/0.6/${landing}`;
 
-  // Fallback hardcoded megamenu items
-  const defaultMegaMenuItems = [
-    { label: 'Laptops', href: buildInternalUrl(catalogBasePath, { device: 'laptop' }), icon: Laptop, description: 'Portátiles para trabajo y estudio' },
-    { label: 'Tablets', href: buildInternalUrl(catalogBasePath, { device: 'tablet' }), icon: Tablet, description: 'Tablets para toda ocasión' },
-    { label: 'Celulares', href: buildInternalUrl(catalogBasePath, { device: 'celular' }), icon: Smartphone, description: 'Smartphones de todas las marcas' },
-    { label: 'Ver más', href: catalogUrl, icon: ArrowRight, description: 'Explora todo el catálogo' },
-  ];
+  // Transform megamenuItems from API (no fallback - data must come from backend)
+  const megaMenuItems = megamenuItems.map(item => ({
+    label: item.label,
+    href: item.href,
+    icon: iconMap[item.icon] || ArrowRight,
+    description: item.description,
+  }));
 
-  // Transformar megamenuItems desde API o usar fallback
-  const megaMenuItems = megamenuItems.length > 0
-    ? megamenuItems.map(item => ({
-        label: item.label,
-        href: item.href,
-        icon: iconMap[item.icon] || ArrowRight,
-        description: item.description,
-      }))
-    : defaultMegaMenuItems;
-
-  // Fallback hardcoded items si no hay navbarItems desde API
-  const defaultNavItems = [
-    { label: 'Equipos', href: catalogUrl, megaMenuType: 'equipos' as const, section: null },
-    { label: 'Convenios', href: `${heroUrl}#convenios`, section: 'convenios' },
-    { label: 'Ver requisitos', href: `${heroUrl}#como-funciona`, section: 'como-funciona' },
-    { label: '¿Tienes dudas?', href: `${heroUrl}#faq`, section: 'faq' },
-  ];
-
-  // Transformar navbarItems desde API o usar fallback
-  const allNavItems = navbarItems.length > 0
-    ? navbarItems.map(item => ({
-        label: item.label,
-        href: item.href.startsWith('#')
-          ? `${heroUrl}${item.href}`
-          : item.href,
-        megaMenuType: item.has_megamenu ? 'equipos' as const : undefined,
-        section: item.section,
-      }))
-    : defaultNavItems;
+  // Transform navbarItems from API (no fallback - data must come from backend)
+  const allNavItems = navbarItems.map(item => ({
+    label: item.label,
+    href: item.href.startsWith('#')
+      ? `${heroUrl}${item.href}`
+      : item.href,
+    megaMenuType: item.has_megamenu ? 'equipos' as const : undefined,
+    section: item.section,
+  }));
 
   // Filtrar items según secciones activas
   const navItems = allNavItems.filter(item =>
@@ -150,7 +123,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#4654CD] shadow-lg shadow-[#4654CD]/20">
         <div className="flex justify-center py-5">
           <img
-            src={logo}
+            src={logoUrl}
             alt="BaldeCash"
             className="h-12 object-contain brightness-0 invert"
           />
@@ -196,7 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
             {/* Logo */}
             <a href={heroUrl} className="flex items-center">
               <img
-                src={logo}
+                src={logoUrl}
                 alt="BaldeCash"
                 className="h-8 object-contain"
               />
@@ -278,7 +251,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
               <div className="hidden md:flex items-center gap-3">
                 <Button
                   as="a"
-                  href={customerPortal}
+                  href={customerPortalUrl}
                   target="_blank"
                   variant="bordered"
                   radius="lg"
@@ -416,7 +389,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                 <div className="pt-4 border-t border-neutral-100">
                   <Button
                     as="a"
-                    href={customerPortal}
+                    href={customerPortalUrl}
                     target="_blank"
                     variant="bordered"
                     radius="lg"
