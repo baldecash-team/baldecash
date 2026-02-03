@@ -134,7 +134,7 @@ function DatosPersonalesContent() {
         onStepClick={handleStepClick}
         isFirstStep={false}
         canProceed={true}
-        navbarProps={navbarProps}
+        navbarProps={navbarProps || undefined}
       >
         <DynamicWizardStep
           step={step}

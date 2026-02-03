@@ -18,7 +18,7 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 
 interface NavbarProps {
-  promoBannerData?: PromoBannerData;
+  promoBannerData?: PromoBannerData | null;
   logoUrl?: string;
   customerPortalUrl?: string;
   navbarItems?: { label: string; href: string; section: string | null; has_megamenu?: boolean }[];

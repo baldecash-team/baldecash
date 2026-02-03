@@ -257,7 +257,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         <FileUpload
           id={field.code}
           label={field.label}
-          value={files as { id: string; file: File; name: string; size: number; type: string }[]}
+          value={files as unknown as { id: string; file: File; name: string; size: number; type: string }[]}
           onChange={(newFiles) => updateField(field.code, newFiles as unknown as File[])}
           accept={field.accepted_file_types || '.pdf,.jpg,.jpeg,.png'}
           maxFiles={field.max_files || 1}

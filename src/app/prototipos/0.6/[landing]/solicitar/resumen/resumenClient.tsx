@@ -290,7 +290,7 @@ function ResumenContent() {
       isLastStep
       isSubmitting={isSubmitting}
       canProceed={true}
-      navbarProps={navbarProps}
+      navbarProps={navbarProps || undefined}
     >
       {!isDataComplete ? (
         <div className="flex flex-col items-center py-8">

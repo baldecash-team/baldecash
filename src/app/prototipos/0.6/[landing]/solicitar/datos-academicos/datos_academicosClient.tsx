@@ -135,7 +135,7 @@ function DatosAcademicosContent() {
         onStepClick={handleStepClick}
         isFirstStep={navigation.isFirst}
         canProceed={true}
-        navbarProps={navbarProps}
+        navbarProps={navbarProps || undefined}
       >
         <DynamicWizardStep
           step={step}
