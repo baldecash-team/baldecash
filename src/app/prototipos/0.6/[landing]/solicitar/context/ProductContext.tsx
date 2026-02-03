@@ -35,6 +35,8 @@ export interface AppliedCoupon {
   code: string;
   discount: number;
   label: string;
+  couponType?: 'fixed' | 'percent_quotas';
+  quotasAffected?: number;
 }
 
 interface ProductContextValue {

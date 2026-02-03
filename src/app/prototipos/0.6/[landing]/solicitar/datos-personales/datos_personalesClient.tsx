@@ -132,7 +132,7 @@ function DatosPersonalesContent() {
         onBack={handleBack}
         onNext={handleNext}
         onStepClick={handleStepClick}
-        isFirstStep={navigation.isFirst}
+        isFirstStep={false}
         canProceed={true}
         navbarProps={navbarProps}
       >

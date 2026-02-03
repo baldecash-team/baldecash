@@ -9,6 +9,7 @@ Preguntas que requieren confirmacion del equipo antes de implementar.
 | 1 | Los testimonios deben poder mostrarse independiente aunque Social Proof este inactivo? | Pendiente |
 | 2 | El carousel de instituciones debe ser dinamico por landing o siempre mostrar todas? | Pendiente |
 | 3 | Los "Terminos y Condiciones" y "Politicas de Privacidad" deben ser dinamicos por landing o estaticos? | Pendiente |
+| 4 | Los cupones de descuento deben ser especificos por landing o globales? | Pendiente |
 
 Ver detalles de cada pregunta mas abajo.
 
@@ -139,3 +140,51 @@ Diferentes landings podrian requerir terminos o politicas distintas segun:
 **Responsable de decidir:** _Por asignar_
 
 ---
+
+## 4. Cupones de Descuento - Por Landing o Globales?
+
+**Fecha:** 2026-02-03
+
+**Contexto:**
+El modelo `Coupon` en la tabla `coupon` actualmente NO tiene relacion con `landing`. Los cupones son globales y aplican a todos los productos segun su configuracion (`applies_to`: all, category, brand, products).
+
+**Modelo actual** (`app/db/models/pricing.py`):
+```python
+class Coupon(ActiveBaseModel):
+    code = Column(String(50), unique=True, nullable=False)
+    coupon_type = Column(ValueEnum(CouponType))  # fixed, percent_quotas
+    value = Column(DECIMAL(12, 2), nullable=False)
+    applies_to = Column(ValueEnum(AppliesTo))  # all, category, brand, products
+    category_id = Column(Integer, ForeignKey("category.id"), nullable=True)
+    # NO hay landing_id
+```
+
+**Comportamiento actual:**
+- Un cupon como "PROMO" funciona en cualquier landing (home, senati, etc.)
+- La restriccion es solo por categoria o productos especificos
+
+**Pregunta para el equipo:**
+> Los cupones de descuento deben ser especificos por landing o globales?
+
+**Opciones:**
+
+### Opcion A: Mantener cupones globales (actual)
+- Un codigo como "PROMO" funciona en cualquier landing
+- Mas simple de administrar
+- Menos granularidad de control
+- No requiere cambios en BD
+
+### Opcion B: Agregar `landing_id` a tabla `coupon`
+- Cada cupon pertenece a una landing especifica
+- `landing_id = NULL` → cupon global (aplica a todas)
+- `landing_id = 5` → cupon solo para landing con id=5
+- Requiere: migracion de BD, actualizar API
+
+### Opcion C: Tabla pivote `landing_coupon`
+- Permite asignar un cupon a multiples landings
+- Mas flexible pero mas complejo
+- Requiere: nueva tabla, seeder, logica de validacion
+
+**Decision:** _Pendiente_ (por ahora se mantiene global)
+
+**Responsable de decidir:** _Por asignar_

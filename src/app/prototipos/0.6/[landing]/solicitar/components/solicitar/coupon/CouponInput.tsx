@@ -9,7 +9,7 @@
  * - success: Cupón válido (animación confetti)
  * - error: Cupón inválido (shake animation)
  *
- * Cupón válido: "PROMO" → S/10 de descuento mensual
+ * Validates coupons via API: POST /api/v1/public/coupons/validate
  */
 
 import React, { useState } from 'react';
@@ -19,12 +19,17 @@ import { useProduct } from '../../../context/ProductContext';
 
 type CouponState = 'idle' | 'validating' | 'success' | 'error';
 
-// Cupones válidos con sus descuentos
-const VALID_COUPONS: Record<string, { discount: number; label: string }> = {
-  PROMO: { discount: 10, label: 'Descuento promocional' },
-  BALDI10: { discount: 10, label: 'Descuento Baldi' },
-  ESTUDIANTE: { discount: 15, label: 'Descuento estudiante' },
-};
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+
+interface CouponValidateResponse {
+  valid: boolean;
+  code: string | null;
+  coupon_type: 'fixed' | 'percent_quotas' | null;
+  value: string | null;
+  quotas_affected: number | null;
+  label: string | null;
+  error_message: string | null;
+}
 
 export const CouponInput: React.FC = () => {
   const [couponCode, setCouponCode] = useState('');
@@ -42,22 +47,34 @@ export const CouponInput: React.FC = () => {
 
     setState('validating');
 
-    // Simular validación con API
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const normalizedCode = couponCode.trim().toUpperCase();
-    const couponData = VALID_COUPONS[normalizedCode];
-
-    if (couponData) {
-      setState('success');
-      setAppliedCoupon({
-        code: normalizedCode,
-        discount: couponData.discount,
-        label: couponData.label,
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/coupons/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: couponCode.trim() }),
       });
-    } else {
+
+      const data: CouponValidateResponse = await response.json();
+
+      if (data.valid && data.code && data.value && data.label) {
+        setState('success');
+        setAppliedCoupon({
+          code: data.code,
+          discount: parseFloat(data.value),
+          label: data.label,
+          couponType: data.coupon_type || 'fixed',
+          quotasAffected: data.quotas_affected || undefined,
+        });
+      } else {
+        setState('error');
+        setErrorMessage(data.error_message || 'Cupón no válido o expirado');
+        setTimeout(() => setState('idle'), 2000);
+      }
+    } catch {
       setState('error');
-      setErrorMessage('Cupón no válido o expirado');
+      setErrorMessage('Error al validar el cupón. Intenta nuevamente.');
       setTimeout(() => setState('idle'), 2000);
     }
   };
