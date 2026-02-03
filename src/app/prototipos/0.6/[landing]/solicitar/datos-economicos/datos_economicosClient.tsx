@@ -2,22 +2,25 @@
 
 /**
  * Datos Económicos - Step 3
- * Financial information form
+ * Financial information form - Dynamic version using API config
  */
 
-import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { WizardLayout } from '../components/solicitar/wizard';
+import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardStep';
 import { WizardStepId } from '../types/solicitar';
-import { TextInput, RadioGroup, TextArea } from '../components/solicitar/fields';
-import { datosEconomicosTooltips } from '../data/fieldTooltips';
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
 import { useWizard } from '../context/WizardContext';
-import { getStepById } from '../data/wizardSteps';
+import { useWizardConfig } from '../context/WizardConfigContext';
+import { SLUG_TO_STEP_CODE, STEP_CODE_TO_SLUG, validateStep as validateStepFields } from '../../../services/wizardApi';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+
+const STEP_SLUG = 'datos-economicos';
+const STEP_CODE = SLUG_TO_STEP_CODE[STEP_SLUG]; // 'financial'
 
 function DatosEconomicosContent() {
   const router = useRouter();
@@ -28,89 +31,46 @@ function DatosEconomicosContent() {
   useScrollToTop();
 
   const [showCelebration, setShowCelebration] = useState(false);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
 
   // Get layout data from context (fetched once at [landing] level)
   const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
 
+  // Get wizard config from API
+  const { getStep, getNavigation, isLoading: isConfigLoading, error: configError } = useWizardConfig();
+
   const {
-    getFieldValue,
-    getFieldError,
-    updateField,
+    formData,
     setFieldError,
-    validateField,
     markStepCompleted,
   } = useWizard();
 
-  const step = getStepById('datos-economicos')!;
+  // Get step config from API
+  const step = getStep(STEP_CODE);
+  const navigation = getNavigation(STEP_CODE);
 
-  // Inicializar touched para campos que ya tienen valor (desde localStorage)
-  React.useEffect(() => {
-    const fieldsToCheck = ['situacionLaboral', 'ingresoMensual', 'comentarios'];
-    const initialTouched: Record<string, boolean> = {};
-
-    fieldsToCheck.forEach((fieldId) => {
-      const value = getFieldValue(fieldId) as string;
-      if (value && value.trim()) {
-        initialTouched[fieldId] = true;
+  // Build form values for validation
+  const formValues = useMemo(() => {
+    const values: Record<string, string | string[]> = {};
+    for (const [key, state] of Object.entries(formData)) {
+      if (state?.value !== undefined) {
+        values[key] = state.value as string | string[];
       }
-    });
-
-    if (Object.keys(initialTouched).length > 0) {
-      setTouched((prev) => ({ ...prev, ...initialTouched }));
     }
-  }, [getFieldValue]);
+    return values;
+  }, [formData]);
 
-  const handleFieldChange = (fieldId: string, value: string) => {
-    updateField(fieldId, value);
-    setFieldError(fieldId, '');
-    setTouched((prev) => ({ ...prev, [fieldId]: true }));
-  };
-
-  const handleFieldBlur = (fieldId: string, rules?: unknown) => {
-    setTouched((prev) => ({ ...prev, [fieldId]: true }));
-    const value = getFieldValue(fieldId) as string;
-    const error = validateField(fieldId, value, rules as never);
-    if (error) {
-      setFieldError(fieldId, error);
-    }
-  };
-
-  const isFieldValid = (fieldId: string) => {
-    const value = getFieldValue(fieldId) as string;
-    return touched[fieldId] && !!value && !getFieldError(fieldId);
-  };
-
-  // Validar campos requeridos - retorna el primer campo con error o null
-  const validateStep = (): string | null => {
-    let firstErrorField: string | null = null;
-
-    const situacionLaboral = getFieldValue('situacionLaboral') as string;
-    if (!situacionLaboral) {
-      setFieldError('situacionLaboral', 'Selecciona tu situación laboral');
-      if (!firstErrorField) firstErrorField = 'situacionLaboral';
-    }
-
-    const ingresoMensual = getFieldValue('ingresoMensual') as string;
-    if (!ingresoMensual || !ingresoMensual.trim()) {
-      setFieldError('ingresoMensual', 'Este campo es requerido');
-      if (!firstErrorField) firstErrorField = 'ingresoMensual';
-    } else if (isNaN(Number(ingresoMensual)) || Number(ingresoMensual) < 0) {
-      setFieldError('ingresoMensual', 'Ingresa un monto válido');
-      if (!firstErrorField) firstErrorField = 'ingresoMensual';
-    }
-
-    // comentarios es opcional, no validar
-
-    return firstErrorField;
-  };
+  // Validate all fields in the step using centralized function
+  const validateStep = useCallback((): string | null => {
+    if (!step) return null;
+    return validateStepFields(step, formValues, setFieldError);
+  }, [step, formValues, setFieldError]);
 
   const handleNext = () => {
     setSubmitted(true);
     const firstErrorField = validateStep();
     if (firstErrorField) {
-      // Scroll al primer campo con error
+      // Scroll to first field with error
       document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -119,26 +79,48 @@ function DatosEconomicosContent() {
   };
 
   const handleCelebrationComplete = () => {
+    // Last step goes to resumen
     router.push(`/prototipos/0.6/${landing}/solicitar/resumen`);
   };
 
   const handleBack = () => {
-    router.push(`/prototipos/0.6/${landing}/solicitar/datos-academicos`);
+    const prevSlug = navigation.prevStep ? STEP_CODE_TO_SLUG[navigation.prevStep.code] : 'datos-academicos';
+    router.push(`/prototipos/0.6/${landing}/solicitar/${prevSlug}`);
   };
 
   const handleStepClick = (stepId: WizardStepId) => {
     router.push(`/prototipos/0.6/${landing}/solicitar/${stepId}`);
   };
 
-  const canProceed = true;
+  // Loading state
+  if (isLayoutLoading || isConfigLoading) {
+    return <LoadingFallback />;
+  }
+
+  // Error state
+  if (configError || !step) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Error al cargar el formulario</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="text-[#4654CD] underline"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const pageContent = (
     <>
       <AnimatePresence>
         {showCelebration && (
           <StepSuccessMessage
-            stepName="Datos Económicos"
-            stepNumber={3}
+            stepName={step.title}
+            stepNumber={step.order}
             onComplete={handleCelebrationComplete}
           />
         )}
@@ -151,65 +133,17 @@ function DatosEconomicosContent() {
         onBack={handleBack}
         onNext={handleNext}
         onStepClick={handleStepClick}
-        canProceed={canProceed}
+        isFirstStep={navigation.isFirst}
+        canProceed={true}
         navbarProps={navbarProps}
       >
-        <div className="space-y-6">
-          <RadioGroup
-            id="situacionLaboral"
-            label="Situación Laboral"
-            value={(getFieldValue('situacionLaboral') as string) || ''}
-            onChange={(v) => handleFieldChange('situacionLaboral', v)}
-            options={[
-              { value: 'empleado', label: 'Empleado' },
-              { value: 'independiente', label: 'Independiente' },
-              { value: 'practicante', label: 'Practicante' },
-              { value: 'desempleado', label: 'Sin empleo actual' },
-            ]}
-            error={submitted ? getFieldError('situacionLaboral') : undefined}
-            success={isFieldValid('situacionLaboral')}
-            tooltip={datosEconomicosTooltips.situacionLaboral}
-            required
-          />
-
-          <TextInput
-            id="ingresoMensual"
-            label="Ingreso Mensual Aproximado (S/)"
-            type="number"
-            value={(getFieldValue('ingresoMensual') as string) || ''}
-            onChange={(v) => handleFieldChange('ingresoMensual', v)}
-            onBlur={() => handleFieldBlur('ingresoMensual', step.fields.find((f) => f.id === 'ingresoMensual')?.validation)}
-            placeholder="0.00"
-            error={submitted ? getFieldError('ingresoMensual') : undefined}
-            success={isFieldValid('ingresoMensual')}
-            tooltip={datosEconomicosTooltips.ingresoMensual}
-            required
-          />
-
-          <TextArea
-            id="comentarios"
-            label="Comentarios Adicionales"
-            value={(getFieldValue('comentarios') as string) || ''}
-            onChange={(v) => handleFieldChange('comentarios', v)}
-            onBlur={() => handleFieldBlur('comentarios')}
-            placeholder="Cuéntanos más sobre tu situación..."
-            helpText="Opcional: cualquier información que consideres relevante"
-            error={submitted ? getFieldError('comentarios') : undefined}
-            success={isFieldValid('comentarios')}
-            tooltip={datosEconomicosTooltips.comentarios}
-            maxLength={500}
-            rows={4}
-            required={false}
-          />
-        </div>
+        <DynamicWizardStep
+          step={step}
+          showErrors={submitted}
+        />
       </WizardLayout>
     </>
   );
-
-  // Show loading while layout data is loading
-  if (isLayoutLoading) {
-    return <LoadingFallback />;
-  }
 
   return (
     <>

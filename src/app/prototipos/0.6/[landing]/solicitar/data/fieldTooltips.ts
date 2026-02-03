@@ -104,9 +104,49 @@ export const datosEconomicosTooltips: FieldTooltips = {
   },
 };
 
-// Export all tooltips
-export const fieldTooltips = {
+// Mapping from API field codes to local tooltip keys
+// This allows the API to use English codes while we reuse Spanish tooltips
+const apiCodeToLocalKey: Record<string, string> = {
+  // Datos Personales
+  first_name: 'nombres',
+  last_name: 'apellidos',
+  document_type: 'tipoDocumento',
+  document_number: 'numeroDocumento',
+  birth_date: 'fechaNacimiento',
+  phone: 'celular',
+  email: 'email',
+  gender: 'sexo',
+  // Datos Académicos
+  institution_type: 'tipoInstitucion',
+  institution: 'institucion',
+  career: 'carrera',
+  semester: 'ciclo',
+  enrollment_certificate: 'constanciaEstudios',
+  other_institution: 'otraInstitucion',
+  other_career: 'otraCarrera',
+  other_semester: 'otroCiclo',
+  // Datos Económicos
+  employment_status: 'situacionLaboral',
+  monthly_income: 'ingresoMensual',
+  has_guarantor: 'tieneAval',
+  additional_comments: 'comentarios',
+};
+
+// Export all tooltips (Spanish keys)
+const baseTooltips = {
   ...datosPersonalesTooltips,
   ...datosAcademicosTooltips,
   ...datosEconomicosTooltips,
+};
+
+// Build tooltips with both Spanish keys and English API codes
+export const fieldTooltips: FieldTooltips = {
+  ...baseTooltips,
+  // Add English API code aliases
+  ...Object.entries(apiCodeToLocalKey).reduce((acc, [apiCode, localKey]) => {
+    if (baseTooltips[localKey]) {
+      acc[apiCode] = baseTooltips[localKey];
+    }
+    return acc;
+  }, {} as FieldTooltips),
 };

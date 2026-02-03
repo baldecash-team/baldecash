@@ -16,7 +16,7 @@ interface WizardContextValue {
   formData: Record<string, FieldState>;
   completedSteps: WizardStepId[];
   updateField: (fieldId: string, value: string | string[] | File[]) => void;
-  setFieldError: (fieldId: string, error: string) => void;
+  setFieldError: (fieldId: string, error: string | null) => void;
   setFieldTouched: (fieldId: string) => void;
   validateField: (fieldId: string, value: string, rules?: ValidationRule) => string | null;
   markStepCompleted: (stepId: WizardStepId) => void;
@@ -101,14 +101,25 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children }) => {
     }));
   }, []);
 
-  const setFieldError = useCallback((fieldId: string, error: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldId]: {
-        ...prev[fieldId],
-        error,
-      },
-    }));
+  const setFieldError = useCallback((fieldId: string, error: string | null) => {
+    setFormData((prev) => {
+      const currentField = prev[fieldId] || {};
+      // Si el error es null o vacío, eliminar la propiedad error
+      if (!error) {
+        const { error: _removed, ...rest } = currentField;
+        return {
+          ...prev,
+          [fieldId]: rest,
+        };
+      }
+      return {
+        ...prev,
+        [fieldId]: {
+          ...currentField,
+          error,
+        },
+      };
+    });
   }, []);
 
   const setFieldTouched = useCallback((fieldId: string) => {

@@ -2,10 +2,15 @@
 
 /**
  * Wizard Preview Layout
- * Wraps all wizard pages with the form state provider and product context
+ * Wraps all wizard pages with providers:
+ * - ProductProvider: manages selected product state
+ * - WizardConfigProvider: fetches form config from API
+ * - WizardProvider: manages form state and persistence
  */
 
+import { useParams } from 'next/navigation';
 import { WizardProvider } from './context/WizardContext';
+import { WizardConfigProvider } from './context/WizardConfigContext';
 import { ProductProvider } from './context/ProductContext';
 
 export default function WizardPreviewLayout({
@@ -13,9 +18,14 @@ export default function WizardPreviewLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+
   return (
     <ProductProvider>
-      <WizardProvider>{children}</WizardProvider>
+      <WizardConfigProvider slug={landing}>
+        <WizardProvider>{children}</WizardProvider>
+      </WizardConfigProvider>
     </ProductProvider>
   );
 }
