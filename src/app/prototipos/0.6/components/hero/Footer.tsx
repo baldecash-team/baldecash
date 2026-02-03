@@ -78,7 +78,7 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
   const socialLinks = buildSocialLinks();
 
   // Logo URL from company (no fallback)
-  const logoUrl = data?.company?.logo_url;
+  const logoUrl = data?.company?.logo_url ?? undefined;
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);

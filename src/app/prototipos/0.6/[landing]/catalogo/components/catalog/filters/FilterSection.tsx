@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { FieldTooltip } from '@/app/prototipos/0.5/wizard-solicitud/components/wizard-solicitud/fields';
+import { FieldTooltip } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/fields';
 import { FilterTooltipInfo } from '../../../types/catalog';
 
 interface FilterSectionProps {

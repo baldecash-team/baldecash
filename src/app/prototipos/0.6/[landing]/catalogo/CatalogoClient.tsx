@@ -52,9 +52,10 @@ import { useOnboarding } from './hooks/useOnboarding';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
-// API service for layout data
-import { getLandingLayout, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
-import type { PromoBannerData, FooterData, CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
+// Layout context for shared data
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import type { LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
+import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 
 
 // Types
@@ -92,24 +93,25 @@ import {
   mergeFiltersWithDefaults,
 } from './utils/queryFilters';
 
-// External components from v0.5 (shared)
-import { ProductComparator } from '@/app/prototipos/0.5/comparador/components/comparator';
+// Comparator components (local copy)
+import { ProductComparator } from './components/comparator';
 import {
   ComparatorConfig,
   ComparisonState,
   defaultComparisonState,
   ComparisonProduct,
   getMaxProducts,
-} from '@/app/prototipos/0.5/comparador/types/comparator';
+} from './types/comparator';
 import { HelpQuiz } from '@/app/prototipos/0.5/quiz/components/quiz';
 import { QuizAnswer } from '@/app/prototipos/0.5/quiz/types/quiz';
 import { quizQuestionsUsage } from '@/app/prototipos/0.5/quiz/data/mockQuizData';
+import { ProductProvider as ProductProvider05 } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
 import { AppliedFilter } from './types/empty';
-import { useProduct, ProductProvider } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
+import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 
 // URLs - now with landing context
 const getWizardUrl = (landing: string) => {
-  return `/prototipos/0.6/${landing}/wizard-solicitud/wizard-preview/`;
+  return `/prototipos/0.6/${landing}/solicitar/`;
 };
 
 const getDetailUrl = (landing: string, productId: string, deviceType: string | undefined) => {
@@ -123,13 +125,13 @@ const getDetailUrl = (landing: string, productId: string, deviceType: string | u
 };
 
 const getUpsellUrl = (landing: string) => {
-  return `/prototipos/0.6/${landing}/wizard-solicitud/wizard-preview/`;
+  return `/prototipos/0.6/${landing}/solicitar/`;
 };
 
 // Configuración fija para cálculo de cuota (igual que CartSelectionModal)
 const WIZARD_SELECTED_TERM = 24;
 const WIZARD_SELECTED_INITIAL = 10;
-const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-wizard-selected-product';
+const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-solicitar-selected-product';
 
 // Mapear respuestas del quiz a filtros del catálogo
 const mapQuizAnswersToFilters = (answers: QuizAnswer[], currentFilters: FilterState): Partial<FilterState> => {
@@ -266,6 +268,9 @@ function CatalogoContent() {
   const isMobile = useIsMobile();
   const { setSelectedProduct } = useProduct();
 
+  // Get layout data from context (fetched once at [landing] level)
+  const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+
   // Scroll to top on page load
   useScrollToTop();
 
@@ -335,8 +340,6 @@ function CatalogoContent() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const isFirstRender = useRef(true);
 
-  // Layout data from API (navbar, footer, company)
-  const [layoutData, setLayoutData] = useState<LandingLayoutResponse | null>(null);
 
   // Onboarding state - read config from URL params
   const onboardingInitialConfig = useMemo((): OnboardingConfig => {
@@ -365,77 +368,6 @@ function CatalogoContent() {
     }, 500);
     return () => clearTimeout(timer);
   }, []);
-
-  // Fetch layout data (navbar, footer, company) from API
-  useEffect(() => {
-    const fetchLayoutData = async () => {
-      const data = await getLandingLayout(landing);
-      setLayoutData(data);
-    };
-    fetchLayoutData();
-  }, [landing]);
-
-  // Transform layout data for Navbar props
-  const navbarProps = useMemo(() => {
-    if (!layoutData) return null;
-
-    const navbarConfig = layoutData.navbar?.content_config as Record<string, unknown> | undefined;
-    const promoConfig = layoutData.promo_banner?.content_config as Record<string, unknown> | undefined;
-
-    // Extract navbar items from navbar component
-    const navbarItems = navbarConfig?.items as { label: string; href: string; section: string | null; has_megamenu?: boolean }[] | undefined;
-    const megamenuItems = navbarConfig?.megamenu_items as { label: string; href: string; icon: string; description: string }[] | undefined;
-
-    // Extract promo banner data from promo_banner component
-    const promoBannerData: PromoBannerData | null = promoConfig ? {
-      text: (promoConfig.text as string) || '',
-      highlight: promoConfig.highlight as string | undefined,
-      ctaText: promoConfig.cta_text as string | undefined,
-      ctaUrl: promoConfig.cta_url as string | undefined,
-      icon: promoConfig.icon as string | undefined,
-      dismissible: (promoConfig.dismissible as boolean) ?? true,
-    } : null;
-
-    return {
-      promoBannerData,
-      logoUrl: layoutData.company?.logo_url,
-      customerPortalUrl: layoutData.company?.customer_portal_url,
-      navbarItems: navbarItems || [],
-      megamenuItems: megamenuItems || [],
-    };
-  }, [layoutData]);
-
-  // Transform layout data for Footer props
-  const footerData = useMemo((): FooterData | null => {
-    if (!layoutData) return null;
-
-    const footerConfig = layoutData.footer?.content_config as Record<string, unknown> | undefined;
-    if (!footerConfig) return null;
-
-    return {
-      tagline: footerConfig.tagline as string | undefined,
-      columns: footerConfig.columns as { title: string; links: { label: string; href: string }[] }[] | undefined,
-      newsletter: footerConfig.newsletter as { title: string; description: string; placeholder: string; button_text: string } | undefined,
-      sbs_text: footerConfig.sbs_text as string | undefined,
-      copyright_text: footerConfig.copyright_text as string | undefined,
-      social_links: footerConfig.social_links as { platform: string; url: string }[] | undefined,
-      company: layoutData.company ? {
-        name: layoutData.company.name,
-        legal_name: layoutData.company.legal_name,
-        logo_url: layoutData.company.logo_url,
-        main_phone: layoutData.company.main_phone,
-        main_email: layoutData.company.main_email,
-        website_url: layoutData.company.website_url,
-        customer_portal_url: layoutData.company.customer_portal_url,
-        support_phone: layoutData.company.support_phone,
-        support_email: layoutData.company.support_email,
-        support_whatsapp: layoutData.company.support_whatsapp,
-        support_hours: layoutData.company.support_hours,
-        sbs_registration: layoutData.company.sbs_registration,
-        social_links: layoutData.company.social_links as { facebook?: string; instagram?: string; twitter?: string; linkedin?: string; youtube?: string; tiktok?: string } | null,
-      } : undefined,
-    };
-  }, [layoutData]);
 
   // Transform layout data for Catalog Secondary Navbar config
   const catalogSecondaryNavbarConfig = useMemo((): CatalogSecondaryNavbarData | null => {
@@ -1006,8 +938,8 @@ function CatalogoContent() {
       .filter((p): p is ComparisonProduct => p !== undefined);
   }, [compareList, filteredProducts]);
 
-  // Show loading while page preloads
-  if (isPageLoading) {
+  // Show loading while page preloads or layout data is loading
+  if (isPageLoading || isLayoutLoading) {
     return <LoadingFallback />;
   }
 
@@ -1457,23 +1389,25 @@ function CatalogoContent() {
         </div>
       )}
 
-      {/* Help Quiz Modal */}
-      <HelpQuiz
-        config={quizConfig}
-        isOpen={isQuizOpen}
-        onClose={() => setIsQuizOpen(false)}
-        context="catalog"
-        onComplete={(results, answers) => {
-          // Aplicar filtros basados en las respuestas del quiz
-          if (answers && answers.length > 0) {
-            const quizFilters = mapQuizAnswersToFilters(answers, filters);
-            setFilters((prev) => ({
-              ...prev,
-              ...quizFilters,
-            }));
-          }
-        }}
-      />
+      {/* Help Quiz Modal - wrapped with 0.5 ProductProvider since HelpQuiz uses 0.5 context */}
+      <ProductProvider05>
+        <HelpQuiz
+          config={quizConfig}
+          isOpen={isQuizOpen}
+          onClose={() => setIsQuizOpen(false)}
+          context="catalog"
+          onComplete={(results, answers) => {
+            // Aplicar filtros basados en las respuestas del quiz
+            if (answers && answers.length > 0) {
+              const quizFilters = mapQuizAnswersToFilters(answers, filters);
+              setFilters((prev) => ({
+                ...prev,
+                ...quizFilters,
+              }));
+            }
+          }}
+        />
+      </ProductProvider05>
 
       {/* Webchat Drawer */}
       <WebchatDrawer

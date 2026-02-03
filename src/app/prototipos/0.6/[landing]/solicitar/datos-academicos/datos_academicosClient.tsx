@@ -1,0 +1,431 @@
+'use client';
+
+/**
+ * Datos Académicos - Step 2
+ * Academic information form
+ */
+
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import { AnimatePresence } from 'framer-motion';
+import { WizardLayout } from '../components/solicitar/wizard';
+import { WizardStepId } from '../types/solicitar';
+import { SegmentedControl, SelectInput, FileUpload, TextInput } from '../components/solicitar/fields';
+import { datosAcademicosTooltips } from '../data/fieldTooltips';
+import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
+import { useWizard } from '../context/WizardContext';
+import { getStepById } from '../data/wizardSteps';
+import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+
+function DatosAcademicosContent() {
+  const router = useRouter();
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+
+  // Scroll to top on page load
+  useScrollToTop();
+
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  // Get layout data from context (fetched once at [landing] level)
+  const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+
+  const {
+    getFieldValue,
+    getFieldError,
+    updateField,
+    setFieldError,
+    markStepCompleted,
+  } = useWizard();
+
+  const step = getStepById('datos-academicos')!;
+
+  // Inicializar touched para campos que ya tienen valor (desde localStorage)
+  React.useEffect(() => {
+    const fieldsToCheck = ['tipoInstitucion', 'institucion', 'otraInstitucion', 'carrera', 'otraCarrera', 'ciclo', 'otroCiclo', 'constanciaEstudios'];
+    const initialTouched: Record<string, boolean> = {};
+
+    fieldsToCheck.forEach((fieldId) => {
+      const value = getFieldValue(fieldId);
+      const hasValue = Array.isArray(value) ? value.length > 0 : !!(value && String(value).trim());
+      if (hasValue) {
+        initialTouched[fieldId] = true;
+      }
+    });
+
+    if (Object.keys(initialTouched).length > 0) {
+      setTouched((prev) => ({ ...prev, ...initialTouched }));
+    }
+  }, [getFieldValue]);
+
+  const handleFieldChange = (fieldId: string, value: string | unknown[]) => {
+    updateField(fieldId, value as string);
+    setFieldError(fieldId, '');
+    // Mark as touched when value changes (for selects)
+    if (value) {
+      setTouched((prev) => ({ ...prev, [fieldId]: true }));
+    }
+  };
+
+  const isFieldValid = (fieldId: string) => {
+    const value = getFieldValue(fieldId);
+    const hasValue = Array.isArray(value) ? value.length > 0 : !!value;
+    return touched[fieldId] && hasValue && !getFieldError(fieldId);
+  };
+
+  // Validar campos requeridos - retorna el primer campo con error o null
+  const validateStep = (): string | null => {
+    let firstErrorField: string | null = null;
+
+    const tipoInstitucion = getFieldValue('tipoInstitucion') as string;
+    if (!tipoInstitucion) {
+      setFieldError('tipoInstitucion', 'Selecciona un tipo de institución');
+      if (!firstErrorField) firstErrorField = 'tipoInstitucion';
+    }
+
+    const institucion = getFieldValue('institucion') as string;
+    if (!institucion) {
+      setFieldError('institucion', 'Selecciona una institución');
+      if (!firstErrorField) firstErrorField = 'institucion';
+    }
+
+    // otraInstitucion requerido cuando se selecciona "otra/otro"
+    if (institucion === 'otra' || institucion === 'otro') {
+      const otraInstitucion = getFieldValue('otraInstitucion') as string;
+      if (!otraInstitucion || !otraInstitucion.trim()) {
+        setFieldError('otraInstitucion', 'Este campo es requerido');
+        if (!firstErrorField) firstErrorField = 'otraInstitucion';
+      }
+    }
+
+    const carrera = getFieldValue('carrera') as string;
+    if (!carrera) {
+      setFieldError('carrera', 'Selecciona una carrera');
+      if (!firstErrorField) firstErrorField = 'carrera';
+    }
+    // otraCarrera es opcional, no validar
+
+    const ciclo = getFieldValue('ciclo') as string;
+    if (!ciclo) {
+      setFieldError('ciclo', 'Selecciona tu ciclo actual');
+      if (!firstErrorField) firstErrorField = 'ciclo';
+    }
+
+    // otroCiclo requerido cuando se selecciona "otro"
+    if (ciclo === 'otro') {
+      const otroCiclo = getFieldValue('otroCiclo') as string;
+      if (!otroCiclo || !otroCiclo.trim()) {
+        setFieldError('otroCiclo', 'Este campo es requerido');
+        if (!firstErrorField) firstErrorField = 'otroCiclo';
+      }
+    }
+
+    const constanciaEstudios = getFieldValue('constanciaEstudios') as unknown[];
+    if (!constanciaEstudios || !Array.isArray(constanciaEstudios) || constanciaEstudios.length === 0) {
+      setFieldError('constanciaEstudios', 'Sube tu constancia de estudios');
+      if (!firstErrorField) firstErrorField = 'constanciaEstudios';
+    }
+
+    return firstErrorField;
+  };
+
+  const handleNext = () => {
+    setSubmitted(true);
+    const firstErrorField = validateStep();
+    if (firstErrorField) {
+      // Scroll al primer campo con error
+      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    markStepCompleted('datos-academicos');
+    setShowCelebration(true);
+  };
+
+  const handleCelebrationComplete = () => {
+    router.push(`/prototipos/0.6/${landing}/solicitar/datos-economicos`);
+  };
+
+  const handleBack = () => {
+    router.push(`/prototipos/0.6/${landing}/solicitar/datos-personales`);
+  };
+
+  const handleStepClick = (stepId: WizardStepId) => {
+    router.push(`/prototipos/0.6/${landing}/solicitar/${stepId}`);
+  };
+
+  const cicloOptions = [
+    { value: '1', label: '1er Ciclo' },
+    { value: '2', label: '2do Ciclo' },
+    { value: '3', label: '3er Ciclo' },
+    { value: '4', label: '4to Ciclo' },
+    { value: '5', label: '5to Ciclo' },
+    { value: '6', label: '6to Ciclo' },
+    { value: '7', label: '7mo Ciclo' },
+    { value: '8', label: '8vo Ciclo' },
+    { value: '9', label: '9no Ciclo' },
+    { value: '10', label: '10mo Ciclo' },
+    { value: 'egresado', label: 'Egresado' },
+    { value: 'otro', label: 'Otro' },
+  ];
+
+  // Opciones de universidades peruanas
+  const universidadOptions = [
+    { value: 'unmsm', label: 'Universidad Nacional Mayor de San Marcos' },
+    { value: 'pucp', label: 'Pontificia Universidad Católica del Perú' },
+    { value: 'uni', label: 'Universidad Nacional de Ingeniería' },
+    { value: 'ulima', label: 'Universidad de Lima' },
+    { value: 'up', label: 'Universidad del Pacífico' },
+    { value: 'upc', label: 'Universidad Peruana de Ciencias Aplicadas' },
+    { value: 'usil', label: 'Universidad San Ignacio de Loyola' },
+    { value: 'esan', label: 'Universidad ESAN' },
+    { value: 'ucv', label: 'Universidad César Vallejo' },
+    { value: 'utp', label: 'Universidad Tecnológica del Perú' },
+    { value: 'unsa', label: 'Universidad Nacional de San Agustín' },
+    { value: 'unprg', label: 'Universidad Nacional Pedro Ruiz Gallo' },
+    { value: 'unt', label: 'Universidad Nacional de Trujillo' },
+    { value: 'ucsm', label: 'Universidad Católica de Santa María' },
+    { value: 'upao', label: 'Universidad Privada Antenor Orrego' },
+    { value: 'otra', label: 'Otra universidad' },
+  ];
+
+  // Opciones de institutos
+  const institutoOptions = [
+    { value: 'senati', label: 'SENATI' },
+    { value: 'tecsup', label: 'TECSUP' },
+    { value: 'cibertec', label: 'CIBERTEC' },
+    { value: 'idat', label: 'IDAT' },
+    { value: 'sise', label: 'SISE' },
+    { value: 'isil', label: 'ISIL' },
+    { value: 'toulouse', label: 'Toulouse Lautrec' },
+    { value: 'ipae', label: 'IPAE' },
+    { value: 'certus', label: 'Certus' },
+    { value: 'otro', label: 'Otro instituto' },
+  ];
+
+  // Opciones de colegios peruanos
+  const colegioOptions = [
+    { value: 'markham', label: 'Colegio Markham' },
+    { value: 'newton', label: 'Colegio Newton' },
+    { value: 'santamaria', label: 'Colegio Santa María Marianistas' },
+    { value: 'sanjose', label: 'Colegio San José de Monterrico' },
+    { value: 'trilce', label: 'Colegio Trilce' },
+    { value: 'pamer', label: 'Colegio Pamer' },
+    { value: 'saco_oliveros', label: 'Colegio Saco Oliveros' },
+    { value: 'innova', label: 'Innova Schools' },
+    { value: 'fe_alegria', label: 'Fe y Alegría' },
+    { value: 'otro', label: 'Otro colegio' },
+  ];
+
+  // Opciones de carreras
+  const carreraOptions = [
+    { value: 'ing_sistemas', label: 'Ingeniería de Sistemas' },
+    { value: 'ing_software', label: 'Ingeniería de Software' },
+    { value: 'ing_industrial', label: 'Ingeniería Industrial' },
+    { value: 'ing_civil', label: 'Ingeniería Civil' },
+    { value: 'ing_electronica', label: 'Ingeniería Electrónica' },
+    { value: 'ing_mecatronica', label: 'Ingeniería Mecatrónica' },
+    { value: 'administracion', label: 'Administración de Empresas' },
+    { value: 'contabilidad', label: 'Contabilidad' },
+    { value: 'economia', label: 'Economía' },
+    { value: 'derecho', label: 'Derecho' },
+    { value: 'medicina', label: 'Medicina Humana' },
+    { value: 'psicologia', label: 'Psicología' },
+    { value: 'arquitectura', label: 'Arquitectura' },
+    { value: 'comunicaciones', label: 'Ciencias de la Comunicación' },
+    { value: 'marketing', label: 'Marketing' },
+    { value: 'diseno_grafico', label: 'Diseño Gráfico' },
+    { value: 'otra', label: 'Otra carrera' },
+  ];
+
+  // Seleccionar opciones de institución según el tipo
+  const tipoInstitucion = getFieldValue('tipoInstitucion') as string;
+  const institucionOptions =
+    tipoInstitucion === 'instituto' ? institutoOptions :
+    tipoInstitucion === 'colegio' ? colegioOptions :
+    universidadOptions;
+
+  const pageContent = (
+    <>
+      <AnimatePresence>
+        {showCelebration && (
+          <StepSuccessMessage
+            stepName="Datos Académicos"
+            stepNumber={2}
+            onComplete={handleCelebrationComplete}
+          />
+        )}
+      </AnimatePresence>
+
+      <WizardLayout
+        currentStep="datos-academicos"
+        title={step.title}
+        description={step.description}
+        onBack={handleBack}
+        onNext={handleNext}
+        onStepClick={handleStepClick}
+        canProceed={true}
+        navbarProps={navbarProps}
+      >
+        <div className="space-y-6">
+          <SegmentedControl
+            id="tipoInstitucion"
+            label="Tipo de Institución"
+            value={(getFieldValue('tipoInstitucion') as string) || ''}
+            onChange={(v) => {
+              handleFieldChange('tipoInstitucion', v);
+              // Limpiar institución al cambiar tipo
+              handleFieldChange('institucion', '');
+            }}
+            options={[
+              { value: 'universidad', label: 'Universidad' },
+              { value: 'instituto', label: 'Instituto' },
+              { value: 'colegio', label: 'Colegio' },
+            ]}
+            error={submitted ? getFieldError('tipoInstitucion') : undefined}
+            success={isFieldValid('tipoInstitucion')}
+            tooltip={datosAcademicosTooltips.tipoInstitucion}
+            required
+          />
+
+          <SelectInput
+            id="institucion"
+            label="Institución Educativa"
+            value={(getFieldValue('institucion') as string) || ''}
+            onChange={(v) => handleFieldChange('institucion', v)}
+            options={institucionOptions}
+            placeholder="Busca tu institución..."
+            error={submitted ? getFieldError('institucion') : undefined}
+            success={isFieldValid('institucion')}
+            tooltip={datosAcademicosTooltips.institucion}
+            required
+            searchable
+          />
+
+          {(getFieldValue('institucion') === 'otra' || getFieldValue('institucion') === 'otro') && (
+            <TextInput
+              id="otraInstitucion"
+              label={
+                tipoInstitucion === 'instituto' ? '¿Cuál instituto?' :
+                tipoInstitucion === 'colegio' ? '¿Cuál colegio?' :
+                '¿Cuál universidad?'
+              }
+              value={(getFieldValue('otraInstitucion') as string) || ''}
+              onChange={(v) => handleFieldChange('otraInstitucion', v)}
+              placeholder={
+                tipoInstitucion === 'instituto' ? 'Nombre del instituto' :
+                tipoInstitucion === 'colegio' ? 'Nombre del colegio' :
+                'Nombre de la universidad'
+              }
+              error={submitted ? getFieldError('otraInstitucion') : undefined}
+              success={isFieldValid('otraInstitucion')}
+              required
+            />
+          )}
+
+          <SelectInput
+            id="carrera"
+            label="Carrera o Especialidad"
+            value={(getFieldValue('carrera') as string) || ''}
+            onChange={(v) => handleFieldChange('carrera', v)}
+            options={carreraOptions}
+            placeholder="Busca tu carrera..."
+            error={submitted ? getFieldError('carrera') : undefined}
+            success={isFieldValid('carrera')}
+            tooltip={datosAcademicosTooltips.carrera}
+            required
+            searchable
+          />
+
+          {getFieldValue('carrera') === 'otra' && (
+            <TextInput
+              id="otraCarrera"
+              label="¿Cuál carrera?"
+              value={(getFieldValue('otraCarrera') as string) || ''}
+              onChange={(v) => handleFieldChange('otraCarrera', v)}
+              placeholder="Nombre de la carrera"
+              error={submitted ? getFieldError('otraCarrera') : undefined}
+              success={isFieldValid('otraCarrera')}
+              required={false}
+            />
+          )}
+
+          <SelectInput
+            id="ciclo"
+            label="Ciclo Actual"
+            value={(getFieldValue('ciclo') as string) || ''}
+            onChange={(v) => handleFieldChange('ciclo', v)}
+            options={cicloOptions}
+            placeholder="Selecciona tu ciclo"
+            error={submitted ? getFieldError('ciclo') : undefined}
+            success={isFieldValid('ciclo')}
+            tooltip={datosAcademicosTooltips.ciclo}
+            required
+          />
+
+          {getFieldValue('ciclo') === 'otro' && (
+            <TextInput
+              id="otroCiclo"
+              label="¿Cuál ciclo?"
+              value={(getFieldValue('otroCiclo') as string) || ''}
+              onChange={(v) => {
+                const numericValue = v.replace(/\D/g, '').slice(0, 2);
+                handleFieldChange('otroCiclo', numericValue);
+              }}
+              placeholder="Ej: 11"
+              error={submitted ? getFieldError('otroCiclo') : undefined}
+              success={isFieldValid('otroCiclo')}
+              required
+              maxLength={2}
+              inputMode="numeric"
+            />
+          )}
+
+          <FileUpload
+            id="constanciaEstudios"
+            label="Constancia de Estudios"
+            value={(getFieldValue('constanciaEstudios') as unknown[]) as never || []}
+            onChange={(files) => handleFieldChange('constanciaEstudios', files as unknown[])}
+            accept=".pdf,.jpg,.jpeg,.png"
+            maxFiles={1}
+            helpText="Sube tu constancia de estudios (PDF o imagen)"
+            error={submitted ? getFieldError('constanciaEstudios') : undefined}
+            tooltip={datosAcademicosTooltips.constanciaEstudios}
+            required
+          />
+        </div>
+      </WizardLayout>
+    </>
+  );
+
+  // Show loading while layout data is loading
+  if (isLayoutLoading) {
+    return <LoadingFallback />;
+  }
+
+  return (
+    <>
+      {pageContent}
+      <Footer data={footerData} />
+    </>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <CubeGridSpinner />
+    </div>
+  );
+}
+
+export default function DatosAcademicosPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <DatosAcademicosContent />
+    </Suspense>
+  );
+}
