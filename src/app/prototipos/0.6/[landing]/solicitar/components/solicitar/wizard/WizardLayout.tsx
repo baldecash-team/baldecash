@@ -16,6 +16,7 @@ import { SelectedProductBar, SelectedProductSpacer } from '../product';
 import { WizardStepId } from '../../../types/solicitar';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
+import type { WizardMotivational } from '../../../../../services/wizardApi';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
@@ -40,6 +41,8 @@ interface WizardLayoutProps {
   isSubmitting?: boolean;
   canProceed?: boolean;
   navbarProps?: NavbarProps;
+  /** Contenido motivacional desde API */
+  motivational?: WizardMotivational | null;
 }
 
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -56,6 +59,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   isSubmitting = false,
   canProceed = true,
   navbarProps,
+  motivational,
 }) => {
   return (
     <div className="min-h-screen bg-neutral-50 relative">
@@ -108,7 +112,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
           {/* Right Column - Motivational Card (Desktop only) */}
           <div className="hidden lg:block">
             <div className="sticky top-24">
-              <MotivationalCard currentStep={currentStep} />
+              <MotivationalCard currentStep={currentStep} motivational={motivational} />
             </div>
           </div>
         </div>

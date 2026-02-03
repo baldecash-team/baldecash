@@ -1,25 +1,37 @@
 'use client';
 
 /**
- * WizardProgress - Step progress indicator
+ * WizardProgress - Step progress indicator (Dynamic from API)
  * Shows current position in the wizard flow
+ *
+ * Steps come from the API + "Resumen" is always added at the end
  *
  * Mobile: Compact design with Baldi illustration + progress dots (clickeable)
  * Desktop: Full circles with titles (clickeable)
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Check } from 'lucide-react';
 import { WizardStepId } from '../../../types/solicitar';
-import { STEP_ORDER, getStepById } from '../../../data/wizardSteps';
+import { useWizardConfig } from '../../../context/WizardConfigContext';
+import { STEP_CODE_TO_SLUG } from '../../../../../services/wizardApi';
 
-// Ilustraciones de Baldi por paso
-const STEP_ILLUSTRATIONS: Record<WizardStepId, string> = {
+// Ilustraciones de Baldi por step slug
+const STEP_ILLUSTRATIONS: Record<string, string> = {
   'datos-personales': '/images/baldi/BALDI_IDEA.png',
   'datos-academicos': '/images/baldi/BALDI_COMPU.png',
   'datos-economicos': '/images/baldi/BALDI_EJECUTIVO.png',
   'resumen': '/images/baldi/BALDI_ALEGRE.png',
 };
+
+// Default illustration for unknown steps
+const DEFAULT_ILLUSTRATION = '/images/baldi/BALDI_IDEA.png';
+
+interface ProgressStep {
+  slug: WizardStepId;
+  title: string;
+  code: string;
+}
 
 interface WizardProgressProps {
   currentStep: WizardStepId;
@@ -32,20 +44,82 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
   completedSteps = [],
   onStepClick,
 }) => {
-  const currentIndex = STEP_ORDER.indexOf(currentStep);
-  const currentStepData = getStepById(currentStep);
-  const totalSteps = STEP_ORDER.length;
+  const { steps: apiSteps, isLoading } = useWizardConfig();
 
-  const isStepClickable = (stepId: WizardStepId, index: number) => {
+  // Build step list from API + Resumen at the end
+  // Excludes steps with is_summary_step=true (they appear in resumen page, not progress bar)
+  const progressSteps: ProgressStep[] = useMemo(() => {
+    const stepsFromApi: ProgressStep[] = apiSteps
+      .filter(step => !step.is_summary_step) // Exclude summary steps from progress bar
+      .map(step => ({
+        slug: (STEP_CODE_TO_SLUG[step.code] || step.code) as WizardStepId,
+        title: step.title,
+        code: step.code,
+      }));
+
+    // Always add "Resumen" at the end
+    const resumenStep: ProgressStep = {
+      slug: 'resumen',
+      title: 'Resumen',
+      code: 'resumen',
+    };
+
+    return [...stepsFromApi, resumenStep];
+  }, [apiSteps]);
+
+  const currentIndex = progressSteps.findIndex(s => s.slug === currentStep);
+  const currentStepData = progressSteps[currentIndex];
+  const totalSteps = progressSteps.length;
+
+  const isStepClickable = (stepSlug: WizardStepId, index: number) => {
     // Can click on completed steps or any previous step
-    return onStepClick && (completedSteps.includes(stepId) || index < currentIndex);
+    return onStepClick && (completedSteps.includes(stepSlug) || index < currentIndex);
   };
 
-  const handleStepClick = (stepId: WizardStepId, index: number) => {
-    if (isStepClickable(stepId, index) && onStepClick) {
-      onStepClick(stepId);
+  const handleStepClick = (stepSlug: WizardStepId, index: number) => {
+    if (isStepClickable(stepSlug, index) && onStepClick) {
+      onStepClick(stepSlug);
     }
   };
+
+  const getIllustration = (slug: string): string => {
+    return STEP_ILLUSTRATIONS[slug] || DEFAULT_ILLUSTRATION;
+  };
+
+  // Loading state - show skeleton
+  if (isLoading || progressSteps.length === 0) {
+    return (
+      <>
+        {/* Mobile Skeleton */}
+        <div className="lg:hidden">
+          <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100 animate-pulse">
+            <div className="w-14 h-14 bg-neutral-200 rounded-full" />
+            <div className="flex-1">
+              <div className="h-3 bg-neutral-200 rounded w-20 mb-2" />
+              <div className="h-5 bg-neutral-200 rounded w-32 mb-2" />
+              <div className="flex gap-2">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="w-2.5 h-2.5 bg-neutral-200 rounded-full" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Desktop Skeleton */}
+        <div className="hidden lg:flex items-center justify-between animate-pulse">
+          {[1, 2, 3, 4].map((_, i) => (
+            <React.Fragment key={i}>
+              <div className="flex flex-col items-center">
+                <div className="w-10 h-10 bg-neutral-200 rounded-full" />
+                <div className="h-3 bg-neutral-200 rounded w-16 mt-2" />
+              </div>
+              {i < 3 && <div className="flex-1 h-1 mx-2 bg-neutral-200 rounded-full" />}
+            </React.Fragment>
+          ))}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -54,7 +128,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
         <div className="flex items-center gap-4 bg-white rounded-2xl p-4 shadow-sm border border-neutral-100">
           {/* Baldi Illustration */}
           <img
-            src={STEP_ILLUSTRATIONS[currentStep]}
+            src={getIllustration(currentStep)}
             alt="Baldi"
             className="w-14 h-14 object-contain flex-shrink-0"
           />
@@ -70,16 +144,16 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
 
             {/* Progress Dots - Clickeable */}
             <div className="flex items-center gap-2 mt-2">
-              {STEP_ORDER.map((stepId, index) => {
-                const isCompleted = completedSteps.includes(stepId) || index < currentIndex;
-                const isCurrent = stepId === currentStep;
-                const clickable = isStepClickable(stepId, index);
+              {progressSteps.map((step, index) => {
+                const isCompleted = completedSteps.includes(step.slug) || index < currentIndex;
+                const isCurrent = step.slug === currentStep;
+                const clickable = isStepClickable(step.slug, index);
 
                 return (
-                  <React.Fragment key={stepId}>
+                  <React.Fragment key={step.slug}>
                     <button
                       type="button"
-                      onClick={() => handleStepClick(stepId, index)}
+                      onClick={() => handleStepClick(step.slug, index)}
                       disabled={!clickable}
                       className={`
                         w-2.5 h-2.5 rounded-full transition-all duration-200
@@ -92,9 +166,9 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                           ? 'cursor-pointer hover:scale-125 hover:ring-2 hover:ring-[#4654CD]/50'
                           : 'cursor-default'}
                       `}
-                      aria-label={`Ir a ${getStepById(stepId)?.title || stepId}`}
+                      aria-label={`Ir a ${step.title}`}
                     />
-                    {index < STEP_ORDER.length - 1 && (
+                    {index < progressSteps.length - 1 && (
                       <div
                         className={`
                           flex-1 h-0.5 rounded-full transition-all duration-200
@@ -112,18 +186,17 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
 
       {/* Desktop Version */}
       <div className="hidden lg:flex items-center justify-between">
-        {STEP_ORDER.map((stepId, index) => {
-          const step = getStepById(stepId);
-          const isCompleted = completedSteps.includes(stepId) || index < currentIndex;
-          const isCurrent = stepId === currentStep;
-          const clickable = isStepClickable(stepId, index);
+        {progressSteps.map((step, index) => {
+          const isCompleted = completedSteps.includes(step.slug) || index < currentIndex;
+          const isCurrent = step.slug === currentStep;
+          const clickable = isStepClickable(step.slug, index);
 
           return (
-            <React.Fragment key={stepId}>
+            <React.Fragment key={step.slug}>
               {/* Step Circle - Clickeable */}
               <button
                 type="button"
-                onClick={() => handleStepClick(stepId, index)}
+                onClick={() => handleStepClick(step.slug, index)}
                 disabled={!clickable}
                 className={`
                   flex flex-col items-center group
@@ -158,12 +231,12 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                     ${clickable ? 'group-hover:text-[#4654CD]' : ''}
                   `}
                 >
-                  {step?.title || stepId}
+                  {step.title}
                 </span>
               </button>
 
               {/* Connector Line */}
-              {index < STEP_ORDER.length - 1 && (
+              {index < progressSteps.length - 1 && (
                 <div
                   className={`
                     flex-1 h-1 mx-2 rounded-full transition-all duration-200

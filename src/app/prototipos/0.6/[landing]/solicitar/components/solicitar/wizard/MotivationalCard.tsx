@@ -3,20 +3,20 @@
 /**
  * MotivationalCard - Card lateral con mensajes motivacionales por paso
  *
- * Muestra contenido contextual según el paso actual del wizard:
- * - datos-personales: Importancia del DNI correcto
- * - datos-academicos: Social proof (estudiantes)
- * - datos-economicos: Transparencia en cuotas
- * - resumen: Último paso, casi listo
+ * Muestra contenido contextual según el paso actual del wizard.
+ * Puede recibir el contenido directamente via props (desde API) o usar fallback hardcodeado.
  *
  * Solo visible en desktop (lg:). En mobile se oculta.
  */
 
 import React from 'react';
 import { WizardStepId } from '../../../types/solicitar';
+import { WizardMotivational } from '../../../../../services/wizardApi';
 
 interface MotivationalCardProps {
   currentStep: WizardStepId;
+  /** Contenido motivacional desde API - si se provee, tiene prioridad sobre el hardcodeado */
+  motivational?: WizardMotivational | null;
 }
 
 interface StepContent {
@@ -27,8 +27,8 @@ interface StepContent {
   illustration: string;
 }
 
-// Contenido por paso
-const STEP_CONTENT: Record<WizardStepId, StepContent> = {
+// Fallback contenido por paso (usado si no viene de API)
+const STEP_CONTENT_FALLBACK: Partial<Record<WizardStepId, StepContent>> = {
   'datos-personales': {
     title: 'Recuerda que es importante digitar tu',
     highlight: 'número de DNI',
@@ -59,8 +59,21 @@ const STEP_CONTENT: Record<WizardStepId, StepContent> = {
   },
 };
 
-export const MotivationalCard: React.FC<MotivationalCardProps> = ({ currentStep }) => {
-  const content = STEP_CONTENT[currentStep];
+export const MotivationalCard: React.FC<MotivationalCardProps> = ({ currentStep, motivational }) => {
+  // Usar contenido de API si está disponible, sino fallback
+  let content: StepContent | null = null;
+
+  if (motivational) {
+    content = {
+      title: motivational.title,
+      highlight: motivational.highlight,
+      titleEnd: motivational.title_end,
+      subtitle: motivational.subtitle,
+      illustration: motivational.illustration,
+    };
+  } else {
+    content = STEP_CONTENT_FALLBACK[currentStep] || null;
+  }
 
   if (!content) return null;
 

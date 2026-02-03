@@ -31,6 +31,14 @@ export interface WizardFieldDependency {
   action: 'show' | 'hide' | 'enable' | 'disable' | 'require' | 'unrequire';
 }
 
+export interface WizardMotivational {
+  title: string;
+  highlight: string;
+  title_end: string;
+  subtitle: string;
+  illustration: string;
+}
+
 export interface WizardField {
   id: number;
   code: string;
@@ -73,6 +81,8 @@ export interface WizardStep {
   required: boolean;
   skippable: boolean;
   estimated_time_minutes: number;
+  is_summary_step: boolean; // If true, step appears in summary page, not in progress bar
+  motivational: WizardMotivational | null; // Motivational content for sidebar card
   fields: WizardField[];
 }
 

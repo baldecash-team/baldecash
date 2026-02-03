@@ -135,6 +135,7 @@ function DatosPersonalesContent() {
         isFirstStep={false}
         canProceed={true}
         navbarProps={navbarProps || undefined}
+        motivational={step.motivational}
       >
         <DynamicWizardStep
           step={step}

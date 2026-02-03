@@ -136,6 +136,7 @@ function DatosEconomicosContent() {
         isFirstStep={navigation.isFirst}
         canProceed={true}
         navbarProps={navbarProps || undefined}
+        motivational={step.motivational}
       >
         <DynamicWizardStep
           step={step}

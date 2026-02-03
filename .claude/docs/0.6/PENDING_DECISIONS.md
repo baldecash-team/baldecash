@@ -10,6 +10,7 @@ Preguntas que requieren confirmacion del equipo antes de implementar.
 | 2 | El carousel de instituciones debe ser dinamico por landing o siempre mostrar todas? | Pendiente |
 | 3 | Los "Terminos y Condiciones" y "Politicas de Privacidad" deben ser dinamicos por landing o estaticos? | Pendiente |
 | 4 | Los cupones de descuento deben ser especificos por landing o globales? | Pendiente |
+| 5 | La pagina "Resumen" debe mostrarse como un paso en la barra de progreso del wizard? | Pendiente |
 
 Ver detalles de cada pregunta mas abajo.
 
@@ -186,5 +187,57 @@ class Coupon(ActiveBaseModel):
 - Requiere: nueva tabla, seeder, logica de validacion
 
 **Decision:** _Pendiente_ (por ahora se mantiene global)
+
+**Responsable de decidir:** _Por asignar_
+
+---
+
+## 5. Resumen como Paso del Wizard
+
+**Fecha:** 2026-02-03
+
+**Contexto:**
+La pagina "Resumen" es la pantalla final del wizard donde el usuario revisa toda su informacion antes de enviar la solicitud. Actualmente, esta pagina **no aparece** en la barra de progreso (WizardProgress).
+
+**Comportamiento actual:**
+- WizardProgress muestra: Datos Personales → Datos Academicos → Datos Economicos
+- "Resumen" no aparece como paso visible en la barra de progreso
+- El usuario llega a "Resumen" despues de completar "Datos Economicos"
+- En el backend, `summary_preferences` tiene `is_summary_step = true` para excluirlo del progreso
+
+**Codigo actual** (`WizardProgress.tsx`):
+```typescript
+// Filter out summary steps from progress display
+const progressSteps = steps.filter(s => !s.is_summary_step);
+```
+
+**Problema/Pregunta:**
+Desde perspectiva UX, puede ser confuso que el usuario no vea un indicador de que hay un paso final de revision. Alternativamente, mostrar "Resumen" como paso adicional podria hacer el wizard parecer mas largo de lo necesario.
+
+**Pregunta para el equipo:**
+> La pagina "Resumen" debe mostrarse como un paso en la barra de progreso del wizard?
+
+**Opciones:**
+
+### Opcion A: Mantener oculto (actual)
+- "Resumen" no aparece en la barra de progreso
+- El wizard muestra solo 3 pasos: Personal → Academico → Economico
+- Percepcion: wizard mas corto y simple
+- El usuario "descubre" el resumen al final
+
+### Opcion B: Mostrar como paso final
+- "Resumen" aparece como paso 4 en la barra de progreso
+- El wizard muestra 4 pasos: Personal → Academico → Economico → Resumen
+- Percepcion: wizard completo y transparente
+- El usuario sabe desde el inicio que habra una revision final
+- Requiere: cambiar `is_summary_step = false` o ajustar logica de filtrado
+
+### Opcion C: Indicador separado (no como paso)
+- Mantener 3 pasos en la barra de progreso
+- Agregar indicador visual separado tipo "Paso final: Revision"
+- Balance entre transparencia y simplicidad
+- Requiere: nuevo componente de UI
+
+**Decision:** _Pendiente_
 
 **Responsable de decidir:** _Por asignar_
