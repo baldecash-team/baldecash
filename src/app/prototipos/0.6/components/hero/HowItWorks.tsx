@@ -107,7 +107,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4
                           </div>
                           <div className="flex-1 p-4 min-w-0">
                             <span className="text-xs font-bold text-neutral-400">
-                              PASO {step.id}
+                              {data.stepLabel || 'PASO'} {step.id}
                             </span>
                             <h4 className="font-semibold text-neutral-800 mt-0.5">{step.title}</h4>
                             <AnimatePresence>

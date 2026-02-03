@@ -226,6 +226,7 @@ export interface Requirement {
 export interface HowItWorksData {
   title?: string;
   subtitle?: string;
+  stepLabel?: string;
   stepsTitle?: string;
   requirementsTitle?: string;
   steps: HowItWorksStep[];

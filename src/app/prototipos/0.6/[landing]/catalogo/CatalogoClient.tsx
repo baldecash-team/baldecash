@@ -86,6 +86,9 @@ import {
   mockProducts,
 } from './data/mockCatalogData';
 
+// API Hook for loading products
+import { useCatalogProducts, useProductsByIds } from './hooks/useCatalogProducts';
+
 // Query params utilities
 import {
   parseFiltersFromParams,
@@ -270,6 +273,19 @@ function CatalogoContent() {
 
   // Get layout data from context (fetched once at [landing] level)
   const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+
+  // Load products from API (with mock fallback)
+  // Set useMockData=true to always use mock data during development
+  const {
+    products: catalogProducts,
+    isLoading: isProductsLoading,
+    isFromApi,
+    error: productsError,
+    getInstallment,
+  } = useCatalogProducts({
+    landingSlug: landing,
+    useMockData: false, // Set to true to force mock data
+  });
 
   // Scroll to top on page load
   useScrollToTop();
@@ -703,27 +719,27 @@ function CatalogoContent() {
     }
     if (cart.length === 1) {
       // Guardar el producto del carrito antes de navegar
-      const productToSave = mockProducts.find((p) => p.id === cart[0]);
+      const productToSave = catalogProducts.find((p) => p.id === cart[0]);
       if (productToSave) {
         selectProductForWizard(productToSave);
       }
       router.push(getWizardUrl(landing));
     }
-  }, [cart, router, showToast, selectProductForWizard, landing]);
+  }, [cart, router, showToast, selectProductForWizard, landing, catalogProducts]);
 
   // Get cart products
   const cartProducts = useMemo(() => {
     return cart
-      .map((id) => mockProducts.find((p) => p.id === id))
+      .map((id) => catalogProducts.find((p) => p.id === id))
       .filter((p): p is CatalogProduct => p !== undefined);
-  }, [cart]);
+  }, [cart, catalogProducts]);
 
   // Get wishlist products
   const wishlistProducts = useMemo(() => {
     return wishlist
-      .map((id) => mockProducts.find((p) => p.id === id))
+      .map((id) => catalogProducts.find((p) => p.id === id))
       .filter((p): p is CatalogProduct => p !== undefined);
-  }, [wishlist]);
+  }, [wishlist, catalogProducts]);
 
 
 
@@ -777,9 +793,9 @@ function CatalogoContent() {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    const products = getFilteredProducts(filters);
+    const products = getFilteredProducts(filters, catalogProducts);
     return sortProducts(products, sort);
-  }, [filters, sort]);
+  }, [filters, sort, catalogProducts]);
 
   // Products to display based on viewMode and search
   const displayedProducts = useMemo(() => {
@@ -889,12 +905,12 @@ function CatalogoContent() {
     if (compareList.length >= maxCompareProducts) return;
 
     // Obtener el producto a agregar
-    const productToAdd = mockProducts.find((p) => p.id === productId);
+    const productToAdd = catalogProducts.find((p) => p.id === productId);
     if (!productToAdd) return;
 
     // Verificar tipo de dispositivo si ya hay productos en la lista
     if (compareList.length > 0) {
-      const firstProductInList = mockProducts.find((p) => p.id === compareList[0]);
+      const firstProductInList = catalogProducts.find((p) => p.id === compareList[0]);
 
       if (firstProductInList) {
         const currentDeviceType = getDeviceType(firstProductInList);
@@ -921,7 +937,7 @@ function CatalogoContent() {
 
     // Agregar a la lista
     setCompareList((prev) => [...prev, productId]);
-  }, [compareList, maxCompareProducts, showToast]);
+  }, [compareList, maxCompareProducts, showToast, catalogProducts]);
 
   const handleRemoveFromCompare = useCallback((productId: string) => {
     setCompareList((prev) => prev.filter((id) => id !== productId));
@@ -934,12 +950,12 @@ function CatalogoContent() {
 
   const compareProducts = useMemo((): ComparisonProduct[] => {
     return compareList
-      .map((id) => filteredProducts.find((p) => p.id === id) || mockProducts.find((p) => p.id === id))
+      .map((id) => filteredProducts.find((p) => p.id === id) || catalogProducts.find((p) => p.id === id))
       .filter((p): p is ComparisonProduct => p !== undefined);
-  }, [compareList, filteredProducts]);
+  }, [compareList, filteredProducts, catalogProducts]);
 
-  // Show loading while page preloads or layout data is loading
-  if (isPageLoading || isLayoutLoading) {
+  // Show loading while page preloads, layout data, or products are loading
+  if (isPageLoading || isLayoutLoading || isProductsLoading) {
     return <LoadingFallback />;
   }
 
@@ -969,7 +985,7 @@ function CatalogoContent() {
         onWishlistRemove={handleToggleWishlist}
         onWishlistClear={() => setWishlist([])}
         onWishlistViewProduct={(productId) => {
-          const product = mockProducts.find((p) => p.id === productId);
+          const product = catalogProducts.find((p) => p.id === productId);
           router.push(getDetailUrl(landing, productId, product?.deviceType));
         }}
         cartItems={cartProducts}
@@ -1103,7 +1119,7 @@ function CatalogoContent() {
                     setSearchQuery('');
                   }}
                   onRemoveFilter={handleRemoveFilter}
-                  totalProductsIfExpanded={mockProducts.length}
+                  totalProductsIfExpanded={catalogProducts.length}
                   config={{ illustrationVersion: 5, actionsVersion: 6 }}
                 />
 
@@ -1198,7 +1214,7 @@ function CatalogoContent() {
         onClearAll={() => setWishlist([])}
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
-          const product = mockProducts.find((p) => p.id === productId);
+          const product = catalogProducts.find((p) => p.id === productId);
           router.push(getDetailUrl(landing, productId, product?.deviceType));
         }}
         onAddToCompare={handleToggleCompare}

@@ -1104,37 +1104,40 @@ export function getProductsByUsage(usage: UsageType): CatalogProduct[] {
   return mockProducts.filter((p) => p.usage.includes(usage));
 }
 
-export function getFilteredProducts(filters: Partial<{
-  deviceTypes: CatalogDeviceType[];
-  brands: string[];
-  quotaRange: [number, number];
-  usage: UsageType[];
-  ram: number[];
-  storage: number[];
-  storageType: string[];
-  processorBrand: string[];
-  displaySize: number[];
-  displayType: string[];
-  resolution: string[];
-  refreshRate: number[];
-  gpuType: string[];
-  touchScreen: boolean | null;
-  ramExpandable: boolean | null;
-  backlitKeyboard: boolean | null;
-  numericKeypad: boolean | null;
-  fingerprint: boolean | null;
-  hasWindows: boolean | null;
-  hasThunderbolt: boolean | null;
-  hasEthernet: boolean | null;
-  hasSDCard: boolean | null;
-  hasHDMI: boolean | null;
-  minUSBPorts: number | null;
-  gama: GamaTier[];
-  condition: ProductCondition[];
-  stock: StockStatus[];
-  tags: ProductTagType[];
-}>): CatalogProduct[] {
-  return mockProducts.filter((product) => {
+export function getFilteredProducts(
+  filters: Partial<{
+    deviceTypes: CatalogDeviceType[];
+    brands: string[];
+    quotaRange: [number, number];
+    usage: UsageType[];
+    ram: number[];
+    storage: number[];
+    storageType: string[];
+    processorBrand: string[];
+    displaySize: number[];
+    displayType: string[];
+    resolution: string[];
+    refreshRate: number[];
+    gpuType: string[];
+    touchScreen: boolean | null;
+    ramExpandable: boolean | null;
+    backlitKeyboard: boolean | null;
+    numericKeypad: boolean | null;
+    fingerprint: boolean | null;
+    hasWindows: boolean | null;
+    hasThunderbolt: boolean | null;
+    hasEthernet: boolean | null;
+    hasSDCard: boolean | null;
+    hasHDMI: boolean | null;
+    minUSBPorts: number | null;
+    gama: GamaTier[];
+    condition: ProductCondition[];
+    stock: StockStatus[];
+    tags: ProductTagType[];
+  }>,
+  products: CatalogProduct[] = mockProducts
+): CatalogProduct[] {
+  return products.filter((product) => {
     // Device type filter
     if (filters.deviceTypes?.length && product.deviceType && !filters.deviceTypes.includes(product.deviceType)) {
       return false;

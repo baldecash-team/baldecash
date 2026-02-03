@@ -359,12 +359,14 @@ export function transformLandingData(data: LandingHeroResponse): {
     const howSubtitle = howItWorksComponent.component_subtitle || undefined;
 
     // Extraer títulos de columnas desde content_config
+    const stepLabel = (howConfig.step_label as string) || undefined;
     const stepsTitle = (howConfig.steps_title as string) || undefined;
     const requirementsTitle = (howConfig.requirements_title as string) || undefined;
 
     howItWorksData = {
       title: howTitle,
       subtitle: howSubtitle,
+      stepLabel,
       stepsTitle,
       requirementsTitle,
       steps: ((howConfig.steps as { id: number; title: string; description: string; icon: string; color?: string }[]) || []).map((step, index) => ({
@@ -398,38 +400,23 @@ export function transformLandingData(data: LandingHeroResponse): {
     const categoryIcons = faqContentConfig.category_icons as Record<string, string> | undefined;
     const categoryColors = faqContentConfig.category_colors as Record<string, string> | undefined;
 
-    if (apiFaqs.length > 0) {
-      // Obtener categorías únicas
-      const categories = [...new Set(apiFaqs.map(f => f.category).filter(Boolean))] as string[];
+    // Obtener categorías únicas
+    const categories = [...new Set(apiFaqs.map(f => f.category).filter(Boolean))] as string[];
 
-      faqData = {
-        title: faqTitle,
-        subtitle: faqSubtitle,
-        items: apiFaqs.map((faq) => ({
-          id: faq.id,
-          question: faq.question,
-          answer: faq.answer,
-          category: faq.category,
-        })),
-        categories: categories.length > 0 ? categories : undefined,
-        categoryIcons,
-        categoryColors,
-      };
-    } else {
-      // Fallback a datos por defecto si no hay FAQs en BD
-      faqData = {
-        title: faqTitle,
-        subtitle: faqSubtitle,
-        items: [
-          { id: '1', question: '¿Necesito historial crediticio?', answer: 'No, no necesitas historial crediticio. Evaluamos tu perfil de estudiante.', category: 'Requisitos' },
-          { id: '2', question: '¿Cuánto tiempo demora la aprobación?', answer: 'La aprobación es en 24 horas hábiles.', category: 'Proceso' },
-          { id: '3', question: '¿Cuáles son las formas de pago?', answer: 'Puedes pagar por transferencia, Yape, Plin o en agentes.', category: 'Pagos' },
-        ],
-        categories: ['Requisitos', 'Proceso', 'Pagos'],
-        categoryIcons,
-        categoryColors,
-      };
-    }
+    // 100% backend: si no hay FAQs en BD, faqData queda null y la sección no se renderiza
+    faqData = apiFaqs.length > 0 ? {
+      title: faqTitle,
+      subtitle: faqSubtitle,
+      items: apiFaqs.map((faq) => ({
+        id: faq.id,
+        question: faq.question,
+        answer: faq.answer,
+        category: faq.category,
+      })),
+      categories: categories.length > 0 ? categories : undefined,
+      categoryIcons,
+      categoryColors,
+    } : null;
   }
 
   // Extraer testimonios
