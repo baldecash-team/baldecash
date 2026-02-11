@@ -213,7 +213,7 @@ export interface FilterState {
 export const defaultFilterState: FilterState = {
   deviceTypes: [],
   brands: [],
-  quotaRange: [25, 400],
+  quotaRange: [25, 500],
   quotaFrequency: 'monthly',
   usage: [],
   ram: [],

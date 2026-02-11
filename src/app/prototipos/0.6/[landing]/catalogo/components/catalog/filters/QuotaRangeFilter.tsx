@@ -15,7 +15,7 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
   value,
   onChange,
   min = 40,
-  max = 400,
+  max = 500,
 }) => {
   return (
     <div className="space-y-4">

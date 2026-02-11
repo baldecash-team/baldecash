@@ -86,8 +86,8 @@ import {
   mockProducts,
 } from './data/mockCatalogData';
 
-// API Hook for loading products
-import { useCatalogProducts, useProductsByIds } from './hooks/useCatalogProducts';
+// API Hooks for loading products and filters
+import { useCatalogProducts, useProductsByIds, useCatalogFilters } from './hooks/useCatalogProducts';
 
 // Query params utilities
 import {
@@ -278,14 +278,24 @@ function CatalogoContent() {
   // Set useMockData=true to always use mock data during development
   const {
     products: catalogProducts,
+    total: totalProducts,
     isLoading: isProductsLoading,
+    isLoadingMore: isLoadingMoreFromApi,
+    hasMore: hasMoreFromApi,
     isFromApi,
     error: productsError,
+    loadMore: loadMoreFromApi,
     getInstallment,
   } = useCatalogProducts({
     landingSlug: landing,
     useMockData: false, // Set to true to force mock data
   });
+
+  // Load dynamic filter options from API (quota range, brands, etc.)
+  const {
+    quotaRange: dynamicQuotaRange,
+    isFromApi: isFiltersFromApi,
+  } = useCatalogFilters(landing);
 
   // Scroll to top on page load
   useScrollToTop();
@@ -352,7 +362,6 @@ function CatalogoContent() {
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const isFirstRender = useRef(true);
 
@@ -743,11 +752,8 @@ function CatalogoContent() {
 
 
 
-  // Pagination
-  const INITIAL_ROWS = 4;
-  const ROWS_PER_LOAD = 2;
-  const [visibleRows, setVisibleRows] = useState(INITIAL_ROWS);
-  const [pendingRows, setPendingRows] = useState(0);
+  // Pagination - now handled by API via useCatalogProducts hook
+  // Local row-based pagination removed in favor of API's limit/offset
 
   // Scroll detection
   useEffect(() => {
@@ -821,11 +827,10 @@ function CatalogoContent() {
 
   const filterCounts = useMemo(() => getFilterCounts(filteredProducts), [filteredProducts]);
 
-  // Loading effect
+  // Loading effect for filter/sort changes (client-side filtering)
   useEffect(() => {
     if (!isFirstRender.current) {
       setIsLoading(true);
-      setVisibleRows(INITIAL_ROWS);
     }
     isFirstRender.current = false;
 
@@ -834,23 +839,17 @@ function CatalogoContent() {
     return () => clearTimeout(timer);
   }, [filters, sort, config.loadingDuration]);
 
-  // Pagination calculations
-  const columnsCount = config.productsPerRow.desktop;
-  const visibleProductsCount = visibleRows * columnsCount;
-  const visibleProducts = displayedProducts.slice(0, visibleProductsCount);
-  const hasMoreProducts = visibleProductsCount < displayedProducts.length;
-  const remainingProducts = displayedProducts.length - visibleProductsCount;
+  // Pagination - API-driven via useCatalogProducts hook
+  // All filtered/sorted products are displayed (no client-side slicing)
+  // "Load more" fetches additional products from the API
+  const visibleProducts = displayedProducts; // Show all loaded products after filtering
+  const hasMoreProducts = hasMoreFromApi; // API indicates if there are more to fetch
+  const remainingProducts = totalProducts - catalogProducts.length; // Remaining in API
 
+  // Load more products from API
   const handleLoadMore = useCallback(() => {
-    setIsLoadingMore(true);
-    setPendingRows(ROWS_PER_LOAD);
-    const loadingTime = loadingDurationMs[config.loadingDuration];
-    setTimeout(() => {
-      setVisibleRows((prev) => prev + ROWS_PER_LOAD);
-      setPendingRows(0);
-      setIsLoadingMore(false);
-    }, loadingTime);
-  }, [config.loadingDuration]);
+    loadMoreFromApi();
+  }, [loadMoreFromApi]);
 
   // Applied filters for EmptyState
   const appliedFilters = useMemo((): AppliedFilter[] => {
@@ -860,7 +859,7 @@ function CatalogoContent() {
         result.push({ key: 'brand', label: brand.charAt(0).toUpperCase() + brand.slice(1), value: brand });
       });
     }
-    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 400) {
+    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500) {
       result.push({ key: 'quota', label: `S/${filters.quotaRange[0]} - S/${filters.quotaRange[1]}/mes`, value: filters.quotaRange });
     }
     if (filters.ram.length > 0) {
@@ -881,7 +880,7 @@ function CatalogoContent() {
     setFilters((prev) => {
       const newFilters = { ...prev };
       if (key === 'brand') newFilters.brands = [];
-      if (key === 'quota') newFilters.quotaRange = [25, 400];
+      if (key === 'quota') newFilters.quotaRange = [25, 500];
       if (key === 'ram') newFilters.ram = [];
       if (key === 'gama') newFilters.gama = [];
       return newFilters;
@@ -1029,7 +1028,7 @@ function CatalogoContent() {
         onSearchClear={handleSearchClear}
       >
         {isLoading ? (
-          Array.from({ length: visibleProductsCount }).map((_, index) => (
+          Array.from({ length: 16 }).map((_, index) => (
             <ProductCardSkeleton key={`skeleton-${index}`} version={config.skeletonVersion} index={index} />
           ))
         ) : (
@@ -1055,21 +1054,20 @@ function CatalogoContent() {
                 })}
               />
             ))}
-            {isLoadingMore &&
-              pendingRows > 0 &&
-              Array.from({ length: pendingRows * columnsCount }).map((_, index) => (
+            {isLoadingMoreFromApi &&
+              Array.from({ length: 8 }).map((_, index) => (
                 <ProductCardSkeleton key={`loading-more-${index}`} version={config.skeletonVersion} index={index} />
               ))}
           </>
         )}
 
         {/* Load More Button */}
-        {!isLoading && !isLoadingMore && hasMoreProducts && (
+        {!isLoading && !isLoadingMoreFromApi && hasMoreProducts && (
           <LoadMoreButton
             version={config.loadMoreVersion}
             remainingProducts={remainingProducts}
-            totalProducts={displayedProducts.length}
-            visibleProducts={visibleProducts.length}
+            totalProducts={totalProducts}
+            visibleProducts={catalogProducts.length}
             onLoadMore={handleLoadMore}
           />
         )}

@@ -69,6 +69,14 @@ export const useProduct = () => {
   return context;
 };
 
+/**
+ * Optional version that returns null if no Provider is present.
+ * Useful for components that may be rendered outside the provider (e.g., Quiz in Hero).
+ */
+export const useProductOptional = () => {
+  return useContext(ProductContext);
+};
+
 interface ProductProviderProps {
   children: ReactNode;
 }

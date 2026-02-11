@@ -124,7 +124,7 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
       hasHDMI: null,
       minUSBPorts: null,
       ramExpandable: null,
-      quotaRange: [25, 400],
+      quotaRange: [25, 500],
     });
   };
 

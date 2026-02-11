@@ -226,7 +226,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
 
     // Quota range (si difiere del default)
-    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 400) {
+    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500) {
       applied.push({ id: 'quota-range', category: 'Cuota', label: `S/${filters.quotaRange[0]} - S/${filters.quotaRange[1]}/mes`, value: `${filters.quotaRange[0]}-${filters.quotaRange[1]}` });
     }
 
@@ -256,7 +256,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       (filters.hasThunderbolt ? 1 : 0) +
       (filters.hasEthernet ? 1 : 0) +
       (filters.ramExpandable ? 1 : 0) +
-      (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 400 ? 1 : 0)
+      (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500 ? 1 : 0)
     );
   }, [filters]);
 
@@ -330,7 +330,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         updateFilter('ramExpandable', false);
         break;
       case 'quota':
-        updateFilter('quotaRange', [25, 400]);
+        updateFilter('quotaRange', [25, 500]);
         break;
     }
   };
@@ -366,7 +366,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       hasHDMI: null,
       minUSBPorts: null,
       ramExpandable: null,
-      quotaRange: [25, 400],
+      quotaRange: [25, 500],
     });
     // También limpiar búsqueda
     onSearchClear?.();

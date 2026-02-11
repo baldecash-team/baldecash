@@ -24,6 +24,10 @@ import type {
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
 
+// Pagination constants
+export const INITIAL_LOAD_LIMIT = 16;
+export const LOAD_MORE_LIMIT = 8;
+
 // ============================================
 // API Response Types
 // ============================================
@@ -52,6 +56,12 @@ export interface ApiBrand {
   logo_url?: string;
 }
 
+export interface ApiProductColor {
+  id: string;
+  name: string;
+  hex: string;
+}
+
 export interface ApiCatalogProduct {
   id: number;
   sku: string;
@@ -67,6 +77,7 @@ export interface ApiCatalogProduct {
   badge_text?: string;
   pricing: ApiProductPricing;
   image_url?: string;
+  colors?: ApiProductColor[];
 }
 
 export interface ApiCatalogResponse {
@@ -75,12 +86,23 @@ export interface ApiCatalogResponse {
   page: number;
   page_size: number;
   total_pages: number;
+  // Offset-based pagination fields
+  limit: number;
+  offset: number;
+  has_more: boolean;
   filters_applied: Record<string, unknown>;
 }
 
 export interface ApiFilterOptions {
   brands: { id: number; name: string; slug: string }[];
   price_range: { min: number; max: number };
+  quota_range: {
+    min: number;
+    max: number;
+    term_months: number;
+    initial_percent: number;
+    description: string;
+  };
   types: string[];
   sort_options: { value: string; label: string }[];
 }
@@ -122,6 +144,7 @@ export type SortBy = 'display_order' | 'price_asc' | 'price_desc' | 'featured';
 
 /**
  * Get products for a landing page catalog
+ * Supports both page/page_size and limit/offset pagination
  */
 export async function getCatalogProducts(
   landingSlug: string,
@@ -130,6 +153,9 @@ export async function getCatalogProducts(
     sort_by?: SortBy;
     page?: number;
     page_size?: number;
+    // Offset-based pagination (preferred for "load more")
+    limit?: number;
+    offset?: number;
   } = {}
 ): Promise<ApiCatalogResponse | null> {
   try {
@@ -144,8 +170,12 @@ export async function getCatalogProducts(
     }
 
     if (options.sort_by) params.set('sort_by', options.sort_by);
-    if (options.page) params.set('page', String(options.page));
-    if (options.page_size) params.set('page_size', String(options.page_size));
+
+    // Prefer limit/offset over page/page_size
+    if (options.limit !== undefined) params.set('limit', String(options.limit));
+    if (options.offset !== undefined) params.set('offset', String(options.offset));
+    if (options.page && options.limit === undefined) params.set('page', String(options.page));
+    if (options.page_size && options.limit === undefined) params.set('page_size', String(options.page_size));
 
     const queryString = params.toString();
     const url = `${API_BASE_URL}/public/landing/${landingSlug}/products${queryString ? `?${queryString}` : ''}`;
@@ -305,7 +335,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     brandLogo: apiProduct.brand.logo_url,
     thumbnail: apiProduct.image_url || '/images/products/placeholder.jpg',
     images: apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
-    colors: undefined, // Not available in list view
+    colors: apiProduct.colors?.map(c => ({ id: c.id, name: c.name, hex: c.hex })) || [],
     deviceType: mapDeviceType(apiProduct.type),
     price: pricing.final_price,
     originalPrice: pricing.list_price > pricing.final_price ? pricing.list_price : undefined,
@@ -336,6 +366,10 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
   page: number;
   pageSize: number;
   totalPages: number;
+  // Offset-based pagination
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 } {
   return {
     products: response.items.map(mapApiProductToCatalogProduct),
@@ -343,6 +377,9 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
     page: response.page,
     pageSize: response.page_size,
     totalPages: response.total_pages,
+    limit: response.limit,
+    offset: response.offset,
+    hasMore: response.has_more,
   };
 }
 
@@ -485,6 +522,8 @@ export async function fetchCatalogData(
     sort_by?: SortBy;
     page?: number;
     page_size?: number;
+    limit?: number;
+    offset?: number;
   } = {}
 ): Promise<{
   products: CatalogProduct[];
@@ -492,6 +531,9 @@ export async function fetchCatalogData(
   page: number;
   pageSize: number;
   totalPages: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 } | null> {
   const response = await getCatalogProducts(landingSlug, options);
 

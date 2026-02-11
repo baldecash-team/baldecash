@@ -14,11 +14,16 @@
  * - Footer: V2 (Newsletter + Columnas)
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { UnderlinedText } from './common/UnderlinedText';
 
 // Types
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
+
+// Quiz
+import { HelpQuiz } from '../../quiz';
+import type { QuizConfig } from '../../quiz';
+import { useIsMobile } from '@/app/prototipos/_shared';
 
 // Components
 import { Navbar } from './Navbar';
@@ -71,10 +76,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   footerData,
   landing = 'home',
 }) => {
-  // Quiz handlers (placeholder para futuro)
+  // Mobile detection for quiz layout
+  const isMobile = useIsMobile();
+
+  // Quiz state
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const quizConfig: QuizConfig = {
+    layoutVersion: isMobile ? 4 : 5,
+    questionCount: 7,
+    questionStyle: 1,
+    resultsVersion: 1,
+    focusVersion: 1,
+  };
+
+  // Quiz handlers
   const handleQuizOpen = () => {
-    // TODO: Implementar quiz para 0.6
-    console.log('Quiz not implemented yet in 0.6');
+    setIsQuizOpen(true);
+  };
+
+  const handleQuizClose = () => {
+    setIsQuizOpen(false);
   };
 
   return (
@@ -166,6 +187,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       {/* Footer */}
       <Footer data={footerData} />
+
+      {/* Quiz Modal */}
+      <HelpQuiz
+        config={quizConfig}
+        isOpen={isQuizOpen}
+        onClose={handleQuizClose}
+        context="hero"
+        landing={landing}
+      />
     </div>
   );
 };
