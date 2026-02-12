@@ -1,16 +1,18 @@
 'use client';
 
 /**
- * SelectedProductBar - Mobile-first sticky bar showing selected product
+ * SelectedProductBar - Mobile-first sticky bar showing selected product(s)
  *
  * Mobile: Bottom fixed bar, collapsible with tap
  * Tablet: Bottom bar with more info visible
  * Desktop: Top bar below stepper
+ *
+ * Supports multiple cart products with collapsible product list
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, Package, Plus, Tag } from 'lucide-react';
+import { ChevronUp, ChevronDown, Package, Plus, Tag, ShoppingCart } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import Image from 'next/image';
 
@@ -20,14 +22,46 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
-  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded } = useProduct();
+  const {
+    selectedProduct,
+    cartProducts,
+    selectedAccessories,
+    appliedCoupon,
+    isProductBarExpanded,
+    setIsProductBarExpanded,
+  } = useProduct();
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
+  const [isProductsCollapsed, setIsProductsCollapsed] = useState(false);
 
-  // Usar el estado del contexto para la expansión
   const isExpanded = isProductBarExpanded;
   const setIsExpanded = setIsProductBarExpanded;
 
-  if (!selectedProduct) return null;
+  // Determine which products to show
+  const productsToShow = useMemo(() => {
+    if (cartProducts.length > 0) return cartProducts;
+    if (selectedProduct) return [selectedProduct];
+    return [];
+  }, [cartProducts, selectedProduct]);
+
+  const isMultiProduct = productsToShow.length > 1;
+
+  // Calculate totals across all products
+  const totalProductsMonthly = useMemo(() => {
+    return productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
+  }, [productsToShow]);
+
+  const accessoriesMonthly = useMemo(() => {
+    return selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0);
+  }, [selectedAccessories]);
+
+  const totalMonthlyPayment = totalProductsMonthly + accessoriesMonthly;
+  const discountAmount = appliedCoupon?.discount || 0;
+  const discountedMonthlyPayment = Math.max(0, totalMonthlyPayment - discountAmount);
+
+  const hasAccessories = selectedAccessories.length > 0;
+  const hasCoupon = !!appliedCoupon;
+
+  if (productsToShow.length === 0) return null;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-PE', {
@@ -37,11 +71,8 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
     }).format(price);
   };
 
-  const totalPrice = getTotalPrice();
-  const totalMonthlyPayment = getTotalMonthlyPayment();
-  const discountedMonthlyPayment = getDiscountedMonthlyPayment();
-  const hasAccessories = selectedAccessories.length > 0;
-  const hasCoupon = !!appliedCoupon;
+  // Single product for collapsed mobile view
+  const firstProduct = productsToShow[0];
 
   return (
     <>
@@ -69,11 +100,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             className="w-full px-4 py-3 flex items-center gap-3 cursor-pointer"
           >
             {/* Product Thumbnail */}
-            <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-              {selectedProduct.image ? (
+            <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+              {firstProduct.image ? (
                 <Image
-                  src={selectedProduct.image}
-                  alt={selectedProduct.name}
+                  src={firstProduct.image}
+                  alt={firstProduct.name}
                   width={48}
                   height={48}
                   className="object-contain"
@@ -81,12 +112,20 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               ) : (
                 <Package className="w-6 h-6 text-neutral-400" />
               )}
+              {isMultiProduct && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#4654CD] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {productsToShow.length}
+                </span>
+              )}
             </div>
 
             {/* Product Info */}
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium text-neutral-800 truncate">
-                {selectedProduct.shortName}
+                {isMultiProduct
+                  ? `${productsToShow.length} productos`
+                  : firstProduct.shortName
+                }
                 {hasAccessories && (
                   <span className="text-xs text-neutral-500 ml-1">
                     +{selectedAccessories.length} acc.
@@ -94,7 +133,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 )}
               </p>
               <p className="text-xs text-neutral-500">
-                {selectedProduct.months} meses
+                {isMultiProduct
+                  ? `${firstProduct.months} meses`
+                  : `${firstProduct.months} meses`
+                }
               </p>
             </div>
 
@@ -128,48 +170,50 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="px-4 pb-4 pt-1 border-t border-neutral-100">
-                  {/* Larger Image */}
-                  <div className="flex gap-4">
-                    <div className="w-24 h-24 bg-neutral-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {selectedProduct.image ? (
-                        <Image
-                          src={selectedProduct.image}
-                          alt={selectedProduct.name}
-                          width={96}
-                          height={96}
-                          className="object-contain"
-                        />
-                      ) : (
-                        <Package className="w-12 h-12 text-neutral-300" />
-                      )}
-                    </div>
-
-                    {/* Full Details */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-neutral-500 uppercase tracking-wide">
-                        {selectedProduct.brand}
-                      </p>
-                      <p className="text-sm font-semibold text-neutral-800 mt-0.5">
-                        {selectedProduct.name}
-                      </p>
-
-                      {selectedProduct.specs && (
-                        <div className="mt-2 space-y-0.5">
-                          {selectedProduct.specs.processor && (
-                            <p className="text-xs text-neutral-500">
-                              {selectedProduct.specs.processor}
-                            </p>
+                <div className="px-4 pb-4 pt-1 border-t border-neutral-100 max-h-[60vh] overflow-y-auto">
+                  {/* Products List */}
+                  {productsToShow.map((product, index) => (
+                    <div key={product.id}>
+                      <div className="flex gap-3 py-3">
+                        <div className="w-16 h-16 bg-neutral-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {product.image ? (
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              width={64}
+                              height={64}
+                              className="object-contain"
+                            />
+                          ) : (
+                            <Package className="w-8 h-8 text-neutral-300" />
                           )}
-                          {selectedProduct.specs.ram && selectedProduct.specs.storage && (
-                            <p className="text-xs text-neutral-500">
-                              {selectedProduct.specs.ram} • {selectedProduct.specs.storage}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-neutral-500 uppercase tracking-wide">
+                            {product.brand}
+                          </p>
+                          <p className="text-sm font-semibold text-neutral-800 mt-0.5 line-clamp-2">
+                            {product.name}
+                          </p>
+                          {product.specs && (
+                            <p className="text-xs text-neutral-500 mt-1">
+                              {[product.specs.processor, product.specs.ram, product.specs.storage]
+                                .filter(Boolean)
+                                .join(' · ')}
                             </p>
                           )}
                         </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-bold text-[#4654CD]">
+                            {formatPrice(product.monthlyPayment)}/mes
+                          </p>
+                        </div>
+                      </div>
+                      {index < productsToShow.length - 1 && (
+                        <div className="border-b border-neutral-100" />
                       )}
                     </div>
-                  </div>
+                  ))}
 
                   {/* Accessories List */}
                   {hasAccessories && (
@@ -196,7 +240,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   {/* Monthly Payment Summary */}
                   <div className={`mt-4 p-3 rounded-lg ${hasCoupon ? 'bg-green-50' : 'bg-[#4654CD]/5'}`}>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-neutral-700">Cuota mensual</span>
+                      <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
                       <div className="text-right">
                         {hasCoupon && (
                           <span className="text-sm text-neutral-400 line-through block">
@@ -209,10 +253,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       </div>
                     </div>
                     <p className="text-xs text-neutral-500 mt-1">
-                      {selectedProduct.months} meses
+                      {firstProduct.months} meses
                     </p>
                   </div>
-
                 </div>
               </motion.div>
             )}
@@ -220,88 +263,108 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
         </motion.div>
       </div>
 
-      {/* Desktop: Top Bar - Hidden when mobileOnly is true */}
+      {/* Desktop: Top Bar */}
       {!mobileOnly && (
       <div className="hidden lg:block mb-6 space-y-3">
-        {/* Product Card */}
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="flex items-center gap-4">
-            {/* Product Image */}
-            <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-              {selectedProduct.image ? (
-                <Image
-                  src={selectedProduct.image}
-                  alt={selectedProduct.name}
-                  width={64}
-                  height={64}
-                  className="object-contain"
-                />
+        {/* Products Accordion */}
+        <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+          {/* Accordion Header */}
+          <button
+            onClick={() => setIsProductsCollapsed(!isProductsCollapsed)}
+            className="w-full px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-neutral-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+              <p className="text-sm font-semibold text-neutral-800">
+                Productos ({productsToShow.length})
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              {isProductsCollapsed && (
+                <span className="text-sm font-medium text-[#4654CD]">
+                  {formatPrice(totalProductsMonthly)}/mes
+                </span>
+              )}
+              {isProductsCollapsed ? (
+                <ChevronDown className="w-5 h-5 text-neutral-400" />
               ) : (
-                <Package className="w-8 h-8 text-neutral-300" />
+                <ChevronUp className="w-5 h-5 text-neutral-400" />
               )}
             </div>
+          </button>
 
-            {/* Product Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-neutral-500 uppercase tracking-wide">
-                {selectedProduct.brand}
-              </p>
-              <p className="text-base font-semibold text-neutral-800">
-                {selectedProduct.name}
-              </p>
-              {selectedProduct.specs && (
-                <p className="text-sm text-neutral-500 mt-0.5">
-                  {[
-                    selectedProduct.specs.processor,
-                    selectedProduct.specs.ram,
-                    selectedProduct.specs.storage
-                  ].filter(Boolean).join(' · ')}
-                </p>
-              )}
-            </div>
-
-            {/* Pricing - Monthly Only */}
-            <div className="text-right flex-shrink-0">
-              {hasCoupon ? (
-                <>
-                  <p className="text-sm text-neutral-400 line-through">
-                    {formatPrice(totalMonthlyPayment)}/mes
-                  </p>
-                  <p className="text-lg font-bold text-green-600">
-                    {formatPrice(discountedMonthlyPayment)}/mes
-                  </p>
-                </>
-              ) : (
-                <p className="text-lg font-bold text-[#4654CD]">
-                  {formatPrice(selectedProduct.monthlyPayment)}/mes
-                </p>
-              )}
-              <p className="text-sm text-neutral-500">
-                {selectedProduct.months} meses
-              </p>
-            </div>
-          </div>
-
-          {/* Coupon Badge - Desktop */}
-          {hasCoupon && appliedCoupon && (
-            <div className="mt-3 flex items-center justify-between px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-green-700">
-                <Tag className="w-4 h-4" />
-                <span className="font-medium">{appliedCoupon.code}</span>
-                <span className="text-green-600">{appliedCoupon.label}</span>
-              </div>
-              <span className="font-bold text-green-600">-{formatPrice(appliedCoupon.discount)}/mes</span>
-            </div>
-          )}
+          {/* Products List */}
+          <AnimatePresence initial={false}>
+            {!isProductsCollapsed && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="px-4 pt-2 pb-4 border-t border-neutral-100">
+                  <div className="space-y-0">
+                    {productsToShow.map((product, index) => (
+                      <div key={product.id}>
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {product.image ? (
+                              <Image
+                                src={product.image}
+                                alt={product.name}
+                                width={64}
+                                height={64}
+                                className="object-contain"
+                              />
+                            ) : (
+                              <Package className="w-8 h-8 text-neutral-300" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-neutral-500 uppercase tracking-wide">
+                              {product.brand}
+                            </p>
+                            <p className="text-base font-semibold text-neutral-800">
+                              {product.name}
+                            </p>
+                            {product.specs && (
+                              <p className="text-sm text-neutral-500 mt-0.5">
+                                {[
+                                  product.specs.processor,
+                                  product.specs.ram,
+                                  product.specs.storage
+                                ].filter(Boolean).join(' · ')}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-bold text-[#4654CD]">
+                              {formatPrice(product.monthlyPayment)}/mes
+                            </p>
+                            <p className="text-xs text-neutral-500">
+                              {product.months} meses
+                            </p>
+                          </div>
+                        </div>
+                        {index < productsToShow.length - 1 && (
+                          <div className="border-b border-neutral-100 my-3" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Accessories Card with Accordion - Only visible when accessories are selected */}
+        {/* Accessories Accordion */}
         {hasAccessories && (
-          <div className="bg-[#4654CD]/5 rounded-xl border border-[#4654CD]/10 overflow-hidden">
-            {/* Accordion Header - Clickable */}
+          <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
             <button
               onClick={() => setIsAccessoriesExpanded(!isAccessoriesExpanded)}
-              className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-[#4654CD]/10 transition-colors"
+              className="w-full px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-neutral-50 transition-colors"
             >
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4 text-[#4654CD]" />
@@ -312,7 +375,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               <div className="flex items-center gap-3">
                 {!isAccessoriesExpanded && (
                   <span className="text-sm font-medium text-[#4654CD]">
-                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}/mes
+                    +{formatPrice(accessoriesMonthly)}/mes
                   </span>
                 )}
                 {isAccessoriesExpanded ? (
@@ -323,7 +386,6 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               </div>
             </button>
 
-            {/* Accordion Content */}
             <AnimatePresence>
               {isAccessoriesExpanded && (
                 <motion.div
@@ -333,8 +395,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pt-2 pb-4 border-t border-[#4654CD]/10">
-                    {/* Accessories List */}
+                  <div className="px-4 pt-2 pb-4 border-t border-neutral-100">
                     <div className="space-y-2">
                       {selectedAccessories.map((acc) => (
                         <div key={acc.id} className="flex items-center justify-between text-sm">
@@ -348,39 +409,52 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         </div>
                       ))}
                     </div>
-
-                    {/* Total Summary */}
-                    <div className="mt-3 pt-3 border-t border-[#4654CD]/10 flex justify-between items-center">
-                      <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
-                      <div className="text-right">
-                        {hasCoupon && (
-                          <span className="text-sm text-neutral-400 line-through block">
-                            {formatPrice(totalMonthlyPayment)}/mes
-                          </span>
-                        )}
-                        <span className={`text-lg font-bold ${hasCoupon ? 'text-green-600' : 'text-[#4654CD]'}`}>
-                          {formatPrice(discountedMonthlyPayment)}/mes
-                        </span>
-                      </div>
-                    </div>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         )}
+
+        {/* Coupon Badge */}
+        {hasCoupon && appliedCoupon && (
+          <div className="flex items-center justify-between px-4 py-3 bg-green-50 border border-green-100 rounded-xl">
+            <div className="flex items-center gap-2 text-sm text-green-700">
+              <Tag className="w-4 h-4" />
+              <span className="font-medium">{appliedCoupon.code}</span>
+              <span className="text-green-600">{appliedCoupon.label}</span>
+            </div>
+            <span className="font-bold text-green-600">-{formatPrice(appliedCoupon.discount)}/mes</span>
+          </div>
+        )}
+
+        {/* Total Summary - Always at the bottom */}
+        <div className={`p-4 rounded-xl ${hasCoupon ? 'bg-green-50 border border-green-100' : 'bg-[#4654CD]/5 border border-[#4654CD]/10'}`}>
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-semibold text-neutral-700">Cuota mensual total</span>
+            <div className="text-right">
+              {hasCoupon && (
+                <span className="text-sm text-neutral-400 line-through block">
+                  {formatPrice(totalMonthlyPayment)}/mes
+                </span>
+              )}
+              <span className={`text-lg font-bold ${hasCoupon ? 'text-green-600' : 'text-[#4654CD]'}`}>
+                {formatPrice(discountedMonthlyPayment)}/mes
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
       )}
-
     </>
   );
 };
 
 // Spacer component to prevent content from being hidden behind fixed bar
 export const SelectedProductSpacer: React.FC = () => {
-  const { selectedProduct } = useProduct();
+  const { selectedProduct, cartProducts } = useProduct();
 
-  if (!selectedProduct) return null;
+  if (!selectedProduct && cartProducts.length === 0) return null;
 
   return <div className="lg:hidden h-[72px]" />;
 };

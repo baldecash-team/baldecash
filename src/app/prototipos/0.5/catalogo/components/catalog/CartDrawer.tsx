@@ -35,6 +35,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   const dragControls = useDragControls();
 
+  // Multi-product cart logic
+  const totalMonthlyQuota = items.reduce((sum, item) => {
+    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+    return sum + quota;
+  }, 0);
+  const isDisabled = items.length === 0 || items.length > 5 || totalMonthlyQuota > 600;
+
   // Block body scroll when drawer is open (iOS Safari fix)
   // Note: In catalog page, scroll lock is managed centrally - this is a fallback for standalone usage
   const scrollYRef = useRef<number>(0);
@@ -113,8 +120,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                  <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${totalMonthlyQuota > 600 ? 'bg-red-100' : 'bg-[#4654CD]/10'}`}>
+                  <ShoppingCart className={`w-4 h-4 ${totalMonthlyQuota > 600 ? 'text-red-600' : 'text-[#4654CD]'}`} />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">
@@ -153,12 +160,35 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Alert for multiple items */}
-                  {items.length > 1 && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                      <p className="text-sm text-amber-700">
-                        Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.
-                      </p>
+                  {/* Error messages for cart limits */}
+                  {items.length > 5 && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-amber-700 text-xs font-bold">!</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-amber-800">
+                          Máximo 5 productos por solicitud
+                        </p>
+                        <p className="text-xs text-amber-600 mt-0.5">
+                          Tienes {items.length} productos. Elimina {items.length - 5} para continuar.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {totalMonthlyQuota > 600 && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-red-600 text-xs font-bold">!</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-red-800">
+                          Límite excedido: S/{formatMoney(totalMonthlyQuota)}/mes
+                        </p>
+                        <p className="text-xs text-red-600 mt-0.5">
+                          El máximo es S/600/mes. Quita algún producto para continuar.
+                        </p>
+                      </div>
                     </div>
                   )}
                   {items.map((item) => {
@@ -199,6 +229,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               )}
             </div>
 
+            {/* Total quota info */}
+            {items.length > 0 && (
+              <div className={`px-4 py-2 border-t ${totalMonthlyQuota > 600 ? 'bg-red-50 border-red-200' : 'bg-neutral-100 border-neutral-200'}`}>
+                <p className={`text-sm text-center font-medium ${totalMonthlyQuota > 600 ? 'text-red-600' : 'text-neutral-600'}`}>
+                  Cuota total: S/{formatMoney(totalMonthlyQuota)}/mes
+                  {totalMonthlyQuota > 600 && <span className="text-xs font-normal ml-1">(máx S/600)</span>}
+                </p>
+              </div>
+            )}
+
             {/* Footer */}
             {items.length > 0 && (
               <div className="border-t border-neutral-200 bg-white p-4">
@@ -224,13 +264,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <Button
                     size="lg"
                     className={`px-8 !font-bold cursor-pointer rounded-xl ${
-                      items.length === 1
+                      !isDisabled
                         ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                     }`}
                     onPress={onContinue}
                     endContent={<ArrowRight className="w-5 h-5" />}
-                    isDisabled={items.length !== 1}
+                    isDisabled={isDisabled}
                   >
                     Continuar
                   </Button>

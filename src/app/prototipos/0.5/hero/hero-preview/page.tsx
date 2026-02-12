@@ -23,7 +23,6 @@ import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipo
 
 // Hero Section component
 import { HeroSection } from '../components/hero';
-
 // Fixed config for display
 const fixedConfig = {
   navbar: 'V6 (Banner Promocional)',

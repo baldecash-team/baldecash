@@ -16,6 +16,7 @@ import {
   Info,
   Navigation,
   Layers,
+  X,
 } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'navigation' | 'version';
@@ -42,8 +43,8 @@ const TOAST_STYLES: Record<ToastType, { bg: string; text: string; icon: React.El
     icon: XCircle,
   },
   warning: {
-    bg: 'bg-neutral-800',
-    text: 'text-white',
+    bg: 'bg-amber-50 border border-amber-300 shadow-amber-100/50',
+    text: 'text-amber-900',
     icon: AlertTriangle,
   },
   info: {
@@ -121,13 +122,21 @@ export function Toast({
               ${type === 'info' ? 'bg-[#4654CD]/10' : ''}
               ${type === 'success' ? 'bg-[#22c55e]/20' : ''}
               ${type === 'error' ? 'bg-[#ef4444]/20' : ''}
-              ${type === 'warning' ? 'bg-[#f59e0b]/20' : ''}
+              ${type === 'warning' ? 'bg-amber-200' : ''}
               ${type === 'navigation' || type === 'version' ? 'bg-white/10' : ''}
             `}
           >
             <Icon className={`w-4 h-4 ${iconColor}`} />
           </div>
-          <p className="text-sm font-medium">{message}</p>
+          <p className="text-sm font-medium max-w-xs">{message}</p>
+          {(type === 'warning' || type === 'error') && (
+            <button
+              onClick={onClose}
+              className="p-1 rounded-md hover:bg-black/10 transition-colors cursor-pointer flex-shrink-0 ml-1"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

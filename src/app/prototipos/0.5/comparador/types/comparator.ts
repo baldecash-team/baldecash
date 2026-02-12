@@ -135,6 +135,7 @@ export interface ComparatorLayoutProps {
   onClearAll: () => void;
   comparisonState: ComparisonState;
   onStateChange: (state: ComparisonState) => void;
+  onAddToCart?: (productId: string) => void;
 }
 
 export interface ComparisonTableProps {

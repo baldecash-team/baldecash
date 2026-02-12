@@ -344,7 +344,6 @@ export interface CatalogSecondaryNavbarCartConfig {
   clear_button: string;
   close_button: string;
   continue_button: string;
-  multiple_items_alert: string;
 }
 
 export interface CatalogSecondaryNavbarData {
