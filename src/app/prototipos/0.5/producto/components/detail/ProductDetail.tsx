@@ -11,6 +11,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ShoppingCart, Check } from 'lucide-react';
 import { useProduct } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
 import { DeviceType, CronogramaVersion } from '../../types/detail';
 import {
@@ -36,11 +37,15 @@ import {
 interface ProductDetailProps {
   deviceType?: DeviceType;
   cronogramaVersion?: CronogramaVersion;
+  onAddToCart?: () => void;
+  isInCart?: boolean;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
   deviceType = 'laptop',
   cronogramaVersion = 1,
+  onAddToCart,
+  isInCart = false,
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -102,7 +107,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         {/* Main Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Left Column - Unified Product Card (Gallery + Info) */}
-          <div id="section-gallery">
+          <div id="section-gallery" className="order-2 lg:order-1">
             <ProductGallery
               images={product.images}
               productName={product.displayName}
@@ -117,20 +122,35 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
 
           {/* Right Column - Pricing (Sticky) */}
-          <div className="lg:sticky lg:top-[168px] space-y-6">
+          <div className="order-1 lg:order-2 lg:sticky lg:top-[168px] space-y-6">
             {/* Pricing Calculator + CTA */}
             <div id="section-pricing" className="space-y-4">
               <PricingCalculator
                 paymentPlans={mockPaymentPlans}
                 defaultTerm={36}
               />
-              {/* CTA Button */}
-              <button
-                onClick={handleSolicitar}
-                className="w-full bg-[#4654CD] text-white py-4 rounded-xl font-semibold text-lg hover:bg-[#3a47b3] transition-colors cursor-pointer shadow-lg shadow-[#4654CD]/25"
-              >
-                ¡Lo quiero! Solicitar ahora
-              </button>
+              {/* CTA Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSolicitar}
+                  className="flex-1 bg-[#4654CD] text-white py-4 rounded-xl font-semibold text-lg hover:bg-[#3a47b3] transition-colors cursor-pointer shadow-lg shadow-[#4654CD]/25"
+                >
+                  ¡Lo quiero! Solicitar ahora
+                </button>
+                {onAddToCart && (
+                  <button
+                    onClick={onAddToCart}
+                    className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold transition-colors cursor-pointer border ${
+                      isInCart
+                        ? 'text-[#22c55e] bg-[#22c55e]/10 border-[#22c55e]/20 hover:bg-[#22c55e]/20'
+                        : 'text-[#4654CD] bg-[#4654CD]/10 border-[#4654CD]/20 hover:bg-[#4654CD]/20'
+                    }`}
+                  >
+                    {isInCart ? <Check className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
+                    <span className="hidden sm:inline">{isInCart ? 'En el carrito' : 'Al carrito'}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Certifications */}

@@ -87,24 +87,26 @@ export function LandingPageClient({ slug }: LandingPageClientProps) {
   }
 
   return (
-    <HeroSection
-      heroContent={heroData.heroContent}
-      socialProof={heroData.socialProof}
-      howItWorksData={heroData.howItWorksData}
-      faqData={heroData.faqData}
-      ctaData={heroData.ctaData}
-      promoBannerData={heroData.promoBannerData}
-      navbarItems={heroData.navbarItems}
-      megamenuItems={heroData.megamenuItems}
-      testimonials={heroData.testimonials}
-      testimonialsTitle={heroData.testimonialsTitle}
-      activeSections={heroData.activeSections}
-      hasCta={heroData.hasCta}
-      logoUrl={heroData.logoUrl}
-      customerPortalUrl={heroData.customerPortalUrl}
-      footerData={heroData.footerData}
-      landing={slug}
-    />
+    <>
+      <HeroSection
+        heroContent={heroData.heroContent}
+        socialProof={heroData.socialProof}
+        howItWorksData={heroData.howItWorksData}
+        faqData={heroData.faqData}
+        ctaData={heroData.ctaData}
+        promoBannerData={heroData.promoBannerData}
+        navbarItems={heroData.navbarItems}
+        megamenuItems={heroData.megamenuItems}
+        testimonials={heroData.testimonials}
+        testimonialsTitle={heroData.testimonialsTitle}
+        activeSections={heroData.activeSections}
+        hasCta={heroData.hasCta}
+        logoUrl={heroData.logoUrl}
+        customerPortalUrl={heroData.customerPortalUrl}
+        footerData={heroData.footerData}
+        landing={slug}
+      />
+    </>
   );
 }
 

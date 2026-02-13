@@ -41,14 +41,14 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
   };
 
   return (
-    <div className="space-y-2 bg-white">
+    <div className="space-y-1 bg-white">
       {options.map((option) => {
         const isSelected = selected.includes(option.value as UsageType);
 
         return (
           <label
             key={option.value}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors group"
+            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors group"
           >
             <Checkbox
               isSelected={isSelected}
@@ -59,7 +59,7 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
                 icon: 'text-white transition-opacity',
               }}
             />
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex items-center gap-1.5 flex-1">
               <span
                 className={`transition-colors ${
                   isSelected ? 'text-[#4654CD]' : 'text-neutral-500'
@@ -68,7 +68,7 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
                 {option.icon && iconMap[option.icon]}
               </span>
               <span
-                className={`text-sm transition-colors ${
+                className={`text-xs transition-colors ${
                   isSelected ? 'text-[#4654CD] font-medium' : 'text-neutral-700'
                 }`}
               >

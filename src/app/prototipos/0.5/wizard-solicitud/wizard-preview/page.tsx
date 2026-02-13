@@ -7,7 +7,7 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FileText, Clock, Shield, ArrowRight, Code, ArrowLeft, Check } from 'lucide-react';
+import { FileText, Clock, Shield, ArrowRight, Code, ArrowLeft, Check, ShoppingCart } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { useProduct } from '../context/ProductContext';
 import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
@@ -38,7 +38,7 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, selectedAccessories, toggleAccessory, isHydrated } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, toggleAccessory, isHydrated } = useProduct();
   const [showConfig, setShowConfig] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
@@ -171,6 +171,108 @@ function WizardPreviewContent() {
             Completa el formulario para solicitar tu equipo tecnológico
           </p>
         </div>
+
+        {/* Products Card - Shows all cart products or single selected product */}
+        {(() => {
+          const productsToShow = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
+          if (productsToShow.length === 0) return null;
+
+          const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
+
+          return (
+            <div className="bg-white rounded-xl border border-neutral-200 mb-8 overflow-hidden">
+              {/* Header */}
+              {productsToShow.length > 1 && (
+                <div className="px-5 py-3 bg-[#4654CD]/5 border-b border-neutral-200 flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+                  <span className="text-sm font-semibold text-neutral-800">
+                    {productsToShow.length} productos seleccionados
+                  </span>
+                </div>
+              )}
+
+              {/* Product List */}
+              <div className="p-5 space-y-4">
+                {productsToShow.map((product, index) => (
+                  <div key={`${product.id}-${index}`} className={`flex items-start gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}>
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-neutral-50 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-100">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider">
+                        {product.brand}
+                      </p>
+                      <h3 className="text-sm font-bold text-neutral-800 line-clamp-2 mt-0.5">
+                        {product.name}
+                      </h3>
+                      {product.specs && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {product.specs.processor && (
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
+                              {product.specs.processor}
+                            </span>
+                          )}
+                          {product.specs.ram && (
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
+                              {product.specs.ram}
+                            </span>
+                          )}
+                          {product.specs.storage && (
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
+                              {product.specs.storage}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-base font-bold text-[#4654CD] mt-1.5">
+                        S/{product.monthlyPayment}/mes
+                        <span className="text-xs text-neutral-500 font-normal ml-1">
+                          x {product.months} meses
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total + Accessories */}
+              {(productsToShow.length > 1 || selectedAccessories.length > 0) && (
+                <div className="px-5 pb-5 space-y-3">
+                  {/* Accessories */}
+                  {selectedAccessories.length > 0 && (
+                    <div className="pt-3 border-t border-neutral-100">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                        Accesorios seleccionados
+                      </p>
+                      <div className="space-y-1.5">
+                        {selectedAccessories.map((acc) => (
+                          <div key={acc.id} className="flex items-center justify-between text-sm">
+                            <span className="text-neutral-700">{acc.name}</span>
+                            <span className="text-[#4654CD] font-medium">+S/{acc.monthlyQuota}/mes</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  {productsToShow.length > 1 && (
+                    <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
+                      <span className="text-lg font-bold text-[#4654CD]">
+                        S/{totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)}/mes
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">

@@ -220,15 +220,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <div className="flex items-baseline justify-center gap-1">
                 <span className="text-4xl font-black text-[#4654CD]">S/{formatMoney(quota)}</span>
                 <span className="text-lg text-neutral-400">/mes</span>
-                {hasOfertaTag && originalQuota && (
+                {originalQuota && (
                   <span className="text-base text-neutral-400 line-through ml-1">
                     S/{formatMoney(originalQuota)}
                   </span>
                 )}
+                {product.discount && product.discount > 0 && (
+                  <Chip size="sm" className="bg-red-500 text-white text-xs font-bold ml-2" variant="flat">
+                    -{product.discount}%
+                  </Chip>
+                )}
               </div>
-              {hasOfertaTag && savings > 0 ? (
+              {savings > 0 ? (
                 <p className="text-xs text-emerald-600 font-medium mt-2">
-                  Ahorras S/{formatMoney(savings)}/mes
+                  Ahorras S/{formatMoney(savings)}/mes · {selectedTerm} meses
                 </p>
               ) : (
                 <p className="text-xs text-neutral-500 mt-2">

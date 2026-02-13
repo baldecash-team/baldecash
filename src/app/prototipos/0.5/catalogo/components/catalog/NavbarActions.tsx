@@ -146,26 +146,32 @@ interface NavbarCartButtonProps {
   count: number;
   onClick: () => void;
   id?: string;
+  isOverLimit?: boolean;
 }
 
 export const NavbarCartButton: React.FC<NavbarCartButtonProps> = ({
   count,
   onClick,
   id,
+  isOverLimit = false,
 }) => {
   return (
     <button
       id={id}
       onClick={onClick}
       className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
-        count > 0
-          ? 'bg-[#4654CD] text-white'
-          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+        count > 0 && isOverLimit
+          ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
+          : count > 0
+            ? 'bg-[#4654CD] text-white'
+            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
       }`}
     >
       <ShoppingCart className="w-5 h-5" />
       {count > 0 && (
-        <span className="absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-white text-[#4654CD]">
+        <span className={`absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ${
+          isOverLimit ? 'bg-white text-red-600' : 'bg-white text-[#4654CD]'
+        }`}>
           {count}
         </span>
       )}
@@ -366,6 +372,7 @@ interface NavbarCartProps {
   onClearAll: () => void;
   onContinue: () => void;
   id?: string;
+  isOverLimit?: boolean;
 }
 
 export const NavbarCart: React.FC<NavbarCartProps> = ({
@@ -374,6 +381,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   onClearAll,
   onContinue,
   id,
+  isOverLimit = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -401,14 +409,18 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${
-          items.length > 0
-            ? 'bg-[#4654CD] text-white'
-            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+          items.length > 0 && isOverLimit
+            ? 'bg-red-600 text-white hover:bg-red-700 animate-pulse'
+            : items.length > 0
+              ? 'bg-[#4654CD] text-white'
+              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
         }`}
       >
         <ShoppingCart className="w-5 h-5" />
         {items.length > 0 && (
-          <span className="absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-white text-[#4654CD]">
+          <span className={`absolute -top-1 -right-1 text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 ${
+            isOverLimit ? 'bg-white text-red-600' : 'bg-white text-[#4654CD]'
+          }`}>
             {items.length}
           </span>
         )}
@@ -425,9 +437,9 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
             className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-neutral-200 overflow-hidden z-50"
           >
             {/* Header */}
-            <div className="px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
+            <div className={`px-4 py-3 border-b flex items-center justify-between ${isOverLimit ? 'border-red-100 bg-red-50' : 'border-neutral-100'}`}>
               <div className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+                <ShoppingCart className={`w-4 h-4 ${isOverLimit ? 'text-red-500' : 'text-[#4654CD]'}`} />
                 <span className="text-sm font-semibold text-neutral-800">
                   Mi carrito ({items.length})
                 </span>
@@ -450,21 +462,13 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
               </div>
             ) : (
               <>
-                {/* Alert for multiple items */}
-                {items.length > 1 && (
-                  <div className="mx-3 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-700">
-                      Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.
-                    </p>
-                  </div>
-                )}
                 <div className="max-h-[280px] overflow-y-auto">
                   <div className="p-3 space-y-2">
-                    {items.map((item) => {
+                    {items.map((item, index) => {
                       const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
                       return (
                         <div
-                          key={item.id}
+                          key={`${item.id}-${index}`}
                           className="flex items-center gap-3 p-2 bg-neutral-50 rounded-lg"
                         >
                           <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
@@ -497,24 +501,49 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                   </div>
                 </div>
 
-                {/* Footer */}
-                <div className="px-4 py-3 border-t border-neutral-100">
-                  <Button
-                    className={`w-full font-semibold ${
-                      items.length === 1
-                        ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
-                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                    }`}
-                    onPress={() => {
-                      onContinue();
-                      setIsOpen(false);
-                    }}
-                    endContent={<ArrowRight className="w-4 h-4" />}
-                    isDisabled={items.length !== 1}
-                  >
-                    Continuar
-                  </Button>
-                </div>
+                {/* Total + Footer */}
+                {(() => {
+                  const totalMonthlyQuota = items.reduce((sum, item) => {
+                    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+                    return sum + quota;
+                  }, 0);
+                  const isOverQuota = totalMonthlyQuota > 600;
+                  const isOverItems = items.length > 5;
+                  const isDisabled = items.length === 0 || isOverItems || isOverQuota;
+
+                  return (
+                    <div className="border-t border-neutral-100">
+                      <div className={`px-4 py-2 flex items-center justify-between ${isOverQuota ? 'bg-red-50' : 'bg-neutral-50'}`}>
+                        <span className="text-xs text-neutral-500">Cuota total</span>
+                        <span className={`text-sm font-bold ${isOverQuota ? 'text-red-600' : 'text-[#4654CD]'}`}>
+                          S/{formatMoney(totalMonthlyQuota)}/mes
+                        </span>
+                      </div>
+                      {isOverQuota && (
+                        <div className="px-4 py-1.5 bg-red-50 border-t border-red-100">
+                          <p className="text-xs text-red-600 font-medium">Excede el límite de S/600/mes. Quita algún producto.</p>
+                        </div>
+                      )}
+                      <div className="px-4 py-3">
+                        <Button
+                          className={`w-full font-semibold ${
+                            !isDisabled
+                              ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
+                              : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                          }`}
+                          onPress={() => {
+                            onContinue();
+                            setIsOpen(false);
+                          }}
+                          endContent={<ArrowRight className="w-4 h-4" />}
+                          isDisabled={isDisabled}
+                        >
+                          Continuar
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </>
             )}
           </motion.div>

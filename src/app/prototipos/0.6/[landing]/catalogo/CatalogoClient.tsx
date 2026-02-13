@@ -40,6 +40,8 @@ import { CatalogSecondaryNavbar } from './components/catalog/CatalogSecondaryNav
 import { SearchDrawer } from './components/catalog/SearchDrawer';
 import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { WebchatDrawer } from './components/webchat';
+import { QuizReminderPopup } from './components/catalog/QuizReminderPopup';
+import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 
 // Empty state
 import { EmptyState } from './components/empty';
@@ -427,7 +429,6 @@ function CatalogoContent() {
         clear_button: cartConfig?.clear_button || 'Vaciar',
         close_button: cartConfig?.close_button || 'Cerrar',
         continue_button: cartConfig?.continue_button || 'Continuar',
-        multiple_items_alert: cartConfig?.multiple_items_alert || 'Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.',
       },
     };
   }, [layoutData]);
@@ -469,6 +470,8 @@ function CatalogoContent() {
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isWebchatOpen, setIsWebchatOpen] = useState(false);
+  const [showQuizReminder, setShowQuizReminder] = useState(false);
+  const { isOpen: isResumeModalOpen, close: closeResumeModal } = useResumeFinancingModal();
 
   // Helper to close all drawers/popups before opening a new one (mobile)
   const closeAllDrawers = useCallback(() => {
@@ -543,6 +546,26 @@ function CatalogoContent() {
     isPageLoading,
     isWebchatOpen,
   ]);
+
+  // Quiz reminder popup - show once after 60 seconds
+  useEffect(() => {
+    const alreadyShown = sessionStorage.getItem('baldecash-quiz-reminder-shown');
+    if (alreadyShown) return;
+
+    const timer = setTimeout(() => {
+      // Only show if no drawers are open
+      const canShow = !isQuizOpen && !isHelpPopoverOpen && !isComparatorOpen &&
+                       !isCartDrawerOpen && !isWishlistDrawerOpen && !isFilterDrawerOpen &&
+                       !isSearchDrawerOpen && !isCartModalOpen && !isWebchatOpen &&
+                       !isSettingsOpen && !onboarding.shouldShowWelcome && !onboarding.shouldShowTour;
+      if (canShow) {
+        setShowQuizReminder(true);
+        sessionStorage.setItem('baldecash-quiz-reminder-shown', 'true');
+      }
+    }, 60000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Track scroll as interaction (significant scroll > 300px)
   useEffect(() => {
@@ -721,27 +744,36 @@ function CatalogoContent() {
     localStorage.removeItem(WIZARD_PRODUCT_STORAGE_KEY);
   }, []);
 
-  const handleCartContinue = useCallback(() => {
-    if (cart.length > 1) {
-      showToast('Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.', 'warning');
-      return;
-    }
-    if (cart.length === 1) {
-      // Guardar el producto del carrito antes de navegar
-      const productToSave = catalogProducts.find((p) => p.id === cart[0]);
-      if (productToSave) {
-        selectProductForWizard(productToSave);
-      }
-      router.push(getWizardUrl(landing));
-    }
-  }, [cart, router, showToast, selectProductForWizard, landing, catalogProducts]);
-
-  // Get cart products
+  // Get cart products (must be before handleCartContinue)
   const cartProducts = useMemo(() => {
     return cart
       .map((id) => catalogProducts.find((p) => p.id === id))
       .filter((p): p is CatalogProduct => p !== undefined);
   }, [cart, catalogProducts]);
+
+  const handleCartContinue = useCallback(() => {
+    // Multi-product cart validation
+    const totalMonthlyQuota = cartProducts.reduce((sum, item) => {
+      const { quota } = calculateQuotaWithInitial(item.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+      return sum + quota;
+    }, 0);
+    const isDisabled = cart.length === 0 || cart.length > 5 || totalMonthlyQuota > 600;
+
+    if (isDisabled) {
+      if (cart.length > 5) {
+        showToast('Máximo 5 productos por solicitud', 'warning');
+      } else if (totalMonthlyQuota > 600) {
+        showToast('La cuota total supera S/600/mes', 'warning');
+      }
+      return;
+    }
+    // Save first product for wizard navigation
+    const productToSave = catalogProducts.find((p) => p.id === cart[0]);
+    if (productToSave) {
+      selectProductForWizard(productToSave);
+    }
+    router.push(getWizardUrl(landing));
+  }, [cart, cartProducts, router, showToast, selectProductForWizard, landing, catalogProducts]);
 
   // Get wishlist products
   const wishlistProducts = useMemo(() => {
@@ -1451,6 +1483,23 @@ function CatalogoContent() {
         onConfigChange={setConfig}
         onboardingConfig={onboarding.config}
         onOnboardingConfigChange={onboarding.setConfig}
+      />
+
+      {/* Quiz Reminder Popup */}
+      <QuizReminderPopup
+        isVisible={showQuizReminder && !isQuizOpen && !isHelpPopoverOpen}
+        onClose={() => setShowQuizReminder(false)}
+        onOpenQuiz={() => {
+          closeAllDrawers();
+          setIsQuizOpen(true);
+        }}
+      />
+
+      {/* Resume Financing Modal */}
+      <ResumeFinancingModal
+        isOpen={isResumeModalOpen}
+        onClose={closeResumeModal}
+        onContinue={() => router.push(getWizardUrl(landing))}
       />
 
       {/* Toast para alertas de comparación */}

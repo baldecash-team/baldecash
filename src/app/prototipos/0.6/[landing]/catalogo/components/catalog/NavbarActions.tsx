@@ -375,7 +375,6 @@ interface NavbarCartConfig {
   empty_title?: string;
   clear_button?: string;
   continue_button?: string;
-  multiple_items_alert?: string;
 }
 
 interface NavbarCartProps {
@@ -397,6 +396,13 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Multi-product cart logic
+  const totalMonthlyQuota = items.reduce((sum, item) => {
+    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+    return sum + quota;
+  }, 0);
+  const isDisabled = items.length === 0 || items.length > 5 || totalMonthlyQuota > 600;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -470,11 +476,18 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
               </div>
             ) : (
               <>
-                {/* Alert for multiple items */}
-                {items.length > 1 && (
+                {/* Error messages for cart limits */}
+                {items.length > 5 && (
                   <div className="mx-3 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-xs text-amber-700">
-                      {config?.multiple_items_alert || 'Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.'}
+                      Máximo 5 productos por solicitud
+                    </p>
+                  </div>
+                )}
+                {totalMonthlyQuota > 600 && (
+                  <div className="mx-3 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-700">
+                      La cuota total supera S/600/mes
                     </p>
                   </div>
                 )}
@@ -521,7 +534,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                 <div className="px-4 py-3 border-t border-neutral-100">
                   <Button
                     className={`w-full font-semibold ${
-                      items.length === 1
+                      !isDisabled
                         ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                     }`}
@@ -530,7 +543,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                       setIsOpen(false);
                     }}
                     endContent={<ArrowRight className="w-4 h-4" />}
-                    isDisabled={items.length !== 1}
+                    isDisabled={isDisabled}
                   >
                     {config?.continue_button || 'Continuar'}
                   </Button>
