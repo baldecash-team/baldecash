@@ -233,6 +233,7 @@ export interface SpecsProps {
 export interface PricingCalculatorProps {
   paymentPlans: PaymentPlan[];
   defaultTerm?: number;
+  productPrice?: number;
 }
 
 export interface SimilarProductsProps {
