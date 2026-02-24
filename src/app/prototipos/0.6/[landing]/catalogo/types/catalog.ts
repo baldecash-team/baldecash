@@ -24,32 +24,31 @@ export type SortOption =
 export type QuotaFrequency = 'weekly' | 'biweekly' | 'monthly';
 
 // Plazos disponibles para financiamiento
-export type TermMonths = 12 | 18 | 24 | 36 | 48;
+export type TermMonths = 6 | 12 | 18 | 24;
 
-export const termOptions: TermMonths[] = [12, 18, 24, 36, 48];
+export const termOptions: TermMonths[] = [6, 12, 18, 24];
 
 export const termLabels: Record<TermMonths, string> = {
+  6: '6 meses',
   12: '12 meses',
   18: '18 meses',
   24: '24 meses',
-  36: '36 meses',
-  48: '48 meses',
 };
 
-// Calcula la cuota mensual segun el plazo seleccionado
-// Usa el precio base y aplica una tasa de interes implícita
-export function calculateQuotaForTerm(price: number, term: TermMonths): number {
-  // Factor de ajuste por plazo (simula interes)
-  const interestFactors: Record<TermMonths, number> = {
-    12: 1.08,  // 8% total
-    18: 1.12,  // 12% total
-    24: 1.15,  // 15% total (base)
-    36: 1.22,  // 22% total
-    48: 1.30,  // 30% total
-  };
+// TEA global definida por Marco Del Rio (reunion 13 Feb 2026)
+export const DEFAULT_TEA = 0.75; // 75%
 
-  const totalWithInterest = price * interestFactors[term];
-  return Math.round(totalWithInterest / term);
+/**
+ * Calcula la cuota mensual usando amortizacion francesa (sistema del sistema viejo).
+ * Formula: cuota = principal * (r * (1+r)^n) / ((1+r)^n - 1)
+ * donde r = tasa mensual, n = plazo en meses
+ */
+export function calculateQuotaForTerm(price: number, term: TermMonths, tea: number = DEFAULT_TEA): number {
+  if (price <= 0) return 0;
+  const monthlyRate = Math.pow(1 + tea, 1 / 12) - 1;
+  const factor = Math.pow(1 + monthlyRate, term);
+  const quota = price * (monthlyRate * factor) / (factor - 1);
+  return Math.floor(quota);
 }
 
 // ============================================
@@ -63,37 +62,29 @@ export const pricingModeLabels: Record<PricingMode, { name: string; description:
   interactive: { name: 'Interactivo', description: 'Usuario puede cambiar plazo e inicial' },
 };
 
-export type InitialPaymentPercent = 0 | 10 | 15 | 20;
+export type InitialPaymentPercent = 0 | 10 | 20;
 
-export const initialOptions: InitialPaymentPercent[] = [0, 10, 15, 20];
+export const initialOptions: InitialPaymentPercent[] = [0, 10, 20];
 
 export const initialLabels: Record<InitialPaymentPercent, string> = {
   0: 'Sin inicial',
   10: '10%',
-  15: '15%',
   20: '20%',
 };
 
-// Calcula la cuota mensual considerando el pago inicial
+/**
+ * Calcula la cuota mensual considerando el pago inicial.
+ * Usa amortizacion francesa con TEA 75%.
+ */
 export function calculateQuotaWithInitial(
   price: number,
   term: TermMonths,
-  initialPercent: InitialPaymentPercent
+  initialPercent: InitialPaymentPercent,
+  tea: number = DEFAULT_TEA
 ): { quota: number; initialAmount: number; financedAmount: number } {
   const initialAmount = Math.round(price * (initialPercent / 100));
   const financedAmount = price - initialAmount;
-
-  // Factor de ajuste por plazo (simula interes)
-  const interestFactors: Record<TermMonths, number> = {
-    12: 1.08,  // 8% total
-    18: 1.12,  // 12% total
-    24: 1.15,  // 15% total (base)
-    36: 1.22,  // 22% total
-    48: 1.30,  // 30% total
-  };
-
-  const totalWithInterest = financedAmount * interestFactors[term];
-  const quota = Math.round(totalWithInterest / term);
+  const quota = calculateQuotaForTerm(financedAmount, term, tea);
 
   return { quota, initialAmount, financedAmount };
 }
@@ -213,7 +204,7 @@ export interface FilterState {
 export const defaultFilterState: FilterState = {
   deviceTypes: [],
   brands: [],
-  quotaRange: [25, 400],
+  quotaRange: [0, 400],
   quotaFrequency: 'monthly',
   usage: [],
   ram: [],
@@ -579,7 +570,7 @@ export const onboardingStepsComplete: OnboardingStep[] = [
 // ============================================
 
 // Device type for linking to detail page
-export type CatalogDeviceType = 'laptop' | 'tablet' | 'celular';
+export type CatalogDeviceType = 'laptop' | 'tablet' | 'celular' | 'accesorio';
 
 export interface CatalogProduct {
   id: string;
@@ -608,28 +599,29 @@ export interface CatalogProduct {
   isNew: boolean;
   tags: ProductTagType[]; // New: 1-4 tags per product
   specs: ProductSpecs;
+  rawSpecs?: Record<string, string | number | boolean>;
   createdAt: string;
 }
 
 export interface ProductSpecs {
-  processor: {
+  processor?: {
     brand: ProcessorBrand;
     model: string;
     cores: number;
     speed: string;
   };
-  ram: {
+  ram?: {
     size: number;
     type: string;
     maxSize: number;
     expandable: boolean;
   };
-  storage: {
+  storage?: {
     size: number;
     type: StorageType;
     hasSecondSlot: boolean;
   };
-  display: {
+  display?: {
     size: number;
     resolution: Resolution;
     resolutionPixels: string;
@@ -637,18 +629,18 @@ export interface ProductSpecs {
     refreshRate: number;
     touchScreen: boolean;
   };
-  gpu: {
+  gpu?: {
     type: GpuType;
     brand: string;
     model: string;
     vram?: number;
   };
-  connectivity: {
+  connectivity?: {
     wifi: string;
     bluetooth: string;
     hasEthernet: boolean;
   };
-  ports: {
+  ports?: {
     usb: number;
     usbC: number;
     hdmi: boolean;
@@ -656,25 +648,25 @@ export interface ProductSpecs {
     sdCard: boolean;
     headphone: boolean;
   };
-  keyboard: {
+  keyboard?: {
     backlit: boolean;
     numericPad: boolean;
     language: string;
   };
-  security: {
+  security?: {
     fingerprint: boolean;
     facialRecognition: boolean;
     tpmChip: boolean;
   };
-  os: {
+  os?: {
     hasWindows: boolean;
     windowsVersion?: string;
   };
-  battery: {
+  battery?: {
     capacity: string;
     life: string;
   };
-  dimensions: {
+  dimensions?: {
     weight: number;
     thickness: number;
   };

@@ -21,6 +21,8 @@ import type {
   InitialPaymentPercent,
 } from '../[landing]/catalogo/types/catalog';
 
+import { calculateQuotaForTerm, DEFAULT_TEA } from '../[landing]/catalogo/types/catalog';
+
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
 
@@ -251,6 +253,7 @@ function mapDeviceType(type: string): CatalogDeviceType {
     laptop: 'laptop',
     celular: 'celular',
     tablet: 'tablet',
+    accesorio: 'accesorio',
   };
   return typeMap[type.toLowerCase()] || 'laptop';
 }
@@ -301,7 +304,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     slug: apiProduct.slug,
     name: apiProduct.name,
     displayName: apiProduct.name,
-    brand: apiProduct.brand.name,
+    brand: apiProduct.brand.name.toLowerCase(),
     brandLogo: apiProduct.brand.logo_url,
     thumbnail: apiProduct.image_url || '/images/products/placeholder.jpg',
     images: apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
@@ -395,6 +398,11 @@ function inferUsage(type: string, name: string): import('../[landing]/catalogo/t
  * These are placeholders - real specs come from product detail
  */
 function createDefaultSpecs(apiProduct: ApiCatalogProduct): ProductSpecs {
+  // Accessories: no fake defaults - return empty specs
+  if (apiProduct.type === 'accesorio') {
+    return {};
+  }
+
   const isLaptop = apiProduct.type === 'laptop';
   const nameLower = apiProduct.name.toLowerCase();
 
@@ -472,6 +480,308 @@ function createDefaultSpecs(apiProduct: ApiCatalogProduct): ProductSpecs {
 }
 
 // ============================================
+// Direct Catalog Endpoint (no landing required)
+// ============================================
+
+/**
+ * Response types for /public/catalog/products
+ */
+export interface DirectApiProduct {
+  id: number;
+  sku: string;
+  name: string;
+  short_name?: string;
+  slug: string;
+  type: string | null;
+  condition: string | null;
+  short_description?: string;
+  brand: {
+    slug: string | null;
+    name: string | null;
+    logo_url: string | null;
+  };
+  category: {
+    slug: string;
+    name: string;
+  } | null;
+  price: number;
+  is_featured: boolean;
+  stock_available: number;
+  specs: Record<string, string | number | boolean>;
+  colors: { id: string; name: string; hex: string }[];
+  images: string[];
+  labels: string[];
+}
+
+export interface DirectCatalogResponse {
+  products: DirectApiProduct[];
+  total: number;
+}
+
+/**
+ * Fetch all products directly (no landing context needed).
+ * Uses GET /public/catalog/products which returns all active/visible products.
+ */
+export async function getDirectCatalogProducts(): Promise<DirectCatalogResponse | null> {
+  try {
+    const url = `${API_BASE_URL}/public/catalog/products`;
+
+    const response = await fetch(url, {
+      next: { revalidate: 60 },
+    });
+
+    if (!response.ok) {
+      let errorDetail = '';
+      try {
+        const errorBody = await response.json();
+        errorDetail = JSON.stringify(errorBody);
+      } catch {
+        errorDetail = response.statusText;
+      }
+      console.error(`[Catalog API Direct] Error ${response.status}:`, errorDetail);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[Catalog API Direct] Error fetching products:', error);
+    return null;
+  }
+}
+
+/**
+ * Map a direct API product to frontend CatalogProduct.
+ * Uses real specs from the EAV model when available.
+ */
+export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct): CatalogProduct {
+  const specs = apiProduct.specs || {};
+  const price = apiProduct.price || 0;
+
+  // Calculate quotas using real French amortization formula (TEA 75%, 24 months default)
+  const quotaMonthly = price > 0 ? calculateQuotaForTerm(price, 24) : 0;
+  const quotaBiweekly = Math.round(quotaMonthly / 2);
+  const quotaWeekly = Math.round(quotaMonthly / 4);
+
+  // Determine tags from labels and features
+  const tags: ProductTagType[] = [];
+  if (apiProduct.is_featured) tags.push('recomendado');
+  if (apiProduct.labels.includes('destacado')) tags.push('mas_vendido');
+  if (quotaMonthly > 0 && quotaMonthly < 150) tags.push('cuota_baja');
+
+  // Map real specs from EAV to ProductSpecs structure
+  const productSpecs = createSpecsFromEav(specs, apiProduct.type || 'laptop');
+
+  // Map colors to ProductColor format (deduplicate by hex)
+  const seenHex = new Set<string>();
+  const colors: ProductColor[] = [];
+  for (const c of apiProduct.colors) {
+    if (!seenHex.has(c.hex)) {
+      seenHex.add(c.hex);
+      colors.push({ id: c.id, name: c.name, hex: c.hex });
+    }
+  }
+
+  return {
+    id: String(apiProduct.id),
+    slug: apiProduct.slug || `product-${apiProduct.id}`,
+    name: apiProduct.name,
+    displayName: apiProduct.short_name || apiProduct.name,
+    brand: (apiProduct.brand.name || 'Sin marca').toLowerCase(),
+    brandLogo: apiProduct.brand.logo_url || undefined,
+    thumbnail: apiProduct.images[0] || '/images/products/placeholder.jpg',
+    images: apiProduct.images.length > 0 ? apiProduct.images : ['/images/products/placeholder.jpg'],
+    colors: colors.length > 0 ? colors : undefined,
+    deviceType: mapDeviceType(apiProduct.type || 'laptop'),
+    price,
+    originalPrice: undefined,
+    discount: undefined,
+    quotaMonthly,
+    quotaBiweekly,
+    quotaWeekly,
+    maxTermMonths: 24,
+    gama: inferGamaTier(price),
+    condition: mapCondition(apiProduct.condition || 'nuevo'),
+    stock: apiProduct.stock_available > 0 ? 'available' as StockStatus : 'out_of_stock' as StockStatus,
+    stockQuantity: apiProduct.stock_available,
+    usage: inferUsage(apiProduct.type || 'laptop', apiProduct.name),
+    isFeatured: apiProduct.is_featured,
+    isNew: apiProduct.labels.includes('nuevo'),
+    tags,
+    specs: productSpecs,
+    rawSpecs: Object.keys(specs).length > 0 ? specs : undefined,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Create ProductSpecs from real EAV spec values.
+ * Maps flat spec dict (e.g. { processor: "AMD Ryzen 5", ram: 16 }) to structured ProductSpecs.
+ *
+ * For accessories: only returns sub-objects when real data exists (no invented defaults).
+ * For laptops/celulares/tablets: maintains current behavior with reasonable defaults.
+ */
+function createSpecsFromEav(specs: Record<string, string | number | boolean>, type: string): ProductSpecs {
+  // Accessories: only return specs that actually exist in the EAV data
+  if (type === 'accesorio') {
+    return createAccessorySpecs(specs);
+  }
+
+  const isLaptop = type === 'laptop';
+  const isCelular = type === 'celular';
+
+  // Extract processor info
+  const processorStr = String(specs.processor || specs.cpu || '');
+  const processorBrand: 'intel' | 'amd' | 'apple' = processorStr.toLowerCase().includes('amd') || processorStr.toLowerCase().includes('ryzen')
+    ? 'amd'
+    : processorStr.toLowerCase().includes('apple') || processorStr.toLowerCase().includes('m1') || processorStr.toLowerCase().includes('m2') || processorStr.toLowerCase().includes('m3')
+      ? 'apple'
+      : 'intel';
+
+  const ram = Number(specs.ram || specs.ram_gb || 8);
+  const storage = Number(specs.storage || specs.storage_gb || specs.ssd || 256);
+  const screenSize = Number(specs.screen_size || specs.display_size || (isLaptop ? 15.6 : isCelular ? 6.5 : 10));
+
+  return {
+    processor: {
+      brand: processorBrand,
+      model: processorStr || (processorBrand === 'amd' ? 'Ryzen 5' : 'Core i5'),
+      cores: Number(specs.cores || specs.cpu_cores || 4),
+      speed: String(specs.cpu_speed || specs.speed || '3.5 GHz'),
+    },
+    ram: {
+      size: ram,
+      type: String(specs.ram_type || 'DDR4'),
+      maxSize: Number(specs.ram_max || ram * 2),
+      expandable: specs.ram_expandable !== false,
+    },
+    storage: {
+      size: storage,
+      type: (String(specs.storage_type || 'ssd').toLowerCase() as 'ssd' | 'hdd' | 'emmc') || 'ssd',
+      hasSecondSlot: Boolean(specs.has_second_slot || isLaptop),
+    },
+    display: {
+      size: screenSize,
+      resolution: mapResolution(String(specs.resolution || specs.display_resolution || 'fhd')),
+      resolutionPixels: String(specs.resolution_pixels || (screenSize > 10 ? '1920x1080' : '1080x2400')),
+      type: (String(specs.display_type || specs.panel_type || 'ips').toLowerCase() as 'ips' | 'tn' | 'oled' | 'va') || 'ips',
+      refreshRate: Number(specs.refresh_rate || 60),
+      touchScreen: Boolean(specs.touch_screen || isCelular),
+    },
+    gpu: {
+      type: specs.gpu_dedicated ? 'dedicated' : 'integrated' as 'integrated' | 'dedicated',
+      brand: String(specs.gpu_brand || (processorBrand === 'amd' ? 'AMD' : 'Intel')),
+      model: String(specs.gpu || specs.gpu_model || (processorBrand === 'amd' ? 'Radeon Graphics' : 'UHD Graphics')),
+      vram: specs.gpu_vram ? Number(specs.gpu_vram) : undefined,
+    },
+    connectivity: {
+      wifi: String(specs.wifi || 'Wi-Fi 6'),
+      bluetooth: String(specs.bluetooth || '5.0'),
+      hasEthernet: Boolean(specs.has_ethernet ?? isLaptop),
+    },
+    ports: {
+      usb: Number(specs.usb_ports || (isLaptop ? 2 : 0)),
+      usbC: Number(specs.usb_c_ports || 1),
+      hdmi: Boolean(specs.has_hdmi ?? isLaptop),
+      thunderbolt: Boolean(specs.has_thunderbolt || false),
+      sdCard: Boolean(specs.has_sd_card ?? isLaptop),
+      headphone: true,
+    },
+    keyboard: {
+      backlit: Boolean(specs.backlit_keyboard ?? isLaptop),
+      numericPad: Boolean(specs.numeric_pad || false),
+      language: 'Español Latino',
+    },
+    security: {
+      fingerprint: Boolean(specs.fingerprint ?? true),
+      facialRecognition: Boolean(specs.facial_recognition || false),
+      tpmChip: Boolean(specs.tpm_chip ?? isLaptop),
+    },
+    os: {
+      hasWindows: Boolean(specs.has_windows ?? isLaptop),
+      windowsVersion: specs.windows_version ? String(specs.windows_version) : (isLaptop ? 'Windows 11 Home' : undefined),
+    },
+    battery: {
+      capacity: String(specs.battery_capacity || specs.battery || (isLaptop ? '45Wh' : '5000mAh')),
+      life: String(specs.battery_life || (isLaptop ? '8 horas' : '24 horas')),
+    },
+    dimensions: {
+      weight: Number(specs.weight || (isLaptop ? 1.8 : 0.2)),
+      thickness: Number(specs.thickness || (isLaptop ? 19.9 : 8.5)),
+    },
+  };
+}
+
+/**
+ * Create specs for accessories - only populate sub-objects when real EAV data exists.
+ * No invented defaults (no fake processor, RAM, etc.).
+ */
+function createAccessorySpecs(specs: Record<string, string | number | boolean>): ProductSpecs {
+  const result: ProductSpecs = {};
+
+  // Display - only if screen-related specs exist
+  const hasDisplay = specs.screen_size || specs.display_size || specs.screen_resolution || specs.resolution_pixels;
+  if (hasDisplay) {
+    const screenSize = Number(specs.screen_size || specs.display_size || 0);
+    result.display = {
+      size: screenSize,
+      resolution: mapResolution(String(specs.screen_resolution || specs.resolution || 'fhd')),
+      resolutionPixels: String(specs.resolution_pixels || specs.screen_resolution || ''),
+      type: (String(specs.panel_type || specs.display_type || 'ips').toLowerCase() as 'ips' | 'tn' | 'oled' | 'va'),
+      refreshRate: Number(specs.refresh_rate || 60),
+      touchScreen: Boolean(specs.touch_screen || false),
+    };
+  }
+
+  // Connectivity - only if bluetooth or wifi exist
+  const hasConnectivity = specs.bluetooth_version || specs.bluetooth || specs.wifi;
+  if (hasConnectivity) {
+    result.connectivity = {
+      wifi: specs.wifi ? String(specs.wifi) : '',
+      bluetooth: String(specs.bluetooth_version || specs.bluetooth || ''),
+      hasEthernet: Boolean(specs.has_ethernet || false),
+    };
+  }
+
+  // Battery - only if battery specs exist
+  const hasBattery = specs.battery_capacity || specs.battery || specs.battery_life;
+  if (hasBattery) {
+    result.battery = {
+      capacity: String(specs.battery_capacity || specs.battery || ''),
+      life: String(specs.battery_life || ''),
+    };
+  }
+
+  // Dimensions - only if weight or thickness exist
+  if (specs.weight || specs.thickness) {
+    result.dimensions = {
+      weight: Number(specs.weight || 0),
+      thickness: Number(specs.thickness || 0),
+    };
+  }
+
+  // OS - only if explicitly present
+  if (specs.operating_system || specs.has_windows) {
+    result.os = {
+      hasWindows: Boolean(specs.has_windows || false),
+      windowsVersion: specs.windows_version ? String(specs.windows_version) : undefined,
+    };
+  }
+
+  return result;
+}
+
+/**
+ * Map resolution string to Resolution type
+ */
+function mapResolution(res: string): 'hd' | 'fhd' | 'qhd' | '4k' {
+  const lower = res.toLowerCase();
+  if (lower.includes('4k') || lower.includes('2160') || lower.includes('uhd')) return '4k';
+  if (lower.includes('qhd') || lower.includes('2k') || lower.includes('1440')) return 'qhd';
+  if (lower.includes('fhd') || lower.includes('1080') || lower.includes('full')) return 'fhd';
+  return 'hd';
+}
+
+// ============================================
 // Hook for Catalog Data
 // ============================================
 
@@ -500,4 +810,24 @@ export async function fetchCatalogData(
   }
 
   return mapApiCatalogResponse(response);
+}
+
+/**
+ * Fetch products directly without landing context.
+ * Returns products mapped to frontend format.
+ */
+export async function fetchDirectCatalogData(): Promise<{
+  products: CatalogProduct[];
+  total: number;
+} | null> {
+  const response = await getDirectCatalogProducts();
+
+  if (!response || response.products.length === 0) {
+    return null;
+  }
+
+  return {
+    products: response.products.map(mapDirectApiProductToCatalogProduct),
+    total: response.total,
+  };
 }

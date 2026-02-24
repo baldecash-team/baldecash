@@ -136,92 +136,124 @@ export const usageOptions: FilterOption[] = [
 // Device type options for filtering
 // Counts se actualizan dinámicamente via applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType)
 export const deviceTypeOptions: FilterOption[] = [
-  { value: 'laptop', label: 'Laptop', count: 66, icon: 'Laptop' },
-  { value: 'tablet', label: 'Tablet', count: 26, icon: 'Tablet' },
-  { value: 'celular', label: 'Celular', count: 26, icon: 'Smartphone' },
+  { value: 'laptop', label: 'Laptop', count: 10, icon: 'Laptop' },
+  { value: 'celular', label: 'Celular', count: 8, icon: 'Smartphone' },
+  { value: 'accesorio', label: 'Accesorio', count: 2, icon: 'Monitor' },
 ];
 
 // Brand options by device type (for dynamic filtering)
+// Updated to match actual DB brands
 export const brandsByDeviceType: Record<string, string[]> = {
-  laptop: ['lenovo', 'hp', 'asus', 'acer', 'dell', 'msi', 'apple'],
-  tablet: ['samsung', 'apple', 'xiaomi', 'lenovo', 'huawei'],
-  celular: ['samsung', 'xiaomi', 'motorola', 'huawei', 'realme'],
+  laptop: ['lenovo', 'hp', 'asus', 'advance'],
+  celular: ['samsung', 'xiaomi', 'motorola'],
+  accesorio: ['teros'],
 };
 
+// Static brand options (fallback) - matches brands in database
 export const brandOptions: FilterOption[] = [
   {
     value: 'lenovo',
     label: 'Lenovo',
-    count: 11,
+    count: 4,
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Lenovo_logo_2015.svg/200px-Lenovo_logo_2015.svg.png',
   },
   {
     value: 'hp',
     label: 'HP',
-    count: 10,
+    count: 4,
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/HP_logo_2012.svg/150px-HP_logo_2012.svg.png',
   },
   {
     value: 'asus',
     label: 'ASUS',
-    count: 9,
+    count: 1,
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/ASUS_Logo.svg/200px-ASUS_Logo.svg.png',
   },
   {
-    value: 'acer',
-    label: 'Acer',
-    count: 8,
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Acer_2011.svg/200px-Acer_2011.svg.png',
-  },
-  {
-    value: 'dell',
-    label: 'Dell',
-    count: 7,
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Dell_Logo.svg/150px-Dell_Logo.svg.png',
-  },
-  {
-    value: 'msi',
-    label: 'MSI',
-    count: 5,
-    logo: 'https://cdn.worldvectorlogo.com/logos/msi-3.svg',
-  },
-  {
-    value: 'apple',
-    label: 'Apple',
-    count: 12,
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/100px-Apple_logo_black.svg.png',
+    value: 'advance',
+    label: 'Advance',
+    count: 1,
+    logo: undefined,
   },
   {
     value: 'samsung',
     label: 'Samsung',
-    count: 15,
-    logo: 'https://cdn.worldvectorlogo.com/logos/samsung-8.svg',
+    count: 5,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Samsung_Logo.svg/200px-Samsung_Logo.svg.png',
   },
   {
     value: 'xiaomi',
     label: 'Xiaomi',
-    count: 10,
+    count: 2,
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Xiaomi_logo_%282021-%29.svg/200px-Xiaomi_logo_%282021-%29.svg.png',
-  },
-  {
-    value: 'huawei',
-    label: 'Huawei',
-    count: 8,
-    logo: 'https://cdn.worldvectorlogo.com/logos/huawei.svg',
   },
   {
     value: 'motorola',
     label: 'Motorola',
-    count: 5,
-    logo: 'https://cdn.simpleicons.org/motorola',
+    count: 1,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Motorola-logo.svg/200px-Motorola-logo.svg.png',
   },
   {
-    value: 'realme',
-    label: 'Realme',
-    count: 3,
-    logo: 'https://cdn.worldvectorlogo.com/logos/realme-1.svg',
+    value: 'teros',
+    label: 'Teros',
+    count: 2,
+    logo: undefined,
   },
 ];
+
+/**
+ * Generate brand options dynamically from loaded products.
+ * Uses product data to extract brands, counts, and logos.
+ */
+export function generateBrandOptionsFromProducts(products: CatalogProduct[]): FilterOption[] {
+  const brandMap = new Map<string, { label: string; count: number; logo?: string }>();
+
+  products.forEach((product) => {
+    const brandKey = product.brand.toLowerCase();
+    const existing = brandMap.get(brandKey);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      // Capitalize brand name for label
+      const label = product.brand.charAt(0).toUpperCase() + product.brand.slice(1);
+      brandMap.set(brandKey, {
+        label: label === 'Hp' ? 'HP' : label === 'Asus' ? 'ASUS' : label,
+        count: 1,
+        logo: product.brandLogo || undefined,
+      });
+    }
+  });
+
+  return Array.from(brandMap.entries())
+    .sort((a, b) => b[1].count - a[1].count)
+    .map(([value, data]) => ({
+      value,
+      label: data.label,
+      count: data.count,
+      logo: data.logo,
+    }));
+}
+
+/**
+ * Generate brandsByDeviceType dynamically from loaded products.
+ */
+export function generateBrandsByDeviceType(products: CatalogProduct[]): Record<string, string[]> {
+  const result: Record<string, Set<string>> = {};
+
+  products.forEach((product) => {
+    const deviceType = product.deviceType || 'laptop';
+    if (!result[deviceType]) {
+      result[deviceType] = new Set();
+    }
+    result[deviceType].add(product.brand.toLowerCase());
+  });
+
+  const output: Record<string, string[]> = {};
+  for (const [key, set] of Object.entries(result)) {
+    output[key] = Array.from(set);
+  }
+  return output;
+}
 
 export const ramOptions: FilterOption[] = [
   { value: '4', label: '4 GB', count: 5 },
@@ -348,7 +380,7 @@ const featuredLaptop: CatalogProduct = {
   quotaMonthly: 89,
   quotaBiweekly: 45,
   quotaWeekly: 23,
-  maxTermMonths: 36,
+  maxTermMonths: 24,
   gama: 'estudiante',
   condition: 'nuevo',
   stock: 'available',
@@ -398,7 +430,7 @@ const featuredTablet: CatalogProduct = {
   quotaMonthly: 69,
   quotaBiweekly: 35,
   quotaWeekly: 18,
-  maxTermMonths: 36,
+  maxTermMonths: 24,
   gama: 'profesional',
   condition: 'nuevo',
   stock: 'available',
@@ -448,7 +480,7 @@ const featuredCelular: CatalogProduct = {
   quotaMonthly: 54,
   quotaBiweekly: 27,
   quotaWeekly: 14,
-  maxTermMonths: 36,
+  maxTermMonths: 24,
   gama: 'estudiante',
   condition: 'nuevo',
   stock: 'available',
@@ -992,7 +1024,7 @@ function generateTablets(): CatalogProduct[] {
         quotaMonthly: quota,
         quotaBiweekly: Math.floor(quota / 2),
         quotaWeekly: Math.floor(quota / 4),
-        maxTermMonths: 36,
+        maxTermMonths: 24,
         gama: gamaInfo.gama,
         condition: conditions[Math.floor(seededRandom() * conditions.length)],
         stock: stockStatuses[Math.floor(seededRandom() * stockStatuses.length)],
@@ -1146,8 +1178,8 @@ export function getFilteredProducts(
     if (filters.brands?.length && !filters.brands.includes(product.brand)) {
       return false;
     }
-    // Quota range filter
-    if (filters.quotaRange) {
+    // Quota range filter (skip for products with no price set)
+    if (filters.quotaRange && product.quotaMonthly > 0) {
       if (product.quotaMonthly < filters.quotaRange[0] || product.quotaMonthly > filters.quotaRange[1]) {
         return false;
       }
@@ -1157,104 +1189,104 @@ export function getFilteredProducts(
       return false;
     }
     // RAM filter
-    if (filters.ram?.length && !filters.ram.includes(product.specs.ram.size)) {
+    if (filters.ram?.length && (!product.specs.ram || !filters.ram.includes(product.specs.ram.size))) {
       return false;
     }
     // Storage filter
-    if (filters.storage?.length && !filters.storage.includes(product.specs.storage.size)) {
+    if (filters.storage?.length && (!product.specs.storage || !filters.storage.includes(product.specs.storage.size))) {
       return false;
     }
     // Storage type filter
-    if (filters.storageType?.length && !filters.storageType.includes(product.specs.storage.type)) {
+    if (filters.storageType?.length && (!product.specs.storage || !filters.storageType.includes(product.specs.storage.type))) {
       return false;
     }
     // Processor brand filter
-    if (filters.processorBrand?.length && !filters.processorBrand.includes(product.specs.processor.brand)) {
+    if (filters.processorBrand?.length && (!product.specs.processor || !filters.processorBrand.includes(product.specs.processor.brand))) {
       return false;
     }
     // Display size filter
-    if (filters.displaySize?.length && !filters.displaySize.includes(product.specs.display.size)) {
+    if (filters.displaySize?.length && (!product.specs.display || !filters.displaySize.includes(product.specs.display.size))) {
       return false;
     }
     // Display type filter
-    if (filters.displayType?.length && !filters.displayType.includes(product.specs.display.type)) {
+    if (filters.displayType?.length && (!product.specs.display || !filters.displayType.includes(product.specs.display.type))) {
       return false;
     }
     // Resolution filter
-    if (filters.resolution?.length && !filters.resolution.includes(product.specs.display.resolution)) {
+    if (filters.resolution?.length && (!product.specs.display || !filters.resolution.includes(product.specs.display.resolution))) {
       return false;
     }
     // Refresh rate filter
-    if (filters.refreshRate?.length && !filters.refreshRate.includes(product.specs.display.refreshRate)) {
+    if (filters.refreshRate?.length && (!product.specs.display || !filters.refreshRate.includes(product.specs.display.refreshRate))) {
       return false;
     }
     // GPU type filter
-    if (filters.gpuType?.length && !filters.gpuType.includes(product.specs.gpu.type)) {
+    if (filters.gpuType?.length && (!product.specs.gpu || !filters.gpuType.includes(product.specs.gpu.type))) {
       return false;
     }
     // Touch screen filter
     if (filters.touchScreen !== null && filters.touchScreen !== undefined) {
-      if (product.specs.display.touchScreen !== filters.touchScreen) {
+      if (product.specs.display?.touchScreen !== filters.touchScreen) {
         return false;
       }
     }
     // RAM expandable filter
     if (filters.ramExpandable !== null && filters.ramExpandable !== undefined) {
-      if (product.specs.ram.expandable !== filters.ramExpandable) {
+      if (product.specs.ram?.expandable !== filters.ramExpandable) {
         return false;
       }
     }
     // Backlit keyboard filter
     if (filters.backlitKeyboard !== null && filters.backlitKeyboard !== undefined) {
-      if (product.specs.keyboard.backlit !== filters.backlitKeyboard) {
+      if (product.specs.keyboard?.backlit !== filters.backlitKeyboard) {
         return false;
       }
     }
     // Numeric keypad filter
     if (filters.numericKeypad !== null && filters.numericKeypad !== undefined) {
-      if (product.specs.keyboard.numericPad !== filters.numericKeypad) {
+      if (product.specs.keyboard?.numericPad !== filters.numericKeypad) {
         return false;
       }
     }
     // Fingerprint filter
     if (filters.fingerprint !== null && filters.fingerprint !== undefined) {
-      if (product.specs.security.fingerprint !== filters.fingerprint) {
+      if (product.specs.security?.fingerprint !== filters.fingerprint) {
         return false;
       }
     }
     // Windows filter
     if (filters.hasWindows !== null && filters.hasWindows !== undefined) {
-      if (product.specs.os.hasWindows !== filters.hasWindows) {
+      if (product.specs.os?.hasWindows !== filters.hasWindows) {
         return false;
       }
     }
     // Thunderbolt filter
     if (filters.hasThunderbolt !== null && filters.hasThunderbolt !== undefined) {
-      if (product.specs.ports.thunderbolt !== filters.hasThunderbolt) {
+      if (product.specs.ports?.thunderbolt !== filters.hasThunderbolt) {
         return false;
       }
     }
     // Ethernet filter
     if (filters.hasEthernet !== null && filters.hasEthernet !== undefined) {
-      if (product.specs.connectivity.hasEthernet !== filters.hasEthernet) {
+      if (product.specs.connectivity?.hasEthernet !== filters.hasEthernet) {
         return false;
       }
     }
     // SD Card filter
     if (filters.hasSDCard !== null && filters.hasSDCard !== undefined) {
-      if (product.specs.ports.sdCard !== filters.hasSDCard) {
+      if (product.specs.ports?.sdCard !== filters.hasSDCard) {
         return false;
       }
     }
     // HDMI filter
     if (filters.hasHDMI !== null && filters.hasHDMI !== undefined) {
-      if (product.specs.ports.hdmi !== filters.hasHDMI) {
+      if (product.specs.ports?.hdmi !== filters.hasHDMI) {
         return false;
       }
     }
     // Min USB ports filter
     if (filters.minUSBPorts !== null && filters.minUSBPorts !== undefined) {
-      const totalUSB = product.specs.ports.usb + product.specs.ports.usbC;
+      const totalUSB = (product.specs.ports?.usb || 0) + (product.specs.ports?.usbC || 0);
       if (totalUSB < filters.minUSBPorts) {
         return false;
       }
@@ -1337,31 +1369,33 @@ export function getFilterCounts(products: CatalogProduct[]): FilterCounts {
     });
 
     // RAM
-    counts.ram[product.specs.ram.size] = (counts.ram[product.specs.ram.size] || 0) + 1;
+    if (product.specs.ram) {
+      counts.ram[product.specs.ram.size] = (counts.ram[product.specs.ram.size] || 0) + 1;
+    }
 
     // Storage
-    counts.storage[product.specs.storage.size] = (counts.storage[product.specs.storage.size] || 0) + 1;
-
-    // Storage type
-    counts.storageType[product.specs.storage.type] = (counts.storageType[product.specs.storage.type] || 0) + 1;
+    if (product.specs.storage) {
+      counts.storage[product.specs.storage.size] = (counts.storage[product.specs.storage.size] || 0) + 1;
+      counts.storageType[product.specs.storage.type] = (counts.storageType[product.specs.storage.type] || 0) + 1;
+    }
 
     // Processor brand
-    counts.processorBrand[product.specs.processor.brand] = (counts.processorBrand[product.specs.processor.brand] || 0) + 1;
+    if (product.specs.processor) {
+      counts.processorBrand[product.specs.processor.brand] = (counts.processorBrand[product.specs.processor.brand] || 0) + 1;
+    }
 
-    // Display size
-    counts.displaySize[product.specs.display.size] = (counts.displaySize[product.specs.display.size] || 0) + 1;
-
-    // Display type
-    counts.displayType[product.specs.display.type] = (counts.displayType[product.specs.display.type] || 0) + 1;
-
-    // Resolution
-    counts.resolution[product.specs.display.resolution] = (counts.resolution[product.specs.display.resolution] || 0) + 1;
-
-    // Refresh rate
-    counts.refreshRate[product.specs.display.refreshRate] = (counts.refreshRate[product.specs.display.refreshRate] || 0) + 1;
+    // Display
+    if (product.specs.display) {
+      counts.displaySize[product.specs.display.size] = (counts.displaySize[product.specs.display.size] || 0) + 1;
+      counts.displayType[product.specs.display.type] = (counts.displayType[product.specs.display.type] || 0) + 1;
+      counts.resolution[product.specs.display.resolution] = (counts.resolution[product.specs.display.resolution] || 0) + 1;
+      counts.refreshRate[product.specs.display.refreshRate] = (counts.refreshRate[product.specs.display.refreshRate] || 0) + 1;
+    }
 
     // GPU type
-    counts.gpuType[product.specs.gpu.type] = (counts.gpuType[product.specs.gpu.type] || 0) + 1;
+    if (product.specs.gpu) {
+      counts.gpuType[product.specs.gpu.type] = (counts.gpuType[product.specs.gpu.type] || 0) + 1;
+    }
 
     // Gama
     counts.gama[product.gama] = (counts.gama[product.gama] || 0) + 1;
