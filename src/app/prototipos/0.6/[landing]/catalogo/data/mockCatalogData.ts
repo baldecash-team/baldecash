@@ -144,9 +144,10 @@ export const deviceTypeOptions: FilterOption[] = [
 // Brand options by device type (for dynamic filtering)
 // Updated to match actual DB brands
 export const brandsByDeviceType: Record<string, string[]> = {
-  laptop: ['lenovo', 'hp', 'asus', 'advance'],
+  laptop: ['lenovo', 'hp', 'asus', 'advance', 'apple', 'acer'],
   celular: ['samsung', 'xiaomi', 'motorola'],
-  accesorio: ['teros'],
+  tablet: ['samsung', 'apple'],
+  accesorio: ['teros', 'apple', 'dell'],
 };
 
 // Static brand options (fallback) - matches brands in database
@@ -198,6 +199,24 @@ export const brandOptions: FilterOption[] = [
     label: 'Teros',
     count: 2,
     logo: undefined,
+  },
+  {
+    value: 'apple',
+    label: 'Apple',
+    count: 3,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/150px-Apple_logo_black.svg.png',
+  },
+  {
+    value: 'acer',
+    label: 'Acer',
+    count: 2,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Acer_2011.svg/200px-Acer_2011.svg.png',
+  },
+  {
+    value: 'dell',
+    label: 'Dell',
+    count: 1,
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Dell_Logo.svg/150px-Dell_Logo.svg.png',
   },
 ];
 

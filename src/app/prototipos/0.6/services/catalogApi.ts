@@ -394,52 +394,168 @@ function inferUsage(type: string, name: string): import('../[landing]/catalogo/t
 }
 
 /**
- * Create default specs for a product
- * These are placeholders - real specs come from product detail
+ * Create specs for a product by parsing short_description and product name.
+ * short_description format: '15.6" FHD, Ryzen 5 7520U, 16GB, 512GB SSD'
  */
 function createDefaultSpecs(apiProduct: ApiCatalogProduct): ProductSpecs {
-  // Accessories: no fake defaults - return empty specs
+  const desc = (apiProduct.short_description || '').toLowerCase();
+  const nameLower = apiProduct.name.toLowerCase();
+  const combined = `${nameLower} ${desc}`;
+  const isLaptop = apiProduct.type === 'laptop';
+  const isTablet = apiProduct.type === 'tablet';
+  const isCelular = apiProduct.type === 'celular';
+
+  // Accessories: only return specs that exist in description
   if (apiProduct.type === 'accesorio') {
     return {};
   }
 
-  const isLaptop = apiProduct.type === 'laptop';
-  const nameLower = apiProduct.name.toLowerCase();
+  // --- Parse processor from description ---
+  const processorBrand: 'intel' | 'amd' | 'apple' =
+    combined.includes('ryzen') || combined.includes('amd') ? 'amd'
+    : combined.includes('apple') || combined.includes('m2') || combined.includes('m1') || combined.includes('a16 bionic') ? 'apple'
+    : combined.includes('helio') || combined.includes('snapdragon') || combined.includes('exynos') ? 'amd' // mobile chipsets
+    : 'intel';
 
-  // Try to infer some specs from the product name
-  const hasRyzen = nameLower.includes('ryzen');
-  const hasIntel = nameLower.includes('intel') || nameLower.includes('core');
+  // Extract processor model from short_description
+  let processorModel = '';
+  const procPatterns = [
+    /ryzen\s*\d+\s*\w*/i,
+    /core\s*i\d+-?\w*/i,
+    /core\s*\d+\s*\w*/i,
+    /celeron\s*\w*/i,
+    /snapdragon\s*\d*\s*\w*\s*\d*/i,
+    /exynos\s*\d*/i,
+    /helio\s*\w*[-]?\w*/i,
+    /apple\s*m\d/i,
+    /a16\s*bionic/i,
+  ];
+  for (const pat of procPatterns) {
+    const match = combined.match(pat);
+    if (match) {
+      processorModel = match[0].trim();
+      // Capitalize first letter of each word
+      processorModel = processorModel.replace(/\b\w/g, c => c.toUpperCase());
+      break;
+    }
+  }
+  if (!processorModel) {
+    processorModel = processorBrand === 'amd' ? 'AMD' : processorBrand === 'apple' ? 'Apple' : 'Intel';
+  }
+
+  // --- Parse RAM ---
+  let ramSize = 8;
+  const ramMatch = desc.match(/(\d+)\s*gb(?:\s+(?:ddr|lpddr))?/i) || nameLower.match(/(\d+)\s*gb/i);
+  if (ramMatch) ramSize = parseInt(ramMatch[1], 10);
+  // Detect RAM type
+  let ramType = 'DDR4';
+  if (combined.includes('ddr5') || combined.includes('lpddr5')) ramType = 'DDR5';
+  else if (combined.includes('lpddr4')) ramType = 'LPDDR4';
+
+  // --- Parse storage ---
+  let storageSize = 256;
+  let storageType: 'ssd' | 'hdd' | 'emmc' = 'ssd';
+  const storageMatch = desc.match(/(\d+)\s*(?:gb|tb)\s*(ssd|hdd|emmc)?/ig);
+  if (storageMatch) {
+    // Pick the storage entry (usually the second number, or the one with SSD/HDD)
+    for (const s of storageMatch) {
+      const m = s.match(/(\d+)\s*(gb|tb)\s*(ssd|hdd|emmc)?/i);
+      if (m) {
+        const val = parseInt(m[1], 10);
+        const unit = m[2].toLowerCase();
+        const type = (m[3] || '').toLowerCase();
+        if (type === 'ssd' || type === 'hdd' || type === 'emmc') {
+          storageSize = unit === 'tb' ? val * 1024 : val;
+          storageType = type as 'ssd' | 'hdd' | 'emmc';
+          break;
+        }
+        // If no type specified but value looks like storage (>= 64GB, not RAM)
+        if (val >= 64 && val !== ramSize) {
+          storageSize = unit === 'tb' ? val * 1024 : val;
+        }
+      }
+    }
+  }
+  // Fix: for some descriptions like "16GB, 512GB" - second is storage
+  const allNumbers = [...desc.matchAll(/(\d+)\s*gb/gi)].map(m => parseInt(m[1], 10));
+  if (allNumbers.length >= 2) {
+    ramSize = allNumbers[0];
+    storageSize = allNumbers[1];
+  }
+  if (desc.includes('1tb')) storageSize = 1024;
+  if (desc.includes('emmc')) storageType = 'emmc';
+
+  // --- Parse display ---
+  let displaySize = isLaptop ? 15.6 : isCelular ? 6.5 : 10;
+  const displayMatch = desc.match(/([\d.]+)[""]/);
+  if (displayMatch) displaySize = parseFloat(displayMatch[1]);
+
+  let resolution: 'hd' | 'fhd' | 'qhd' | '4k' = 'fhd';
+  if (desc.includes('4k') || desc.includes('2160')) resolution = '4k';
+  else if (desc.includes('qhd') || desc.includes('2k') || desc.includes('1440')) resolution = 'qhd';
+  else if (desc.includes('fhd') || desc.includes('1080') || desc.includes('full hd')) resolution = 'fhd';
+  else if (desc.includes(' hd') && !desc.includes('fhd')) resolution = 'hd';
+
+  let displayType: 'ips' | 'tn' | 'oled' | 'va' = 'ips';
+  if (desc.includes('amoled') || desc.includes('oled')) displayType = 'oled';
+  else if (desc.includes('tn')) displayType = 'tn';
+  else if (desc.includes('va')) displayType = 'va';
+
+  let refreshRate = 60;
+  const rrMatch = desc.match(/(\d+)\s*hz/i);
+  if (rrMatch) refreshRate = parseInt(rrMatch[1], 10);
+
+  // --- Parse GPU ---
+  let gpuType: 'integrated' | 'dedicated' = 'integrated';
+  let gpuBrand = processorBrand === 'amd' ? 'AMD' : 'Intel';
+  let gpuModel = processorBrand === 'amd' ? 'Radeon Graphics' : 'UHD Graphics';
+  let gpuVram: number | undefined;
+
+  const rtxMatch = combined.match(/rtx\s*(\d+)\s*(?:ti)?/i);
+  const gtxMatch = combined.match(/gtx\s*(\d+)\s*(?:ti)?/i);
+  if (rtxMatch) {
+    gpuType = 'dedicated';
+    gpuBrand = 'NVIDIA';
+    gpuModel = `RTX ${rtxMatch[1]}`;
+    const vramMatch = desc.match(/rtx\s*\d+\s*(?:ti)?\s*(\d+)\s*gb/i);
+    if (vramMatch) gpuVram = parseInt(vramMatch[1], 10);
+  } else if (gtxMatch) {
+    gpuType = 'dedicated';
+    gpuBrand = 'NVIDIA';
+    gpuModel = `GTX ${gtxMatch[1]}`;
+  }
 
   return {
     processor: {
-      brand: hasRyzen ? 'amd' : 'intel',
-      model: hasRyzen ? 'Ryzen 5' : 'Core i5',
-      cores: 6,
+      brand: processorBrand,
+      model: processorModel,
+      cores: isLaptop ? 6 : 8,
       speed: '3.5 GHz',
     },
     ram: {
-      size: 8,
-      type: 'DDR4',
-      maxSize: 32,
-      expandable: true,
+      size: ramSize,
+      type: ramType,
+      maxSize: ramSize * 2,
+      expandable: isLaptop,
     },
     storage: {
-      size: 512,
-      type: 'ssd',
+      size: storageSize,
+      type: storageType,
       hasSecondSlot: isLaptop,
     },
     display: {
-      size: isLaptop ? 15.6 : 6.5,
-      resolution: 'fhd',
-      resolutionPixels: '1920x1080',
-      type: 'ips',
-      refreshRate: 60,
-      touchScreen: !isLaptop,
+      size: displaySize,
+      resolution,
+      resolutionPixels: resolution === 'fhd' ? '1920x1080' : resolution === 'hd' ? '1366x768' : resolution === 'qhd' ? '2560x1440' : '3840x2160',
+      type: displayType,
+      refreshRate,
+      touchScreen: !isLaptop || desc.includes('tactil') || desc.includes('touch'),
     },
     gpu: {
-      type: 'integrated',
-      brand: hasRyzen ? 'AMD' : 'Intel',
-      model: hasRyzen ? 'Radeon Graphics' : 'UHD Graphics',
+      type: gpuType,
+      brand: gpuBrand,
+      model: gpuModel,
+      vram: gpuVram,
     },
     connectivity: {
       wifi: 'Wi-Fi 6',
@@ -447,34 +563,34 @@ function createDefaultSpecs(apiProduct: ApiCatalogProduct): ProductSpecs {
       hasEthernet: isLaptop,
     },
     ports: {
-      usb: 2,
+      usb: isLaptop ? 2 : 0,
       usbC: 1,
       hdmi: isLaptop,
       thunderbolt: false,
-      sdCard: isLaptop,
+      sdCard: isLaptop || isTablet,
       headphone: true,
     },
     keyboard: {
-      backlit: true,
+      backlit: isLaptop,
       numericPad: false,
       language: 'Español Latino',
     },
     security: {
-      fingerprint: true,
+      fingerprint: isLaptop || isCelular,
       facialRecognition: false,
-      tpmChip: true,
+      tpmChip: isLaptop,
     },
     os: {
-      hasWindows: isLaptop,
-      windowsVersion: isLaptop ? 'Windows 11 Home' : undefined,
+      hasWindows: isLaptop && processorBrand !== 'apple',
+      windowsVersion: isLaptop && processorBrand !== 'apple' ? 'Windows 11 Home' : undefined,
     },
     battery: {
-      capacity: isLaptop ? '45Wh' : '5000mAh',
+      capacity: isLaptop ? '45Wh' : isCelular ? '5000mAh' : '8000mAh',
       life: isLaptop ? '8 horas' : '24 horas',
     },
     dimensions: {
-      weight: isLaptop ? 1.8 : 0.2,
-      thickness: isLaptop ? 19.9 : 8.5,
+      weight: isLaptop ? 1.8 : isCelular ? 0.2 : 0.5,
+      thickness: isLaptop ? 19.9 : isCelular ? 8.5 : 7.0,
     },
   };
 }
@@ -620,7 +736,7 @@ export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct
  * For accessories: only returns sub-objects when real data exists (no invented defaults).
  * For laptops/celulares/tablets: maintains current behavior with reasonable defaults.
  */
-function createSpecsFromEav(specs: Record<string, string | number | boolean>, type: string): ProductSpecs {
+export function createSpecsFromEav(specs: Record<string, string | number | boolean>, type: string): ProductSpecs {
   // Accessories: only return specs that actually exist in the EAV data
   if (type === 'accesorio') {
     return createAccessorySpecs(specs);

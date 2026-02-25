@@ -185,17 +185,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             )}
 
-            {/* Specs técnicas con iconos */}
+            {/* Specs técnicas con iconos - siempre mostrar con fallback genérico */}
             <div className="space-y-2 mb-4">
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <Cpu className="w-3.5 h-3.5 text-[#4654CD]" />
-                <span>{product.specs.processor.model}</span>
+                <span>{product.specs?.processor?.model || 'Procesador'}</span>
               </div>
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <MemoryStick className="w-3.5 h-3.5 text-[#4654CD]" />
                 <span>
-                  {product.specs.ram.size}GB {product.specs.ram.type}
-                  {product.specs.ram.expandable && (
+                  {product.specs?.ram?.size || 8}GB {product.specs?.ram?.type || 'DDR4'}
+                  {product.specs?.ram?.expandable && (
                     <span className="text-[#22c55e] ml-1">(expandible)</span>
                   )}
                 </span>
@@ -203,13 +203,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <HardDrive className="w-3.5 h-3.5 text-[#4654CD]" />
                 <span>
-                  {product.specs.storage.size}GB {product.specs.storage.type.toUpperCase()}
+                  {product.specs?.storage?.size || 256}GB {(product.specs?.storage?.type || 'ssd').toUpperCase()}
                 </span>
               </div>
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <Monitor className="w-3.5 h-3.5 text-[#4654CD]" />
                 <span>
-                  {product.specs.display.size}" {product.specs.display.resolution.toUpperCase()}
+                  {product.specs?.display?.size || 15.6}&quot; {(product.specs?.display?.resolution || 'fhd').toUpperCase()}
                 </span>
               </div>
             </div>

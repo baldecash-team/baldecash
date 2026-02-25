@@ -120,11 +120,11 @@ const getWizardUrl = (landing: string) => {
 const getDetailUrl = (landing: string, productId: string, deviceType: string | undefined) => {
   const baseUrl = `/prototipos/0.6/${landing}/producto/detail-preview`;
   const params = new URLSearchParams();
+  params.set('id', productId);
   if (deviceType && deviceType !== 'laptop') {
     params.set('device', deviceType);
   }
-  const queryString = params.toString();
-  return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  return `${baseUrl}?${params.toString()}`;
 };
 
 const getUpsellUrl = (landing: string) => {
