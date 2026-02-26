@@ -5,9 +5,8 @@
 
 import { ProductDetailClient } from './ProductDetailClient';
 
-// Permitir rutas dinámicas en desarrollo
-// En producción con output: export, generateStaticParams debe incluir todos los slugs
-export const dynamicParams = true;
+// Con output: export, solo funcionan rutas pre-generadas en generateStaticParams
+export const dynamicParams = false;
 
 export default function ProductDetailPage() {
   return <ProductDetailClient />;

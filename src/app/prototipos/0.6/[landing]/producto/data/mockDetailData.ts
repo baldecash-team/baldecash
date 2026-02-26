@@ -142,11 +142,11 @@ export const mockProductDetail: ProductDetail = {
 // ============================================
 
 export const mockPaymentPlans: PaymentPlan[] = [
-  { term: 12, monthlyQuota: 229, originalQuota: 249, initialPaymentPercent: 0, initialPaymentAmount: 0 },
-  { term: 18, monthlyQuota: 159, originalQuota: 175, initialPaymentPercent: 0, initialPaymentAmount: 0 },
-  { term: 24, monthlyQuota: 124, originalQuota: 136, initialPaymentPercent: 0, initialPaymentAmount: 0 },
-  { term: 36, monthlyQuota: 89, originalQuota: 99, initialPaymentPercent: 0, initialPaymentAmount: 0 },
-  { term: 48, monthlyQuota: 71, originalQuota: 79, initialPaymentPercent: 0, initialPaymentAmount: 0 },
+  { term: 12, options: [{ initialPercent: 0, initialAmount: 0, monthlyQuota: 229, originalQuota: 249 }] },
+  { term: 18, options: [{ initialPercent: 0, initialAmount: 0, monthlyQuota: 159, originalQuota: 175 }] },
+  { term: 24, options: [{ initialPercent: 0, initialAmount: 0, monthlyQuota: 124, originalQuota: 136 }] },
+  { term: 36, options: [{ initialPercent: 0, initialAmount: 0, monthlyQuota: 89, originalQuota: 99 }] },
+  { term: 48, options: [{ initialPercent: 0, initialAmount: 0, monthlyQuota: 71, originalQuota: 79 }] },
 ];
 
 export const initialPaymentOptions: InitialPaymentPercentage[] = [0, 10, 20, 30];

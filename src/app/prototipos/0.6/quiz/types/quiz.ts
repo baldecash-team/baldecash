@@ -29,7 +29,7 @@ export type QuestionType = 'single' | 'multiple' | 'scale';
 
 export interface QuizOption {
   id: string;
-  numericId: number; // ID numérico del backend para API calls
+  numericId?: number; // ID numérico del backend para API calls
   label: string;
   icon: string;
   description?: string;
@@ -38,7 +38,7 @@ export interface QuizOption {
 
 export interface QuizQuestion {
   id: string;
-  numericId: number; // ID numérico del backend para API calls
+  numericId?: number; // ID numérico del backend para API calls
   question: string;
   helpText?: string;
   options: QuizOption[];

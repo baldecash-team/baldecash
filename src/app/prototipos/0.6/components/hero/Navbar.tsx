@@ -346,7 +346,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                                       backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)',
                                     }}
                                   >
-                                    <menuItem.icon className="w-5 h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
+                                    <menuItem.icon className="w-5 h-5 [color:var(--color-primary,#4654CD)]" />
                                   </div>
                                   <div>
                                     <p className="font-medium text-neutral-800 group-hover:[color:var(--color-primary,#4654CD)] transition-colors">

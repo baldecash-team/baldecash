@@ -277,6 +277,8 @@ export function transformLandingData(data: LandingHeroResponse): {
   logoUrl?: string;
   customerPortalUrl?: string;
   footerData: FooterData | null;
+  primaryColor: string;
+  secondaryColor: string;
 } {
   const components = data.components || [];
 

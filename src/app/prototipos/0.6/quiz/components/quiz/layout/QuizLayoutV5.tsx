@@ -87,10 +87,11 @@ export const QuizLayoutV5: React.FC<QuizLayoutProps> = ({
 
         {/* Body - scrollable */}
         <ModalBody
-          ref={bodyRef}
           className="py-6 px-6 sm:px-8 bg-white max-h-[calc(90vh-180px)] overflow-y-auto overscroll-contain"
         >
-          {children}
+          <div ref={bodyRef}>
+            {children}
+          </div>
         </ModalBody>
 
         {/* Footer - fixed at bottom */}

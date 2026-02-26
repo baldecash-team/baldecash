@@ -352,9 +352,9 @@ export async function getQuizRecommendations(
     const optionMap = new Map<string, number>();
 
     questions.forEach(q => {
-      questionMap.set(q.id, q.numericId);
+      questionMap.set(q.id, q.numericId || 0);
       q.options.forEach(opt => {
-        optionMap.set(opt.id, opt.numericId);
+        optionMap.set(opt.id, opt.numericId || 0);
       });
     });
 

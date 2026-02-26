@@ -144,9 +144,13 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
       institutions: preview.institutions
         ? preview.institutions
             .filter((i) => i.isVisible !== false)
-            .map((i) => ({
+            .map((i, index) => ({
+              id: `preview-inst-${index}`,
+              code: i.name.toLowerCase().replace(/\s+/g, '-'),
               name: i.name,
+              shortName: i.name,
               logo: i.logo || '',
+              hasAgreement: true,
             }))
         : heroData.socialProof.institutions,
     };
@@ -233,16 +237,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
     return {
       ...heroData.footerData,
       tagline: preview.description ?? heroData.footerData.tagline,
-      copyrightText: preview.copyright ?? heroData.footerData.copyrightText,
-      columns: preview.columns
-        ? preview.columns.map((col) => ({
-            title: col.title,
-            links: col.links.map((link) => ({
-              label: link.label,
-              url: link.href,
-            })),
-          }))
-        : heroData.footerData.columns,
+      copyright_text: preview.copyright ?? heroData.footerData.copyright_text,
     };
   }, [heroData?.footerData, previewData?.footer]);
 
