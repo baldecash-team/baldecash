@@ -21,29 +21,35 @@ export const UnderlinedText: React.FC<UnderlinedTextProps> = ({
   color = 'primary',
   className = '',
 }) => {
-  const textColorClass = color === 'primary'
-    ? 'text-[#4654CD]'
+  const textColorStyle = color === 'primary'
+    ? { color: 'var(--color-primary, #4654CD)' }
     : color === 'white'
-    ? 'text-white'
-    : '';
+    ? { color: 'white' }
+    : {};
 
   const renderUnderline = () => {
     switch (style) {
       case 1: // Onda SVG (curva elegante)
         return (
           <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 100 12" fill="none">
-            <path d="M2 8C30 4 70 4 98 8" stroke="#03DBD0" strokeWidth="4" strokeLinecap="round" />
+            <path d="M2 8C30 4 70 4 98 8" stroke="var(--color-secondary, #03DBD0)" strokeWidth="4" strokeLinecap="round" />
           </svg>
         );
 
       case 2: // Línea Punteada (dashed)
         return (
-          <span className="absolute -bottom-1 left-0 w-full h-1 border-b-[3px] border-dashed border-[#03DBD0]" />
+          <span
+            className="absolute -bottom-1 left-0 w-full h-1 border-b-[3px] border-dashed"
+            style={{ borderColor: 'var(--color-secondary, #03DBD0)' }}
+          />
         );
 
       case 3: // Línea Sólida (simple)
         return (
-          <span className="absolute -bottom-1 left-0 w-full h-1 bg-[#03DBD0] rounded-full" />
+          <span
+            className="absolute -bottom-1 left-0 w-full h-1 rounded-full"
+            style={{ backgroundColor: 'var(--color-secondary, #03DBD0)' }}
+          />
         );
 
       case 4: // Sin Subrayado (limpio) - DEFAULT v0.5
@@ -51,14 +57,23 @@ export const UnderlinedText: React.FC<UnderlinedTextProps> = ({
 
       case 5: // Marcador Resaltador (highlight)
         return (
-          <span className="absolute inset-0 -skew-x-3 bg-[#03DBD0]/20 -z-10 scale-x-110 scale-y-125" />
+          <span
+            className="absolute inset-0 -skew-x-3 -z-10 scale-x-110 scale-y-125"
+            style={{ backgroundColor: 'color-mix(in srgb, var(--color-secondary, #03DBD0) 20%, transparent)' }}
+          />
         );
 
       case 6: // Doble Línea (énfasis)
         return (
           <>
-            <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#03DBD0]" />
-            <span className="absolute -bottom-2.5 left-0 w-full h-0.5 bg-[#03DBD0]/50" />
+            <span
+              className="absolute -bottom-1 left-0 w-full h-0.5"
+              style={{ backgroundColor: 'var(--color-secondary, #03DBD0)' }}
+            />
+            <span
+              className="absolute -bottom-2.5 left-0 w-full h-0.5"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--color-secondary, #03DBD0) 50%, transparent)' }}
+            />
           </>
         );
 
@@ -68,7 +83,7 @@ export const UnderlinedText: React.FC<UnderlinedTextProps> = ({
   };
 
   return (
-    <span className={`relative inline-block ${textColorClass} ${className}`}>
+    <span className={`relative inline-block ${className}`} style={textColorStyle}>
       {children}
       {renderUnderline()}
     </span>

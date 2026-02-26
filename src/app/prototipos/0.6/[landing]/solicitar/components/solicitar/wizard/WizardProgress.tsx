@@ -14,7 +14,7 @@ import React, { useMemo } from 'react';
 import { Check } from 'lucide-react';
 import { WizardStepId } from '../../../types/solicitar';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
-import { STEP_CODE_TO_SLUG } from '../../../../../services/wizardApi';
+import { getStepSlug } from '../../../../../services/wizardApi';
 
 // Ilustraciones de Baldi por step slug
 const STEP_ILLUSTRATIONS: Record<string, string> = {
@@ -48,11 +48,12 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
 
   // Build step list from API + Resumen at the end
   // Excludes steps with is_summary_step=true (they appear in resumen page, not progress bar)
+  // Uses dynamic url_slug from API (100% from BD)
   const progressSteps: ProgressStep[] = useMemo(() => {
     const stepsFromApi: ProgressStep[] = apiSteps
       .filter(step => !step.is_summary_step) // Exclude summary steps from progress bar
       .map(step => ({
-        slug: (STEP_CODE_TO_SLUG[step.code] || step.code) as WizardStepId,
+        slug: getStepSlug(step) as WizardStepId,
         title: step.title,
         code: step.code,
       }));

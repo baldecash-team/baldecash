@@ -13,16 +13,30 @@ import {
   CreditCard,
   Truck,
   ClipboardCheck,
+  Shield,
+  Clock,
+  Star,
+  Heart,
+  Zap,
+  Users,
+  Settings,
 } from 'lucide-react';
 import { FaqSectionProps } from '../../types/hero';
 
 // Mapeo de nombres de iconos a componentes
 const iconMap: Record<string, React.ElementType> = {
-  ClipboardCheck,
-  FileText,
+  HelpCircle,
   CreditCard,
   Truck,
-  HelpCircle,
+  FileText,
+  ClipboardCheck,
+  Shield,
+  Clock,
+  Star,
+  Heart,
+  Zap,
+  Users,
+  Settings,
 };
 
 // Fallback icons por categoría (si no viene de backend)
@@ -135,7 +149,7 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ data, underlineStyle = 4
                       </div>
                     }
                   >
-                    <div className="pl-14">{item.answer}</div>
+                    <div className="pl-14" dangerouslySetInnerHTML={{ __html: item.answer }} />
                   </AccordionItem>
                 );
               })}

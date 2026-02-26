@@ -5,6 +5,7 @@ import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, Mo
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Check, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
+import type { CatalogFiltersResponse } from '../../../../../types/filters';
 import { FilterSection } from '../filters/FilterSection';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
 import { CommercialFilters } from '../filters/CommercialFilters';
@@ -55,6 +56,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   onFilterDrawerChange,
   searchQuery,
   onSearchClear,
+  apiFilters,
+  isApiFiltersLoading,
+  totalProducts,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -70,51 +74,154 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     onFilterDrawerChange?.(false);
   };
 
-  // Apply dynamic counts to options
-  const dynamicBrandOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(brandOptions, filterCounts.brands) : brandOptions,
-    [filterCounts]
-  );
-  const dynamicUsageOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(usageOptions, filterCounts.usage) : usageOptions,
-    [filterCounts]
-  );
-  const dynamicGamaOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(gamaOptions, filterCounts.gama) : gamaOptions,
-    [filterCounts]
-  );
-  const dynamicConditionOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(conditionOptions, filterCounts.condition) : conditionOptions,
-    [filterCounts]
-  );
-  const dynamicRamOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(ramOptions, filterCounts.ram) : ramOptions,
-    [filterCounts]
-  );
-  const dynamicStorageOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(storageOptions, filterCounts.storage) : storageOptions,
-    [filterCounts]
-  );
-  const dynamicDisplaySizeOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(displaySizeOptions, filterCounts.displaySize) : displaySizeOptions,
-    [filterCounts]
-  );
-  const dynamicResolutionOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(resolutionOptions, filterCounts.resolution) : resolutionOptions,
-    [filterCounts]
-  );
-  const dynamicDisplayTypeOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(displayTypeOptions, filterCounts.displayType) : displayTypeOptions,
-    [filterCounts]
-  );
-  const dynamicDeviceTypeOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType) : deviceTypeOptions,
-    [filterCounts]
-  );
-  const dynamicTagOptions = React.useMemo(() =>
-    filterCounts ? applyDynamicCounts(tagOptions, filterCounts.tags) : tagOptions,
-    [filterCounts]
-  );
+  // Apply dynamic counts to options - use API data when available
+  const dynamicBrandOptions = React.useMemo(() => {
+    // If API filters have brands, use those
+    if (apiFilters?.brands && apiFilters.brands.length > 0) {
+      return apiFilters.brands.map(b => ({
+        value: b.slug,
+        label: b.name,
+        count: b.count || 0,
+        logo: b.logo_url || undefined, // Convert null to undefined for FilterOption type
+      }));
+    }
+    // Fallback to mock data with filterCounts
+    return filterCounts ? applyDynamicCounts(brandOptions, filterCounts.brands) : brandOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicUsageOptions = React.useMemo(() => {
+    // Use API usages if available
+    if (apiFilters?.usages && apiFilters.usages.length > 0) {
+      return apiFilters.usages.map(u => ({
+        value: u.value,
+        label: u.label,
+        count: u.count || 0,
+        icon: u.icon,
+      }));
+    }
+    // Fallback to mock data
+    return filterCounts ? applyDynamicCounts(usageOptions, filterCounts.usage) : usageOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicGamaOptions = React.useMemo(() => {
+    // Use API gamas if available
+    if (apiFilters?.gamas && apiFilters.gamas.length > 0) {
+      return apiFilters.gamas.map(g => ({
+        value: g.value,
+        label: g.label,
+        count: g.count || 0,
+      }));
+    }
+    // Fallback to mock data
+    return filterCounts ? applyDynamicCounts(gamaOptions, filterCounts.gama) : gamaOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicConditionOptions = React.useMemo(() => {
+    // If API filters have conditions, use those
+    if (apiFilters?.conditions && apiFilters.conditions.length > 0) {
+      return apiFilters.conditions.map(c => ({
+        value: c.value,
+        label: c.label,
+        count: c.count || 0,
+      }));
+    }
+    // Fallback to mock data with filterCounts
+    return filterCounts ? applyDynamicCounts(conditionOptions, filterCounts.condition) : conditionOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicRamOptions = React.useMemo(() => {
+    // Use API specs if available
+    if (apiFilters?.specs?.ram?.values && apiFilters.specs.ram.values.length > 0) {
+      return apiFilters.specs.ram.values.map(v => ({
+        value: String(v.value),
+        label: v.display,
+        count: v.count || 0,
+      }));
+    }
+    // Fallback to mock data
+    return filterCounts ? applyDynamicCounts(ramOptions, filterCounts.ram) : ramOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicStorageOptions = React.useMemo(() => {
+    // Use API specs if available
+    if (apiFilters?.specs?.storage?.values && apiFilters.specs.storage.values.length > 0) {
+      return apiFilters.specs.storage.values.map(v => ({
+        value: String(v.value),
+        label: v.display,
+        count: v.count || 0,
+      }));
+    }
+    // Fallback to mock data
+    return filterCounts ? applyDynamicCounts(storageOptions, filterCounts.storage) : storageOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicDisplaySizeOptions = React.useMemo(() => {
+    // Use API specs if available (screen_size)
+    if (apiFilters?.specs?.screen_size?.values && apiFilters.specs.screen_size.values.length > 0) {
+      return apiFilters.specs.screen_size.values.map(v => ({
+        value: String(v.value),
+        label: v.display,
+        count: v.count || 0,
+      }));
+    }
+    // Fallback to mock data
+    return filterCounts ? applyDynamicCounts(displaySizeOptions, filterCounts.displaySize) : displaySizeOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicResolutionOptions = React.useMemo(() => {
+    // Use API specs if available (screen_resolution)
+    if (apiFilters?.specs?.screen_resolution?.values && apiFilters.specs.screen_resolution.values.length > 0) {
+      return apiFilters.specs.screen_resolution.values.map(v => ({
+        value: String(v.value),
+        label: v.display,
+        count: v.count || 0,
+      }));
+    }
+    // Fallback to mock data
+    return filterCounts ? applyDynamicCounts(resolutionOptions, filterCounts.resolution) : resolutionOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicDisplayTypeOptions = React.useMemo(() => {
+    // Use API specs if available (screen_type)
+    if (apiFilters?.specs?.screen_type?.values && apiFilters.specs.screen_type.values.length > 0) {
+      return apiFilters.specs.screen_type.values.map(v => ({
+        value: String(v.value),
+        label: v.display,
+        count: v.count || 0,
+      }));
+    }
+    // Fallback to mock data
+    return filterCounts ? applyDynamicCounts(displayTypeOptions, filterCounts.displayType) : displayTypeOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicDeviceTypeOptions = React.useMemo(() => {
+    // If API filters have types, use those
+    if (apiFilters?.types && apiFilters.types.length > 0) {
+      return apiFilters.types.map(t => ({
+        value: t.value,
+        label: t.label,
+        count: t.count || 0,
+      }));
+    }
+    // Fallback to mock data with filterCounts
+    return filterCounts ? applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType) : deviceTypeOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicTagOptions = React.useMemo(() => {
+    // If API filters have labels (tags), use those
+    if (apiFilters?.labels && apiFilters.labels.length > 0) {
+      return apiFilters.labels.map(l => ({
+        value: l.code,   // API returns 'code', not 'value'
+        label: l.name,   // API returns 'name', not 'label'
+        count: l.count || 0,
+        color: l.color,  // Include color from API
+      }));
+    }
+    // Fallback to mock data with filterCounts
+    return filterCounts ? applyDynamicCounts(tagOptions, filterCounts.tags) : tagOptions;
+  }, [apiFilters, filterCounts]);
+  const dynamicProcessorOptions = React.useMemo(() => {
+    // Use API specs if available (processor)
+    if (apiFilters?.specs?.processor?.values && apiFilters.specs.processor.values.length > 0) {
+      return apiFilters.specs.processor.values.map(v => ({
+        value: String(v.value),
+        label: v.display,
+        count: v.count || 0,
+      }));
+    }
+    // Fallback to mock data
+    return processorModelOptions;
+  }, [apiFilters]);
 
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -428,8 +535,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                    <Search className="w-5 h-5 text-[#4654CD]" />
+                  <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                    <Search className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-neutral-800 font-['Baloo_2']">
@@ -445,7 +552,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   <SortDropdown
                     value={sort}
                     onChange={onSortChange}
-                    totalProducts={products.length}
+                    totalProducts={totalProducts}
                   />
                 </div>
               </motion.div>
@@ -487,12 +594,12 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 {/* Device Type Filter */}
                 <FilterSection title="Tipo de equipo" defaultExpanded={true}>
                   <div className="grid grid-cols-3 gap-2">
-                    {dynamicDeviceTypeOptions.map((opt) => {
+                    {dynamicDeviceTypeOptions.map((opt, idx) => {
                       const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
                       const Icon = deviceTypeIcons[opt.value];
                       return (
                         <button
-                          key={opt.value}
+                          key={`device-${opt.value || idx}`}
                           onClick={() => {
                             const deviceType = opt.value as CatalogDeviceType;
                             if (filters.deviceTypes.includes(deviceType)) {
@@ -503,24 +610,24 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                           }}
                           className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
                             isSelected
-                              ? 'border-[#4654CD] bg-[#4654CD]/5'
-                              : 'border-neutral-200 bg-white hover:border-[#4654CD]/50'
+                              ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                              : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                           }`}
                         >
                           {isSelected && (
-                            <div className="absolute top-1 right-1 w-4 h-4 bg-[#4654CD] rounded-full flex items-center justify-center">
+                            <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
                               <Check className="w-3 h-3 text-white" />
                             </div>
                           )}
                           <div className="w-12 h-8 flex items-center justify-center mb-1">
                             {Icon && (
                               <Icon className={`w-6 h-6 transition-all ${
-                                isSelected ? 'text-[#4654CD]' : 'text-neutral-400'
+                                isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'
                               }`} />
                             )}
                           </div>
                           <span className={`text-xs font-medium ${
-                            isSelected ? 'text-[#4654CD]' : 'text-neutral-600'
+                            isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600'
                           }`}>
                             {opt.label} ({opt.count})
                           </span>
@@ -576,7 +683,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 <div className="border-t border-neutral-200 mt-4 pt-4">
                   <button
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors cursor-pointer"
+                    className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       <Settings2 className="w-4 h-4" />
@@ -605,7 +712,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                         displayTypeOptions={dynamicDisplayTypeOptions}
                         selectedDisplayType={filters.displayType}
                         onDisplayTypeChange={(types) => updateFilter('displayType', types)}
-                        processorOptions={processorModelOptions}
+                        processorOptions={dynamicProcessorOptions}
                         selectedProcessor={filters.processorModel}
                         onProcessorChange={(models) => updateFilter('processorModel', models)}
                         showCounts={config.showFilterCounts}
@@ -644,7 +751,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         <button
           id="onboarding-filters-mobile"
           onClick={handleDrawerOpen}
-          className="flex items-center gap-3 bg-[#4654CD] text-white shadow-xl hover:bg-[#3a47b3] transition-all cursor-pointer px-5 py-3 rounded-xl hover:shadow-2xl hover:scale-105"
+          className="flex items-center gap-3 bg-[var(--color-primary)] text-white shadow-xl hover:brightness-90 transition-all cursor-pointer px-5 py-3 rounded-xl hover:shadow-2xl hover:scale-105"
         >
           <SlidersHorizontal className="w-5 h-5" />
           <span className="font-medium text-base">Filtros</span>
@@ -674,8 +781,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       >
         <ModalContent>
           <ModalHeader className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
-              <Filter className="w-4 h-4 text-[#4654CD]" />
+            <div className="w-8 h-8 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+              <Filter className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
             <span className="text-lg font-semibold text-neutral-800">Filtros</span>
           </ModalHeader>
@@ -684,12 +791,12 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             {/* Device Type Filter */}
             <FilterSection title="Tipo de equipo" defaultExpanded={true}>
               <div className="grid grid-cols-3 gap-2">
-                {dynamicDeviceTypeOptions.map((opt) => {
+                {dynamicDeviceTypeOptions.map((opt, idx) => {
                   const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
                   const Icon = deviceTypeIcons[opt.value];
                   return (
                     <button
-                      key={opt.value}
+                      key={`mobile-device-${opt.value || idx}`}
                       onClick={() => {
                         const deviceType = opt.value as CatalogDeviceType;
                         if (filters.deviceTypes.includes(deviceType)) {
@@ -700,24 +807,24 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                       }}
                       className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
                         isSelected
-                          ? 'border-[#4654CD] bg-[#4654CD]/5'
-                          : 'border-neutral-200 bg-white hover:border-[#4654CD]/50'
+                          ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                          : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`}
                     >
                       {isSelected && (
-                        <div className="absolute top-1 right-1 w-4 h-4 bg-[#4654CD] rounded-full flex items-center justify-center">
+                        <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
                           <Check className="w-3 h-3 text-white" />
                         </div>
                       )}
                       <div className="w-12 h-8 flex items-center justify-center mb-1">
                         {Icon && (
                           <Icon className={`w-6 h-6 transition-all ${
-                            isSelected ? 'text-[#4654CD]' : 'text-neutral-400'
+                            isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'
                           }`} />
                         )}
                       </div>
                       <span className={`text-xs font-medium ${
-                        isSelected ? 'text-[#4654CD]' : 'text-neutral-600'
+                        isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600'
                       }`}>
                         {opt.label} ({opt.count})
                       </span>
@@ -773,7 +880,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             <div className="border-t border-neutral-200 mt-4 pt-4">
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors cursor-pointer"
+                className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <Settings2 className="w-4 h-4" />
@@ -802,7 +909,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     displayTypeOptions={dynamicDisplayTypeOptions}
                     selectedDisplayType={filters.displayType}
                     onDisplayTypeChange={(types) => updateFilter('displayType', types)}
-                    processorOptions={processorModelOptions}
+                    processorOptions={dynamicProcessorOptions}
                     selectedProcessor={filters.processorModel}
                     onProcessorChange={(models) => updateFilter('processorModel', models)}
                     showCounts={config.showFilterCounts}
@@ -822,10 +929,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               Limpiar
             </Button>
             <Button
-              className="bg-[#4654CD] text-white flex-1 cursor-pointer"
+              className="bg-[var(--color-primary)] text-white flex-1 cursor-pointer"
               onPress={handleDrawerClose}
             >
-              Ver {products.length} resultados
+              Ver {totalProducts} resultados
             </Button>
           </ModalFooter>
         </ModalContent>

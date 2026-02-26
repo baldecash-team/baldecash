@@ -29,7 +29,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
         className="w-full flex items-center justify-between text-left cursor-pointer group"
       >
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-neutral-800 group-hover:text-[#4654CD] transition-colors">
+          <h3 className="font-semibold text-neutral-800 group-hover:text-[var(--color-primary)] transition-colors">
             {title}
           </h3>
           {count !== undefined && count > 0 && (
@@ -46,9 +46,9 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
           )}
         </div>
         {expanded ? (
-          <ChevronUp className="w-5 h-5 text-neutral-400 group-hover:text-[#4654CD] transition-colors" />
+          <ChevronUp className="w-5 h-5 text-neutral-400 group-hover:text-[var(--color-primary)] transition-colors" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-neutral-400 group-hover:text-[#4654CD] transition-colors" />
+          <ChevronDown className="w-5 h-5 text-neutral-400 group-hover:text-[var(--color-primary)] transition-colors" />
         )}
       </button>
 

@@ -329,7 +329,7 @@ export const CatalogLayoutV3: React.FC<CatalogLayoutProps> = ({
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#4654CD] font-['Baloo_2']">
+            <h1 className="text-2xl font-bold text-[var(--color-primary)] font-['Baloo_2']">
               Catálogo de Equipos
             </h1>
             <p className="text-sm text-neutral-500">
@@ -361,7 +361,7 @@ export const CatalogLayoutV3: React.FC<CatalogLayoutProps> = ({
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
         <button
           onClick={() => setIsDrawerOpen(true)}
-          className="flex items-center gap-3 bg-[#4654CD] text-white shadow-xl hover:bg-[#3a47b3] transition-all cursor-pointer px-5 py-3 rounded-xl hover:shadow-2xl hover:scale-105"
+          className="flex items-center gap-3 bg-[var(--color-primary)] text-white shadow-xl hover:brightness-90 transition-all cursor-pointer px-5 py-3 rounded-xl hover:shadow-2xl hover:scale-105"
         >
           <SlidersHorizontal className="w-5 h-5" />
           <span className="font-medium text-base">Filtros</span>
@@ -389,8 +389,8 @@ export const CatalogLayoutV3: React.FC<CatalogLayoutProps> = ({
       >
         <ModalContent>
           <ModalHeader className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
-              <Filter className="w-4 h-4 text-[#4654CD]" />
+            <div className="w-8 h-8 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+              <Filter className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
             <span className="text-lg font-semibold text-neutral-800">Filtros</span>
           </ModalHeader>
@@ -434,7 +434,7 @@ export const CatalogLayoutV3: React.FC<CatalogLayoutProps> = ({
             <div className="border-t border-neutral-200 mt-4 pt-4">
               <button
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+                className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <Settings2 className="w-4 h-4" />
@@ -483,7 +483,7 @@ export const CatalogLayoutV3: React.FC<CatalogLayoutProps> = ({
               Limpiar
             </Button>
             <Button
-              className="bg-[#4654CD] text-white flex-1 cursor-pointer"
+              className="bg-[var(--color-primary)] text-white flex-1 cursor-pointer"
               onPress={() => setIsDrawerOpen(false)}
             >
               Ver {products.length} resultados

@@ -31,10 +31,36 @@ const socialIconMap: Record<string, React.ComponentType<{ className?: string }>>
 
 interface FooterProps {
   data?: FooterData | null;
+  landing?: string;
 }
 
-export const Footer: React.FC<FooterProps> = ({ data }) => {
-  const heroUrl = '/prototipos/0.6/home';
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
+  const heroUrl = `/prototipos/0.6/${landing}`;
+
+  // Transform links: handle relative paths and build full URLs
+  const transformLink = (href: string): string => {
+    if (!href) return '#';
+
+    // Skip external links, anchors, and already absolute paths
+    if (href.startsWith('http') || href.startsWith('#') || href.startsWith('tel:') || href.startsWith('mailto:')) {
+      return href;
+    }
+
+    // If it's an absolute path starting with /prototipos, transform legacy format
+    if (href.startsWith('/prototipos/0.6/')) {
+      // Transform old legal/proximamente paths to new dynamic paths
+      if (href.includes('/prototipos/0.6/legal/')) {
+        return href.replace('/prototipos/0.6/legal/', `/prototipos/0.6/${landing}/legal/`);
+      }
+      if (href.includes('/prototipos/0.6/proximamente')) {
+        return href.replace('/prototipos/0.6/proximamente', `/prototipos/0.6/${landing}/proximamente`);
+      }
+      return href;
+    }
+
+    // Relative path: build full URL with landing base
+    return `${heroUrl}/${href}`;
+  };
 
   // Data from API (no fallbacks - data must come from backend)
   const columns = data?.columns;
@@ -77,8 +103,9 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
 
   const socialLinks = buildSocialLinks();
 
-  // Logo URL from company (no fallback)
-  const logoUrl = data?.company?.logo_url ?? undefined;
+  // Logo URL from company (with fallback)
+  const DEFAULT_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
+  const logoUrl = data?.company?.logo_url || DEFAULT_LOGO;
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -99,7 +126,9 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
 
   const validationState = getValidationState();
 
-  const handleSubmit = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
     setTouched(true);
     setError(null);
 
@@ -113,18 +142,42 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
       return;
     }
 
-    // Éxito
-    setIsSuccess(true);
-    setWhatsapp('');
-    setTouched(false);
-    setError(null);
+    // Enviar a la API
+    setIsSubmitting(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+      const response = await fetch(`${apiUrl}/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: whatsapp,
+          landing_slug: landing,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setIsSuccess(true);
+        setWhatsapp('');
+        setTouched(false);
+        setError(null);
+      } else {
+        setError(result.message || 'Error al registrar');
+      }
+    } catch (err) {
+      console.error('[Newsletter] Error:', err);
+      setError('Error de conexión. Intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <footer className="bg-neutral-900 text-white">
-      {/* Newsletter Section - Only render if newsletterConfig exists */}
-      {newsletterConfig && (
-        <div className="bg-[#4654CD]">
+      {/* Newsletter Section - Only render if newsletter is enabled */}
+      {newsletterConfig?.enabled && (
+        <div style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="text-center md:text-left">
@@ -142,7 +195,7 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
                       rounded-lg border-2 transition-all duration-200 bg-white
                       ${validationState === 'error' ? 'border-[#ef4444]' : ''}
                       ${validationState === 'success' ? 'border-[#22c55e]' : ''}
-                      ${validationState === 'default' ? 'border-transparent focus-within:border-[#4654CD]' : ''}
+                      ${validationState === 'default' ? 'border-transparent' : ''}
                     `}
                   >
                     <Phone className={`w-4 h-4 flex-shrink-0 ${validationState === 'error' ? 'text-[#ef4444]' : 'text-neutral-400'}`} />
@@ -169,11 +222,13 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
                   </div>
                   <Button
                     radius="lg"
-                    className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors"
-                    endContent={<Send className="w-4 h-4" />}
+                    className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors disabled:opacity-70"
+                    endContent={!isSubmitting && <Send className="w-4 h-4" />}
                     onPress={handleSubmit}
+                    isLoading={isSubmitting}
+                    isDisabled={isSubmitting}
                   >
-                    {newsletterConfig.button_text}
+                    {isSubmitting ? 'Enviando...' : newsletterConfig.button_text}
                   </Button>
                 </div>
                 {error && (
@@ -208,8 +263,11 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center hover:bg-[#4654CD] transition-colors"
+                  className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center transition-colors social-link-hover"
+                  style={{ '--hover-bg': 'var(--color-primary, #4654CD)' } as React.CSSProperties}
                   aria-label={social.label}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                 >
                   <social.icon className="w-4 h-4" />
                 </a>
@@ -223,11 +281,12 @@ export const Footer: React.FC<FooterProps> = ({ data }) => {
               <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">{column.title}</h4>
               <ul className="space-y-2">
                 {column.links.map((link) => {
-                  const isInternalLink = link.href.startsWith('/') || link.href.startsWith('#');
+                  const href = transformLink(link.href || '#');
+                  const isInternalLink = href.startsWith('/') || href.startsWith('#');
                   return (
                     <li key={link.label}>
                       <a
-                        href={link.href}
+                        href={href}
                         className="text-sm text-neutral-400 hover:text-white transition-colors"
                         {...(!isInternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                       >

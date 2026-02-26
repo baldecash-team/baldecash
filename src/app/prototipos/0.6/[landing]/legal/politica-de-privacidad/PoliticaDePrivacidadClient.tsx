@@ -8,7 +8,7 @@
 import React from 'react';
 import { LegalPageLayout } from '../components';
 
-export default function PoliticaDePrivacidadPage() {
+export function PoliticaDePrivacidadClient() {
   return (
     <LegalPageLayout
       title="Políticas de Privacidad"
@@ -60,7 +60,7 @@ export default function PoliticaDePrivacidadPage() {
         <p>
           Derecho a conocer qué datos personales se poseen, exigir eliminación o actualización de información
           incompleta, incorrecta o desactualizada, solicitar detención del tratamiento. Pueden contactar a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="text-[#4654CD] hover:underline">
+          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>{' '}
           para ejercer derechos de información, acceso, rectificación, cancelación y oposición.
@@ -169,7 +169,7 @@ export default function PoliticaDePrivacidadPage() {
       <Section title="15. Derechos de Clientes/Usuarios">
         <p>
           Pueden revocar consentimiento o ejercer derechos como titulares de datos presentando solicitud a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="text-[#4654CD] hover:underline">
+          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
           . La plataforma contiene enlaces a terceros con políticas propias; BaldeCash no asume responsabilidad por ellas.
@@ -229,7 +229,7 @@ export default function PoliticaDePrivacidadPage() {
       <Section title="23. Contacto">
         <p>
           Preguntas, solicitudes y comentarios dirigidos a:{' '}
-          <a href="mailto:prestamos@baldecash.com" className="text-[#4654CD] hover:underline">
+          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
         </p>

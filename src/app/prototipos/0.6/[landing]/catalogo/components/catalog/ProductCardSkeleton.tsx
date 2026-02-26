@@ -48,7 +48,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
         {/* Image area - matching ProductCard structure */}
         <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
           <GlowBox
-            className="w-full h-44 rounded-xl bg-gradient-to-br from-neutral-100 via-[#4654CD]/5 to-[#03DBD0]/5"
+            className="w-full h-44 rounded-xl bg-gradient-to-br from-neutral-100 via-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-secondary-rgb),0.05)]"
             delay={index * 0.1}
             glow
           />
@@ -68,7 +68,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
           {/* Tags - top left */}
           <div className="absolute top-3 left-3 flex gap-1">
             <GlowBox
-              className="h-5 w-16 rounded-full bg-gradient-to-r from-[#4654CD]/20 to-[#4654CD]/10"
+              className="h-5 w-16 rounded-full bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.2)] to-[rgba(var(--color-primary-rgb),0.1)]"
               delay={index * 0.1 + 0.05}
             />
           </div>
@@ -78,7 +78,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
         <div className="p-5 text-center flex flex-col flex-1">
           {/* Brand */}
           <GlowBox
-            className="h-3 w-20 rounded bg-[#4654CD]/20 mx-auto mb-2"
+            className="h-3 w-20 rounded bg-[rgba(var(--color-primary-rgb),0.2)] mx-auto mb-2"
             delay={index * 0.1 + 0.2}
           />
 
@@ -110,7 +110,7 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="flex items-center justify-center gap-2">
                 <GlowBox
-                  className="w-3.5 h-3.5 rounded bg-[#4654CD]/20"
+                  className="w-3.5 h-3.5 rounded bg-[rgba(var(--color-primary-rgb),0.2)]"
                   delay={index * 0.1 + 0.4 + i * 0.05}
                 />
                 <GlowBox
@@ -122,13 +122,13 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
           </div>
 
           {/* Price box */}
-          <div className="bg-[#4654CD]/5 rounded-2xl py-4 px-6 mb-4">
+          <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
             <GlowBox
               className="h-3 w-20 rounded bg-neutral-300/50 mx-auto mb-2"
               delay={index * 0.1 + 0.5}
             />
             <GlowBox
-              className="h-10 w-36 rounded-lg bg-[#4654CD]/20 mx-auto mb-2"
+              className="h-10 w-36 rounded-lg bg-[rgba(var(--color-primary-rgb),0.2)] mx-auto mb-2"
               delay={index * 0.1 + 0.55}
               glow
             />
@@ -144,11 +144,11 @@ const SkeletonV1: React.FC<{ index: number }> = ({ index }) => (
           {/* CTAs - 2 buttons */}
           <div className="flex gap-2 justify-center">
             <GlowBox
-              className="h-11 w-28 rounded-xl bg-[#4654CD]/10 border border-[#4654CD]/20"
+              className="h-11 w-28 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] border border-[rgba(var(--color-primary-rgb),0.2)]"
               delay={index * 0.1 + 0.65}
             />
             <GlowBox
-              className="h-11 w-28 rounded-xl bg-[#4654CD]/30"
+              className="h-11 w-28 rounded-xl bg-[rgba(var(--color-primary-rgb),0.3)]"
               delay={index * 0.1 + 0.7}
               glow
             />
@@ -210,7 +210,7 @@ const SkeletonV2: React.FC<{ index: number }> = ({ index }) => {
           {/* Content - Centered */}
           <div className="p-5 text-center flex flex-col flex-1">
             {/* Brand */}
-            <ShimmerBox className="h-3 w-20 rounded mx-auto mb-2 !bg-[#4654CD]/20" />
+            <ShimmerBox className="h-3 w-20 rounded mx-auto mb-2 !bg-[rgba(var(--color-primary-rgb),0.2)]" />
 
             {/* Title */}
             <div className="space-y-1.5 mb-3">
@@ -229,16 +229,16 @@ const SkeletonV2: React.FC<{ index: number }> = ({ index }) => {
             <div className="space-y-2 mb-4">
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center justify-center gap-2">
-                  <ShimmerBox className="w-3.5 h-3.5 rounded !bg-[#4654CD]/20" />
+                  <ShimmerBox className="w-3.5 h-3.5 rounded !bg-[rgba(var(--color-primary-rgb),0.2)]" />
                   <ShimmerBox className="h-3 w-32 rounded" />
                 </div>
               ))}
             </div>
 
             {/* Price box */}
-            <div className="bg-[#4654CD]/5 rounded-2xl py-4 px-6 mb-4">
+            <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
               <ShimmerBox className="h-3 w-20 rounded mx-auto mb-2 !bg-neutral-300/50" />
-              <ShimmerBox className="h-10 w-36 rounded-lg mx-auto mb-2 !bg-[#4654CD]/20" />
+              <ShimmerBox className="h-10 w-36 rounded-lg mx-auto mb-2 !bg-[rgba(var(--color-primary-rgb),0.2)]" />
               <ShimmerBox className="h-3 w-40 rounded mx-auto !bg-neutral-300/50" />
             </div>
 
@@ -247,8 +247,8 @@ const SkeletonV2: React.FC<{ index: number }> = ({ index }) => {
 
             {/* CTAs - 2 buttons */}
             <div className="flex gap-2 justify-center">
-              <ShimmerBox className="h-11 w-28 rounded-xl !bg-[#4654CD]/10" />
-              <ShimmerBox className="h-11 w-28 rounded-xl !bg-[#4654CD]/30" />
+              <ShimmerBox className="h-11 w-28 rounded-xl !bg-[rgba(var(--color-primary-rgb),0.1)]" />
+              <ShimmerBox className="h-11 w-28 rounded-xl !bg-[rgba(var(--color-primary-rgb),0.3)]" />
             </div>
           </div>
         </CardBody>
@@ -312,7 +312,7 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
             {/* Tags - top left */}
             <div className="absolute top-3 left-3 flex gap-1">
               <WaveBox
-                className="h-5 w-16 rounded-full bg-gradient-to-r from-[#4654CD]/20 to-[#03DBD0]/20"
+                className="h-5 w-16 rounded-full bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.2)] to-[rgba(var(--color-secondary-rgb),0.2)]"
                 delay={staggerDelay + 0.05}
               />
             </div>
@@ -322,7 +322,7 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
           <div className="p-5 text-center flex flex-col flex-1">
             {/* Brand */}
             <WaveBox
-              className="h-3 w-20 rounded bg-[#4654CD]/20 mx-auto mb-2"
+              className="h-3 w-20 rounded bg-[rgba(var(--color-primary-rgb),0.2)] mx-auto mb-2"
               delay={staggerDelay + 0.2}
             />
 
@@ -354,7 +354,7 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center justify-center gap-2">
                   <WaveBox
-                    className="w-3.5 h-3.5 rounded bg-[#4654CD]/20"
+                    className="w-3.5 h-3.5 rounded bg-[rgba(var(--color-primary-rgb),0.2)]"
                     delay={staggerDelay + 0.4 + i * 0.05}
                   />
                   <WaveBox
@@ -366,13 +366,13 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
             </div>
 
             {/* Price box */}
-            <div className="bg-[#4654CD]/5 rounded-2xl py-4 px-6 mb-4">
+            <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
               <WaveBox
                 className="h-3 w-20 rounded bg-neutral-300/50 mx-auto mb-2"
                 delay={staggerDelay + 0.5}
               />
               <WaveBox
-                className="h-10 w-36 rounded-lg bg-[#4654CD]/20 mx-auto mb-2"
+                className="h-10 w-36 rounded-lg bg-[rgba(var(--color-primary-rgb),0.2)] mx-auto mb-2"
                 delay={staggerDelay + 0.55}
               />
               <WaveBox
@@ -387,11 +387,11 @@ const SkeletonV3: React.FC<{ index: number }> = ({ index }) => {
             {/* CTAs - 2 buttons */}
             <div className="flex gap-2 justify-center">
               <WaveBox
-                className="h-11 w-28 rounded-xl bg-[#4654CD]/10 border border-[#4654CD]/20"
+                className="h-11 w-28 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] border border-[rgba(var(--color-primary-rgb),0.2)]"
                 delay={staggerDelay + 0.65}
               />
               <WaveBox
-                className="h-11 w-28 rounded-xl bg-[#4654CD]/30"
+                className="h-11 w-28 rounded-xl bg-[rgba(var(--color-primary-rgb),0.3)]"
                 delay={staggerDelay + 0.7}
               />
             </div>

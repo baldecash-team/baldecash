@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Slider } from '@nextui-org/react';
 import { formatMoney } from '../../../utils/formatMoney';
 
@@ -17,18 +17,26 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
   min = 40,
   max = 500,
 }) => {
+  // Local state for smooth dragging (visual feedback)
+  const [localValue, setLocalValue] = useState<[number, number]>(value);
+
+  // Sync local state when prop changes (e.g., from URL or reset)
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
   return (
     <div className="space-y-4">
-      {/* Value badges */}
+      {/* Value badges - show local value for immediate feedback */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex-1 bg-[#4654CD]/10 rounded-lg px-3 py-2 text-center">
+        <div className="flex-1 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-lg px-3 py-2 text-center">
           <p className="text-[10px] text-neutral-500 uppercase tracking-wide">Desde</p>
-          <p className="text-sm font-bold text-[#4654CD]">S/{formatMoney(value[0])}</p>
+          <p className="text-sm font-bold text-[var(--color-primary)]">S/{formatMoney(localValue[0])}</p>
         </div>
         <div className="text-neutral-300 text-xs">—</div>
-        <div className="flex-1 bg-[#4654CD]/10 rounded-lg px-3 py-2 text-center">
+        <div className="flex-1 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-lg px-3 py-2 text-center">
           <p className="text-[10px] text-neutral-500 uppercase tracking-wide">Hasta</p>
-          <p className="text-sm font-bold text-[#4654CD]">S/{formatMoney(value[1])}</p>
+          <p className="text-sm font-bold text-[var(--color-primary)]">S/{formatMoney(localValue[1])}</p>
         </div>
       </div>
 
@@ -39,18 +47,23 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
           step={10}
           minValue={min}
           maxValue={max}
-          value={value}
+          value={localValue}
           onChange={(val) => {
+            // Update local state for smooth visual feedback while dragging
+            setLocalValue(val as [number, number]);
+          }}
+          onChangeEnd={(val) => {
+            // Only trigger API call when user finishes dragging
             onChange(val as [number, number]);
           }}
           size="md"
           classNames={{
             base: 'max-w-full gap-3',
-            filler: 'bg-gradient-to-r from-[#4654CD] to-[#5a68d9]',
+            filler: 'bg-gradient-to-r from-[var(--color-primary)] to-[#5a68d9]',
             thumb: [
-              'bg-white border-2 border-[#4654CD] w-5 h-5 shadow-md cursor-grab active:cursor-grabbing',
-              'hover:scale-110 hover:border-[#3a47b3] transition-transform',
-              'after:bg-[#4654CD] after:w-2 after:h-2 after:rounded-full',
+              'bg-white border-2 border-[var(--color-primary)] w-5 h-5 shadow-md cursor-grab active:cursor-grabbing',
+              'hover:scale-110 hover:brightness-90 transition-transform',
+              'after:bg-[var(--color-primary)] after:w-2 after:h-2 after:rounded-full',
               'data-[dragging=true]:scale-110 data-[dragging=true]:shadow-lg',
             ].join(' '),
             track: 'bg-neutral-200 h-2 rounded-full',

@@ -8,7 +8,7 @@
 import React from 'react';
 import { LegalPageLayout } from '../components';
 
-export default function TerminosYCondicionesPage() {
+export function TerminosYCondicionesClient() {
   return (
     <LegalPageLayout
       title="Términos y Condiciones"
@@ -128,7 +128,7 @@ export default function TerminosYCondicionesPage() {
         <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Procedimiento de Vulneración de Derechos</h4>
         <p>
           Reportar al correo:{' '}
-          <a href="mailto:prestamos@baldecash.com" className="text-[#4654CD] hover:underline">
+          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
           . La empresa puede suprimir contenido tras notificación sin admitir responsabilidad.
@@ -185,7 +185,7 @@ export default function TerminosYCondicionesPage() {
         <p className="mt-2">
           <strong>Derecho de rechazo:</strong> El usuario tiene 5 días hábiles para notificar desacuerdo
           enviando correo a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="text-[#4654CD] hover:underline">
+          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
           . Si no responde, se presume aceptación.
@@ -229,7 +229,7 @@ export default function TerminosYCondicionesPage() {
         <p className="mt-3">
           <strong>Derechos del usuario:</strong> Acceso, actualización, rectificación, inclusión, oposición,
           supresión o cancelación de datos enviando correo a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="text-[#4654CD] hover:underline">
+          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
           .

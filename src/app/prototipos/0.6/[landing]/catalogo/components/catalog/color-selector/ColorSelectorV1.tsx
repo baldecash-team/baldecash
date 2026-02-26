@@ -40,7 +40,7 @@ export const ColorSelectorV1: React.FC<ColorSelectorV1Props> = ({
                 w-7 h-7 rounded-md border-2 transition-all flex-shrink-0
                 flex items-center justify-center cursor-pointer
                 ${isSelected
-                  ? 'border-[#4654CD] ring-2 ring-[#4654CD]/20'
+                  ? 'border-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.2)]'
                   : 'border-neutral-200 hover:border-neutral-400'}
               `}
               style={{ backgroundColor: color.hex }}

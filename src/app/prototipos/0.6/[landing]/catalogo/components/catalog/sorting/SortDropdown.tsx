@@ -43,7 +43,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
         }}
         classNames={{
           base: 'min-w-[200px]',
-          trigger: 'h-10 min-h-10 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
+          trigger: 'h-10 min-h-10 bg-white border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] transition-colors cursor-pointer',
           value: 'text-sm text-neutral-700',
           popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
           listbox: 'p-1 bg-white',
@@ -65,9 +65,9 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
             classNames={{
               base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
                 text-neutral-700
-                data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
-                data-[selected=false]:data-[hover=true]:text-[#4654CD]
-                data-[selected=true]:bg-[#4654CD]
+                data-[selected=false]:data-[hover=true]:bg-[rgba(var(--color-primary-rgb),0.1)]
+                data-[selected=false]:data-[hover=true]:text-[var(--color-primary)]
+                data-[selected=true]:bg-[var(--color-primary)]
                 data-[selected=true]:text-white`,
             }}
           >

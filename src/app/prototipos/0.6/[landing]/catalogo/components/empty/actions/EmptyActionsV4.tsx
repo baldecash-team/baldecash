@@ -19,8 +19,8 @@ export const EmptyActionsV4: React.FC<EmptyActionsProps> = ({
       label: 'Limpiar filtros',
       icon: RefreshCw,
       onClick: onClearFilters,
-      bgColor: 'bg-[#4654CD]',
-      hoverColor: 'hover:bg-[#3a47b3]',
+      bgColor: 'bg-[var(--color-primary)]',
+      hoverColor: 'hover:brightness-90',
       textColor: 'text-white',
     },
     {
@@ -28,8 +28,8 @@ export const EmptyActionsV4: React.FC<EmptyActionsProps> = ({
       label: 'Descubrir equipos',
       icon: Sparkles,
       onClick: onClearFilters,
-      bgColor: 'bg-[#03DBD0]/10',
-      hoverColor: 'hover:bg-[#03DBD0]/20',
+      bgColor: 'bg-[rgba(var(--color-secondary-rgb),0.1)]',
+      hoverColor: 'hover:bg-[rgba(var(--color-secondary-rgb),0.2)]',
       textColor: 'text-[#02C3BA]',
     },
   ];

@@ -26,9 +26,9 @@ export const QuizReminderPopup: React.FC<QuizReminderPopupProps> = ({
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           className="fixed bottom-24 left-6 z-[95] max-w-xs"
         >
-          <div className="bg-white rounded-2xl shadow-2xl border border-[#4654CD]/20 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl border border-[rgba(var(--color-primary-rgb),0.2)] overflow-hidden">
             {/* Arrow pointing down-left toward help button */}
-            <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-b border-r border-[#4654CD]/20 transform rotate-45" />
+            <div className="absolute -bottom-2 left-8 w-4 h-4 bg-white border-b border-r border-[rgba(var(--color-primary-rgb),0.2)] transform rotate-45" />
 
             <div className="p-4">
               {/* Close button */}
@@ -41,8 +41,8 @@ export const QuizReminderPopup: React.FC<QuizReminderPopupProps> = ({
 
               {/* Content */}
               <div className="flex items-start gap-3 pr-6">
-                <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-5 h-5 text-[#4654CD]" />
+                <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-neutral-800">
@@ -57,7 +57,7 @@ export const QuizReminderPopup: React.FC<QuizReminderPopupProps> = ({
               {/* Action button */}
               <Button
                 size="sm"
-                className="w-full mt-3 bg-[#4654CD] text-white font-medium cursor-pointer hover:bg-[#3a47b3] rounded-xl"
+                className="w-full mt-3 bg-[var(--color-primary)] text-white font-medium cursor-pointer hover:brightness-90 rounded-xl"
                 startContent={<Sparkles className="w-4 h-4" />}
                 onPress={() => {
                   onOpenQuiz();

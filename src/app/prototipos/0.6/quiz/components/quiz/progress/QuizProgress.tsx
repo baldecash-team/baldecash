@@ -22,13 +22,14 @@ export const QuizProgress: React.FC<QuizProgressProps> = ({
         <span className="text-neutral-500">
           Pregunta {currentStep + 1} de {totalSteps}
         </span>
-        <span className="font-medium text-[#4654CD]">{Math.round(progress)}%</span>
+        <span className="font-medium" style={{ color: 'var(--color-primary)' }}>{Math.round(progress)}%</span>
       </div>
 
       {/* Progress bar */}
       <div className="h-2 bg-neutral-100 rounded-full overflow-hidden">
         <motion.div
-          className="h-full bg-[#4654CD] rounded-full"
+          className="h-full rounded-full"
+          style={{ backgroundColor: 'var(--color-primary)' }}
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.3, ease: 'easeOut' }}

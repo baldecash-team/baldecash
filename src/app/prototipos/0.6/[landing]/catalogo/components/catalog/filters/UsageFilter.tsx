@@ -7,7 +7,6 @@ import {
   Gamepad2,
   Palette,
   Briefcase,
-  Code,
 } from 'lucide-react';
 import { UsageType, FilterOption } from '../../../types/catalog';
 
@@ -23,7 +22,6 @@ const iconMap: Record<string, React.ReactNode> = {
   Gamepad2: <Gamepad2 className="w-4 h-4" />,
   Palette: <Palette className="w-4 h-4" />,
   Briefcase: <Briefcase className="w-4 h-4" />,
-  Code: <Code className="w-4 h-4" />,
 };
 
 export const UsageFilter: React.FC<UsageFilterProps> = ({
@@ -55,21 +53,21 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
               onValueChange={() => handleToggle(option.value as UsageType)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
+                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] group-data-[selected=true]:after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                 icon: 'text-white transition-opacity',
               }}
             />
             <div className="flex items-center gap-1.5 flex-1">
               <span
                 className={`transition-colors ${
-                  isSelected ? 'text-[#4654CD]' : 'text-neutral-500'
+                  isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-500'
                 }`}
               >
                 {option.icon && iconMap[option.icon]}
               </span>
               <span
                 className={`text-xs transition-colors ${
-                  isSelected ? 'text-[#4654CD] font-medium' : 'text-neutral-700'
+                  isSelected ? 'text-[var(--color-primary)] font-medium' : 'text-neutral-700'
                 }`}
               >
                 {option.label}

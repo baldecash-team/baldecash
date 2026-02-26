@@ -24,7 +24,25 @@ interface LayoutContextValue {
   navbarProps: NavbarProps | null;
   footerData: FooterData | null;
   isLoading: boolean;
+  hasError: boolean; // true when landing not found or API error (for 404 display)
   landing: string;
+  primaryColor: string;
+  secondaryColor: string;
+  primaryColorRgb: string;
+  secondaryColorRgb: string;
+}
+
+/**
+ * Convert hex color to RGB string for use with rgba()
+ * Example: "#4654CD" -> "70, 84, 205"
+ */
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (result) {
+    return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`;
+  }
+  // Fallback to default primary color RGB
+  return '70, 84, 205';
 }
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
@@ -35,6 +53,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
 
   const [layoutData, setLayoutData] = useState<LandingLayoutResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   // Fetch layout data once on mount
   useEffect(() => {
@@ -45,9 +64,16 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         const data = await getLandingLayout(landing);
         if (isMounted) {
           setLayoutData(data);
+          // If API returns null (404), mark as error
+          if (!data) {
+            setHasError(true);
+          }
         }
       } catch (error) {
         console.error('Error fetching layout data:', error);
+        if (isMounted) {
+          setHasError(true);
+        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -72,11 +98,16 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     const navbarItems = navbarConfig?.items as { label: string; href: string; section: string | null; has_megamenu?: boolean }[] | undefined;
     const megamenuItems = navbarConfig?.megamenu_items as { label: string; href: string; icon: string; description: string }[] | undefined;
 
+    // Combinar cta_url + cta_url_params si existen
+    const baseUrl = (promoConfig?.cta_url as string) || '';
+    const urlParams = (promoConfig?.cta_url_params as string) || '';
+    const fullCtaUrl = baseUrl && urlParams ? `${baseUrl}${urlParams}` : baseUrl || undefined;
+
     const promoBannerData: PromoBannerData | null = promoConfig ? {
       text: (promoConfig.text as string) || '',
       highlight: promoConfig.highlight as string | undefined,
       ctaText: promoConfig.cta_text as string | undefined,
-      ctaUrl: promoConfig.cta_url as string | undefined,
+      ctaUrl: fullCtaUrl,
       icon: promoConfig.icon as string | undefined,
       dismissible: (promoConfig.dismissible as boolean) ?? true,
     } : null;
@@ -87,7 +118,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       customerPortalUrl: layoutData.company?.customer_portal_url,
       navbarItems: navbarItems || [],
       megamenuItems: megamenuItems || [],
-      activeSections: ['convenios', 'como-funciona', 'faq'],
+      activeSections: ['convenios', 'como-funciona', 'faq', 'testimonios'],
     };
   }, [layoutData]);
 
@@ -98,9 +129,23 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     const footerConfig = layoutData.footer?.content_config as Record<string, unknown> | undefined;
     if (!footerConfig) return null;
 
+    // Transform columns: normalize url -> href for links
+    const rawColumns = footerConfig.columns as Array<{
+      title: string;
+      links: Array<{ label: string; url?: string; href?: string }>;
+    }> | undefined;
+
+    const transformedColumns = rawColumns?.map(col => ({
+      title: col.title,
+      links: col.links.map(link => ({
+        label: link.label,
+        href: link.href || link.url || '#', // Prefer href, fallback to url
+      })),
+    }));
+
     return {
       tagline: footerConfig.tagline as string | undefined,
-      columns: footerConfig.columns as { title: string; links: { label: string; href: string }[] }[] | undefined,
+      columns: transformedColumns,
       newsletter: footerConfig.newsletter as { title: string; description: string; placeholder: string; button_text: string } | undefined,
       sbs_text: footerConfig.sbs_text as string | undefined,
       copyright_text: footerConfig.copyright_text as string | undefined,
@@ -123,13 +168,40 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     };
   }, [layoutData]);
 
+  // Extract colors from layout data
+  const primaryColor = layoutData?.primary_color || '#4654CD';
+  const secondaryColor = layoutData?.secondary_color || '#03DBD0';
+  const primaryColorRgb = hexToRgb(primaryColor);
+  const secondaryColorRgb = hexToRgb(secondaryColor);
+
+  // Set CSS variables on :root so they're available to portals (modals, drawers)
+  useEffect(() => {
+    document.documentElement.style.setProperty('--color-primary', primaryColor);
+    document.documentElement.style.setProperty('--color-secondary', secondaryColor);
+    document.documentElement.style.setProperty('--color-primary-rgb', primaryColorRgb);
+    document.documentElement.style.setProperty('--color-secondary-rgb', secondaryColorRgb);
+
+    return () => {
+      // Clean up on unmount
+      document.documentElement.style.removeProperty('--color-primary');
+      document.documentElement.style.removeProperty('--color-secondary');
+      document.documentElement.style.removeProperty('--color-primary-rgb');
+      document.documentElement.style.removeProperty('--color-secondary-rgb');
+    };
+  }, [primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb]);
+
   const value = useMemo(() => ({
     layoutData,
     navbarProps,
     footerData,
     isLoading,
+    hasError,
     landing,
-  }), [layoutData, navbarProps, footerData, isLoading, landing]);
+    primaryColor,
+    secondaryColor,
+    primaryColorRgb,
+    secondaryColorRgb,
+  }), [layoutData, navbarProps, footerData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb]);
 
   return (
     <LayoutContext.Provider value={value}>

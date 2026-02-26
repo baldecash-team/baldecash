@@ -21,6 +21,8 @@ interface CartBarProps {
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onContinue: () => void;
+  isOverLimit?: boolean;
+  onShowLimitModal?: () => void;
 }
 
 export const CartBar: React.FC<CartBarProps> = ({
@@ -28,6 +30,8 @@ export const CartBar: React.FC<CartBarProps> = ({
   onRemoveItem,
   onClearAll,
   onContinue,
+  isOverLimit = false,
+  onShowLimitModal,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -36,7 +40,7 @@ export const CartBar: React.FC<CartBarProps> = ({
     const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
     return sum + quota;
   }, 0);
-  const isDisabled = items.length === 0 || items.length > 5 || totalMonthlyQuota > 600;
+  const isDisabled = items.length === 0 || items.length > 5 || totalMonthlyQuota > 600 || isOverLimit;
 
   if (items.length === 0) return null;
 
@@ -82,7 +86,7 @@ export const CartBar: React.FC<CartBarProps> = ({
                             <p className="text-sm font-medium text-neutral-800 truncate">
                               {item.displayName}
                             </p>
-                            <p className="text-sm font-bold text-[#4654CD]">
+                            <p className="text-sm font-bold text-[var(--color-primary)]">
                               S/{formatMoney(quota)}/mes
                             </p>
                           </div>
@@ -102,21 +106,27 @@ export const CartBar: React.FC<CartBarProps> = ({
           </AnimatePresence>
 
           {/* Main Bar */}
-          <div className="px-4 py-3 flex items-center gap-4">
+          <div className={`px-4 py-3 flex items-center gap-4 ${isOverLimit ? 'bg-red-50' : ''}`}>
             {/* Cart Icon & Count */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                <ShoppingCart className="w-5 h-5 text-[#4654CD]" />
+            <button
+              onClick={isOverLimit && onShowLimitModal ? onShowLimitModal : undefined}
+              className={`flex items-center gap-2 ${isOverLimit ? 'cursor-pointer' : ''}`}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                isOverLimit ? 'bg-red-100 animate-pulse' : 'bg-[rgba(var(--color-primary-rgb),0.1)]'
+              }`}>
+                <ShoppingCart className={`w-5 h-5 ${isOverLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`} />
               </div>
               <div>
                 <p className="text-sm font-semibold text-neutral-800">
                   {items.length} {items.length === 1 ? 'producto' : 'productos'}
                 </p>
-                <p className="text-xs text-neutral-500">
+                <p className={`text-xs ${isOverLimit ? 'text-red-600 font-medium' : 'text-neutral-500'}`}>
                   Cuota total: S/{formatMoney(totalMonthlyQuota)}/mes
+                  {isOverLimit && ' (excede S/600)'}
                 </p>
               </div>
-            </div>
+            </button>
 
             {/* Product Thumbnails */}
             <div className="flex -space-x-2">
@@ -169,7 +179,7 @@ export const CartBar: React.FC<CartBarProps> = ({
                 size="lg"
                 className={`px-6 !font-bold rounded-xl ${
                   !isDisabled
-                    ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
+                    ? 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                     : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                 }`}
                 onPress={onContinue}

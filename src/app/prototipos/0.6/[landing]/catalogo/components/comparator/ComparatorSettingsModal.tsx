@@ -91,8 +91,8 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
     >
       <ModalContent>
         <ModalHeader className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
-            <Settings className="w-4 h-4 text-[#4654CD]" />
+          <div className="w-8 h-8 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+            <Settings className="w-4 h-4 text-[var(--color-primary)]" />
           </div>
           <span className="text-lg font-semibold text-neutral-800">
             Configuración del Comparador
@@ -107,7 +107,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           {/* Layout Version */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <Layout className="w-4 h-4 text-[#4654CD]" />
+              <Layout className="w-4 h-4 text-[var(--color-primary)]" />
               <h3 className="font-semibold text-neutral-800">Layout del Comparador</h3>
             </div>
             <RadioGroup
@@ -122,10 +122,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   classNames={{
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.layoutVersion === version
-                        ? 'border-[#4654CD] bg-[#4654CD]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
-                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
                     description: 'text-xs text-neutral-500',
@@ -141,7 +141,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           {/* Design Style - V1-V3 Exception */}
           <div className="mb-6 pt-4 border-t border-neutral-200">
             <div className="flex items-center gap-2 mb-3">
-              <Palette className="w-4 h-4 text-[#4654CD]" />
+              <Palette className="w-4 h-4 text-[var(--color-primary)]" />
               <h3 className="font-semibold text-neutral-800">Estilo de Diseño</h3>
               <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
                 V1-V3
@@ -159,10 +159,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   classNames={{
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.designStyle === version
-                        ? 'border-[#4654CD] bg-[#4654CD]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
-                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
                     description: 'text-xs text-neutral-500',
@@ -178,7 +178,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           {/* Highlight Version */}
           <div className="mb-6 pt-4 border-t border-neutral-200">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4 h-4 text-[#4654CD]" />
+              <Sparkles className="w-4 h-4 text-[var(--color-primary)]" />
               <h3 className="font-semibold text-neutral-800">Visualización Mejor/Peor</h3>
             </div>
             <RadioGroup
@@ -193,10 +193,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   classNames={{
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.highlightVersion === version
-                        ? 'border-[#4654CD] bg-[#4654CD]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
-                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
                     description: 'text-xs text-neutral-500',
@@ -212,7 +212,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           {/* Fields Version */}
           <div className="mb-6 pt-4 border-t border-neutral-200">
             <div className="flex items-center gap-2 mb-3">
-              <List className="w-4 h-4 text-[#4654CD]" />
+              <List className="w-4 h-4 text-[var(--color-primary)]" />
               <h3 className="font-semibold text-neutral-800">Campos de Comparación</h3>
             </div>
             <RadioGroup
@@ -227,10 +227,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   classNames={{
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.fieldsVersion === version
-                        ? 'border-[#4654CD] bg-[#4654CD]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
-                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
                     description: 'text-xs text-neutral-500',
@@ -246,7 +246,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           {/* Price Diff Version */}
           <div className="pt-4 border-t border-neutral-200">
             <div className="flex items-center gap-2 mb-3">
-              <DollarSign className="w-4 h-4 text-[#4654CD]" />
+              <DollarSign className="w-4 h-4 text-[var(--color-primary)]" />
               <h3 className="font-semibold text-neutral-800">Diferencia de Precio</h3>
             </div>
             <RadioGroup
@@ -261,10 +261,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                   classNames={{
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.priceDiffVersion === version
-                        ? 'border-[#4654CD] bg-[#4654CD]/5'
-                        : 'border-neutral-200 hover:border-[#4654CD]/50'
+                        ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
-                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
                     description: 'text-xs text-neutral-500',

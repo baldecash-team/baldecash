@@ -29,14 +29,16 @@ export type QuestionType = 'single' | 'multiple' | 'scale';
 
 export interface QuizOption {
   id: string;
+  numericId: number; // ID numérico del backend para API calls
   label: string;
   icon: string;
   description?: string;
-  weight: Record<string, string | number | boolean>;
+  weight: Record<string, string | number | boolean | string[]>;
 }
 
 export interface QuizQuestion {
   id: string;
+  numericId: number; // ID numérico del backend para API calls
   question: string;
   helpText?: string;
   options: QuizOption[];
@@ -126,10 +128,11 @@ export interface QuizResultsProps {
 export type QuizContext = 'hero' | 'catalog' | 'landing';
 
 export interface HelpQuizProps {
-  config: QuizConfig;
+  /** @deprecated Config now comes from API - this prop is ignored */
+  config?: QuizConfig;
   isOpen: boolean;
   onClose: () => void;
-  onComplete?: (results: QuizResult[], answers?: QuizAnswer[]) => void;
+  onComplete?: (results: QuizResult[], answers?: QuizAnswer[], questions?: QuizQuestion[]) => void;
   /** Contexto donde se muestra el quiz: 'hero' navega al catálogo, 'catalog' aplica filtros */
   context?: QuizContext;
   /** Si está en modo clean (para propagar a URLs) */

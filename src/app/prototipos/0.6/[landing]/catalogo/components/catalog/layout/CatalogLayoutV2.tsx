@@ -355,7 +355,7 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
                 className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
               >
                 <div>
-                  <h1 className="text-3xl font-bold text-[#4654CD] font-['Baloo_2']">
+                  <h1 className="text-3xl font-bold text-[var(--color-primary)] font-['Baloo_2']">
                     Catálogo de Equipos
                   </h1>
                   <p className="text-sm text-neutral-500">
@@ -389,7 +389,7 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
               startContent={<SlidersHorizontal className="w-4 h-4" />}
               endContent={
                 appliedFilters.length > 0 && !showFiltersPanel ? (
-                  <span className="ml-1 w-5 h-5 bg-[#4654CD] text-white rounded-full text-xs flex items-center justify-center">
+                  <span className="ml-1 w-5 h-5 bg-[var(--color-primary)] text-white rounded-full text-xs flex items-center justify-center">
                     {appliedFilters.length}
                   </span>
                 ) : null
@@ -397,8 +397,8 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
               onPress={() => setShowFiltersPanel(!showFiltersPanel)}
               className={`cursor-pointer transition-all ${
                 showFiltersPanel
-                  ? 'bg-[#4654CD] text-white'
-                  : 'border-neutral-300 hover:border-[#4654CD] hover:text-[#4654CD]'
+                  ? 'bg-[var(--color-primary)] text-white'
+                  : 'border-neutral-300 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
               }`}
             >
               {showFiltersPanel ? 'Ocultar filtros' : 'Mostrar filtros'}
@@ -441,7 +441,7 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
                   {/* Filters Header */}
                   <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-200">
                     <h2 className="font-semibold text-neutral-800 flex items-center gap-2">
-                      <SlidersHorizontal className="w-5 h-5 text-[#4654CD]" />
+                      <SlidersHorizontal className="w-5 h-5 text-[var(--color-primary)]" />
                       Filtros
                     </h2>
                     <Button
@@ -504,7 +504,7 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
                   <div className="border-t border-neutral-200 mt-6 pt-4">
                     <button
                       onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                      className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+                      className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <Settings2 className="w-4 h-4" />
@@ -605,7 +605,7 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
             style={{ touchAction: 'none' }}
           >
             <div className={`rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 ${
-              isFloatingExpanded ? 'w-[min(320px,calc(100vw-32px))] bg-white border border-neutral-200' : 'w-auto bg-[#4654CD]'
+              isFloatingExpanded ? 'w-[min(320px,calc(100vw-32px))] bg-white border border-neutral-200' : 'w-auto bg-[var(--color-primary)]'
             }`}>
               {/* Minimized State - Compact icon button */}
               {!isFloatingExpanded ? (
@@ -625,7 +625,7 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
                   >
                     <SlidersHorizontal className="w-5 h-5" />
                     {appliedFilters.length > 0 && (
-                      <span className="w-5 h-5 bg-white text-[#4654CD] rounded-full text-xs font-bold flex items-center justify-center">
+                      <span className="w-5 h-5 bg-white text-[var(--color-primary)] rounded-full text-xs font-bold flex items-center justify-center">
                         {appliedFilters.length}
                       </span>
                     )}
@@ -651,10 +651,10 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
                       >
                         <GripVertical className="w-5 h-5" />
                       </div>
-                      <SlidersHorizontal className="w-5 h-5 text-[#4654CD]" />
+                      <SlidersHorizontal className="w-5 h-5 text-[var(--color-primary)]" />
                       <span className="font-semibold text-neutral-800">Filtros</span>
                       {appliedFilters.length > 0 && (
-                        <span className="w-5 h-5 bg-[#4654CD] text-white rounded-full text-xs flex items-center justify-center">
+                        <span className="w-5 h-5 bg-[var(--color-primary)] text-white rounded-full text-xs flex items-center justify-center">
                           {appliedFilters.length}
                         </span>
                       )}
@@ -719,7 +719,7 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
                     <div className="border-t border-neutral-200 pt-4">
                       <button
                         onClick={() => setFloatingAdvancedFilters(!floatingAdvancedFilters)}
-                        className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+                        className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors"
                       >
                         <div className="flex items-center gap-2">
                           <Settings2 className="w-4 h-4" />

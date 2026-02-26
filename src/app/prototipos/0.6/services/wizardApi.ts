@@ -73,6 +73,7 @@ export interface WizardField {
 export interface WizardStep {
   id: number;
   code: string;
+  url_slug: string | null; // URL-friendly slug for routing (e.g., "datos-personales")
   name: string;
   title: string;
   description: string;
@@ -132,30 +133,24 @@ export function getStepByCode(config: WizardConfig, stepCode: string): WizardSte
 }
 
 /**
- * Mapea código de step del backend a slug de URL del frontend
+ * Obtiene el slug de URL para un step
+ * Usa el url_slug del API (100% dinámico desde BD)
  */
-export const STEP_CODE_TO_SLUG: Record<string, string> = {
-  'personal_data': 'datos-personales',
-  'academic_data': 'datos-academicos',
-  'financial': 'datos-economicos',
-};
-
-/**
- * Mapea slug de URL del frontend a código de step del backend
- */
-export const SLUG_TO_STEP_CODE: Record<string, string> = {
-  'datos-personales': 'personal_data',
-  'datos-academicos': 'academic_data',
-  'datos-economicos': 'financial',
-};
+export function getStepSlug(step: WizardStep): string {
+  return step.url_slug || step.code;
+}
 
 /**
  * Obtiene el step por slug de URL
+ * Busca primero por url_slug, luego por code como fallback
  */
 export function getStepBySlug(config: WizardConfig, slug: string): WizardStep | undefined {
-  const stepCode = SLUG_TO_STEP_CODE[slug];
-  if (!stepCode) return undefined;
-  return getStepByCode(config, stepCode);
+  // Buscar por url_slug (preferido)
+  const byUrlSlug = config.steps.find(step => step.url_slug === slug);
+  if (byUrlSlug) return byUrlSlug;
+
+  // Fallback: buscar por code
+  return config.steps.find(step => step.code === slug);
 }
 
 /**

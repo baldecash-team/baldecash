@@ -40,16 +40,16 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
             onPress={() => handleToggle(product)}
             className={`transition-all duration-200 cursor-pointer ${
               isSelected
-                ? 'border-2 border-[#4654CD] bg-[#4654CD]/5 shadow-md'
+                ? 'border-2 border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] shadow-md'
                 : isDisabled
                 ? 'opacity-50 cursor-not-allowed'
-                : 'border border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-sm'
+                : 'border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
             }`}
           >
             <CardBody className="p-3 relative">
               {/* Selection indicator */}
               {isSelected && (
-                <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[#4654CD] text-white text-xs font-bold flex items-center justify-center">
+                <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-[var(--color-primary)] text-white text-xs font-bold flex items-center justify-center">
                   {selectionOrder}
                 </div>
               )}
@@ -59,7 +59,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                 <div
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                     isSelected
-                      ? 'bg-[#4654CD] border-[#4654CD]'
+                      ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
                       : 'bg-white border-neutral-300'
                   }`}
                 >
@@ -78,7 +78,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                 <p className="text-sm font-semibold text-neutral-800 line-clamp-2 mb-2 min-h-[40px]">
                   {product.displayName}
                 </p>
-                <p className="text-base font-bold text-[#4654CD]">
+                <p className="text-base font-bold text-[var(--color-primary)]">
                   S/{formatMoney(getDisplayQuota(product))}
                   <span className="text-xs font-normal text-neutral-500">/mes</span>
                 </p>
@@ -155,7 +155,7 @@ export const CompareFloatingBar: React.FC<CompareFloatingBarProps> = ({
         <Button
           size="sm"
           isDisabled={selectedProducts.length < 2}
-          className="bg-[#4654CD] text-white cursor-pointer font-semibold disabled:opacity-50"
+          className="bg-[var(--color-primary)] text-white cursor-pointer font-semibold disabled:opacity-50 hover:brightness-90"
           onPress={onCompare}
           startContent={<Scale className="w-4 h-4" />}
         >

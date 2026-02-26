@@ -14,13 +14,13 @@ import { WizardStepId } from '../types/solicitar';
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
 import { useWizard } from '../context/WizardContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
-import { SLUG_TO_STEP_CODE, STEP_CODE_TO_SLUG, validateStep as validateStepFields } from '../../../services/wizardApi';
+import { getStepSlug, validateStep as validateStepFields } from '../../../services/wizardApi';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 
 const STEP_SLUG = 'datos-economicos';
-const STEP_CODE = SLUG_TO_STEP_CODE[STEP_SLUG]; // 'financial'
 
 function DatosEconomicosContent() {
   const router = useRouter();
@@ -34,10 +34,10 @@ function DatosEconomicosContent() {
   const [submitted, setSubmitted] = useState(false);
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config from API
-  const { getStep, getNavigation, isLoading: isConfigLoading, error: configError } = useWizardConfig();
+  const { getStepByUrlSlug, getNavigation, getUrlSlugForStep, isLoading: isConfigLoading, error: configError } = useWizardConfig();
 
   const {
     formData,
@@ -45,9 +45,9 @@ function DatosEconomicosContent() {
     markStepCompleted,
   } = useWizard();
 
-  // Get step config from API
-  const step = getStep(STEP_CODE);
-  const navigation = getNavigation(STEP_CODE);
+  // Get step config from API using URL slug (100% dynamic from BD)
+  const step = getStepByUrlSlug(STEP_SLUG);
+  const navigation = step ? getNavigation(step.code) : { currentIndex: -1, prevStep: null, nextStep: null, isFirst: true, isLast: true };
 
   // Build form values for validation
   const formValues = useMemo(() => {
@@ -84,7 +84,8 @@ function DatosEconomicosContent() {
   };
 
   const handleBack = () => {
-    const prevSlug = navigation.prevStep ? STEP_CODE_TO_SLUG[navigation.prevStep.code] : 'datos-academicos';
+    // Use dynamic url_slug from API (100% from BD)
+    const prevSlug = navigation.prevStep?.url_slug || getUrlSlugForStep(navigation.prevStep?.code || '') || 'datos-academicos';
     router.push(`/prototipos/0.6/${landing}/solicitar/${prevSlug}`);
   };
 
@@ -95,6 +96,11 @@ function DatosEconomicosContent() {
   // Loading state
   if (isLayoutLoading || isConfigLoading) {
     return <LoadingFallback />;
+  }
+
+  // Show 404 if landing not found (paused, archived, or doesn't exist)
+  if (hasLayoutError || !navbarProps) {
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
   // Error state

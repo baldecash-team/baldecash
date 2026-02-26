@@ -178,8 +178,8 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       <ModalContent>
         <ModalHeader className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-              <Scale className="w-5 h-5 text-[#4654CD]" />
+            <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+              <Scale className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-neutral-800 font-['Baloo_2']">
@@ -204,7 +204,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                     ...comparisonState,
                     showOnlyDifferences: e.target.checked,
                   })}
-                  className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
+                  className="w-4 h-4 rounded border-neutral-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)] cursor-pointer"
                 />
                 <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
               </label>
@@ -227,7 +227,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-full md:w-auto">
             {!showBestOption ? (
               <Button
-                className="bg-[#4654CD] text-white cursor-pointer font-semibold w-full md:w-auto order-1 md:order-2"
+                className="bg-[var(--color-primary)] text-white cursor-pointer font-semibold w-full md:w-auto order-1 md:order-2"
                 onPress={handleShowBestOption}
                 startContent={<Trophy className="w-4 h-4" />}
               >
@@ -244,7 +244,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                 </Button>
                 <Button
                   variant="bordered"
-                  className="cursor-pointer border-[#4654CD] text-[#4654CD] bg-[#4654CD]/5 hover:bg-[#4654CD]/10 font-semibold w-full md:w-auto order-2 md:order-3"
+                  className="cursor-pointer border-[var(--color-primary)] text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] font-semibold w-full md:w-auto order-2 md:order-3"
                   startContent={<ShoppingCart className="w-4 h-4" />}
                   onPress={() => bestProduct && onAddToCart?.(bestProduct.id)}
                 >

@@ -20,13 +20,13 @@ export const EmptyIllustrationV6: React.FC<EmptyIllustrationProps> = ({ classNam
         transition={{ duration: 0.5, ease: 'easeOut' }}
       >
         {/* El "0" grande */}
-        <span className="text-[120px] md:text-[160px] font-black text-[#4654CD]/10 leading-none select-none">
+        <span className="text-[120px] md:text-[160px] font-black text-[rgba(var(--color-primary-rgb),0.1)] leading-none select-none">
           0
         </span>
 
         {/* Overlay con texto */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-4xl md:text-5xl font-black text-[#4654CD]">
+          <span className="text-4xl md:text-5xl font-black text-[var(--color-primary)]">
             0
           </span>
         </div>
@@ -48,7 +48,7 @@ export const EmptyIllustrationV6: React.FC<EmptyIllustrationProps> = ({ classNam
 
       {/* Línea decorativa */}
       <motion.div
-        className="w-24 h-1 bg-[#4654CD]/20 rounded-full mt-6"
+        className="w-24 h-1 bg-[rgba(var(--color-primary-rgb),0.2)] rounded-full mt-6"
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
         transition={{ delay: 0.4, duration: 0.5 }}

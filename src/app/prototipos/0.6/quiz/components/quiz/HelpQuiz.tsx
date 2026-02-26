@@ -15,12 +15,13 @@
  * - Catalog: "Lo quiero" -> wizard, "Ver otras opciones" -> cerrar y aplicar filtros
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Loader2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useProductOptional, type SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { useIsMobile } from '@/app/prototipos/_shared/hooks/useIsMobile';
 
 // Storage key for fallback when no ProductProvider
 const STORAGE_KEY = 'baldecash-solicitar-selected-product';
@@ -45,14 +46,10 @@ import { QuizQuestionV1 } from './questions/QuizQuestionV1';
 // Results component
 import { QuizResultsV1 } from './results/QuizResultsV1';
 
-// Data
-import { quizQuestionsUsage, generateMockResults } from '../../data/mockQuizData';
-
-// Component maps (simplificado para v0.6)
-const layoutComponents = {
-  4: QuizLayoutV4,
-  5: QuizLayoutV5,
-};
+// Data and API
+import { generateMockResults } from '../../data/mockQuizData';
+import { useQuiz } from '../../hooks/useQuiz';
+import { submitQuizResponse, getQuizRecommendations, mapApiToQuizResults } from '../../../services/quizApi';
 
 // URL helpers - updated for 0.6 dynamic routes
 const getWizardUrl = (isCleanMode: boolean, landing?: string) => {
@@ -64,7 +61,12 @@ const getWizardUrl = (isCleanMode: boolean, landing?: string) => {
 // Configuración para cálculo de cuota
 const WIZARD_SELECTED_TERM = 24;
 
-const getCatalogUrlWithFilters = (answers: QuizAnswer[], isCleanMode: boolean, landing?: string) => {
+const getCatalogUrlWithFilters = (
+  answers: QuizAnswer[],
+  isCleanMode: boolean,
+  landing: string | undefined,
+  questionsSource: QuizQuestion[]
+) => {
   const landingSlug = landing || 'home';
   const baseUrl = `/prototipos/0.6/${landingSlug}/catalogo`;
   const params = new URLSearchParams();
@@ -75,7 +77,7 @@ const getCatalogUrlWithFilters = (answers: QuizAnswer[], isCleanMode: boolean, l
 
   // Mapear respuestas a parámetros de filtro
   answers.forEach((answer) => {
-    const question = quizQuestionsUsage.find((q) => q.id === answer.questionId);
+    const question = questionsSource.find((q) => q.id === answer.questionId);
     if (!question) return;
 
     const selectedOption = question.options.find((opt) => opt.id === answer.selectedOptions[0]);
@@ -88,13 +90,13 @@ const getCatalogUrlWithFilters = (answers: QuizAnswer[], isCleanMode: boolean, l
       params.set('usage', answer.selectedOptions[0]);
     }
 
-    // Budget -> quota range
+    // Budget -> quota range (formato: min,max)
     if (weight.budget) {
       const budgetMap: Record<string, string> = {
-        low: '0-80',
-        medium: '80-150',
-        high: '150-250',
-        premium: '250-500',
+        low: '0,80',
+        medium: '80,150',
+        high: '150,250',
+        premium: '250,500',
       };
       const range = budgetMap[weight.budget as string];
       if (range) {
@@ -143,7 +145,7 @@ const getCatalogUrlWithFilters = (answers: QuizAnswer[], isCleanMode: boolean, l
 };
 
 export const HelpQuiz: React.FC<HelpQuizProps> = ({
-  config,
+  // config is deprecated - values now come from API
   isOpen,
   onClose,
   onComplete,
@@ -159,6 +161,29 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [results, setResults] = useState<QuizResult[] | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Scroll al inicio cuando cambian los resultados o el paso
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [results, currentStep]);
+
+  // Fetch quiz data from API
+  const {
+    questions: apiQuestions,
+    quizId,
+    landingId,
+    resultsCount,
+    loading: quizLoading,
+    error: quizError,
+    hasQuiz,
+    refetch: refetchQuiz,
+  } = useQuiz({ landingSlug: landing || 'home' });
+
+  // Mobile detection for layout (using shared hook)
+  const isMobile = useIsMobile();
 
   // Helper to save product - uses context if available, otherwise localStorage
   const selectProductForWizard = useCallback((product: QuizProduct) => {
@@ -191,16 +216,14 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     }
   }, [productContext]);
 
-  // Get questions (fijo: 7 preguntas, focus usage)
-  const questions = useMemo((): QuizQuestion[] => {
-    return quizQuestionsUsage.slice(0, config.questionCount);
-  }, [config.questionCount]);
+  // Get questions from API (all questions come from backend)
+  const questions = apiQuestions;
 
   const totalSteps = questions.length;
   const currentQuestion = questions[currentStep];
 
-  // Get layout component based on config
-  const LayoutComponent = layoutComponents[config.layoutVersion];
+  // Get layout component based on device (mobile: V4 bottom sheet, desktop: V5 modal)
+  const LayoutComponent = isMobile ? QuizLayoutV4 : QuizLayoutV5;
 
   // Handle option selection
   const handleSelectOption = useCallback((optionId: string) => {
@@ -223,17 +246,55 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       // Mostrar loading y luego resultados
       setIsCalculating(true);
 
-      // Simular cálculo
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let quizResults: QuizResult[];
 
-      const quizResults = generateMockResults(updatedAnswers);
+      // Intentar obtener recomendaciones de la API
+      if (quizId) {
+        const apiResponse = await getQuizRecommendations(
+          quizId,
+          updatedAnswers,
+          questions, // Pass questions to map codes to numeric IDs
+          resultsCount,
+          landingId || undefined
+        );
+
+        if (apiResponse && apiResponse.products.length > 0) {
+          // Usar resultados de la API
+          quizResults = mapApiToQuizResults(apiResponse);
+          console.log('[Quiz] Using API recommendations:', quizResults.length, 'limit:', resultsCount, 'landing:', landingId);
+        } else {
+          // Fallback a mock si API falla o no hay resultados
+          console.log('[Quiz] Fallback to mock data');
+          quizResults = generateMockResults(updatedAnswers);
+        }
+      } else {
+        // Sin quizId, usar mock
+        console.log('[Quiz] No quizId, using mock data');
+        quizResults = generateMockResults(updatedAnswers);
+      }
+
       setResults(quizResults);
       setIsCalculating(false);
+
+      // Submit analytics
+      if (quizId && landingId) {
+        const topResult = quizResults[0];
+        submitQuizResponse({
+          quizId,
+          landingId,
+          answers: updatedAnswers,
+          recommendedProductId: topResult?.product.id,
+          matchScore: topResult?.matchScore,
+          context: context as 'hero' | 'catalog' | 'landing',
+        }).catch(() => {
+          // Silent fail - analytics shouldn't block UX
+        });
+      }
     } else {
       setCurrentStep((prev) => prev + 1);
       setSelectedOption(null);
     }
-  }, [selectedOption, currentQuestion, answers, currentStep, totalSteps]);
+  }, [selectedOption, currentQuestion, answers, currentStep, totalSteps, quizId, questions, resultsCount, landingId, context]);
 
   // Handle back
   const handleBack = useCallback(() => {
@@ -280,16 +341,16 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       // En Hero: Cerrar y navegar al catálogo con filtros
       onClose();
       handleRestart();
-      router.push(getCatalogUrlWithFilters(answers, isCleanMode, landing));
+      router.push(getCatalogUrlWithFilters(answers, isCleanMode, landing, questions));
     } else {
       // En Catalog: Cerrar y aplicar filtros mediante onComplete
       if (onComplete && results) {
-        onComplete(results, answers);
+        onComplete(results, answers, questions);
       }
       onClose();
       handleRestart();
     }
-  }, [context, onClose, handleRestart, router, answers, isCleanMode, landing, onComplete, results]);
+  }, [context, onClose, handleRestart, router, answers, isCleanMode, landing, onComplete, results, questions]);
 
   // Handle close and reset
   const handleClose = useCallback(() => {
@@ -301,6 +362,63 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
 
   // Render content
   const renderContent = () => {
+    // Mostrar loading mientras carga el quiz
+    if (quizLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+          >
+            <Loader2 className="w-12 h-12" style={{ color: 'var(--color-primary)' }} />
+          </motion.div>
+          <p className="mt-4 text-neutral-600 font-medium">
+            Cargando preguntas...
+          </p>
+        </div>
+      );
+    }
+
+    // Si no hay quiz para esta landing, cerrar el modal silenciosamente
+    if (!hasQuiz && !quizError) {
+      // Cerrar automáticamente después de un breve momento
+      setTimeout(() => handleClose(), 100);
+      return null;
+    }
+
+    // Mostrar error solo si hubo un error real de carga
+    if (quizError) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <X className="w-8 h-8 text-red-500" />
+          </div>
+          <p className="text-neutral-700 font-medium mb-2">
+            No pudimos cargar el quiz
+          </p>
+          <p className="text-sm text-neutral-500 mb-4">
+            {quizError}
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="light"
+              onPress={handleClose}
+              className="cursor-pointer"
+            >
+              Cerrar
+            </Button>
+            <Button
+              className="text-white cursor-pointer"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+              onPress={() => refetchQuiz()}
+            >
+              Reintentar
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     // Mostrar resultados
     if (results) {
       return (
@@ -321,7 +439,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
           >
-            <Loader2 className="w-12 h-12 text-[#4654CD]" />
+            <Loader2 className="w-12 h-12" style={{ color: 'var(--color-primary)' }} />
           </motion.div>
           <p className="mt-4 text-neutral-600 font-medium">
             Analizando tus respuestas...
@@ -386,7 +504,8 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
         )}
 
         <Button
-          className="bg-[#4654CD] text-white font-semibold cursor-pointer"
+          className="text-white font-semibold cursor-pointer"
+          style={{ backgroundColor: 'var(--color-primary)' }}
           size="lg"
           isDisabled={!selectedOption}
           endContent={<ArrowRight className="w-4 h-4" />}

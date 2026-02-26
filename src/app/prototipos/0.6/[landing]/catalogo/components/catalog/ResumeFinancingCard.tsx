@@ -56,8 +56,8 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
               {/* Header */}
               <div className="flex items-center justify-between px-5 pt-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-[#4654CD]" />
+                  <div className="w-10 h-10 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-neutral-800 leading-tight">
@@ -65,8 +65,8 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4654CD]/40" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#4654CD]" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[rgba(var(--color-primary-rgb),0.4)]" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-primary)]" />
                       </span>
                       <span className="text-xs text-neutral-500">Solicitud pendiente</span>
                     </div>
@@ -95,7 +95,7 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <Chip size="sm" className="bg-[#4654CD]/10 text-[#4654CD] text-xs font-medium">
+                    <Chip size="sm" className="bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)] text-xs font-medium">
                       Paso {MOCK_PENDING.stepNumber}/{MOCK_PENDING.totalSteps}
                     </Chip>
                     <div className="flex items-center gap-1 text-xs text-neutral-400">
@@ -112,11 +112,11 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
                   <span className="text-neutral-500">
                     Siguiente: <span className="font-medium text-neutral-700">{MOCK_PENDING.step}</span>
                   </span>
-                  <span className="text-[#4654CD] font-semibold">{Math.round(progressPercent)}%</span>
+                  <span className="text-[var(--color-primary)] font-semibold">{Math.round(progressPercent)}%</span>
                 </div>
                 <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
                   <motion.div
-                    className="h-full bg-[#4654CD] rounded-full"
+                    className="h-full bg-[var(--color-primary)] rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPercent}%` }}
                     transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
@@ -134,7 +134,7 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
                   Ahora no
                 </Button>
                 <Button
-                  className="flex-1 bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] rounded-xl"
+                  className="flex-1 bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90 rounded-xl"
                   endContent={<ArrowRight className="w-4 h-4" />}
                   onPress={() => {
                     onContinue?.();

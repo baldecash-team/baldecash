@@ -15,6 +15,7 @@ import { useProduct } from '../context/ProductContext';
 import { SelectedProductBar, SelectedProductSpacer } from '../components/solicitar/product/SelectedProductBar';
 import { formatMoney } from '../utils/formatMoney';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -68,7 +69,7 @@ function SegurosContent() {
   const { selectedProduct, selectedAccessories, getTotalMonthlyPayment } = useProduct();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   const handleBack = () => {
     router.push(`/prototipos/0.6/${landing}/solicitar/resumen`);
@@ -313,6 +314,11 @@ function SegurosContent() {
   // Show loading while layout data is loading
   if (isLayoutLoading) {
     return <LoadingFallback />;
+  }
+
+  // Show 404 if landing not found (paused, archived, or doesn't exist)
+  if (hasLayoutError || !navbarProps) {
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
   return (

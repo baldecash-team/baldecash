@@ -96,8 +96,11 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                  <HelpCircle className="w-4 h-4 text-[#4654CD]" />
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}
+                >
+                  <HelpCircle className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">
@@ -122,8 +125,8 @@ export const QuizLayoutV4: React.FC<QuizLayoutProps> = ({
             {/* Progress bar */}
             <div className="h-1 bg-neutral-100">
               <div
-                className="h-full bg-[#4654CD] transition-all duration-300 ease-out"
-                style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+                className="h-full transition-all duration-300 ease-out"
+                style={{ width: `${(currentStep / totalSteps) * 100}%`, backgroundColor: 'var(--color-primary)' }}
               />
             </div>
 

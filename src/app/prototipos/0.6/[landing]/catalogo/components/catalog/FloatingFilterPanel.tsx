@@ -16,22 +16,25 @@ import {
   BrandFilterV5,
   BrandFilterV6,
 } from './filters/brand';
+// Dynamic filter types from API
+import type { CatalogFiltersResponse, SpecFilter } from '../../../../types/filters';
+// Legacy mock data for fallback
 import {
-  brandOptions,
+  brandOptions as mockBrandOptions,
   brandsByDeviceType,
-  deviceTypeOptions,
+  deviceTypeOptions as mockDeviceTypeOptions,
   usageOptions,
-  ramOptions,
-  storageOptions,
-  displaySizeOptions,
+  ramOptions as mockRamOptions,
+  storageOptions as mockStorageOptions,
+  displaySizeOptions as mockDisplaySizeOptions,
   gamaOptions,
-  conditionOptions,
-  processorModelOptions,
-  resolutionOptions,
-  displayTypeOptions,
+  conditionOptions as mockConditionOptions,
+  processorModelOptions as mockProcessorModelOptions,
+  resolutionOptions as mockResolutionOptions,
+  displayTypeOptions as mockDisplayTypeOptions,
   applyDynamicCounts,
 } from '../../data/mockCatalogData';
-import { Laptop, Tablet, Smartphone } from 'lucide-react';
+import { Laptop, Tablet, Smartphone, HelpCircle } from 'lucide-react';
 
 interface FloatingFilterPanelProps {
   isVisible: boolean;
@@ -41,6 +44,10 @@ interface FloatingFilterPanelProps {
   appliedFiltersCount: number;
   onClearAll: () => void;
   filterCounts?: FilterCounts | null;
+  /** Dynamic filter options from API (optional - falls back to mock if not provided) */
+  apiFilters?: CatalogFiltersResponse | null;
+  /** Whether API filters are still loading */
+  isApiFiltersLoading?: boolean;
 }
 
 export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
@@ -51,6 +58,8 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
   appliedFiltersCount,
   onClearAll,
   filterCounts,
+  apiFilters,
+  isApiFiltersLoading = false,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -71,10 +80,107 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
   }, []);
 
   // Dynamic device type options with counts
-  const dynamicDeviceTypeOptions = useMemo(() =>
-    filterCounts ? applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType) : deviceTypeOptions,
-    [filterCounts]
-  );
+  const dynamicDeviceTypeOptions = useMemo(() => {
+    // Use API types if available
+    if (apiFilters?.types && apiFilters.types.length > 0) {
+      return apiFilters.types.map(t => ({
+        value: t.value as CatalogDeviceType,
+        label: t.label,
+        count: t.count,
+        icon: t.value === 'laptop' ? Laptop : t.value === 'tablet' ? Tablet : Smartphone,
+      }));
+    }
+    // Fall back to mock
+    return filterCounts
+      ? applyDynamicCounts(mockDeviceTypeOptions, filterCounts.deviceType)
+      : mockDeviceTypeOptions;
+  }, [apiFilters?.types, filterCounts]);
+
+  // Dynamic brand options from API
+  const dynamicBrandOptions = useMemo(() => {
+    if (apiFilters?.brands && apiFilters.brands.length > 0) {
+      return apiFilters.brands.map(b => ({
+        id: b.id,
+        name: b.name,
+        logo: b.logo_url || `/images/brands/${b.slug}.svg`,
+        count: b.count,
+      }));
+    }
+    return mockBrandOptions;
+  }, [apiFilters?.brands]);
+
+  // Dynamic condition options from API
+  const dynamicConditionOptions = useMemo(() => {
+    if (apiFilters?.conditions && apiFilters.conditions.length > 0) {
+      return apiFilters.conditions.map(c => ({
+        value: c.value as ProductCondition,
+        label: c.label,
+        count: c.count,
+      }));
+    }
+    return mockConditionOptions;
+  }, [apiFilters?.conditions]);
+
+  // Dynamic label/tag options from API
+  const dynamicLabelOptions = useMemo(() => {
+    if (apiFilters?.labels && apiFilters.labels.length > 0) {
+      return apiFilters.labels.map(l => ({
+        value: l.code,
+        label: l.name,
+        color: l.color,
+        count: l.count,
+      }));
+    }
+    return [];
+  }, [apiFilters?.labels]);
+
+  // Price range from API
+  const priceRange = useMemo(() => {
+    if (apiFilters?.price_range) {
+      return apiFilters.price_range;
+    }
+    return { min: 800, max: 8000, currency: 'PEN' };
+  }, [apiFilters?.price_range]);
+
+  // Quota range from API
+  const quotaRange = useMemo(() => {
+    if (apiFilters?.quota_range) {
+      return apiFilters.quota_range;
+    }
+    return { min: 25, max: 500, term_months: 24, initial_percent: 10, description: '' };
+  }, [apiFilters?.quota_range]);
+
+  // Sort options from API
+  const sortOptions = useMemo(() => {
+    if (apiFilters?.sort_options && apiFilters.sort_options.length > 0) {
+      return apiFilters.sort_options;
+    }
+    return [
+      { value: 'display_order', label: 'Recomendados', is_default: true },
+      { value: 'price_asc', label: 'Menor precio', is_default: false },
+      { value: 'price_desc', label: 'Mayor precio', is_default: false },
+      { value: 'featured', label: 'Destacados', is_default: false },
+    ];
+  }, [apiFilters?.sort_options]);
+
+  // Technical spec filters from API
+  const specFilters = useMemo(() => {
+    if (apiFilters?.specs && Object.keys(apiFilters.specs).length > 0) {
+      return apiFilters.specs;
+    }
+    return null;
+  }, [apiFilters?.specs]);
+
+  // Spec groups from API
+  const specGroups = useMemo(() => {
+    if (apiFilters?.spec_groups && apiFilters.spec_groups.length > 0) {
+      return apiFilters.spec_groups;
+    }
+    return [];
+  }, [apiFilters?.spec_groups]);
+
+  // Check if we have API-based specs to show
+  const hasApiSpecs = specFilters !== null && Object.keys(specFilters).length > 0;
 
   const updateFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -120,7 +226,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
   // Get filtered brand options based on selected device types
   const getFilteredBrandOptions = () => {
     if (filters.deviceTypes.length === 0) {
-      return brandOptions;
+      return mockBrandOptions;
     }
 
     // Get all brands available for selected device types
@@ -130,7 +236,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
       brands.forEach((brand) => availableBrands.add(brand));
     });
 
-    return brandOptions.filter((opt) => availableBrands.has(opt.value));
+    return mockBrandOptions.filter((opt) => availableBrands.has(opt.value));
   };
 
   const renderBrandFilter = () => {
@@ -193,7 +299,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
               /* Minimized: Filter icon + expand button */
               <div className="flex items-center gap-1 p-2">
                 {/* Filter icon - draggable */}
-                <div className="drag-handle relative w-10 h-10 rounded-lg bg-[#4654CD] flex items-center justify-center cursor-grab active:cursor-grabbing">
+                <div className="drag-handle relative w-10 h-10 rounded-lg bg-[var(--color-primary)] flex items-center justify-center cursor-grab active:cursor-grabbing">
                   <SlidersHorizontal className="w-5 h-5 text-white" />
                   {appliedFiltersCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center font-medium">
@@ -211,13 +317,13 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
               </div>
             ) : (
               /* Expanded: Full header */
-              <div className="drag-handle flex items-center justify-between px-4 py-3 border-b border-neutral-200 bg-gradient-to-r from-[#4654CD]/5 to-transparent cursor-grab active:cursor-grabbing">
+              <div className="drag-handle flex items-center justify-between px-4 py-3 border-b border-neutral-200 bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-transparent cursor-grab active:cursor-grabbing">
                 <div className="flex items-center gap-2">
                   <GripHorizontal className="w-4 h-4 text-neutral-400" />
-                  <SlidersHorizontal className="w-4 h-4 text-[#4654CD]" />
+                  <SlidersHorizontal className="w-4 h-4 text-[var(--color-primary)]" />
                   <span className="font-semibold text-neutral-800 text-sm">Filtros</span>
                   {appliedFiltersCount > 0 && (
-                    <span className="w-5 h-5 bg-[#4654CD] text-white rounded-full text-xs flex items-center justify-center">
+                    <span className="w-5 h-5 bg-[var(--color-primary)] text-white rounded-full text-xs flex items-center justify-center">
                       {appliedFiltersCount}
                     </span>
                   )}
@@ -274,8 +380,8 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               startContent={Icon ? <Icon className="w-3.5 h-3.5" /> : null}
                               className={`cursor-pointer transition-all ${
                                 isSelected
-                                  ? 'bg-[#4654CD] text-white border-[#4654CD]'
-                                  : 'bg-white text-neutral-700 hover:border-[#4654CD]'
+                                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                                  : 'bg-white text-neutral-700 hover:border-[var(--color-primary)]'
                               }`}
                               onClick={() => {
                                 const deviceType = opt.value as CatalogDeviceType;
@@ -330,8 +436,8 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               variant={isSelected ? 'solid' : 'bordered'}
                               className={`cursor-pointer transition-all ${
                                 isSelected
-                                  ? 'bg-[#4654CD] text-white border-[#4654CD]'
-                                  : `${colors.bg} ${colors.text} hover:border-[#4654CD]`
+                                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                                  : `${colors.bg} ${colors.text} hover:border-[var(--color-primary)]`
                               }`}
                               onClick={() => {
                                 const gama = opt.value as GamaTier;
@@ -352,7 +458,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                     {/* Condition Filter */}
                     <FilterSection title="Condición" defaultExpanded={false}>
                       <div className="space-y-2">
-                        {conditionOptions.map((opt) => (
+                        {mockConditionOptions.map((opt) => (
                           <label
                             key={opt.value}
                             className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
@@ -369,7 +475,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               }}
                               classNames={{
                                 base: 'cursor-pointer',
-                                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                                 icon: 'text-white',
                               }}
                             />
@@ -383,7 +489,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                     <div className="border-t border-neutral-200 mt-4 pt-4">
                       <button
                         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                        className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+                        className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors"
                       >
                         <div className="flex items-center gap-2">
                           <Settings2 className="w-4 h-4" />
@@ -398,7 +504,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                           <div>
                             <p className="text-xs font-medium text-neutral-500 mb-2">RAM</p>
                             <div className="space-y-1">
-                              {ramOptions.map((opt) => (
+                              {mockRamOptions.map((opt) => (
                                 <label key={opt.value} className="flex items-center gap-2 p-1.5 rounded hover:bg-neutral-50 cursor-pointer">
                                   <Checkbox
                                     size="sm"
@@ -412,7 +518,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       }
                                     }}
                                     classNames={{
-                                      wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                                      wrapper: 'before:border-neutral-300 after:bg-[var(--color-primary)]',
                                       icon: 'text-white',
                                     }}
                                   />
@@ -426,7 +532,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                           <div>
                             <p className="text-xs font-medium text-neutral-500 mb-2">Almacenamiento</p>
                             <div className="space-y-1">
-                              {storageOptions.map((opt) => (
+                              {mockStorageOptions.map((opt) => (
                                 <label key={opt.value} className="flex items-center gap-2 p-1.5 rounded hover:bg-neutral-50 cursor-pointer">
                                   <Checkbox
                                     size="sm"
@@ -440,7 +546,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       }
                                     }}
                                     classNames={{
-                                      wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                                      wrapper: 'before:border-neutral-300 after:bg-[var(--color-primary)]',
                                       icon: 'text-white',
                                     }}
                                   />
@@ -454,7 +560,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                           <div>
                             <p className="text-xs font-medium text-neutral-500 mb-2">Procesador</p>
                             <div className="space-y-1 max-h-[150px] overflow-y-auto">
-                              {processorModelOptions.map((opt) => (
+                              {mockProcessorModelOptions.map((opt) => (
                                 <label key={opt.value} className="flex items-center gap-2 p-1.5 rounded hover:bg-neutral-50 cursor-pointer">
                                   <Checkbox
                                     size="sm"
@@ -468,7 +574,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       }
                                     }}
                                     classNames={{
-                                      wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                                      wrapper: 'before:border-neutral-300 after:bg-[var(--color-primary)]',
                                       icon: 'text-white',
                                     }}
                                   />
@@ -486,7 +592,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.gpuType.includes('dedicated')}
                               onValueChange={(val) => updateFilter('gpuType', val ? ['dedicated'] : [])}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>
@@ -495,13 +601,13 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                           <div>
                             <p className="text-xs font-medium text-neutral-500 mb-2">Tamaño de pantalla</p>
                             <div className="flex flex-wrap gap-2">
-                              {displaySizeOptions.map((opt) => (
+                              {mockDisplaySizeOptions.map((opt) => (
                                 <Chip
                                   key={opt.value}
                                   size="sm"
                                   variant={filters.displaySize.includes(parseFloat(opt.value)) ? 'solid' : 'bordered'}
                                   className={`cursor-pointer ${
-                                    filters.displaySize.includes(parseFloat(opt.value)) ? 'bg-[#4654CD] text-white' : ''
+                                    filters.displaySize.includes(parseFloat(opt.value)) ? 'bg-[var(--color-primary)] text-white' : ''
                                   }`}
                                   onClick={() => {
                                     const size = parseFloat(opt.value);
@@ -522,7 +628,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                           <div>
                             <p className="text-xs font-medium text-neutral-500 mb-2">Resolución</p>
                             <div className="space-y-1">
-                              {resolutionOptions.map((opt) => (
+                              {mockResolutionOptions.map((opt) => (
                                 <label key={opt.value} className="flex items-center gap-2 p-1.5 rounded hover:bg-neutral-50 cursor-pointer">
                                   <Checkbox
                                     size="sm"
@@ -536,7 +642,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       }
                                     }}
                                     classNames={{
-                                      wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                                      wrapper: 'before:border-neutral-300 after:bg-[var(--color-primary)]',
                                       icon: 'text-white',
                                     }}
                                   />
@@ -550,7 +656,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                           <div>
                             <p className="text-xs font-medium text-neutral-500 mb-2">Tipo de pantalla</p>
                             <div className="space-y-1">
-                              {displayTypeOptions.map((opt) => (
+                              {mockDisplayTypeOptions.map((opt) => (
                                 <label key={opt.value} className="flex items-center gap-2 p-1.5 rounded hover:bg-neutral-50 cursor-pointer">
                                   <Checkbox
                                     size="sm"
@@ -564,7 +670,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                                       }
                                     }}
                                     classNames={{
-                                      wrapper: 'before:border-neutral-300 after:bg-[#4654CD]',
+                                      wrapper: 'before:border-neutral-300 after:bg-[var(--color-primary)]',
                                       icon: 'text-white',
                                     }}
                                   />
@@ -582,7 +688,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.touchScreen === true}
                               onValueChange={(val) => updateFilter('touchScreen', val ? true : false)}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>
@@ -595,7 +701,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.ramExpandable === true}
                               onValueChange={(val) => updateFilter('ramExpandable', val ? true : false)}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>
@@ -608,7 +714,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.backlitKeyboard === true}
                               onValueChange={(val) => updateFilter('backlitKeyboard', val ? true : false)}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>
@@ -621,7 +727,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.numericKeypad === true}
                               onValueChange={(val) => updateFilter('numericKeypad', val ? true : false)}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>
@@ -634,7 +740,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.fingerprint === true}
                               onValueChange={(val) => updateFilter('fingerprint', val ? true : false)}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>
@@ -647,7 +753,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.hasWindows === true}
                               onValueChange={(val) => updateFilter('hasWindows', val ? true : false)}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>
@@ -660,7 +766,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.hasThunderbolt === true}
                               onValueChange={(val) => updateFilter('hasThunderbolt', val ? true : false)}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>
@@ -673,7 +779,7 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
                               isSelected={filters.hasEthernet === true}
                               onValueChange={(val) => updateFilter('hasEthernet', val ? true : false)}
                               classNames={{
-                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                               }}
                             />
                           </div>

@@ -207,7 +207,7 @@ const convertCatalogToQuizProduct = (product: CatalogProduct): QuizProduct => {
   // Mapear usage a tags
   if (product.usage.includes('estudios')) quizTags.push('estudios');
   if (product.usage.includes('gaming')) quizTags.push('gaming');
-  if (product.usage.includes('diseño')) quizTags.push('diseno');
+  if (product.usage.includes('diseno')) quizTags.push('diseno');
   if (product.usage.includes('oficina')) quizTags.push('oficina');
   if (product.usage.includes('programacion')) quizTags.push('programacion');
 

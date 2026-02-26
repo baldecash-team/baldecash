@@ -131,8 +131,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                  <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                  <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">
@@ -207,7 +207,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           <p className="text-sm font-medium text-neutral-800 line-clamp-2">
                             {item.displayName}
                           </p>
-                          <p className="text-sm font-bold text-[#4654CD] mt-1">
+                          <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
                             S/{formatMoney(quota)}/mes
                           </p>
                         </div>
@@ -259,7 +259,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     size="lg"
                     className={`px-8 !font-bold cursor-pointer rounded-xl ${
                       !isDisabled
-                        ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+                        ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                     }`}
                     onPress={onContinue}

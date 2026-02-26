@@ -10,6 +10,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import type { Accessory } from '../types/upsell';
 
 const STORAGE_KEY = 'baldecash-solicitar-selected-product';
+const CART_PRODUCTS_STORAGE_KEY = 'baldecash-solicitar-cart-products';
 const ACCESSORIES_STORAGE_KEY = 'baldecash-solicitar-selected-accessories';
 const COUPON_STORAGE_KEY = 'baldecash-solicitar-applied-coupon';
 
@@ -43,6 +44,10 @@ interface ProductContextValue {
   selectedProduct: SelectedProduct | null;
   setSelectedProduct: (product: SelectedProduct | null) => void;
   clearProduct: () => void;
+  // Multi-product cart for wizard
+  cartProducts: SelectedProduct[];
+  setCartProducts: (products: SelectedProduct[]) => void;
+  clearCartProducts: () => void;
   selectedAccessories: Accessory[];
   setSelectedAccessories: (accessories: Accessory[]) => void;
   toggleAccessory: (accessory: Accessory) => void;
@@ -83,6 +88,7 @@ interface ProductProviderProps {
 
 export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) => {
   const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
+  const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
   const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -94,6 +100,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
       const storedProduct = localStorage.getItem(STORAGE_KEY);
       if (storedProduct) {
         setSelectedProductState(JSON.parse(storedProduct));
+      }
+      const storedCartProducts = localStorage.getItem(CART_PRODUCTS_STORAGE_KEY);
+      if (storedCartProducts) {
+        setCartProductsState(JSON.parse(storedCartProducts));
       }
       const storedAccessories = localStorage.getItem(ACCESSORIES_STORAGE_KEY);
       if (storedAccessories) {
@@ -127,6 +137,29 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     setSelectedProductState(null);
     try {
       localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
+  // Cart products functions (multi-product)
+  const setCartProducts = useCallback((products: SelectedProduct[]) => {
+    setCartProductsState(products);
+    try {
+      if (products.length > 0) {
+        localStorage.setItem(CART_PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+      } else {
+        localStorage.removeItem(CART_PRODUCTS_STORAGE_KEY);
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
+  const clearCartProducts = useCallback(() => {
+    setCartProductsState([]);
+    try {
+      localStorage.removeItem(CART_PRODUCTS_STORAGE_KEY);
     } catch {
       // localStorage not available
     }
@@ -226,6 +259,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
         selectedProduct,
         setSelectedProduct,
         clearProduct,
+        cartProducts,
+        setCartProducts,
+        clearCartProducts,
         selectedAccessories,
         setSelectedAccessories,
         toggleAccessory,

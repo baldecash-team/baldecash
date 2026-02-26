@@ -114,12 +114,12 @@ const WishlistContentShared: React.FC<{
               <p className="text-xs text-neutral-500">{product.brand}</p>
               <p
                 onClick={() => onViewProduct(product.id)}
-                className="text-sm font-semibold text-neutral-800 line-clamp-2 cursor-pointer hover:text-[#4654CD] transition-colors"
+                className="text-sm font-semibold text-neutral-800 line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors"
               >
                 {product.displayName}
               </p>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-lg font-bold text-[#4654CD]">
+                <span className="text-lg font-bold text-[var(--color-primary)]">
                   S/{formatMoney(quota)}
                 </span>
                 <span className="text-xs text-neutral-500">/mes</span>
@@ -135,7 +135,7 @@ const WishlistContentShared: React.FC<{
                     isDisabled={!isInCompare && !canAddToCompare}
                     className={`cursor-pointer text-xs h-7 ${
                       isInCompare
-                        ? 'bg-[#4654CD] text-white'
+                        ? 'bg-[var(--color-primary)] text-white'
                         : 'border-neutral-300'
                     }`}
                     startContent={<GitCompare className="w-3 h-3" />}
@@ -189,8 +189,8 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
   >
     <ModalContent>
       <ModalHeader className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-          <Heart className="w-5 h-5 text-[#4654CD] fill-[#4654CD]" />
+        <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+          <Heart className="w-5 h-5 text-[var(--color-primary)] fill-[var(--color-primary)]" />
         </div>
         <div>
           <h2 className="text-lg font-bold text-neutral-800">{config?.title || 'Mis Favoritos'}</h2>
@@ -323,8 +323,8 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                  <Heart className="w-4 h-4 text-[#4654CD] fill-[#4654CD]" />
+                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                  <Heart className="w-4 h-4 text-[var(--color-primary)] fill-[var(--color-primary)]" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">

@@ -45,7 +45,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
       if (isWinner) return 'bg-[#22c55e]/10 text-[#22c55e]';
       if (isOnlyWorst) return 'bg-red-50 text-red-600';
     } else {
-      if (isWinner) return 'bg-[#4654CD]/5';
+      if (isWinner) return 'bg-[rgba(var(--color-primary-rgb),0.05)]';
     }
     return '';
   };
@@ -57,7 +57,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
     if (config.highlightVersion === 1) {
       return <Trophy className="w-4 h-4 text-[#22c55e]" />;
     }
-    return <Check className="w-4 h-4 text-[#4654CD]" />;
+    return <Check className="w-4 h-4 text-[var(--color-primary)]" />;
   };
 
   // Render price difference
@@ -138,7 +138,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                             {product.displayName}
                           </p>
                           <div className="mt-1">
-                            <span className={`font-bold text-base ${isBest ? 'text-[#22c55e]' : 'text-[#4654CD]'}`}>
+                            <span className={`font-bold text-base ${isBest ? 'text-[#22c55e]' : 'text-[var(--color-primary)]'}`}>
                               S/{formatMoney(getDisplayQuota(product))}
                             </span>
                             <span className="text-xs font-normal text-neutral-500">/mes</span>
@@ -183,7 +183,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                           {config.highlightVersion === 2 && spec.isDifferent && (
                             <div className="w-full max-w-[80px] h-2 bg-neutral-200 rounded-full overflow-hidden mr-2">
                               <div
-                                className="h-full bg-[#4654CD] rounded-full transition-all"
+                                className="h-full bg-[var(--color-primary)] rounded-full transition-all"
                                 style={{
                                   width: `${(spec.rawValues[index] / Math.max(...spec.rawValues)) * 100}%`
                                 }}

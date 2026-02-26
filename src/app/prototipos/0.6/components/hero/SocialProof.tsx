@@ -24,12 +24,19 @@ interface ExtendedSocialProofProps extends SocialProofProps {
 }
 
 export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimonials = [], testimonialsTitle, underlineStyle = 4 }) => {
+  // Filtrar instituciones activas y testimonios visibles
+  const activeInstitutions = data.institutions.filter((inst) => inst.is_active !== false);
+  const visibleTestimonials = testimonials.filter((t) => t.is_visible !== false);
+
   // Usar instituciones desde API (data.institutions tiene logo_url)
-  const logos = data.institutions.map((inst, idx) => ({
-    id: idx + 1,
-    name: inst.name,
-    url: inst.logo,
-  }));
+  // Filtrar instituciones sin logo para evitar src=""
+  const logos = activeInstitutions
+    .filter((inst) => inst.logo)
+    .map((inst, idx) => ({
+      id: idx + 1,
+      name: inst.name,
+      url: inst.logo,
+    }));
 
   // Renderizar título con palabra destacada
   const renderTitle = () => {
@@ -60,9 +67,9 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
 
   const [page, setPage] = useState(0);
   const testimonialsPerPage = 2;
-  const totalPages = Math.ceil(testimonials.length / testimonialsPerPage) || 1;
+  const totalPages = Math.ceil(visibleTestimonials.length / testimonialsPerPage) || 1;
 
-  const visibleTestimonials = testimonials.slice(
+  const paginatedTestimonials = visibleTestimonials.slice(
     page * testimonialsPerPage,
     (page + 1) * testimonialsPerPage
   );
@@ -76,7 +83,7 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
   };
 
   return (
-    <section id="convenios" className="py-12 bg-gradient-to-b from-neutral-50 to-white overflow-hidden scroll-mt-24">
+    <section className="py-12 bg-gradient-to-b from-neutral-50 to-white overflow-hidden">
       {/* Header Convenios */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
@@ -89,8 +96,12 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
             <Chip
               startContent={<Building2 className="w-3.5 h-3.5" />}
               classNames={{
-                base: 'bg-[#4654CD]/10 px-4 py-2 h-auto',
-                content: 'text-[#4654CD] text-sm font-medium',
+                base: 'px-4 py-2 h-auto',
+                content: 'text-sm font-medium',
+              }}
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)',
+                color: 'var(--color-primary, #4654CD)',
               }}
             >
               {data.chipText || ''}
@@ -156,8 +167,8 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
         </div>
       </div>
 
-      {/* Testimonios - Solo mostrar si hay testimonials */}
-      {testimonials.length > 0 && (
+      {/* Testimonios - Solo mostrar si hay testimonials visibles */}
+      {visibleTestimonials.length > 0 && (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h3 className="text-xl md:text-2xl font-bold text-neutral-800 font-['Baloo_2'] mb-2">
@@ -200,15 +211,27 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                 exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.25 }}
               >
-                {visibleTestimonials.map((testimonial) => (
+                {paginatedTestimonials.map((testimonial) => (
                   <div
                     key={testimonial.id}
-                    className="bg-white rounded-xl p-5 shadow-md border border-neutral-100 hover:shadow-lg hover:border-[#4654CD]/20 transition-all"
+                    className="bg-white rounded-xl p-5 shadow-md border border-neutral-100 hover:shadow-lg transition-all"
+                    style={{
+                      ['--hover-border' as string]: 'color-mix(in srgb, var(--color-primary, #4654CD) 20%, transparent)',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary, #4654CD) 20%, transparent)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = ''}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <Quote className="w-6 h-6 text-[#4654CD]/20" />
+                      <Quote className="w-6 h-6" style={{ color: 'color-mix(in srgb, var(--color-primary, #4654CD) 20%, transparent)' }} />
                       {getInstitutionLogo(testimonial.institution) && (
-                        <div className="w-14 h-8 bg-[#4654CD]/5 rounded-lg p-1.5 flex items-center justify-center border border-[#4654CD]/10">
+                        <div
+                          className="w-14 h-8 rounded-lg p-1.5 flex items-center justify-center"
+                          style={{
+                            backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 5%, transparent)',
+                            borderWidth: '1px',
+                            borderColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)',
+                          }}
+                        >
                           <img
                             src={getInstitutionLogo(testimonial.institution)}
                             alt={testimonial.institution}
@@ -229,9 +252,10 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
 
                     <div className="flex items-center gap-3">
                       <img
-                        src={testimonial.avatar}
+                        src={testimonial.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.name)}&background=4654CD&color=fff`}
                         alt={testimonial.name}
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-[#4654CD]/10"
+                        className="w-10 h-10 rounded-full object-cover ring-2"
+                        style={{ ['--tw-ring-color' as string]: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
                         loading="lazy"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
@@ -242,7 +266,7 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                         <p className="font-semibold text-neutral-800 text-sm truncate">
                           {testimonial.name}
                         </p>
-                        <p className="text-xs text-[#4654CD] font-medium truncate">
+                        <p className="text-xs font-medium truncate" style={{ color: 'var(--color-primary, #4654CD)' }}>
                           {testimonial.institution}
                         </p>
                       </div>
@@ -264,8 +288,9 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                 key={index}
                 onClick={() => setPage(index)}
                 className={`h-2 rounded-full transition-all cursor-pointer ${
-                  page === index ? 'bg-[#4654CD] w-6' : 'bg-neutral-300 hover:bg-neutral-400 w-2'
+                  page === index ? 'w-6' : 'bg-neutral-300 hover:bg-neutral-400 w-2'
                 }`}
+                style={page === index ? { backgroundColor: 'var(--color-primary, #4654CD)' } : undefined}
               />
             ))}
           </div>

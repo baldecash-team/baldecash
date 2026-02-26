@@ -23,7 +23,7 @@ export const EmptyActionsV6: React.FC<EmptyActionsProps> = ({
     >
       <Button
         size="lg"
-        className="bg-[#4654CD] text-white px-10 py-6 text-lg font-semibold cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
+        className="bg-[var(--color-primary)] text-white px-10 py-6 text-lg font-semibold cursor-pointer hover:brightness-90 transition-colors shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
         endContent={<ArrowRight className="w-5 h-5" />}
         onPress={onClearFilters}
       >

@@ -23,6 +23,7 @@ export interface Institution {
   hasAgreement: boolean;
   agreementType?: AgreementType;
   specialConditions?: string;
+  is_active?: boolean;
 }
 
 // ============================================
@@ -57,6 +58,7 @@ export interface TrustSignal {
   icon: string;
   text: string;
   tooltip?: string;
+  is_visible?: boolean;
 }
 
 export type CtaVariant = 'primary' | 'secondary' | 'outline';
@@ -134,6 +136,7 @@ export interface FooterSocialLink {
 }
 
 export interface FooterNewsletter {
+  enabled?: boolean;
   title: string;
   description: string;
   placeholder: string;
@@ -203,6 +206,7 @@ export interface Testimonial {
   quote: string;
   avatar?: string;
   rating?: number;
+  is_visible?: boolean;
 }
 
 // ============================================
@@ -215,12 +219,14 @@ export interface HowItWorksStep {
   description: string;
   icon: string;
   color?: string;
+  is_visible?: boolean;
 }
 
 export interface Requirement {
   id: number;
   text: string;
   icon?: string;
+  is_visible?: boolean;
 }
 
 export interface HowItWorksData {
@@ -294,6 +300,8 @@ export interface CtaData {
   microcopy?: string;
   highlightWord?: string;
   legalLinks?: LegalLinks;
+  sectionTitle?: string;
+  sectionSubtitle?: string;
 }
 
 export interface HeroCtaProps {
@@ -356,16 +364,20 @@ export interface CatalogSecondaryNavbarData {
 // Navbar Types
 // ============================================
 
-export interface NavbarItemData {
-  label: string;
-  href: string;
-  section: string | null;
-  has_megamenu?: boolean;
-}
-
 export interface MegaMenuItemData {
   label: string;
   href: string;
   icon: string;
   description: string;
+}
+
+export interface NavbarItemData {
+  label: string;
+  href: string;
+  section: string | null;
+  has_megamenu?: boolean;
+  badge_text?: string | null;
+  badge_color?: string | null;
+  megamenu_items?: MegaMenuItemData[];
+  is_visible?: boolean;
 }

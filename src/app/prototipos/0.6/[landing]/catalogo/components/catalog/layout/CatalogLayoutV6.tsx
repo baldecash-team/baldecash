@@ -25,13 +25,13 @@ const FilterPopover = ({
           size="sm"
           variant="bordered"
           endContent={<ChevronDown className="w-3 h-3" />}
-          className={`cursor-pointer border-neutral-200 hover:border-[#4654CD]/50 ${
-            count > 0 ? 'border-[#4654CD] bg-[#4654CD]/5 text-[#4654CD]' : ''
+          className={`cursor-pointer border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] ${
+            count > 0 ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] text-[var(--color-primary)]' : ''
           }`}
         >
           {label}
           {count > 0 && (
-            <span className="ml-1 w-4 h-4 bg-[#4654CD] text-white rounded-full text-[10px] flex items-center justify-center">
+            <span className="ml-1 w-4 h-4 bg-[var(--color-primary)] text-white rounded-full text-[10px] flex items-center justify-center">
               {count}
             </span>
           )}
@@ -336,7 +336,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* Hero Header */}
-      <div className="bg-[#4654CD] text-white py-12 px-4">
+      <div className="bg-[var(--color-primary)] text-white py-12 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -412,7 +412,7 @@ export const CatalogLayoutV6: React.FC<CatalogLayoutProps> = ({
                         key={opt.value}
                         size="sm"
                         variant={isSelected ? 'solid' : 'bordered'}
-                        className={`cursor-pointer ${isSelected ? 'bg-[#4654CD] text-white' : ''}`}
+                        className={`cursor-pointer ${isSelected ? 'bg-[var(--color-primary)] text-white' : ''}`}
                         onClick={() => {
                           const gama = opt.value as GamaTier;
                           if (filters.gama.includes(gama)) {

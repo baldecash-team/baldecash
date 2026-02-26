@@ -8,8 +8,8 @@
  */
 
 import React, { useState } from 'react';
-import { Card, CardBody, Button, Chip } from '@nextui-org/react';
-import { ArrowRight, Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react';
+import { Card, CardBody, Button } from '@nextui-org/react';
+import { ArrowRight, Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Check, ShoppingCart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
@@ -33,6 +33,8 @@ interface ProductCardProps {
   onCompare?: () => void;
   isCompareSelected?: boolean;
   compareDisabled?: boolean;
+  // Cart state
+  isInCart?: boolean;
   // Onboarding IDs (optional, only for first card)
   favoriteButtonId?: string;
   compareButtonId?: string;
@@ -51,6 +53,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onCompare,
   isCompareSelected = false,
   compareDisabled = false,
+  isInCart = false,
   favoriteButtonId,
   compareButtonId,
   detailButtonId,
@@ -61,6 +64,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     product.colors?.[0]?.id || ''
   );
 
+  // Obtener imágenes según color seleccionado (para carousel)
+  const getImagesForSelectedColor = (): string[] => {
+    if (!selectedColorId || !product.colors) {
+      return [product.thumbnail, ...product.images.slice(0, 2)];
+    }
+    const selectedColor = product.colors.find(c => c.id === selectedColorId);
+    // Si el color tiene imágenes, usarlas; si no, fallback a thumbnail
+    if (selectedColor?.images && selectedColor.images.length > 0) {
+      return selectedColor.images;
+    }
+    if (selectedColor?.imageUrl) {
+      return [selectedColor.imageUrl];
+    }
+    return [product.thumbnail];
+  };
+
+  const selectedImages = getImagesForSelectedColor();
+
   // Configuración fija de v0.4 presentación
   const selectedTerm = 24;
   const selectedInitial = 10;
@@ -70,12 +91,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     selectedInitial
   );
 
-  // Check if product has "oferta" tag and originalPrice for discount display
-  const hasOfertaTag = product.tags?.includes('oferta');
+  // Original price for discount display
   const originalQuota = product.originalPrice
     ? calculateQuotaWithInitial(product.originalPrice, selectedTerm, selectedInitial).quota
     : null;
-  const savings = originalQuota ? originalQuota - quota : 0;
 
   return (
     <motion.div
@@ -91,7 +110,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Image - Large (gallerySizeVersion=3) */}
           <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
             <ImageGallery
-              images={[product.thumbnail, ...product.images.slice(0, 3)]}
+              images={selectedImages}
               alt={product.displayName}
             />
 
@@ -104,13 +123,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   e.stopPropagation();
                   onFavorite?.();
                 }}
-                className="p-2.5 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[#4654CD]/10 transition-all"
+                className="p-2.5 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
               >
                 <Heart
                   className={`w-5 h-5 transition-colors ${
                     isFavorite
-                      ? 'fill-[#4654CD] text-[#4654CD]'
-                      : 'text-neutral-300 hover:text-[#4654CD]'
+                      ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
+                      : 'text-neutral-300 hover:text-[var(--color-primary)]'
                   }`}
                 />
               </button>
@@ -127,10 +146,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   disabled={compareDisabled && !isCompareSelected}
                   className={`p-2.5 rounded-full shadow-md transition-all ${
                     isCompareSelected
-                      ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
+                      ? 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                       : compareDisabled
                         ? 'bg-white/50 text-neutral-300 cursor-not-allowed'
-                        : 'bg-white/90 hover:bg-[#4654CD]/10 cursor-pointer'
+                        : 'bg-white/90 hover:bg-[rgba(var(--color-primary-rgb),0.1)] cursor-pointer'
                   }`}
                   title={
                     compareDisabled && !isCompareSelected
@@ -146,7 +165,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                         ? 'text-white'
                         : compareDisabled
                           ? 'text-neutral-300'
-                          : 'text-neutral-300 hover:text-[#4654CD]'
+                          : 'text-neutral-300 hover:text-[var(--color-primary)]'
                     }`}
                   />
                 </button>
@@ -164,7 +183,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Content - Centered */}
           <div className="p-5 text-center flex flex-col flex-1">
             {/* Brand */}
-            <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider mb-1">
+            <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wider mb-1">
               {product.brand}
             </p>
 
@@ -188,11 +207,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Specs técnicas con iconos */}
             <div className="space-y-2 mb-4">
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <Cpu className="w-3.5 h-3.5 text-[#4654CD]" />
+                <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>{product.specs.processor.model}</span>
               </div>
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <MemoryStick className="w-3.5 h-3.5 text-[#4654CD]" />
+                <MemoryStick className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>
                   {product.specs.ram.size}GB {product.specs.ram.type}
                   {product.specs.ram.expandable && (
@@ -201,45 +220,45 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </span>
               </div>
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <HardDrive className="w-3.5 h-3.5 text-[#4654CD]" />
+                <HardDrive className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>
                   {product.specs.storage.size}GB {product.specs.storage.type.toUpperCase()}
                 </span>
               </div>
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <Monitor className="w-3.5 h-3.5 text-[#4654CD]" />
+                <Monitor className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>
                   {product.specs.display.size}" {product.specs.display.resolution.toUpperCase()}
                 </span>
               </div>
             </div>
 
-            {/* Giant Price - Sin opciones interactivas (fijo) */}
-            <div className="bg-[#4654CD]/5 rounded-2xl py-4 px-6 mb-4">
-              <p className="text-xs text-neutral-500 mb-1">Cuota mensual</p>
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-4xl font-black text-[#4654CD]">S/{formatMoney(quota)}</span>
-                <span className="text-lg text-neutral-400">/mes</span>
-                {originalQuota && (
-                  <span className="text-base text-neutral-400 line-through ml-1">
-                    S/{formatMoney(originalQuota)}
-                  </span>
-                )}
-                {product.discount && product.discount > 0 && (
-                  <Chip size="sm" className="bg-red-500 text-white text-xs font-bold ml-2" variant="flat">
-                    -{product.discount}%
-                  </Chip>
+            {/* Pricing - Altura fija para consistencia entre cards */}
+            <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
+              {/* Precio anterior + descuento (altura reservada siempre) */}
+              <div className="h-5 flex items-center justify-center gap-1.5">
+                {originalQuota && originalQuota > quota ? (
+                  <>
+                    <span className="text-xs text-neutral-400 line-through">S/{formatMoney(originalQuota)}/mes</span>
+                    {product.discount && product.discount > 0 && (
+                      <span className="text-xs font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                        -{product.discount}%
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-xs text-neutral-400">Cuota mensual</span>
                 )}
               </div>
-              {savings > 0 ? (
-                <p className="text-xs text-emerald-600 font-medium mt-2">
-                  Ahorras S/{formatMoney(savings)}/mes · {selectedTerm} meses
-                </p>
-              ) : (
-                <p className="text-xs text-neutral-500 mt-2">
-                  en {selectedTerm} meses · inicial S/{formatMoney(initialAmount)}
-                </p>
-              )}
+              {/* Precio actual */}
+              <div className="flex items-baseline justify-center gap-0.5 mt-1">
+                <span className="text-3xl font-black text-[var(--color-primary)]">S/{formatMoney(quota)}</span>
+                <span className="text-lg text-neutral-400">/mes</span>
+              </div>
+              {/* Info adicional */}
+              <p className="text-xs text-neutral-500 mt-2">
+                en {selectedTerm} meses · inicial S/{formatMoney(initialAmount)}
+              </p>
             </div>
 
             {/* Spacer */}
@@ -251,7 +270,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 id={detailButtonId}
                 size="lg"
                 variant="bordered"
-                className="px-6 border-[#4654CD] text-[#4654CD] font-bold cursor-pointer hover:bg-[#4654CD]/5 rounded-xl"
+                className="px-6 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                 startContent={<Eye className="w-5 h-5" />}
                 onPress={onViewDetail}
               >
@@ -260,11 +279,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <Button
                 id={addToCartButtonId}
                 size="lg"
-                className="px-6 bg-[#4654CD] text-white font-bold cursor-pointer hover:bg-[#3a47b3] rounded-xl"
-                endContent={<ArrowRight className="w-5 h-5" />}
-                onPress={onAddToCart}
+                className={`px-6 font-bold rounded-xl ${
+                  isInCart
+                    ? 'bg-emerald-500 text-white cursor-default'
+                    : 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
+                }`}
+                startContent={isInCart ? <Check className="w-5 h-5" /> : undefined}
+                endContent={!isInCart ? <ArrowRight className="w-5 h-5" /> : undefined}
+                onPress={!isInCart ? onAddToCart : undefined}
+                isDisabled={isInCart}
               >
-                Lo quiero
+                {isInCart ? 'En el carrito' : 'Lo quiero'}
               </Button>
             </div>
           </div>

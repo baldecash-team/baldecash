@@ -41,8 +41,8 @@ export const BrandFilterV6: React.FC<BrandFilterProps> = ({
             onClick={() => handleToggle(option.value)}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all cursor-pointer ${
               isSelected
-                ? 'border-[#4654CD] bg-[#4654CD] text-white'
-                : 'border-neutral-200 bg-white text-neutral-700 hover:border-[#4654CD]/50'
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
+                : 'border-neutral-200 bg-white text-neutral-700 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
             }`}
           >
             {isSelected && (

@@ -227,7 +227,7 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
           <div className="border-t border-neutral-200 mt-4 pt-4">
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[#4654CD] transition-colors"
+              className="flex items-center justify-between w-full py-2 text-sm font-medium text-neutral-700 hover:text-[var(--color-primary)] transition-colors"
             >
               <div className="flex items-center gap-2">
                 <Settings2 className="w-4 h-4" />
@@ -295,7 +295,7 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
                     </h4>
 
                     <div className="flex items-baseline gap-2 mb-3">
-                      <span className="text-2xl font-bold text-[#4654CD]">
+                      <span className="text-2xl font-bold text-[var(--color-primary)]">
                         S/{formatMoney(previewProduct.quotaMonthly)}
                       </span>
                       <span className="text-sm text-neutral-500">/mes</span>
@@ -321,7 +321,7 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
                     </div>
 
                     <Button
-                      className="w-full mt-4 bg-[#4654CD] text-white cursor-pointer"
+                      className="w-full mt-4 bg-[var(--color-primary)] text-white cursor-pointer"
                     >
                       Ver detalles
                     </Button>
@@ -343,7 +343,7 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#4654CD] font-['Baloo_2']">
+            <h1 className="text-2xl font-bold text-[var(--color-primary)] font-['Baloo_2']">
               Catálogo de Equipos
             </h1>
             <p className="text-sm text-neutral-500">

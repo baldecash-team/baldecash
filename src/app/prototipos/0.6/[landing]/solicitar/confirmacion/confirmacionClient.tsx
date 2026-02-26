@@ -11,6 +11,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -55,7 +56,7 @@ function ConfirmacionContent() {
   useScrollToTop();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   const handleSelectResult = (path: string) => {
     router.push(path);
@@ -136,6 +137,11 @@ function ConfirmacionContent() {
   // Show loading while layout data is loading
   if (isLayoutLoading) {
     return <LoadingFallback />;
+  }
+
+  // Show 404 if landing not found (paused, archived, or doesn't exist)
+  if (hasLayoutError || !navbarProps) {
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
   return (

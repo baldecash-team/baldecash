@@ -7,9 +7,10 @@
 
 import React, { Suspense, useEffect, useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart } from 'lucide-react';
 import { useProduct } from './context/ProductContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -21,7 +22,8 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 // Upsell components
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from './components/upsell';
 import { mockAccessories } from './data/mockUpsellData';
-import type { Accessory } from './types/upsell';
+import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
+import type { Accessory, AccessoryCategory } from './types/upsell';
 
 // Coupon component
 import { CouponInput } from './components/solicitar/coupon';
@@ -34,15 +36,19 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, selectedAccessories, toggleAccessory, isHydrated } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, toggleAccessory, isHydrated } = useProduct();
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
   const [isTermsHydrated, setIsTermsHydrated] = useState(false);
   const [termsError, setTermsError] = useState<string | null>(null);
 
+  // Accesorios desde API (con fallback a mock data)
+  const [accessories, setAccessories] = useState<Accessory[]>([]);
+  const [isLoadingAccessories, setIsLoadingAccessories] = useState(true);
+
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Cargar valores desde localStorage al montar
   useEffect(() => {
@@ -81,6 +87,42 @@ function WizardPreviewContent() {
       router.replace(`/prototipos/0.6/${landing}/catalogo`);
     }
   }, [isHydrated, selectedProduct, router, landing]);
+
+  // Cargar accesorios desde API (con fallback a mock data)
+  useEffect(() => {
+    async function fetchAccessories() {
+      setIsLoadingAccessories(true);
+      try {
+        const apiAccessories = await getLandingAccessories(landing);
+        if (apiAccessories && apiAccessories.length > 0) {
+          // Transformar datos de API al formato del frontend
+          const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
+            id: acc.id,
+            name: acc.name,
+            description: acc.description || '',
+            price: acc.price,
+            monthlyQuota: acc.monthlyQuota,
+            image: acc.image || 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop',
+            category: (acc.category || 'protección') as AccessoryCategory,
+            isRecommended: acc.isRecommended || false,
+            compatibleWith: acc.compatibleWith || ['all'],
+            specs: acc.specs || [],
+          }));
+          setAccessories(transformedAccessories);
+        } else {
+          // Fallback a datos mock si la API no devuelve datos
+          setAccessories(mockAccessories);
+        }
+      } catch (error) {
+        console.error('Error loading accessories, using mock data:', error);
+        setAccessories(mockAccessories);
+      } finally {
+        setIsLoadingAccessories(false);
+      }
+    }
+
+    fetchAccessories();
+  }, [landing]);
 
   const handleStart = () => {
     // Validar términos antes de continuar
@@ -153,7 +195,7 @@ function WizardPreviewContent() {
         customerPortalUrl={navbarProps?.customerPortalUrl}
         navbarItems={navbarProps?.navbarItems}
         megamenuItems={navbarProps?.megamenuItems}
-        activeSections={['convenios', 'como-funciona', 'faq']}
+        activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
       />
 
       {/* Spacer for fixed navbar + promo banner */}
@@ -172,6 +214,108 @@ function WizardPreviewContent() {
             Completa el formulario para solicitar tu equipo tecnológico
           </p>
         </div>
+
+        {/* Products Card - Shows all cart products or single selected product */}
+        {(() => {
+          const productsToShow = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
+          if (productsToShow.length === 0) return null;
+
+          const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
+
+          return (
+            <div className="bg-white rounded-xl border border-neutral-200 mb-8 overflow-hidden">
+              {/* Header */}
+              {productsToShow.length > 1 && (
+                <div className="px-5 py-3 bg-[#4654CD]/5 border-b border-neutral-200 flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+                  <span className="text-sm font-semibold text-neutral-800">
+                    {productsToShow.length} productos seleccionados
+                  </span>
+                </div>
+              )}
+
+              {/* Product List */}
+              <div className="p-5 space-y-4">
+                {productsToShow.map((product, index) => (
+                  <div key={`${product.id}-${index}`} className={`flex items-start gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}>
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-neutral-50 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-100">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider">
+                        {product.brand}
+                      </p>
+                      <h3 className="text-sm font-bold text-neutral-800 line-clamp-2 mt-0.5">
+                        {product.name}
+                      </h3>
+                      {product.specs && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {product.specs.processor && (
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
+                              {product.specs.processor}
+                            </span>
+                          )}
+                          {product.specs.ram && (
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
+                              {product.specs.ram}
+                            </span>
+                          )}
+                          {product.specs.storage && (
+                            <span className="text-[11px] bg-neutral-100 text-neutral-600 px-1.5 py-0.5 rounded">
+                              {product.specs.storage}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-base font-bold text-[#4654CD] mt-1.5">
+                        S/{product.monthlyPayment}/mes
+                        <span className="text-xs text-neutral-500 font-normal ml-1">
+                          x {product.months} meses
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total + Accessories */}
+              {(productsToShow.length > 1 || selectedAccessories.length > 0) && (
+                <div className="px-5 pb-5 space-y-3">
+                  {/* Accessories */}
+                  {selectedAccessories.length > 0 && (
+                    <div className="pt-3 border-t border-neutral-100">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                        Accesorios seleccionados
+                      </p>
+                      <div className="space-y-1.5">
+                        {selectedAccessories.map((acc) => (
+                          <div key={acc.id} className="flex items-center justify-between text-sm">
+                            <span className="text-neutral-700">{acc.name}</span>
+                            <span className="text-[#4654CD] font-medium">+S/{acc.monthlyQuota}/mes</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  {productsToShow.length > 1 && (
+                    <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
+                      <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
+                      <span className="text-lg font-bold text-[#4654CD]">
+                        S/{totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)}/mes
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
@@ -231,17 +375,25 @@ function WizardPreviewContent() {
         {/* Accessories Upsell Section */}
         <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
           <AccessoryIntro />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockAccessories.map((accessory) => (
-              <AccessoryCard
-                key={accessory.id}
-                accessory={accessory}
-                isSelected={selectedAccessories.some((a) => a.id === accessory.id)}
-                onToggle={() => toggleAccessory(accessory)}
-                onViewDetails={() => setDetailAccessory(accessory)}
-              />
-            ))}
-          </div>
+          {isLoadingAccessories ? (
+            <div className="flex justify-center py-8">
+              <div className="w-8 h-8 border-4 border-[#4654CD]/20 border-t-[#4654CD] rounded-full animate-spin" />
+            </div>
+          ) : accessories.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {accessories.map((accessory) => (
+                <AccessoryCard
+                  key={accessory.id}
+                  accessory={accessory}
+                  isSelected={selectedAccessories.some((a) => a.id === accessory.id)}
+                  onToggle={() => toggleAccessory(accessory)}
+                  onViewDetails={() => setDetailAccessory(accessory)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-neutral-500 py-4">No hay accesorios disponibles</p>
+          )}
         </div>
 
         {/* Accessory Detail Modal */}
@@ -313,6 +465,11 @@ function WizardPreviewContent() {
   // Show loading while checking hydration, layout loading, or if no product selected (redirect will happen)
   if (!isHydrated || !selectedProduct || isLayoutLoading) {
     return <LoadingFallback />;
+  }
+
+  // Show 404 if landing not found (paused, archived, or doesn't exist)
+  if (hasLayoutError || !navbarProps) {
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
   return (

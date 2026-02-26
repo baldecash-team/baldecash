@@ -125,12 +125,12 @@ export const filterTooltips: FilterTooltipContent = {
 // Opciones de Filtros
 // ============================================
 
+// Las 4 categorías principales de uso - sincronizado con QuickUsageCards
 export const usageOptions: FilterOption[] = [
-  { value: 'estudios', label: 'Estudios', count: 35, icon: 'GraduationCap' },
-  { value: 'gaming', label: 'Gaming', count: 12, icon: 'Gamepad2' },
-  { value: 'diseño', label: 'Diseño', count: 15, icon: 'Palette' },
-  { value: 'oficina', label: 'Oficina', count: 30, icon: 'Briefcase' },
-  { value: 'programacion', label: 'Programación', count: 20, icon: 'Code' },
+  { value: 'estudios', label: 'Para estudiar', count: 35, icon: 'GraduationCap' },
+  { value: 'diseno', label: 'Para crear', count: 15, icon: 'Palette' },
+  { value: 'oficina', label: 'Para trabajar', count: 30, icon: 'Briefcase' },
+  { value: 'gaming', label: 'Para jugar', count: 12, icon: 'Gamepad2' },
 ];
 
 // Device type options for filtering
@@ -403,7 +403,7 @@ const featuredTablet: CatalogProduct = {
   condition: 'nuevo',
   stock: 'available',
   stockQuantity: 8,
-  usage: ['estudios', 'diseño'],
+  usage: ['estudios', 'diseno'],
   isFeatured: true,
   isNew: true,
   tags: ['mas_vendido', 'recomendado'],
@@ -544,9 +544,9 @@ function generateProducts(): CatalogProduct[] {
     ['estudios', 'oficina'],
     ['estudios', 'programacion'],
     ['gaming'],
-    ['diseño', 'programacion'],
+    ['diseno', 'programacion'],
     ['oficina'],
-    ['gaming', 'diseño'],
+    ['gaming', 'diseno'],
   ];
 
   const processors = [
@@ -743,7 +743,7 @@ function generateCelulares(): CatalogProduct[] {
     ['estudios', 'oficina'],
     ['estudios'],
     ['gaming'],
-    ['diseño'],
+    ['diseno'],
     ['oficina'],
   ];
 
@@ -921,8 +921,8 @@ function generateTablets(): CatalogProduct[] {
 
   const usages: UsageType[][] = [
     ['estudios', 'oficina'],
-    ['estudios', 'diseño'],
-    ['diseño'],
+    ['estudios', 'diseno'],
+    ['diseno'],
     ['oficina'],
   ];
 

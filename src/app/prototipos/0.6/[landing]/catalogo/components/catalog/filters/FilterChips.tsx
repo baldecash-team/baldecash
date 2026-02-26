@@ -30,9 +30,9 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
           variant="flat"
           onClose={() => onRemove(filter.id)}
           classNames={{
-            base: 'bg-[#4654CD]/10 px-2.5 py-1 h-auto cursor-pointer hover:bg-[#4654CD]/20 transition-colors',
-            content: 'text-[#4654CD] text-xs font-medium',
-            closeButton: 'text-[#4654CD] hover:text-[#4654CD]/70 ml-1',
+            base: 'bg-[rgba(var(--color-primary-rgb),0.1)] px-2.5 py-1 h-auto cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.2)] transition-colors',
+            content: 'text-[var(--color-primary)] text-xs font-medium',
+            closeButton: 'text-[var(--color-primary)] hover:text-[rgba(var(--color-primary-rgb),0.7)] ml-1',
           }}
           endContent={<X className="w-3 h-3" />}
         >

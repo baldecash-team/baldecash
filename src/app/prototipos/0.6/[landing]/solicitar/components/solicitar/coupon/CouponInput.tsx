@@ -262,10 +262,6 @@ export const CouponInput: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Hint */}
-      <p className="text-xs text-neutral-400 mt-2">
-        Prueba con el código <span className="font-mono font-medium text-[#4654CD]">PROMO</span>
-      </p>
     </div>
   );
 };

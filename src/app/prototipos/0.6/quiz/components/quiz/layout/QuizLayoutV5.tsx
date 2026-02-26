@@ -5,7 +5,7 @@
  * Layout minimalista con header y contenido.
  */
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Modal,
   ModalContent,
@@ -25,6 +25,15 @@ export const QuizLayoutV5: React.FC<QuizLayoutProps> = ({
   currentStep,
   totalSteps,
 }) => {
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  // Scroll al inicio cuando cambia el paso
+  useEffect(() => {
+    if (bodyRef.current) {
+      bodyRef.current.scrollTop = 0;
+    }
+  }, [currentStep]);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -44,10 +53,16 @@ export const QuizLayoutV5: React.FC<QuizLayoutProps> = ({
     >
       <ModalContent className="bg-white overflow-hidden">
         {/* Header */}
-        <ModalHeader className="flex flex-col bg-gradient-to-b from-[#4654CD]/5 to-white border-b border-neutral-100 py-6 px-6">
+        <ModalHeader
+          className="flex flex-col border-b border-neutral-100 py-6 px-6"
+          style={{ background: 'linear-gradient(to bottom, color-mix(in srgb, var(--color-primary) 5%, transparent), white)' }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#4654CD] flex items-center justify-center">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
                 <HelpCircle className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -71,10 +86,11 @@ export const QuizLayoutV5: React.FC<QuizLayoutProps> = ({
         </ModalHeader>
 
         {/* Body - scrollable */}
-        <ModalBody className="py-8 px-6 sm:px-10 bg-white min-h-[300px] max-h-[calc(90vh-200px)] overflow-y-auto overscroll-contain flex flex-col">
-          <div className="min-h-0">
-            {children}
-          </div>
+        <ModalBody
+          ref={bodyRef}
+          className="py-6 px-6 sm:px-8 bg-white max-h-[calc(90vh-180px)] overflow-y-auto overscroll-contain"
+        >
+          {children}
         </ModalBody>
 
         {/* Footer - fixed at bottom */}

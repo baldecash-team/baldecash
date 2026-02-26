@@ -19,17 +19,85 @@ const WhatsAppIcon = () => (
 
 export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, landing = 'home' }) => {
   const router = useRouter();
-  const catalogUrl = data?.buttons.catalog.url || `/prototipos/0.6/${landing}/catalogo`;
-  const whatsappUrl = data?.buttons.whatsapp.url || 'https://wa.link/osgxjf';
+
+  // Normalize landing to remove trailing slashes
+  const normalizedLanding = landing.replace(/\/+$/, '');
+  const heroUrl = `/prototipos/0.6/${normalizedLanding}`;
+
+  // Transform links: handle relative paths and build full URLs
+  const transformLink = (href: string | undefined, fallback: string): string => {
+    if (!href) return `${heroUrl}/${fallback}`;
+
+    // External links and special protocols - return as-is
+    if (href.startsWith('http') || href.startsWith('tel:') || href.startsWith('mailto:')) {
+      return href;
+    }
+
+    // Anchors - prepend heroUrl for full path
+    if (href.startsWith('#')) {
+      return `${heroUrl}${href}`;
+    }
+
+    // If it's an absolute path starting with /prototipos, return as-is
+    if (href.startsWith('/prototipos/')) {
+      return href;
+    }
+
+    // Relative path: build full URL with landing base
+    return `${heroUrl}/${href}`;
+  };
+
+  // Check if a link is external
+  const isExternalLink = (href: string): boolean => {
+    return href.startsWith('http://') || href.startsWith('https://');
+  };
+
+  // Check if URL contains an anchor
+  const isAnchorLink = (href: string): boolean => {
+    return href.includes('#');
+  };
+
+  const catalogUrl = transformLink(data?.buttons.catalog.url, 'catalogo');
+  const whatsappUrl = data?.buttons.whatsapp.url || '';
 
   const handleWhatsApp = () => {
-    window.open(whatsappUrl, '_blank');
+    if (whatsappUrl) {
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }
     onCtaClick?.();
   };
 
   const handleCatalogo = () => {
     onCtaClick?.();
-    router.push(catalogUrl);
+
+    if (isExternalLink(catalogUrl)) {
+      // External - open in new tab
+      window.open(catalogUrl, '_blank', 'noopener,noreferrer');
+    } else if (isAnchorLink(catalogUrl)) {
+      // Anchor - check if same page for smooth scroll
+      const hashIndex = catalogUrl.indexOf('#');
+      const anchor = catalogUrl.substring(hashIndex);
+      const pathBeforeAnchor = catalogUrl.substring(0, hashIndex);
+      const currentPath = window.location.pathname;
+
+      // Normalize paths for comparison
+      const normalizePath = (path: string) => path.replace(/\/$/, '');
+      const isOnTargetPage = pathBeforeAnchor && normalizePath(currentPath) === normalizePath(pathBeforeAnchor);
+
+      if (isOnTargetPage) {
+        // Same page - smooth scroll
+        const element = document.querySelector(anchor);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        // Different page - navigate normally
+        router.push(catalogUrl);
+      }
+    } else {
+      // Normal navigation
+      router.push(catalogUrl);
+    }
   };
 
   const handleQuiz = () => {
@@ -43,7 +111,11 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
         <Button
           size="lg"
           radius="lg"
-          className="bg-[#4654CD] text-white font-semibold w-52 h-14 text-base cursor-pointer hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25"
+          className="text-white font-semibold w-52 h-14 text-base cursor-pointer transition-colors shadow-lg"
+          style={{
+            backgroundColor: 'var(--color-primary, #4654CD)',
+            boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--color-primary, #4654CD) 25%, transparent)',
+          }}
           startContent={<Laptop className="w-5 h-5" />}
           onPress={handleCatalogo}
         >
@@ -52,14 +124,15 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
         <Button
           size="lg"
           radius="lg"
-          className="bg-[#03DBD0] text-white font-semibold w-52 h-14 text-base cursor-pointer hover:bg-[#02c4ba] transition-colors shadow-lg shadow-[#03DBD0]/25"
+          className="text-white font-semibold w-52 h-14 text-base cursor-pointer transition-colors shadow-lg"
+          style={{
+            backgroundColor: 'var(--color-secondary, #03DBD0)',
+            boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--color-secondary, #03DBD0) 25%, transparent)',
+          }}
           startContent={<HelpCircle className="w-5 h-5 flex-shrink-0" />}
           onPress={handleQuiz}
         >
-          <span className="flex flex-col leading-tight text-left">
-            <span>{data?.buttons.quiz.text || ''}</span>
-            <span>{data?.buttons.quiz.text_line2 || ''}</span>
-          </span>
+          <span className="text-wrap text-left leading-tight">{data?.buttons.quiz.text || ''}</span>
         </Button>
         <Button
           size="lg"

@@ -8,12 +8,9 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Chip } from '@nextui-org/react';
-import { ArrowRight, Shield, Users, Building } from 'lucide-react';
+import { ArrowRight, Shield, Users, Building, Clock, CreditCard, Truck, CheckCircle, Star, Heart, Zap, Headphones, Award } from 'lucide-react';
 import { HeroBannerProps } from '../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
-
-// Default background image (fallback)
-const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1920&q=80';
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   headline,
@@ -27,7 +24,76 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   landing = 'home',
 }) => {
   const router = useRouter();
-  const catalogUrl = `/prototipos/0.6/${landing}/catalogo?device=laptop`;
+
+  // Normalize landing to remove trailing slashes
+  const normalizedLanding = landing.replace(/\/+$/, '');
+  const heroUrl = `/prototipos/0.6/${normalizedLanding}`;
+
+  // Transform links: handle relative paths and build full URLs
+  const transformLink = (href: string): string => {
+    if (!href) return `${heroUrl}/catalogo?device=laptop`;
+
+    // External links and special protocols - return as-is
+    if (href.startsWith('http') || href.startsWith('tel:') || href.startsWith('mailto:')) {
+      return href;
+    }
+
+    // Anchors - prepend heroUrl for full path
+    if (href.startsWith('#')) {
+      return `${heroUrl}${href}`;
+    }
+
+    // If it's an absolute path starting with /prototipos, return as-is
+    if (href.startsWith('/prototipos/')) {
+      return href;
+    }
+
+    // Relative path: build full URL with landing base
+    return `${heroUrl}/${href}`;
+  };
+
+  // Use primaryCta.href if available, otherwise fallback to default catalog URL
+  const ctaUrl = transformLink(primaryCta?.href || 'catalogo?device=laptop');
+
+  // Check if a link is external
+  const isExternalLink = (href: string): boolean => {
+    return href.startsWith('http://') || href.startsWith('https://');
+  };
+
+  // Check if URL contains an anchor
+  const isAnchorLink = (href: string): boolean => {
+    return href.includes('#');
+  };
+
+  // Handle CTA click - external links in new tab, anchors with smooth scroll
+  const handleCtaClick = () => {
+    if (isExternalLink(ctaUrl)) {
+      window.open(ctaUrl, '_blank', 'noopener,noreferrer');
+    } else if (isAnchorLink(ctaUrl)) {
+      // Extract anchor from URL
+      const hashIndex = ctaUrl.indexOf('#');
+      const anchor = ctaUrl.substring(hashIndex);
+      const pathBeforeAnchor = ctaUrl.substring(0, hashIndex);
+      const currentPath = window.location.pathname;
+
+      // Normalize paths for comparison
+      const normalizePath = (path: string) => path.replace(/\/$/, '');
+      const isOnTargetPage = pathBeforeAnchor && normalizePath(currentPath) === normalizePath(pathBeforeAnchor);
+
+      if (isOnTargetPage) {
+        // Same page - smooth scroll
+        const element = document.querySelector(anchor);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        // Different page - navigate normally
+        router.push(ctaUrl);
+      }
+    } else {
+      router.push(ctaUrl);
+    }
+  };
 
   // Map icon names to components
   const getIconComponent = (iconName: string) => {
@@ -35,6 +101,15 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       shield: Shield,
       users: Users,
       building: Building,
+      clock: Clock,
+      creditcard: CreditCard,
+      truck: Truck,
+      checkcircle: CheckCircle,
+      star: Star,
+      heart: Heart,
+      zap: Zap,
+      headphones: Headphones,
+      award: Award,
     };
     return icons[iconName.toLowerCase()] || Shield;
   };
@@ -43,7 +118,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     <section className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
       {/* Background Image */}
       <img
-        src={imageSrc || DEFAULT_HERO_IMAGE}
+        src={imageSrc}
         alt="Estudiantes trabajando"
         className="absolute inset-0 w-full h-full object-cover"
         loading="lazy"
@@ -95,9 +170,12 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             <Button
               size="lg"
               radius="lg"
-              className="bg-[#03DBD0] text-neutral-900 font-semibold px-8 cursor-pointer hover:bg-[#02C3BA] transition-colors"
+              className="text-neutral-900 font-semibold px-8 cursor-pointer transition-colors"
+              style={{
+                backgroundColor: 'var(--color-secondary, #03DBD0)',
+              }}
               endContent={<ArrowRight className="w-5 h-5" />}
-              onPress={() => router.push(catalogUrl)}
+              onPress={handleCtaClick}
             >
               {primaryCta?.text || ''}
             </Button>
@@ -105,15 +183,17 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
           {/* Trust Signals */}
           <div className="flex flex-wrap gap-6">
-            {trustSignals.map((signal, index) => {
-              const IconComponent = getIconComponent(signal.icon);
-              return (
-                <div key={index} className="flex items-center gap-2 text-white/80 text-sm">
-                  <IconComponent className="w-5 h-5 text-[#03DBD0]" />
-                  <span>{signal.text}</span>
-                </div>
-              );
-            })}
+            {trustSignals
+              .filter((signal) => signal.is_visible !== false)
+              .map((signal, index) => {
+                const IconComponent = getIconComponent(signal.icon);
+                return (
+                  <div key={index} className="flex items-center gap-2 text-white/80 text-sm">
+                    <IconComponent className="w-5 h-5" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
+                    <span>{signal.text}</span>
+                  </div>
+                );
+              })}
           </div>
         </div>
       </div>

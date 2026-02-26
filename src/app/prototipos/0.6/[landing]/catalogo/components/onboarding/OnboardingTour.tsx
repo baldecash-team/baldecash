@@ -273,12 +273,12 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                   left: targetRect.left - 8,
                   width: targetRect.width + 16,
                   height: targetRect.height + 16,
-                  boxShadow: '0 0 0 4px #4654CD, 0 0 0 8px rgba(70, 84, 205, 0.3)',
+                  boxShadow: '0 0 0 4px var(--color-primary), 0 0 0 8px rgba(var(--color-primary-rgb), 0.3)',
                 }}
               >
                 {/* Animated pulse */}
                 <motion.div
-                  className="absolute inset-0 rounded-xl border-2 border-[#4654CD]"
+                  className="absolute inset-0 rounded-xl border-2 border-[var(--color-primary)]"
                   animate={{
                     scale: [1, 1.05, 1],
                     opacity: [1, 0.5, 1],
@@ -317,7 +317,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
             {/* Step indicator - hidden in help only mode */}
             {!isHelpOnlyMode && (
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-semibold text-[#4654CD] bg-[#4654CD]/10 px-2 py-1 rounded-full">
+                <span className="text-xs font-semibold text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] px-2 py-1 rounded-full">
                   Paso {currentStepIndex + 1} de {totalSteps}
                 </span>
               </div>
@@ -339,9 +339,9 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                     key={idx}
                     className={`h-1.5 rounded-full transition-all ${
                       idx === currentStepIndex
-                        ? 'w-6 bg-[#4654CD]'
+                        ? 'w-6 bg-[var(--color-primary)]'
                         : idx < currentStepIndex
-                          ? 'w-1.5 bg-[#4654CD]/50'
+                          ? 'w-1.5 bg-[rgba(var(--color-primary-rgb),0.5)]'
                           : 'w-1.5 bg-neutral-200'
                     }`}
                   />
@@ -366,7 +366,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
               <Button
                 size="sm"
-                className={`bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3] ${isHelpOnlyMode ? 'px-8' : ''}`}
+                className={`bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90 ${isHelpOnlyMode ? 'px-8' : ''}`}
                 style={{ borderRadius: '10px' }}
                 onPress={onNext}
                 endContent={!isLastStep && !isHelpOnlyMode && <ChevronRight className="w-4 h-4" />}

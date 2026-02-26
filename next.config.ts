@@ -4,8 +4,12 @@ import type { NextConfig } from "next";
 // Leave empty for custom domain (demo.baldecash.com)
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
+// Solo usar static export en producción (build), no en desarrollo
+// Esto permite que rutas dinámicas funcionen correctamente en dev
+const isProduction = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
-  output: "export",
+  ...(isProduction && { output: "export" }),
   basePath: basePath,
   trailingSlash: true,
   images: {

@@ -38,7 +38,7 @@ export const BrandFilterV5: React.FC<BrandFilterProps> = ({
         }}
         classNames={{
           base: 'w-full',
-          trigger: 'min-h-10 bg-white border border-neutral-200 hover:border-[#4654CD]/50 transition-colors cursor-pointer',
+          trigger: 'min-h-10 bg-white border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] transition-colors cursor-pointer',
           value: 'text-sm text-neutral-700',
           popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
           listbox: 'p-1 bg-white',
@@ -69,8 +69,8 @@ export const BrandFilterV5: React.FC<BrandFilterProps> = ({
               textValue={option.label}
               classNames={{
                 base: `px-3 py-2 rounded-md cursor-pointer transition-colors
-                  data-[selected=false]:data-[hover=true]:bg-[#4654CD]/10
-                  data-[selected=true]:bg-[#4654CD]/20`,
+                  data-[selected=false]:data-[hover=true]:bg-[rgba(var(--color-primary-rgb),0.1)]
+                  data-[selected=true]:bg-[rgba(var(--color-primary-rgb),0.2)]`,
               }}
             >
               <div className="flex items-center gap-3">
@@ -114,9 +114,9 @@ export const BrandFilterV5: React.FC<BrandFilterProps> = ({
                 variant="flat"
                 onClose={() => handleRemove(brand)}
                 classNames={{
-                  base: 'bg-[#4654CD]/10 px-2 py-1 h-auto cursor-pointer hover:bg-[#4654CD]/20 transition-colors',
-                  content: 'text-[#4654CD] text-xs font-medium',
-                  closeButton: 'text-[#4654CD] hover:text-[#4654CD]/70 ml-1',
+                  base: 'bg-[rgba(var(--color-primary-rgb),0.1)] px-2 py-1 h-auto cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.2)] transition-colors',
+                  content: 'text-[var(--color-primary)] text-xs font-medium',
+                  closeButton: 'text-[var(--color-primary)] hover:text-[rgba(var(--color-primary-rgb),0.7)] ml-1',
                 }}
                 endContent={<X className="w-3 h-3" />}
               >

@@ -3,30 +3,17 @@
 /**
  * Libro de Reclamaciones - BaldeCash v0.6
  * Formulario para presentar reclamos y quejas según normativa peruana
+ * Usa useLayout() para obtener navbar y footer del landing
  */
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState } from 'react';
 import { Button, Card, CardBody, Radio, RadioGroup } from '@nextui-org/react';
 import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop, Toast } from '@/app/prototipos/_shared';
-import { getLandingLayout } from '@/app/prototipos/0.6/services/landingApi';
-import type { FooterData, NavbarItemData, MegaMenuItemData } from '@/app/prototipos/0.6/types/hero';
-
-interface NavbarContentConfig {
-  items?: NavbarItemData[];
-  megamenu_items?: MegaMenuItemData[];
-}
-
-interface FooterContentConfig {
-  tagline?: string;
-  columns?: { title: string; links: { label: string; href: string }[] }[];
-  newsletter?: { title: string; description: string; placeholder: string; button_text: string };
-  sbs_text?: string;
-  copyright_text?: string;
-  social_links?: { platform: string; url: string }[];
-}
+import { useLayout } from '../../context/LayoutContext';
 
 interface FormData {
   // Identificación del consumidor
@@ -77,74 +64,14 @@ function LoadingFallback() {
   );
 }
 
-function LibroReclamacionesContent() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [logoUrl, setLogoUrl] = useState<string | undefined>();
-  const [customerPortalUrl, setCustomerPortalUrl] = useState<string | undefined>();
-  const [navbarItems, setNavbarItems] = useState<NavbarItemData[]>([]);
-  const [megamenuItems, setMegamenuItems] = useState<MegaMenuItemData[]>([]);
-  const [footerData, setFooterData] = useState<FooterData | null>(null);
+export function LibroReclamacionesClient() {
+  const { navbarProps, footerData, isLoading, hasError, landing } = useLayout();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
   useScrollToTop();
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Usar endpoint /layout que solo trae navbar + footer + company
-        const data = await getLandingLayout('home');
-        if (data) {
-          // Extraer logo y customer portal de company
-          setLogoUrl(data.company?.logo_url);
-          setCustomerPortalUrl(data.company?.customer_portal_url);
-
-          // Extraer navbar
-          if (data.navbar) {
-            const navbarConfig = data.navbar.content_config as NavbarContentConfig;
-            setNavbarItems(navbarConfig?.items || []);
-            setMegamenuItems(navbarConfig?.megamenu_items || []);
-          }
-
-          // Extraer footer
-          if (data.footer) {
-            const footerConfig = data.footer.content_config as FooterContentConfig;
-            setFooterData({
-              tagline: footerConfig?.tagline,
-              columns: footerConfig?.columns,
-              newsletter: footerConfig?.newsletter,
-              sbs_text: footerConfig?.sbs_text,
-              copyright_text: footerConfig?.copyright_text,
-              social_links: footerConfig?.social_links,
-              company: data.company ? {
-                logo_url: data.company.logo_url,
-                customer_portal_url: data.company.customer_portal_url,
-                social_links: data.company.social_links ? {
-                  facebook: data.company.social_links.facebook,
-                  instagram: data.company.social_links.instagram,
-                  twitter: data.company.social_links.twitter,
-                  linkedin: data.company.social_links.linkedin,
-                  youtube: data.company.social_links.youtube,
-                  tiktok: data.company.social_links.tiktok,
-                } : undefined,
-              } : undefined,
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error loading landing layout:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      loadData();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -183,28 +110,46 @@ function LibroReclamacionesContent() {
     setFormData(initialFormData);
   };
 
+  // Show loading spinner while fetching
   if (isLoading) {
     return <LoadingFallback />;
   }
 
+  // Show 404 if landing not found (paused, archived, or doesn't exist)
+  if (hasError || !navbarProps) {
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+  }
+
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
+    <div className="min-h-screen bg-neutral-50 flex flex-col overflow-y-auto">
+      {/* Dynamic focus styles using CSS variables */}
+      <style>{`
+        .form-input-focus:focus {
+          border-color: var(--color-primary, #4654CD) !important;
+        }
+      `}</style>
+
       {/* Navbar */}
       <Navbar
-        logoUrl={logoUrl}
-        customerPortalUrl={customerPortalUrl}
-        navbarItems={navbarItems}
-        megamenuItems={megamenuItems}
-        activeSections={['convenios', 'como-funciona', 'faq']}
+        promoBannerData={navbarProps.promoBannerData}
+        logoUrl={navbarProps.logoUrl}
+        customerPortalUrl={navbarProps.customerPortalUrl}
+        navbarItems={navbarProps.navbarItems}
+        megamenuItems={navbarProps.megamenuItems}
+        activeSections={navbarProps.activeSections}
+        landing={landing}
       />
 
       {/* Main Content */}
-      <main className="flex-1 pt-24 pb-16">
+      <main className="flex-1 pt-40 pb-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#4654CD]/10 flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-8 h-8 text-[#4654CD]" />
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
+            >
+              <FileText className="w-8 h-8" style={{ color: 'var(--color-primary, #4654CD)' }} />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 font-['Baloo_2'] mb-2">
               Libro de Reclamaciones
@@ -215,7 +160,13 @@ function LibroReclamacionesContent() {
           </div>
 
           {/* Company Info */}
-          <Card className="mb-6 bg-[#4654CD]/5 border border-[#4654CD]/20">
+          <Card
+            className="mb-6 border"
+            style={{
+              backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 5%, transparent)',
+              borderColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 20%, transparent)',
+            }}
+          >
             <CardBody className="p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
@@ -240,8 +191,11 @@ function LibroReclamacionesContent() {
             <Card className="shadow-sm">
               <CardBody className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
-                    <User className="w-5 h-5 text-[#4654CD]" />
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
+                  >
+                    <User className="w-5 h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
                   </div>
                   <div>
                     <h2 className="font-semibold text-neutral-900">1. Identificación del Consumidor</h2>
@@ -257,7 +211,7 @@ function LibroReclamacionesContent() {
                     <select
                       value={formData.tipoDocumento}
                       onChange={(e) => handleInputChange('tipoDocumento', e.target.value)}
-                      className="w-full h-11 px-3 rounded-lg border-2 border-neutral-200 bg-white text-neutral-800 focus:border-[#4654CD] focus:outline-none transition-colors"
+                      className="w-full h-11 px-3 rounded-lg border-2 border-neutral-200 bg-white text-neutral-800 form-input-focus focus:outline-none transition-colors"
                     >
                       <option value="dni">DNI</option>
                       <option value="ce">Carné de Extranjería</option>
@@ -349,8 +303,11 @@ function LibroReclamacionesContent() {
             <Card className="shadow-sm">
               <CardBody className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-[#4654CD]" />
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
+                  >
+                    <FileText className="w-5 h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
                   </div>
                   <div>
                     <h2 className="font-semibold text-neutral-900">2. Identificación del Bien Contratado</h2>
@@ -382,7 +339,7 @@ function LibroReclamacionesContent() {
                       onChange={(e) => handleInputChange('descripcionBien', e.target.value)}
                       placeholder="Describa el producto o servicio contratado..."
                       rows={3}
-                      className="w-full px-3 py-2.5 rounded-lg border-2 border-neutral-200 bg-white text-neutral-800 focus:border-[#4654CD] focus:outline-none transition-colors resize-none"
+                      className="w-full px-3 py-2.5 rounded-lg border-2 border-neutral-200 bg-white text-neutral-800 form-input-focus focus:outline-none transition-colors resize-none"
                     />
                   </div>
                 </div>
@@ -393,8 +350,11 @@ function LibroReclamacionesContent() {
             <Card className="shadow-sm">
               <CardBody className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 text-[#4654CD]" />
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
+                  >
+                    <MessageSquare className="w-5 h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
                   </div>
                   <div>
                     <h2 className="font-semibold text-neutral-900">3. Detalle de la Reclamación</h2>
@@ -444,7 +404,7 @@ function LibroReclamacionesContent() {
                       placeholder="Describa detalladamente los hechos que motivaron su reclamo o queja..."
                       rows={4}
                       className={`w-full px-3 py-2.5 rounded-lg border-2 bg-white text-neutral-800 focus:outline-none transition-colors resize-none ${
-                        errors.detalleReclamo ? 'border-red-400' : 'border-neutral-200 focus:border-[#4654CD]'
+                        errors.detalleReclamo ? 'border-red-400' : 'border-neutral-200 form-input-focus'
                       }`}
                     />
                     {errors.detalleReclamo && (
@@ -465,7 +425,7 @@ function LibroReclamacionesContent() {
                       placeholder="Indique qué solución espera obtener..."
                       rows={3}
                       className={`w-full px-3 py-2.5 rounded-lg border-2 bg-white text-neutral-800 focus:outline-none transition-colors resize-none ${
-                        errors.pedidoConsumidor ? 'border-red-400' : 'border-neutral-200 focus:border-[#4654CD]'
+                        errors.pedidoConsumidor ? 'border-red-400' : 'border-neutral-200 form-input-focus'
                       }`}
                     />
                     {errors.pedidoConsumidor && (
@@ -494,7 +454,8 @@ function LibroReclamacionesContent() {
               <Button
                 size="lg"
                 radius="lg"
-                className="bg-[#4654CD] text-white font-semibold px-8 cursor-pointer"
+                className="text-white font-semibold px-8 cursor-pointer"
+                style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
                 endContent={!isSubmitting && <Send className="w-4 h-4" />}
                 isLoading={isSubmitting}
                 onPress={handleSubmit}
@@ -507,7 +468,7 @@ function LibroReclamacionesContent() {
       </main>
 
       {/* Footer */}
-      <Footer data={footerData} />
+      <Footer data={footerData} landing={landing} />
 
       {/* Success Toast */}
       <Toast
@@ -555,7 +516,7 @@ function FormInput({ label, value, onChange, error, placeholder, type = 'text', 
           className={`w-full h-11 px-3 rounded-lg border-2 bg-white text-neutral-800 focus:outline-none transition-colors ${
             icon ? 'pl-10' : ''
           } ${
-            error ? 'border-red-400' : 'border-neutral-200 focus:border-[#4654CD]'
+            error ? 'border-red-400' : 'border-neutral-200 form-input-focus'
           }`}
         />
       </div>
@@ -566,13 +527,5 @@ function FormInput({ label, value, onChange, error, placeholder, type = 'text', 
         </p>
       )}
     </div>
-  );
-}
-
-export default function LibroReclamacionesPage() {
-  return (
-    <Suspense fallback={<LoadingFallback />}>
-      <LibroReclamacionesContent />
-    </Suspense>
   );
 }

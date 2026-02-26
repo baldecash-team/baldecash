@@ -16,12 +16,13 @@ import { AlertCircle, Edit2, CreditCard } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { SelectInput } from '../components/solicitar/fields';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import {
   WizardStep,
   WizardField,
-  STEP_CODE_TO_SLUG,
+  getStepSlug,
   evaluateFieldVisibility,
 } from '../../../services/wizardApi';
 
@@ -70,7 +71,7 @@ function ResumenContent() {
   }, [steps]);
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Build form values for field visibility evaluation
   const formValues = useMemo(() => {
@@ -120,9 +121,10 @@ function ResumenContent() {
 
   const handleBack = () => {
     // Navigate to the last regular step from API (not summary steps)
+    // Use dynamic url_slug from API (100% from BD)
     if (regularSteps.length > 0) {
       const lastStep = regularSteps[regularSteps.length - 1];
-      const slug = STEP_CODE_TO_SLUG[lastStep.code] || lastStep.code;
+      const slug = getStepSlug(lastStep);
       router.push(`/prototipos/0.6/${landing}/solicitar/${slug}`);
     } else {
       router.push(`/prototipos/0.6/${landing}/solicitar/datos-economicos`);
@@ -276,6 +278,11 @@ function ResumenContent() {
     return <LoadingFallback />;
   }
 
+  // Show 404 if landing not found (paused, archived, or doesn't exist)
+  if (hasLayoutError || !navbarProps) {
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+  }
+
   // Error state
   if (configError) {
     return (
@@ -318,7 +325,7 @@ function ResumenContent() {
           if (visibleFields.length === 0) return null;
 
           const IconComponent = getIconComponent(step.icon);
-          const stepSlug = STEP_CODE_TO_SLUG[step.code] || step.code;
+          const stepSlug = getStepSlug(step);
 
           return (
             <SummarySection

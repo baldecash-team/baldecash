@@ -44,7 +44,7 @@ export const ColorSelectorV2: React.FC<ColorSelectorV2Props> = ({
             className={`
               w-3 h-3 rounded-full border transition-all cursor-pointer
               ${selectedColorId === color.id
-                ? 'border-[#4654CD] scale-125 ring-2 ring-[#4654CD]/30'
+                ? 'border-[var(--color-primary)] scale-125 ring-2 ring-[rgba(var(--color-primary-rgb),0.3)]'
                 : 'border-neutral-300 hover:scale-110 hover:border-neutral-400'}
             `}
             style={{ backgroundColor: color.hex }}

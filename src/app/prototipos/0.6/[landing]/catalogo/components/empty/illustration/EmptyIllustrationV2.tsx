@@ -15,7 +15,7 @@ export const EmptyIllustrationV2: React.FC<EmptyIllustrationProps> = ({ classNam
       {/* Ilustración estilo estudiante */}
       <div className="relative w-48 h-40 mb-6">
         {/* Fondo decorativo */}
-        <div className="absolute inset-0 bg-[#4654CD]/5 rounded-full blur-xl" />
+        <div className="absolute inset-0 bg-[rgba(var(--color-primary-rgb),0.05)] rounded-full blur-xl" />
 
         {/* Escritorio */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-4 bg-neutral-200 rounded-t-lg" />
@@ -26,12 +26,12 @@ export const EmptyIllustrationV2: React.FC<EmptyIllustrationProps> = ({ classNam
         </div>
 
         {/* Persona simplificada */}
-        <div className="absolute bottom-12 right-6 w-12 h-12 bg-[#03DBD0]/30 rounded-full" />
-        <div className="absolute bottom-6 right-8 w-8 h-14 bg-[#03DBD0]/20 rounded-lg" />
+        <div className="absolute bottom-12 right-6 w-12 h-12 bg-[rgba(var(--color-secondary-rgb),0.3)] rounded-full" />
+        <div className="absolute bottom-6 right-8 w-8 h-14 bg-[rgba(var(--color-secondary-rgb),0.2)] rounded-lg" />
 
         {/* Lupa */}
-        <div className="absolute top-4 right-4 w-10 h-10 bg-[#4654CD]/10 rounded-full flex items-center justify-center animate-pulse">
-          <Search className="w-5 h-5 text-[#4654CD]" />
+        <div className="absolute top-4 right-4 w-10 h-10 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-full flex items-center justify-center animate-pulse">
+          <Search className="w-5 h-5 text-[var(--color-primary)]" />
         </div>
       </div>
 

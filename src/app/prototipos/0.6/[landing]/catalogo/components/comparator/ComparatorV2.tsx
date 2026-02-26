@@ -165,8 +165,8 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-            <Scale className="w-5 h-5 text-[#4654CD]" />
+          <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+            <Scale className="w-5 h-5 text-[var(--color-primary)]" />
           </div>
           <div>
             <h2 className="text-lg font-bold text-neutral-800">
@@ -231,7 +231,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                     ...comparisonState,
                     showOnlyDifferences: e.target.checked,
                   })}
-                  className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
+                  className="w-4 h-4 rounded border-neutral-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)] cursor-pointer"
                 />
                 <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
               </label>
@@ -252,7 +252,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
               {!showBestOption ? (
                 <Button
                   size="sm"
-                  className="bg-[#4654CD] text-white cursor-pointer"
+                  className="bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90"
                   onPress={handleShowBestOption}
                   startContent={<Trophy className="w-4 h-4" />}
                 >
@@ -262,7 +262,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                 <Button
                   size="sm"
                   variant="bordered"
-                  className="cursor-pointer border-[#4654CD] text-[#4654CD] bg-[#4654CD]/5 hover:bg-[#4654CD]/10 font-semibold"
+                  className="cursor-pointer border-[var(--color-primary)] text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] font-semibold"
                   startContent={<ShoppingCart className="w-4 h-4" />}
                   onPress={() => onAddToCart?.(bestProduct.id)}
                 >
