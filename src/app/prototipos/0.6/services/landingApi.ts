@@ -201,6 +201,36 @@ export async function getLandingHeroData(slug: string, preview: boolean = false)
 }
 
 /**
+ * Obtiene los datos completos del hero para una landing por ID
+ * Usado para preview en admin cuando el slug puede haber sido modificado pero no guardado
+ * @param landingId - Landing ID
+ * @param previewKey - Hash de preview para acceder a landings no publicadas
+ */
+export async function getLandingHeroDataById(landingId: number, previewKey: string | null = null): Promise<LandingHeroResponse | null> {
+  try {
+    const url = previewKey
+      ? `${API_BASE_URL}/public/landing/id/${landingId}/hero?preview_key=${encodeURIComponent(previewKey)}`
+      : `${API_BASE_URL}/public/landing/id/${landingId}/hero`;
+
+    const response = await fetch(url, {
+      cache: 'no-store', // Siempre no-store para preview por ID
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching landing hero by ID:', error);
+    return null;
+  }
+}
+
+/**
  * Respuesta del endpoint /layout (navbar + footer + promo_banner + catalog_secondary_navbar + company)
  */
 export interface LandingLayoutResponse {
