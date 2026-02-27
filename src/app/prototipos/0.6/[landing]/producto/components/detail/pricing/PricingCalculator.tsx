@@ -50,9 +50,21 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       <h3 className="text-xl font-semibold text-neutral-800 mb-2">
         Calcula tu cuota mensual
       </h3>
-      <p className="text-sm text-neutral-500 mb-6">
+      <p className="text-sm text-neutral-500 mb-4">
         Selecciona el plazo que mejor se ajuste a tu presupuesto
       </p>
+
+      {/* Precio de lista del equipo */}
+      {productPriceProp && (
+        <div className="mb-6 p-4 bg-neutral-50 rounded-xl">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-neutral-600">Precio de lista del equipo</span>
+            <span className="text-lg font-bold text-neutral-800">
+              S/{formatMoneyNoDecimals(Math.round(productPriceProp))}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Initial Payment Selection */}
       <div className="mb-6">

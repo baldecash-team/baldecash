@@ -460,6 +460,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 >
                   {/* Summary */}
                   <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-6">
+                    {productPrice > 0 && (
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-neutral-600">Precio de lista del equipo</span>
+                        <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(productPrice))}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-neutral-600">Cuota mensual</span>
                       <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}</span>
@@ -588,6 +594,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             <ModalBody className="py-6">
               {/* Summary */}
               <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-6">
+                {productPrice > 0 && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-neutral-600">Precio de lista del equipo</span>
+                    <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(productPrice))}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-neutral-600">Cuota mensual</span>
                   <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}</span>

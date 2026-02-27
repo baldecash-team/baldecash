@@ -16,9 +16,12 @@ export default function ProductDetailPage() {
 export async function generateStaticParams() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
 
-  // Sin fallbacks - falla explícitamente si la API no responde
-  let landings: string[] = [];
-  let productSlugs: string[] = [];
+  // Fallbacks para cuando la API no responde
+  const fallbackLandings = ['home'];
+  const fallbackProducts = ['laptop'];
+
+  let landings: string[] = fallbackLandings;
+  let productSlugs: string[] = fallbackProducts;
 
   try {
     const [landingsRes, productsRes] = await Promise.all([

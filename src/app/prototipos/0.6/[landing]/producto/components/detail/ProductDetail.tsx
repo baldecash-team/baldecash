@@ -119,6 +119,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               <PricingCalculator
                 paymentPlans={paymentPlans}
                 defaultTerm={36}
+                productPrice={product.price}
               />
               {/* CTA Buttons */}
               <div className="flex gap-3">
