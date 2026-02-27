@@ -1,19 +1,18 @@
 'use client';
 
 /**
- * PreviewPageClient - Client component for query param based preview
- * Handles routes like /prototipos/0.6/preview/?id=16&preview_key=abc123
- * This provides a scalable alternative to path-based routes for admin previews
+ * PreviewPageClient - Client component for landing preview
+ * Handles both path-based IDs (/preview/16) and query param IDs (/preview?id=16)
  */
 
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { HeroSection } from '../components/hero/HeroSection';
-import { getLandingHeroDataById, transformLandingData } from '../services/landingApi';
-import { usePreviewListener } from '../hooks/usePreviewListener';
-import { NotFoundContent } from '../components/NotFoundContent';
+import { HeroSection } from '../../components/hero/HeroSection';
+import { getLandingHeroDataById, transformLandingData } from '../../services/landingApi';
+import { usePreviewListener } from '../../hooks/usePreviewListener';
+import { NotFoundContent } from '../../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
-import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
+import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
 
 function LoadingFallback() {
   return (
@@ -21,6 +20,10 @@ function LoadingFallback() {
       <CubeGridSpinner />
     </div>
   );
+}
+
+interface PreviewPageClientProps {
+  pathId: string | null;
 }
 
 interface HeroData {
@@ -44,7 +47,7 @@ interface HeroData {
   slug?: string;
 }
 
-function PreviewPageClientInner() {
+function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   const searchParams = useSearchParams();
   const [heroData, setHeroData] = useState<HeroData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,9 +55,10 @@ function PreviewPageClientInner() {
   const [error, setError] = useState<string | null>(null);
   const [landingSlug, setLandingSlug] = useState<string>('preview');
 
-  // Parse ID from query params
-  const idParam = searchParams.get('id');
-  const landingId = idParam ? parseInt(idParam, 10) : NaN;
+  // Get ID from path param first, then fall back to query param
+  const queryId = searchParams.get('id');
+  const idString = pathId || queryId;
+  const landingId = idString ? parseInt(idString, 10) : NaN;
   const isValidId = !isNaN(landingId) && landingId > 0;
 
   // Preview key from query param (?preview_key=xxx)
@@ -326,10 +330,10 @@ function PreviewPageClientInner() {
   );
 }
 
-export function PreviewPageClient() {
+export function PreviewPageClient({ pathId }: PreviewPageClientProps) {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <PreviewPageClientInner />
+      <PreviewPageClientInner pathId={pathId} />
     </Suspense>
   );
 }
