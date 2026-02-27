@@ -1,19 +1,19 @@
 'use client';
 
 /**
- * LandingPreviewClient - Client component for preview by ID
- * Used by admin to preview landing pages by ID instead of slug
- * This prevents issues when slug is modified but not yet saved
+ * PreviewPageClient - Client component for query param based preview
+ * Handles routes like /prototipos/0.6/preview/?id=16&preview_key=abc123
+ * This provides a scalable alternative to path-based routes for admin previews
  */
 
 import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { HeroSection } from '../../components/hero/HeroSection';
-import { getLandingHeroDataById, transformLandingData } from '../../services/landingApi';
-import { usePreviewListener } from '../../hooks/usePreviewListener';
-import { NotFoundContent } from '../../components/NotFoundContent';
+import { HeroSection } from '../components/hero/HeroSection';
+import { getLandingHeroDataById, transformLandingData } from '../services/landingApi';
+import { usePreviewListener } from '../hooks/usePreviewListener';
+import { NotFoundContent } from '../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
-import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
+import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
 
 function LoadingFallback() {
   return (
@@ -21,10 +21,6 @@ function LoadingFallback() {
       <CubeGridSpinner />
     </div>
   );
-}
-
-interface LandingPreviewClientProps {
-  landingId: number;
 }
 
 interface HeroData {
@@ -48,13 +44,18 @@ interface HeroData {
   slug?: string;
 }
 
-function LandingPreviewClientInner({ landingId }: LandingPreviewClientProps) {
+function PreviewPageClientInner() {
   const searchParams = useSearchParams();
   const [heroData, setHeroData] = useState<HeroData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [landingSlug, setLandingSlug] = useState<string>('preview');
+
+  // Parse ID from query params
+  const idParam = searchParams.get('id');
+  const landingId = idParam ? parseInt(idParam, 10) : NaN;
+  const isValidId = !isNaN(landingId) && landingId > 0;
 
   // Preview key from query param (?preview_key=xxx)
   const previewKey = searchParams.get('preview_key');
@@ -72,6 +73,12 @@ function LandingPreviewClientInner({ landingId }: LandingPreviewClientProps) {
   }, []);
 
   useEffect(() => {
+    if (!isValidId) {
+      setIsLoading(false);
+      setError('ID de landing no válido');
+      return;
+    }
+
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
@@ -99,7 +106,7 @@ function LandingPreviewClientInner({ landingId }: LandingPreviewClientProps) {
     };
 
     loadData();
-  }, [landingId, previewKey]);
+  }, [landingId, previewKey, isValidId]);
 
   // Merge API data with preview data (preview takes priority)
   const mergedHeroContent = useMemo((): HeroContent | null => {
@@ -277,7 +284,7 @@ function LandingPreviewClientInner({ landingId }: LandingPreviewClientProps) {
     return <LoadingFallback />;
   }
 
-  if (error || !heroData) {
+  if (error || !heroData || !isValidId) {
     return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
@@ -319,10 +326,10 @@ function LandingPreviewClientInner({ landingId }: LandingPreviewClientProps) {
   );
 }
 
-export function LandingPreviewClient({ landingId }: LandingPreviewClientProps) {
+export function PreviewPageClient() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <LandingPreviewClientInner landingId={landingId} />
+      <PreviewPageClientInner />
     </Suspense>
   );
 }
