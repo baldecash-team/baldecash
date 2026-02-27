@@ -126,7 +126,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   const getBorderColor = () => {
     if (showError) return 'border-[#ef4444]';
     if (showSuccess) return 'border-[#22c55e]';
-    if (isOpen) return 'border-[#4654CD]';
+    if (isOpen) return 'border-[var(--color-primary)]';
     return 'border-neutral-300';
   };
 
@@ -152,7 +152,7 @@ export const DateInput: React.FC<DateInputProps> = ({
               flex items-center gap-2 h-11 px-3
               rounded-lg border-2 transition-all duration-200 bg-white cursor-pointer
               ${getBorderColor()}
-              ${disabled ? 'opacity-50 bg-neutral-50 cursor-not-allowed' : 'hover:border-[#4654CD]'}
+              ${disabled ? 'opacity-50 bg-neutral-50 cursor-not-allowed' : 'hover:border-[var(--color-primary)]'}
             `}
             onClick={() => !disabled && setIsOpen(true)}
           >
@@ -209,8 +209,8 @@ export const DateInput: React.FC<DateInputProps> = ({
                     onClick={() => handleSelectDay(day)}
                     className={`
                       aspect-square rounded-lg text-sm font-medium transition-all cursor-pointer
-                      ${selected ? 'bg-[#4654CD] text-white' : ''}
-                      ${today && !selected ? 'bg-[#4654CD]/10 text-[#4654CD]' : ''}
+                      ${selected ? 'bg-[var(--color-primary)] text-white' : ''}
+                      ${today && !selected ? 'bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)]' : ''}
                       ${isDisabled ? 'text-neutral-300 cursor-not-allowed' : ''}
                       ${!selected && !today && !isDisabled ? 'text-neutral-700 hover:bg-neutral-100' : ''}
                     `}

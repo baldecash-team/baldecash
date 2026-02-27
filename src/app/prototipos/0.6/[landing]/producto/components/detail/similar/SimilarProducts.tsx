@@ -13,6 +13,10 @@ import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, C
 import { motion, AnimatePresence } from 'framer-motion';
 import { SimilarProductsProps, SimilarProduct, SimilarProductImage } from '../../../types/detail';
 import { formatMoney, formatMoneyNoDecimals } from '../../../utils/formatMoney';
+import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+
+// Storage key for selected product (same as ProductContext)
+const STORAGE_KEY = 'baldecash-solicitar-selected-product';
 
 // State per product for image and color selection
 interface ProductCardState {
@@ -129,12 +133,43 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
     }
   };
 
-  const handleAddToCart = () => {
-    // In 0.6, we can navigate to the solicitar flow
+  const handleAddToCart = (product: SimilarProduct) => {
+    // Save product to localStorage before navigating
     if (typeof window !== 'undefined') {
       const currentPath = window.location.pathname;
       const landingMatch = currentPath.match(/\/prototipos\/0\.6\/([^/]+)/);
       const landing = landingMatch ? landingMatch[1] : 'home';
+
+      // Build SelectedProduct from SimilarProduct
+      // Note: SimilarProduct doesn't have price, so we estimate it from monthlyQuota
+      // Price ≈ monthlyQuota * months (assuming 24 months with 10% initial)
+      const estimatedPrice = Math.round(product.monthlyQuota * 24 / 0.9);
+
+      const selectedProduct: SelectedProduct = {
+        id: product.id,
+        name: product.displayName,
+        shortName: product.name,
+        brand: product.brand,
+        price: estimatedPrice,
+        monthlyPayment: product.monthlyQuota,
+        months: 24, // Default term
+        image: product.thumbnail,
+        specs: product.specs ? {
+          processor: product.specs.processor || '',
+          ram: product.specs.ram || '',
+          storage: product.specs.storage || '',
+        } : undefined,
+      };
+
+      // Save to localStorage
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedProduct));
+        // Clear cart products since this is a single product selection
+        localStorage.removeItem('baldecash-solicitar-cart-products');
+      } catch {
+        // localStorage not available
+      }
+
       window.location.href = `/prototipos/0.6/${landing}/solicitar/`;
     }
   };
@@ -434,7 +469,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                             : 'bg-[var(--color-primary)] text-white hover:brightness-90'
                         }`}
-                        onPress={handleAddToCart}
+                        onPress={() => handleAddToCart(product)}
                       >
                         {isCheaper ? 'Ahorrar' : 'Lo quiero'}
                       </Button>

@@ -250,12 +250,12 @@ function ResumenContent() {
     <div className="bg-neutral-50 rounded-xl p-4 overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Icon className="w-5 h-5 text-[#4654CD]" />
+          <Icon className="w-5 h-5 text-[var(--color-primary)]" />
           <h3 className="font-semibold text-neutral-800">{title}</h3>
         </div>
         <button
           onClick={onEdit}
-          className="flex items-center gap-1 text-sm text-[#4654CD] hover:text-[#3a47b3] transition-colors cursor-pointer"
+          className="flex items-center gap-1 text-sm text-[var(--color-primary)] hover:brightness-90 transition-colors cursor-pointer"
         >
           <Edit2 className="w-4 h-4" />
           <span>Editar</span>
@@ -292,7 +292,7 @@ function ResumenContent() {
           <p className="text-red-500 mb-2">Error al cargar el formulario</p>
           <button
             onClick={() => window.location.reload()}
-            className="text-[#4654CD] underline"
+            className="text-[var(--color-primary)] underline"
           >
             Reintentar
           </button>
@@ -360,7 +360,7 @@ function ResumenContent() {
           return (
             <div key={step.id} className="bg-neutral-50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-4">
-                <IconComponent className="w-5 h-5 text-[#4654CD]" />
+                <IconComponent className="w-5 h-5 text-[var(--color-primary)]" />
                 <h3 className="font-semibold text-neutral-800">{step.title}</h3>
               </div>
               <div className="space-y-4">

@@ -21,6 +21,10 @@ import {
   ProductLimitation,
   Certification,
 } from '../../types/detail';
+import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+
+// Storage key for selected product (same as ProductContext)
+const STORAGE_KEY = 'baldecash-solicitar-selected-product';
 
 import {
   ProductGallery,
@@ -86,6 +90,32 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   };
 
   const handleSolicitar = () => {
+    // Build SelectedProduct from current product
+    const selectedProduct: SelectedProduct = {
+      id: product.id,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      monthlyPayment: product.lowestQuota,
+      months: 24, // Default term
+      image: product.images[0]?.url || '',
+      specs: {
+        processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model') || '',
+        ram: getSpecValue('memoria', 'capacidad') || getSpecValue('ram', 'size') || '',
+        storage: getSpecValue('almacenamiento', 'capacidad') || getSpecValue('storage', 'size') || '',
+      },
+    };
+
+    // Save to localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedProduct));
+      // Clear cart products since this is a single product selection
+      localStorage.removeItem('baldecash-solicitar-cart-products');
+    } catch {
+      // localStorage not available
+    }
+
     // Navigate to solicitar flow in 0.6
     const baseSolicitarUrl = `/prototipos/0.6/${landing}/solicitar`;
     const solicitarUrl = isCleanMode ? `${baseSolicitarUrl}?mode=clean` : baseSolicitarUrl;

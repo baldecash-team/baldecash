@@ -14,6 +14,9 @@ const CART_PRODUCTS_STORAGE_KEY = 'baldecash-solicitar-cart-products';
 const ACCESSORIES_STORAGE_KEY = 'baldecash-solicitar-selected-accessories';
 const COUPON_STORAGE_KEY = 'baldecash-solicitar-applied-coupon';
 
+// Maximum monthly quota limit from env
+const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
+
 export interface SelectedProduct {
   id: string;
   name: string;
@@ -62,6 +65,11 @@ interface ProductContextValue {
   // Estado de la barra de producto (mobile)
   isProductBarExpanded: boolean;
   setIsProductBarExpanded: (expanded: boolean) => void;
+  // Quota limit validation
+  isOverQuotaLimit: boolean;
+  maxMonthlyQuota: number;
+  // Get all products (cart or single)
+  getAllProducts: () => SelectedProduct[];
 }
 
 const ProductContext = createContext<ProductContextValue | undefined>(undefined);
@@ -234,24 +242,36 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     }
   }, []);
 
-  // Calculate totals
+  // Get all products (cart or single)
+  const getAllProducts = useCallback((): SelectedProduct[] => {
+    if (cartProducts.length > 0) return cartProducts;
+    if (selectedProduct) return [selectedProduct];
+    return [];
+  }, [cartProducts, selectedProduct]);
+
+  // Calculate totals - considers both cartProducts and selectedProduct
   const getTotalPrice = useCallback(() => {
-    const productPrice = selectedProduct?.price || 0;
+    const products = getAllProducts();
+    const productsPrice = products.reduce((sum, p) => sum + p.price, 0);
     const accessoriesPrice = selectedAccessories.reduce((sum, acc) => sum + acc.price, 0);
-    return productPrice + accessoriesPrice;
-  }, [selectedProduct, selectedAccessories]);
+    return productsPrice + accessoriesPrice;
+  }, [getAllProducts, selectedAccessories]);
 
   const getTotalMonthlyPayment = useCallback(() => {
-    const productMonthly = selectedProduct?.monthlyPayment || 0;
+    const products = getAllProducts();
+    const productsMonthly = products.reduce((sum, p) => sum + p.monthlyPayment, 0);
     const accessoriesMonthly = selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0);
-    return productMonthly + accessoriesMonthly;
-  }, [selectedProduct, selectedAccessories]);
+    return productsMonthly + accessoriesMonthly;
+  }, [getAllProducts, selectedAccessories]);
 
   const getDiscountedMonthlyPayment = useCallback(() => {
     const total = getTotalMonthlyPayment();
     const discount = appliedCoupon?.discount || 0;
     return Math.max(0, total - discount);
   }, [getTotalMonthlyPayment, appliedCoupon]);
+
+  // Check if over quota limit
+  const isOverQuotaLimit = getTotalMonthlyPayment() > MAX_MONTHLY_QUOTA;
 
   return (
     <ProductContext.Provider
@@ -275,6 +295,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
         isHydrated,
         isProductBarExpanded,
         setIsProductBarExpanded,
+        isOverQuotaLimit,
+        maxMonthlyQuota: MAX_MONTHLY_QUOTA,
+        getAllProducts,
       }}
     >
       {children}

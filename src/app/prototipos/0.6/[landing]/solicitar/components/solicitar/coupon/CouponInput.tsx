@@ -179,7 +179,7 @@ export const CouponInput: React.FC = () => {
               <Sparkles
                 className="w-4 h-4"
                 style={{
-                  color: ['#22c55e', '#4ade80', '#86efac', '#fbbf24', '#4654CD'][i % 5],
+                  color: ['#22c55e', '#4ade80', '#86efac', '#fbbf24', 'var(--color-primary)'][i % 5],
                 }}
               />
             </motion.div>
@@ -192,7 +192,7 @@ export const CouponInput: React.FC = () => {
   return (
     <div className="bg-white rounded-xl p-4 border border-neutral-200">
       <div className="flex items-center gap-2 mb-3">
-        <Tag className="w-5 h-5 text-[#4654CD]" />
+        <Tag className="w-5 h-5 text-[var(--color-primary)]" />
         <h3 className="font-semibold text-neutral-800">Cupón de descuento</h3>
       </div>
 
@@ -215,7 +215,7 @@ export const CouponInput: React.FC = () => {
               transition-all duration-200 outline-none
               ${state === 'error'
                 ? 'border-red-300 bg-red-50 text-red-700 placeholder:text-red-300'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-800 placeholder:text-neutral-400 focus:border-[#4654CD] focus:bg-white'
+                : 'border-neutral-200 bg-neutral-50 text-neutral-800 placeholder:text-neutral-400 focus:border-[var(--color-primary)] focus:bg-white'
               }
               disabled:opacity-50 disabled:cursor-not-allowed
             `}
@@ -230,8 +230,8 @@ export const CouponInput: React.FC = () => {
             px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200
             flex items-center gap-2 cursor-pointer
             ${state === 'validating'
-              ? 'bg-[#4654CD]/50 text-white cursor-wait'
-              : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+              ? 'bg-[rgba(var(--color-primary-rgb),0.5)] text-white cursor-wait'
+              : 'bg-[var(--color-primary)] text-white hover:brightness-90'
             }
             disabled:cursor-not-allowed
           `}

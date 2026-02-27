@@ -17,6 +17,7 @@ import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.
 // Configuración fija igual que ProductCard
 const SELECTED_TERM = 24;
 const SELECTED_INITIAL = 10;
+const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
 
 /**
  * NavbarSearch - Buscador en el navbar con sugerencias
@@ -584,7 +585,8 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
     const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
     return sum + quota;
   }, 0);
-  const isDisabled = items.length === 0 || items.length > 5 || totalMonthlyQuota > 600 || isOverLimit;
+  const isOverQuotaLimit = totalMonthlyQuota > MAX_MONTHLY_QUOTA;
+  const isDisabled = items.length === 0 || isOverQuotaLimit || isOverLimit;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -662,18 +664,11 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
               </div>
             ) : (
               <>
-                {/* Error messages for cart limits */}
-                {items.length > 5 && (
+                {/* Error message for quota limit */}
+                {isOverQuotaLimit && (
                   <div className="mx-3 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-xs text-amber-700">
-                      Máximo 5 productos por solicitud
-                    </p>
-                  </div>
-                )}
-                {totalMonthlyQuota > 600 && (
-                  <div className="mx-3 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                    <p className="text-xs text-amber-700">
-                      La cuota total supera S/600/mes
+                      La cuota mensual supera el límite de S/{MAX_MONTHLY_QUOTA}/mes. Quita algún producto para continuar.
                     </p>
                   </div>
                 )}

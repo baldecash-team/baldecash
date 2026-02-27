@@ -33,7 +33,7 @@ const PlanComparison = ({ plans, selectedPlan, onSelectPlan }: { plans: any[]; s
         key={plan.id}
         onClick={() => onSelectPlan(plan.id)}
         className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-          selectedPlan === plan.id ? 'border-[#4654CD] bg-[#4654CD]/5' : 'border-neutral-200 hover:border-neutral-300'
+          selectedPlan === plan.id ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]' : 'border-neutral-200 hover:border-neutral-300'
         }`}
       >
         <div className="flex justify-between items-start">
@@ -42,7 +42,7 @@ const PlanComparison = ({ plans, selectedPlan, onSelectPlan }: { plans: any[]; s
             <p className="text-sm text-neutral-500">{plan.coverage?.length || 0} coberturas</p>
           </div>
           <div className="text-right">
-            <p className="font-bold text-[#4654CD]">S/{plan.monthlyPrice}/mes</p>
+            <p className="font-bold text-[var(--color-primary)]">S/{plan.monthlyPrice}/mes</p>
           </div>
         </div>
       </button>
@@ -162,7 +162,7 @@ function SegurosContent() {
 
               {/* Price */}
               <div className="text-right flex-shrink-0">
-                <p className="text-lg font-bold text-[#4654CD]">
+                <p className="text-lg font-bold text-[var(--color-primary)]">
                   S/{formatMoney(selectedProduct.monthlyPayment)}/mes
                 </p>
                 <p className="text-sm text-neutral-500">
@@ -179,22 +179,22 @@ function SegurosContent() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
-            className="hidden lg:block bg-[#4654CD]/5 rounded-xl border border-[#4654CD]/10 overflow-hidden mb-6"
+            className="hidden lg:block bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl border border-[rgba(var(--color-primary-rgb),0.1)] overflow-hidden mb-6"
           >
             {/* Accordion Header */}
             <button
               onClick={() => setIsAccessoriesExpanded(!isAccessoriesExpanded)}
-              className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-[#4654CD]/10 transition-colors"
+              className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-[#4654CD]" />
+                <Package className="w-4 h-4 text-[var(--color-primary)]" />
                 <p className="text-sm font-semibold text-neutral-800">
                   Accesorios ({selectedAccessories.length})
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 {!isAccessoriesExpanded && (
-                  <span className="text-sm font-medium text-[#4654CD]">
+                  <span className="text-sm font-medium text-[var(--color-primary)]">
                     +S/{formatMoney(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}/mes
                   </span>
                 )}
@@ -216,15 +216,15 @@ function SegurosContent() {
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pt-2 pb-4 border-t border-[#4654CD]/10">
+                  <div className="px-4 pt-2 pb-4 border-t border-[rgba(var(--color-primary-rgb),0.1)]">
                     <div className="space-y-2">
                       {selectedAccessories.map((acc) => (
                         <div key={acc.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2 min-w-0">
-                            <Plus className="w-3 h-3 text-[#4654CD] flex-shrink-0" />
+                            <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
                             <span className="text-neutral-700 truncate">{acc.name}</span>
                           </div>
-                          <span className="text-[#4654CD] font-medium flex-shrink-0 ml-4">
+                          <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
                             +S/{formatMoney(acc.monthlyQuota)}/mes
                           </span>
                         </div>
@@ -271,7 +271,7 @@ function SegurosContent() {
                 </p>
               )}
             </div>
-            <p className="text-2xl font-bold text-[#4654CD]">
+            <p className="text-2xl font-bold text-[var(--color-primary)]">
               S/{formatMoney(totalMonthly)}/mes
             </p>
           </div>
@@ -294,7 +294,7 @@ function SegurosContent() {
           </Button>
           <Button
             size="lg"
-            className="w-full lg:flex-1 bg-[#4654CD] text-white font-semibold cursor-pointer hover:bg-[#3a47b3]"
+            className="w-full lg:flex-1 bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90"
             onPress={handleContinue}
             isLoading={isSubmitting}
             spinner={<Loader2 className="w-5 h-5 animate-spin" />}

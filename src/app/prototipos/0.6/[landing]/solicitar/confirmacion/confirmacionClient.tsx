@@ -78,7 +78,7 @@ function ConfirmacionContent() {
           transition={{ duration: 0.5 }}
           className="text-center mb-10"
         >
-          <div className="w-16 h-16 bg-[#4654CD] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-[var(--color-primary)] rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-neutral-800 mb-2">
@@ -111,7 +111,7 @@ function ConfirmacionContent() {
                   <h3 className="text-lg font-semibold text-neutral-800">{option.title}</h3>
                   <p className="text-sm text-neutral-500">{option.description}</p>
                 </div>
-                <div className="px-4 py-2 bg-neutral-200 text-neutral-700 hover:bg-[#4654CD] hover:text-white rounded-lg font-medium text-sm transition-colors">
+                <div className="px-4 py-2 bg-neutral-200 text-neutral-700 hover:bg-[var(--color-primary)] hover:text-white rounded-lg font-medium text-sm transition-colors">
                   Ver
                 </div>
               </motion.button>

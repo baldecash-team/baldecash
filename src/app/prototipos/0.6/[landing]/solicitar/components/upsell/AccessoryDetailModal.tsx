@@ -66,7 +66,7 @@ const ModalContentShared: React.FC<{
               size="sm"
               startContent={<Sparkles className="w-3 h-3 text-white" />}
               classNames={{
-                base: 'bg-[#4654CD] shadow-lg',
+                base: 'bg-[var(--color-primary)] shadow-lg',
                 content: 'text-white text-xs font-semibold',
               }}
             >
@@ -116,7 +116,7 @@ const ModalContentShared: React.FC<{
           </div>
           <div className="text-right">
             <p className="text-xs text-neutral-500 uppercase tracking-wide">Cuota mensual</p>
-            <p className="text-xl font-bold text-[#4654CD]">
+            <p className="text-xl font-bold text-[var(--color-primary)]">
               +S/{formatMoney(accessory.monthlyQuota)}
               <span className="text-sm font-normal text-neutral-500">/mes</span>
             </p>
@@ -157,7 +157,7 @@ const ModalContentShared: React.FC<{
             className={`flex-1 font-medium cursor-pointer ${
               isSelected
                 ? 'bg-red-500 text-white hover:bg-red-600'
-                : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+                : 'bg-[var(--color-primary)] text-white hover:brightness-90'
             }`}
             startContent={
               isSelected ? (
@@ -299,8 +299,8 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                  <Package className="w-4 h-4 text-[#4654CD]" />
+                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                  <Package className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">

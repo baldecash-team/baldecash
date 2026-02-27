@@ -189,7 +189,7 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
           <p className="font-semibold text-neutral-800 text-sm">{resolvedContent.title}</p>
           <p className="text-xs text-neutral-500 mt-1">{resolvedContent.description}</p>
           {resolvedContent.recommendation && (
-            <p className="text-xs text-[#4654CD] mt-2 flex items-center gap-1">
+            <p className="text-xs text-[var(--color-primary)] mt-2 flex items-center gap-1">
               <Info className="w-3 h-3 flex-shrink-0" />
               {resolvedContent.recommendation}
             </p>
@@ -240,7 +240,7 @@ export const FieldTooltip: React.FC<FieldTooltipProps> = ({ tooltip, content, ic
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {icon ?? <Info className="w-4 h-4 text-neutral-400 hover:text-[#4654CD] transition-colors" />}
+        {icon ?? <Info className="w-4 h-4 text-neutral-400 hover:text-[var(--color-primary)] transition-colors" />}
       </span>
 
       {tooltipElement}

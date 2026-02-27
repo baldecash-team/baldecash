@@ -83,7 +83,7 @@ export const MotivationalCard: React.FC<MotivationalCardProps> = ({ currentStep,
       <div className="mb-6">
         <h2 className="text-2xl lg:text-3xl font-bold text-neutral-800 leading-tight">
           {content.title}{' '}
-          <span className="text-[#4654CD]">{content.highlight}</span>
+          <span className="text-[var(--color-primary)]">{content.highlight}</span>
           {content.titleEnd && <> {content.titleEnd}</>}
         </h2>
         <p className="text-neutral-500 text-base italic mt-4">{content.subtitle}</p>

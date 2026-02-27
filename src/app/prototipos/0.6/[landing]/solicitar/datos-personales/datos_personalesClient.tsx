@@ -110,7 +110,7 @@ function DatosPersonalesContent() {
           <p className="text-red-500 mb-2">Error al cargar el formulario</p>
           <button
             onClick={() => window.location.reload()}
-            className="text-[#4654CD] underline"
+            className="text-[var(--color-primary)] underline"
           >
             Reintentar
           </button>

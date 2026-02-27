@@ -271,7 +271,7 @@ function CatalogoContent() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const isMobile = useIsMobile();
-  const { setSelectedProduct } = useProduct();
+  const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
 
   // Get layout data from context (fetched once at [landing] level)
   const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
@@ -1026,22 +1026,44 @@ function CatalogoContent() {
       const { quota } = calculateQuotaWithInitial(item.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
       return sum + quota;
     }, 0);
-    const isDisabled = cart.length === 0 || cart.length > 5 || totalMonthlyQuota > 600;
+    const isDisabled = cart.length === 0 || totalMonthlyQuota > 600;
 
     if (isDisabled) {
-      if (cart.length > 5) {
-        showToast('Máximo 5 productos por solicitud', 'warning');
-      } else if (totalMonthlyQuota > 600) {
+      if (totalMonthlyQuota > 600) {
         showToast('La cuota total supera S/600/mes', 'warning');
       }
       return;
     }
-    // Save first product for wizard navigation (use cartProducts which is loaded from API)
+
+    // Save ALL cart products to solicitar context (not just the first one)
     if (cartProducts.length > 0) {
-      selectProductForWizard(cartProducts[0]);
+      const productsForContext = cartProducts.map((product) => {
+        const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+        return {
+          id: product.id,
+          name: product.displayName,
+          shortName: product.name,
+          brand: product.brand,
+          price: product.price,
+          monthlyPayment: quota,
+          months: WIZARD_SELECTED_TERM,
+          image: product.thumbnail,
+          specs: {
+            processor: product.specs?.processor?.model || '',
+            ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
+            storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
+          },
+        };
+      });
+
+      // Set all products to cart context
+      setContextCartProducts(productsForContext);
+
+      // Also set the first product as selectedProduct for backwards compatibility
+      setSelectedProduct(productsForContext[0]);
     }
     router.push(getWizardUrl(landing));
-  }, [cart, cartProducts, router, showToast, selectProductForWizard, landing]);
+  }, [cart, cartProducts, router, showToast, setContextCartProducts, setSelectedProduct, landing]);
 
   // wishlistProducts is now a state loaded from API via useEffect (see above)
 

@@ -10,7 +10,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, Package, Plus, Tag } from 'lucide-react';
+import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import Image from 'next/image';
 
@@ -20,14 +20,20 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
-  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded } = useProduct();
+  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota } = useProduct();
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
 
   // Usar el estado del contexto para la expansión
   const isExpanded = isProductBarExpanded;
   const setIsExpanded = setIsProductBarExpanded;
 
-  if (!selectedProduct) return null;
+  // Get all products (cart or single)
+  const allProducts = getAllProducts();
+
+  if (allProducts.length === 0) return null;
+
+  // For display purposes, use first product as main product
+  const mainProduct = allProducts[0];
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-PE', {
@@ -69,11 +75,18 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             className="w-full px-4 py-3 flex items-center gap-3 cursor-pointer"
           >
             {/* Product Thumbnail */}
-            <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-              {selectedProduct.image ? (
+            <div className="w-12 h-12 bg-neutral-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+              {allProducts.length > 1 ? (
+                <div className="w-full h-full flex items-center justify-center bg-[var(--color-primary)]/10">
+                  <ShoppingCart className="w-6 h-6 text-[var(--color-primary)]" />
+                  <span className="absolute -top-1 -right-1 bg-[var(--color-primary)] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {allProducts.length}
+                  </span>
+                </div>
+              ) : mainProduct.image ? (
                 <Image
-                  src={selectedProduct.image}
-                  alt={selectedProduct.name}
+                  src={mainProduct.image}
+                  alt={mainProduct.name}
                   width={48}
                   height={48}
                   className="object-contain"
@@ -86,7 +99,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             {/* Product Info */}
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium text-neutral-800 truncate">
-                {selectedProduct.shortName}
+                {allProducts.length > 1 ? `${allProducts.length} productos` : mainProduct.shortName}
                 {hasAccessories && (
                   <span className="text-xs text-neutral-500 ml-1">
                     +{selectedAccessories.length} acc.
@@ -94,7 +107,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 )}
               </p>
               <p className="text-xs text-neutral-500">
-                {selectedProduct.months} meses
+                {mainProduct.months} meses
               </p>
             </div>
 
@@ -106,7 +119,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     {formatPrice(totalMonthlyPayment)}/mes
                   </span>
                 )}
-                <span className={`text-sm font-semibold ${hasCoupon ? 'text-green-600' : 'text-[#4654CD]'}`}>
+                <span className={`text-sm font-semibold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
                   {formatPrice(discountedMonthlyPayment)}/mes
                 </span>
               </div>
@@ -129,46 +142,53 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 className="overflow-hidden"
               >
                 <div className="px-4 pb-4 pt-1 border-t border-neutral-100">
-                  {/* Larger Image */}
-                  <div className="flex gap-4">
-                    <div className="w-24 h-24 bg-neutral-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
-                      {selectedProduct.image ? (
-                        <Image
-                          src={selectedProduct.image}
-                          alt={selectedProduct.name}
-                          width={96}
-                          height={96}
-                          className="object-contain"
-                        />
-                      ) : (
-                        <Package className="w-12 h-12 text-neutral-300" />
-                      )}
-                    </div>
-
-                    {/* Full Details */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-neutral-500 uppercase tracking-wide">
-                        {selectedProduct.brand}
-                      </p>
-                      <p className="text-sm font-semibold text-neutral-800 mt-0.5">
-                        {selectedProduct.name}
-                      </p>
-
-                      {selectedProduct.specs && (
-                        <div className="mt-2 space-y-0.5">
-                          {selectedProduct.specs.processor && (
-                            <p className="text-xs text-neutral-500">
-                              {selectedProduct.specs.processor}
-                            </p>
-                          )}
-                          {selectedProduct.specs.ram && selectedProduct.specs.storage && (
-                            <p className="text-xs text-neutral-500">
-                              {selectedProduct.specs.ram} • {selectedProduct.specs.storage}
-                            </p>
+                  {/* Products List */}
+                  <div className="space-y-3">
+                    {allProducts.map((product, index) => (
+                      <div key={`${product.id}-${index}`} className={`flex gap-4 ${index > 0 ? 'pt-3 border-t border-neutral-100' : ''}`}>
+                        <div className="w-20 h-20 bg-neutral-50 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {product.image ? (
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              width={80}
+                              height={80}
+                              className="object-contain"
+                            />
+                          ) : (
+                            <Package className="w-10 h-10 text-neutral-300" />
                           )}
                         </div>
-                      )}
-                    </div>
+
+                        {/* Full Details */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-neutral-500 uppercase tracking-wide">
+                            {product.brand}
+                          </p>
+                          <p className="text-sm font-semibold text-neutral-800 mt-0.5">
+                            {product.name}
+                          </p>
+
+                          {product.specs && (
+                            <div className="mt-1 space-y-0.5">
+                              {product.specs.processor && (
+                                <p className="text-xs text-neutral-500">
+                                  {product.specs.processor}
+                                </p>
+                              )}
+                              {product.specs.ram && product.specs.storage && (
+                                <p className="text-xs text-neutral-500">
+                                  {product.specs.ram} • {product.specs.storage}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
+                            S/{product.monthlyPayment}/mes
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Accessories List */}
@@ -176,9 +196,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     <div className="mt-3 space-y-1">
                       {selectedAccessories.map((acc) => (
                         <div key={acc.id} className="flex items-center gap-2 text-xs text-neutral-600">
-                          <Plus className="w-3 h-3 text-[#4654CD]" />
+                          <Plus className="w-3 h-3 text-[var(--color-primary)]" />
                           <span className="flex-1 truncate">{acc.name}</span>
-                          <span className="text-[#4654CD] font-medium">+{formatPrice(acc.monthlyQuota)}/mes</span>
+                          <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}/mes</span>
                         </div>
                       ))}
                     </div>
@@ -193,23 +213,33 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     </div>
                   )}
 
+                  {/* Quota limit warning */}
+                  {isOverQuotaLimit && (
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-700">
+                        La cuota mensual supera el límite de S/{maxMonthlyQuota}/mes.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Monthly Payment Summary */}
-                  <div className={`mt-4 p-3 rounded-lg ${hasCoupon ? 'bg-green-50' : 'bg-[#4654CD]/5'}`}>
+                  <div className={`mt-4 p-3 rounded-lg ${isOverQuotaLimit ? 'bg-red-50' : hasCoupon ? 'bg-green-50' : 'bg-[var(--color-primary)]/5'}`}>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-neutral-700">Cuota mensual</span>
+                      <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
                       <div className="text-right">
                         {hasCoupon && (
                           <span className="text-sm text-neutral-400 line-through block">
                             {formatPrice(totalMonthlyPayment)}/mes
                           </span>
                         )}
-                        <span className={`text-lg font-bold ${hasCoupon ? 'text-green-600' : 'text-[#4654CD]'}`}>
+                        <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
                           {formatPrice(discountedMonthlyPayment)}/mes
                         </span>
                       </div>
                     </div>
                     <p className="text-xs text-neutral-500 mt-1">
-                      {selectedProduct.months} meses
+                      {mainProduct.months} meses
                     </p>
                   </div>
 
@@ -223,64 +253,92 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
       {/* Desktop: Top Bar - Hidden when mobileOnly is true */}
       {!mobileOnly && (
       <div className="hidden lg:block mb-6 space-y-3">
-        {/* Product Card */}
-        <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          <div className="flex items-center gap-4">
-            {/* Product Image */}
-            <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-              {selectedProduct.image ? (
-                <Image
-                  src={selectedProduct.image}
-                  alt={selectedProduct.name}
-                  width={64}
-                  height={64}
-                  className="object-contain"
-                />
-              ) : (
-                <Package className="w-8 h-8 text-neutral-300" />
-              )}
-            </div>
-
-            {/* Product Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-neutral-500 uppercase tracking-wide">
-                {selectedProduct.brand}
-              </p>
-              <p className="text-base font-semibold text-neutral-800">
-                {selectedProduct.name}
-              </p>
-              {selectedProduct.specs && (
-                <p className="text-sm text-neutral-500 mt-0.5">
-                  {[
-                    selectedProduct.specs.processor,
-                    selectedProduct.specs.ram,
-                    selectedProduct.specs.storage
-                  ].filter(Boolean).join(' · ')}
-                </p>
-              )}
-            </div>
-
-            {/* Pricing - Monthly Only */}
-            <div className="text-right flex-shrink-0">
-              {hasCoupon ? (
-                <>
-                  <p className="text-sm text-neutral-400 line-through">
-                    {formatPrice(totalMonthlyPayment)}/mes
-                  </p>
-                  <p className="text-lg font-bold text-green-600">
-                    {formatPrice(discountedMonthlyPayment)}/mes
-                  </p>
-                </>
-              ) : (
-                <p className="text-lg font-bold text-[#4654CD]">
-                  {formatPrice(selectedProduct.monthlyPayment)}/mes
-                </p>
-              )}
-              <p className="text-sm text-neutral-500">
-                {selectedProduct.months} meses
+        {/* Quota limit warning - Desktop */}
+        {isOverQuotaLimit && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">Cuota mensual excedida</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                La cuota mensual supera el límite de S/{maxMonthlyQuota}/mes.
+                Quita algún producto o accesorio para continuar.
               </p>
             </div>
           </div>
+        )}
+
+        {/* Products Card */}
+        <div className="bg-white rounded-xl border border-neutral-200 p-4">
+          {/* Header if multiple products */}
+          {allProducts.length > 1 && (
+            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-neutral-100">
+              <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
+              <span className="text-sm font-semibold text-neutral-800">
+                {allProducts.length} productos seleccionados
+              </span>
+            </div>
+          )}
+
+          {/* Products List */}
+          <div className="space-y-4">
+            {allProducts.map((product, index) => (
+              <div key={`${product.id}-${index}`} className={`flex items-center gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}>
+                {/* Product Image */}
+                <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      width={64}
+                      height={64}
+                      className="object-contain"
+                    />
+                  ) : (
+                    <Package className="w-8 h-8 text-neutral-300" />
+                  )}
+                </div>
+
+                {/* Product Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-neutral-500 uppercase tracking-wide">
+                    {product.brand}
+                  </p>
+                  <p className="text-base font-semibold text-neutral-800">
+                    {product.name}
+                  </p>
+                  {product.specs && (
+                    <p className="text-sm text-neutral-500 mt-0.5">
+                      {[
+                        product.specs.processor,
+                        product.specs.ram,
+                        product.specs.storage
+                      ].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
+                </div>
+
+                {/* Pricing - Monthly Only */}
+                <div className="text-right flex-shrink-0">
+                  <p className="text-lg font-bold text-[var(--color-primary)]">
+                    {formatPrice(product.monthlyPayment)}/mes
+                  </p>
+                  <p className="text-sm text-neutral-500">
+                    {product.months} meses
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Total - only show if multiple products or accessories */}
+          {(allProducts.length > 1 || hasAccessories) && (
+            <div className="mt-4 pt-4 border-t border-neutral-200 flex items-center justify-between">
+              <span className="text-sm font-semibold text-neutral-800">Cuota total productos</span>
+              <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
+                {hasCoupon ? formatPrice(discountedMonthlyPayment) : formatPrice(totalMonthlyPayment)}/mes
+              </span>
+            </div>
+          )}
 
           {/* Coupon Badge - Desktop */}
           {hasCoupon && appliedCoupon && (
@@ -297,21 +355,21 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
         {/* Accessories Card with Accordion - Only visible when accessories are selected */}
         {hasAccessories && (
-          <div className="bg-[#4654CD]/5 rounded-xl border border-[#4654CD]/10 overflow-hidden">
+          <div className="bg-[var(--color-primary)]/5 rounded-xl border border-[var(--color-primary)]/10 overflow-hidden">
             {/* Accordion Header - Clickable */}
             <button
               onClick={() => setIsAccessoriesExpanded(!isAccessoriesExpanded)}
-              className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-[#4654CD]/10 transition-colors"
+              className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--color-primary)]/10 transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-[#4654CD]" />
+                <Package className="w-4 h-4 text-[var(--color-primary)]" />
                 <p className="text-sm font-semibold text-neutral-800">
                   Accesorios ({selectedAccessories.length})
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 {!isAccessoriesExpanded && (
-                  <span className="text-sm font-medium text-[#4654CD]">
+                  <span className="text-sm font-medium text-[var(--color-primary)]">
                     +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}/mes
                   </span>
                 )}
@@ -333,16 +391,16 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 pt-2 pb-4 border-t border-[#4654CD]/10">
+                  <div className="px-4 pt-2 pb-4 border-t border-[var(--color-primary)]/10">
                     {/* Accessories List */}
                     <div className="space-y-2">
                       {selectedAccessories.map((acc) => (
                         <div key={acc.id} className="flex items-center justify-between text-sm">
                           <div className="flex items-center gap-2 min-w-0">
-                            <Plus className="w-3 h-3 text-[#4654CD] flex-shrink-0" />
+                            <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
                             <span className="text-neutral-700 truncate">{acc.name}</span>
                           </div>
-                          <span className="text-[#4654CD] font-medium flex-shrink-0 ml-4">
+                          <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
                             +{formatPrice(acc.monthlyQuota)}/mes
                           </span>
                         </div>
@@ -350,7 +408,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     </div>
 
                     {/* Total Summary */}
-                    <div className="mt-3 pt-3 border-t border-[#4654CD]/10 flex justify-between items-center">
+                    <div className="mt-3 pt-3 border-t border-[var(--color-primary)]/10 flex justify-between items-center">
                       <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
                       <div className="text-right">
                         {hasCoupon && (
@@ -358,7 +416,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             {formatPrice(totalMonthlyPayment)}/mes
                           </span>
                         )}
-                        <span className={`text-lg font-bold ${hasCoupon ? 'text-green-600' : 'text-[#4654CD]'}`}>
+                        <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
                           {formatPrice(discountedMonthlyPayment)}/mes
                         </span>
                       </div>
@@ -378,9 +436,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
 // Spacer component to prevent content from being hidden behind fixed bar
 export const SelectedProductSpacer: React.FC = () => {
-  const { selectedProduct } = useProduct();
+  const { getAllProducts } = useProduct();
 
-  if (!selectedProduct) return null;
+  if (getAllProducts().length === 0) return null;
 
   return <div className="lg:hidden h-[72px]" />;
 };

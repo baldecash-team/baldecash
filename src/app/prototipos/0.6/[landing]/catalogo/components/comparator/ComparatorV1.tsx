@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { Trash2, Scale, ArrowRight, Trophy, ShoppingCart } from 'lucide-react';
 import { ComparatorLayoutProps, compareSpecs, calculatePriceDifference, ComparisonProduct, getDisplayQuota } from '../../types/comparator';
@@ -33,6 +33,8 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
   const isCleanMode = searchParams.get('mode') === 'clean';
   const { setSelectedProduct } = useProduct();
   const specs = compareSpecs(products);
@@ -89,7 +91,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     if (bestProduct) {
       selectProductForWizard(bestProduct);
     }
-    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+    const baseUrl = `/prototipos/0.6/${landing}/solicitar`;
     router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
   };
 
@@ -115,7 +117,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     if (product) {
       selectProductForWizard(product);
     }
-    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+    const baseUrl = `/prototipos/0.6/${landing}/solicitar`;
     router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
   };
 

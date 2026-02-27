@@ -52,8 +52,8 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
           type="button"
           onClick={onSubmit}
           disabled={isSubmitting || !canProceed}
-          className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#4654CD] text-white rounded-xl
-                     font-semibold hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25
+          className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[var(--color-primary)] text-white rounded-xl
+                     font-semibold hover:brightness-90 transition-colors shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]
                      cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
@@ -73,8 +73,8 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
           type="button"
           onClick={onNext}
           disabled={isSubmitting || !canProceed}
-          className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#4654CD] text-white rounded-xl
-                     font-semibold hover:bg-[#3a47b3] transition-colors shadow-lg shadow-[#4654CD]/25
+          className="w-full lg:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[var(--color-primary)] text-white rounded-xl
+                     font-semibold hover:brightness-90 transition-colors shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]
                      cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span>Continuar</span>

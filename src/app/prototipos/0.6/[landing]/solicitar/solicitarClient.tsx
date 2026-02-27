@@ -7,7 +7,7 @@
 
 import React, { Suspense, useEffect, useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart } from 'lucide-react';
+import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { useProduct } from './context/ProductContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -35,7 +35,7 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, toggleAccessory, isHydrated } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, toggleAccessory, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment } = useProduct();
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
@@ -163,10 +163,10 @@ function WizardPreviewContent() {
             w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
             transition-all duration-200
             ${checked
-              ? 'bg-[#4654CD] border-[#4654CD]'
+              ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
               : error
                 ? 'bg-white border-red-500 ring-2 ring-red-500/20'
-                : 'bg-white border-neutral-300 hover:border-[#4654CD]/50'
+                : 'bg-white border-neutral-300 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
             }
           `}
         >
@@ -203,8 +203,8 @@ function WizardPreviewContent() {
       <div className="relative z-10 max-w-4xl mx-auto px-4 pt-14 pb-12">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-[#4654CD]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-[#4654CD]" />
+          <div className="w-16 h-16 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-[var(--color-primary)]" />
           </div>
           <h1 className="text-3xl font-bold text-neutral-800 mb-3">
             Solicitud de Financiamiento
@@ -225,8 +225,8 @@ function WizardPreviewContent() {
             <div className="bg-white rounded-xl border border-neutral-200 mb-8 overflow-hidden">
               {/* Header */}
               {productsToShow.length > 1 && (
-                <div className="px-5 py-3 bg-[#4654CD]/5 border-b border-neutral-200 flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+                <div className="px-5 py-3 bg-[rgba(var(--color-primary-rgb),0.05)] border-b border-neutral-200 flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
                   <span className="text-sm font-semibold text-neutral-800">
                     {productsToShow.length} productos seleccionados
                   </span>
@@ -245,7 +245,7 @@ function WizardPreviewContent() {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wider">
+                      <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wider">
                         {product.brand}
                       </p>
                       <h3 className="text-sm font-bold text-neutral-800 line-clamp-2 mt-0.5">
@@ -270,7 +270,7 @@ function WizardPreviewContent() {
                           )}
                         </div>
                       )}
-                      <p className="text-base font-bold text-[#4654CD] mt-1.5">
+                      <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
                         S/{product.monthlyPayment}/mes
                         <span className="text-xs text-neutral-500 font-normal ml-1">
                           x {product.months} meses
@@ -281,8 +281,8 @@ function WizardPreviewContent() {
                 ))}
               </div>
 
-              {/* Total + Accessories */}
-              {(productsToShow.length > 1 || selectedAccessories.length > 0) && (
+              {/* Total + Accessories + Quota Warning */}
+              {(productsToShow.length >= 1) && (
                 <div className="px-5 pb-5 space-y-3">
                   {/* Accessories */}
                   {selectedAccessories.length > 0 && (
@@ -294,7 +294,7 @@ function WizardPreviewContent() {
                         {selectedAccessories.map((acc) => (
                           <div key={acc.id} className="flex items-center justify-between text-sm">
                             <span className="text-neutral-700">{acc.name}</span>
-                            <span className="text-[#4654CD] font-medium">+S/{acc.monthlyQuota}/mes</span>
+                            <span className="text-[var(--color-primary)] font-medium">+S/{acc.monthlyQuota}/mes</span>
                           </div>
                         ))}
                       </div>
@@ -302,12 +302,24 @@ function WizardPreviewContent() {
                   )}
 
                   {/* Total */}
-                  {productsToShow.length > 1 && (
-                    <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
-                      <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
-                      <span className="text-lg font-bold text-[#4654CD]">
-                        S/{totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)}/mes
-                      </span>
+                  <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
+                    <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
+                    <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
+                      S/{totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)}/mes
+                    </span>
+                  </div>
+
+                  {/* Quota limit warning */}
+                  {isOverQuotaLimit && (
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-800">Cuota mensual excedida</p>
+                        <p className="text-xs text-amber-700 mt-0.5">
+                          La cuota mensual supera el límite de S/{maxMonthlyQuota}/mes.
+                          Quita algún producto o accesorio para continuar.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -319,17 +331,17 @@ function WizardPreviewContent() {
         {/* Info Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
-            <Clock className="w-6 h-6 text-[#4654CD] mx-auto mb-2" />
+            <Clock className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-800">1-2 minutos</p>
             <p className="text-xs text-neutral-500">Tiempo estimado</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
-            <FileText className="w-6 h-6 text-[#4654CD] mx-auto mb-2" />
+            <FileText className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-800">4 pasos</p>
             <p className="text-xs text-neutral-500">Proceso simple</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
-            <Shield className="w-6 h-6 text-[#4654CD] mx-auto mb-2" />
+            <Shield className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-800">100% Seguro</p>
             <p className="text-xs text-neutral-500">Datos protegidos</p>
           </div>
@@ -342,8 +354,8 @@ function WizardPreviewContent() {
           </h2>
           <ul className="space-y-3">
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-[#4654CD]">1</span>
+              <div className="w-5 h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-[var(--color-primary)]">1</span>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-800">Documento de identidad</p>
@@ -351,8 +363,8 @@ function WizardPreviewContent() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-[#4654CD]">2</span>
+              <div className="w-5 h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-[var(--color-primary)]">2</span>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-800">Constancia de estudios</p>
@@ -360,8 +372,8 @@ function WizardPreviewContent() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-[#4654CD]">3</span>
+              <div className="w-5 h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-bold text-[var(--color-primary)]">3</span>
               </div>
               <div>
                 <p className="text-sm font-medium text-neutral-800">Información de contacto</p>
@@ -376,7 +388,7 @@ function WizardPreviewContent() {
           <AccessoryIntro />
           {isLoadingAccessories ? (
             <div className="flex justify-center py-8">
-              <div className="w-8 h-8 border-4 border-[#4654CD]/20 border-t-[#4654CD] rounded-full animate-spin" />
+              <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
             </div>
           ) : accessories.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -441,9 +453,13 @@ function WizardPreviewContent() {
         {/* CTA Button */}
         <button
           onClick={handleStart}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
+          disabled={isOverQuotaLimit}
+          className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
                      font-semibold text-lg transition-colors shadow-lg
-                     bg-[#4654CD] text-white hover:bg-[#3a47b3] shadow-[#4654CD]/25 cursor-pointer"
+                     ${isOverQuotaLimit
+                       ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                       : 'bg-[var(--color-primary)] text-white hover:brightness-90 shadow-[rgba(var(--color-primary-rgb),0.25)] cursor-pointer'
+                     }`}
         >
           <span>Comenzar Solicitud</span>
           <ArrowRight className="w-5 h-5" />
@@ -452,7 +468,7 @@ function WizardPreviewContent() {
         {/* Back to catalog link */}
         <button
           onClick={() => router.push(`/prototipos/0.6/${landing}/catalogo`)}
-          className="w-full flex items-center justify-center gap-2 mt-4 py-2 text-neutral-500 hover:text-[#4654CD] transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 mt-4 py-2 text-neutral-500 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Volver al catálogo</span>

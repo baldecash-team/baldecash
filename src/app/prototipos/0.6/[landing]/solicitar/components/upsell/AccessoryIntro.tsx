@@ -9,10 +9,10 @@ import { Users } from 'lucide-react';
  */
 export const AccessoryIntro: React.FC = () => {
   return (
-    <div className="mb-6 bg-[#4654CD]/5 rounded-xl p-4">
+    <div className="mb-6 bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4">
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-[#4654CD]/10 rounded-full flex items-center justify-center flex-shrink-0">
-          <Users className="w-6 h-6 text-[#4654CD]" />
+        <div className="w-12 h-12 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-full flex items-center justify-center flex-shrink-0">
+          <Users className="w-6 h-6 text-[var(--color-primary)]" />
         </div>
         <div>
           <h2 className="text-lg font-semibold text-neutral-800 mb-1">

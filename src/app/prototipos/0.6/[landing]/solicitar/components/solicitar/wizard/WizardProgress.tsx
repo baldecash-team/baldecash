@@ -159,12 +159,12 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                       className={`
                         w-2.5 h-2.5 rounded-full transition-all duration-200
                         ${isCompleted
-                          ? 'bg-[#4654CD]'
+                          ? 'bg-[var(--color-primary)]'
                           : isCurrent
-                          ? 'bg-[#4654CD] ring-2 ring-[#4654CD]/30'
+                          ? 'bg-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.3)]'
                           : 'bg-neutral-200'}
                         ${clickable
-                          ? 'cursor-pointer hover:scale-125 hover:ring-2 hover:ring-[#4654CD]/50'
+                          ? 'cursor-pointer hover:scale-125 hover:ring-2 hover:ring-[rgba(var(--color-primary-rgb),0.5)]'
                           : 'cursor-default'}
                       `}
                       aria-label={`Ir a ${step.title}`}
@@ -173,7 +173,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                       <div
                         className={`
                           flex-1 h-0.5 rounded-full transition-all duration-200
-                          ${index < currentIndex ? 'bg-[#4654CD]' : 'bg-neutral-200'}
+                          ${index < currentIndex ? 'bg-[var(--color-primary)]' : 'bg-neutral-200'}
                         `}
                       />
                     )}
@@ -209,12 +209,12 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                     w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
                     transition-all duration-200
                     ${isCompleted
-                      ? 'bg-[#4654CD] text-white'
+                      ? 'bg-[var(--color-primary)] text-white'
                       : isCurrent
-                      ? 'bg-[#4654CD] text-white ring-4 ring-[#4654CD]/20'
+                      ? 'bg-[var(--color-primary)] text-white ring-4 ring-[rgba(var(--color-primary-rgb),0.2)]'
                       : 'bg-neutral-200 text-neutral-500'}
                     ${clickable
-                      ? 'group-hover:scale-110 group-hover:ring-4 group-hover:ring-[#4654CD]/30'
+                      ? 'group-hover:scale-110 group-hover:ring-4 group-hover:ring-[rgba(var(--color-primary-rgb),0.3)]'
                       : ''}
                   `}
                 >
@@ -228,8 +228,8 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                   className={`
                     mt-2 text-xs font-medium text-center max-w-[80px]
                     transition-colors duration-200
-                    ${isCurrent ? 'text-[#4654CD]' : isCompleted ? 'text-neutral-700' : 'text-neutral-400'}
-                    ${clickable ? 'group-hover:text-[#4654CD]' : ''}
+                    ${isCurrent ? 'text-[var(--color-primary)]' : isCompleted ? 'text-neutral-700' : 'text-neutral-400'}
+                    ${clickable ? 'group-hover:text-[var(--color-primary)]' : ''}
                   `}
                 >
                   {step.title}
@@ -241,7 +241,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                 <div
                   className={`
                     flex-1 h-1 mx-2 rounded-full transition-all duration-200
-                    ${index < currentIndex ? 'bg-[#4654CD]' : 'bg-neutral-200'}
+                    ${index < currentIndex ? 'bg-[var(--color-primary)]' : 'bg-neutral-200'}
                   `}
                 />
               )}

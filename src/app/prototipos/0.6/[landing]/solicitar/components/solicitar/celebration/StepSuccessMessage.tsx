@@ -70,7 +70,7 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
     id: i,
     delay: Math.random() * 0.3,
     x: (i - 6) * 15,
-    color: i % 3 === 0 ? '#4654CD' : i % 3 === 1 ? '#22c55e' : '#03DBD0',
+    color: i % 3 === 0 ? 'var(--color-primary)' : i % 3 === 1 ? '#22c55e' : 'var(--color-secondary)',
   }));
 
   return (
