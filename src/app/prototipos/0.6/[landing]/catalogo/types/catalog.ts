@@ -38,17 +38,48 @@ export const termLabels: Record<TermMonths, string> = {
 // TEA global definida por Marco Del Rio (reunion 13 Feb 2026)
 export const DEFAULT_TEA = 0.75; // 75%
 
+// Comision periodica (legacy tasa_comision)
+export const DEFAULT_COMMISSION_RATE = 0.10; // 10% anual
+export const MIN_COMMISSION_AMOUNT = 12; // S/12 minimo
+
 /**
- * Calcula la cuota mensual usando amortizacion francesa (sistema del sistema viejo).
+ * Amortizacion francesa pura (sin comision).
  * Formula: cuota = principal * (r * (1+r)^n) / ((1+r)^n - 1)
- * donde r = tasa mensual, n = plazo en meses
+ */
+function frenchPayment(principal: number, annualRate: number, term: number): number {
+  if (principal <= 0) return 0;
+  const monthlyRate = Math.pow(1 + annualRate, 1 / 12) - 1;
+  if (monthlyRate === 0) return principal / term;
+  const factor = Math.pow(1 + monthlyRate, term);
+  return principal * (monthlyRate * factor) / (factor - 1);
+}
+
+/**
+ * Calcula la comision periodica mensual (legacy tasa_comision).
+ * Formula: cuota_comision - (principal / plazo), minimo S/12
+ */
+export function calculatePeriodicCommission(
+  principal: number,
+  term: TermMonths,
+  commissionRate: number = DEFAULT_COMMISSION_RATE,
+  minAmount: number = MIN_COMMISSION_AMOUNT,
+): number {
+  if (principal <= 0 || commissionRate <= 0) return 0;
+  const commissionPayment = frenchPayment(principal, commissionRate, term);
+  const principalPortion = principal / term;
+  const commission = Math.round(commissionPayment - principalPortion);
+  return Math.max(commission, minAmount);
+}
+
+/**
+ * Calcula la cuota mensual total (base + comision periodica).
+ * Replica el calculo del legacy: cuota_base(TEA) + comision_periodica(tasa_comision)
  */
 export function calculateQuotaForTerm(price: number, term: TermMonths, tea: number = DEFAULT_TEA): number {
   if (price <= 0) return 0;
-  const monthlyRate = Math.pow(1 + tea, 1 / 12) - 1;
-  const factor = Math.pow(1 + monthlyRate, term);
-  const quota = price * (monthlyRate * factor) / (factor - 1);
-  return Math.floor(quota);
+  const basePayment = frenchPayment(price, tea, term);
+  const commission = calculatePeriodicCommission(price, term);
+  return Math.floor(basePayment + commission);
 }
 
 // ============================================
@@ -374,7 +405,7 @@ export const defaultCatalogConfig: CatalogConfig = {
   tagDisplayVersion: 1,
   pricingMode: 'static',
   defaultTerm: 24,
-  defaultInitial: 10,
+  defaultInitial: 0,
   showPricingOptions: false,
   showFilterCounts: true,
   showTooltips: true,

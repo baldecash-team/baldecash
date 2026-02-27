@@ -133,7 +133,7 @@ const getUpsellUrl = (landing: string) => {
 
 // Configuración fija para cálculo de cuota (igual que CartSelectionModal)
 const WIZARD_SELECTED_TERM = 24;
-const WIZARD_SELECTED_INITIAL = 10;
+const WIZARD_SELECTED_INITIAL = 0;
 const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-solicitar-selected-product';
 
 // Mapear respuestas del quiz a filtros del catálogo

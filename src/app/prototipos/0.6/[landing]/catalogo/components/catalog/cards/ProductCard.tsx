@@ -63,7 +63,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   // Configuración fija de v0.4 presentación
   const selectedTerm = 24;
-  const selectedInitial = 10;
+  const selectedInitial = 0;
   const { quota, initialAmount } = calculateQuotaWithInitial(
     product.price,
     selectedTerm,
@@ -91,7 +91,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Image - Large (gallerySizeVersion=3) */}
           <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
             <ImageGallery
-              images={[product.thumbnail, ...product.images.slice(0, 3)]}
+              images={[...new Set([product.thumbnail, ...product.images.slice(0, 3)])]}
               alt={product.displayName}
             />
 
@@ -232,7 +232,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </p>
               ) : (
                 <p className="text-xs text-neutral-500 mt-2">
-                  en {selectedTerm} meses · inicial S/{formatMoney(initialAmount)}
+                  en {selectedTerm} meses{initialAmount > 0 ? ` · inicial S/${formatMoney(initialAmount)}` : ' · sin inicial'}
                 </p>
               )}
             </div>

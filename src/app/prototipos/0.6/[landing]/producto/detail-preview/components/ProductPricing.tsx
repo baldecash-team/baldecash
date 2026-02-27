@@ -33,7 +33,7 @@ export const ProductPricing: React.FC<ProductPricingProps> = ({
   onSolicitar,
 }) => {
   const [selectedTerm, setSelectedTerm] = useState<TermMonths>(24);
-  const [selectedInitial, setSelectedInitial] = useState<InitialPaymentPercent>(10);
+  const [selectedInitial, setSelectedInitial] = useState<InitialPaymentPercent>(0);
 
   const pricing = useMemo(() => {
     return calculateQuotaWithInitial(price, selectedTerm, selectedInitial);
