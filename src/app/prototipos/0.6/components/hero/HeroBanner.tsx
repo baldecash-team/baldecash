@@ -31,7 +31,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string): string => {
-    if (!href) return `${heroUrl}/catalogo?device=laptop`;
+    if (!href) return '#';
 
     // External links and special protocols - return as-is
     if (href.startsWith('http') || href.startsWith('tel:') || href.startsWith('mailto:')) {
@@ -52,8 +52,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     return `${heroUrl}/${href}`;
   };
 
-  // Use primaryCta.href if available, otherwise fallback to default catalog URL
-  const ctaUrl = transformLink(primaryCta?.href || 'catalogo?device=laptop');
+  // Use primaryCta.href if available, otherwise empty (shows error if not configured)
+  const ctaUrl = transformLink(primaryCta?.href || '');
 
   // Check if a link is external
   const isExternalLink = (href: string): boolean => {

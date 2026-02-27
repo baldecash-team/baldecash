@@ -30,5 +30,22 @@ export default async function LandingPreviewPage({ params }: PageProps) {
   return <LandingPreviewClient landingId={landingId} />;
 }
 
-// No static params - preview is always dynamic
-export const dynamic = 'force-dynamic';
+// Con output: export, solo funcionan rutas pre-generadas en generateStaticParams
+export const dynamicParams = false;
+
+// Pre-generate placeholder routes - actual data is fetched client-side
+export function generateStaticParams() {
+  // Generate common landing IDs (1-10) to cover most cases
+  return [
+    { id: '1' },
+    { id: '2' },
+    { id: '3' },
+    { id: '4' },
+    { id: '5' },
+    { id: '6' },
+    { id: '7' },
+    { id: '8' },
+    { id: '9' },
+    { id: '10' },
+  ];
+}

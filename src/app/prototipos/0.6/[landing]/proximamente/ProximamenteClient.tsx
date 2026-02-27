@@ -1,77 +1,60 @@
 'use client';
 
 /**
- * Próximamente - BaldeCash v0.6
- * Página genérica para secciones en desarrollo
+ * Proximamente - BaldeCash v0.6
+ * Pagina generica para secciones en desarrollo
  * Usa useLayout() para obtener navbar y footer del landing
+ * Contenido de secciones viene de la API (coming_soon_sections)
  */
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { Construction, ArrowLeft, Bell } from 'lucide-react';
+import {
+  Construction,
+  ArrowLeft,
+  Bell,
+  Package,
+  Shield,
+  Percent,
+  Users,
+  Handshake,
+  Briefcase,
+  Newspaper,
+  HelpCircle,
+  MessageCircleQuestion,
+  Search,
+  Mail,
+  Scale,
+  LucideIcon
+} from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { useLayout } from '../context/LayoutContext';
+import { getComingSoonContent, ComingSoonSection } from '@/app/prototipos/0.6/services/landingApi';
 
-// Mapeo de secciones a títulos descriptivos
-const seccionTitulos: Record<string, { titulo: string; descripcion: string }> = {
-  accesorios: {
-    titulo: 'Accesorios',
-    descripcion: 'Próximamente podrás encontrar accesorios para complementar tu equipo.',
-  },
-  seguros: {
-    titulo: 'Seguros',
-    descripcion: 'Estamos preparando opciones de seguros para proteger tu inversión.',
-  },
-  promos: {
-    titulo: 'Promociones',
-    descripcion: 'Próximamente encontrarás ofertas y promociones exclusivas.',
-  },
-  nosotros: {
-    titulo: 'Sobre nosotros',
-    descripcion: 'Estamos preparando información sobre nuestra historia y misión.',
-  },
-  convenios: {
-    titulo: 'Convenios',
-    descripcion: 'Próximamente podrás ver todos nuestros convenios con instituciones educativas.',
-  },
-  empleo: {
-    titulo: 'Trabaja con nosotros',
-    descripcion: 'Estamos preparando nuestra bolsa de trabajo. ¡Pronto podrás postular!',
-  },
-  blog: {
-    titulo: 'Blog',
-    descripcion: 'Próximamente publicaremos artículos sobre tecnología y educación.',
-  },
-  ayuda: {
-    titulo: 'Centro de ayuda',
-    descripcion: 'Estamos preparando recursos y guías para ayudarte.',
-  },
-  faq: {
-    titulo: 'Preguntas frecuentes',
-    descripcion: 'Próximamente encontrarás respuestas a las preguntas más comunes.',
-  },
-  estado: {
-    titulo: 'Estado de solicitud',
-    descripcion: 'Próximamente podrás consultar el estado de tu solicitud aquí.',
-  },
-  contacto: {
-    titulo: 'Contacto',
-    descripcion: 'Estamos preparando más formas de contactarnos.',
-  },
-  sbs: {
-    titulo: 'Regulación SBS',
-    descripcion: 'Próximamente encontrarás información sobre nuestra regulación.',
-  },
+// Mapeo de iconos string a componentes
+const iconMap: Record<string, LucideIcon> = {
+  Construction,
+  Package,
+  Shield,
+  Percent,
+  Users,
+  Handshake,
+  Briefcase,
+  Newspaper,
+  HelpCircle,
+  MessageCircleQuestion,
+  Search,
+  Mail,
+  Scale,
 };
 
-const defaultContent = {
-  titulo: 'Esta sección',
-  descripcion: 'Estamos trabajando en este contenido.',
-};
+function getIconComponent(iconName: string): LucideIcon {
+  return iconMap[iconName] || Construction;
+}
 
 function LoadingFallback() {
   return (
@@ -86,12 +69,64 @@ function ProximamenteContent() {
   const seccion = searchParams.get('seccion') || '';
   const { navbarProps, footerData, isLoading, hasError, landing } = useLayout();
 
-  const contenido = seccionTitulos[seccion] || defaultContent;
+  const [sections, setSections] = useState<ComingSoonSection[]>([]);
+  const [sectionsLoading, setSectionsLoading] = useState(true);
 
   useScrollToTop();
 
+  // Fetch coming soon content from API
+  useEffect(() => {
+    async function fetchSections() {
+      setSectionsLoading(true);
+      try {
+        const data = await getComingSoonContent(landing);
+        setSections(data);
+      } catch (error) {
+        console.error('Error fetching coming soon sections:', error);
+      } finally {
+        setSectionsLoading(false);
+      }
+    }
+
+    if (landing) {
+      fetchSections();
+    }
+  }, [landing]);
+
+  // Find the current section content from API data
+  const contenido = useMemo(() => {
+    // First try to find the exact section
+    const found = sections.find(s => s.section_key === seccion);
+    if (found) {
+      return {
+        titulo: found.title,
+        descripcion: found.description,
+        icon: found.icon,
+      };
+    }
+
+    // Try to find the default section
+    const defaultSection = sections.find(s => s.section_key === 'default');
+    if (defaultSection) {
+      return {
+        titulo: defaultSection.title,
+        descripcion: defaultSection.description,
+        icon: defaultSection.icon,
+      };
+    }
+
+    // Ultimate fallback (only if API fails completely)
+    return {
+      titulo: 'Esta seccion',
+      descripcion: 'Estamos trabajando en este contenido.',
+      icon: 'Construction',
+    };
+  }, [sections, seccion]);
+
+  const IconComponent = getIconComponent(contenido.icon);
+
   // Show loading spinner while fetching
-  if (isLoading) {
+  if (isLoading || sectionsLoading) {
     return <LoadingFallback />;
   }
 
@@ -121,7 +156,7 @@ function ProximamenteContent() {
             className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
             style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
           >
-            <Construction className="w-10 h-10" style={{ color: 'var(--color-primary, #4654CD)' }} />
+            <IconComponent className="w-10 h-10" style={{ color: 'var(--color-primary, #4654CD)' }} />
           </div>
 
           {/* Title */}
@@ -164,7 +199,7 @@ function ProximamenteContent() {
                 <Bell className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="font-medium text-neutral-800 text-sm">¿Tienes alguna consulta?</p>
+                <p className="font-medium text-neutral-800 text-sm">Tienes alguna consulta?</p>
                 <p className="text-neutral-500 text-sm mt-1">
                   Mientras tanto, puedes escribirnos a{' '}
                   <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>

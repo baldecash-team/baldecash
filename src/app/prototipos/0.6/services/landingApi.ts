@@ -406,7 +406,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       subheadline: data.landing.hero_subtitle || '',
       minQuota: (heroConfig.minQuota ?? heroConfig.min_quota ?? 0) as number,
       primaryCta: {
-        text: data.landing.hero_cta_text || ctaPrimary?.text || 'Ver más',
+        text: data.landing.hero_cta_text || ctaPrimary?.text || '',
         href: fullHeroCtaUrl,
         variant: 'primary',
       },
@@ -438,8 +438,8 @@ export function transformLandingData(data: LandingHeroResponse): {
       name: inst.name || '',
       shortName: inst.short_name || inst.name || '',
       logo: inst.logo || '',
-      hasAgreement: true,
-      agreementType: 'convenio_marco' as const,
+      hasAgreement: (inst as { has_agreement?: boolean }).has_agreement ?? false,
+      agreementType: (inst as { agreement_type?: string }).agreement_type as 'convenio_marco' | 'convenio_especifico' | 'alianza' | undefined,
       is_active: inst.is_active,
     }));
 
@@ -465,7 +465,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       testimonialsSubtitle: (socialConfig.testimonials_subtitle as string) || undefined,
       studentCount,
       institutionCount,
-      yearsInMarket: stats.years_in_market || 5,
+      yearsInMarket: stats.years_in_market || 0,
       institutions,
       mediaLogos: (socialConfig.media_logos as { name: string; logo: string; url?: string }[]) || [],
     };
@@ -495,7 +495,7 @@ export function transformLandingData(data: LandingHeroResponse): {
         id: step.id || index + 1,
         title: step.title || '',
         description: step.description || '',
-        icon: step.icon || 'Search',
+        icon: step.icon || '',
         color: step.color,
         is_visible: step.is_visible,
       })),
@@ -505,7 +505,7 @@ export function transformLandingData(data: LandingHeroResponse): {
         icon: req.icon,
         is_visible: req.is_visible,
       })),
-      availableTerms: (howConfig.available_terms as number[]) || [6, 12, 18, 24],
+      availableTerms: (howConfig.available_terms as number[]) || [],
     };
   }
 
@@ -555,7 +555,7 @@ export function transformLandingData(data: LandingHeroResponse): {
         institution: t.institution || '',
         quote: t.quote || '',
         avatar: t.avatar,
-        rating: t.rating ?? 5,
+        rating: t.rating ?? 0,
         is_visible: t.is_visible,
       }))
     : [];
@@ -575,12 +575,12 @@ export function transformLandingData(data: LandingHeroResponse): {
     const legalLinksRaw = ctaConfig.legal_links as { terms?: { text?: string; url?: string }; privacy?: { text?: string; url?: string } } | undefined;
     const legalLinks = legalLinksRaw ? {
       terms: {
-        text: legalLinksRaw.terms?.text || 'términos',
-        url: legalLinksRaw.terms?.url || '#terminos',
+        text: legalLinksRaw.terms?.text || '',
+        url: legalLinksRaw.terms?.url || '',
       },
       privacy: {
-        text: legalLinksRaw.privacy?.text || 'privacidad',
-        url: legalLinksRaw.privacy?.url || '#privacidad',
+        text: legalLinksRaw.privacy?.text || '',
+        url: legalLinksRaw.privacy?.url || '',
       },
     } : undefined;
 
@@ -624,7 +624,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       ctaText: (promoConfig.cta_text as string) || undefined,
       ctaUrl: fullCtaUrl,
       icon: (promoConfig.icon as string) || undefined,
-      dismissible: (promoConfig.dismissible as boolean) ?? true,
+      dismissible: (promoConfig.dismissible as boolean) ?? false,
     };
   }
 
@@ -650,18 +650,22 @@ export function transformLandingData(data: LandingHeroResponse): {
       social_links: data.company.social_links as CompanySocialLinks | null,
     } : undefined;
 
-    // Transform columns: url → href for links
+    // Transform columns: url → href for links, combining base + params
     const rawColumns = footerConfig.columns as Array<{
       title: string;
-      links: Array<{ label: string; url?: string; href?: string }>;
+      links: Array<{ label: string; url?: string; href?: string; url_params?: string; href_params?: string }>;
     }> | undefined;
 
     const transformedColumns = rawColumns?.map(col => ({
       title: col.title,
-      links: col.links.map(link => ({
-        label: link.label,
-        href: link.href || link.url || '#', // Prefer href, fallback to url
-      })),
+      links: col.links.map(link => {
+        const baseUrl = link.href || link.url || '';
+        const params = link.href_params || link.url_params || '';
+        return {
+          label: link.label,
+          href: baseUrl + params,
+        };
+      }),
     }));
 
     footerData = {
@@ -846,6 +850,49 @@ export async function getLandingInsurances(slug: string): Promise<ApiInsurancePl
     return data.plans || [];
   } catch (error) {
     console.error('Error fetching landing insurances:', error);
+    return [];
+  }
+}
+
+// ============================================
+// Coming Soon API Types
+// ============================================
+
+export interface ComingSoonSection {
+  section_key: string;
+  title: string;
+  description: string;
+  icon: string;
+  display_order: number;
+}
+
+interface ComingSoonResponse {
+  sections: ComingSoonSection[];
+}
+
+/**
+ * Obtiene el contenido de "Próximamente" para una landing
+ * @param slug - Slug de la landing (opcional - sin slug devuelve contenido global)
+ */
+export async function getComingSoonContent(slug?: string): Promise<ComingSoonSection[]> {
+  try {
+    const params = slug ? `?slug=${encodeURIComponent(slug)}` : '';
+    const response = await fetch(`${API_BASE_URL}/public/landing/coming-soon${params}`, {
+      next: { revalidate: 300 }, // Cache 5 minutos
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn('[ComingSoon] No content found');
+        return [];
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data: ComingSoonResponse = await response.json();
+    return data.sections || [];
+  } catch (error) {
+    console.error('Error fetching coming soon content:', error);
     return [];
   }
 }

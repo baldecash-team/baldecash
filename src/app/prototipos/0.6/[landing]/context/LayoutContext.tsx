@@ -129,18 +129,22 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     const footerConfig = layoutData.footer?.content_config as Record<string, unknown> | undefined;
     if (!footerConfig) return null;
 
-    // Transform columns: normalize url -> href for links
+    // Transform columns: normalize url -> href for links, combining base + params
     const rawColumns = footerConfig.columns as Array<{
       title: string;
-      links: Array<{ label: string; url?: string; href?: string }>;
+      links: Array<{ label: string; url?: string; href?: string; url_params?: string; href_params?: string }>;
     }> | undefined;
 
     const transformedColumns = rawColumns?.map(col => ({
       title: col.title,
-      links: col.links.map(link => ({
-        label: link.label,
-        href: link.href || link.url || '#', // Prefer href, fallback to url
-      })),
+      links: col.links.map(link => {
+        const baseUrl = link.href || link.url || '';
+        const params = link.href_params || link.url_params || '';
+        return {
+          label: link.label,
+          href: (baseUrl + params) || '#',
+        };
+      }),
     }));
 
     return {
