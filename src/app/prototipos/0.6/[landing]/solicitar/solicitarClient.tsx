@@ -21,7 +21,6 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 
 // Upsell components
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from './components/upsell';
-import { mockAccessories } from './data/mockUpsellData';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
 import type { Accessory, AccessoryCategory } from './types/upsell';
 
@@ -88,7 +87,7 @@ function WizardPreviewContent() {
     }
   }, [isHydrated, selectedProduct, router, landing]);
 
-  // Cargar accesorios desde API (con fallback a mock data)
+  // Cargar accesorios desde API (sin fallback a mock data)
   useEffect(() => {
     async function fetchAccessories() {
       setIsLoadingAccessories(true);
@@ -110,12 +109,12 @@ function WizardPreviewContent() {
           }));
           setAccessories(transformedAccessories);
         } else {
-          // Fallback a datos mock si la API no devuelve datos
-          setAccessories(mockAccessories);
+          // Sin accesorios disponibles
+          setAccessories([]);
         }
       } catch (error) {
-        console.error('Error loading accessories, using mock data:', error);
-        setAccessories(mockAccessories);
+        console.error('Error loading accessories:', error);
+        setAccessories([]);
       } finally {
         setIsLoadingAccessories(false);
       }

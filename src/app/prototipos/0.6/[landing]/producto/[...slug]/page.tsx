@@ -12,35 +12,43 @@ export default function ProductDetailPage() {
   return <ProductDetailClient />;
 }
 
-// Generar algunas rutas estáticas para output: export
+// Generar rutas estáticas desde la API con fallback para desarrollo local
 export async function generateStaticParams() {
-  const knownLandings = [
-    'home',
-    'laptops-estudiantes',
-    'celulares-2026',
-    'motos-lima',
-  ];
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
 
-  // Slugs conocidos para productos de ejemplo (como array para catch-all)
-  // Includes both mock data slugs and API-seeded products
-  const knownSlugs = [
-    // API-seeded products
+  // Fallbacks para cuando la BD local está desactualizada
+  let landings = ['home'];
+  let productSlugs = [
     'hp-pavilion-15-ryzen5',
+    'macbook-pro-14-m3-pro',
     'thinkpad-x1-carbon-gen11',
     'dell-inspiron-14-i5',
-    'macbook-pro-14-m3-pro',
-    'ipad-pro-11-m4-256gb-wifi',
     'iphone-15-pro-256gb',
     'samsung-galaxy-s24-ultra-256gb',
-    // Mock data slugs
-    'lenovo-v15-g4-ryzen5-8gb-256ssd',
-    'ipad-pro-12-m4',
-    'iphone-16-pro-max',
+    'ipad-pro-11-m4-256gb-wifi',
   ];
 
-  // Generar todas las combinaciones de landing + slug (slug como array)
-  return knownLandings.flatMap((landing) =>
-    knownSlugs.map((s) => ({ landing, slug: [s] }))
+  try {
+    const [landingsRes, productsRes] = await Promise.all([
+      fetch(`${apiUrl}/public/landing/list/slugs`, { cache: 'no-store' }),
+      fetch(`${apiUrl}/public/products/list/slugs`, { cache: 'no-store' }),
+    ]);
+
+    if (landingsRes.ok) {
+      const data = await landingsRes.json();
+      if (data.slugs?.length) landings = data.slugs;
+    }
+
+    if (productsRes.ok) {
+      const data = await productsRes.json();
+      if (data.slugs?.length) productSlugs = data.slugs;
+    }
+  } catch {
+    console.log('[generateStaticParams:producto] Using fallbacks (API unavailable)');
+  }
+
+  return landings.flatMap((landing) =>
+    productSlugs.map((s) => ({ landing, slug: [s] }))
   );
 }
 

@@ -38,34 +38,25 @@ export default async function LandingPage({ params }: PageProps) {
 
 // Generar rutas estáticas para output: export
 export async function generateStaticParams() {
-  // Fallback slugs en caso de que la API no esté disponible
-  const fallbackSlugs = [
-    'home',
-    'laptops-estudiantes',
-    'celulares-2026',
-    'motos-lima',
-  ];
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ws2-production-0f0e.up.railway.app/api/v1';
 
   // Intentar obtener landings desde la API durante el build
-  let slugs = fallbackSlugs;
+  let slugs = ['home']; // Fallback mínimo
 
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ws2-production-0f0e.up.railway.app/api/v1';
     const response = await fetch(`${apiUrl}/public/landing/list/slugs`, {
-      cache: 'no-store', // Siempre obtener datos frescos durante build
+      cache: 'no-store',
     });
 
     if (response.ok) {
       const data = await response.json();
       if (data.slugs && Array.isArray(data.slugs)) {
-        // Combinar con fallback para asegurar que siempre tenemos algunos
-        slugs = [...new Set([...fallbackSlugs, ...data.slugs])];
-        console.log(`[generateStaticParams] Found ${data.slugs.length} landings from API`);
+        slugs = data.slugs;
+        console.log(`[generateStaticParams] Found ${slugs.length} landings from API`);
       }
     }
   } catch (error) {
-    // API no disponible durante build - usar fallback
-    console.log('[generateStaticParams] Using fallback slugs (API unavailable)');
+    console.log('[generateStaticParams] Using fallback (API unavailable)');
   }
 
   return [
