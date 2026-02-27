@@ -112,6 +112,7 @@ import {
 } from './types/comparator';
 import { HelpQuiz } from '@/app/prototipos/0.6/quiz/components/quiz/HelpQuiz';
 import { QuizAnswer, QuizQuestion } from '@/app/prototipos/0.6/quiz/types/quiz';
+import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 
@@ -675,13 +676,10 @@ function CatalogoContent() {
 
   // Quiz state
   const [isQuizOpen, setIsQuizOpen] = useState(false);
-  const quizConfig = {
-    layoutVersion: (isMobile ? 4 : 5) as 4 | 5,
-    questionCount: 7 as const,
-    questionStyle: 1 as const,
-    resultsVersion: 1 as const,
-    focusVersion: 1 as const,
-  };
+
+  // Quiz data from API - check if landing has a quiz
+  const { hasQuiz, questions: quizQuestions } = useQuiz({ landingSlug: landing });
+  const questionCount = quizQuestions.length;
 
   // Wishlist state with localStorage persistence
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -1485,32 +1483,34 @@ function CatalogoContent() {
                   config={{ illustrationVersion: 5, actionsVersion: 6 }}
                 />
 
-                {/* Quiz CTA in Empty State */}
-                <section className="mt-8 px-4">
-                  <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl p-6 border border-[rgba(var(--color-primary-rgb),0.2)]">
-                    <div className="flex flex-col md:flex-row items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0">
-                        <HelpCircle className="w-7 h-7 text-white" />
+                {/* Quiz CTA in Empty State - Solo mostrar si hay quiz asociado */}
+                {hasQuiz && (
+                  <section className="mt-8 px-4">
+                    <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl p-6 border border-[rgba(var(--color-primary-rgb),0.2)]">
+                      <div className="flex flex-col md:flex-row items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0">
+                          <HelpCircle className="w-7 h-7 text-white" />
+                        </div>
+                        <div className="flex-1 text-center md:text-left">
+                          <h3 className="text-lg font-semibold text-neutral-800 mb-1">¿No encuentras lo que buscas?</h3>
+                          <p className="text-sm text-neutral-600">
+                            Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
+                          </p>
+                        </div>
+                        <Button
+                          className="bg-[var(--color-primary)] text-white font-medium cursor-pointer hover:brightness-90 transition-colors"
+                          onPress={() => {
+                            closeAllDrawers();
+                            setIsQuizOpen(true);
+                          }}
+                          startContent={<HelpCircle className="w-4 h-4" />}
+                        >
+                          Iniciar asistente
+                        </Button>
                       </div>
-                      <div className="flex-1 text-center md:text-left">
-                        <h3 className="text-lg font-semibold text-neutral-800 mb-1">¿No encuentras lo que buscas?</h3>
-                        <p className="text-sm text-neutral-600">
-                          Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
-                        </p>
-                      </div>
-                      <Button
-                        className="bg-[var(--color-primary)] text-white font-medium cursor-pointer hover:brightness-90 transition-colors"
-                        onPress={() => {
-                          closeAllDrawers();
-                          setIsQuizOpen(true);
-                        }}
-                        startContent={<HelpCircle className="w-4 h-4" />}
-                      >
-                        Iniciar asistente
-                      </Button>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                )}
               </>
             )}
           </div>
@@ -1713,22 +1713,24 @@ function CatalogoContent() {
             </PopoverTrigger>
             <PopoverContent>
               <div className="w-64">
-                {/* Option 1: Quiz */}
-                <button
-                  onClick={() => {
-                    setIsHelpPopoverOpen(false);
-                    setIsQuizOpen(true);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-800">Encuentra tu laptop ideal</p>
-                    <p className="text-xs text-neutral-500">Responde 7 preguntas</p>
-                  </div>
-                </button>
+                {/* Option 1: Quiz - Solo mostrar si hay quiz asociado */}
+                {hasQuiz && (
+                  <button
+                    onClick={() => {
+                      setIsHelpPopoverOpen(false);
+                      setIsQuizOpen(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-800">Encuentra tu laptop ideal</p>
+                      <p className="text-xs text-neutral-500">Responde {questionCount} preguntas</p>
+                    </div>
+                  </button>
+                )}
 
                 {/* Option 2: Tour */}
                 <button
@@ -1769,24 +1771,25 @@ function CatalogoContent() {
         </div>
       )}
 
-      {/* Help Quiz Modal - v0.6 with API support */}
-      <HelpQuiz
-        config={quizConfig}
-        isOpen={isQuizOpen}
-        onClose={() => setIsQuizOpen(false)}
-        context="catalog"
-        landing={landing}
-        onComplete={(results, answers, questions) => {
-          // Aplicar filtros basados en las respuestas del quiz
-          if (answers && answers.length > 0 && questions && questions.length > 0) {
-            const quizFilters = mapQuizAnswersToFilters(answers, questions, filters);
-            setFilters((prev) => ({
-              ...prev,
-              ...quizFilters,
-            }));
-          }
-        }}
-      />
+      {/* Help Quiz Modal - v0.6 with API support - Solo mostrar si hay quiz asociado */}
+      {hasQuiz && (
+        <HelpQuiz
+          isOpen={isQuizOpen}
+          onClose={() => setIsQuizOpen(false)}
+          context="catalog"
+          landing={landing}
+          onComplete={(results, answers, questions) => {
+            // Aplicar filtros basados en las respuestas del quiz
+            if (answers && answers.length > 0 && questions && questions.length > 0) {
+              const quizFilters = mapQuizAnswersToFilters(answers, questions, filters);
+              setFilters((prev) => ({
+                ...prev,
+                ...quizFilters,
+              }));
+            }
+          }}
+        />
+      )}
 
       {/* Webchat Drawer */}
       <WebchatDrawer
@@ -1818,15 +1821,18 @@ function CatalogoContent() {
         onOnboardingConfigChange={onboarding.setConfig}
       />
 
-      {/* Quiz Reminder Popup */}
-      <QuizReminderPopup
-        isVisible={showQuizReminder && !isQuizOpen && !isHelpPopoverOpen}
-        onClose={() => setShowQuizReminder(false)}
-        onOpenQuiz={() => {
-          closeAllDrawers();
-          setIsQuizOpen(true);
-        }}
-      />
+      {/* Quiz Reminder Popup - Solo mostrar si hay quiz asociado */}
+      {hasQuiz && (
+        <QuizReminderPopup
+          isVisible={showQuizReminder && !isQuizOpen && !isHelpPopoverOpen}
+          onClose={() => setShowQuizReminder(false)}
+          onOpenQuiz={() => {
+            closeAllDrawers();
+            setIsQuizOpen(true);
+          }}
+          questionCount={questionCount}
+        />
+      )}
 
       {/* Resume Financing Modal */}
       <ResumeFinancingModal

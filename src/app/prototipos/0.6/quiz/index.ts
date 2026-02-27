@@ -8,6 +8,3 @@ export { QuizProgress } from './components/quiz/progress/QuizProgress';
 
 // Types
 export * from './types/quiz';
-
-// Data
-export { quizQuestionsUsage, mockQuizProducts, generateMockResults } from './data/mockQuizData';

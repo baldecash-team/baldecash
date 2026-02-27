@@ -310,6 +310,8 @@ export interface HeroCtaProps {
   onQuizOpen?: () => void;
   /** Landing slug for dynamic URL building */
   landing?: string;
+  /** Whether this landing has a quiz associated */
+  hasQuiz?: boolean;
 }
 
 // ============================================

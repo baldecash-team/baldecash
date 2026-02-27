@@ -9,12 +9,14 @@ interface QuizReminderPopupProps {
   isVisible: boolean;
   onClose: () => void;
   onOpenQuiz: () => void;
+  questionCount?: number;
 }
 
 export const QuizReminderPopup: React.FC<QuizReminderPopupProps> = ({
   isVisible,
   onClose,
   onOpenQuiz,
+  questionCount = 0,
 }) => {
   return (
     <AnimatePresence>
@@ -49,7 +51,7 @@ export const QuizReminderPopup: React.FC<QuizReminderPopupProps> = ({
                     Encuentra tu laptop ideal
                   </p>
                   <p className="text-xs text-neutral-500 mt-0.5">
-                    Responde 7 preguntas y te recomendamos la mejor opción en 2 minutos
+                    Responde {questionCount} preguntas y te recomendamos la mejor opción en 2 minutos
                   </p>
                 </div>
               </div>

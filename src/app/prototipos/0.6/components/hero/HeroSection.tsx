@@ -22,6 +22,7 @@ import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial
 
 // Quiz
 import { HelpQuiz } from '../../quiz';
+import { useQuiz } from '../../quiz/hooks/useQuiz';
 
 // Components
 import { Navbar } from './Navbar';
@@ -116,6 +117,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   // Quiz state
   const [isQuizOpen, setIsQuizOpen] = useState(false);
 
+  // Quiz data from API - check if landing has a quiz
+  const { hasQuiz, questions } = useQuiz({ landingSlug: landing });
+  const questionCount = questions.length;
+
   // Quiz handlers
   const handleQuizOpen = () => {
     setIsQuizOpen(true);
@@ -182,7 +187,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               {/* CTA Component */}
               <div className="flex justify-center mb-6">
-                <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} landing={landing} />
+                <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} landing={landing} hasQuiz={hasQuiz} />
               </div>
 
               {/* Microcopy con links dinámicos */}
@@ -227,13 +232,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         <Footer data={footerData} landing={landing} />
       </div>
 
-      {/* Quiz Modal */}
-      <HelpQuiz
-        isOpen={isQuizOpen}
-        onClose={handleQuizClose}
-        context="hero"
-        landing={landing}
-      />
+      {/* Quiz Modal - Solo renderizar si hay quiz asociado */}
+      {hasQuiz && (
+        <HelpQuiz
+          isOpen={isQuizOpen}
+          onClose={handleQuizClose}
+          context="hero"
+          landing={landing}
+        />
+      )}
     </div>
   );
 };

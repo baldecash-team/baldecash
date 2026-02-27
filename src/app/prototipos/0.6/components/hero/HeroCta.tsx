@@ -17,7 +17,7 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, landing = 'home' }) => {
+export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, landing = 'home', hasQuiz = true }) => {
   const router = useRouter();
 
   // Normalize landing to remove trailing slashes
@@ -121,19 +121,22 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
         >
           {data?.buttons.catalog.text || ''}
         </Button>
-        <Button
-          size="lg"
-          radius="lg"
-          className="text-white font-semibold w-52 h-14 text-base cursor-pointer transition-colors shadow-lg"
-          style={{
-            backgroundColor: 'var(--color-secondary, #03DBD0)',
-            boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--color-secondary, #03DBD0) 25%, transparent)',
-          }}
-          startContent={<HelpCircle className="w-5 h-5 flex-shrink-0" />}
-          onPress={handleQuiz}
-        >
-          <span className="text-wrap text-left leading-tight">{data?.buttons.quiz.text || ''}</span>
-        </Button>
+        {/* Quiz button - Solo mostrar si hay quiz asociado */}
+        {hasQuiz && (
+          <Button
+            size="lg"
+            radius="lg"
+            className="text-white font-semibold w-52 h-14 text-base cursor-pointer transition-colors shadow-lg"
+            style={{
+              backgroundColor: 'var(--color-secondary, #03DBD0)',
+              boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--color-secondary, #03DBD0) 25%, transparent)',
+            }}
+            startContent={<HelpCircle className="w-5 h-5 flex-shrink-0" />}
+            onPress={handleQuiz}
+          >
+            <span className="text-wrap text-left leading-tight">{data?.buttons.quiz.text || ''}</span>
+          </Button>
+        )}
         <Button
           size="lg"
           radius="lg"

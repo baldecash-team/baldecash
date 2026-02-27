@@ -47,7 +47,6 @@ import { QuizQuestionV1 } from './questions/QuizQuestionV1';
 import { QuizResultsV1 } from './results/QuizResultsV1';
 
 // Data and API
-import { generateMockResults } from '../../data/mockQuizData';
 import { useQuiz } from '../../hooks/useQuiz';
 import { submitQuizResponse, getQuizRecommendations, mapApiToQuizResults } from '../../../services/quizApi';
 
@@ -248,7 +247,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
 
       let quizResults: QuizResult[];
 
-      // Intentar obtener recomendaciones de la API
+      // Obtener recomendaciones de la API
       if (quizId) {
         const apiResponse = await getQuizRecommendations(
           quizId,
@@ -259,21 +258,20 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
         );
 
         if (apiResponse && apiResponse.products.length > 0) {
-          // Usar resultados de la API
           quizResults = mapApiToQuizResults(apiResponse);
-          console.log('[Quiz] Using API recommendations:', quizResults.length, 'limit:', resultsCount, 'landing:', landingId);
+          console.log('[Quiz] API recommendations:', quizResults.length, 'limit:', resultsCount, 'landing:', landingId);
         } else {
-          // Fallback a mock si API falla o no hay resultados
-          console.log('[Quiz] Fallback to mock data');
-          quizResults = generateMockResults(updatedAnswers);
+          // Sin resultados - mostrar vacío para ver el problema real
+          console.warn('[Quiz] No products found. Filters:', apiResponse?.filters_applied);
+          quizResults = [];
         }
       } else {
-        // Sin quizId, usar mock
-        console.log('[Quiz] No quizId, using mock data');
-        quizResults = generateMockResults(updatedAnswers);
+        console.error('[Quiz] No quizId available');
+        quizResults = [];
       }
 
-      setResults(quizResults);
+      // Limit results to configured resultsCount
+      setResults(quizResults.slice(0, resultsCount));
       setIsCalculating(false);
 
       // Submit analytics
