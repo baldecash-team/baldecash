@@ -175,6 +175,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             term={36}
             startDate={new Date()}
             version={cronogramaVersion}
+            productName={product.displayName}
+            productBrand={product.brand}
+            productPrice={product.price}
           />
         </div>
 

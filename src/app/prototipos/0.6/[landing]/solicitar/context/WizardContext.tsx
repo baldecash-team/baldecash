@@ -7,7 +7,6 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { WizardStepId, FieldState, ValidationRule } from '../types/solicitar';
-import { STEP_ORDER } from '../data/wizardSteps';
 
 const STORAGE_KEY = 'wizard-solicitar-data';
 const STORAGE_STEPS_KEY = 'wizard-solicitar-steps';

@@ -269,6 +269,10 @@ export interface CronogramaProps {
   term?: number;
   startDate?: Date;
   version?: CronogramaVersion;
+  // Datos del producto para el PDF
+  productName?: string;
+  productBrand?: string;
+  productPrice?: number;
 }
 
 export interface PortsDisplayProps {

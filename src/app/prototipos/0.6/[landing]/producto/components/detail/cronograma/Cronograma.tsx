@@ -13,6 +13,7 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useIsMobile, Toast } from '@/app/prototipos/_shared';
 import { CronogramaProps, CronogramaVersion } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
+import { generateCronogramaPDF } from '../../../utils/generateCronogramaPDF';
 
 // Cálculo de amortización francesa (cuota fija)
 const calculateAmortization = (principal: number, annualRate: number, months: number) => {
@@ -53,6 +54,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   term = 36,
   startDate = new Date(),
   version = 1,
+  productName = 'Producto',
+  productBrand = 'BaldeCash',
+  productPrice = 0,
 }) => {
   const isMobile = useIsMobile();
   const dragControls = useDragControls();
@@ -123,6 +127,28 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const totalPayment = adjustedQuota * selectedTerm;
 
   const handleDownloadPDF = () => {
+    // Generar datos para el PDF
+    const pdfSchedule = amortizationSchedule.map((row, index) => ({
+      month: row.month,
+      date: getMonthDate(index),
+      capital: row.capital,
+      interest: row.interest,
+      quota: adjustedQuota,
+      balance: row.balance,
+    }));
+
+    generateCronogramaPDF({
+      productName,
+      productBrand,
+      productPrice,
+      term: selectedTerm,
+      monthlyQuota: adjustedQuota,
+      totalPayment,
+      amortizationSchedule: pdfSchedule,
+      financialData: FINANCIAL_DATA,
+      generatedDate: new Date(),
+    });
+
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
   };

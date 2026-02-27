@@ -16,17 +16,9 @@ export default function ProductDetailPage() {
 export async function generateStaticParams() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
 
-  // Fallbacks para cuando la BD local está desactualizada
-  let landings = ['home'];
-  let productSlugs = [
-    'hp-pavilion-15-ryzen5',
-    'macbook-pro-14-m3-pro',
-    'thinkpad-x1-carbon-gen11',
-    'dell-inspiron-14-i5',
-    'iphone-15-pro-256gb',
-    'samsung-galaxy-s24-ultra-256gb',
-    'ipad-pro-11-m4-256gb-wifi',
-  ];
+  // Sin fallbacks - falla explícitamente si la API no responde
+  let landings: string[] = [];
+  let productSlugs: string[] = [];
 
   try {
     const [landingsRes, productsRes] = await Promise.all([
