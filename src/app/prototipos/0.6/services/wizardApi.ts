@@ -39,13 +39,19 @@ export interface WizardMotivational {
   illustration: string;
 }
 
+export interface WizardHelpText {
+  title?: string | null;
+  description?: string | null;
+  recommendation?: string | null;
+}
+
 export interface WizardField {
   id: number;
   code: string;
   label: string;
   type: 'text' | 'email' | 'phone' | 'document_number' | 'date' | 'radio' | 'select' | 'autocomplete' | 'file' | 'textarea' | 'currency' | 'number';
   placeholder?: string | null;
-  help_text?: string | null;
+  help_text?: WizardHelpText | null;
   required: boolean;
   readonly: boolean;
   hidden: boolean;

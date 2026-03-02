@@ -19,6 +19,9 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 
+// Wizard config context for dynamic steps
+import { useWizardConfig } from './context/WizardConfigContext';
+
 // Upsell components
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from './components/upsell';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
@@ -48,6 +51,15 @@ function WizardPreviewContent() {
 
   // Get layout data from context (fetched once at [landing] level)
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+
+  // Get wizard config for dynamic first step
+  const { steps, isLoading: isConfigLoading } = useWizardConfig();
+
+  // Get first regular step (not summary step) for dynamic navigation
+  const firstStep = useMemo(() => {
+    const regularSteps = steps.filter(s => !s.is_summary_step);
+    return regularSteps.length > 0 ? regularSteps[0] : null;
+  }, [steps]);
 
   // Cargar valores desde localStorage al montar
   useEffect(() => {
@@ -132,8 +144,20 @@ function WizardPreviewContent() {
       return;
     }
 
+    // Validar que exista un primer paso configurado en la BD
+    if (!firstStep) {
+      console.error('No hay pasos configurados para esta landing');
+      return;
+    }
+
+    const firstStepSlug = firstStep.url_slug || firstStep.code;
+    if (!firstStepSlug) {
+      console.error('El primer paso no tiene url_slug ni code configurado');
+      return;
+    }
+
     setTermsError(null);
-    router.push(`/prototipos/0.6/${landing}/solicitar/datos-personales`);
+    router.push(`/prototipos/0.6/${landing}/solicitar/${firstStepSlug}`);
   };
 
   // Checkbox component
@@ -477,8 +501,8 @@ function WizardPreviewContent() {
     </div>
   );
 
-  // Show loading while checking hydration, layout loading, or if no product selected (redirect will happen)
-  if (!isHydrated || !selectedProduct || isLayoutLoading) {
+  // Show loading while checking hydration, layout loading, config loading, or if no product selected (redirect will happen)
+  if (!isHydrated || !selectedProduct || isLayoutLoading || isConfigLoading) {
     return <LoadingFallback />;
   }
 

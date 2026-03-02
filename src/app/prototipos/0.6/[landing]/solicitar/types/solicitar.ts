@@ -3,8 +3,8 @@
  * Route-based wizard with fixed configuration
  */
 
-// Step identifiers for routing
-export type WizardStepId = 'datos-personales' | 'datos-academicos' | 'datos-economicos' | 'resumen';
+// Step identifiers for routing (now dynamic - string to support any step from BD)
+export type WizardStepId = string;
 
 // Field types supported
 export type FieldType = 'text' | 'email' | 'tel' | 'number' | 'date' | 'select' | 'radio' | 'file' | 'textarea';

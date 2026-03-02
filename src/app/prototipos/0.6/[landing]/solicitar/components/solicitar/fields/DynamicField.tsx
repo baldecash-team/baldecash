@@ -14,7 +14,6 @@ import { SelectInput } from './SelectInput';
 import { DateInput } from './DateInput';
 import { FileUpload } from './FileUpload';
 import { TextArea } from './TextArea';
-import { fieldTooltips } from '../../../data/fieldTooltips';
 
 interface DynamicFieldProps {
   field: WizardField;
@@ -54,22 +53,17 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     return null;
   }
 
-  // Build tooltip: prefer API help_text, fallback to local fieldTooltips
+  // Build tooltip from API help_text (100% from BD)
   const tooltip = useMemo(() => {
-    // First, check if API provides help_text
     if (field.help_text) {
       return {
-        title: field.label,
-        description: field.help_text,
+        title: field.help_text.title || field.label,
+        description: field.help_text.description || '',
+        recommendation: field.help_text.recommendation ?? undefined,
       };
     }
-    // Fallback to local tooltips by field code
-    const localTooltip = fieldTooltips[field.code];
-    if (localTooltip) {
-      return localTooltip;
-    }
     return undefined;
-  }, [field.help_text, field.code, field.label]);
+  }, [field.help_text, field.label]);
 
   // Common props for all field types
   const commonProps = {

@@ -19,6 +19,8 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { useWizardConfig } from '../context/WizardConfigContext';
+import { getStepSlug } from '../../../services/wizardApi';
 
 // Placeholder insurance components (to be implemented)
 const InsuranceIntro = () => (
@@ -71,8 +73,16 @@ function SegurosContent() {
   // Get layout data from context (fetched once at [landing] level)
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
+  // Get wizard config for dynamic last step
+  const { steps } = useWizardConfig();
+
+  // Get the last step (summary or regular) for dynamic navigation
+  const lastStep = steps.length > 0 ? steps[steps.length - 1] : null;
+
   const handleBack = () => {
-    router.push(`/prototipos/0.6/${landing}/solicitar/resumen`);
+    // Use dynamic last step slug from API (100% from BD)
+    const lastStepSlug = lastStep ? getStepSlug(lastStep) : 'resumen';
+    router.push(`/prototipos/0.6/${landing}/solicitar/${lastStepSlug}`);
   };
 
   const handleContinue = async () => {
