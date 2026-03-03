@@ -67,8 +67,8 @@ function WizardPreviewContent() {
   // Cargar valores desde localStorage al montar
   useEffect(() => {
     try {
-      const savedAcceptTerms = localStorage.getItem('wizard_acceptTerms');
-      const savedAcceptPromos = localStorage.getItem('wizard_acceptPromos');
+      const savedAcceptTerms = localStorage.getItem('baldecash-wizard-acceptTerms');
+      const savedAcceptPromos = localStorage.getItem('baldecash-wizard-acceptPromos');
       if (savedAcceptTerms !== null) setAcceptTerms(savedAcceptTerms === 'true');
       if (savedAcceptPromos !== null) setAcceptPromos(savedAcceptPromos === 'true');
     } catch {}
@@ -79,7 +79,7 @@ function WizardPreviewContent() {
   useEffect(() => {
     if (!isTermsHydrated) return;
     try {
-      localStorage.setItem('wizard_acceptTerms', String(acceptTerms));
+      localStorage.setItem('baldecash-wizard-acceptTerms', String(acceptTerms));
     } catch {}
   }, [acceptTerms, isTermsHydrated]);
 
@@ -87,7 +87,7 @@ function WizardPreviewContent() {
   useEffect(() => {
     if (!isTermsHydrated) return;
     try {
-      localStorage.setItem('wizard_acceptPromos', String(acceptPromos));
+      localStorage.setItem('baldecash-wizard-acceptPromos', String(acceptPromos));
     } catch {}
   }, [acceptPromos, isTermsHydrated]);
 

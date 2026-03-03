@@ -10,6 +10,7 @@ import { WizardField, WizardFieldOption, evaluateFieldVisibility, filterFieldOpt
 import { useWizard } from '../../../context/WizardContext';
 import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
+import { RadioGroup } from './RadioGroup';
 import { SelectInput } from './SelectInput';
 import { DateInput } from './DateInput';
 import { FileUpload } from './FileUpload';
@@ -48,12 +49,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     return filterFieldOptions(field, formValues);
   }, [field, formValues]);
 
-  // If field is not visible, don't render
-  if (!isVisible) {
-    return null;
-  }
-
   // Build tooltip from API help_text (100% from BD)
+  // NOTE: Must be before conditional return to maintain hooks order
   const tooltip = useMemo(() => {
     if (field.help_text) {
       return {
@@ -64,6 +61,11 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     }
     return undefined;
   }, [field.help_text, field.label]);
+
+  // If field is not visible, don't render
+  if (!isVisible) {
+    return null;
+  }
 
   // Common props for all field types
   const commonProps = {
@@ -171,13 +173,14 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'radio':
-      // Use SegmentedControl for 2-3 options, otherwise could use RadioGroup
+      // Use SegmentedControl for 2-3 options, RadioGroup for 4-5, SelectInput for 6+
       const radioOptions = filteredOptions.map((opt) => ({
         value: opt.value,
         label: opt.label,
       }));
 
       if (radioOptions.length <= 3) {
+        // 2-3 options: horizontal buttons
         return (
           <SegmentedControl
             {...commonProps}
@@ -186,7 +189,17 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           />
         );
       }
-      // For more than 3 options, use SelectInput
+      if (radioOptions.length <= 5) {
+        // 4-5 options: vertical card list (like 0.5)
+        return (
+          <RadioGroup
+            {...commonProps}
+            options={radioOptions}
+            success={!error && !!value}
+          />
+        );
+      }
+      // 6+ options: dropdown select
       return (
         <SelectInput
           {...commonProps}

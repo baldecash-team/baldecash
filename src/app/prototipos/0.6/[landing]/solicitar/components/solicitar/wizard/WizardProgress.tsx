@@ -5,6 +5,7 @@
  * Shows current position in the wizard flow
  *
  * Steps come from the API + "Resumen" is always added at the end
+ * Completed steps are calculated DYNAMICALLY based on form data (100% from BD)
  *
  * Mobile: Compact design with Baldi illustration + progress dots (clickeable)
  * Desktop: Full circles with titles (clickeable)
@@ -14,7 +15,8 @@ import React, { useMemo } from 'react';
 import { Check } from 'lucide-react';
 import { WizardStepId } from '../../../types/solicitar';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
-import { getStepSlug } from '../../../../../services/wizardApi';
+import { useWizard } from '../../../context/WizardContext';
+import { getStepSlug, WizardStep, evaluateFieldVisibility } from '../../../../../services/wizardApi';
 
 // Ilustraciones de Baldi por step slug
 const STEP_ILLUSTRATIONS: Record<string, string> = {
@@ -35,37 +37,86 @@ interface ProgressStep {
 
 interface WizardProgressProps {
   currentStep: WizardStepId;
-  completedSteps?: WizardStepId[];
   onStepClick?: (stepId: WizardStepId) => void;
 }
 
+/**
+ * Dynamically check if a step is completed based on form data
+ * A step is completed if all required visible fields have values
+ * This is 100% dynamic - changes in admin (add/remove fields) are reflected automatically
+ */
+const isStepDynamicallyCompleted = (
+  step: WizardStep,
+  formValues: Record<string, string | string[]>
+): boolean => {
+  for (const field of step.fields) {
+    // Skip non-required fields
+    if (!field.required) continue;
+    // Skip fields not visible (evaluateFieldVisibility handles hidden + dependencies)
+    if (!evaluateFieldVisibility(field, formValues)) continue;
+
+    const value = formValues[field.code];
+    // Check if field has a value
+    if (value === undefined || value === null) return false;
+    if (typeof value === 'string' && !value.trim()) return false;
+    if (Array.isArray(value) && value.length === 0) return false;
+  }
+  return true;
+};
+
 export const WizardProgress: React.FC<WizardProgressProps> = ({
   currentStep,
-  completedSteps = [],
   onStepClick,
 }) => {
   const { steps: apiSteps, isLoading } = useWizardConfig();
+  const { formData } = useWizard();
+
+  // Build form values object for completion check
+  const formValues = useMemo(() => {
+    const values: Record<string, string | string[]> = {};
+    for (const [key, state] of Object.entries(formData)) {
+      if (state?.value !== undefined) {
+        values[key] = state.value as string | string[];
+      }
+    }
+    return values;
+  }, [formData]);
+
+  // Calculate completed steps dynamically based on form data
+  const completedSteps = useMemo(() => {
+    const completed: WizardStepId[] = [];
+    for (const step of apiSteps) {
+      if (step.is_summary_step) continue; // Skip summary steps
+      const slug = getStepSlug(step) as WizardStepId;
+      if (isStepDynamicallyCompleted(step, formValues)) {
+        completed.push(slug);
+      }
+    }
+    return completed;
+  }, [apiSteps, formValues]);
 
   // Build step list from API + Resumen at the end
   // Excludes steps with is_summary_step=true (they appear in resumen page, not progress bar)
   // Uses dynamic url_slug from API (100% from BD)
   const progressSteps: ProgressStep[] = useMemo(() => {
-    const stepsFromApi: ProgressStep[] = apiSteps
-      .filter(step => !step.is_summary_step) // Exclude summary steps from progress bar
+    const regularSteps: ProgressStep[] = apiSteps
+      .filter(step => !step.is_summary_step)
       .map(step => ({
         slug: getStepSlug(step) as WizardStepId,
         title: step.title,
         code: step.code,
       }));
 
-    // Always add "Resumen" at the end
+    // Get first summary step from API (is_summary_step=true) for the "Resumen" progress item
+    // This makes the slug 100% dynamic from BD (matches actual URL)
+    const summaryStep = apiSteps.find(step => step.is_summary_step);
     const resumenStep: ProgressStep = {
-      slug: 'resumen',
-      title: 'Resumen',
-      code: 'resumen',
+      slug: summaryStep ? (getStepSlug(summaryStep) as WizardStepId) : 'resumen',
+      title: 'Resumen', // UI convention: last step is always called "Resumen"
+      code: summaryStep?.code || 'resumen',
     };
 
-    return [...stepsFromApi, resumenStep];
+    return [...regularSteps, resumenStep];
   }, [apiSteps]);
 
   const currentIndex = progressSteps.findIndex(s => s.slug === currentStep);
@@ -146,7 +197,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
             {/* Progress Dots - Clickeable */}
             <div className="flex items-center gap-2 mt-2">
               {progressSteps.map((step, index) => {
-                const isCompleted = completedSteps.includes(step.slug) || index < currentIndex;
+                const isCompleted = completedSteps.includes(step.slug);
                 const isCurrent = step.slug === currentStep;
                 const clickable = isStepClickable(step.slug, index);
 
@@ -188,7 +239,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
       {/* Desktop Version */}
       <div className="hidden lg:flex items-center justify-between">
         {progressSteps.map((step, index) => {
-          const isCompleted = completedSteps.includes(step.slug) || index < currentIndex;
+          const isCompleted = completedSteps.includes(step.slug);
           const isCurrent = step.slug === currentStep;
           const clickable = isStepClickable(step.slug, index);
 

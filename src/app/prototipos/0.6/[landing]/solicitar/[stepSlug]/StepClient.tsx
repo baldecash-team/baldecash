@@ -134,7 +134,7 @@ function StepContent() {
     try {
       summarySteps.forEach(s => {
         s.fields.forEach(field => {
-          const savedValue = localStorage.getItem(`wizard_${field.code}`);
+          const savedValue = localStorage.getItem(`baldecash-wizard-field-${field.code}`);
           if (savedValue !== null) {
             setSummaryFieldValues(prev => ({ ...prev, [field.code]: savedValue }));
           }
@@ -149,7 +149,7 @@ function StepContent() {
     if (!isHydrated || !isSummaryStep) return;
     try {
       Object.entries(summaryFieldValues).forEach(([fieldCode, value]) => {
-        localStorage.setItem(`wizard_${fieldCode}`, value);
+        localStorage.setItem(`baldecash-wizard-field-${fieldCode}`, value);
       });
     } catch {}
   }, [summaryFieldValues, isHydrated, isSummaryStep]);
@@ -205,9 +205,8 @@ function StepContent() {
     return Array.isArray(value) ? value.join(', ') : value;
   };
 
-  // Check if field should be displayed
+  // Check if field should be displayed (evaluateFieldVisibility handles hidden + dependencies)
   const shouldDisplayField = (field: WizardField): boolean => {
-    if (field.hidden) return false;
     return evaluateFieldVisibility(field, formValues);
   };
 

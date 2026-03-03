@@ -24,7 +24,7 @@ export default function WizardPreviewLayout({
   return (
     <ProductProvider>
       <WizardConfigProvider slug={landing}>
-        <WizardProvider>{children}</WizardProvider>
+        <WizardProvider landingSlug={landing}>{children}</WizardProvider>
       </WizardConfigProvider>
     </ProductProvider>
   );
