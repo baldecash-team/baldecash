@@ -91,6 +91,11 @@ function SegurosContent() {
     : 0;
   const totalMonthly = getDiscountedMonthlyPayment() + insuranceMonthly;
 
+  // Calculate minimum insurance price for banner
+  const minInsurancePrice = insurancePlans.length > 0
+    ? Math.min(...insurancePlans.map(p => p.monthlyPrice))
+    : null;
+
   const pageContent = (
     <div className="min-h-screen bg-neutral-50 relative">
       {/* Navbar del Hero */}
@@ -112,7 +117,7 @@ function SegurosContent() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-neutral-800">
-                Accidentes pasan. Protege tu equipo desde S/15/mes
+                Accidentes pasan. Protege tu equipo {minInsurancePrice ? `desde S/${minInsurancePrice}/mes` : ''}
               </h2>
               <p className="text-sm text-neutral-600 mt-1">
                 Selecciona un seguro para mayor tranquilidad (opcional)

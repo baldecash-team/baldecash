@@ -30,6 +30,9 @@ import type { Accessory, AccessoryCategory } from './types/upsell';
 // Coupon component
 import { CouponInput } from './components/solicitar/coupon';
 
+// Product bar for mobile
+import { SelectedProductBar, SelectedProductSpacer } from './components/solicitar/product';
+
 function WizardPreviewContent() {
   const router = useRouter();
   const params = useParams();
@@ -224,7 +227,7 @@ function WizardPreviewContent() {
       {/* Spacer for fixed navbar + promo banner */}
       <div className="h-[104px]" />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 pt-14 pb-12">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 pt-14 pb-24 lg:pb-12">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="w-16 h-16 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -246,7 +249,7 @@ function WizardPreviewContent() {
           const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
 
           return (
-            <div className="bg-white rounded-xl border border-neutral-200 mb-8 overflow-hidden">
+            <div className="hidden lg:block bg-white rounded-xl border border-neutral-200 mb-8 overflow-hidden">
               {/* Header */}
               {productsToShow.length > 1 && (
                 <div className="px-5 py-3 bg-[rgba(var(--color-primary-rgb),0.05)] border-b border-neutral-200 flex items-center gap-2">
@@ -514,6 +517,8 @@ function WizardPreviewContent() {
   return (
     <div className="relative">
       {pageContent}
+      <SelectedProductBar mobileOnly />
+      <SelectedProductSpacer />
       <Footer data={footerData} />
     </div>
   );

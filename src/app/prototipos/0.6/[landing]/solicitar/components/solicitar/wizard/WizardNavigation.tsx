@@ -30,7 +30,7 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
   return (
     <div className="flex flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between mt-8">
       {/* Back Button */}
-      {!isFirstStep && onBack ? (
+      {onBack ? (
         <button
           type="button"
           onClick={onBack}

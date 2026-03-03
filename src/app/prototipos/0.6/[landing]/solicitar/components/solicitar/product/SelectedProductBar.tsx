@@ -79,9 +79,6 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               {allProducts.length > 1 ? (
                 <div className="w-full h-full flex items-center justify-center bg-[var(--color-primary)]/10">
                   <ShoppingCart className="w-6 h-6 text-[var(--color-primary)]" />
-                  <span className="absolute -top-1 -right-1 bg-[var(--color-primary)] text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {allProducts.length}
-                  </span>
                 </div>
               ) : mainProduct.image ? (
                 <Image
@@ -141,7 +138,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="px-4 pb-4 pt-1 border-t border-neutral-100">
+                <div className="px-4 pb-4 pt-1 border-t border-neutral-100 max-h-[60vh] overflow-y-auto">
                   {/* Products List */}
                   <div className="space-y-3">
                     {allProducts.map((product, index) => (
