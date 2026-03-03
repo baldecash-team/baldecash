@@ -18,15 +18,10 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   step,
   showErrors = false,
 }) => {
-  // Sort fields by display_order (from API they come ordered, but just in case)
-  const sortedFields = [...step.fields].sort((a, b) => {
-    // Fields are already ordered by the API, but we can use their id as fallback
-    return a.id - b.id;
-  });
-
+  // Fields come already ordered by display_order from the API
   return (
     <div className="grid grid-cols-12 gap-4">
-      {sortedFields.map((field) => {
+      {step.fields.map((field) => {
         // Use grid_columns from API (default to 12 = full width)
         const cols = field.grid_columns || 12;
         const colsMobile = field.grid_columns_mobile || 12;

@@ -81,8 +81,8 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
               relative w-full p-4 rounded-xl text-left
               transition-all duration-200 cursor-pointer border-2
               ${value === option.value
-                ? 'bg-[#4654CD]/5 border-[#4654CD]'
-                : 'bg-white border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-sm'
+                ? 'bg-[rgba(var(--color-primary-rgb),0.05)] border-[var(--color-primary)]'
+                : 'bg-white border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-sm'
               }
               ${(option.disabled || disabled) ? 'opacity-50 cursor-not-allowed' : ''}
             `}
@@ -91,14 +91,14 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
             <div>
               <p className={`
                 font-medium text-base
-                ${value === option.value ? 'text-[#4654CD]' : 'text-neutral-800'}
+                ${value === option.value ? 'text-[var(--color-primary)]' : 'text-neutral-800'}
               `}>
                 {option.label}
               </p>
               {option.description && (
                 <p className={`
                   text-sm mt-0.5
-                  ${value === option.value ? 'text-[#4654CD]/70' : 'text-neutral-500'}
+                  ${value === option.value ? 'text-[rgba(var(--color-primary-rgb),0.7)]' : 'text-neutral-500'}
                 `}>
                   {option.description}
                 </p>

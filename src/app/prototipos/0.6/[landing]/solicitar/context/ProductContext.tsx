@@ -10,8 +10,12 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import type { Accessory } from '../types/upsell';
 
 const STORAGE_KEY = 'baldecash-solicitar-selected-product';
+const CART_PRODUCTS_STORAGE_KEY = 'baldecash-solicitar-cart-products';
 const ACCESSORIES_STORAGE_KEY = 'baldecash-solicitar-selected-accessories';
 const COUPON_STORAGE_KEY = 'baldecash-solicitar-applied-coupon';
+
+// Maximum monthly quota limit from env
+const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
 
 export interface SelectedProduct {
   id: string;
@@ -43,6 +47,10 @@ interface ProductContextValue {
   selectedProduct: SelectedProduct | null;
   setSelectedProduct: (product: SelectedProduct | null) => void;
   clearProduct: () => void;
+  // Multi-product cart for wizard
+  cartProducts: SelectedProduct[];
+  setCartProducts: (products: SelectedProduct[]) => void;
+  clearCartProducts: () => void;
   selectedAccessories: Accessory[];
   setSelectedAccessories: (accessories: Accessory[]) => void;
   toggleAccessory: (accessory: Accessory) => void;
@@ -57,6 +65,11 @@ interface ProductContextValue {
   // Estado de la barra de producto (mobile)
   isProductBarExpanded: boolean;
   setIsProductBarExpanded: (expanded: boolean) => void;
+  // Quota limit validation
+  isOverQuotaLimit: boolean;
+  maxMonthlyQuota: number;
+  // Get all products (cart or single)
+  getAllProducts: () => SelectedProduct[];
 }
 
 const ProductContext = createContext<ProductContextValue | undefined>(undefined);
@@ -69,12 +82,21 @@ export const useProduct = () => {
   return context;
 };
 
+/**
+ * Optional version that returns null if no Provider is present.
+ * Useful for components that may be rendered outside the provider (e.g., Quiz in Hero).
+ */
+export const useProductOptional = () => {
+  return useContext(ProductContext);
+};
+
 interface ProductProviderProps {
   children: ReactNode;
 }
 
 export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) => {
   const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
+  const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
   const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -86,6 +108,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
       const storedProduct = localStorage.getItem(STORAGE_KEY);
       if (storedProduct) {
         setSelectedProductState(JSON.parse(storedProduct));
+      }
+      const storedCartProducts = localStorage.getItem(CART_PRODUCTS_STORAGE_KEY);
+      if (storedCartProducts) {
+        setCartProductsState(JSON.parse(storedCartProducts));
       }
       const storedAccessories = localStorage.getItem(ACCESSORIES_STORAGE_KEY);
       if (storedAccessories) {
@@ -119,6 +145,29 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     setSelectedProductState(null);
     try {
       localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
+  // Cart products functions (multi-product)
+  const setCartProducts = useCallback((products: SelectedProduct[]) => {
+    setCartProductsState(products);
+    try {
+      if (products.length > 0) {
+        localStorage.setItem(CART_PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+      } else {
+        localStorage.removeItem(CART_PRODUCTS_STORAGE_KEY);
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
+  const clearCartProducts = useCallback(() => {
+    setCartProductsState([]);
+    try {
+      localStorage.removeItem(CART_PRODUCTS_STORAGE_KEY);
     } catch {
       // localStorage not available
     }
@@ -193,18 +242,27 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     }
   }, []);
 
-  // Calculate totals
+  // Get all products (cart or single)
+  const getAllProducts = useCallback((): SelectedProduct[] => {
+    if (cartProducts.length > 0) return cartProducts;
+    if (selectedProduct) return [selectedProduct];
+    return [];
+  }, [cartProducts, selectedProduct]);
+
+  // Calculate totals - considers both cartProducts and selectedProduct
   const getTotalPrice = useCallback(() => {
-    const productPrice = selectedProduct?.price || 0;
+    const products = getAllProducts();
+    const productsPrice = products.reduce((sum, p) => sum + p.price, 0);
     const accessoriesPrice = selectedAccessories.reduce((sum, acc) => sum + acc.price, 0);
-    return productPrice + accessoriesPrice;
-  }, [selectedProduct, selectedAccessories]);
+    return productsPrice + accessoriesPrice;
+  }, [getAllProducts, selectedAccessories]);
 
   const getTotalMonthlyPayment = useCallback(() => {
-    const productMonthly = selectedProduct?.monthlyPayment || 0;
+    const products = getAllProducts();
+    const productsMonthly = products.reduce((sum, p) => sum + p.monthlyPayment, 0);
     const accessoriesMonthly = selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0);
-    return productMonthly + accessoriesMonthly;
-  }, [selectedProduct, selectedAccessories]);
+    return productsMonthly + accessoriesMonthly;
+  }, [getAllProducts, selectedAccessories]);
 
   const getDiscountedMonthlyPayment = useCallback(() => {
     const total = getTotalMonthlyPayment();
@@ -212,12 +270,18 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     return Math.max(0, total - discount);
   }, [getTotalMonthlyPayment, appliedCoupon]);
 
+  // Check if over quota limit
+  const isOverQuotaLimit = getTotalMonthlyPayment() > MAX_MONTHLY_QUOTA;
+
   return (
     <ProductContext.Provider
       value={{
         selectedProduct,
         setSelectedProduct,
         clearProduct,
+        cartProducts,
+        setCartProducts,
+        clearCartProducts,
         selectedAccessories,
         setSelectedAccessories,
         toggleAccessory,
@@ -231,6 +295,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
         isHydrated,
         isProductBarExpanded,
         setIsProductBarExpanded,
+        isOverQuotaLimit,
+        maxMonthlyQuota: MAX_MONTHLY_QUOTA,
+        getAllProducts,
       }}
     >
       {children}

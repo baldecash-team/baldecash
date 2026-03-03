@@ -51,13 +51,13 @@ const ModalContentShared: React.FC<{
         />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs text-[#4654CD] font-medium uppercase tracking-wide">
+        <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wide">
           {product.brand}
         </p>
         <h3 className="text-sm lg:text-base font-semibold text-neutral-800 line-clamp-2">
           {product.displayName}
         </h3>
-        <p className="text-base lg:text-lg font-bold text-[#4654CD] mt-0.5">
+        <p className="text-base lg:text-lg font-bold text-[var(--color-primary)] mt-0.5">
           S/{formatMoney(quota)}/mes
         </p>
       </div>
@@ -73,7 +73,7 @@ const ModalContentShared: React.FC<{
           onRequestEquipment();
           onClose();
         }}
-        className="w-full p-4 bg-[#4654CD] text-white rounded-xl flex items-center gap-4 cursor-pointer hover:bg-[#3a47b3] transition-colors"
+        className="w-full p-4 bg-[var(--color-primary)] text-white rounded-xl flex items-center gap-4 cursor-pointer hover:brightness-90 transition-colors"
       >
         <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
           <ArrowRight className="w-6 h-6" />
@@ -94,7 +94,7 @@ const ModalContentShared: React.FC<{
           onAddToCart();
           onClose();
         }}
-        className="w-full p-4 bg-white border-2 border-neutral-200 text-neutral-800 rounded-xl flex items-center gap-4 cursor-pointer hover:border-[#4654CD] hover:bg-[#4654CD]/5 transition-all"
+        className="w-full p-4 bg-white border-2 border-neutral-200 text-neutral-800 rounded-xl flex items-center gap-4 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] transition-all"
       >
         <div className="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center flex-shrink-0">
           <ShoppingCart className="w-6 h-6 text-neutral-600" />
@@ -136,8 +136,8 @@ const DesktopModal: React.FC<CartSelectionModalProps & { product: CatalogProduct
   >
     <ModalContent>
       <ModalHeader className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-          <ShoppingCart className="w-5 h-5 text-[#4654CD]" />
+        <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+          <ShoppingCart className="w-5 h-5 text-[var(--color-primary)]" />
         </div>
         <div>
           <h2 className="text-lg font-bold text-neutral-800">¿Qué deseas hacer?</h2>
@@ -244,8 +244,8 @@ const MobileBottomSheet: React.FC<CartSelectionModalProps & { product: CatalogPr
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                  <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                  <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">

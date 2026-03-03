@@ -28,8 +28,8 @@ export const PriceRangeFilter: React.FC<PriceRangeFilterProps> = ({
         size="sm"
         classNames={{
           base: 'max-w-full',
-          filler: 'bg-[#4654CD]/70',
-          thumb: 'bg-white border-2 border-[#4654CD] w-4 h-4 shadow-lg cursor-pointer after:bg-[#4654CD] after:w-1.5 after:h-1.5',
+          filler: 'bg-[rgba(var(--color-primary-rgb),0.7)]',
+          thumb: 'bg-white border-2 border-[var(--color-primary)] w-4 h-4 shadow-lg cursor-pointer after:bg-[var(--color-primary)] after:w-1.5 after:h-1.5',
           track: 'bg-neutral-200 h-1',
           label: 'text-xs font-medium text-neutral-600',
           value: 'text-xs text-neutral-500',

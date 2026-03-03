@@ -30,8 +30,7 @@ import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipo
 import { Navbar } from '@/app/prototipos/0.5/hero/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.5/hero/components/hero/Footer';
 
-// Product context for wizard integration
-import { ProductProvider } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
+// Product context for wizard integration (ProductProvider is at the 0.5 layout level)
 
 // Catalog secondary navbar and data
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.5/catalogo/components/catalog/CatalogSecondaryNavbar';
@@ -44,6 +43,7 @@ import {
   defaultDetalleConfig,
   deviceTypeLabels,
 } from '../types/detail';
+import { useToast, Toast } from '@/app/prototipos/_shared';
 
 function DetailPreviewContent() {
   const router = useRouter();
@@ -60,6 +60,7 @@ function DetailPreviewContent() {
   // Shared state for catalog (wishlist, cart)
   const catalogState = useCatalogSharedState();
   const [searchQuery, setSearchQuery] = useState('');
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Get products for wishlist and cart display
   const wishlistProducts = useMemo(
@@ -123,6 +124,23 @@ function DetailPreviewContent() {
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
   }, [config.deviceType, config.cronogramaVersion, router, isCleanMode]);
 
+  // Product ID based on device type
+  const currentProductId = config.deviceType === 'tablet' ? 'featured-tablet'
+    : config.deviceType === 'celular' ? 'featured-celular'
+    : 'featured-laptop';
+
+  const isProductInCart = catalogState.cart.includes(currentProductId);
+
+  // Handler para añadir al carrito desde la página de detalle
+  const handleAddToCart = () => {
+    if (isProductInCart) {
+      showToast('Este producto ya está en tu carrito', 'info');
+      return;
+    }
+    catalogState.addToCart(currentProductId);
+    showToast('Producto añadido al carrito', 'success');
+  };
+
   // Fixed config for display (components)
   const componentConfig = {
     infoHeader: 'V3',
@@ -173,13 +191,16 @@ function DetailPreviewContent() {
           onMobileCartClick={() => router.push(getCatalogUrl())}
         />
         <main className="pt-40">
-          <ProductDetail deviceType={config.deviceType} cronogramaVersion={config.cronogramaVersion} />
+          <ProductDetail deviceType={config.deviceType} cronogramaVersion={config.cronogramaVersion} onAddToCart={handleAddToCart} isInCart={isProductInCart} />
         </main>
         <Footer isCleanMode={isCleanMode} />
         <FeedbackButton
           sectionId="detalle"
           className="bottom-20 md:bottom-6"
         />
+        {toast && (
+          <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} position="bottom" />
+        )}
       </div>
     );
   }
@@ -266,6 +287,9 @@ function DetailPreviewContent() {
         config={config}
         onConfigChange={setConfig}
       />
+      {toast && (
+        <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} position="bottom" />
+      )}
     </div>
   );
 }
@@ -280,10 +304,8 @@ function LoadingFallback() {
 
 export default function DetailPreviewPage() {
   return (
-    <ProductProvider>
-      <Suspense fallback={<LoadingFallback />}>
-        <DetailPreviewContent />
-      </Suspense>
-    </ProductProvider>
+    <Suspense fallback={<LoadingFallback />}>
+      <DetailPreviewContent />
+    </Suspense>
   );
 }

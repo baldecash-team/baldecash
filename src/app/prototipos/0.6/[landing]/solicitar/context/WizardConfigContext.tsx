@@ -14,7 +14,7 @@ import {
   getStepByCode,
   getStepBySlug,
   getStepNavigation,
-  STEP_CODE_TO_SLUG,
+  getStepSlug,
 } from '../../../services/wizardApi';
 
 interface WizardConfigContextValue {
@@ -115,9 +115,11 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
 
   const getUrlSlugForStep = useMemo(() => {
     return (stepCode: string) => {
-      return STEP_CODE_TO_SLUG[stepCode];
+      if (!config) return undefined;
+      const step = getStepByCode(config, stepCode);
+      return step ? getStepSlug(step) : undefined;
     };
-  }, []);
+  }, [config]);
 
   const steps = useMemo(() => {
     if (!config) return [];

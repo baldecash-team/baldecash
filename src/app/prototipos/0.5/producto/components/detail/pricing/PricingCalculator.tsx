@@ -9,20 +9,29 @@ import { useState, useMemo } from 'react';
 import { PricingCalculatorProps, PaymentPlan } from '../../../types/detail';
 import { formatMoney } from '../../../../utils/formatMoney';
 
-const INITIAL_PAYMENT_OPTIONS = [
-  { value: '0', label: '0%' },
-  { value: '10', label: '10%' },
-  { value: '20', label: '20%' },
-  { value: '30', label: '30%' },
-];
+const INITIAL_PAYMENT_PERCENTAGES = [0, 10, 20, 30];
 
 export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   paymentPlans,
   defaultTerm = 36,
+  productPrice: productPriceProp,
 }) => {
+  // Compute product price from prop or derive from first plan
+  const productPrice = productPriceProp || (paymentPlans[0]?.monthlyQuota || 0) * (paymentPlans[0]?.term || 24);
   const [selectedTerm, setSelectedTerm] = useState(defaultTerm);
   const [initialPayment, setInitialPayment] = useState('0');
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
+
+  // Generate initial payment options in soles
+  const initialPaymentOptions = useMemo(() => {
+    return INITIAL_PAYMENT_PERCENTAGES.map((percent) => ({
+      value: String(percent),
+      label: percent === 0
+        ? 'Sin inicial'
+        : `S/${Math.round(productPrice * percent / 100).toLocaleString()}`,
+      percent,
+    }));
+  }, [productPrice]);
 
   // Obtener cuota del plan según el plazo
   const getQuotaForTerm = (term: number): { quota: number; originalQuota?: number } => {
@@ -57,7 +66,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
           Cuota inicial (opcional)
         </label>
         <div className="flex flex-wrap gap-2">
-          {INITIAL_PAYMENT_OPTIONS.map((option) => (
+          {initialPaymentOptions.map((option) => (
             <button
               key={option.value}
               onClick={() => setInitialPayment(option.value)}

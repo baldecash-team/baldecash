@@ -18,11 +18,12 @@ import {
 } from 'lucide-react';
 import { QuizResultsProps } from '../../../types/quiz';
 
-export const QuizResultsV1: React.FC<QuizResultsProps> = ({
+export const QuizResultsV1: React.FC<QuizResultsProps & { onAddToCart?: (productId: string) => void }> = ({
   results,
   onViewProduct,
   onRestartQuiz,
   onViewOtherOptions,
+  onAddToCart,
 }) => {
   const topResult = results[0];
 
@@ -181,6 +182,15 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
                   onPress={() => onViewProduct(topResult.product.id)}
                 >
                   Lo quiero
+                </Button>
+                <Button
+                  className="border-[#4654CD] text-[#4654CD] bg-[#4654CD]/5 hover:bg-[#4654CD]/10 font-semibold cursor-pointer"
+                  size="lg"
+                  variant="bordered"
+                  startContent={<ShoppingCart className="w-4 h-4" />}
+                  onPress={() => onAddToCart?.(topResult.product.id)}
+                >
+                  Al carrito
                 </Button>
               </div>
             </div>

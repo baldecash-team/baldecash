@@ -35,6 +35,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          NEXT_PUBLIC_FG_CODES: ${{ vars.FG_CODES }}
 
       - name: Add .nojekyll file
         run: touch ./out/.nojekyll

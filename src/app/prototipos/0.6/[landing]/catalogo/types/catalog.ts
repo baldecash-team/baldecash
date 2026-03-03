@@ -1,6 +1,7 @@
 // types/catalog.ts - BaldeCash Catalog Types v0.4
 
 import { ReactNode } from 'react';
+import type { CatalogFiltersResponse } from '../../../types/filters';
 
 // ============================================
 // Enums y tipos base
@@ -9,7 +10,7 @@ import { ReactNode } from 'react';
 export type UsageType =
   | 'estudios'
   | 'gaming'
-  | 'diseño'
+  | 'diseno'
   | 'oficina'
   | 'programacion';
 
@@ -235,7 +236,7 @@ export interface FilterState {
 export const defaultFilterState: FilterState = {
   deviceTypes: [],
   brands: [],
-  quotaRange: [0, 400],
+  quotaRange: [25, 500],
   quotaFrequency: 'monthly',
   usage: [],
   ram: [],
@@ -427,7 +428,8 @@ export interface ProductColor {
   id: string;
   name: string;
   hex: string;
-  imageUrl?: string;
+  imageUrl?: string;   // Imagen principal de la variante
+  images?: string[];   // Array de imágenes para carousel
 }
 
 export const colorSelectorVersionLabels: Record<ColorSelectorVersion, { name: string; description: string }> = {
@@ -765,6 +767,11 @@ export interface CatalogLayoutProps {
   // Search query for chip display
   searchQuery?: string;
   onSearchClear?: () => void;
+  // Dynamic API filters (specs, conditions, labels, etc.)
+  apiFilters?: CatalogFiltersResponse | null;
+  isApiFiltersLoading?: boolean;
+  // Total products from API (for displaying count, not just loaded products)
+  totalProducts: number;
 }
 
 export interface BrandFilterProps {

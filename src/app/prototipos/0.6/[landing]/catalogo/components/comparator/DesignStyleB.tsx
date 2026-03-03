@@ -92,7 +92,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                 ? 'border-2 border-[#22c55e] shadow-xl scale-[1.02]'
                 : showBestOption
                 ? 'opacity-70 scale-[0.98]'
-                : 'border border-neutral-200 hover:border-[#4654CD]/30 hover:shadow-lg'
+                : 'border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.3)] hover:shadow-lg'
             }`}
           >
             {/* Remove button */}
@@ -117,7 +117,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
 
               {/* Cheapest badge */}
               {!isBest && isCheapest && (
-                <div className="bg-[#4654CD]/10 text-[#4654CD] text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                <div className="bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)] text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5">
                   <TrendingDown className="w-4 h-4" />
                   Mejor precio
                 </div>
@@ -149,7 +149,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
 
               {/* Price */}
               <div className="text-center">
-                <span className={`text-2xl font-bold ${isBest ? 'text-[#22c55e]' : 'text-[#4654CD]'}`}>
+                <span className={`text-2xl font-bold ${isBest ? 'text-[#22c55e]' : 'text-[var(--color-primary)]'}`}>
                   S/{formatMoney(getDisplayQuota(product))}
                 </span>
                 <span className="text-sm font-normal text-neutral-500">/mes</span>
@@ -172,7 +172,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                         isWinner
                           ? config.highlightVersion === 1
                             ? 'bg-[#22c55e]/10'
-                            : 'bg-[#4654CD]/5'
+                            : 'bg-[rgba(var(--color-primary-rgb),0.05)]'
                           : isWorst
                           ? 'bg-red-50'
                           : 'bg-neutral-50/50'
@@ -187,7 +187,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                       <div className="flex items-center gap-1.5 ml-2">
                         <span className={`text-sm font-medium ${
                           isWinner
-                            ? config.highlightVersion === 1 ? 'text-[#22c55e]' : 'text-[#4654CD]'
+                            ? config.highlightVersion === 1 ? 'text-[#22c55e]' : 'text-[var(--color-primary)]'
                             : isWorst
                             ? 'text-red-600'
                             : 'text-neutral-700'
@@ -197,7 +197,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                         {isWinner && (
                           config.highlightVersion === 1
                             ? <Trophy className="w-3.5 h-3.5 text-[#22c55e]" />
-                            : <Check className="w-3.5 h-3.5 text-[#4654CD]" />
+                            : <Check className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                         )}
                       </div>
                     </div>
@@ -210,11 +210,11 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                 <div className="mt-4 pt-3 border-t border-neutral-100">
                   <div className="flex items-center justify-between text-xs text-neutral-500 mb-1.5">
                     <span>Puntuación general</span>
-                    <span className="font-medium text-[#4654CD]">{wins}/{specs.filter(s => s.isDifferent).length}</span>
+                    <span className="font-medium text-[var(--color-primary)]">{wins}/{specs.filter(s => s.isDifferent).length}</span>
                   </div>
                   <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#4654CD] rounded-full transition-all"
+                      className="h-full bg-[var(--color-primary)] rounded-full transition-all"
                       style={{
                         width: specs.filter(s => s.isDifferent).length > 0
                           ? `${(wins / specs.filter(s => s.isDifferent).length) * 100}%`
@@ -232,7 +232,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                 className={`cursor-pointer font-semibold transition-all ${
                   isBest
                     ? 'bg-[#22c55e] text-white hover:bg-[#16a34a] shadow-md hover:shadow-lg'
-                    : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+                    : 'bg-[var(--color-primary)] text-white hover:brightness-90'
                 }`}
                 onPress={() => onSelectProduct?.(product.id)}
                 endContent={<ArrowRight className="w-4 h-4" />}

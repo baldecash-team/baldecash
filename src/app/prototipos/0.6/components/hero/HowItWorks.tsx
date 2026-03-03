@@ -19,26 +19,61 @@ import {
   Smartphone,
   ArrowRight,
   CheckCircle2,
+  Send,
+  CheckCircle,
+  User,
+  Shield,
+  Package,
+  Truck,
+  Building,
+  Briefcase,
+  Star,
 } from 'lucide-react';
 import { HowItWorksProps } from '../../types/hero';
 
+// Íconos disponibles para pasos (sincronizado con admin)
 const stepIconMap: Record<string, React.ElementType> = {
   Search,
   FileText,
   Clock,
+  Send,
+  CheckCircle,
+  CreditCard,
+  Smartphone,
+  Mail,
+  User,
+  Shield,
+  Package,
+  Truck,
   GraduationCap,
+  Building,
+  Briefcase,
+  Star,
 };
 
+// Íconos disponibles para requisitos (sincronizado con admin)
 const reqIconMap: Record<string, React.ElementType> = {
   GraduationCap,
   CreditCard,
   Mail,
   Smartphone,
+  User,
+  Building,
+  Briefcase,
+  FileText,
+  Shield,
+  Star,
+  CheckCircle,
+  Clock,
 };
 
 export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4 }) => {
   const [hoveredStep, setHoveredStep] = useState<number | null>(null);
   const [hoveredReq, setHoveredReq] = useState<number | null>(null);
+
+  // Filtrar pasos y requisitos visibles
+  const visibleSteps = data.steps.filter((step) => step.is_visible !== false);
+  const visibleRequirements = data.requirements.filter((req) => req.is_visible !== false);
 
   return (
     <section className="py-20 bg-white">
@@ -61,13 +96,16 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4
           {/* Columna: Pasos */}
           <div>
             <h3 className="text-lg font-semibold text-neutral-800 mb-6 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-[#4654CD] text-white flex items-center justify-center text-sm font-bold">
+              <span
+                className="w-8 h-8 rounded-lg text-white flex items-center justify-center text-sm font-bold"
+                style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
+              >
                 1
               </span>
               {data.stepsTitle || ''}
             </h3>
             <div className="space-y-4">
-              {data.steps.map((step, i) => {
+              {visibleSteps.map((step, i) => {
                 const IconComponent = stepIconMap[step.icon] || Search;
                 const isHovered = hoveredStep === step.id;
                 return (
@@ -84,12 +122,13 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4
                     <Card
                       className={`overflow-hidden transition-all duration-300 ${
                         isHovered
-                          ? 'shadow-lg shadow-[#4654CD]/15 border-[#4654CD]'
+                          ? 'shadow-lg'
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                       style={{
                         borderWidth: 2,
                         borderColor: isHovered ? step.color : undefined,
+                        boxShadow: isHovered ? '0 10px 15px -3px color-mix(in srgb, var(--color-primary, #4654CD) 15%, transparent)' : undefined,
                       }}
                     >
                       <CardBody className="p-0">
@@ -107,7 +146,7 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4
                           </div>
                           <div className="flex-1 p-4 min-w-0">
                             <span className="text-xs font-bold text-neutral-400">
-                              {data.stepLabel || 'PASO'} {step.id}
+                              {data.stepLabel || 'PASO'} {i + 1}
                             </span>
                             <h4 className="font-semibold text-neutral-800 mt-0.5">{step.title}</h4>
                             <AnimatePresence>
@@ -124,9 +163,12 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4
                               )}
                             </AnimatePresence>
                           </div>
-                          {i < data.steps.length - 1 && (
+                          {i < visibleSteps.length - 1 && (
                             <div className="flex items-center pr-4">
-                              <ArrowRight className={`w-4 h-4 transition-colors duration-300 ${isHovered ? 'text-[#4654CD]' : 'text-neutral-300'}`} />
+                              <ArrowRight
+                                className="w-4 h-4 transition-colors duration-300"
+                                style={{ color: isHovered ? 'var(--color-primary, #4654CD)' : '#d4d4d4' }}
+                              />
                             </div>
                           )}
                         </div>
@@ -141,13 +183,16 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4
           {/* Columna: Requisitos */}
           <div>
             <h3 className="text-lg font-semibold text-neutral-800 mb-6 flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-[#03DBD0] text-white flex items-center justify-center text-sm font-bold">
+              <span
+                className="w-8 h-8 rounded-lg text-white flex items-center justify-center text-sm font-bold"
+                style={{ backgroundColor: 'var(--color-secondary, #03DBD0)' }}
+              >
                 2
               </span>
               {data.requirementsTitle || ''}
             </h3>
             <div className="space-y-4 mb-8">
-              {data.requirements.map((req, i) => {
+              {visibleRequirements.map((req, i) => {
                 const IconComponent = reqIconMap[req.icon || 'Check'] || Check;
                 const isHovered = hoveredReq === req.id;
                 return (
@@ -164,33 +209,39 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4
                     <Card
                       className={`overflow-hidden transition-all duration-300 ${
                         isHovered
-                          ? 'shadow-lg shadow-[#03DBD0]/15 border-[#03DBD0]'
+                          ? 'shadow-lg'
                           : 'border-neutral-200 hover:border-neutral-300'
                       }`}
                       style={{
                         borderWidth: 2,
-                        borderColor: isHovered ? '#03DBD0' : undefined,
+                        borderColor: isHovered ? 'var(--color-secondary, #03DBD0)' : undefined,
+                        boxShadow: isHovered ? '0 10px 15px -3px color-mix(in srgb, var(--color-secondary, #03DBD0) 15%, transparent)' : undefined,
                       }}
                     >
                       <CardBody className="p-0">
                         <div className="flex items-stretch">
                           <div
-                            className={`w-16 flex items-center justify-center transition-all duration-300 flex-shrink-0 ${
-                              isHovered ? 'bg-[#03DBD0]' : 'bg-[#03DBD0]/10'
-                            }`}
+                            className="w-16 flex items-center justify-center transition-all duration-300 flex-shrink-0"
+                            style={{
+                              backgroundColor: isHovered
+                                ? 'var(--color-secondary, #03DBD0)'
+                                : 'color-mix(in srgb, var(--color-secondary, #03DBD0) 10%, transparent)',
+                            }}
                           >
                             <IconComponent
-                              className={`w-6 h-6 transition-colors duration-300 ${
-                                isHovered ? 'text-white' : 'text-[#03DBD0]'
-                              }`}
+                              className="w-6 h-6 transition-colors duration-300"
+                              style={{
+                                color: isHovered ? 'white' : 'var(--color-secondary, #03DBD0)',
+                              }}
                             />
                           </div>
                           <div className="flex-1 p-4 flex items-center gap-3">
                             <span className="text-neutral-700 flex-1">{req.text}</span>
                             <CheckCircle2
-                              className={`w-5 h-5 flex-shrink-0 transition-colors duration-300 ${
-                                isHovered ? 'text-[#03DBD0]' : 'text-[#22c55e]'
-                              }`}
+                              className="w-5 h-5 flex-shrink-0 transition-colors duration-300"
+                              style={{
+                                color: isHovered ? 'var(--color-secondary, #03DBD0)' : '#22c55e',
+                              }}
                             />
                           </div>
                         </div>

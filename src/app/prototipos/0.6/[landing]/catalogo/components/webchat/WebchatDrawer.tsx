@@ -24,7 +24,7 @@ const ChatContent: React.FC<{ inputRef: React.RefObject<HTMLInputElement | null>
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {/* Welcome message */}
       <div className="flex gap-3">
-        <div className="w-8 h-8 rounded-full bg-[#4654CD] flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0">
           <span className="text-white text-xs font-bold">BC</span>
         </div>
         <div className="bg-neutral-100 rounded-2xl rounded-tl-sm p-3 max-w-[80%]">
@@ -37,13 +37,13 @@ const ChatContent: React.FC<{ inputRef: React.RefObject<HTMLInputElement | null>
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-2 pl-11">
-        <button className="px-3 py-1.5 text-xs font-medium bg-[#4654CD]/10 text-[#4654CD] rounded-full hover:bg-[#4654CD]/20 transition-colors cursor-pointer">
+        <button className="px-3 py-1.5 text-xs font-medium bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)] rounded-full hover:bg-[rgba(var(--color-primary-rgb),0.2)] transition-colors cursor-pointer">
           Tengo una consulta
         </button>
-        <button className="px-3 py-1.5 text-xs font-medium bg-[#4654CD]/10 text-[#4654CD] rounded-full hover:bg-[#4654CD]/20 transition-colors cursor-pointer">
+        <button className="px-3 py-1.5 text-xs font-medium bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)] rounded-full hover:bg-[rgba(var(--color-primary-rgb),0.2)] transition-colors cursor-pointer">
           Ayuda con mi pedido
         </button>
-        <button className="px-3 py-1.5 text-xs font-medium bg-[#4654CD]/10 text-[#4654CD] rounded-full hover:bg-[#4654CD]/20 transition-colors cursor-pointer">
+        <button className="px-3 py-1.5 text-xs font-medium bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)] rounded-full hover:bg-[rgba(var(--color-primary-rgb),0.2)] transition-colors cursor-pointer">
           Conocer requisitos
         </button>
       </div>
@@ -63,11 +63,11 @@ const ChatContent: React.FC<{ inputRef: React.RefObject<HTMLInputElement | null>
           ref={inputRef}
           type="text"
           placeholder="Escribe tu mensaje..."
-          className="flex-1 bg-neutral-100 rounded-xl px-4 py-2.5 text-sm text-neutral-800 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-[#4654CD]/30"
+          className="flex-1 bg-neutral-100 rounded-xl px-4 py-2.5 text-sm text-neutral-800 placeholder-neutral-400 outline-none focus:ring-2 focus:ring-[rgba(var(--color-primary-rgb),0.3)]"
         />
         <Button
           isIconOnly
-          className="bg-[#4654CD] text-white cursor-pointer"
+          className="bg-[var(--color-primary)] text-white cursor-pointer"
           radius="lg"
           size="sm"
         >
@@ -141,7 +141,7 @@ export const WebchatDrawer: React.FC<WebchatDrawerProps> = ({
             style={{ height: '500px', maxHeight: 'calc(100vh - 120px)' }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#4654CD] to-[#5B68D6] text-white">
+            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[var(--color-primary)] to-[#5B68D6] text-white">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
                   <MessageCircle className="w-5 h-5" />

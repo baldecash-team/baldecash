@@ -14,11 +14,15 @@
  * - Footer: V2 (Newsletter + Columnas)
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { UnderlinedText } from './common/UnderlinedText';
 
 // Types
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
+
+// Quiz
+import { HelpQuiz } from '../../quiz';
+import { useQuiz } from '../../quiz/hooks/useQuiz';
 
 // Components
 import { Navbar } from './Navbar';
@@ -51,6 +55,8 @@ interface HeroSectionProps {
   footerData?: FooterData | null;
   /** Landing slug for dynamic URL building */
   landing?: string;
+  /** Offset from top when preview banner is shown (in pixels) */
+  previewBannerOffset?: number;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -70,23 +76,72 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   customerPortalUrl,
   footerData,
   landing = 'home',
+  previewBannerOffset = 0,
 }) => {
-  // Quiz handlers (placeholder para futuro)
+  const heroUrl = `/prototipos/0.6/${landing}`;
+
+  // Transform links: handle relative paths and build full URLs
+  const transformLink = (href: string): string => {
+    if (!href) return '#';
+
+    // Skip external links, anchors, and special protocols
+    if (href.startsWith('http') || href.startsWith('#') || href.startsWith('tel:') || href.startsWith('mailto:')) {
+      return href;
+    }
+
+    // If it's an absolute path starting with /prototipos, return as-is
+    if (href.startsWith('/prototipos/')) {
+      return href;
+    }
+
+    // Relative path: build full URL with landing base
+    return `${heroUrl}/${href}`;
+  };
+
+  // Check if a link is external
+  const isExternalLink = (href: string): boolean => {
+    return href.startsWith('http://') || href.startsWith('https://');
+  };
+
+  // Get link props for external vs internal links
+  const getLinkProps = (href: string) => {
+    if (isExternalLink(href)) {
+      return {
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      };
+    }
+    return {};
+  };
+
+  // Quiz state
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
+
+  // Quiz data from API - check if landing has a quiz
+  const { hasQuiz, questions } = useQuiz({ landingSlug: landing });
+  const questionCount = questions.length;
+
+  // Quiz handlers
   const handleQuizOpen = () => {
-    // TODO: Implementar quiz para 0.6
-    console.log('Quiz not implemented yet in 0.6');
+    setIsQuizOpen(true);
+  };
+
+  const handleQuizClose = () => {
+    setIsQuizOpen(false);
   };
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
-      <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} />
+      <div id="navbar">
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} />
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 pt-16">
         {/* Hero Banner - Solo mostrar si existe */}
         {heroContent && (
-          <section>
+          <section id="hero">
             <HeroBanner
               headline={heroContent.headline}
               subheadline={heroContent.subheadline}
@@ -101,15 +156,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </section>
         )}
 
-        {/* Social Proof - Solo mostrar si existe */}
-        {socialProof && (
-          <section className="pt-12 bg-neutral-50">
+        {/* Social Proof - Solo mostrar si existe y está activa en navbar */}
+        {socialProof && activeSections.includes('convenios') && (
+          <section id="convenios" className="pt-12 bg-neutral-50 scroll-mt-24">
             <SocialProof data={socialProof} testimonials={testimonials} testimonialsTitle={testimonialsTitle} underlineStyle={UNDERLINE_STYLE} />
           </section>
         )}
 
-        {/* How It Works Section - Solo mostrar si existe */}
-        {howItWorksData && (
+        {/* How It Works Section - Solo mostrar si existe y está activa en navbar */}
+        {howItWorksData && activeSections.includes('como-funciona') && (
           <section id="como-funciona" className="scroll-mt-24">
             <HowItWorks data={howItWorksData} underlineStyle={UNDERLINE_STYLE} />
           </section>
@@ -117,22 +172,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* CTA Section - Solo mostrar si existe */}
         {hasCta && (
-          <section className="py-16 bg-neutral-50">
+          <section id="cta" className="py-16 bg-neutral-50">
             <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-3 font-['Baloo_2']">
-                ¿Listo para tu nuevo{' '}
+                {ctaData?.sectionTitle?.split('{highlightWord}')[0]}
                 <UnderlinedText style={UNDERLINE_STYLE} color="primary">
-                  {ctaData?.highlightWord || ''}
+                  {ctaData?.highlightWord}
                 </UnderlinedText>
-                ?
+                {ctaData?.sectionTitle?.split('{highlightWord}')[1]}
               </h2>
               <p className="text-neutral-600 mb-8">
-                Solicita tu laptop en minutos. 100% digital.
+                {ctaData?.sectionSubtitle}
               </p>
 
               {/* CTA Component */}
               <div className="flex justify-center mb-6">
-                <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} landing={landing} />
+                <HeroCta data={ctaData || undefined} onQuizOpen={handleQuizOpen} landing={landing} hasQuiz={hasQuiz} />
               </div>
 
               {/* Microcopy con links dinámicos */}
@@ -140,11 +195,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 {ctaData?.legalLinks ? (
                   <>
                     Al continuar, aceptas nuestros{' '}
-                    <a href={ctaData.legalLinks.terms.url} className="underline hover:text-neutral-600">
+                    <a
+                      href={transformLink(ctaData.legalLinks.terms.url)}
+                      className="underline hover:text-neutral-600"
+                      {...getLinkProps(ctaData.legalLinks.terms.url)}
+                    >
                       {ctaData.legalLinks.terms.text}
                     </a>
                     {' '}y{' '}
-                    <a href={ctaData.legalLinks.privacy.url} className="underline hover:text-neutral-600">
+                    <a
+                      href={transformLink(ctaData.legalLinks.privacy.url)}
+                      className="underline hover:text-neutral-600"
+                      {...getLinkProps(ctaData.legalLinks.privacy.url)}
+                    >
                       {ctaData.legalLinks.privacy.text}
                     </a>
                   </>
@@ -156,8 +219,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </section>
         )}
 
-        {/* FAQ Section - Solo mostrar si existe */}
-        {faqData && (
+        {/* FAQ Section - Solo mostrar si existe y está activa en navbar */}
+        {faqData && activeSections.includes('faq') && (
           <section id="faq" className="scroll-mt-24">
             <FaqSection data={faqData} underlineStyle={UNDERLINE_STYLE} />
           </section>
@@ -165,7 +228,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </main>
 
       {/* Footer */}
-      <Footer data={footerData} />
+      <div id="footer">
+        <Footer data={footerData} landing={landing} />
+      </div>
+
+      {/* Quiz Modal - Solo renderizar si hay quiz asociado */}
+      {hasQuiz && (
+        <HelpQuiz
+          isOpen={isQuizOpen}
+          onClose={handleQuizClose}
+          context="hero"
+          landing={landing}
+        />
+      )}
     </div>
   );
 };

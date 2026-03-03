@@ -32,7 +32,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
       className={`transition-all !cursor-pointer h-full border-2 ${
         isSelected
           ? 'border-[#22c55e] bg-[#22c55e]/5'
-          : 'border-transparent hover:border-[#4654CD]/30'
+          : 'border-transparent hover:border-[rgba(var(--color-primary-rgb),0.3)]'
       }`}
     >
       <CardBody className="p-4">
@@ -43,7 +43,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
               size="sm"
               radius="sm"
               classNames={{
-                base: 'bg-[#4654CD] px-2 py-0.5 h-auto',
+                base: 'bg-[var(--color-primary)] px-2 py-0.5 h-auto',
                 content: 'text-white text-xs font-medium',
               }}
             >
@@ -97,7 +97,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
                 onViewDetails();
               }
             }}
-            className="w-full flex items-center justify-center gap-1.5 text-xs text-[#4654CD] bg-[#4654CD]/10 hover:bg-[#4654CD]/20 font-medium py-2 px-3 rounded-lg mb-3 cursor-pointer transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] hover:bg-[rgba(var(--color-primary-rgb),0.2)] font-medium py-2 px-3 rounded-lg mb-3 cursor-pointer transition-colors"
           >
             <Info className="w-3.5 h-3.5" />
             Ver características
@@ -106,7 +106,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
 
         {/* Price */}
         <div className="mt-auto flex items-center justify-between">
-          <span className="text-[#4654CD] font-bold">
+          <span className="text-[var(--color-primary)] font-bold">
             +S/{formatMoney(accessory.monthlyQuota)}/mes
           </span>
           <Plus

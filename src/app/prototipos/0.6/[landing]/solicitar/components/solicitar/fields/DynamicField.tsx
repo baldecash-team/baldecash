@@ -10,11 +10,11 @@ import { WizardField, WizardFieldOption, evaluateFieldVisibility, filterFieldOpt
 import { useWizard } from '../../../context/WizardContext';
 import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
+import { RadioGroup } from './RadioGroup';
 import { SelectInput } from './SelectInput';
 import { DateInput } from './DateInput';
 import { FileUpload } from './FileUpload';
 import { TextArea } from './TextArea';
-import { fieldTooltips } from '../../../data/fieldTooltips';
 
 interface DynamicFieldProps {
   field: WizardField;
@@ -49,27 +49,23 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     return filterFieldOptions(field, formValues);
   }, [field, formValues]);
 
+  // Build tooltip from API help_text (100% from BD)
+  // NOTE: Must be before conditional return to maintain hooks order
+  const tooltip = useMemo(() => {
+    if (field.help_text) {
+      return {
+        title: field.help_text.title || field.label,
+        description: field.help_text.description || '',
+        recommendation: field.help_text.recommendation ?? undefined,
+      };
+    }
+    return undefined;
+  }, [field.help_text, field.label]);
+
   // If field is not visible, don't render
   if (!isVisible) {
     return null;
   }
-
-  // Build tooltip: prefer API help_text, fallback to local fieldTooltips
-  const tooltip = useMemo(() => {
-    // First, check if API provides help_text
-    if (field.help_text) {
-      return {
-        title: field.label,
-        description: field.help_text,
-      };
-    }
-    // Fallback to local tooltips by field code
-    const localTooltip = fieldTooltips[field.code];
-    if (localTooltip) {
-      return localTooltip;
-    }
-    return undefined;
-  }, [field.help_text, field.code, field.label]);
 
   // Common props for all field types
   const commonProps = {
@@ -177,13 +173,14 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'radio':
-      // Use SegmentedControl for 2-3 options, otherwise could use RadioGroup
+      // Use SegmentedControl for 2-3 options, RadioGroup for 4-5, SelectInput for 6+
       const radioOptions = filteredOptions.map((opt) => ({
         value: opt.value,
         label: opt.label,
       }));
 
       if (radioOptions.length <= 3) {
+        // 2-3 options: horizontal buttons
         return (
           <SegmentedControl
             {...commonProps}
@@ -192,7 +189,17 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           />
         );
       }
-      // For more than 3 options, use SelectInput
+      if (radioOptions.length <= 5) {
+        // 4-5 options: vertical card list (like 0.5)
+        return (
+          <RadioGroup
+            {...commonProps}
+            options={radioOptions}
+            success={!error && !!value}
+          />
+        );
+      }
+      // 6+ options: dropdown select
       return (
         <SelectInput
           {...commonProps}

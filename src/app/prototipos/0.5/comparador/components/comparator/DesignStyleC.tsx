@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown, Filter } from 'lucide-react';
+import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown, Filter, ShoppingCart } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../../utils/formatMoney';
 
@@ -15,6 +15,7 @@ interface DesignStyleCProps {
   bestProductIndex: number;
   onRemoveProduct: (productId: string) => void;
   onSelectProduct?: (productId: string) => void;
+  onAddToCart?: (productId: string) => void;
   priceDiff: ReturnType<typeof calculatePriceDifference>;
   showOnlyDifferences?: boolean;
   onToggleDifferences?: (value: boolean) => void;
@@ -34,6 +35,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
   bestProductIndex,
   onRemoveProduct,
   onSelectProduct,
+  onAddToCart,
   priceDiff,
   showOnlyDifferences,
   onToggleDifferences,
@@ -217,6 +219,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
+                        className="flex gap-2"
                       >
                         <Button
                           size="md"
@@ -227,6 +230,17 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         >
                           Lo quiero
                         </Button>
+                        {onAddToCart && (
+                          <Button
+                            size="md"
+                            variant="bordered"
+                            className="cursor-pointer border-[#4654CD] text-[#4654CD] bg-[#4654CD]/5 hover:bg-[#4654CD]/10 font-semibold"
+                            startContent={<ShoppingCart className="w-4 h-4" />}
+                            onPress={() => onAddToCart(bestProduct.id)}
+                          >
+                            Al carrito
+                          </Button>
+                        )}
                       </motion.div>
                     </div>
                   </div>
@@ -340,8 +354,8 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             </div>
                           </div>
 
-                          {/* Action button */}
-                          <div className="flex items-center">
+                          {/* Action buttons */}
+                          <div className="flex flex-col items-center gap-1">
                             <Button
                               size="sm"
                               variant="bordered"
@@ -350,6 +364,17 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             >
                               Elegir
                             </Button>
+                            {onAddToCart && (
+                              <Button
+                                size="sm"
+                                variant="light"
+                                isIconOnly
+                                className="cursor-pointer text-neutral-400 hover:text-[#4654CD]"
+                                onPress={() => onAddToCart(product.id)}
+                              >
+                                <ShoppingCart className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardBody>

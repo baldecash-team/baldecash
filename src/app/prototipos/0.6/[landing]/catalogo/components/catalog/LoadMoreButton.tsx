@@ -27,10 +27,10 @@ const LoadMoreV1: React.FC<Omit<LoadMoreButtonProps, 'version'>> = ({
       <div className="flex-1 h-px bg-gradient-to-r from-transparent via-neutral-200 to-neutral-200" />
       <button
         onClick={onLoadMore}
-        className="group flex items-center gap-2 px-4 py-2 text-sm text-neutral-500 hover:text-[#4654CD] transition-colors cursor-pointer"
+        className="group flex items-center gap-2 px-4 py-2 text-sm text-neutral-500 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
       >
         <span>Mostrar más</span>
-        <span className="text-neutral-400 group-hover:text-[#4654CD]">
+        <span className="text-neutral-400 group-hover:text-[var(--color-primary)]">
           ({remainingProducts})
         </span>
         <ChevronDown className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
@@ -60,13 +60,13 @@ const LoadMoreV2: React.FC<Omit<LoadMoreButtonProps, 'version'>> = ({
           <span>
             Mostrando {visibleProducts} de {totalProducts} productos
           </span>
-          <span className="font-medium text-[#4654CD]">{progress}%</span>
+          <span className="font-medium text-[var(--color-primary)]">{progress}%</span>
         </div>
 
         {/* Progress bar */}
         <div className="relative h-2 bg-neutral-100 rounded-full overflow-hidden mb-4">
           <motion.div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#4654CD] to-[#03DBD0] rounded-full"
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)] rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -107,7 +107,7 @@ const LoadMoreV3: React.FC<Omit<LoadMoreButtonProps, 'version'>> = ({
         {[0, 1, 2].map((i) => (
           <motion.div
             key={i}
-            className="w-1.5 h-1.5 rounded-full bg-[#4654CD]/40"
+            className="w-1.5 h-1.5 rounded-full bg-[rgba(var(--color-primary-rgb),0.4)]"
             animate={{ scale: [1, 1.2, 1], opacity: [0.4, 1, 0.4] }}
             transition={{
               duration: 1.5,
@@ -121,7 +121,7 @@ const LoadMoreV3: React.FC<Omit<LoadMoreButtonProps, 'version'>> = ({
       {/* Main button */}
       <motion.button
         onClick={onLoadMore}
-        className="group relative px-8 py-4 rounded-2xl bg-gradient-to-r from-[#4654CD] to-[#3a47b3] text-white font-semibold shadow-lg shadow-[#4654CD]/25 cursor-pointer overflow-hidden"
+        className="group relative px-8 py-4 rounded-2xl bg-[var(--color-primary)] text-white font-semibold shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)] cursor-pointer overflow-hidden hover:brightness-90"
         whileHover={{ scale: 1.02, y: -2 }}
         whileTap={{ scale: 0.98 }}
       >

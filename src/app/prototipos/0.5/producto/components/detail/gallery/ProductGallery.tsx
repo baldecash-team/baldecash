@@ -52,9 +52,49 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+      {/* Product Name + Brand - Above photos */}
+      {(displayName || brand) && (
+        <div className="p-5 pb-0 relative z-10">
+          {/* Brand + Rating Row */}
+          {(brand || rating) && (
+            <div className="flex items-center gap-3 mb-2">
+              {brand && (
+                <span className="px-3 py-1.5 bg-[#4654CD] text-white text-sm font-bold rounded-lg">
+                  {brand}
+                </span>
+              )}
+              {rating && (
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                  <span className="text-base font-bold text-neutral-800">{rating}</span>
+                  {reviewCount && (
+                    <span className="text-sm text-neutral-400">({reviewCount})</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          {displayName && (
+            <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2'] leading-tight">
+              {displayName}
+            </h1>
+          )}
+          {/* Color Selector - Below product name */}
+          {colors && colors.length > 0 && selectedColorId && onColorSelect && (
+            <div className="mt-3">
+              <ColorSelector
+                colors={colors}
+                selectedColorId={selectedColorId}
+                onColorSelect={onColorSelect}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Main Image */}
       <div
-        className="relative aspect-square cursor-zoom-in group"
+        className="relative aspect-square cursor-zoom-in group overflow-hidden"
         onMouseEnter={() => setIsZoomed(true)}
         onMouseLeave={() => setIsZoomed(false)}
         onMouseMove={handleMouseMove}
@@ -136,46 +176,6 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
         </div>
       </div>
 
-      {/* Product Info Section */}
-      <div className="p-5 border-t border-neutral-100">
-        {/* Brand + Rating Row */}
-        {(brand || rating) && (
-          <div className="flex items-center gap-3 mb-3">
-            {brand && (
-              <span className="px-3 py-1.5 bg-[#4654CD] text-white text-sm font-bold rounded-lg">
-                {brand}
-              </span>
-            )}
-            {rating && (
-              <div className="flex items-center gap-1.5">
-                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                <span className="text-base font-bold text-neutral-800">{rating}</span>
-                {reviewCount && (
-                  <span className="text-sm text-neutral-400">({reviewCount})</span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Product Name */}
-        {displayName && (
-          <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2'] leading-tight">
-            {displayName}
-          </h1>
-        )}
-
-        {/* Color Selector */}
-        {colors && colors.length > 0 && selectedColorId && onColorSelect && (
-          <div className="mt-4">
-            <ColorSelector
-              colors={colors}
-              selectedColorId={selectedColorId}
-              onColorSelect={onColorSelect}
-            />
-          </div>
-        )}
-      </div>
     </div>
   );
 };

@@ -131,7 +131,7 @@ function EmptyStatePreviewContent() {
           <div className="mt-6 text-center">
             <Button
               variant="bordered"
-              className="border-[#4654CD] text-[#4654CD] cursor-pointer"
+              className="border-[var(--color-primary)] text-[var(--color-primary)] cursor-pointer"
               onPress={() => setAppliedFilters(mockAppliedFilters)}
             >
               Restaurar filtros de ejemplo
@@ -142,7 +142,7 @@ function EmptyStatePreviewContent() {
         {/* Productos relacionados */}
         <section className="mt-12 mb-8">
           <div className="flex items-center gap-2 mb-6">
-            <Sparkles className="w-5 h-5 text-[#4654CD]" />
+            <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
             <h2 className="text-xl font-semibold text-neutral-800">
               Productos que podrían interesarte
             </h2>
@@ -152,7 +152,7 @@ function EmptyStatePreviewContent() {
             {relatedProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-md hover:border-[#4654CD]/30 transition-all cursor-pointer"
+                className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-md hover:border-[rgba(var(--color-primary-rgb),0.3)] transition-all cursor-pointer"
                 onClick={() => router.push(detailUrl)}
               >
                 <div className="flex gap-4">
@@ -177,7 +177,7 @@ function EmptyStatePreviewContent() {
                       {product.name}
                     </h3>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-xl font-bold text-[#4654CD]">
+                      <span className="text-xl font-bold text-[var(--color-primary)]">
                         S/{product.price}
                       </span>
                       <span className="text-sm text-neutral-500">/mes</span>
@@ -188,7 +188,7 @@ function EmptyStatePreviewContent() {
                 {/* Ver detalles link */}
                 <div className="mt-4 pt-3 border-t border-neutral-100">
                   <button
-                    className="flex items-center gap-1 text-sm font-medium text-[#4654CD] hover:text-[#3a47b3] transition-colors cursor-pointer"
+                    className="flex items-center gap-1 text-sm font-medium text-[var(--color-primary)] hover:brightness-90 transition-colors cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
                       router.push(detailUrl);

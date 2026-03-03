@@ -17,7 +17,7 @@ export const EmptyActionsV1: React.FC<EmptyActionsProps> = ({
     <div className="flex flex-wrap gap-3 justify-center">
       <Button
         variant="bordered"
-        className="border-[#4654CD] text-[#4654CD] cursor-pointer hover:bg-[#4654CD]/5 transition-colors"
+        className="border-[var(--color-primary)] text-[var(--color-primary)] cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] transition-colors"
         startContent={<RefreshCw className="w-4 h-4" />}
         onPress={onClearFilters}
       >

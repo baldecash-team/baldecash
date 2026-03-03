@@ -50,7 +50,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
             }}
             className={`w-10 h-10 rounded border-2 overflow-hidden cursor-pointer transition-all ${
               index === currentIndex
-                ? 'border-[#4654CD]'
+                ? 'border-[var(--color-primary)]'
                 : 'border-transparent hover:border-neutral-300'
             }`}
           >

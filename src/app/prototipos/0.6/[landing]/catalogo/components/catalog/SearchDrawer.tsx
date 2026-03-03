@@ -126,8 +126,8 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                  <Search className="w-4 h-4 text-[#4654CD]" />
+                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                  <Search className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">
@@ -151,7 +151,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
 
             {/* Search Input */}
             <form onSubmit={handleSubmit} className="px-4 pb-4">
-              <div className="flex items-center w-full bg-neutral-100 rounded-xl border-2 border-transparent focus-within:border-[#4654CD] focus-within:bg-white transition-colors">
+              <div className="flex items-center w-full bg-neutral-100 rounded-xl border-2 border-transparent focus-within:border-[var(--color-primary)] focus-within:bg-white transition-colors">
                 <Search className="w-5 h-5 text-neutral-400 ml-4 flex-shrink-0" />
                 <input
                   ref={inputRef}
@@ -186,7 +186,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                 </Button>
               )}
               <Button
-                className="flex-1 bg-[#4654CD] text-white font-semibold cursor-pointer"
+                className="flex-1 bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90"
                 onPress={onClose}
                 startContent={<Search className="w-4 h-4" />}
               >

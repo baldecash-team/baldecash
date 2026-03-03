@@ -22,12 +22,12 @@ export const EmptyActionsV2: React.FC<EmptyActionsProps> = ({
       <Card
         isPressable
         onPress={onClearFilters}
-        className="border border-neutral-200 hover:border-[#4654CD]/50 hover:shadow-md transition-all cursor-pointer w-full"
+        className="border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] hover:shadow-md transition-all cursor-pointer w-full"
       >
         <CardBody className="p-4">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
-              <RefreshCw className="w-5 h-5 text-[#4654CD]" />
+            <div className="w-10 h-10 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+              <RefreshCw className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div className="flex-1">
               <h4 className="font-semibold text-neutral-800 mb-1">
@@ -36,7 +36,7 @@ export const EmptyActionsV2: React.FC<EmptyActionsProps> = ({
               <p className="text-sm text-neutral-600 mb-2">
                 Quita los {filterCount} filtros activos para ver todo el catálogo
               </p>
-              <div className="flex items-center gap-1 text-[#4654CD] text-sm font-medium">
+              <div className="flex items-center gap-1 text-[var(--color-primary)] text-sm font-medium">
                 <span>Ver todos los equipos</span>
                 <ArrowRight className="w-4 h-4" />
               </div>

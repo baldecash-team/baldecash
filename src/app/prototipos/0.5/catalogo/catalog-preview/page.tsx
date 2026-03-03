@@ -35,11 +35,14 @@ import { ProductCardSkeleton } from '../components/catalog/ProductCardSkeleton';
 import { LoadMoreButton } from '../components/catalog/LoadMoreButton';
 import { CartSelectionModal } from '../components/catalog/CartSelectionModal';
 import { CartDrawer } from '../components/catalog/CartDrawer';
+import { CartLimitModal } from '../components/catalog/CartLimitModal';
 import { NavbarSearch, NavbarWishlist, NavbarCart, NavbarCartButton, NavbarSearchButton, NavbarWishlistButton } from '../components/catalog/NavbarActions';
 import { CatalogSecondaryNavbar } from '../components/catalog/CatalogSecondaryNavbar';
 import { SearchDrawer } from '../components/catalog/SearchDrawer';
 import { WishlistDrawer } from '../components/wishlist/WishlistDrawer';
 import { WebchatDrawer } from '../components/webchat';
+import { QuizReminderPopup } from '../components/catalog/QuizReminderPopup';
+import { ResumeFinancingModal, useResumeFinancingModal } from '../components/catalog/ResumeFinancingCard';
 
 // Empty state
 import { EmptyState } from '../components/empty';
@@ -262,16 +265,15 @@ function CatalogPreviewContent() {
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
   const isMobile = useIsMobile();
-  const { setSelectedProduct } = useProduct();
+  const { setSelectedProduct, setCartProducts } = useProduct();
 
   // Scroll to top on page load
   useScrollToTop();
 
-  // Helper to save product to context (replaces saveProductForWizard)
-  const selectProductForWizard = useCallback((product: CatalogProduct) => {
+  // Helper to convert CatalogProduct to SelectedProduct
+  const catalogToSelected = useCallback((product: CatalogProduct) => {
     const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
-
-    setSelectedProduct({
+    return {
       id: product.id,
       name: product.displayName,
       shortName: product.name,
@@ -285,8 +287,13 @@ function CatalogPreviewContent() {
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
         storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
       },
-    });
-  }, [setSelectedProduct]);
+    };
+  }, []);
+
+  // Helper to save product to context
+  const selectProductForWizard = useCallback((product: CatalogProduct) => {
+    setSelectedProduct(catalogToSelected(product));
+  }, [setSelectedProduct, catalogToSelected]);
 
   // Config state - FIJO excepto colorSelectorVersion
   const [config, setConfig] = useState<CatalogLayoutConfig & { colorSelectorVersion: ColorSelectorVersion }>(() => {
@@ -396,8 +403,12 @@ function CatalogPreviewContent() {
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [isCartLoaded, setIsCartLoaded] = useState(false);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
+  const [attemptedCartProduct, setAttemptedCartProduct] = useState<CatalogProduct | null>(null);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isWebchatOpen, setIsWebchatOpen] = useState(false);
+  const [showQuizReminder, setShowQuizReminder] = useState(false);
+  const { isOpen: isResumeModalOpen, close: closeResumeModal } = useResumeFinancingModal();
 
   // Helper to close all drawers/popups before opening a new one (mobile)
   const closeAllDrawers = useCallback(() => {
@@ -408,6 +419,7 @@ function CatalogPreviewContent() {
     setIsComparatorOpen(false);
     setIsFilterDrawerOpen(false);
     setIsCartModalOpen(false);
+    setIsCartLimitModalOpen(false);
     setIsHelpPopoverOpen(false);
     setIsWebchatOpen(false);
   }, []);
@@ -472,6 +484,26 @@ function CatalogPreviewContent() {
     isPageLoading,
     isWebchatOpen,
   ]);
+
+  // Quiz reminder popup - show once after 60 seconds
+  useEffect(() => {
+    const alreadyShown = sessionStorage.getItem('baldecash-quiz-reminder-shown');
+    if (alreadyShown) return;
+
+    const timer = setTimeout(() => {
+      // Only show if no drawers are open
+      const canShow = !isQuizOpen && !isHelpPopoverOpen && !isComparatorOpen &&
+                       !isCartDrawerOpen && !isWishlistDrawerOpen && !isFilterDrawerOpen &&
+                       !isSearchDrawerOpen && !isCartModalOpen && !isWebchatOpen &&
+                       !isSettingsOpen && !onboarding.shouldShowWelcome && !onboarding.shouldShowTour;
+      if (canShow) {
+        setShowQuizReminder(true);
+        sessionStorage.setItem('baldecash-quiz-reminder-shown', 'true');
+      }
+    }, 60000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Track scroll as interaction (significant scroll > 300px)
   useEffect(() => {
@@ -622,14 +654,48 @@ function CatalogPreviewContent() {
   }, []);
 
   const handleAddToCart = useCallback((productId: string) => {
-    if (!cart.includes(productId)) {
-      setCart((prev) => [...prev, productId]);
-      showToast('Producto añadido al carrito', 'success');
+    // No permitir duplicados
+    if (cart.includes(productId)) {
+      showToast('Este producto ya está en tu carrito', 'info');
+      return;
     }
+    // Validar límite de 5 items
+    if (cart.length >= 5) {
+      showToast(`Carrito lleno (${cart.length}/5). Elimina un producto para agregar más.`, 'warning');
+      return;
+    }
+    const product = mockProducts.find((p) => p.id === productId);
+    // Agregar al carrito
+    setCart((prev) => [...prev, productId]);
+    // Verificar si al agregar se supera el límite de S/600/mes
+    if (product) {
+      const currentTotal = cart.reduce((sum, id) => {
+        const p = mockProducts.find((mp) => mp.id === id);
+        if (!p) return sum;
+        return sum + calculateQuotaWithInitial(p.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL).quota;
+      }, 0);
+      const newQuota = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL).quota;
+      if (currentTotal + newQuota > 600) {
+        // Producto agregado pero supera límite: abrir modal "Asistente de Compra"
+        setAttemptedCartProduct(null);
+        setIsCartLimitModalOpen(true);
+        return;
+      }
+    }
+    showToast('Producto añadido al carrito', 'success');
   }, [cart, showToast]);
 
-  const handleRemoveFromCart = useCallback((productId: string) => {
-    setCart((prev) => prev.filter((id) => id !== productId));
+  const handleRemoveFromCart = useCallback((productId: string, removeIndex?: number) => {
+    setCart((prev) => {
+      if (removeIndex !== undefined) {
+        // Remove specific index (for duplicate products)
+        return prev.filter((_, i) => i !== removeIndex);
+      }
+      // Remove first occurrence of productId
+      const idx = prev.indexOf(productId);
+      if (idx === -1) return prev;
+      return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+    });
 
     // Limpiar localStorage si el producto eliminado es el guardado para el wizard
     try {
@@ -650,27 +716,44 @@ function CatalogPreviewContent() {
     localStorage.removeItem(WIZARD_PRODUCT_STORAGE_KEY);
   }, []);
 
-  const handleCartContinue = useCallback(() => {
-    if (cart.length > 1) {
-      showToast('Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.', 'warning');
-      return;
-    }
-    if (cart.length === 1) {
-      // Guardar el producto del carrito antes de navegar
-      const productToSave = mockProducts.find((p) => p.id === cart[0]);
-      if (productToSave) {
-        selectProductForWizard(productToSave);
-      }
-      router.push(getWizardUrl(isCleanMode));
-    }
-  }, [cart, router, isCleanMode, showToast, selectProductForWizard]);
-
-  // Get cart products
+  // Get cart products (must be before handleCartContinue) - supports duplicate product IDs
   const cartProducts = useMemo(() => {
     return cart
       .map((id) => mockProducts.find((p) => p.id === id))
       .filter((p): p is CatalogProduct => p !== undefined);
   }, [cart]);
+
+  // Compute cart quota total and over-limit state
+  const totalCartQuota = useMemo(() => {
+    return cartProducts.reduce((sum, item) => {
+      const { quota } = calculateQuotaWithInitial(item.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+      return sum + quota;
+    }, 0);
+  }, [cartProducts]);
+  const isCartOverLimit = totalCartQuota > 600;
+
+  const handleCartContinue = useCallback(() => {
+    const isDisabled = cart.length === 0 || cart.length > 5 || totalCartQuota > 600;
+
+    if (isDisabled) {
+      if (cart.length > 5) {
+        showToast(`Máximo 5 productos. Tienes ${cart.length}, elimina ${cart.length - 5}.`, 'warning');
+      } else if (totalCartQuota > 600) {
+        // Abrir modal "Asistente de Compra" en lugar de toast
+        setAttemptedCartProduct(null);
+        setIsCartLimitModalOpen(true);
+      }
+      return;
+    }
+    // Save all cart products for wizard
+    const allCartProducts = cartProducts.map(catalogToSelected);
+    setCartProducts(allCartProducts);
+    // Also save first product as selectedProduct (backward compat)
+    if (allCartProducts.length > 0) {
+      setSelectedProduct(allCartProducts[0]);
+    }
+    router.push(getWizardUrl(isCleanMode));
+  }, [cart, cartProducts, totalCartQuota, router, isCleanMode, showToast, catalogToSelected, setCartProducts, setSelectedProduct]);
 
   // Get wishlist products
   const wishlistProducts = useMemo(() => {
@@ -927,6 +1010,7 @@ function CatalogPreviewContent() {
         onCartRemove={handleRemoveFromCart}
         onCartClear={handleClearCart}
         onCartContinue={handleCartContinue}
+        isCartOverLimit={isCartOverLimit}
         isSearchActive={isSearchDrawerOpen || searchQuery.length > 0}
         onMobileSearchClick={() => {
           closeAllDrawers();
@@ -976,6 +1060,7 @@ function CatalogPreviewContent() {
                 onAddToCart={() => handleOpenCartModal(product)}
                 onFavorite={() => handleToggleWishlist(product.id)}
                 isFavorite={wishlist.includes(product.id)}
+                isInCart={cart.includes(product.id)}
                 onViewDetail={() => router.push(getDetailUrl(product.id, product.deviceType, isCleanMode))}
                 onCompare={() => handleToggleCompare(product.id)}
                 isCompareSelected={compareList.includes(product.id)}
@@ -1129,6 +1214,19 @@ function CatalogPreviewContent() {
         }}
       />
 
+      {/* Cart Limit Modal - Asistente de Compra */}
+      <CartLimitModal
+        isOpen={isCartLimitModalOpen}
+        onClose={() => {
+          setIsCartLimitModalOpen(false);
+          setAttemptedCartProduct(null);
+        }}
+        cartItems={cartProducts}
+        onRemoveItem={handleRemoveFromCart}
+        attemptedProduct={attemptedCartProduct}
+        totalMonthlyQuota={totalCartQuota}
+      />
+
       {/* Search Drawer - Mobile only */}
       <SearchDrawer
         isOpen={isSearchDrawerOpen}
@@ -1224,6 +1322,7 @@ function CatalogPreviewContent() {
           onClearAll={handleClearCompare}
           comparisonState={comparisonState}
           onStateChange={setComparisonState}
+          onAddToCart={(productId) => handleAddToCart(productId)}
         />
       )}
 
@@ -1444,14 +1543,31 @@ function CatalogPreviewContent() {
         />
       )}
 
-      {/* Toast para alertas de comparación */}
+      {/* Quiz Reminder Popup */}
+      <QuizReminderPopup
+        isVisible={showQuizReminder && !isQuizOpen && !isHelpPopoverOpen}
+        onClose={() => setShowQuizReminder(false)}
+        onOpenQuiz={() => {
+          closeAllDrawers();
+          setIsQuizOpen(true);
+        }}
+      />
+
+      {/* Resume Financing Modal - Oculto temporalmente para demo del 12 de febrero */}
+      {/* <ResumeFinancingModal
+        isOpen={isResumeModalOpen}
+        onClose={closeResumeModal}
+        onContinue={() => router.push(getWizardUrl(isCleanMode))}
+      /> */}
+
+      {/* Toast para alertas */}
       {toast && (
         <Toast
           message={toast.message}
           type={toast.type}
           isVisible={isToastVisible}
           onClose={hideToast}
-          duration={4000}
+          duration={toast.type === 'warning' ? 6000 : 4000}
           position="bottom"
         />
       )}

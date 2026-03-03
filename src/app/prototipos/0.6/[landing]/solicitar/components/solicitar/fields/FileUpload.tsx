@@ -164,7 +164,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         className={`
           relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer
           ${isDragging
-            ? 'border-[#4654CD] bg-[#4654CD]/5'
+            ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
             : showError
             ? 'border-red-300 bg-red-50 hover:border-red-400'
             : hasFiles

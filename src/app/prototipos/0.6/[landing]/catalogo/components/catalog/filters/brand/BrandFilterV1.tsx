@@ -38,13 +38,13 @@ export const BrandFilterV1: React.FC<BrandFilterProps> = ({
               onValueChange={() => handleToggle(option.value)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] group-data-[selected=true]:after:bg-[#4654CD] before:transition-colors after:transition-all',
+                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] group-data-[selected=true]:after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                 icon: 'text-white transition-opacity',
               }}
             />
             <span
               className={`text-sm flex-1 transition-colors ${
-                isSelected ? 'text-[#4654CD] font-medium' : 'text-neutral-700'
+                isSelected ? 'text-[var(--color-primary)] font-medium' : 'text-neutral-700'
               }`}
             >
               {option.label}

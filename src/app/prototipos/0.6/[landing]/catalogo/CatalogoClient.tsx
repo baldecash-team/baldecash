@@ -22,10 +22,12 @@ import {
   Sparkles,
   GraduationCap,
   MessageCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { useIsMobile, Toast, useToast, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 
 // Catalog components
 import { CatalogLayout } from './components/catalog/CatalogLayout';
@@ -40,6 +42,9 @@ import { CatalogSecondaryNavbar } from './components/catalog/CatalogSecondaryNav
 import { SearchDrawer } from './components/catalog/SearchDrawer';
 import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { WebchatDrawer } from './components/webchat';
+import { QuizReminderPopup } from './components/catalog/QuizReminderPopup';
+import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
+import { CartLimitModal } from './components/catalog/CartLimitModal';
 
 // Empty state
 import { EmptyState } from './components/empty';
@@ -57,6 +62,9 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import type { LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 
+// API for fetching products by IDs (used for cart/wishlist)
+import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
+
 
 // Types
 import {
@@ -66,7 +74,6 @@ import {
   defaultFilterState,
   SortOption,
   ColorSelectorVersion,
-  loadingDurationMs,
   UsageType,
   GpuType,
   CatalogProduct,
@@ -81,13 +88,11 @@ import {
 // Data
 import {
   sortProducts,
-  getFilteredProducts,
-  getFilterCounts,
-  mockProducts,
 } from './data/mockCatalogData';
 
-// API Hook for loading products
-import { useCatalogProducts, useProductsByIds } from './hooks/useCatalogProducts';
+// API Hooks for loading products and filters
+import { useCatalogProducts, useProductsByIds, useCatalogFilters } from './hooks/useCatalogProducts';
+import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../services/catalogApi';
 
 // Query params utilities
 import {
@@ -105,10 +110,9 @@ import {
   ComparisonProduct,
   getMaxProducts,
 } from './types/comparator';
-import { HelpQuiz } from '@/app/prototipos/0.5/quiz/components/quiz';
-import { QuizAnswer } from '@/app/prototipos/0.5/quiz/types/quiz';
-import { quizQuestionsUsage } from '@/app/prototipos/0.5/quiz/data/mockQuizData';
-import { ProductProvider as ProductProvider05 } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
+import { HelpQuiz } from '@/app/prototipos/0.6/quiz/components/quiz/HelpQuiz';
+import { QuizAnswer, QuizQuestion } from '@/app/prototipos/0.6/quiz/types/quiz';
+import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 
@@ -117,14 +121,8 @@ const getWizardUrl = (landing: string) => {
   return `/prototipos/0.6/${landing}/solicitar/`;
 };
 
-const getDetailUrl = (landing: string, productId: string, deviceType: string | undefined) => {
-  const baseUrl = `/prototipos/0.6/${landing}/producto/detail-preview`;
-  const params = new URLSearchParams();
-  params.set('id', productId);
-  if (deviceType && deviceType !== 'laptop') {
-    params.set('device', deviceType);
-  }
-  return `${baseUrl}?${params.toString()}`;
+const getDetailUrl = (landing: string, productSlug: string) => {
+  return `/prototipos/0.6/${landing}/producto/${productSlug}`;
 };
 
 const getUpsellUrl = (landing: string) => {
@@ -137,11 +135,15 @@ const WIZARD_SELECTED_INITIAL = 0;
 const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-solicitar-selected-product';
 
 // Mapear respuestas del quiz a filtros del catálogo
-const mapQuizAnswersToFilters = (answers: QuizAnswer[], currentFilters: FilterState): Partial<FilterState> => {
+const mapQuizAnswersToFilters = (
+  answers: QuizAnswer[],
+  questions: QuizQuestion[],
+  currentFilters: FilterState
+): Partial<FilterState> => {
   const newFilters: Partial<FilterState> = {};
 
   answers.forEach((answer) => {
-    const question = quizQuestionsUsage.find((q) => q.id === answer.questionId);
+    const question = questions.find((q) => q.id === answer.questionId);
     if (!question) return;
 
     const selectedOption = question.options.find((opt) => opt.id === answer.selectedOptions[0]);
@@ -154,7 +156,7 @@ const mapQuizAnswersToFilters = (answers: QuizAnswer[], currentFilters: FilterSt
       const usageMap: Record<string, string> = {
         study: 'estudios',
         gaming: 'gaming',
-        design: 'diseño',
+        design: 'diseno',
         office: 'oficina',
         coding: 'programacion',
       };
@@ -269,23 +271,255 @@ function CatalogoContent() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const isMobile = useIsMobile();
-  const { setSelectedProduct } = useProduct();
+  const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+  const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
-  // Load products from API (with mock fallback)
-  // Set useMockData=true to always use mock data during development
+  // Parse URL params once for initial state
+  const initialUrlFilters = useMemo(() => parseFiltersFromParams(searchParams), []);
+
+  // Filter and sort state - initialized from URL params
+  const [filters, setFilters] = useState<FilterState>(() =>
+    mergeFiltersWithDefaults(initialUrlFilters)
+  );
+  const [sort, setSort] = useState<SortOption>(() =>
+    initialUrlFilters.sort || 'recommended'
+  );
+
+  // Brand slug-to-id mapping from API (stable once loaded)
+  const [brandMapping, setBrandMapping] = useState<Map<string, number>>(new Map());
+
+  // Build API filters from frontend FilterState
+  const apiFiltersForProducts = useMemo((): ApiCatalogFilters => {
+    const apiFilters: ApiCatalogFilters = {};
+
+    // Device types
+    if (filters.deviceTypes.length > 0) {
+      apiFilters.types = filters.deviceTypes;
+    }
+
+    // Brands (convert slugs to IDs)
+    if (filters.brands.length > 0 && brandMapping.size > 0) {
+      const brandIds = filters.brands
+        .map((slug) => brandMapping.get(slug))
+        .filter((id): id is number => id !== undefined);
+      if (brandIds.length > 0) {
+        apiFilters.brand_ids = brandIds;
+      }
+    }
+
+    // Conditions (nueva, reacondicionada, open_box)
+    if (filters.condition.length > 0) {
+      apiFilters.conditions = filters.condition;
+    }
+
+    // Gama/tier (economica, estudiante, profesional, creativa, gamer)
+    if (filters.gama.length > 0) {
+      apiFilters.gamas = filters.gama;
+    }
+
+    // Labels/Tags (nuevo, premium, destacado, oferta, mas_vendido, etc.)
+    // IMPORTANT: filters.tags maps to API labels parameter
+    if (filters.tags.length > 0) {
+      apiFilters.labels = filters.tags;
+    }
+
+    // Usages (recommended use categories: estudios, gaming, diseno, oficina)
+    if (filters.usage.length > 0) {
+      apiFilters.usages = filters.usage;
+    }
+
+    // Quota range (convert to min/max quota)
+    // Default quotaRange is [25, 500] - only send if different
+    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500) {
+      apiFilters.min_quota = filters.quotaRange[0];
+      apiFilters.max_quota = filters.quotaRange[1];
+    }
+
+    // Specs filter - map FilterState fields to API specs JSON
+    // API format: specs={"ram": [8, 16], "touch_screen": [true], "processor": ["AMD Ryzen 5"]}
+    const specs: Record<string, (string | number | boolean)[]> = {};
+
+    // RAM (number)
+    if (filters.ram.length > 0) {
+      specs.ram = filters.ram;
+    }
+
+    // Storage (number)
+    if (filters.storage.length > 0) {
+      specs.storage = filters.storage;
+    }
+
+    // Storage Type (string)
+    if (filters.storageType.length > 0) {
+      specs.storage_type = filters.storageType;
+    }
+
+    // Processor Brand (intel, amd, apple) - maps to "processor_brand" spec
+    if (filters.processorBrand.length > 0) {
+      specs.processor_brand = filters.processorBrand;
+    }
+
+    // Processor Model (string) - maps to "processor" spec
+    if (filters.processorModel.length > 0) {
+      specs.processor = filters.processorModel;
+    }
+
+    // GPU Type (string)
+    if (filters.gpuType.length > 0) {
+      specs.gpu = filters.gpuType;
+    }
+
+    // Display Size (number) - maps to "screen_size" spec
+    if (filters.displaySize.length > 0) {
+      specs.screen_size = filters.displaySize;
+    }
+
+    // Display Type (string) - maps to "screen_type" spec
+    if (filters.displayType.length > 0) {
+      specs.screen_type = filters.displayType;
+    }
+
+    // Resolution (string) - maps to "screen_resolution" spec
+    if (filters.resolution.length > 0) {
+      specs.screen_resolution = filters.resolution;
+    }
+
+    // Touch Screen (boolean) - maps to "touch_screen" spec
+    if (filters.touchScreen !== null) {
+      specs.touch_screen = [filters.touchScreen];
+    }
+
+    // Refresh Rate (number)
+    if (filters.refreshRate.length > 0) {
+      specs.refresh_rate = filters.refreshRate;
+    }
+
+    // Backlit Keyboard (boolean)
+    if (filters.backlitKeyboard !== null) {
+      specs.backlit_keyboard = [filters.backlitKeyboard];
+    }
+
+    // Numeric Keypad (boolean)
+    if (filters.numericKeypad !== null) {
+      specs.numeric_keypad = [filters.numericKeypad];
+    }
+
+    // Fingerprint (boolean) - maps to "fingerprint_sensor" spec
+    if (filters.fingerprint !== null) {
+      specs.fingerprint_sensor = [filters.fingerprint];
+    }
+
+    // Has Windows (boolean) - maps to "windows_included" spec
+    if (filters.hasWindows !== null) {
+      specs.windows_included = [filters.hasWindows];
+    }
+
+    // Has Thunderbolt (boolean) - maps to "thunderbolt_port" spec
+    if (filters.hasThunderbolt !== null) {
+      specs.thunderbolt_port = [filters.hasThunderbolt];
+    }
+
+    // Has Ethernet (boolean) - maps to "ethernet_port" spec
+    if (filters.hasEthernet !== null) {
+      specs.ethernet_port = [filters.hasEthernet];
+    }
+
+    // Has HDMI (boolean) - maps to "hdmi_port" spec
+    if (filters.hasHDMI !== null) {
+      specs.hdmi_port = [filters.hasHDMI];
+    }
+
+    // Has SD Card (boolean) - maps to "sd_card_slot" spec
+    if (filters.hasSDCard !== null) {
+      specs.sd_card_slot = [filters.hasSDCard];
+    }
+
+    // Min USB Ports (number) - maps to "usb_ports" spec
+    // Note: API will filter products with >= this value
+    if (filters.minUSBPorts !== null && filters.minUSBPorts > 0) {
+      specs.usb_ports = [filters.minUSBPorts];
+    }
+
+    // RAM Expandable (boolean)
+    if (filters.ramExpandable !== null) {
+      specs.ram_expandable = [filters.ramExpandable];
+    }
+
+    // Add specs to API filters if any are set
+    if (Object.keys(specs).length > 0) {
+      apiFilters.specs = specs;
+    }
+
+    return apiFilters;
+  }, [
+    filters.deviceTypes,
+    filters.brands,
+    filters.condition,
+    filters.gama,
+    filters.tags,
+    filters.usage,
+    filters.quotaRange,
+    filters.ram,
+    filters.storage,
+    filters.storageType,
+    filters.processorBrand,
+    filters.processorModel,
+    filters.gpuType,
+    filters.displaySize,
+    filters.displayType,
+    filters.resolution,
+    filters.touchScreen,
+    filters.refreshRate,
+    filters.backlitKeyboard,
+    filters.numericKeypad,
+    filters.fingerprint,
+    filters.hasWindows,
+    filters.hasThunderbolt,
+    filters.hasEthernet,
+    filters.hasHDMI,
+    filters.hasSDCard,
+    filters.minUSBPorts,
+    filters.ramExpandable,
+    brandMapping,
+  ]);
+
+  // Map frontend sort to API sort
+  const apiSortBy = useMemo((): ApiSortBy => {
+    const sortMap: Record<SortOption, ApiSortBy> = {
+      recommended: 'display_order',
+      price_asc: 'price_asc',
+      price_desc: 'price_desc',
+      quota_asc: 'price_asc', // Same order since quota is proportional to price
+      newest: 'newest',
+      popular: 'featured',
+    };
+    return sortMap[sort];
+  }, [sort]);
+
+  // Check if we're ready to fetch products
+  // If there are brand filters, wait until brandMapping is loaded
+  const isReadyToFetchProducts = filters.brands.length === 0 || brandMapping.size > 0;
+
+  // Load products from API only (NO mock fallback)
   const {
     products: catalogProducts,
+    total: totalProducts,
     isLoading: isProductsLoading,
+    isLoadingMore: isLoadingMoreFromApi,
+    hasMore: hasMoreFromApi,
     isFromApi,
     error: productsError,
+    loadMore: loadMoreFromApi,
     getInstallment,
   } = useCatalogProducts({
     landingSlug: landing,
-    useMockData: false, // Set to true to force mock data
+    filters: apiFiltersForProducts,
+    sortBy: apiSortBy,
+    enabled: isReadyToFetchProducts,
   });
+
 
   // Scroll to top on page load
   useScrollToTop();
@@ -343,18 +577,27 @@ function CatalogoContent() {
     };
   });
 
-  // Filter and sort state
-  const [filters, setFilters] = useState<FilterState>(defaultFilterState);
-  const [sort, setSort] = useState<SortOption>('recommended');
+  // Load filter options from API (without filters - always show total counts)
+  const {
+    quotaRange: dynamicQuotaRange,
+    isFromApi: isFiltersFromApi,
+    apiFilters,
+    isLoading: isApiFiltersLoading,
+  } = useCatalogFilters(landing);
+
+  // Update brand mapping when apiFilters loads (only once)
+  useEffect(() => {
+    if (apiFilters?.brands && brandMapping.size === 0) {
+      const newMapping = new Map(apiFilters.brands.map((b) => [b.slug, b.id]));
+      setBrandMapping(newMapping);
+    }
+  }, [apiFilters?.brands, brandMapping.size]);
 
   // UI state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const isFirstRender = useRef(true);
 
 
   // Onboarding state - read config from URL params
@@ -418,7 +661,6 @@ function CatalogoContent() {
         clear_button: cartConfig?.clear_button || 'Vaciar',
         close_button: cartConfig?.close_button || 'Cerrar',
         continue_button: cartConfig?.continue_button || 'Continuar',
-        multiple_items_alert: cartConfig?.multiple_items_alert || 'Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.',
       },
     };
   }, [layoutData]);
@@ -428,18 +670,16 @@ function CatalogoContent() {
   const [isComparatorOpen, setIsComparatorOpen] = useState(false);
   const [comparisonState, setComparisonState] = useState<ComparisonState>(defaultComparisonState);
   const [isCompareListLoaded, setIsCompareListLoaded] = useState(false);
+  const [compareProducts, setCompareProducts] = useState<ComparisonProduct[]>([]);
   const maxCompareProducts = useMemo(() => getMaxProducts(comparatorConfig.layoutVersion), []);
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Quiz state
   const [isQuizOpen, setIsQuizOpen] = useState(false);
-  const quizConfig = {
-    layoutVersion: (isMobile ? 4 : 5) as 4 | 5,
-    questionCount: 7 as const,
-    questionStyle: 1 as const,
-    resultsVersion: 1 as const,
-    focusVersion: 1 as const,
-  };
+
+  // Quiz data from API - check if landing has a quiz
+  const { hasQuiz, questions: quizQuestions } = useQuiz({ landingSlug: landing });
+  const questionCount = quizQuestions.length;
 
   // Wishlist state with localStorage persistence
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -447,8 +687,8 @@ function CatalogoContent() {
   const [isWishlistLoaded, setIsWishlistLoaded] = useState(false);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
+  // Search state - initialized from URL params
+  const [searchQuery, setSearchQuery] = useState(() => initialUrlFilters.searchQuery || '');
   const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
   const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
 
@@ -459,7 +699,15 @@ function CatalogoContent() {
   const [isCartLoaded, setIsCartLoaded] = useState(false);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
+  const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
+  const [attemptedCartProduct, setAttemptedCartProduct] = useState<CatalogProduct | null>(null);
+
+  // Products loaded from API for cart/wishlist (independent of filters)
+  const [wishlistProducts, setWishlistProducts] = useState<CatalogProduct[]>([]);
+  const [cartProducts, setCartProducts] = useState<CatalogProduct[]>([]);
   const [isWebchatOpen, setIsWebchatOpen] = useState(false);
+  const [showQuizReminder, setShowQuizReminder] = useState(false);
+  const { isOpen: isResumeModalOpen, close: closeResumeModal } = useResumeFinancingModal();
 
   // Helper to close all drawers/popups before opening a new one (mobile)
   const closeAllDrawers = useCallback(() => {
@@ -534,6 +782,26 @@ function CatalogoContent() {
     isPageLoading,
     isWebchatOpen,
   ]);
+
+  // Quiz reminder popup - show once after 60 seconds
+  useEffect(() => {
+    const alreadyShown = sessionStorage.getItem('baldecash-quiz-reminder-shown');
+    if (alreadyShown) return;
+
+    const timer = setTimeout(() => {
+      // Only show if no drawers are open
+      const canShow = !isQuizOpen && !isHelpPopoverOpen && !isComparatorOpen &&
+                       !isCartDrawerOpen && !isWishlistDrawerOpen && !isFilterDrawerOpen &&
+                       !isSearchDrawerOpen && !isCartModalOpen && !isWebchatOpen &&
+                       !isSettingsOpen && !onboarding.shouldShowWelcome && !onboarding.shouldShowTour;
+      if (canShow) {
+        setShowQuizReminder(true);
+        sessionStorage.setItem('baldecash-quiz-reminder-shown', 'true');
+      }
+    }, 60000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Track scroll as interaction (significant scroll > 300px)
   useEffect(() => {
@@ -624,6 +892,33 @@ function CatalogoContent() {
     }
   }, [cart, isCartLoaded]);
 
+  // Fetch wishlist products from API (independent of catalog filters)
+  useEffect(() => {
+    if (isWishlistLoaded && wishlist.length > 0) {
+      fetchProductsByIds(landing, wishlist).then(setWishlistProducts);
+    } else {
+      setWishlistProducts([]);
+    }
+  }, [wishlist, isWishlistLoaded, landing]);
+
+  // Fetch cart products from API (independent of catalog filters)
+  useEffect(() => {
+    if (isCartLoaded && cart.length > 0) {
+      fetchProductsByIds(landing, cart).then(setCartProducts);
+    } else {
+      setCartProducts([]);
+    }
+  }, [cart, isCartLoaded, landing]);
+
+  // Calculate total monthly quota and check if over limit (S/600/mes max)
+  const { totalMonthlyQuota, isOverLimit } = useMemo(() => {
+    const total = cartProducts.reduce((sum, item) => {
+      const { quota } = calculateQuotaWithInitial(item.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+      return sum + quota;
+    }, 0);
+    return { totalMonthlyQuota: total, isOverLimit: total > 600 };
+  }, [cartProducts]);
+
   // Load compareList from localStorage on mount (client-side only)
   useEffect(() => {
     const saved = localStorage.getItem('baldecash-compare');
@@ -644,26 +939,19 @@ function CatalogoContent() {
     }
   }, [compareList, isCompareListLoaded]);
 
-  // Read filters from URL on mount
-  const isFiltersInitialized = useRef(false);
+  // Fetch compare products from API (independent of catalog filters)
   useEffect(() => {
-    if (isFiltersInitialized.current) return;
-    isFiltersInitialized.current = true;
-
-    const urlFilters = parseFiltersFromParams(searchParams);
-    if (Object.keys(urlFilters).length > 0) {
-      const { sort: urlSort, searchQuery: urlSearchQuery, ...filterParams } = urlFilters;
-      if (Object.keys(filterParams).length > 0) {
-        setFilters(mergeFiltersWithDefaults(filterParams));
-      }
-      if (urlSort) {
-        setSort(urlSort);
-      }
-      if (urlSearchQuery) {
-        setSearchQuery(urlSearchQuery);
-      }
+    if (isCompareListLoaded && compareList.length > 0) {
+      fetchProductsByIds(landing, compareList).then((products) => {
+        setCompareProducts(products as ComparisonProduct[]);
+      });
+    } else {
+      setCompareProducts([]);
     }
-  }, [searchParams]);
+  }, [compareList, isCompareListLoaded, landing]);
+
+  // Mark filters as initialized (state already initialized from URL params)
+  const isFiltersInitialized = useRef(true);
 
   const handleToggleWishlist = useCallback((productId: string) => {
     setWishlist((prev) => {
@@ -683,12 +971,25 @@ function CatalogoContent() {
     setIsCartModalOpen(true);
   }, []);
 
-  const handleAddToCart = useCallback((productId: string) => {
+  const handleAddToCart = useCallback((productId: string, product?: CatalogProduct) => {
     if (!cart.includes(productId)) {
+      // Check if adding this product would exceed the limit
+      if (product) {
+        const productQuota = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL).quota;
+        const newTotalQuota = totalMonthlyQuota + productQuota;
+
+        if (newTotalQuota > 600) {
+          // Show limit modal instead of adding
+          setAttemptedCartProduct(product);
+          setIsCartLimitModalOpen(true);
+          return;
+        }
+      }
+
       setCart((prev) => [...prev, productId]);
       showToast('Producto añadido al carrito', 'success');
     }
-  }, [cart, showToast]);
+  }, [cart, showToast, totalMonthlyQuota]);
 
   const handleRemoveFromCart = useCallback((productId: string) => {
     setCart((prev) => prev.filter((id) => id !== productId));
@@ -712,42 +1013,62 @@ function CatalogoContent() {
     localStorage.removeItem(WIZARD_PRODUCT_STORAGE_KEY);
   }, []);
 
+  const handleShowCartLimitModal = useCallback(() => {
+    setAttemptedCartProduct(null);
+    setIsCartLimitModalOpen(true);
+  }, []);
+
+  // cartProducts is now a state loaded from API via useEffect (see above)
+
   const handleCartContinue = useCallback(() => {
-    if (cart.length > 1) {
-      showToast('Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.', 'warning');
+    // Multi-product cart validation
+    const totalMonthlyQuota = cartProducts.reduce((sum, item) => {
+      const { quota } = calculateQuotaWithInitial(item.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+      return sum + quota;
+    }, 0);
+    const isDisabled = cart.length === 0 || totalMonthlyQuota > 600;
+
+    if (isDisabled) {
+      if (totalMonthlyQuota > 600) {
+        showToast('La cuota total supera S/600/mes', 'warning');
+      }
       return;
     }
-    if (cart.length === 1) {
-      // Guardar el producto del carrito antes de navegar
-      const productToSave = catalogProducts.find((p) => p.id === cart[0]);
-      if (productToSave) {
-        selectProductForWizard(productToSave);
-      }
-      router.push(getWizardUrl(landing));
+
+    // Save ALL cart products to solicitar context (not just the first one)
+    if (cartProducts.length > 0) {
+      const productsForContext = cartProducts.map((product) => {
+        const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
+        return {
+          id: product.id,
+          name: product.displayName,
+          shortName: product.name,
+          brand: product.brand,
+          price: product.price,
+          monthlyPayment: quota,
+          months: WIZARD_SELECTED_TERM,
+          image: product.thumbnail,
+          specs: {
+            processor: product.specs?.processor?.model || '',
+            ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
+            storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
+          },
+        };
+      });
+
+      // Set all products to cart context
+      setContextCartProducts(productsForContext);
+
+      // Also set the first product as selectedProduct for backwards compatibility
+      setSelectedProduct(productsForContext[0]);
     }
-  }, [cart, router, showToast, selectProductForWizard, landing, catalogProducts]);
+    router.push(getWizardUrl(landing));
+  }, [cart, cartProducts, router, showToast, setContextCartProducts, setSelectedProduct, landing]);
 
-  // Get cart products
-  const cartProducts = useMemo(() => {
-    return cart
-      .map((id) => catalogProducts.find((p) => p.id === id))
-      .filter((p): p is CatalogProduct => p !== undefined);
-  }, [cart, catalogProducts]);
+  // wishlistProducts is now a state loaded from API via useEffect (see above)
 
-  // Get wishlist products
-  const wishlistProducts = useMemo(() => {
-    return wishlist
-      .map((id) => catalogProducts.find((p) => p.id === id))
-      .filter((p): p is CatalogProduct => p !== undefined);
-  }, [wishlist, catalogProducts]);
-
-
-
-  // Pagination
-  const INITIAL_ROWS = 4;
-  const ROWS_PER_LOAD = 2;
-  const [visibleRows, setVisibleRows] = useState(INITIAL_ROWS);
-  const [pendingRows, setPendingRows] = useState(0);
+  // Pagination - now handled by API via useCatalogProducts hook
+  // Local row-based pagination removed in favor of API's limit/offset
 
   // Scroll detection
   useEffect(() => {
@@ -791,11 +1112,11 @@ function CatalogoContent() {
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
   }, [filters, sort, searchQuery, config.colorSelectorVersion, onboarding.config.stepCount, onboarding.config.highlightStyle, router]);
 
-  // Filter and sort products
+  // Sort products (filtering is done by API, no client-side filtering needed)
   const filteredProducts = useMemo(() => {
-    const products = getFilteredProducts(filters, catalogProducts);
-    return sortProducts(products, sort);
-  }, [filters, sort, catalogProducts]);
+    // API already returns filtered products, just sort them
+    return sortProducts(catalogProducts, sort);
+  }, [sort, catalogProducts]);
 
   // Products to display based on viewMode and search
   const displayedProducts = useMemo(() => {
@@ -819,38 +1140,19 @@ function CatalogoContent() {
     return products;
   }, [viewMode, filteredProducts, wishlist, searchQuery]);
 
-  const filterCounts = useMemo(() => getFilterCounts(filteredProducts), [filteredProducts]);
+  // filterCounts removed - use apiFilters counts instead (static from all products)
 
-  // Loading effect
-  useEffect(() => {
-    if (!isFirstRender.current) {
-      setIsLoading(true);
-      setVisibleRows(INITIAL_ROWS);
-    }
-    isFirstRender.current = false;
+  // Pagination - API-driven via useCatalogProducts hook
+  // All filtered/sorted products are displayed (no client-side slicing)
+  // "Load more" fetches additional products from the API
+  const visibleProducts = displayedProducts; // Show all loaded products after filtering
+  const hasMoreProducts = hasMoreFromApi; // API indicates if there are more to fetch
+  const remainingProducts = totalProducts - catalogProducts.length; // Remaining in API
 
-    const loadingTime = loadingDurationMs[config.loadingDuration];
-    const timer = setTimeout(() => setIsLoading(false), loadingTime);
-    return () => clearTimeout(timer);
-  }, [filters, sort, config.loadingDuration]);
-
-  // Pagination calculations
-  const columnsCount = config.productsPerRow.desktop;
-  const visibleProductsCount = visibleRows * columnsCount;
-  const visibleProducts = displayedProducts.slice(0, visibleProductsCount);
-  const hasMoreProducts = visibleProductsCount < displayedProducts.length;
-  const remainingProducts = displayedProducts.length - visibleProductsCount;
-
+  // Load more products from API
   const handleLoadMore = useCallback(() => {
-    setIsLoadingMore(true);
-    setPendingRows(ROWS_PER_LOAD);
-    const loadingTime = loadingDurationMs[config.loadingDuration];
-    setTimeout(() => {
-      setVisibleRows((prev) => prev + ROWS_PER_LOAD);
-      setPendingRows(0);
-      setIsLoadingMore(false);
-    }, loadingTime);
-  }, [config.loadingDuration]);
+    loadMoreFromApi();
+  }, [loadMoreFromApi]);
 
   // Applied filters for EmptyState
   const appliedFilters = useMemo((): AppliedFilter[] => {
@@ -860,7 +1162,7 @@ function CatalogoContent() {
         result.push({ key: 'brand', label: brand.charAt(0).toUpperCase() + brand.slice(1), value: brand });
       });
     }
-    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 400) {
+    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500) {
       result.push({ key: 'quota', label: `S/${filters.quotaRange[0]} - S/${filters.quotaRange[1]}/mes`, value: filters.quotaRange });
     }
     if (filters.ram.length > 0) {
@@ -881,7 +1183,7 @@ function CatalogoContent() {
     setFilters((prev) => {
       const newFilters = { ...prev };
       if (key === 'brand') newFilters.brands = [];
-      if (key === 'quota') newFilters.quotaRange = [25, 400];
+      if (key === 'quota') newFilters.quotaRange = [25, 500];
       if (key === 'ram') newFilters.ram = [];
       if (key === 'gama') newFilters.gama = [];
       return newFilters;
@@ -909,8 +1211,9 @@ function CatalogoContent() {
     if (!productToAdd) return;
 
     // Verificar tipo de dispositivo si ya hay productos en la lista
-    if (compareList.length > 0) {
-      const firstProductInList = catalogProducts.find((p) => p.id === compareList[0]);
+    if (compareList.length > 0 && compareProducts.length > 0) {
+      // Use compareProducts from state (loaded from API) instead of catalogProducts (filtered)
+      const firstProductInList = compareProducts[0];
 
       if (firstProductInList) {
         const currentDeviceType = getDeviceType(firstProductInList);
@@ -948,15 +1251,87 @@ function CatalogoContent() {
     setIsComparatorOpen(false);
   }, []);
 
-  const compareProducts = useMemo((): ComparisonProduct[] => {
-    return compareList
-      .map((id) => filteredProducts.find((p) => p.id === id) || catalogProducts.find((p) => p.id === id))
-      .filter((p): p is ComparisonProduct => p !== undefined);
-  }, [compareList, filteredProducts, catalogProducts]);
+  // compareProducts is now a state loaded from API via useEffect (see above)
 
-  // Show loading while page preloads, layout data, or products are loading
-  if (isPageLoading || isLayoutLoading || isProductsLoading) {
+  // Show loading only while page preloads or layout data is loading
+  // NOTE: isProductsLoading is NOT included here - when filters change,
+  // we show skeletons in the grid instead of the full page preloader
+  if (isPageLoading || isLayoutLoading) {
     return <LoadingFallback />;
+  }
+
+  // Show 404 if landing not found (paused, archived, or doesn't exist)
+  if (hasLayoutError || !navbarProps) {
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+  }
+
+  // Check if any filters are applied (to distinguish between "no results" vs "error")
+  const hasActiveFilters = filters.deviceTypes.length > 0 ||
+    filters.brands.length > 0 ||
+    filters.condition.length > 0 ||
+    filters.gama.length > 0 ||
+    filters.tags.length > 0 ||
+    filters.quotaRange[0] !== 25 ||
+    filters.quotaRange[1] !== 500 ||
+    // Specs filters
+    filters.ram.length > 0 ||
+    filters.storage.length > 0 ||
+    filters.storageType.length > 0 ||
+    filters.processorBrand.length > 0 ||
+    filters.processorModel.length > 0 ||
+    filters.gpuType.length > 0 ||
+    filters.displaySize.length > 0 ||
+    filters.displayType.length > 0 ||
+    filters.resolution.length > 0 ||
+    filters.touchScreen !== null ||
+    filters.refreshRate.length > 0 ||
+    filters.backlitKeyboard !== null ||
+    filters.numericKeypad !== null ||
+    filters.fingerprint !== null ||
+    filters.hasWindows !== null ||
+    filters.hasThunderbolt !== null ||
+    filters.hasEthernet !== null ||
+    filters.hasHDMI !== null ||
+    filters.hasSDCard !== null ||
+    filters.minUSBPorts !== null ||
+    filters.ramExpandable !== null;
+
+  // Show error ONLY if there's an actual API error AND no filters applied
+  // If filters are applied and result is empty, the normal catalog view handles it with "Catálogo vacío"
+  if (productsError && !hasActiveFilters) {
+    return (
+      <div className="min-h-screen bg-neutral-50">
+        <Navbar
+          landing={landing}
+          promoBannerData={navbarProps?.promoBannerData}
+          logoUrl={navbarProps?.logoUrl}
+          customerPortalUrl={navbarProps?.customerPortalUrl}
+          navbarItems={navbarProps?.navbarItems}
+          megamenuItems={navbarProps?.megamenuItems}
+          activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
+        />
+        <main className="pt-40">
+          <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
+              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-red-800 mb-2">
+                Catálogo no disponible
+              </h1>
+              <p className="text-red-600 mb-6">
+                {productsError || 'No se pudieron cargar los productos del catálogo'}
+              </p>
+              <button
+                onClick={() => router.push(`/prototipos/0.6/${landing}`)}
+                className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"
+              >
+                Volver al inicio
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer data={footerData} />
+      </div>
+    );
   }
 
   return (
@@ -971,7 +1346,7 @@ function CatalogoContent() {
         customerPortalUrl={navbarProps?.customerPortalUrl}
         navbarItems={navbarProps?.navbarItems}
         megamenuItems={navbarProps?.megamenuItems}
-        activeSections={['convenios', 'como-funciona', 'faq']}
+        activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
       />
 
       {/* Secondary Navbar with Search, Wishlist, Cart */}
@@ -986,12 +1361,15 @@ function CatalogoContent() {
         onWishlistClear={() => setWishlist([])}
         onWishlistViewProduct={(productId) => {
           const product = catalogProducts.find((p) => p.id === productId);
-          router.push(getDetailUrl(landing, productId, product?.deviceType));
+          if (product) {
+            router.push(getDetailUrl(landing, product.slug));
+          }
         }}
         cartItems={cartProducts}
         onCartRemove={handleRemoveFromCart}
         onCartClear={handleClearCart}
         onCartContinue={handleCartContinue}
+        isCartOverLimit={isOverLimit}
         isSearchActive={isSearchDrawerOpen || searchQuery.length > 0}
         onMobileSearchClick={() => {
           closeAllDrawers();
@@ -1018,7 +1396,10 @@ function CatalogoContent() {
         sort={sort}
         onSortChange={setSort}
         config={config}
-        filterCounts={filterCounts}
+        filterCounts={undefined}
+        apiFilters={apiFilters}
+        isApiFiltersLoading={isApiFiltersLoading}
+        totalProducts={totalProducts}
         onFilterDrawerChange={(isOpen) => {
           if (isOpen) {
             closeAllDrawers();
@@ -1028,8 +1409,9 @@ function CatalogoContent() {
         searchQuery={searchQuery}
         onSearchClear={handleSearchClear}
       >
-        {isLoading ? (
-          Array.from({ length: visibleProductsCount }).map((_, index) => (
+        {isProductsLoading ? (
+          // Show skeletons while products are loading (initial or filter change)
+          Array.from({ length: 16 }).map((_, index) => (
             <ProductCardSkeleton key={`skeleton-${index}`} version={config.skeletonVersion} index={index} />
           ))
         ) : (
@@ -1042,7 +1424,8 @@ function CatalogoContent() {
                 onAddToCart={() => handleOpenCartModal(product)}
                 onFavorite={() => handleToggleWishlist(product.id)}
                 isFavorite={wishlist.includes(product.id)}
-                onViewDetail={() => router.push(getDetailUrl(landing, product.id, product.deviceType))}
+                isInCart={cart.includes(product.id)}
+                onViewDetail={() => router.push(getDetailUrl(landing, product.slug))}
                 onCompare={() => handleToggleCompare(product.id)}
                 isCompareSelected={compareList.includes(product.id)}
                 compareDisabled={compareList.length >= maxCompareProducts}
@@ -1055,27 +1438,26 @@ function CatalogoContent() {
                 })}
               />
             ))}
-            {isLoadingMore &&
-              pendingRows > 0 &&
-              Array.from({ length: pendingRows * columnsCount }).map((_, index) => (
+            {isLoadingMoreFromApi &&
+              Array.from({ length: 8 }).map((_, index) => (
                 <ProductCardSkeleton key={`loading-more-${index}`} version={config.skeletonVersion} index={index} />
               ))}
           </>
         )}
 
         {/* Load More Button */}
-        {!isLoading && !isLoadingMore && hasMoreProducts && (
+        {!isProductsLoading && !isLoadingMoreFromApi && hasMoreProducts && (
           <LoadMoreButton
             version={config.loadMoreVersion}
             remainingProducts={remainingProducts}
-            totalProducts={displayedProducts.length}
-            visibleProducts={visibleProducts.length}
+            totalProducts={totalProducts}
+            visibleProducts={catalogProducts.length}
             onLoadMore={handleLoadMore}
           />
         )}
 
         {/* Empty State */}
-        {!isLoading && displayedProducts.length === 0 && (
+        {!isProductsLoading && displayedProducts.length === 0 && (
           <div className="col-span-full">
             {viewMode === 'favorites' ? (
               // Empty state for favorites view
@@ -1123,32 +1505,34 @@ function CatalogoContent() {
                   config={{ illustrationVersion: 5, actionsVersion: 6 }}
                 />
 
-                {/* Quiz CTA in Empty State */}
-                <section className="mt-8 px-4">
-                  <div className="bg-gradient-to-r from-[#4654CD]/5 to-[#4654CD]/10 rounded-2xl p-6 border border-[#4654CD]/20">
-                    <div className="flex flex-col md:flex-row items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-[#4654CD] flex items-center justify-center flex-shrink-0">
-                        <HelpCircle className="w-7 h-7 text-white" />
+                {/* Quiz CTA in Empty State - Solo mostrar si hay quiz asociado */}
+                {hasQuiz && (
+                  <section className="mt-8 px-4">
+                    <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl p-6 border border-[rgba(var(--color-primary-rgb),0.2)]">
+                      <div className="flex flex-col md:flex-row items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-[var(--color-primary)] flex items-center justify-center flex-shrink-0">
+                          <HelpCircle className="w-7 h-7 text-white" />
+                        </div>
+                        <div className="flex-1 text-center md:text-left">
+                          <h3 className="text-lg font-semibold text-neutral-800 mb-1">¿No encuentras lo que buscas?</h3>
+                          <p className="text-sm text-neutral-600">
+                            Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
+                          </p>
+                        </div>
+                        <Button
+                          className="bg-[var(--color-primary)] text-white font-medium cursor-pointer hover:brightness-90 transition-colors"
+                          onPress={() => {
+                            closeAllDrawers();
+                            setIsQuizOpen(true);
+                          }}
+                          startContent={<HelpCircle className="w-4 h-4" />}
+                        >
+                          Iniciar asistente
+                        </Button>
                       </div>
-                      <div className="flex-1 text-center md:text-left">
-                        <h3 className="text-lg font-semibold text-neutral-800 mb-1">¿No encuentras lo que buscas?</h3>
-                        <p className="text-sm text-neutral-600">
-                          Nuestro asistente te ayuda a encontrar la laptop perfecta en menos de 2 minutos
-                        </p>
-                      </div>
-                      <Button
-                        className="bg-[#4654CD] text-white font-medium cursor-pointer hover:bg-[#3a47b3] transition-colors"
-                        onPress={() => {
-                          closeAllDrawers();
-                          setIsQuizOpen(true);
-                        }}
-                        startContent={<HelpCircle className="w-4 h-4" />}
-                      >
-                        Iniciar asistente
-                      </Button>
                     </div>
-                  </div>
-                </section>
+                  </section>
+                )}
               </>
             )}
           </div>
@@ -1215,7 +1599,9 @@ function CatalogoContent() {
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
           const product = catalogProducts.find((p) => p.id === productId);
-          router.push(getDetailUrl(landing, productId, product?.deviceType));
+          if (product) {
+            router.push(getDetailUrl(landing, product.slug));
+          }
         }}
         onAddToCompare={handleToggleCompare}
         compareList={compareList}
@@ -1227,8 +1613,8 @@ function CatalogoContent() {
       {compareList.length > 0 && !isComparatorOpen && !isQuizOpen && !isCartModalOpen && !isSettingsOpen && (
         <div className="hidden lg:flex fixed left-1/2 -translate-x-1/2 z-[90] bg-white rounded-2xl shadow-xl border border-neutral-200 px-4 py-3 items-center gap-4 transition-all bottom-6">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-              <Scale className="w-5 h-5 text-[#4654CD]" />
+            <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+              <Scale className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div>
               <p className="text-sm font-semibold text-neutral-800">
@@ -1264,7 +1650,7 @@ function CatalogoContent() {
               size="sm"
               className={`px-6 font-bold ${
                 compareList.length >= 2
-                  ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
+                  ? 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                   : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
               }`}
               style={{ borderRadius: '14px' }}
@@ -1303,8 +1689,8 @@ function CatalogoContent() {
             <Button
               className={`lg:hidden shadow-lg cursor-pointer transition-all hover:scale-105 gap-2 px-4 ${
                 compareList.length >= 2
-                  ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
-                  : 'bg-white text-[#4654CD] border border-[#4654CD]/20 hover:bg-neutral-100'
+                  ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
+                  : 'bg-white text-[var(--color-primary)] border border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-neutral-100'
               }`}
               onPress={() => {
                 if (compareList.length >= 2) {
@@ -1317,7 +1703,7 @@ function CatalogoContent() {
               <Scale className="w-5 h-5" />
               <span className="hidden sm:inline lg:hidden">Comparar</span>
               <span className={`text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 ${
-                compareList.length >= 2 ? 'bg-white text-[#4654CD]' : 'bg-[#4654CD] text-white'
+                compareList.length >= 2 ? 'bg-white text-[var(--color-primary)]' : 'bg-[var(--color-primary)] text-white'
               }`}>
                 {compareList.length}/{maxCompareProducts}
               </span>
@@ -1341,7 +1727,7 @@ function CatalogoContent() {
               <Button
                 id="onboarding-help-button"
                 size="sm"
-                className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg"
+                className="bg-[var(--color-primary)] text-white shadow-lg cursor-pointer hover:brightness-90 transition-all hover:scale-105 gap-2 px-3 py-5 !font-semibold rounded-lg"
               >
                 <HelpCircle className="w-4 h-4" />
                 <span className="hidden sm:inline">¿Necesitas ayuda?</span>
@@ -1349,22 +1735,24 @@ function CatalogoContent() {
             </PopoverTrigger>
             <PopoverContent>
               <div className="w-64">
-                {/* Option 1: Quiz */}
-                <button
-                  onClick={() => {
-                    setIsHelpPopoverOpen(false);
-                    setIsQuizOpen(true);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-5 h-5 text-[#4654CD]" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-neutral-800">Encuentra tu laptop ideal</p>
-                    <p className="text-xs text-neutral-500">Responde 7 preguntas</p>
-                  </div>
-                </button>
+                {/* Option 1: Quiz - Solo mostrar si hay quiz asociado */}
+                {hasQuiz && (
+                  <button
+                    onClick={() => {
+                      setIsHelpPopoverOpen(false);
+                      setIsQuizOpen(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-neutral-800">Encuentra tu laptop ideal</p>
+                      <p className="text-xs text-neutral-500">Responde {questionCount} preguntas</p>
+                    </div>
+                  </button>
+                )}
 
                 {/* Option 2: Tour */}
                 <button
@@ -1374,8 +1762,8 @@ function CatalogoContent() {
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left border-b border-neutral-100"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-[#03DBD0]/10 flex items-center justify-center flex-shrink-0">
-                    <GraduationCap className="w-5 h-5 text-[#03DBD0]" />
+                  <div className="w-9 h-9 rounded-lg bg-[rgba(var(--color-secondary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+                    <GraduationCap className="w-5 h-5 text-[var(--color-secondary)]" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-neutral-800">Ver tour guiado</p>
@@ -1405,17 +1793,17 @@ function CatalogoContent() {
         </div>
       )}
 
-      {/* Help Quiz Modal - wrapped with 0.5 ProductProvider since HelpQuiz uses 0.5 context */}
-      <ProductProvider05>
+      {/* Help Quiz Modal - v0.6 with API support - Solo mostrar si hay quiz asociado */}
+      {hasQuiz && (
         <HelpQuiz
-          config={quizConfig}
           isOpen={isQuizOpen}
           onClose={() => setIsQuizOpen(false)}
           context="catalog"
-          onComplete={(results, answers) => {
+          landing={landing}
+          onComplete={(results, answers, questions) => {
             // Aplicar filtros basados en las respuestas del quiz
-            if (answers && answers.length > 0) {
-              const quizFilters = mapQuizAnswersToFilters(answers, filters);
+            if (answers && answers.length > 0 && questions && questions.length > 0) {
+              const quizFilters = mapQuizAnswersToFilters(answers, questions, filters);
               setFilters((prev) => ({
                 ...prev,
                 ...quizFilters,
@@ -1423,7 +1811,7 @@ function CatalogoContent() {
             }
           }}
         />
-      </ProductProvider05>
+      )}
 
       {/* Webchat Drawer */}
       <WebchatDrawer
@@ -1437,7 +1825,7 @@ function CatalogoContent() {
           <Button
             isIconOnly
             radius="md"
-            className="bg-[#4654CD] text-white shadow-lg cursor-pointer hover:bg-[#3a47b3] transition-all hover:scale-110"
+            className="bg-[var(--color-primary)] text-white shadow-lg cursor-pointer hover:brightness-90 transition-all hover:scale-110"
             onPress={scrollToTop}
           >
             <ArrowUp className="w-5 h-5" />
@@ -1453,6 +1841,39 @@ function CatalogoContent() {
         onConfigChange={setConfig}
         onboardingConfig={onboarding.config}
         onOnboardingConfigChange={onboarding.setConfig}
+      />
+
+      {/* Quiz Reminder Popup - Solo mostrar si hay quiz asociado */}
+      {hasQuiz && (
+        <QuizReminderPopup
+          isVisible={showQuizReminder && !isQuizOpen && !isHelpPopoverOpen}
+          onClose={() => setShowQuizReminder(false)}
+          onOpenQuiz={() => {
+            closeAllDrawers();
+            setIsQuizOpen(true);
+          }}
+          questionCount={questionCount}
+        />
+      )}
+
+      {/* Resume Financing Modal */}
+      <ResumeFinancingModal
+        isOpen={isResumeModalOpen}
+        onClose={closeResumeModal}
+        onContinue={() => router.push(getWizardUrl(landing))}
+      />
+
+      {/* Cart Limit Modal */}
+      <CartLimitModal
+        isOpen={isCartLimitModalOpen}
+        onClose={() => {
+          setIsCartLimitModalOpen(false);
+          setAttemptedCartProduct(null);
+        }}
+        cartItems={cartProducts}
+        onRemoveItem={handleRemoveFromCart}
+        attemptedProduct={attemptedCartProduct}
+        totalMonthlyQuota={totalMonthlyQuota}
       />
 
       {/* Toast para alertas de comparación */}

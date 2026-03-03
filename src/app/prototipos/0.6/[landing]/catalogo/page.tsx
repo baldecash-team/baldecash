@@ -4,6 +4,7 @@
  */
 
 import { CatalogoClient } from './CatalogoClient';
+import { getLandingMeta } from '../../services/landingApi';
 
 export default function CatalogoPage() {
   return <CatalogoClient />;
@@ -21,7 +22,7 @@ export async function generateStaticParams() {
   return knownLandings.map((landing) => ({ landing }));
 }
 
-// Metadata estática
+// Metadata dinámica desde API
 export async function generateMetadata({
   params,
 }: {
@@ -30,8 +31,17 @@ export async function generateMetadata({
   const resolvedParams = await params;
   const landing = resolvedParams.landing || 'home';
 
+  // Obtener metadatos desde el API
+  const meta = await getLandingMeta(landing);
+
+  // Construir título: "Catálogo - [nombre landing]" o usar meta_title si existe
+  const landingName = meta?.name || landing;
+  const title = meta?.meta_title
+    ? `Catálogo | ${meta.meta_title}`
+    : `Catálogo - BaldeCash ${landing === 'home' ? '' : `| ${landingName}`}`;
+
   return {
-    title: `Catálogo - BaldeCash ${landing === 'home' ? '' : `| ${landing}`}`,
-    description: 'Explora nuestro catálogo de laptops para estudiantes.',
+    title,
+    description: meta?.meta_description || 'Explora nuestro catálogo de laptops para estudiantes.',
   };
 }

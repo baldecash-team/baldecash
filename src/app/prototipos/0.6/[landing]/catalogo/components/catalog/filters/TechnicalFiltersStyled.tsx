@@ -134,7 +134,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                   onValueChange={() => toggleArrayValue(selectedUsage, opt.value as UsageType, onUsageChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
@@ -158,7 +158,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                   onValueChange={() => toggleArrayValue(selectedCondition, opt.value as ProductCondition, onConditionChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
@@ -183,7 +183,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                   onValueChange={() => toggleArrayValue(selectedRam, parseInt(opt.value), onRamChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
@@ -207,7 +207,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                   onValueChange={() => toggleArrayValue(selectedStorage, parseInt(opt.value), onStorageChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
@@ -231,7 +231,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                   onValueChange={() => toggleArrayValue(selectedDisplaySize, parseFloat(opt.value), onDisplaySizeChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
@@ -255,7 +255,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                   onValueChange={() => toggleArrayValue(selectedResolution, opt.value as Resolution, onResolutionChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
@@ -279,7 +279,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                   onValueChange={() => toggleArrayValue(selectedDisplayType, opt.value as DisplayType, onDisplayTypeChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
@@ -303,7 +303,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
                   onValueChange={() => toggleArrayValue(selectedProcessor, opt.value as ProcessorModel, onProcessorChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD]',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
@@ -341,8 +341,8 @@ const ChipFilterContent: React.FC<{
           variant={isSelected ? 'solid' : 'bordered'}
           className={`cursor-pointer transition-all duration-200 ${
             isSelected
-              ? 'bg-[#4654CD] text-white border-[#4654CD] shadow-sm'
-              : 'bg-white text-neutral-600 border-neutral-200 hover:border-[#4654CD] hover:text-[#4654CD]'
+              ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-sm'
+              : 'bg-white text-neutral-600 border-neutral-200 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
           }`}
           classNames={{
             base: 'px-3 py-1.5 h-auto',
@@ -525,20 +525,20 @@ const IconCardFilterWithMappingContent: React.FC<{
           onClick={() => onToggle(value)}
           className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
             isSelected
-              ? 'bg-[#4654CD]/10 border-[#4654CD] shadow-sm'
-              : 'bg-white border-neutral-200 hover:border-[#4654CD]/50 hover:bg-neutral-50'
+              ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)] shadow-sm'
+              : 'bg-white border-neutral-200 hover:border-[var(--color-primary)]/50 hover:bg-neutral-50'
           }`}
         >
           {isSelected && (
             <div className="absolute top-1.5 right-1.5">
-              <CheckCircle2 className="w-4 h-4 text-[#4654CD]" />
+              <CheckCircle2 className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
           )}
-          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
-          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
+          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'}`} />
+          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-700'}`}>
             {opt.label}
           </span>
-          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
+          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[var(--color-primary)]/70' : 'text-neutral-400'}`}>
             {opt.count} equipos
           </span>
         </button>
@@ -566,20 +566,20 @@ const IconCardFilterContent: React.FC<{
           onClick={() => onToggle(value)}
           className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
             isSelected
-              ? 'bg-[#4654CD]/10 border-[#4654CD] shadow-sm'
-              : 'bg-white border-neutral-200 hover:border-[#4654CD]/50 hover:bg-neutral-50'
+              ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)] shadow-sm'
+              : 'bg-white border-neutral-200 hover:border-[var(--color-primary)]/50 hover:bg-neutral-50'
           }`}
         >
           {isSelected && (
             <div className="absolute top-1.5 right-1.5">
-              <CheckCircle2 className="w-4 h-4 text-[#4654CD]" />
+              <CheckCircle2 className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
           )}
-          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[#4654CD]' : 'text-neutral-400'}`} />
-          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
+          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'}`} />
+          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-700'}`}>
             {opt.label}
           </span>
-          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[#4654CD]/70' : 'text-neutral-400'}`}>
+          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[var(--color-primary)]/70' : 'text-neutral-400'}`}>
             {opt.count} equipos
           </span>
         </button>

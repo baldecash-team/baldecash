@@ -15,6 +15,7 @@ import { formatMoney } from '../../utils/formatMoney';
 // Configuración fija igual que ProductCard
 const SELECTED_TERM = 24;
 const SELECTED_INITIAL = 10;
+const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
 
 interface CartConfig {
   title?: string;
@@ -23,7 +24,6 @@ interface CartConfig {
   clear_button?: string;
   close_button?: string;
   continue_button?: string;
-  multiple_items_alert?: string;
 }
 
 interface CartDrawerProps {
@@ -46,6 +46,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   config,
 }) => {
   const dragControls = useDragControls();
+
+  // Multi-product cart logic
+  const totalMonthlyQuota = items.reduce((sum, item) => {
+    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+    return sum + quota;
+  }, 0);
+  const isOverQuotaLimit = totalMonthlyQuota > MAX_MONTHLY_QUOTA;
+  const isDisabled = items.length === 0 || isOverQuotaLimit;
 
   // Block body scroll when drawer is open (iOS Safari fix)
   // Note: In catalog page, scroll lock is managed centrally - this is a fallback for standalone usage
@@ -125,8 +133,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                  <ShoppingCart className="w-4 h-4 text-[#4654CD]" />
+                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                  <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-neutral-800">
@@ -165,11 +173,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Alert for multiple items */}
-                  {items.length > 1 && (
+                  {/* Error message for quota limit */}
+                  {isOverQuotaLimit && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
                       <p className="text-sm text-amber-700">
-                        {config?.multiple_items_alert || 'Solo puedes solicitar un producto a la vez. Por favor, selecciona solo uno.'}
+                        La cuota mensual supera el límite de S/{MAX_MONTHLY_QUOTA}/mes. Quita algún producto para continuar.
                       </p>
                     </div>
                   )}
@@ -194,7 +202,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           <p className="text-sm font-medium text-neutral-800 line-clamp-2">
                             {item.displayName}
                           </p>
-                          <p className="text-sm font-bold text-[#4654CD] mt-1">
+                          <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
                             S/{formatMoney(quota)}/mes
                           </p>
                         </div>
@@ -210,6 +218,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Total quota info */}
+            {items.length > 0 && (
+              <div className="px-4 py-2 bg-neutral-100 border-t border-neutral-200">
+                <p className="text-sm text-neutral-600 text-center">
+                  Cuota total: S/{formatMoney(totalMonthlyQuota)}/mes
+                </p>
+              </div>
+            )}
 
             {/* Footer */}
             {items.length > 0 && (
@@ -236,13 +253,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <Button
                     size="lg"
                     className={`px-8 !font-bold cursor-pointer rounded-xl ${
-                      items.length === 1
-                        ? 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+                      !isDisabled
+                        ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
                         : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
                     }`}
                     onPress={onContinue}
                     endContent={<ArrowRight className="w-5 h-5" />}
-                    isDisabled={items.length !== 1}
+                    isDisabled={isDisabled}
                   >
                     {config?.continue_button || 'Continuar'}
                   </Button>

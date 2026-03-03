@@ -40,7 +40,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
         <ModalHeader className="flex flex-col items-center gap-4 pt-8 pb-2">
           {/* Animated Icon */}
           <motion.div
-            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#4654CD] to-[#6366f1] flex items-center justify-center shadow-lg"
+            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[#6366f1] flex items-center justify-center shadow-lg"
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: 'spring', duration: 0.6 }}
@@ -78,7 +78,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
           >
             <Button
               size="lg"
-              className="w-full bg-[#4654CD] text-white font-bold cursor-pointer hover:bg-[#3a47b3] transition-colors"
+              className="w-full bg-[var(--color-primary)] text-white font-bold cursor-pointer hover:brightness-90 transition-colors"
               style={{ borderRadius: '14px' }}
               endContent={<ChevronRight className="w-5 h-5" />}
               onPress={onStartTour}

@@ -55,7 +55,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
   const getBorderColor = () => {
     if (showError) return 'border-[#ef4444]';
     if (showSuccess) return 'border-[#22c55e]';
-    if (isFocused) return 'border-[#4654CD]';
+    if (isFocused) return 'border-[var(--color-primary)]';
     return 'border-neutral-300';
   };
 

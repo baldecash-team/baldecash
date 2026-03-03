@@ -11,6 +11,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -55,7 +56,7 @@ function ConfirmacionContent() {
   useScrollToTop();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   const handleSelectResult = (path: string) => {
     router.push(path);
@@ -77,7 +78,7 @@ function ConfirmacionContent() {
           transition={{ duration: 0.5 }}
           className="text-center mb-10"
         >
-          <div className="w-16 h-16 bg-[#4654CD] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-[var(--color-primary)] rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-neutral-800 mb-2">
@@ -110,7 +111,7 @@ function ConfirmacionContent() {
                   <h3 className="text-lg font-semibold text-neutral-800">{option.title}</h3>
                   <p className="text-sm text-neutral-500">{option.description}</p>
                 </div>
-                <div className="px-4 py-2 bg-neutral-200 text-neutral-700 hover:bg-[#4654CD] hover:text-white rounded-lg font-medium text-sm transition-colors">
+                <div className="px-4 py-2 bg-neutral-200 text-neutral-700 hover:bg-[var(--color-primary)] hover:text-white rounded-lg font-medium text-sm transition-colors">
                   Ver
                 </div>
               </motion.button>
@@ -136,6 +137,11 @@ function ConfirmacionContent() {
   // Show loading while layout data is loading
   if (isLayoutLoading) {
     return <LoadingFallback />;
+  }
+
+  // Show 404 if landing not found (paused, archived, or doesn't exist)
+  if (hasLayoutError || !navbarProps) {
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
   return (

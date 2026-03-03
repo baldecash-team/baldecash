@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Modal,
   ModalContent,
+  ModalHeader,
   ModalBody,
   Button,
-  Chip,
 } from '@nextui-org/react';
 import { X, Check, Plus, Tag, Sparkles, Package } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -42,15 +42,14 @@ const ModalContentShared: React.FC<{
   };
 
   return (
-    <>
-      {/* Header con imagen */}
-      <div className="relative">
-        {/* Imagen de fondo */}
-        <div className="bg-neutral-50 p-8 flex items-center justify-center min-h-[180px] rounded-t-2xl">
+    <div className="space-y-4">
+      {/* Product Preview */}
+      <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-xl">
+        <div className="w-20 h-20 bg-white rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-neutral-200">
           <img
             src={accessory.image}
             alt={accessory.name}
-            className="max-h-32 max-w-full object-contain drop-shadow-lg"
+            className="w-full h-full object-contain p-1"
             loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -58,124 +57,94 @@ const ModalContentShared: React.FC<{
             }}
           />
         </div>
-
-        {/* Badges */}
-        <div className="absolute top-4 left-4 flex gap-2">
-          {accessory.isRecommended && (
-            <Chip
-              size="sm"
-              startContent={<Sparkles className="w-3 h-3 text-white" />}
-              classNames={{
-                base: 'bg-[#4654CD] shadow-lg',
-                content: 'text-white text-xs font-semibold',
-              }}
-            >
-              Popular
-            </Chip>
-          )}
-          <Chip
-            size="sm"
-            startContent={<Tag className="w-3 h-3" />}
-            classNames={{
-              base: 'bg-white/90 backdrop-blur shadow-lg',
-              content: 'text-neutral-700 text-xs font-medium',
-            }}
-          >
-            {categoryLabels[accessory.category] || accessory.category}
-          </Chip>
-        </div>
-
-        {/* Indicador de selección */}
-        {isSelected && (
-          <div className="absolute top-4 right-4 bg-[#22c55e] text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
-            <Check className="w-3 h-3" />
-            Agregado
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            {accessory.isRecommended && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-[#4654CD] px-2 py-0.5 rounded-md">
+                <Sparkles className="w-3 h-3" /> Popular
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-neutral-600 bg-neutral-200 px-2 py-0.5 rounded-md">
+              <Tag className="w-3 h-3" /> {categoryLabels[accessory.category] || accessory.category}
+            </span>
           </div>
-        )}
+          <h3 className="text-sm font-bold text-neutral-800 line-clamp-2">
+            {accessory.name}
+          </h3>
+          {isSelected && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#22c55e] mt-1">
+              <Check className="w-3 h-3" /> Agregado
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Contenido */}
-      <div className="p-5 space-y-4">
-        {/* Título y descripción */}
+      {/* Description */}
+      <p className="text-sm text-neutral-600 leading-relaxed">
+        {accessory.description}
+      </p>
+
+      {/* Pricing */}
+      <div className="bg-[#4654CD]/5 rounded-xl p-4 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-neutral-800 mb-1">
-            {accessory.name}
-          </h2>
-          <p className="text-neutral-600 text-sm leading-relaxed">
-            {accessory.description}
+          <p className="text-xs text-neutral-500">Precio total</p>
+          <p className="text-lg font-bold text-neutral-800">
+            S/{formatMoney(accessory.price)}
           </p>
         </div>
-
-        {/* Precio destacado */}
-        <div className="bg-neutral-50 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-neutral-500 uppercase tracking-wide">Precio total</p>
-            <p className="text-xl font-bold text-neutral-800">
-              S/{formatMoney(accessory.price)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-neutral-500 uppercase tracking-wide">Cuota mensual</p>
-            <p className="text-xl font-bold text-[#4654CD]">
-              +S/{formatMoney(accessory.monthlyQuota)}
-              <span className="text-sm font-normal text-neutral-500">/mes</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Características técnicas */}
-        {accessory.specs && accessory.specs.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-800 mb-2 uppercase tracking-wide">
-              Especificaciones
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {accessory.specs.map((spec) => (
-                <div
-                  key={spec.label}
-                  className="bg-neutral-50 rounded-lg p-2.5"
-                >
-                  <p className="text-xs text-neutral-500 mb-0.5">{spec.label}</p>
-                  <p className="text-sm font-semibold text-neutral-800">{spec.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Botones de acción */}
-        <div className="flex gap-3 pt-2">
-          <Button
-            variant="flat"
-            onPress={onClose}
-            className="flex-1 bg-neutral-100 text-neutral-700 font-medium hover:bg-neutral-200 cursor-pointer"
-          >
-            Cerrar
-          </Button>
-          <Button
-            onPress={handleToggleAndClose}
-            className={`flex-1 font-medium cursor-pointer ${
-              isSelected
-                ? 'bg-red-500 text-white hover:bg-red-600'
-                : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
-            }`}
-            startContent={
-              isSelected ? (
-                <X className="w-4 h-4" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )
-            }
-          >
-            {isSelected ? 'Quitar' : 'Agregar'}
-          </Button>
+        <div className="text-right">
+          <p className="text-xs text-neutral-500">Cuota mensual</p>
+          <p className="text-lg font-bold text-[#4654CD]">
+            +S/{formatMoney(accessory.monthlyQuota)}<span className="text-sm font-normal text-neutral-400">/mes</span>
+          </p>
         </div>
       </div>
-    </>
+
+      {/* Specs */}
+      {accessory.specs && accessory.specs.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+            Especificaciones
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {accessory.specs.map((spec) => (
+              <div key={spec.label} className="bg-neutral-50 rounded-lg p-2.5 border border-neutral-100">
+                <p className="text-[11px] text-neutral-500">{spec.label}</p>
+                <p className="text-sm font-semibold text-neutral-800">{spec.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-3 pt-1">
+        <Button
+          size="lg"
+          variant="bordered"
+          onPress={onClose}
+          className="flex-1 border-neutral-300 text-neutral-700 font-semibold cursor-pointer rounded-xl"
+        >
+          Cerrar
+        </Button>
+        <Button
+          size="lg"
+          onPress={handleToggleAndClose}
+          className={`flex-1 font-semibold cursor-pointer rounded-xl ${
+            isSelected
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-[#4654CD] text-white hover:bg-[#3a47b3]'
+          }`}
+          startContent={isSelected ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+        >
+          {isSelected ? 'Quitar' : 'Agregar'}
+        </Button>
+      </div>
+    </div>
   );
 };
 
-// Desktop Modal (NextUI)
+// Desktop Modal (NextUI) - Consistent with CartSelectionModal / CartLimitModal
 const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory }> = ({
   accessory,
   isOpen,
@@ -187,16 +156,28 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
     isOpen={isOpen}
     onClose={onClose}
     size="md"
-    scrollBehavior="inside"
+    backdrop="blur"
+    placement="center"
     classNames={{
-      backdrop: 'bg-black/60 backdrop-blur-sm',
-      base: 'bg-white rounded-2xl',
+      wrapper: 'z-[100]',
+      backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
+      base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200',
+      header: 'border-b border-neutral-100 pb-4',
       body: 'p-0',
-      closeButton: 'top-4 right-4 z-10 bg-white/80 backdrop-blur hover:bg-white cursor-pointer',
+      closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
     }}
   >
     <ModalContent>
-      <ModalBody>
+      <ModalHeader className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
+          <Package className="w-5 h-5 text-[#4654CD]" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-neutral-800">Características</h2>
+          <p className="text-sm text-neutral-500">{accessory.name}</p>
+        </div>
+      </ModalHeader>
+      <ModalBody className="p-6">
         <ModalContentShared
           accessory={accessory}
           isSelected={isSelected}
@@ -218,38 +199,31 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
 }) => {
   const dragControls = useDragControls();
   const shouldShow = isOpen && accessory;
+  const scrollYRef = useRef<number>(0);
+  const didLockRef = useRef<boolean>(false);
 
-  // Block body scroll when drawer is open (iOS Safari fix)
   useEffect(() => {
     if (isOpen) {
-      const scrollY = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.overflow = 'hidden';
+      if (document.body.style.position !== 'fixed') {
+        scrollYRef.current = window.scrollY;
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollYRef.current}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.overflow = 'hidden';
+        didLockRef.current = true;
+      }
     } else {
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY) * -1);
+      if (didLockRef.current) {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollYRef.current);
+        didLockRef.current = false;
       }
     }
-    return () => {
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY) * -1);
-      }
-    };
   }, [isOpen]);
 
   return (

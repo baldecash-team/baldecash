@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
-import { X, Trash2, Scale, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Trash2, Scale, Trophy, ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react';
 import { ComparatorLayoutProps, compareSpecs, calculatePriceDifference, ComparisonProduct, getDisplayQuota } from '../../types/comparator';
 import { DesignStyleA } from './DesignStyleA';
 import { DesignStyleB } from './DesignStyleB';
@@ -20,7 +20,7 @@ const WIZARD_SELECTED_INITIAL = 10;
  * Panel que se expande sin perder el contexto del catálogo
  * Referencia: Notion, Linear comparison views
  */
-export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; onClose: () => void }> = ({
+export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; onClose: () => void; onAddToCart?: (productId: string) => void }> = ({
   products,
   config,
   onRemoveProduct,
@@ -29,6 +29,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   onStateChange,
   isOpen,
   onClose,
+  onAddToCart,
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -140,6 +141,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           <DesignStyleC
             {...commonProps}
             onSelectProduct={handleSelectProduct}
+            onAddToCart={onAddToCart}
             showOnlyDifferences={comparisonState.showOnlyDifferences}
             onToggleDifferences={(value) => onStateChange({
               ...comparisonState,
@@ -248,7 +250,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
               >
                 Limpiar
               </Button>
-              {!showBestOption && (
+              {!showBestOption ? (
                 <Button
                   size="sm"
                   className="bg-[#4654CD] text-white cursor-pointer"
@@ -256,6 +258,16 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                   startContent={<Trophy className="w-4 h-4" />}
                 >
                   Ver mejor opción
+                </Button>
+              ) : bestProduct && (
+                <Button
+                  size="sm"
+                  variant="bordered"
+                  className="cursor-pointer border-[#4654CD] text-[#4654CD] bg-[#4654CD]/5 hover:bg-[#4654CD]/10 font-semibold"
+                  startContent={<ShoppingCart className="w-4 h-4" />}
+                  onPress={() => onAddToCart?.(bestProduct.id)}
+                >
+                  Al carrito
                 </Button>
               )}
             </div>

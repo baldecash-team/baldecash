@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
-import { Trash2, Scale, ArrowRight, Trophy } from 'lucide-react';
+import { Trash2, Scale, ArrowRight, Trophy, ShoppingCart } from 'lucide-react';
 import { ComparatorLayoutProps, compareSpecs, calculatePriceDifference, ComparisonProduct, getDisplayQuota } from '../../types/comparator';
 import { DesignStyleA } from './DesignStyleA';
 import { DesignStyleB } from './DesignStyleB';
@@ -20,7 +20,7 @@ const WIZARD_SELECTED_INITIAL = 10;
  * Modal inmersivo con overlay oscuro
  * Referencia: Amazon, Best Buy comparison modal
  */
-export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; onClose: () => void }> = ({
+export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; onClose: () => void; onAddToCart?: (productId: string) => void }> = ({
   products,
   config,
   onRemoveProduct,
@@ -29,9 +29,12 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   onStateChange,
   isOpen,
   onClose,
+  onAddToCart,
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
   const isCleanMode = searchParams.get('mode') === 'clean';
   const { setSelectedProduct } = useProduct();
   const specs = compareSpecs(products);
@@ -88,7 +91,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     if (bestProduct) {
       selectProductForWizard(bestProduct);
     }
-    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+    const baseUrl = `/prototipos/0.6/${landing}/solicitar`;
     router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
   };
 
@@ -114,7 +117,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     if (product) {
       selectProductForWizard(product);
     }
-    const baseUrl = '/prototipos/0.5/wizard-solicitud/wizard-preview/';
+    const baseUrl = `/prototipos/0.6/${landing}/solicitar`;
     router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
   };
 
@@ -177,8 +180,8 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       <ModalContent>
         <ModalHeader className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-              <Scale className="w-5 h-5 text-[#4654CD]" />
+            <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+              <Scale className="w-5 h-5 text-[var(--color-primary)]" />
             </div>
             <div>
               <h2 className="text-xl font-bold text-neutral-800 font-['Baloo_2']">
@@ -203,7 +206,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                     ...comparisonState,
                     showOnlyDifferences: e.target.checked,
                   })}
-                  className="w-4 h-4 rounded border-neutral-300 text-[#4654CD] focus:ring-[#4654CD] cursor-pointer"
+                  className="w-4 h-4 rounded border-neutral-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)] cursor-pointer"
                 />
                 <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
               </label>
@@ -226,25 +229,35 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-full md:w-auto">
             {!showBestOption ? (
               <Button
-                className="bg-[#4654CD] text-white cursor-pointer font-semibold w-full md:w-auto order-1 md:order-2"
+                className="bg-[var(--color-primary)] text-white cursor-pointer font-semibold w-full md:w-auto order-1 md:order-2"
                 onPress={handleShowBestOption}
                 startContent={<Trophy className="w-4 h-4" />}
               >
                 Ver mejor opción
               </Button>
             ) : (
-              <Button
-                className="bg-[#22c55e] text-white cursor-pointer font-semibold shadow-md hover:shadow-lg hover:scale-105 transition-all w-full md:w-auto order-1 md:order-2"
-                onPress={handleContinueWithBest}
-                endContent={<ArrowRight className="w-4 h-4" />}
-              >
-                Elegir ganador
-              </Button>
+              <>
+                <Button
+                  className="bg-[#22c55e] text-white cursor-pointer font-semibold shadow-md hover:shadow-lg hover:scale-105 transition-all w-full md:w-auto order-1 md:order-2"
+                  onPress={handleContinueWithBest}
+                  endContent={<ArrowRight className="w-4 h-4" />}
+                >
+                  Elegir ganador
+                </Button>
+                <Button
+                  variant="bordered"
+                  className="cursor-pointer border-[var(--color-primary)] text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] font-semibold w-full md:w-auto order-2 md:order-3"
+                  startContent={<ShoppingCart className="w-4 h-4" />}
+                  onPress={() => bestProduct && onAddToCart?.(bestProduct.id)}
+                >
+                  Al carrito
+                </Button>
+              </>
             )}
             <Button
               variant="bordered"
               onPress={onClose}
-              className="cursor-pointer border-neutral-200 w-full md:w-auto order-2 md:order-1"
+              className="cursor-pointer border-neutral-200 w-full md:w-auto order-3 md:order-1"
             >
               Cerrar
             </Button>

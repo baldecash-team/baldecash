@@ -82,7 +82,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   const getBorderColor = () => {
     if (showError) return 'border-[#ef4444] bg-[#ef4444]/5';
     if (showSuccess) return 'border-[#22c55e] bg-white';
-    if (isOpen) return 'border-[#4654CD] bg-white';
+    if (isOpen) return 'border-[var(--color-primary)] bg-white';
     return 'border-neutral-300 hover:border-neutral-400 bg-white';
   };
 
@@ -180,8 +180,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                       w-full px-3 py-2 text-left text-sm rounded-md
                       transition-colors cursor-pointer
                       ${value === option.value
-                        ? 'bg-[#4654CD] text-white'
-                        : 'text-neutral-700 hover:bg-[#4654CD]/10 hover:text-[#4654CD]'
+                        ? 'bg-[var(--color-primary)] text-white'
+                        : 'text-neutral-700 hover:bg-[rgba(var(--color-primary-rgb),0.1)] hover:text-[var(--color-primary)]'
                       }
                       ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}
                     `}

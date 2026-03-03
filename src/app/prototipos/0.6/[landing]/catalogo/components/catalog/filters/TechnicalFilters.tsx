@@ -121,7 +121,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                 onValueChange={() => toggleArrayValue(selectedRam, parseInt(opt.value), onRamChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
@@ -136,7 +136,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) => onRamExpandableChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                 thumb: 'bg-white shadow-md',
                 hiddenInput: 'z-0',
               }}
@@ -158,7 +158,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                 onValueChange={() => toggleArrayValue(selectedStorage, parseInt(opt.value), onStorageChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
@@ -181,7 +181,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                 onValueChange={() => toggleArrayValue(selectedDisplaySize, parseFloat(opt.value), onDisplaySizeChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
@@ -204,7 +204,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                 onValueChange={() => toggleArrayValue(selectedResolution, opt.value as Resolution, onResolutionChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
@@ -227,7 +227,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                 onValueChange={() => toggleArrayValue(selectedDisplayType, opt.value as DisplayType, onDisplayTypeChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
@@ -242,7 +242,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) => onTouchScreenChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                 thumb: 'bg-white shadow-md',
                 hiddenInput: 'z-0',
               }}
@@ -264,7 +264,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
                 onValueChange={() => toggleArrayValue(selectedProcessor, opt.value as ProcessorModel, onProcessorChange)}
                 classNames={{
                   base: 'cursor-pointer',
-                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
+                  wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                   icon: 'text-white transition-opacity',
                 }}
               />
@@ -284,7 +284,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
             onValueChange={(val) => onGpuDedicatedChange(val ? true : null)}
             classNames={{
               base: 'cursor-pointer',
-              wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+              wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
               thumb: 'bg-white shadow-md',
               hiddenInput: 'z-0',
             }}
@@ -303,7 +303,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) => onBacklitChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                 thumb: 'bg-white shadow-md',
                 hiddenInput: 'z-0',
               }}
@@ -317,7 +317,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) => onNumericChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                 thumb: 'bg-white shadow-md',
                 hiddenInput: 'z-0',
               }}
@@ -331,7 +331,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) => onFingerprintChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                 thumb: 'bg-white shadow-md',
                 hiddenInput: 'z-0',
               }}
@@ -351,7 +351,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) => onWindowsChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                 thumb: 'bg-white shadow-md',
                 hiddenInput: 'z-0',
               }}
@@ -365,7 +365,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) => onThunderboltChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                 thumb: 'bg-white shadow-md',
                 hiddenInput: 'z-0',
               }}
@@ -379,7 +379,7 @@ export const TechnicalFilters: React.FC<TechnicalFiltersProps> = ({
               onValueChange={(val) => onEthernetChange(val ? true : null)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[#4654CD]',
+                wrapper: 'bg-neutral-300 group-data-[selected=true]:bg-[var(--color-primary)]',
                 thumb: 'bg-white shadow-md',
                 hiddenInput: 'z-0',
               }}

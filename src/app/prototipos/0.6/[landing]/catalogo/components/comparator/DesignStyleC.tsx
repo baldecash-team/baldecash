@@ -56,7 +56,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
     if (config.highlightVersion === 1) {
       return <Trophy className="w-3.5 h-3.5 text-[#22c55e]" />;
     }
-    return <Check className="w-3.5 h-3.5 text-[#4654CD]" />;
+    return <Check className="w-3.5 h-3.5 text-[var(--color-primary)]" />;
   };
 
   // Render price difference
@@ -89,13 +89,13 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
               className="relative"
             >
               {/* Glow effect behind card */}
-              <div className="absolute -inset-2 bg-[#4654CD]/20 rounded-3xl blur-xl" />
+              <div className="absolute -inset-2 bg-[rgba(var(--color-primary-rgb),0.2)] rounded-3xl blur-xl" />
 
-              <Card className="relative border-2 border-[#4654CD] bg-white overflow-hidden shadow-2xl">
+              <Card className="relative border-2 border-[var(--color-primary)] bg-white overflow-hidden shadow-2xl">
                 <CardBody className="p-0">
                   <div className="flex flex-col md:flex-row">
                     {/* Hero Image & Badge */}
-                    <div className="relative md:w-1/3 p-4 md:p-6 flex flex-col items-center justify-center bg-[#4654CD]/5">
+                    <div className="relative md:w-1/3 p-4 md:p-6 flex flex-col items-center justify-center bg-[rgba(var(--color-primary-rgb),0.05)]">
                       {/* Winner crown badge */}
                       <motion.div
                         initial={{ scale: 0, rotate: -10 }}
@@ -103,7 +103,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         transition={{ delay: 0.3, type: 'spring', bounce: 0.5 }}
                         className="absolute top-3 md:top-4 left-3 right-3 md:left-4 md:right-4 flex justify-center"
                       >
-                        <div className="bg-[#4654CD] text-white text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-1.5 md:gap-2 shadow-lg">
+                        <div className="bg-[var(--color-primary)] text-white text-xs md:text-sm font-bold px-3 md:px-4 py-1.5 md:py-2 rounded-full flex items-center gap-1.5 md:gap-2 shadow-lg">
                           <Trophy className="w-4 h-4 md:w-5 md:h-5" />
                           Mejor opción para ti
                         </div>
@@ -137,7 +137,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             animate={{ scale: 1 }}
                             transition={{ delay: 0.5 + i * 0.1 }}
                           >
-                            <Star className="w-3 h-3 md:w-4 md:h-4 fill-[#4654CD] text-[#4654CD]" />
+                            <Star className="w-3 h-3 md:w-4 md:h-4 fill-[var(--color-primary)] text-[var(--color-primary)]" />
                           </motion.div>
                         ))}
                       </motion.div>
@@ -169,13 +169,13 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         className="mb-4 md:mb-6"
                       >
                         <div className="flex items-baseline gap-1 md:gap-2 flex-wrap">
-                          <span className="text-2xl md:text-4xl font-bold text-[#4654CD]">
+                          <span className="text-2xl md:text-4xl font-bold text-[var(--color-primary)]">
                             S/{formatMoney(getDisplayQuota(bestProduct))}
                           </span>
                           <span className="text-base md:text-lg text-neutral-500">/mes</span>
                         </div>
-                        <div className="mt-2 inline-block px-3 py-1 bg-[#4654CD]/10 rounded-full">
-                          <span className="text-xs md:text-sm font-semibold text-[#4654CD]">
+                        <div className="mt-2 inline-block px-3 py-1 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-full">
+                          <span className="text-xs md:text-sm font-semibold text-[var(--color-primary)]">
                             {countWins(bestProductIndex)}/{specs.filter(s => s.isDifferent).length} ventajas
                           </span>
                         </div>
@@ -197,15 +197,15 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                               animate={{ opacity: 1, scale: 1 }}
                               transition={{ delay: 0.5 + index * 0.05 }}
                               className={`flex items-center justify-between p-2 md:p-3 rounded-lg md:rounded-xl ${
-                                isWinner ? 'bg-[#4654CD]/10' : 'bg-neutral-50'
+                                isWinner ? 'bg-[rgba(var(--color-primary-rgb),0.1)]' : 'bg-neutral-50'
                               }`}
                             >
                               <span className="text-[10px] md:text-xs text-neutral-500">{spec.label}</span>
                               <div className="flex items-center gap-1">
-                                <span className={`text-xs md:text-sm font-semibold ${isWinner ? 'text-[#4654CD]' : 'text-neutral-700'}`}>
+                                <span className={`text-xs md:text-sm font-semibold ${isWinner ? 'text-[var(--color-primary)]' : 'text-neutral-700'}`}>
                                   {spec.values[bestProductIndex]}
                                 </span>
-                                {isWinner && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-[#4654CD]" />}
+                                {isWinner && <Check className="w-3 h-3 md:w-3.5 md:h-3.5 text-[var(--color-primary)]" />}
                               </div>
                             </motion.div>
                           );
@@ -220,7 +220,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                       >
                         <Button
                           size="md"
-                          className="bg-[#4654CD] text-white cursor-pointer font-bold px-4 md:px-8 shadow-lg hover:shadow-xl hover:scale-105 transition-all md:text-base"
+                          className="bg-[var(--color-primary)] text-white cursor-pointer font-bold px-4 md:px-8 shadow-lg hover:shadow-xl hover:scale-105 transition-all md:text-base hover:brightness-90"
                           onPress={() => onSelectProduct?.(bestProduct.id)}
                           startContent={<Sparkles className="w-4 h-4 md:w-5 md:h-5" />}
                           endContent={<ArrowRight className="w-4 h-4 md:w-5 md:h-5" />}
@@ -264,7 +264,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.5 + idx * 0.1 }}
                   >
-                    <Card className="border border-neutral-200 hover:border-[#4654CD]/30 transition-all cursor-pointer group opacity-80 hover:opacity-100">
+                    <Card className="border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.3)] transition-all cursor-pointer group opacity-80 hover:opacity-100">
                       <CardBody className="p-4">
                         <div className="flex gap-4">
                           {/* Product thumbnail */}
@@ -312,7 +312,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
 
                             {/* Price */}
                             <div className="flex items-baseline gap-1 mb-2">
-                              <span className="text-lg font-bold text-[#4654CD]">
+                              <span className="text-lg font-bold text-[var(--color-primary)]">
                                 S/{formatMoney(getDisplayQuota(product))}
                               </span>
                               <span className="text-xs text-neutral-500">/mes</span>
@@ -379,8 +379,8 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                     w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0
                     transition-all duration-200
                     ${showOnlyDifferences
-                      ? 'bg-[#4654CD] border-[#4654CD]'
-                      : 'bg-white border-neutral-300 hover:border-[#4654CD]/50'
+                      ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                      : 'bg-white border-neutral-300 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                     }
                   `}
                 >
@@ -406,17 +406,17 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                     <th
                       key={product.id}
                       className={`p-1.5 md:p-4 text-center ${
-                        isBest ? 'bg-[#4654CD]/5' : ''
+                        isBest ? 'bg-[rgba(var(--color-primary-rgb),0.05)]' : ''
                       }`}
                     >
                       <div className={`inline-flex flex-col items-center gap-1 md:gap-2 p-1.5 md:p-3 rounded-lg md:rounded-xl border ${
                         isBest
-                          ? 'border-[#4654CD] bg-white shadow-sm'
+                          ? 'border-[var(--color-primary)] bg-white shadow-sm'
                           : 'border-neutral-200 bg-white'
                       }`}>
                         {/* Best badge */}
                         {isBest && (
-                          <div className="flex items-center gap-1 text-[8px] md:text-[10px] font-semibold px-1.5 md:px-2 py-0.5 rounded-full bg-[#4654CD] text-white">
+                          <div className="flex items-center gap-1 text-[8px] md:text-[10px] font-semibold px-1.5 md:px-2 py-0.5 rounded-full bg-[var(--color-primary)] text-white">
                             <Trophy className="w-2.5 h-2.5 md:w-3 md:h-3" />
                             <span>Mejor</span>
                           </div>
@@ -433,7 +433,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         <div className="text-center">
                           <p className="text-[8px] md:text-[10px] text-neutral-500 hidden md:block">{product.brand}</p>
                           <p className={`text-[10px] md:text-xs font-semibold line-clamp-1 md:line-clamp-2 max-w-[60px] md:max-w-[100px] ${
-                            isBest ? 'text-[#4654CD]' : 'text-neutral-700'
+                            isBest ? 'text-[var(--color-primary)]' : 'text-neutral-700'
                           }`}>
                             {product.displayName}
                           </p>
@@ -459,8 +459,8 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                       <td
                         key={`${product.id}-${spec.key}`}
                         className={`p-1.5 md:p-3 text-center text-[10px] md:text-xs ${
-                          index === bestProductIndex ? 'bg-[#4654CD]/5' : ''
-                        } ${isWinner ? 'font-semibold text-[#4654CD]' : 'text-neutral-700'}`}
+                          index === bestProductIndex ? 'bg-[rgba(var(--color-primary-rgb),0.05)]' : ''
+                        } ${isWinner ? 'font-semibold text-[var(--color-primary)]' : 'text-neutral-700'}`}
                       >
                         <div className="flex items-center justify-center gap-0.5 md:gap-1">
                           {spec.values[index]}

@@ -31,6 +31,13 @@ export const CartBar: React.FC<CartBarProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Multi-product cart logic
+  const totalMonthlyQuota = items.reduce((sum, item) => {
+    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+    return sum + quota;
+  }, 0);
+  const isDisabled = items.length === 0 || items.length > 5 || totalMonthlyQuota > 600;
+
   if (items.length === 0) return null;
 
   return (
@@ -98,14 +105,17 @@ export const CartBar: React.FC<CartBarProps> = ({
           <div className="px-4 py-3 flex items-center gap-4">
             {/* Cart Icon & Count */}
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-[#4654CD]/10 flex items-center justify-center">
-                <ShoppingCart className="w-5 h-5 text-[#4654CD]" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${totalMonthlyQuota > 600 ? 'bg-red-100' : 'bg-[#4654CD]/10'}`}>
+                <ShoppingCart className={`w-5 h-5 ${totalMonthlyQuota > 600 ? 'text-red-600' : 'text-[#4654CD]'}`} />
               </div>
               <div>
                 <p className="text-sm font-semibold text-neutral-800">
                   {items.length} {items.length === 1 ? 'producto' : 'productos'}
                 </p>
-                <p className="text-xs text-neutral-500">en tu carrito</p>
+                <p className={`text-xs font-medium ${totalMonthlyQuota > 600 ? 'text-red-600' : 'text-neutral-500'}`}>
+                  Cuota total: S/{formatMoney(totalMonthlyQuota)}/mes
+                  {totalMonthlyQuota > 600 && ' (excede S/600)'}
+                </p>
               </div>
             </div>
 
@@ -158,9 +168,14 @@ export const CartBar: React.FC<CartBarProps> = ({
               </Button>
               <Button
                 size="lg"
-                className="px-6 bg-[#4654CD] text-white !font-bold cursor-pointer hover:bg-[#3a47b3] rounded-xl"
+                className={`px-6 !font-bold rounded-xl ${
+                  !isDisabled
+                    ? 'bg-[#4654CD] text-white cursor-pointer hover:bg-[#3a47b3]'
+                    : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                }`}
                 onPress={onContinue}
                 endContent={<ArrowRight className="w-5 h-5" />}
+                isDisabled={isDisabled}
               >
                 Continuar
               </Button>

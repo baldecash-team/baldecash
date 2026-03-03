@@ -104,8 +104,8 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
     >
       <ModalContent>
         <ModalHeader className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#4654CD]/10 flex items-center justify-center flex-shrink-0">
-            <Settings className="w-4 h-4 text-[#4654CD]" />
+          <div className="w-8 h-8 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
+            <Settings className="w-4 h-4 text-[var(--color-primary)]" />
           </div>
           <span className="text-lg font-semibold text-neutral-800">
             Configuración del Catálogo
@@ -120,7 +120,7 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
           {/* Selector de Color - única opción iterable */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <Palette className="w-4 h-4 text-[#4654CD]" />
+              <Palette className="w-4 h-4 text-[var(--color-primary)]" />
               <h3 className="font-semibold text-neutral-800">Selector de Color</h3>
             </div>
             <RadioGroup
@@ -141,10 +141,10 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${
                         config.colorSelectorVersion === version
-                          ? 'border-[#4654CD] bg-[#4654CD]/5'
-                          : 'border-neutral-200 hover:border-[#4654CD]/50'
+                          ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                          : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
-                    wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                    wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm font-medium',
                     description: 'text-xs text-neutral-500',
@@ -163,7 +163,7 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
           {/* Tour de Ayuda */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <GraduationCap className="w-4 h-4 text-[#4654CD]" />
+              <GraduationCap className="w-4 h-4 text-[var(--color-primary)]" />
               <h3 className="font-semibold text-neutral-800">Tour de Ayuda</h3>
             </div>
 
@@ -188,10 +188,10 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
                       base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                         ${
                           onboardingConfig.stepCount === stepCount
-                            ? 'border-[#4654CD] bg-[#4654CD]/5'
-                            : 'border-neutral-200 hover:border-[#4654CD]/50'
+                            ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                            : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                         }`,
-                      wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                      wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                       labelWrapper: 'ml-2',
                       label: 'text-sm font-medium',
                       description: 'text-xs text-neutral-500',
@@ -225,10 +225,10 @@ export const CatalogoSettingsModal: React.FC<CatalogoSettingsModalProps> = ({
                       base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                         ${
                           onboardingConfig.highlightStyle === style
-                            ? 'border-[#4654CD] bg-[#4654CD]/5'
-                            : 'border-neutral-200 hover:border-[#4654CD]/50'
+                            ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                            : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                         }`,
-                      wrapper: 'before:border-[#4654CD] group-data-[selected=true]:border-[#4654CD]',
+                      wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                       labelWrapper: 'ml-2',
                       label: 'text-sm font-medium',
                       description: 'text-xs text-neutral-500',

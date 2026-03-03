@@ -23,7 +23,7 @@ export const EmptyActionsV3: React.FC<EmptyActionsProps> = ({
           as="button"
           onClick={onClearFilters}
           startContent={<RefreshCw className="w-4 h-4" />}
-          className="bg-[#4654CD]/10 text-[#4654CD] px-4 py-2 h-auto cursor-pointer hover:bg-[#4654CD]/20 transition-colors"
+          className="bg-[rgba(var(--color-primary-rgb),0.1)] text-[var(--color-primary)] px-4 py-2 h-auto cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.2)] transition-colors"
           radius="lg"
           classNames={{
             base: 'cursor-pointer',

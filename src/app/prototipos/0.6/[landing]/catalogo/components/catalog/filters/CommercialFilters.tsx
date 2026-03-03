@@ -71,8 +71,8 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
                 variant={isSelected ? 'solid' : 'bordered'}
                 className={`cursor-pointer transition-all ${
                   isSelected
-                    ? 'bg-[#4654CD] text-white border-[#4654CD]'
-                    : `${colors.bg} ${colors.text} ${colors.border} hover:border-[#4654CD]`
+                    ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                    : `${colors.bg} ${colors.text} ${colors.border} hover:border-[var(--color-primary)]`
                 }`}
                 classNames={{
                   base: 'px-3 py-1 h-auto',
@@ -101,7 +101,7 @@ export const CommercialFilters: React.FC<CommercialFiltersProps> = ({
                   onValueChange={() => toggleCondition(opt.value as ProductCondition)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[#4654CD] before:transition-colors after:transition-all',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                     icon: 'text-white transition-opacity',
                   }}
                 />

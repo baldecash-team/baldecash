@@ -39,6 +39,7 @@ interface CatalogSecondaryNavbarProps {
   onCartRemove: (productId: string) => void;
   onCartClear: () => void;
   onCartContinue: () => void;
+  isCartOverLimit?: boolean;
 
   // Mobile callbacks (for opening drawers)
   onMobileSearchClick?: () => void;
@@ -67,6 +68,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   onCartRemove,
   onCartClear,
   onCartContinue,
+  isCartOverLimit = false,
   onMobileSearchClick,
   onMobileWishlistClick,
   onMobileCartClick,
@@ -78,7 +80,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
 
   return (
     <div
-      className="fixed left-0 right-0 z-[90] bg-neutral-100 border-b border-neutral-200"
+      className="fixed left-0 right-0 z-40 bg-neutral-100 border-b border-neutral-200"
       style={{ top: topPosition }}
     >
       <div className={`mx-auto px-4 sm:px-6 lg:px-8 ${fullWidth ? '' : 'max-w-7xl'}`}>
@@ -115,7 +117,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
             {/* Desktop: Dropdowns */}
             <div className="hidden lg:flex items-center gap-2">
               <NavbarWishlist
-                id="secondary-navbar-wishlist"
+                id="onboarding-wishlist"
                 items={wishlistItems}
                 onRemoveItem={onWishlistRemove}
                 onClearAll={onWishlistClear}
@@ -123,26 +125,28 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
                 config={config?.wishlist}
               />
               <NavbarCart
-                id="secondary-navbar-cart"
+                id="onboarding-cart"
                 items={cartItems}
                 onRemoveItem={onCartRemove}
                 onClearAll={onCartClear}
                 onContinue={onCartContinue}
                 config={config?.cart}
+                isOverLimit={isCartOverLimit}
               />
             </div>
 
             {/* Mobile: Buttons */}
             <div className="flex lg:hidden items-center gap-2">
               <NavbarWishlistButton
-                id="secondary-navbar-wishlist-mobile"
+                id="onboarding-wishlist-mobile"
                 count={wishlistItems.length}
                 onClick={onMobileWishlistClick || (() => {})}
               />
               <NavbarCartButton
-                id="secondary-navbar-cart-mobile"
+                id="onboarding-cart-mobile"
                 count={cartItems.length}
                 onClick={onMobileCartClick || (() => {})}
+                isOverLimit={isCartOverLimit}
               />
             </div>
           </div>

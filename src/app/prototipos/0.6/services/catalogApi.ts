@@ -26,6 +26,10 @@ import { calculateQuotaForTerm, DEFAULT_TEA } from '../[landing]/catalogo/types/
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
 
+// Pagination constants
+export const INITIAL_LOAD_LIMIT = 16;
+export const LOAD_MORE_LIMIT = 8;
+
 // ============================================
 // API Response Types
 // ============================================
@@ -54,6 +58,14 @@ export interface ApiBrand {
   logo_url?: string;
 }
 
+export interface ApiProductColor {
+  id: string;
+  name: string;
+  hex: string;
+  image_url?: string;  // URL de imagen principal para esta variante
+  images?: string[];   // Array de URLs de imágenes para carousel
+}
+
 export interface ApiCatalogProduct {
   id: number;
   sku: string;
@@ -69,6 +81,7 @@ export interface ApiCatalogProduct {
   badge_text?: string;
   pricing: ApiProductPricing;
   image_url?: string;
+  colors?: ApiProductColor[];
 }
 
 export interface ApiCatalogResponse {
@@ -77,15 +90,31 @@ export interface ApiCatalogResponse {
   page: number;
   page_size: number;
   total_pages: number;
+  // Offset-based pagination fields
+  limit: number;
+  offset: number;
+  has_more: boolean;
   filters_applied: Record<string, unknown>;
 }
 
-export interface ApiFilterOptions {
+/** Legacy filter options type - kept for backwards compatibility */
+export interface ApiFilterOptionsLegacy {
   brands: { id: number; name: string; slug: string }[];
   price_range: { min: number; max: number };
+  quota_range: {
+    min: number;
+    max: number;
+    term_months: number;
+    initial_percent: number;
+    description: string;
+  };
   types: string[];
   sort_options: { value: string; label: string }[];
 }
+
+// Import new filter types
+import type { CatalogFiltersResponse } from '../types/filters';
+export type ApiFilterOptions = CatalogFiltersResponse;
 
 export interface ApiInstallmentResult {
   product_id: number;
@@ -109,14 +138,31 @@ export interface ApiInstallmentResult {
 // ============================================
 
 export interface CatalogFilters {
+  // Product IDs (for wishlist/cart)
+  product_ids?: number[];
+  // Single value filters (legacy)
   brand_id?: number;
   type?: string;
+  // Multi-value filters (arrays)
+  brand_ids?: number[];
+  types?: string[];
+  conditions?: string[];
+  gamas?: string[];  // Gama/tier: economica, estudiante, profesional, creativa, gamer
+  labels?: string[];  // Labels/tags: nuevo, premium, destacado, oferta, mas_vendido
+  usages?: string[];  // Recommended use: estudios, gaming, diseno, oficina
+  // Price range
   min_price?: number;
   max_price?: number;
+  // Quota range (monthly payment)
+  min_quota?: number;
+  max_quota?: number;
+  // Boolean
   is_featured?: boolean;
+  // Specs (JSON object)
+  specs?: Record<string, unknown>;
 }
 
-export type SortBy = 'display_order' | 'price_asc' | 'price_desc' | 'featured';
+export type SortBy = 'display_order' | 'price_asc' | 'price_desc' | 'featured' | 'newest';
 
 // ============================================
 // API Functions
@@ -124,6 +170,7 @@ export type SortBy = 'display_order' | 'price_asc' | 'price_desc' | 'featured';
 
 /**
  * Get products for a landing page catalog
+ * Supports both page/page_size and limit/offset pagination
  */
 export async function getCatalogProducts(
   landingSlug: string,
@@ -132,22 +179,48 @@ export async function getCatalogProducts(
     sort_by?: SortBy;
     page?: number;
     page_size?: number;
+    // Offset-based pagination (preferred for "load more")
+    limit?: number;
+    offset?: number;
   } = {}
 ): Promise<ApiCatalogResponse | null> {
   try {
     const params = new URLSearchParams();
 
     if (options.filters) {
+      // Product IDs filter (for wishlist/cart)
+      if (options.filters.product_ids?.length) params.set('product_ids', options.filters.product_ids.join(','));
+      // Single value filters (legacy)
       if (options.filters.brand_id) params.set('brand_id', String(options.filters.brand_id));
       if (options.filters.type) params.set('type', options.filters.type);
-      if (options.filters.min_price) params.set('min_price', String(options.filters.min_price));
-      if (options.filters.max_price) params.set('max_price', String(options.filters.max_price));
+      // Multi-value filters (arrays - comma-separated)
+      if (options.filters.brand_ids?.length) params.set('brand_ids', options.filters.brand_ids.join(','));
+      if (options.filters.types?.length) params.set('types', options.filters.types.join(','));
+      if (options.filters.conditions?.length) params.set('conditions', options.filters.conditions.join(','));
+      if (options.filters.gamas?.length) params.set('gamas', options.filters.gamas.join(','));
+      if (options.filters.labels?.length) params.set('labels', options.filters.labels.join(','));
+      if (options.filters.usages?.length) params.set('usages', options.filters.usages.join(','));
+      // Price range
+      if (options.filters.min_price !== undefined) params.set('min_price', String(options.filters.min_price));
+      if (options.filters.max_price !== undefined) params.set('max_price', String(options.filters.max_price));
+      // Quota range
+      if (options.filters.min_quota !== undefined) params.set('min_quota', String(options.filters.min_quota));
+      if (options.filters.max_quota !== undefined) params.set('max_quota', String(options.filters.max_quota));
+      // Boolean
       if (options.filters.is_featured !== undefined) params.set('is_featured', String(options.filters.is_featured));
+      // Specs (JSON)
+      if (options.filters.specs && Object.keys(options.filters.specs).length > 0) {
+        params.set('specs', JSON.stringify(options.filters.specs));
+      }
     }
 
     if (options.sort_by) params.set('sort_by', options.sort_by);
-    if (options.page) params.set('page', String(options.page));
-    if (options.page_size) params.set('page_size', String(options.page_size));
+
+    // Prefer limit/offset over page/page_size
+    if (options.limit !== undefined) params.set('limit', String(options.limit));
+    if (options.offset !== undefined) params.set('offset', String(options.offset));
+    if (options.page && options.limit === undefined) params.set('page', String(options.page));
+    if (options.page_size && options.limit === undefined) params.set('page_size', String(options.page_size));
 
     const queryString = params.toString();
     const url = `${API_BASE_URL}/public/landing/${landingSlug}/products${queryString ? `?${queryString}` : ''}`;
@@ -181,12 +254,62 @@ export async function getCatalogProducts(
 }
 
 /**
- * Get available filter options for a landing
+ * Applied filters to send to /filters endpoint for contextual counts
  */
-export async function getCatalogFilters(landingSlug: string): Promise<ApiFilterOptions | null> {
+export interface AppliedFiltersForCounts {
+  types?: string[];
+  brand_ids?: number[];
+  conditions?: string[];
+  gamas?: string[];
+  labels?: string[];
+  min_price?: number;
+  max_price?: number;
+}
+
+/**
+ * Get available filter options for a landing with contextual counts
+ *
+ * When filters are applied, counts update to show:
+ * - For the SAME dimension: total counts (so user can switch filters)
+ * - For OTHER dimensions: counts filtered by applied filters
+ */
+export async function getCatalogFilters(
+  landingSlug: string,
+  appliedFilters?: AppliedFiltersForCounts
+): Promise<ApiFilterOptions | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/public/landing/${landingSlug}/filters`, {
-      next: { revalidate: 300 }, // Cache for 5 minutes
+    const params = new URLSearchParams();
+
+    // Add applied filters as query params
+    if (appliedFilters) {
+      if (appliedFilters.types?.length) {
+        params.set('types', appliedFilters.types.join(','));
+      }
+      if (appliedFilters.brand_ids?.length) {
+        params.set('brand_ids', appliedFilters.brand_ids.join(','));
+      }
+      if (appliedFilters.conditions?.length) {
+        params.set('conditions', appliedFilters.conditions.join(','));
+      }
+      if (appliedFilters.gamas?.length) {
+        params.set('gamas', appliedFilters.gamas.join(','));
+      }
+      if (appliedFilters.labels?.length) {
+        params.set('labels', appliedFilters.labels.join(','));
+      }
+      if (appliedFilters.min_price !== undefined) {
+        params.set('min_price', String(appliedFilters.min_price));
+      }
+      if (appliedFilters.max_price !== undefined) {
+        params.set('max_price', String(appliedFilters.max_price));
+      }
+    }
+
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/public/landing/${landingSlug}/filters${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(url, {
+      cache: 'no-store', // Don't cache - counts depend on applied filters
     });
 
     if (!response.ok) {
@@ -308,7 +431,13 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     brandLogo: apiProduct.brand.logo_url,
     thumbnail: apiProduct.image_url || '/images/products/placeholder.jpg',
     images: apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
-    colors: undefined, // Not available in list view
+    colors: apiProduct.colors?.map(c => ({
+      id: c.id,
+      name: c.name,
+      hex: c.hex,
+      imageUrl: c.image_url,  // Imagen principal de variante
+      images: c.images || (c.image_url ? [c.image_url] : []),  // Array para carousel
+    })) || [],
     deviceType: mapDeviceType(apiProduct.type),
     price: pricing.final_price,
     originalPrice: pricing.list_price > pricing.final_price ? pricing.list_price : undefined,
@@ -339,6 +468,10 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
   page: number;
   pageSize: number;
   totalPages: number;
+  // Offset-based pagination
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 } {
   return {
     products: response.items.map(mapApiProductToCatalogProduct),
@@ -346,6 +479,9 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
     page: response.page,
     pageSize: response.page_size,
     totalPages: response.total_pages,
+    limit: response.limit,
+    offset: response.offset,
+    hasMore: response.has_more,
   };
 }
 
@@ -378,14 +514,14 @@ function inferUsage(type: string, name: string): import('../[landing]/catalogo/t
       usage.push('gaming');
     }
     if (nameLower.includes('creator') || nameLower.includes('studio')) {
-      usage.push('diseño');
+      usage.push('diseno');
     }
     if (nameLower.includes('pro') || nameLower.includes('business')) {
       usage.push('oficina');
     }
   } else if (type === 'tablet') {
     usage.push('estudios');
-    usage.push('diseño');
+    usage.push('diseno');
   } else if (type === 'celular') {
     usage.push('estudios');
   }
@@ -911,6 +1047,8 @@ export async function fetchCatalogData(
     sort_by?: SortBy;
     page?: number;
     page_size?: number;
+    limit?: number;
+    offset?: number;
   } = {}
 ): Promise<{
   products: CatalogProduct[];
@@ -918,6 +1056,9 @@ export async function fetchCatalogData(
   page: number;
   pageSize: number;
   totalPages: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
 } | null> {
   const response = await getCatalogProducts(landingSlug, options);
 
@@ -946,4 +1087,110 @@ export async function fetchDirectCatalogData(): Promise<{
     products: response.products.map(mapDirectApiProductToCatalogProduct),
     total: response.total,
   };
+}
+
+/**
+ * Fetch products by their IDs
+ * Useful for getting wishlist/cart products
+ */
+export async function fetchProductsByIds(
+  landingSlug: string,
+  productIds: string[]
+): Promise<CatalogProduct[]> {
+  if (!productIds || productIds.length === 0) {
+    return [];
+  }
+
+  try {
+    // Convert string IDs to numbers
+    const numericIds = productIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+
+    if (numericIds.length === 0) {
+      return [];
+    }
+
+    const response = await getCatalogProducts(landingSlug, {
+      filters: { product_ids: numericIds },
+      limit: numericIds.length,
+    });
+
+    if (!response || !response.items) {
+      return [];
+    }
+
+    return response.items.map(mapApiProductToCatalogProduct);
+  } catch (error) {
+    console.error('[Catalog API] Error fetching products by IDs:', error);
+    return [];
+  }
+}
+
+// ============================================
+// Product Search / Suggestions
+// ============================================
+
+export interface ProductSuggestion {
+  id: string;
+  name: string;
+  slug: string;
+  brand: string;
+  category: string;
+  price: number;
+  image: string | null;
+}
+
+/**
+ * Search products for autocomplete suggestions
+ * Uses the /products/search endpoint
+ */
+export async function searchProductSuggestions(
+  query: string,
+  limit: number = 6
+): Promise<ProductSuggestion[]> {
+  if (!query || query.length < 2) {
+    return [];
+  }
+
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      limit: String(limit),
+    });
+
+    const url = `${API_BASE_URL}/products/search?${params.toString()}`;
+
+    const response = await fetch(url, {
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      console.error('[Search API] Error:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+
+    // Map API response to frontend format
+    return data.map((item: {
+      id: number;
+      name: string;
+      sku: string;
+      slug: string;
+      brand: string | null;
+      category: string | null;
+      list_price: number | null;
+      image: string | null;
+    }) => ({
+      id: String(item.id),
+      name: item.name,
+      slug: item.slug,
+      brand: item.brand || '',
+      category: item.category || '',
+      price: item.list_price || 0,
+      image: item.image,
+    }));
+  } catch (error) {
+    console.error('[Search API] Error searching products:', error);
+    return [];
+  }
 }
