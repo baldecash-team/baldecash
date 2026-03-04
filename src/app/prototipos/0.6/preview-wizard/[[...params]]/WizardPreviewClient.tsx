@@ -31,25 +31,34 @@ import { NotFoundContent } from '../../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 // Types
-import type { PromoBannerData, FooterData } from '../../types/hero';
+import type { PromoBannerData, FooterData, CompanyData } from '../../types/hero';
 
 // Helper to transform API footer data
 function transformFooterData(apiData: {
   config?: Record<string, unknown>;
   content_config?: Record<string, unknown>;
-} | null, company?: Record<string, unknown> | null): FooterData | null {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+} | null, company?: any): FooterData | null {
   if (!apiData) return null;
 
   const config = apiData.config || {};
   const contentConfig = apiData.content_config || {};
 
   return {
-    showNewsletter: config.show_newsletter as boolean ?? false,
     columns: (contentConfig.columns as FooterData['columns']) || [],
-    companyName: company?.name as string || 'BaldeCash',
-    companyLogo: company?.logo_url as string || '',
-    sbsRegistration: company?.sbs_registration as string || '',
-    socialLinks: company?.social_links as FooterData['socialLinks'] || {},
+    newsletter: config.show_newsletter ? {
+      enabled: true,
+      title: 'Suscríbete',
+      description: 'Recibe nuestras ofertas',
+      placeholder: 'Tu correo',
+      button_text: 'Suscribir',
+    } : undefined,
+    company: company ? {
+      name: company.name as string || 'BaldeCash',
+      logo_url: company.logo_url as string || '',
+      sbs_registration: company.sbs_registration as string || '',
+      social_links: company.social_links as CompanyData['social_links'],
+    } : undefined,
   };
 }
 
@@ -135,7 +144,7 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
 
           setNavbarProps({
             logoUrl: landing.logo_url,
-            navbarItems: navbarComponent?.content_config?.items as typeof navbarProps.navbarItems || [],
+            navbarItems: navbarComponent?.content_config?.items as { label: string; href: string; section: string | null }[] || [],
             activeSections: ['hero'],
           });
 
@@ -201,7 +210,7 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
 
   // Error state
   if (error || !wizardConfig) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" message={error || undefined} />;
+    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
   // Render step detail view

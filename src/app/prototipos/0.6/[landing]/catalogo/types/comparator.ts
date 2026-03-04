@@ -225,9 +225,9 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   const specs: ComparableSpec[] = [];
 
   // Processor
-  const processorValues = products.map(p => p.specs.processor.model);
+  const processorValues = products.map(p => p.specs.processor?.model ?? 'N/A');
   const processorRaw: number[] = products.map(p => {
-    const model = p.specs.processor.model.toLowerCase();
+    const model = (p.specs.processor?.model ?? '').toLowerCase();
     if (model.includes('i9') || model.includes('ryzen 9')) return 9;
     if (model.includes('i7') || model.includes('ryzen 7')) return 7;
     if (model.includes('i5') || model.includes('ryzen 5')) return 5;
@@ -246,8 +246,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   });
 
   // RAM
-  const ramValues = products.map(p => `${p.specs.ram.size}GB`);
-  const ramRaw = products.map(p => p.specs.ram.size);
+  const ramValues = products.map(p => `${p.specs.ram?.size ?? 0}GB`);
+  const ramRaw = products.map(p => p.specs.ram?.size ?? 0);
   specs.push({
     key: 'ram',
     label: 'Memoria RAM',
@@ -261,8 +261,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   });
 
   // Storage
-  const storageValues = products.map(p => `${p.specs.storage.size}GB ${p.specs.storage.type.toUpperCase()}`);
-  const storageRaw = products.map(p => p.specs.storage.size);
+  const storageValues = products.map(p => `${p.specs.storage?.size ?? 0}GB ${(p.specs.storage?.type ?? 'N/A').toUpperCase()}`);
+  const storageRaw = products.map(p => p.specs.storage?.size ?? 0);
   specs.push({
     key: 'storage',
     label: 'Almacenamiento',
@@ -276,8 +276,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   });
 
   // Display Size
-  const displayValues = products.map(p => `${p.specs.display.size}"`);
-  const displayRaw = products.map(p => p.specs.display.size);
+  const displayValues = products.map(p => `${p.specs.display?.size ?? 0}"`);
+  const displayRaw = products.map(p => p.specs.display?.size ?? 0);
   specs.push({
     key: 'displaySize',
     label: 'Tamaño de Pantalla',
@@ -291,9 +291,9 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   });
 
   // Resolution
-  const resValues = products.map(p => p.specs.display.resolutionPixels);
+  const resValues = products.map(p => p.specs.display?.resolutionPixels ?? 'N/A');
   const resRaw: number[] = products.map(p => {
-    const res = p.specs.display.resolution;
+    const res = p.specs.display?.resolution;
     if (res === '4k') return 4;
     if (res === 'qhd') return 3;
     if (res === 'fhd') return 2;
@@ -311,8 +311,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   });
 
   // GPU
-  const gpuValues = products.map(p => `${p.specs.gpu.brand} ${p.specs.gpu.model}`);
-  const gpuRaw: number[] = products.map(p => p.specs.gpu.type === 'dedicated' ? 2 : 1);
+  const gpuValues = products.map(p => `${p.specs.gpu?.brand ?? 'N/A'} ${p.specs.gpu?.model ?? ''}`);
+  const gpuRaw: number[] = products.map(p => p.specs.gpu?.type === 'dedicated' ? 2 : 1);
   specs.push({
     key: 'gpu',
     label: 'Gráficos',
@@ -325,8 +325,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   });
 
   // Weight
-  const weightValues = products.map(p => `${p.specs.dimensions.weight}kg`);
-  const weightRaw = products.map(p => p.specs.dimensions.weight);
+  const weightValues = products.map(p => `${p.specs.dimensions?.weight ?? 0}kg`);
+  const weightRaw = products.map(p => p.specs.dimensions?.weight ?? 0);
   specs.push({
     key: 'weight',
     label: 'Peso',
@@ -340,8 +340,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   });
 
   // Battery
-  const batteryValues = products.map(p => p.specs.battery.life);
-  const batteryRaw = products.map(p => parseInt(p.specs.battery.life) || 0);
+  const batteryValues = products.map(p => p.specs.battery?.life ?? 'N/A');
+  const batteryRaw = products.map(p => parseInt(p.specs.battery?.life ?? '0') || 0);
   specs.push({
     key: 'battery',
     label: 'Batería',

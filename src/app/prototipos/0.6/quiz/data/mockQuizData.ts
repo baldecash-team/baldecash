@@ -212,7 +212,7 @@ const convertCatalogToQuizProduct = (product: CatalogProduct): QuizProduct => {
   if (product.usage.includes('programacion')) quizTags.push('programacion');
 
   // Agregar tags basados en specs
-  if (product.specs.ram.size >= 16) quizTags.push('potente');
+  if ((product.specs.ram?.size ?? 0) >= 16) quizTags.push('potente');
   if (product.specs.gpu?.type === 'dedicated') quizTags.push('gaming', 'potente');
   if (product.gama === 'gamer') quizTags.push('premium', 'gaming');
   if (product.gama === 'economica') quizTags.push('basico');
@@ -223,7 +223,7 @@ const convertCatalogToQuizProduct = (product: CatalogProduct): QuizProduct => {
   const { quota } = calculateQuotaWithInitial(product.price, QUIZ_TERM, QUIZ_INITIAL);
 
   // Extraer horas de batería del string (ej: "8 horas" -> 8)
-  const batteryHours = parseInt(product.specs.battery.life) || 6;
+  const batteryHours = parseInt(product.specs.battery?.life ?? '6') || 6;
 
   return {
     id: product.id,
@@ -235,17 +235,17 @@ const convertCatalogToQuizProduct = (product: CatalogProduct): QuizProduct => {
     price: product.price,
     lowestQuota: quota,
     specs: {
-      ram: product.specs.ram.size,
-      ramType: product.specs.ram.type,
-      ramExpandable: product.specs.ram.expandable,
-      storage: product.specs.storage.size,
-      storageType: product.specs.storage.type as 'ssd' | 'hdd' | 'emmc',
-      processor: product.specs.processor.model,
-      displaySize: product.specs.display.size,
-      resolution: product.specs.display.resolutionPixels,
+      ram: product.specs.ram?.size ?? 0,
+      ramType: product.specs.ram?.type ?? 'DDR4',
+      ramExpandable: product.specs.ram?.expandable ?? false,
+      storage: product.specs.storage?.size ?? 0,
+      storageType: (product.specs.storage?.type ?? 'ssd') as 'ssd' | 'hdd' | 'emmc',
+      processor: product.specs.processor?.model ?? 'N/A',
+      displaySize: product.specs.display?.size ?? 0,
+      resolution: product.specs.display?.resolutionPixels ?? 'N/A',
       gpu: product.specs.gpu?.model,
       gpuType: product.specs.gpu?.type,
-      weight: product.specs.dimensions.weight,
+      weight: product.specs.dimensions?.weight ?? 0,
       batteryLife: batteryHours,
     },
     tags: [...new Set(quizTags)], // Eliminar duplicados
