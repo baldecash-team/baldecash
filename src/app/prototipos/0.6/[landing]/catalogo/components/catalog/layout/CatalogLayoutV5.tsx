@@ -304,19 +304,19 @@ export const CatalogLayoutV5: React.FC<CatalogLayoutProps> = ({
                     <div className="space-y-2 text-sm text-neutral-600">
                       <div className="flex justify-between">
                         <span>Procesador</span>
-                        <span className="font-medium">{previewProduct.specs.processor.model}</span>
+                        <span className="font-medium">{previewProduct.specs?.processor?.model ?? '-'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>RAM</span>
-                        <span className="font-medium">{previewProduct.specs.ram.size}GB</span>
+                        <span className="font-medium">{previewProduct.specs?.ram?.size ? `${previewProduct.specs.ram.size}GB` : '-'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Almacenamiento</span>
-                        <span className="font-medium">{previewProduct.specs.storage.size}GB SSD</span>
+                        <span className="font-medium">{previewProduct.specs?.storage?.size ? `${previewProduct.specs.storage.size}GB SSD` : '-'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Pantalla</span>
-                        <span className="font-medium">{previewProduct.specs.display.size}"</span>
+                        <span className="font-medium">{previewProduct.specs?.display?.size ? `${previewProduct.specs.display.size}"` : '-'}</span>
                       </div>
                     </div>
 
