@@ -5,14 +5,29 @@
 
 import { ProximamenteClient } from './ProximamenteClient';
 
-// Generate static params for all known landings
-export function generateStaticParams() {
-  return [
-    { landing: 'home' },
-    { landing: 'laptops-estudiantes' },
-    { landing: 'celulares-2026' },
-    { landing: 'motos-lima' },
-  ];
+// Generate static params from API
+export async function generateStaticParams() {
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL || 'https://ws2-production-0f0e.up.railway.app/api/v1';
+
+  let slugs = ['home'];
+
+  try {
+    const response = await fetch(`${apiUrl}/public/landing/list/slugs`, {
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.slugs && Array.isArray(data.slugs)) {
+        slugs = data.slugs;
+      }
+    }
+  } catch {
+    console.log('[proximamente/generateStaticParams] Using fallback (API unavailable)');
+  }
+
+  return slugs.map((landing) => ({ landing }));
 }
 
 export default function ProximamentePage() {
