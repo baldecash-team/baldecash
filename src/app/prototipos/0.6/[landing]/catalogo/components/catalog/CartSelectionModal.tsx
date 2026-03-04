@@ -12,14 +12,10 @@ import React, { useEffect, useRef } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@nextui-org/react';
 import { ShoppingCart, ArrowRight, X } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
-import { formatMoney } from '../../utils/formatMoney';
+import { CatalogProduct } from '../../types/catalog';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
 import { useIsMobile } from '@/app/prototipos/_shared';
-
-// Configuración fija igual que ProductCard
-const SELECTED_TERM = 24;
-const SELECTED_INITIAL = 10;
 
 interface CartSelectionModalProps {
   isOpen: boolean;
@@ -36,8 +32,8 @@ const ModalContentShared: React.FC<{
   onAddToCart: () => void;
   onClose: () => void;
 }> = ({ product, onRequestEquipment, onAddToCart, onClose }) => {
-  // Calcular cuota igual que ProductCard
-  const { quota } = calculateQuotaWithInitial(product.price, SELECTED_TERM, SELECTED_INITIAL);
+  // Usar cuota precalculada del backend (igual que ProductCard)
+  const quota = product.quotaMonthly;
 
   return (
   <div className="space-y-4">
@@ -58,7 +54,7 @@ const ModalContentShared: React.FC<{
           {product.displayName}
         </h3>
         <p className="text-base lg:text-lg font-bold text-[var(--color-primary)] mt-0.5">
-          S/{formatMoney(quota)}/mes
+          S/{formatMoneyNoDecimals(Math.round(quota))}/mes
         </p>
       </div>
     </div>

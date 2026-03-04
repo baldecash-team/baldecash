@@ -35,6 +35,9 @@ interface CronogramaPDFData {
   amortizationSchedule: AmortizationRow[];
   financialData: FinancialData;
   generatedDate: Date;
+  // Cuota inicial (opcional)
+  initialAmount?: number;
+  initialPercent?: number;
 }
 
 /**
@@ -146,13 +149,23 @@ export const generateCronogramaPDF = (data: CronogramaPDFData): void => {
   doc.setFont('helvetica', 'bold');
   doc.text(`${formatMoney(data.monthlyQuota)}/mes`, margin + 35, y);
 
+  // Cuota inicial (si aplica)
+  if (data.initialAmount && data.initialPercent) {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...grayColor);
+    doc.text(`Inicial (${data.initialPercent}%):`, pageWidth / 2, y);
+    doc.setTextColor(...textColor);
+    doc.setFont('helvetica', 'bold');
+    doc.text(formatMoney(data.initialAmount), pageWidth / 2 + 35, y);
+  }
+
   y += 22;
 
   // ===== TASAS E INFORMACION FINANCIERA =====
   doc.setTextColor(...textColor);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('Informacion Financiera', margin, y);
+  doc.text('Información Financiera', margin, y);
   y += 6;
 
   const colWidth = (pageWidth - margin * 2) / 3;
@@ -198,11 +211,11 @@ export const generateCronogramaPDF = (data: CronogramaPDFData): void => {
   doc.setTextColor(...textColor);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text('Tabla de Amortizacion', margin, y);
+  doc.text('Tabla de Amortización', margin, y);
   y += 6;
 
   // Header de tabla
-  const tableHeaders = ['Cuota', 'Fecha', 'Capital', 'Interes', 'Monto', 'Saldo'];
+  const tableHeaders = ['Cuota', 'Fecha', 'Capital', 'Interés', 'Monto', 'Saldo'];
   const colWidths = [20, 45, 30, 30, 30, 30];
   const headerHeight = 12;
   let x = margin;
@@ -302,7 +315,7 @@ export const generateCronogramaPDF = (data: CronogramaPDFData): void => {
   doc.setFontSize(8);
   doc.setTextColor(...grayColor);
   doc.text(
-    'Esta informacion es referencial. Las tasas y condiciones finales seran confirmadas al momento de la aprobacion.',
+    'Esta información es referencial. Las tasas y condiciones finales serán confirmadas al momento de la aprobación.',
     margin,
     y
   );

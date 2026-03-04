@@ -81,45 +81,57 @@ export const FloatingFilterPanel: React.FC<FloatingFilterPanelProps> = ({
 
   // Dynamic device type options with counts
   const dynamicDeviceTypeOptions = useMemo(() => {
-    // Use API types if available
-    if (apiFilters?.types && apiFilters.types.length > 0) {
-      return apiFilters.types.map(t => ({
-        value: t.value as CatalogDeviceType,
-        label: t.label,
-        count: t.count,
-        icon: t.value === 'laptop' ? Laptop : t.value === 'tablet' ? Tablet : Smartphone,
-      }));
+    // If API has responded (even with empty data), use API data
+    if (apiFilters) {
+      if (apiFilters.types && apiFilters.types.length > 0) {
+        return apiFilters.types.map(t => ({
+          value: t.value as CatalogDeviceType,
+          label: t.label,
+          count: t.count,
+          icon: t.value === 'laptop' ? Laptop : t.value === 'tablet' ? Tablet : Smartphone,
+        }));
+      }
+      // API returned empty - return empty array (no mock fallback)
+      return [];
     }
-    // Fall back to mock
+    // API not called yet - use mock as placeholder while loading
     return filterCounts
       ? applyDynamicCounts(mockDeviceTypeOptions, filterCounts.deviceType)
       : mockDeviceTypeOptions;
-  }, [apiFilters?.types, filterCounts]);
+  }, [apiFilters, filterCounts]);
 
   // Dynamic brand options from API
   const dynamicBrandOptions = useMemo(() => {
-    if (apiFilters?.brands && apiFilters.brands.length > 0) {
-      return apiFilters.brands.map(b => ({
-        id: b.id,
-        name: b.name,
-        logo: b.logo_url || `/images/brands/${b.slug}.svg`,
-        count: b.count,
-      }));
+    // If API has responded (even with empty data), use API data
+    if (apiFilters) {
+      if (apiFilters.brands && apiFilters.brands.length > 0) {
+        return apiFilters.brands.map(b => ({
+          id: b.id,
+          name: b.name,
+          logo: b.logo_url || `/images/brands/${b.slug}.svg`,
+          count: b.count,
+        }));
+      }
+      // API returned empty - return empty array
+      return [];
     }
     return mockBrandOptions;
-  }, [apiFilters?.brands]);
+  }, [apiFilters]);
 
   // Dynamic condition options from API
   const dynamicConditionOptions = useMemo(() => {
-    if (apiFilters?.conditions && apiFilters.conditions.length > 0) {
-      return apiFilters.conditions.map(c => ({
-        value: c.value as ProductCondition,
-        label: c.label,
-        count: c.count,
-      }));
+    if (apiFilters) {
+      if (apiFilters.conditions && apiFilters.conditions.length > 0) {
+        return apiFilters.conditions.map(c => ({
+          value: c.value as ProductCondition,
+          label: c.label,
+          count: c.count,
+        }));
+      }
+      return [];
     }
     return mockConditionOptions;
-  }, [apiFilters?.conditions]);
+  }, [apiFilters]);
 
   // Dynamic label/tag options from API
   const dynamicLabelOptions = useMemo(() => {

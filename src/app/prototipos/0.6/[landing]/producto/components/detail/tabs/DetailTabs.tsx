@@ -8,7 +8,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Image,
-  Info,
   Calculator,
   Cpu,
   Calendar,
@@ -23,7 +22,6 @@ export const DetailTabs: React.FC<DetailTabsProps> = () => {
 
   const navItems = [
     { id: 'section-gallery', label: 'Galeria', icon: Image },
-    { id: 'section-info', label: 'Info', icon: Info },
     { id: 'section-pricing', label: 'Cuotas', icon: Calculator },
     { id: 'section-specs', label: 'Specs', icon: Cpu },
     { id: 'section-cronograma', label: 'Cronograma', icon: Calendar },
@@ -34,28 +32,13 @@ export const DetailTabs: React.FC<DetailTabsProps> = () => {
     const handleScroll = () => {
       if (isScrollingRef.current) return;
 
-      const scrollPosition = window.scrollY + 150;
+      const scrollPosition = window.scrollY + 200; // Compensar altura de navbars fijos
 
-      const distinctSections = navItems.filter(item => {
-        if (item.id === 'section-info') return false;
-        return true;
-      });
-
-      for (const item of [...distinctSections].reverse()) {
+      for (const item of [...navItems].reverse()) {
         const element = document.getElementById(item.id);
         if (element) {
           const { offsetTop } = element;
           if (scrollPosition >= offsetTop) {
-            if (item.id === 'section-gallery') {
-              const infoElement = document.getElementById('section-info');
-              const pricingElement = document.getElementById('section-pricing');
-              if (infoElement && pricingElement) {
-                if (scrollPosition < pricingElement.offsetTop) {
-                  setActiveSection('section-gallery');
-                  break;
-                }
-              }
-            }
             setActiveSection(item.id);
             break;
           }
@@ -78,7 +61,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = () => {
         clearTimeout(scrollTimeoutRef.current);
       }
 
-      const yOffset = -80;
+      const yOffset = -180; // Compensar altura de navbars fijos (promo + primary + secondary)
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: 'smooth' });
 

@@ -9,12 +9,8 @@ import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
 import { ShoppingCart, Trash2, ArrowRight, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
-import { formatMoney } from '../../utils/formatMoney';
-
-// Configuración fija igual que ProductCard
-const SELECTED_TERM = 24;
-const SELECTED_INITIAL = 10;
+import { CatalogProduct } from '../../types/catalog';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
 interface CartBarProps {
   items: CatalogProduct[];
@@ -35,10 +31,9 @@ export const CartBar: React.FC<CartBarProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Multi-product cart logic
+  // Multi-product cart logic - usar cuota precalculada del backend
   const totalMonthlyQuota = items.reduce((sum, item) => {
-    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
-    return sum + quota;
+    return sum + item.quotaMonthly;
   }, 0);
   const isDisabled = items.length === 0 || items.length > 5 || totalMonthlyQuota > 600 || isOverLimit;
 
@@ -66,7 +61,7 @@ export const CartBar: React.FC<CartBarProps> = ({
                 <div className="p-4 max-h-[300px] overflow-y-auto">
                   <div className="space-y-3">
                     {items.map((item) => {
-                      const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+                      const quota = item.quotaMonthly;
                       return (
                         <div
                           key={item.id}
@@ -87,7 +82,7 @@ export const CartBar: React.FC<CartBarProps> = ({
                               {item.displayName}
                             </p>
                             <p className="text-sm font-bold text-[var(--color-primary)]">
-                              S/{formatMoney(quota)}/mes
+                              S/{formatMoneyNoDecimals(Math.round(quota))}/mes
                             </p>
                           </div>
                           <button
@@ -122,7 +117,7 @@ export const CartBar: React.FC<CartBarProps> = ({
                   {items.length} {items.length === 1 ? 'producto' : 'productos'}
                 </p>
                 <p className={`text-xs ${isOverLimit ? 'text-red-600 font-medium' : 'text-neutral-500'}`}>
-                  Cuota total: S/{formatMoney(totalMonthlyQuota)}/mes
+                  Cuota total: S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota))}/mes
                   {isOverLimit && ' (excede S/600)'}
                 </p>
               </div>

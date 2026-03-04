@@ -13,8 +13,8 @@ import {
   OnboardingStepCount,
   OnboardingHighlightStyle,
   defaultOnboardingConfig,
-  onboardingStepsMinimal,
-  onboardingStepsComplete,
+  getOnboardingStepsMinimal,
+  getOnboardingStepsComplete,
 } from '../types/catalog';
 
 const STORAGE_KEY = 'baldecash-onboarding-catalog';
@@ -62,7 +62,9 @@ interface UseOnboardingReturn {
 }
 
 export function useOnboarding(
-  initialConfig: OnboardingConfig = defaultOnboardingConfig
+  initialConfig: OnboardingConfig = defaultOnboardingConfig,
+  questionCount: number = 7,
+  hasQuiz: boolean = true
 ): UseOnboardingReturn {
   const [state, setState] = useState<OnboardingState>(defaultState);
   const [config, setConfigState] = useState<OnboardingConfig>(initialConfig);
@@ -72,8 +74,8 @@ export function useOnboarding(
 
   // Get steps based on config
   const steps = config.stepCount === 'complete'
-    ? onboardingStepsComplete
-    : onboardingStepsMinimal;
+    ? getOnboardingStepsComplete(questionCount, hasQuiz)
+    : getOnboardingStepsMinimal(questionCount, hasQuiz);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -112,12 +114,12 @@ export function useOnboarding(
     setConfigState(newConfig);
     // Reset step if changing step count and current step is out of bounds
     const newSteps = newConfig.stepCount === 'complete'
-      ? onboardingStepsComplete
-      : onboardingStepsMinimal;
+      ? getOnboardingStepsComplete(questionCount, hasQuiz)
+      : getOnboardingStepsMinimal(questionCount, hasQuiz);
     if (state.currentStep >= newSteps.length) {
       setState(prev => ({ ...prev, currentStep: 0 }));
     }
-  }, [state.currentStep]);
+  }, [state.currentStep, questionCount, hasQuiz]);
 
   const startTour = useCallback(() => {
     setState(prev => ({

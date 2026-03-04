@@ -26,6 +26,11 @@ import { useWizard } from '../context/WizardContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 
+// Hooks
+import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
+import { useSubmitApplication } from '../hooks/useSubmitApplication';
+import { useToast } from '@/app/prototipos/_shared';
+
 // Types and utils
 import { WizardStepId } from '../types/solicitar';
 import {
@@ -93,6 +98,17 @@ function StepContent() {
     markStepCompleted,
     getFieldValue,
   } = useWizard();
+
+  // Get solicitar flow configuration (to check if there are sections after wizard)
+  const { shouldShowComplementos, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
+
+  // Toast notifications for submit
+  const { showToast } = useToast(4000);
+
+  // Submit application hook (used when insurance is disabled)
+  const { submit: submitApplication, isSubmitting: isAppSubmitting } = useSubmitApplication({
+    onToast: showToast,
+  });
 
   // Get step config from API using URL slug
   const step = getStepByUrlSlug(stepSlug);
@@ -233,9 +249,12 @@ function StepContent() {
     if (navigation.nextStep) {
       const nextSlug = navigation.nextStep.url_slug || navigation.nextStep.code;
       router.push(`/prototipos/0.6/${landing}/solicitar/${nextSlug}`);
+    } else if (shouldShowComplementos) {
+      // No more wizard steps - go to complementos (dynamic sections after wizard)
+      router.push(`/prototipos/0.6/${landing}/solicitar/complementos`);
     } else {
-      // No more steps - go to seguros
-      router.push(`/prototipos/0.6/${landing}/solicitar/seguros`);
+      // No more steps and no complementos - submit directly
+      submitApplication({ insuranceId: null });
     }
   };
 
@@ -255,6 +274,9 @@ function StepContent() {
 
   // Summary specific handlers
   const handleSummarySubmit = async () => {
+    // Wait for flow config to be ready
+    if (isFlowConfigLoading) return;
+
     // Validate required summary fields
     let hasErrors = false;
     let firstErrorFieldId: string | null = null;
@@ -276,9 +298,17 @@ function StepContent() {
       return;
     }
 
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    router.push(`/prototipos/0.6/${landing}/solicitar/seguros`);
+    // Check if there are sections after wizard (complementos page)
+    if (shouldShowComplementos) {
+      // Navigate to complementos page for insurance/accessories sections
+      setIsSubmitting(true);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      router.push(`/prototipos/0.6/${landing}/solicitar/complementos`);
+    } else {
+      // No sections after wizard - submit application directly
+      await submitApplication({ insuranceId: null });
+      // The hook handles navigation to confirmation page on success
+    }
   };
 
   const handleSummaryBack = () => {
@@ -295,8 +325,8 @@ function StepContent() {
     router.push(`/prototipos/0.6/${landing}/solicitar/${stepPath}`);
   };
 
-  // Loading state
-  if (isLayoutLoading || isConfigLoading) {
+  // Loading state (include flow config loading)
+  if (isLayoutLoading || isConfigLoading || isFlowConfigLoading) {
     return <LoadingFallback />;
   }
 
@@ -375,7 +405,7 @@ function StepContent() {
         onSubmit={handleSummarySubmit}
         onStepClick={handleStepClick}
         isLastStep
-        isSubmitting={isSubmitting}
+        isSubmitting={isSubmitting || isAppSubmitting}
         canProceed={true}
         navbarProps={navbarProps || undefined}
         motivational={step.motivational}
@@ -475,7 +505,8 @@ function StepContent() {
         {showCelebration && (
           <StepSuccessMessage
             stepName={step.title}
-            stepNumber={step.order}
+            stepNumber={step.order + 1}
+            totalSteps={steps.length}
             onComplete={handleCelebrationComplete}
           />
         )}

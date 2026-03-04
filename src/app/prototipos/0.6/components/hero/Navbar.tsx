@@ -235,10 +235,13 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
     );
   }
 
+  // Check if promo banner has actual content to display
+  const hasPromoBannerContent = promoBannerData && (promoBannerData.text || promoBannerData.highlight);
+
   return (
     <>
       {/* Promo Banner */}
-      {showPromo && !hidePromoBanner && promoBannerData && (
+      {showPromo && !hidePromoBanner && hasPromoBannerContent && (
         <div
           className="fixed left-0 right-0 z-[60] text-white text-center py-2 sm:py-2.5 px-4 text-sm"
           style={{
@@ -271,7 +274,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
 
       <nav
         className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
-        style={{ top: showPromo && !hidePromoBanner && promoBannerData ? (40 + previewBannerOffset) : previewBannerOffset }}
+        style={{ top: showPromo && !hidePromoBanner && hasPromoBannerContent ? (40 + previewBannerOffset) : previewBannerOffset }}
       >
         <div className={fullWidth ? "px-4 lg:px-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
           <div className="flex items-center justify-between h-16">

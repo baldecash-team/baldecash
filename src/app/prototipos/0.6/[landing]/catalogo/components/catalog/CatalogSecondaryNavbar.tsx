@@ -80,7 +80,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
 
   return (
     <div
-      className="fixed left-0 right-0 z-40 bg-neutral-100 border-b border-neutral-200"
+      className="fixed left-0 right-0 z-40 bg-white border-b border-neutral-200"
       style={{ top: topPosition }}
     >
       <div className={`mx-auto px-4 sm:px-6 lg:px-8 ${fullWidth ? '' : 'max-w-7xl'}`}>

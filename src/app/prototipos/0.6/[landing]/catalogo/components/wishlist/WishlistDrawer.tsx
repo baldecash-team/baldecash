@@ -10,8 +10,8 @@ import React, { useEffect, useRef } from 'react';
 import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { X, Heart, Trash2, GitCompare } from 'lucide-react';
-import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
-import { formatMoney } from '../../utils/formatMoney';
+import { CatalogProduct } from '../../types/catalog';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
 
 interface WishlistConfig {
@@ -85,7 +85,8 @@ const WishlistContentShared: React.FC<{
   return (
     <div className="space-y-3">
       {products.map((product, index) => {
-        const { quota } = calculateQuotaWithInitial(product.price, 24, 10);
+        // Usar cuota precalculada del backend (igual que ProductCard)
+        const quota = product.quotaMonthly;
         const isInCompare = compareList.includes(product.id);
         const canAddToCompare = compareList.length < maxCompareProducts;
 
@@ -120,7 +121,7 @@ const WishlistContentShared: React.FC<{
               </p>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-lg font-bold text-[var(--color-primary)]">
-                  S/{formatMoney(quota)}
+                  S/{formatMoneyNoDecimals(Math.round(quota))}
                 </span>
                 <span className="text-xs text-neutral-500">/mes</span>
               </div>

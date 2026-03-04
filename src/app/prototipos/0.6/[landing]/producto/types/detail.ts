@@ -242,6 +242,9 @@ export interface DetailTabsProps {
 
 export interface SpecsProps {
   specs: ProductSpec[];
+  productName?: string;
+  productBrand?: string;
+  productImage?: string;
 }
 
 export interface PricingCalculatorProps {
@@ -253,7 +256,6 @@ export interface PricingCalculatorProps {
 export interface SimilarProductsProps {
   products: SimilarProduct[];
   currentQuota: number;
-  isCleanMode?: boolean;
 }
 
 export interface ProductLimitationsProps {
@@ -273,6 +275,14 @@ export interface CronogramaProps {
   productName?: string;
   productBrand?: string;
   productPrice?: number;
+  // Sincronización con PricingCalculator
+  selectedTerm?: number;
+  selectedInitialPercent?: InitialPaymentPercentage;
+  // Datos financieros del backend (opcional, si no se pasan usa valores por defecto)
+  financialData?: {
+    tea: number;
+    tcea: number;
+  };
 }
 
 export interface PortsDisplayProps {

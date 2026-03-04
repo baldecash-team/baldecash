@@ -37,9 +37,9 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
 }) => {
   const handleCardClick = (value: UsageType) => {
     if (selected.includes(value)) {
-      onChange(selected.filter((v) => v !== value));
+      onChange([]);  // Deselect
     } else {
-      onChange([...selected, value]);
+      onChange([value]);  // Single select - replace selection
     }
   };
 

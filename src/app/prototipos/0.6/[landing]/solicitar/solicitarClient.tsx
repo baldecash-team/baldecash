@@ -22,16 +22,20 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 // Wizard config context for dynamic steps
 import { useWizardConfig } from './context/WizardConfigContext';
 
-// Upsell components
-import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from './components/upsell';
-import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
-import type { Accessory, AccessoryCategory } from './types/upsell';
+// Solicitar flow configuration
+import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
+
+// Dynamic section renderer
+import { SectionRenderer } from './components/solicitar/sections';
 
 // Coupon component
 import { CouponInput } from './components/solicitar/coupon';
 
 // Product bar for mobile
 import { SelectedProductBar, SelectedProductSpacer } from './components/solicitar/product';
+
+// Utils
+import { formatMoneyNoDecimals } from './utils/formatMoney';
 
 function WizardPreviewContent() {
   const router = useRouter();
@@ -41,22 +45,27 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, toggleAccessory, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment } = useProduct();
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
-  const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
   const [isTermsHydrated, setIsTermsHydrated] = useState(false);
   const [termsError, setTermsError] = useState<string | null>(null);
-
-  // Accesorios desde API (con fallback a mock data)
-  const [accessories, setAccessories] = useState<Accessory[]>([]);
-  const [isLoadingAccessories, setIsLoadingAccessories] = useState(true);
 
   // Get layout data from context (fetched once at [landing] level)
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config for dynamic first step
   const { steps, isLoading: isConfigLoading } = useWizardConfig();
+
+  // Get solicitar flow configuration (accessories, wizard_steps, insurance order & enabled state)
+  const { isEnabled: isSectionEnabled, sectionsBeforeWizard, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
+
+  // Clear accessories if section is disabled (prevents orphaned selections from previous sessions)
+  useEffect(() => {
+    if (!isFlowConfigLoading && !isSectionEnabled('accessories') && selectedAccessories.length > 0) {
+      clearAccessories();
+    }
+  }, [isFlowConfigLoading, isSectionEnabled, selectedAccessories.length, clearAccessories]);
 
   // Get first regular step (not summary step) for dynamic navigation
   const firstStep = useMemo(() => {
@@ -102,41 +111,6 @@ function WizardPreviewContent() {
     }
   }, [isHydrated, selectedProduct, router, landing]);
 
-  // Cargar accesorios desde API (sin fallback a mock data)
-  useEffect(() => {
-    async function fetchAccessories() {
-      setIsLoadingAccessories(true);
-      try {
-        const apiAccessories = await getLandingAccessories(landing);
-        if (apiAccessories && apiAccessories.length > 0) {
-          // Transformar datos de API al formato del frontend
-          const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
-            id: acc.id,
-            name: acc.name,
-            description: acc.description || '',
-            price: acc.price,
-            monthlyQuota: acc.monthlyQuota,
-            image: acc.image || 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop',
-            category: (acc.category || 'protección') as AccessoryCategory,
-            isRecommended: acc.isRecommended || false,
-            compatibleWith: acc.compatibleWith || ['all'],
-            specs: acc.specs || [],
-          }));
-          setAccessories(transformedAccessories);
-        } else {
-          // Sin accesorios disponibles
-          setAccessories([]);
-        }
-      } catch (error) {
-        console.error('Error loading accessories:', error);
-        setAccessories([]);
-      } finally {
-        setIsLoadingAccessories(false);
-      }
-    }
-
-    fetchAccessories();
-  }, [landing]);
 
   const handleStart = () => {
     // Validar términos antes de continuar
@@ -298,7 +272,7 @@ function WizardPreviewContent() {
                         </div>
                       )}
                       <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
-                        S/{product.monthlyPayment}/mes
+                        S/{formatMoneyNoDecimals(Math.round(product.monthlyPayment))}/mes
                         <span className="text-xs text-neutral-500 font-normal ml-1">
                           x {product.months} meses
                         </span>
@@ -321,7 +295,7 @@ function WizardPreviewContent() {
                         {selectedAccessories.map((acc) => (
                           <div key={acc.id} className="flex items-center justify-between text-sm">
                             <span className="text-neutral-700">{acc.name}</span>
-                            <span className="text-[var(--color-primary)] font-medium">+S/{acc.monthlyQuota}/mes</span>
+                            <span className="text-[var(--color-primary)] font-medium">+S/{formatMoneyNoDecimals(Math.round(acc.monthlyQuota))}/mes</span>
                           </div>
                         ))}
                       </div>
@@ -332,7 +306,7 @@ function WizardPreviewContent() {
                   <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
                     <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
                     <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
-                      S/{totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)}/mes
+                      S/{formatMoneyNoDecimals(Math.round(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)))}/mes
                     </span>
                   </div>
 
@@ -410,42 +384,12 @@ function WizardPreviewContent() {
           </ul>
         </div>
 
-        {/* Accessories Upsell Section */}
-        <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
-          <AccessoryIntro />
-          {isLoadingAccessories ? (
-            <div className="flex justify-center py-8">
-              <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
-            </div>
-          ) : accessories.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {accessories.map((accessory) => (
-                <AccessoryCard
-                  key={accessory.id}
-                  accessory={accessory}
-                  isSelected={selectedAccessories.some((a) => a.id === accessory.id)}
-                  onToggle={() => toggleAccessory(accessory)}
-                  onViewDetails={() => setDetailAccessory(accessory)}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-neutral-500 py-4">No hay accesorios disponibles</p>
-          )}
-        </div>
-
-        {/* Accessory Detail Modal */}
-        <AccessoryDetailModal
-          accessory={detailAccessory}
-          isOpen={!!detailAccessory}
-          onClose={() => setDetailAccessory(null)}
-          isSelected={detailAccessory ? selectedAccessories.some((a) => a.id === detailAccessory.id) : false}
-          onToggle={() => {
-            if (detailAccessory) {
-              toggleAccessory(detailAccessory);
-            }
-          }}
-        />
+        {/* Dynamic Sections Before Wizard - Rendered in configured order */}
+        {sectionsBeforeWizard.map((section) => (
+          <div key={section.type} className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
+            <SectionRenderer type={section.type} />
+          </div>
+        ))}
 
         {/* Términos y Condiciones */}
         <div id="terms-section" className={`bg-white rounded-xl p-6 border mb-8 transition-colors ${termsError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
@@ -505,7 +449,7 @@ function WizardPreviewContent() {
   );
 
   // Show loading while checking hydration, layout loading, config loading, or if no product selected (redirect will happen)
-  if (!isHydrated || !selectedProduct || isLayoutLoading || isConfigLoading) {
+  if (!isHydrated || !selectedProduct || isLayoutLoading || isConfigLoading || isFlowConfigLoading) {
     return <LoadingFallback />;
   }
 

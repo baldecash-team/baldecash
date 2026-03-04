@@ -41,7 +41,6 @@ import { CatalogSecondaryNavbar } from '../components/catalog/CatalogSecondaryNa
 import { SearchDrawer } from '../components/catalog/SearchDrawer';
 import { WishlistDrawer } from '../components/wishlist/WishlistDrawer';
 import { WebchatDrawer } from '../components/webchat';
-import { QuizReminderPopup } from '../components/catalog/QuizReminderPopup';
 import { ResumeFinancingModal, useResumeFinancingModal } from '../components/catalog/ResumeFinancingCard';
 
 // Empty state
@@ -407,7 +406,6 @@ function CatalogPreviewContent() {
   const [attemptedCartProduct, setAttemptedCartProduct] = useState<CatalogProduct | null>(null);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isWebchatOpen, setIsWebchatOpen] = useState(false);
-  const [showQuizReminder, setShowQuizReminder] = useState(false);
   const { isOpen: isResumeModalOpen, close: closeResumeModal } = useResumeFinancingModal();
 
   // Helper to close all drawers/popups before opening a new one (mobile)
@@ -484,26 +482,6 @@ function CatalogPreviewContent() {
     isPageLoading,
     isWebchatOpen,
   ]);
-
-  // Quiz reminder popup - show once after 60 seconds
-  useEffect(() => {
-    const alreadyShown = sessionStorage.getItem('baldecash-quiz-reminder-shown');
-    if (alreadyShown) return;
-
-    const timer = setTimeout(() => {
-      // Only show if no drawers are open
-      const canShow = !isQuizOpen && !isHelpPopoverOpen && !isComparatorOpen &&
-                       !isCartDrawerOpen && !isWishlistDrawerOpen && !isFilterDrawerOpen &&
-                       !isSearchDrawerOpen && !isCartModalOpen && !isWebchatOpen &&
-                       !isSettingsOpen && !onboarding.shouldShowWelcome && !onboarding.shouldShowTour;
-      if (canShow) {
-        setShowQuizReminder(true);
-        sessionStorage.setItem('baldecash-quiz-reminder-shown', 'true');
-      }
-    }, 60000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   // Track scroll as interaction (significant scroll > 300px)
   useEffect(() => {
@@ -1542,16 +1520,6 @@ function CatalogPreviewContent() {
           onOnboardingConfigChange={onboarding.setConfig}
         />
       )}
-
-      {/* Quiz Reminder Popup */}
-      <QuizReminderPopup
-        isVisible={showQuizReminder && !isQuizOpen && !isHelpPopoverOpen}
-        onClose={() => setShowQuizReminder(false)}
-        onOpenQuiz={() => {
-          closeAllDrawers();
-          setIsQuizOpen(true);
-        }}
-      />
 
       {/* Resume Financing Modal - Oculto temporalmente para demo del 12 de febrero */}
       {/* <ResumeFinancingModal

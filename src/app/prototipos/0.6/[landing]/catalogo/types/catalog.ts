@@ -452,15 +452,16 @@ export interface OnboardingStep {
   positionMobile?: 'top' | 'bottom' | 'center';
 }
 
-export const onboardingStepsMinimal: OnboardingStep[] = [
-  {
+export const getOnboardingStepsMinimal = (questionCount: number = 7, hasQuiz: boolean = true): OnboardingStep[] => [
+  // Solo incluir step de quiz si hay quiz asociado
+  ...(hasQuiz ? [{
     id: 'help-button',
     targetId: 'onboarding-help-button',
     title: 'Tu asistente personal',
-    description: '¿No sabes qué laptop elegir? Responde 7 preguntas y te recomendamos la mejor opción.',
-    position: 'right',
-    positionMobile: 'top',
-  },
+    description: `¿No sabes qué laptop elegir? Responde ${questionCount} preguntas y te recomendamos la mejor opción.`,
+    position: 'right' as const,
+    positionMobile: 'top' as const,
+  }] : []),
   {
     id: 'filters',
     targetId: 'onboarding-filters-desktop',
@@ -490,15 +491,16 @@ export const onboardingStepsMinimal: OnboardingStep[] = [
   },
 ];
 
-export const onboardingStepsComplete: OnboardingStep[] = [
-  {
+export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: boolean = true): OnboardingStep[] => [
+  // Solo incluir step de quiz si hay quiz asociado
+  ...(hasQuiz ? [{
     id: 'help-button',
     targetId: 'onboarding-help-button',
     title: 'Tu asistente personal',
-    description: '¿No sabes qué laptop elegir? Responde 7 preguntas y te recomendamos la mejor opción.',
-    position: 'right',
-    positionMobile: 'top',
-  },
+    description: `¿No sabes qué laptop elegir? Responde ${questionCount} preguntas y te recomendamos la mejor opción.`,
+    position: 'right' as const,
+    positionMobile: 'top' as const,
+  }] : []),
   {
     id: 'quick-cards',
     targetId: 'onboarding-quick-cards',
@@ -600,6 +602,7 @@ export interface CatalogProduct {
   quotaMonthly: number;
   quotaBiweekly: number;
   quotaWeekly: number;
+  originalQuotaMonthly?: number; // Cuota original antes de descuento (del backend)
   maxTermMonths: number;
   gama: GamaTier;
   condition: ProductCondition;

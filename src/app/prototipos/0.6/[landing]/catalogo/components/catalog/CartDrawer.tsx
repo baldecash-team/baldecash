@@ -9,8 +9,8 @@ import React, { useEffect, useRef } from 'react';
 import { Button } from '@nextui-org/react';
 import { ShoppingCart, Trash2, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
-import { formatMoney } from '../../utils/formatMoney';
+import { CatalogProduct } from '../../types/catalog';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
 // Configuración fija igual que ProductCard
 const SELECTED_TERM = 24;
@@ -47,10 +47,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   const dragControls = useDragControls();
 
-  // Multi-product cart logic
+  // Multi-product cart logic - usar cuota precalculada del backend
   const totalMonthlyQuota = items.reduce((sum, item) => {
-    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
-    return sum + quota;
+    return sum + item.quotaMonthly;
   }, 0);
   const isOverQuotaLimit = totalMonthlyQuota > MAX_MONTHLY_QUOTA;
   const isDisabled = items.length === 0 || isOverQuotaLimit;
@@ -182,7 +181,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     </div>
                   )}
                   {items.map((item) => {
-                    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+                    // Usar cuota precalculada del backend (igual que ProductCard)
+                    const quota = item.quotaMonthly;
                     return (
                       <div
                         key={item.id}
@@ -203,7 +203,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             {item.displayName}
                           </p>
                           <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-                            S/{formatMoney(quota)}/mes
+                            S/{formatMoneyNoDecimals(Math.round(quota))}/mes
                           </p>
                         </div>
                         <button
@@ -223,7 +223,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {items.length > 0 && (
               <div className="px-4 py-2 bg-neutral-100 border-t border-neutral-200">
                 <p className="text-sm text-neutral-600 text-center">
-                  Cuota total: S/{formatMoney(totalMonthlyQuota)}/mes
+                  Cuota total: S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota))}/mes
                 </p>
               </div>
             )}

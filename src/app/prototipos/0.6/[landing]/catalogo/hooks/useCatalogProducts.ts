@@ -109,17 +109,14 @@ export function useCatalogProducts({
         setHasMore(result.hasMore);
         setIsFromApi(true);
       } else {
-        // API returned empty or null - could be empty due to filters
-        console.log('[Catalog] API returned no products (may be filtered)');
+        // API returned empty or null - show EmptyState (not an error)
+        console.log('[Catalog] API returned no products (catalog empty or filtered)');
         setProducts([]);
         setTotal(0);
         setOffset(0);
         setHasMore(false);
         setIsFromApi(true);
-        // Only show error if no filters applied (truly empty catalog)
-        if (!filters || Object.keys(filters).length === 0) {
-          setError('No hay productos disponibles en el catálogo');
-        }
+        // No error - EmptyState will be shown by the UI
       }
     } catch (err) {
       // API failed - NO fallback, show error

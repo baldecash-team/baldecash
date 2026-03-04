@@ -156,7 +156,13 @@ export const ResumeFinancingModal: React.FC<ResumeFinancingModalProps> = ({
 export function useResumeFinancingModal() {
   const [isOpen, setIsOpen] = useState(false);
 
+  // Check if feature is enabled via env variable
+  const isEnabled = process.env.NEXT_PUBLIC_SHOW_RESUME_FINANCING === 'true';
+
   useEffect(() => {
+    // Skip if feature is disabled
+    if (!isEnabled) return;
+
     // Check if already dismissed in this session
     const dismissed = sessionStorage.getItem('baldecash-resume-financing-dismissed');
     if (dismissed) return;
@@ -167,7 +173,7 @@ export function useResumeFinancingModal() {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isEnabled]);
 
   const close = () => {
     setIsOpen(false);

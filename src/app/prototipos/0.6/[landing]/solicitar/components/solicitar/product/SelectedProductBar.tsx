@@ -15,7 +15,6 @@ import { useProduct } from '../../../context/ProductContext';
 import Image from 'next/image';
 
 interface SelectedProductBarProps {
-  isCleanMode?: boolean;
   mobileOnly?: boolean;
 }
 
@@ -40,6 +39,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
       style: 'currency',
       currency: 'PEN',
       minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(price);
   };
 
@@ -181,7 +181,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             </div>
                           )}
                           <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-                            S/{product.monthlyPayment}/mes
+                            {formatPrice(product.monthlyPayment)}/mes
                           </p>
                         </div>
                       </div>

@@ -11,7 +11,7 @@ import { Search, Heart, ShoppingCart, X, Trash2, ArrowRight, Loader2 } from 'luc
 import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
-import { formatMoney } from '../../utils/formatMoney';
+import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 
 // Configuración fija igual que ProductCard
@@ -49,7 +49,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounced search
+  // Debounced search - uses landing-specific endpoint
   const searchProducts = useCallback(async (query: string) => {
     if (query.length < 2) {
       setSuggestions([]);
@@ -59,7 +59,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
 
     setIsLoading(true);
     try {
-      const results = await searchProductSuggestions(query, 6);
+      const results = await searchProductSuggestions(landing, query, 6);
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
     } catch (error) {
@@ -68,7 +68,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [landing]);
 
   // Handle input change with debounce
   const handleInputChange = (newValue: string) => {
@@ -493,7 +493,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
               <div className="max-h-[280px] overflow-y-auto">
                 <div className="p-3 space-y-2">
                   {items.map((item) => {
-                    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+                    const quota = item.quotaMonthly;
                     return (
                       <div
                         key={item.id}
@@ -526,7 +526,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                             {item.displayName}
                           </p>
                           <p className="text-sm font-bold text-[var(--color-primary)]">
-                            S/{formatMoney(quota)}/mes
+                            S/{formatMoneyNoDecimals(Math.round(quota))}/mes
                           </p>
                         </div>
                         <button
@@ -580,10 +580,9 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Multi-product cart logic
+  // Multi-product cart logic - usar cuota precalculada del backend
   const totalMonthlyQuota = items.reduce((sum, item) => {
-    const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
-    return sum + quota;
+    return sum + item.quotaMonthly;
   }, 0);
   const isOverQuotaLimit = totalMonthlyQuota > MAX_MONTHLY_QUOTA;
   const isDisabled = items.length === 0 || isOverQuotaLimit || isOverLimit;
@@ -675,7 +674,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                 <div className="max-h-[280px] overflow-y-auto">
                   <div className="p-3 space-y-2">
                     {items.map((item) => {
-                      const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+                      const quota = item.quotaMonthly;
                       return (
                         <div
                           key={item.id}
@@ -696,7 +695,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                               {item.displayName}
                             </p>
                             <p className="text-sm font-bold text-[var(--color-primary)]">
-                              S/{formatMoney(quota)}/mes
+                              S/{formatMoneyNoDecimals(Math.round(quota))}/mes
                             </p>
                           </div>
                           <button

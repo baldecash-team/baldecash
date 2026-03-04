@@ -289,6 +289,36 @@ export async function getLandingLayout(slug: string): Promise<LandingLayoutRespo
 }
 
 /**
+ * Obtiene los datos de layout por ID (para modo preview)
+ * Usado cuando se navega desde /preview con preview_key
+ * @param landingId - Landing ID
+ * @param previewKey - Hash de preview para acceder a landings no publicadas
+ */
+export async function getLandingLayoutById(landingId: number, previewKey: string | null = null): Promise<LandingLayoutResponse | null> {
+  try {
+    const url = previewKey
+      ? `${API_BASE_URL}/public/landing/id/${landingId}/layout?preview_key=${encodeURIComponent(previewKey)}`
+      : `${API_BASE_URL}/public/landing/id/${landingId}/layout`;
+
+    const response = await fetch(url, {
+      cache: 'no-store', // Siempre no-store para preview por ID
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching landing layout by ID:', error);
+    return null;
+  }
+}
+
+/**
  * Transforma los datos de la API al formato esperado por los componentes
  */
 export function transformLandingData(data: LandingHeroResponse): {
@@ -895,4 +925,101 @@ export async function getComingSoonContent(slug?: string): Promise<ComingSoonSec
     console.error('Error fetching coming soon content:', error);
     return [];
   }
+}
+
+// ============================================
+// Solicitar Flow Configuration API
+// ============================================
+
+/**
+ * Tipos de sección disponibles en el flujo de solicitud
+ */
+export type SolicitarSectionType = 'accessories' | 'wizard_steps' | 'insurance';
+
+/**
+ * Configuración de una sección del flujo
+ */
+export interface SolicitarSection {
+  type: SolicitarSectionType;
+  enabled: boolean;
+  order: number;
+}
+
+/**
+ * Configuración completa del flujo de solicitud
+ */
+export interface SolicitarFlowConfig {
+  sections: SolicitarSection[];
+}
+
+/**
+ * Configuración por defecto del flujo de solicitud
+ */
+export const DEFAULT_SOLICITAR_FLOW: SolicitarFlowConfig = {
+  sections: [
+    { type: 'accessories', enabled: true, order: 1 },
+    { type: 'wizard_steps', enabled: true, order: 2 },
+    { type: 'insurance', enabled: true, order: 3 },
+  ],
+};
+
+/**
+ * Obtiene la configuración del flujo de solicitud para una landing
+ * @param slug - Slug de la landing
+ * @param previewKey - Clave de preview para acceder a landings no publicadas (opcional)
+ * @returns Configuración del flujo ordenada por order
+ */
+export async function getSolicitarConfig(
+  slug: string,
+  previewKey?: string | null
+): Promise<SolicitarFlowConfig> {
+  try {
+    const params = previewKey
+      ? `?preview_key=${encodeURIComponent(previewKey)}`
+      : '';
+    const response = await fetch(
+      `${API_BASE_URL}/public/landing/${slug}/solicitar-config${params}`,
+      {
+        next: { revalidate: 60 },
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`[SolicitarConfig] Landing not found: ${slug}`);
+        return DEFAULT_SOLICITAR_FLOW;
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data: SolicitarFlowConfig = await response.json();
+
+    // Asegurar que las secciones estén ordenadas
+    return {
+      sections: [...data.sections].sort((a, b) => a.order - b.order),
+    };
+  } catch (error) {
+    console.error('Error fetching solicitar config:', error);
+    return DEFAULT_SOLICITAR_FLOW;
+  }
+}
+
+/**
+ * Helper para obtener solo las secciones habilitadas, ordenadas
+ */
+export function getEnabledSections(config: SolicitarFlowConfig): SolicitarSection[] {
+  return config.sections
+    .filter(section => section.enabled)
+    .sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Helper para verificar si una sección está habilitada
+ */
+export function isSectionEnabled(
+  config: SolicitarFlowConfig,
+  type: SolicitarSectionType
+): boolean {
+  const section = config.sections.find(s => s.type === type);
+  return section?.enabled ?? true;
 }

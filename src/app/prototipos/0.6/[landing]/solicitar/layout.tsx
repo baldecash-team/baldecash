@@ -6,12 +6,14 @@
  * - ProductProvider: manages selected product state
  * - WizardConfigProvider: fetches form config from API
  * - WizardProvider: manages form state and persistence
+ * - SessionProvider: manages tracking session for analytics and submission
  */
 
 import { useParams } from 'next/navigation';
 import { WizardProvider } from './context/WizardContext';
 import { WizardConfigProvider } from './context/WizardConfigContext';
 import { ProductProvider } from './context/ProductContext';
+import { SessionProvider } from './context/SessionContext';
 
 export default function WizardPreviewLayout({
   children,
@@ -23,9 +25,11 @@ export default function WizardPreviewLayout({
 
   return (
     <ProductProvider>
-      <WizardConfigProvider slug={landing}>
-        <WizardProvider landingSlug={landing}>{children}</WizardProvider>
-      </WizardConfigProvider>
+      <SessionProvider landingSlug={landing}>
+        <WizardConfigProvider slug={landing}>
+          <WizardProvider landingSlug={landing}>{children}</WizardProvider>
+        </WizardConfigProvider>
+      </SessionProvider>
     </ProductProvider>
   );
 }

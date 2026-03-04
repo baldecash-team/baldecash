@@ -9,8 +9,8 @@
  * - Derecha: Pricing sticky + CTA + Certifications
  */
 
-import React, { useState, useMemo } from 'react';
-import { useRouter, useSearchParams, useParams } from 'next/navigation';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import { ShoppingCart, Check } from 'lucide-react';
 import {
   DeviceType,
@@ -37,6 +37,7 @@ import {
   Certifications,
   PortsDisplay,
 } from './index';
+import type { PricingSelection } from './pricing/PricingCalculator';
 
 interface ProductDetailProps {
   // Data props (from API - required, no fallback to mock)
@@ -66,10 +67,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   isInCart = false,
 }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const params = useParams();
   const landing = params.landing as string || 'home';
-  const isCleanMode = searchParams.get('mode') === 'clean';
 
   // Color state - default to first color
   const defaultColorId = useMemo(() => {
@@ -77,6 +76,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   }, [product.colors]);
 
   const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
+
+  // Pricing selection state (from PricingCalculator)
+  const [pricingSelection, setPricingSelection] = useState<PricingSelection | null>(null);
+
+  // Handle pricing selection changes from PricingCalculator
+  const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
+    setPricingSelection(selection);
+  }, []);
 
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
@@ -90,15 +97,20 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   };
 
   const handleSolicitar = () => {
+    // Use the user's selection from PricingCalculator, or fallback to defaults
+    // Round to whole numbers to match the display format
+    const monthlyQuota = Math.round(pricingSelection?.monthlyQuota ?? product.lowestQuota);
+    const months = pricingSelection?.term ?? 36;
+
     // Build SelectedProduct from current product
     const selectedProduct: SelectedProduct = {
       id: product.id,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
-      price: product.price,
-      monthlyPayment: product.lowestQuota,
-      months: 24, // Default term
+      price: Math.round(product.price),
+      monthlyPayment: monthlyQuota,
+      months: months,
       image: product.images[0]?.url || '',
       specs: {
         processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model') || '',
@@ -117,9 +129,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
 
     // Navigate to solicitar flow in 0.6
-    const baseSolicitarUrl = `/prototipos/0.6/${landing}/solicitar`;
-    const solicitarUrl = isCleanMode ? `${baseSolicitarUrl}?mode=clean` : baseSolicitarUrl;
-    router.push(solicitarUrl);
+    router.push(`/prototipos/0.6/${landing}/solicitar`);
   };
 
   return (
@@ -128,7 +138,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         {/* Main Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Left Column - Unified Product Card (Gallery + Info) */}
-          <div id="section-gallery" className="order-2 lg:order-1">
+          <div id="section-gallery" className="order-1 lg:order-1">
             <ProductGallery
               images={product.images}
               productName={product.displayName}
@@ -143,13 +153,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
 
           {/* Right Column - Pricing (Sticky) */}
-          <div className="order-1 lg:order-2 lg:sticky lg:top-[168px] space-y-6">
+          <div className="order-2 lg:order-2 lg:sticky lg:top-[168px] space-y-6">
             {/* Pricing Calculator + CTA */}
             <div id="section-pricing" className="space-y-4">
               <PricingCalculator
                 paymentPlans={paymentPlans}
                 defaultTerm={36}
                 productPrice={product.price}
+                onSelectionChange={handlePricingSelectionChange}
               />
               {/* CTA Buttons */}
               <div className="flex gap-3">
@@ -189,7 +200,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
         {/* Specs Section - Full Width */}
         <div id="section-specs" className="mt-12">
-          <SpecsDisplay specs={product.specs} />
+          <SpecsDisplay
+            specs={product.specs}
+            productName={product.name}
+            productBrand={product.brand}
+            productImage={product.images[0]?.url}
+          />
         </div>
 
         {/* Ports Display - Full Width (Only for Laptops) */}
@@ -209,12 +225,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             productName={product.displayName}
             productBrand={product.brand}
             productPrice={product.price}
+            // Sincronizar con PricingCalculator
+            selectedTerm={pricingSelection?.term}
+            selectedInitialPercent={pricingSelection?.initialPercent}
           />
         </div>
 
         {/* Similar Products - Full Width */}
         <div id="section-similar" className="mt-12">
-          <SimilarProducts products={similarProducts} currentQuota={product.lowestQuota} isCleanMode={isCleanMode} />
+          <SimilarProducts products={similarProducts} currentQuota={product.lowestQuota} />
         </div>
 
         {/* Limitations */}

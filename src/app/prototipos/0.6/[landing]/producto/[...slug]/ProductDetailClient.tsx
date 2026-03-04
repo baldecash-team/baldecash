@@ -14,11 +14,17 @@ import { AlertCircle } from 'lucide-react';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { PreviewBanner } from '@/app/prototipos/0.6/components/PreviewBanner';
 
 // Secondary Navbar with search, wishlist, cart
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CatalogSecondaryNavbar';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
+
+// Drawers for mobile
+import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
+import { SearchDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/SearchDrawer';
+import { WishlistDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/wishlist/WishlistDrawer';
 import type { CatalogProduct } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 // Layout context for shared data
@@ -59,6 +65,11 @@ function ProductDetailContent() {
   // Shared state for catalog (wishlist, cart)
   const catalogState = useCatalogSharedState();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Drawer states for mobile
+  const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
+  const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
 
   // Products for wishlist and cart display (fetched from API)
   const [wishlistProducts, setWishlistProducts] = useState<CatalogProduct[]>([]);
@@ -200,7 +211,10 @@ function ProductDetailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50 overflow-x-hidden">
+      {/* Preview Banner - shows when navigating from /preview with preview_key */}
+      <PreviewBanner pageName="Detalle del Producto" />
+
       {/* Navbar from Hero */}
       <Navbar
         landing={landing}
@@ -227,15 +241,17 @@ function ProductDetailContent() {
         onWishlistClear={catalogState.clearWishlist}
         onWishlistViewProduct={(productId) => {
           const product = wishlistProducts.find((p) => p.id === productId);
-          router.push(`/prototipos/0.6/${landing}/producto/${productId}?device=${product?.deviceType || 'laptop'}`);
+          if (product) {
+            router.push(`/prototipos/0.6/${landing}/producto/${product.slug}`);
+          }
         }}
         cartItems={cartProducts}
         onCartRemove={catalogState.removeFromCart}
         onCartClear={catalogState.clearCart}
-        onCartContinue={() => router.push(getCatalogUrl())}
-        onMobileSearchClick={() => router.push(getCatalogUrl())}
-        onMobileWishlistClick={() => router.push(getCatalogUrl())}
-        onMobileCartClick={() => router.push(getCatalogUrl())}
+        onCartContinue={() => router.push(`/prototipos/0.6/${landing}/solicitar`)}
+        onMobileSearchClick={() => setIsSearchDrawerOpen(true)}
+        onMobileWishlistClick={() => setIsWishlistDrawerOpen(true)}
+        onMobileCartClick={() => setIsCartDrawerOpen(true)}
       />
 
       {/* Main Content with padding for fixed navbars (promo + primary + secondary) */}
@@ -253,6 +269,50 @@ function ProductDetailContent() {
 
       {/* Footer from Hero */}
       <Footer data={footerData} />
+
+      {/* Mobile Drawers */}
+      <SearchDrawer
+        isOpen={isSearchDrawerOpen}
+        onClose={() => setIsSearchDrawerOpen(false)}
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onClear={() => setSearchQuery('')}
+        onSubmit={() => {
+          if (searchQuery.trim()) {
+            router.push(getCatalogUrl({ search: searchQuery }));
+          }
+        }}
+      />
+
+      <WishlistDrawer
+        isOpen={isWishlistDrawerOpen}
+        onClose={() => setIsWishlistDrawerOpen(false)}
+        products={wishlistProducts}
+        onRemoveProduct={catalogState.removeFromWishlist}
+        onClearAll={catalogState.clearWishlist}
+        onViewProduct={(productId) => {
+          setIsWishlistDrawerOpen(false);
+          const product = wishlistProducts.find((p) => p.id === productId);
+          if (product) {
+            router.push(`/prototipos/0.6/${landing}/producto/${product.slug}`);
+          }
+        }}
+      />
+
+      <CartDrawer
+        isOpen={isCartDrawerOpen}
+        onClose={() => setIsCartDrawerOpen(false)}
+        items={cartProducts}
+        onRemoveItem={catalogState.removeFromCart}
+        onClearAll={() => {
+          catalogState.clearCart();
+          setIsCartDrawerOpen(false);
+        }}
+        onContinue={() => {
+          setIsCartDrawerOpen(false);
+          router.push(`/prototipos/0.6/${landing}/solicitar`);
+        }}
+      />
     </div>
   );
 }

@@ -5,14 +5,24 @@
  * Las cuotas para cada combinación de plazo + % inicial vienen precalculadas
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PricingCalculatorProps, PaymentPlan, InitialPaymentOption, InitialPaymentPercentage } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 
-export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
+export interface PricingSelection {
+  term: number;
+  initialPercent: InitialPaymentPercentage;
+  monthlyQuota: number;
+  initialAmount: number;
+}
+
+export const PricingCalculator: React.FC<PricingCalculatorProps & {
+  onSelectionChange?: (selection: PricingSelection) => void;
+}> = ({
   paymentPlans,
   defaultTerm = 36,
   productPrice: productPriceProp,
+  onSelectionChange,
 }) => {
   const [selectedTerm, setSelectedTerm] = useState(paymentPlans[0]?.term ?? defaultTerm);
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(0);
@@ -45,6 +55,18 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
     return getOptionForTerm(selectedTerm);
   }, [selectedTerm, selectedInitialPercent, paymentPlans]);
 
+  // Notify parent of selection changes
+  useEffect(() => {
+    if (onSelectionChange && selectedOption) {
+      onSelectionChange({
+        term: selectedTerm,
+        initialPercent: selectedInitialPercent,
+        monthlyQuota: selectedOption.monthlyQuota,
+        initialAmount: selectedOption.initialAmount,
+      });
+    }
+  }, [selectedTerm, selectedInitialPercent, selectedOption, onSelectionChange]);
+
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow-lg">
       <h3 className="text-xl font-semibold text-neutral-800 mb-2">
@@ -53,18 +75,6 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       <p className="text-sm text-neutral-500 mb-4">
         Selecciona el plazo que mejor se ajuste a tu presupuesto
       </p>
-
-      {/* Precio de lista del equipo */}
-      {productPriceProp && (
-        <div className="mb-6 p-4 bg-neutral-50 rounded-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-neutral-600">Precio de lista del equipo</span>
-            <span className="text-lg font-bold text-neutral-800">
-              S/{formatMoneyNoDecimals(Math.round(productPriceProp))}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* Initial Payment Selection */}
       <div className="mb-6">

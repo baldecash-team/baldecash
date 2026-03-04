@@ -16,6 +16,7 @@ interface SearchDrawerProps {
   value: string;
   onChange: (value: string) => void;
   onClear: () => void;
+  onSubmit?: () => void;
 }
 
 export const SearchDrawer: React.FC<SearchDrawerProps> = ({
@@ -24,6 +25,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
   value,
   onChange,
   onClear,
+  onSubmit,
 }) => {
   const dragControls = useDragControls();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,7 +72,9 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // URL is updated automatically via useEffect, just close
+    if (value && onSubmit) {
+      onSubmit();
+    }
     onClose();
   };
 
@@ -187,7 +191,12 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
               )}
               <Button
                 className="flex-1 bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90"
-                onPress={onClose}
+                onPress={() => {
+                  if (value && onSubmit) {
+                    onSubmit();
+                  }
+                  onClose();
+                }}
                 startContent={<Search className="w-4 h-4" />}
               >
                 {value ? 'Ver resultados' : 'Cerrar'}

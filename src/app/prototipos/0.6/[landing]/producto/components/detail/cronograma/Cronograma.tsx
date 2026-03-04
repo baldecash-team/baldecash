@@ -11,7 +11,7 @@ import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Perc
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useIsMobile, Toast } from '@/app/prototipos/_shared';
-import { CronogramaProps, CronogramaVersion } from '../../../types/detail';
+import { CronogramaProps, CronogramaVersion, InitialPaymentPercentage } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import { generateCronogramaPDF } from '../../../utils/generateCronogramaPDF';
 
@@ -39,7 +39,8 @@ const calculateAmortization = (principal: number, annualRate: number, months: nu
   return schedule;
 };
 
-const FINANCIAL_DATA = {
+// Valores por defecto para datos financieros (usados si el backend no los provee)
+const DEFAULT_FINANCIAL_DATA = {
   tea: 49.36,
   tcea: 52.18,
   comisionDesembolso: 0,
@@ -57,10 +58,29 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   productName = 'Producto',
   productBrand = 'BaldeCash',
   productPrice = 0,
+  // Sincronización con PricingCalculator
+  selectedTerm: externalSelectedTerm,
+  selectedInitialPercent: externalInitialPercent,
+  financialData: externalFinancialData,
 }) => {
   const isMobile = useIsMobile();
   const dragControls = useDragControls();
-  const [selectedTerm, setSelectedTerm] = useState(paymentPlans[0]?.term ?? term);
+
+  // Usar valores externos si están disponibles, sino usar estado interno
+  const [internalSelectedTerm, setInternalSelectedTerm] = useState(paymentPlans[0]?.term ?? term);
+  const [internalInitialPercent, setInternalInitialPercent] = useState<InitialPaymentPercentage>(0);
+
+  // Determinar si estamos sincronizados con PricingCalculator
+  const isSynced = externalSelectedTerm !== undefined;
+  const selectedTerm = isSynced ? externalSelectedTerm : internalSelectedTerm;
+  const selectedInitialPercent = externalInitialPercent ?? internalInitialPercent;
+
+  // Combinar datos financieros externos con valores por defecto
+  const FINANCIAL_DATA = {
+    ...DEFAULT_FINANCIAL_DATA,
+    ...(externalFinancialData || {}),
+  };
+
   const [showAll, setShowAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -98,16 +118,19 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     };
   }, [isModalOpen]);
 
-  // Obtener cuota del plan según el plazo seleccionado (usando 0% inicial)
+  // Obtener cuota del plan según el plazo seleccionado
   const currentPlan = useMemo(() => {
     return paymentPlans.find(p => p.term === selectedTerm) || paymentPlans[0];
   }, [paymentPlans, selectedTerm]);
 
-  // Obtener la cuota con 0% de inicial
-  const adjustedQuota = useMemo(() => {
-    const option = currentPlan?.options?.find(opt => opt.initialPercent === 0);
-    return option?.monthlyQuota || 0;
-  }, [currentPlan]);
+  // Obtener la cuota según el % de inicial seleccionado (sincronizado con PricingCalculator)
+  const currentOption = useMemo(() => {
+    return currentPlan?.options?.find(opt => opt.initialPercent === selectedInitialPercent)
+      || currentPlan?.options?.[0];
+  }, [currentPlan, selectedInitialPercent]);
+
+  const adjustedQuota = currentOption?.monthlyQuota || 0;
+  const initialAmount = currentOption?.initialAmount || 0;
 
   // Calcular amortización para versión detallada
   const amortizationSchedule = useMemo(() => {
@@ -124,7 +147,8 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
   const visibleMonths = showAll ? selectedTerm : Math.min(6, selectedTerm);
   const hasMore = selectedTerm > 6;
-  const totalPayment = adjustedQuota * selectedTerm;
+  // Total = cuotas mensuales + cuota inicial (si aplica)
+  const totalPayment = (adjustedQuota * selectedTerm) + initialAmount;
 
   const handleDownloadPDF = () => {
     // Generar datos para el PDF
@@ -147,6 +171,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
       amortizationSchedule: pdfSchedule,
       financialData: FINANCIAL_DATA,
       generatedDate: new Date(),
+      // Cuota inicial (si aplica)
+      initialAmount: selectedInitialPercent > 0 ? initialAmount : undefined,
+      initialPercent: selectedInitialPercent > 0 ? selectedInitialPercent : undefined,
     });
 
     setShowToast(true);
@@ -168,22 +195,24 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             </div>
           </div>
 
-          {/* Term Pills */}
-          <div className="flex gap-1 flex-wrap">
-            {paymentPlans.map((plan) => (
-              <button
-                key={plan.term}
-                onClick={() => { setSelectedTerm(plan.term); setShowAll(false); }}
-                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
-                  selectedTerm === plan.term
-                    ? 'bg-[var(--color-primary)] text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                }`}
-              >
-                {plan.term}m
-              </button>
-            ))}
-          </div>
+          {/* Term Pills - Ocultos si está sincronizado con PricingCalculator */}
+          {!isSynced && (
+            <div className="flex gap-1 flex-wrap">
+              {paymentPlans.map((plan) => (
+                <button
+                  key={plan.term}
+                  onClick={() => { setInternalSelectedTerm(plan.term); setShowAll(false); }}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
+                    selectedTerm === plan.term
+                      ? 'bg-[var(--color-primary)] text-white'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  }`}
+                >
+                  {plan.term}m
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Payment Table - Version 1: Simple */}
@@ -466,6 +495,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(productPrice))}</span>
                       </div>
                     )}
+                    {selectedInitialPercent > 0 && initialAmount > 0 && (
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-neutral-600">Cuota inicial ({selectedInitialPercent}%)</span>
+                        <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(initialAmount))}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-neutral-600">Cuota mensual</span>
                       <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}</span>
@@ -531,7 +566,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-sm text-neutral-600">Monto total a pagar</p>
-                          <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}</p>
+                          <p className="text-xs text-neutral-500">
+                            {selectedInitialPercent > 0
+                              ? `S/${formatMoneyNoDecimals(Math.round(initialAmount))} inicial + ${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.round(adjustedQuota))}`
+                              : `${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.round(adjustedQuota))}`
+                            }
+                          </p>
                         </div>
                         <p className="text-2xl font-bold text-green-600">S/{formatMoneyNoDecimals(Math.round(totalPayment))}</p>
                       </div>
@@ -600,6 +640,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(productPrice))}</span>
                   </div>
                 )}
+                {selectedInitialPercent > 0 && initialAmount > 0 && (
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-neutral-600">Cuota inicial ({selectedInitialPercent}%)</span>
+                    <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(initialAmount))}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-neutral-600">Cuota mensual</span>
                   <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}</span>
@@ -665,7 +711,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-sm text-neutral-600">Monto total a pagar</p>
-                      <p className="text-xs text-neutral-500">{selectedTerm} cuotas de S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}</p>
+                      <p className="text-xs text-neutral-500">
+                        {selectedInitialPercent > 0
+                          ? `S/${formatMoneyNoDecimals(Math.round(initialAmount))} inicial + ${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.round(adjustedQuota))}`
+                          : `${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.round(adjustedQuota))}`
+                        }
+                      </p>
                     </div>
                     <p className="text-2xl font-bold text-green-600">S/{formatMoneyNoDecimals(Math.round(totalPayment))}</p>
                   </div>

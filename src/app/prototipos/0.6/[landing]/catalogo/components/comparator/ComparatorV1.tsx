@@ -1,19 +1,17 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { Trash2, Scale, ArrowRight, Trophy, ShoppingCart } from 'lucide-react';
 import { ComparatorLayoutProps, compareSpecs, calculatePriceDifference, ComparisonProduct, getDisplayQuota } from '../../types/comparator';
 import { DesignStyleA } from './DesignStyleA';
 import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
-import { calculateQuotaWithInitial } from '../../types/catalog';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 
-// Configuración para cálculo de cuota
+// Configuración para wizard
 const WIZARD_SELECTED_TERM = 24;
-const WIZARD_SELECTED_INITIAL = 10;
 
 /**
  * ComparatorV1 - Modal Fullscreen
@@ -32,26 +30,22 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   onAddToCart,
 }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
-  const isCleanMode = searchParams.get('mode') === 'clean';
   const { setSelectedProduct } = useProduct();
   const specs = compareSpecs(products);
   const priceDiff = calculatePriceDifference(products);
   const [showBestOption, setShowBestOption] = useState(false);
 
-  // Helper to save product to context
+  // Helper to save product to context - usar cuota precalculada del backend
   const selectProductForWizard = useCallback((product: ComparisonProduct) => {
-    const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
-
     setSelectedProduct({
       id: product.id,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
       price: product.price,
-      monthlyPayment: quota,
+      monthlyPayment: product.quotaMonthly,
       months: WIZARD_SELECTED_TERM,
       image: product.thumbnail,
       specs: {
@@ -91,8 +85,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     if (bestProduct) {
       selectProductForWizard(bestProduct);
     }
-    const baseUrl = `/prototipos/0.6/${landing}/solicitar`;
-    router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
+    router.push(`/prototipos/0.6/${landing}/solicitar`);
   };
 
   // Filter specs based on fieldsVersion
@@ -117,8 +110,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     if (product) {
       selectProductForWizard(product);
     }
-    const baseUrl = `/prototipos/0.6/${landing}/solicitar`;
-    router.push(isCleanMode ? `${baseUrl}?mode=clean` : baseUrl);
+    router.push(`/prototipos/0.6/${landing}/solicitar`);
   };
 
   // Render the appropriate design style

@@ -14,12 +14,11 @@ import { motion } from 'framer-motion';
 import {
   CatalogProduct,
   ColorSelectorVersion,
-  calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { ColorSelector } from '../color-selector';
-import { formatMoney } from '../../../utils/formatMoney';
+import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 
 interface ProductCardProps {
   product: CatalogProduct;
@@ -82,19 +81,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const selectedImages = getImagesForSelectedColor();
 
-  // Configuración fija de v0.4 presentación
+  // Usar cuota pre-calculada del backend (con TEA correcta)
+  // El backend calcula con la fórmula francesa de amortización
   const selectedTerm = 24;
   const selectedInitial = 10;
-  const { quota, initialAmount } = calculateQuotaWithInitial(
-    product.price,
-    selectedTerm,
-    selectedInitial
-  );
+  const quota = product.quotaMonthly;
+  const initialAmount = Math.round(product.price * (selectedInitial / 100));
 
-  // Original price for discount display
-  const originalQuota = product.originalPrice
-    ? calculateQuotaWithInitial(product.originalPrice, selectedTerm, selectedInitial).quota
-    : null;
+  // Original quota for discount display (usar valor del backend si existe)
+  const originalQuota = product.originalQuotaMonthly ?? null;
 
   return (
     <motion.div
@@ -239,7 +234,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <div className="h-5 flex items-center justify-center gap-1.5">
                 {originalQuota && originalQuota > quota ? (
                   <>
-                    <span className="text-xs text-neutral-400 line-through">S/{formatMoney(originalQuota)}/mes</span>
+                    <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.round(originalQuota))}/mes</span>
                     {product.discount && product.discount > 0 && (
                       <span className="text-xs font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
                         -{product.discount}%
@@ -252,12 +247,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
               {/* Precio actual */}
               <div className="flex items-baseline justify-center gap-0.5 mt-1">
-                <span className="text-3xl font-black text-[var(--color-primary)]">S/{formatMoney(quota)}</span>
+                <span className="text-3xl font-black text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.round(quota))}</span>
                 <span className="text-lg text-neutral-400">/mes</span>
               </div>
               {/* Info adicional */}
               <p className="text-xs text-neutral-500 mt-2">
-                en {selectedTerm} meses · inicial S/{formatMoney(initialAmount)}
+                en {selectedTerm} meses · inicial S/{formatMoneyNoDecimals(Math.round(initialAmount))}
               </p>
             </div>
 
@@ -265,12 +260,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex-1" />
 
             {/* CTAs */}
-            <div className="flex gap-2 items-center justify-center mx-auto">
+            <div className="flex gap-2 w-full">
               <Button
                 id={detailButtonId}
                 size="lg"
                 variant="bordered"
-                className="px-6 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
+                className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                 startContent={<Eye className="w-5 h-5" />}
                 onPress={onViewDetail}
               >
@@ -279,13 +274,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <Button
                 id={addToCartButtonId}
                 size="lg"
-                className={`px-6 font-bold rounded-xl ${
+                className={`flex-1 font-bold rounded-xl ${
                   isInCart
                     ? 'bg-emerald-500 text-white cursor-default'
                     : 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                 }`}
-                startContent={isInCart ? <Check className="w-5 h-5" /> : undefined}
-                endContent={!isInCart ? <ArrowRight className="w-5 h-5" /> : undefined}
                 onPress={!isInCart ? onAddToCart : undefined}
                 isDisabled={isInCart}
               >

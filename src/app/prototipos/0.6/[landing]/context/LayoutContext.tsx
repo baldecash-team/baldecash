@@ -3,11 +3,16 @@
 /**
  * LayoutContext - Shared layout data for all pages under [landing]
  * Fetches navbar, footer, and company data ONCE and shares across all pages
+ *
+ * Preview Mode Support:
+ * When PreviewContext has active preview credentials for this landing,
+ * uses getLandingLayoutById with preview_key instead of slug-based API.
  */
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { getLandingLayout, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
+import { getLandingLayout, getLandingLayoutById, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData } from '@/app/prototipos/0.6/types/hero';
 
 interface NavbarProps {
@@ -30,6 +35,10 @@ interface LayoutContextValue {
   secondaryColor: string;
   primaryColorRgb: string;
   secondaryColorRgb: string;
+  /** Whether this landing is being previewed with preview_key */
+  isPreviewMode: boolean;
+  /** Landing ID when in preview mode */
+  previewLandingId: number | null;
 }
 
 /**
@@ -51,6 +60,12 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
+  // Check if we're in preview mode for this landing
+  const preview = usePreview();
+  const isPreviewMode = preview.isPreviewingLanding(landing);
+  const previewLandingId = isPreviewMode ? preview.landingId : null;
+  const previewKey = isPreviewMode ? preview.previewKey : null;
+
   const [layoutData, setLayoutData] = useState<LandingLayoutResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -61,7 +76,16 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
 
     const fetchLayoutData = async () => {
       try {
-        const data = await getLandingLayout(landing);
+        let data: LandingLayoutResponse | null;
+
+        if (isPreviewMode && previewLandingId && previewKey) {
+          // Use preview API with ID and preview_key
+          data = await getLandingLayoutById(previewLandingId, previewKey);
+        } else {
+          // Use normal slug-based API
+          data = await getLandingLayout(landing);
+        }
+
         if (isMounted) {
           setLayoutData(data);
           // If API returns null (404), mark as error
@@ -86,7 +110,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [landing]);
+  }, [landing, isPreviewMode, previewLandingId, previewKey]);
 
   // Transform layout data for Navbar props
   const navbarProps = useMemo((): NavbarProps | null => {
@@ -205,7 +229,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     secondaryColor,
     primaryColorRgb,
     secondaryColorRgb,
-  }), [layoutData, navbarProps, footerData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb]);
+    isPreviewMode,
+    previewLandingId,
+  }), [layoutData, navbarProps, footerData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId]);
 
   return (
     <LayoutContext.Provider value={value}>

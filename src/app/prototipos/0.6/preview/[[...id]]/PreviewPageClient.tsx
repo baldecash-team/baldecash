@@ -10,6 +10,7 @@ import { useSearchParams } from 'next/navigation';
 import { HeroSection } from '../../components/hero/HeroSection';
 import { getLandingHeroDataById, transformLandingData } from '../../services/landingApi';
 import { usePreviewListener } from '../../hooks/usePreviewListener';
+import { usePreview } from '../../context/PreviewContext';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
@@ -68,6 +69,9 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   // Preview mode listener - receives live updates from admin
   const { previewData, isPreviewMode } = usePreviewListener();
 
+  // Preview context - persists preview state across navigation
+  const { setPreviewMode } = usePreview();
+
   // Preloading
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -100,7 +104,14 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         const data = transformLandingData(rawData);
         setHeroData(data);
         // Store the slug from the API response for routing
-        setLandingSlug(rawData.landing.slug || 'preview');
+        const slug = rawData.landing.slug || 'preview';
+        setLandingSlug(slug);
+
+        // Save preview state to context (persists in sessionStorage)
+        // This allows navigation to catalog/product/solicitar to maintain preview mode
+        if (previewKey) {
+          setPreviewMode(landingId, previewKey, slug);
+        }
       } catch (err) {
         console.error('[Preview] Error fetching landing data by ID:', err);
         setError('Error al cargar los datos');

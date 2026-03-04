@@ -127,6 +127,36 @@ export async function getWizardConfig(slug: string): Promise<WizardConfig | null
   }
 }
 
+/**
+ * Obtiene la configuración del wizard para una landing por ID
+ * Usado para preview en admin cuando se necesita acceder por ID + preview_key
+ * @param landingId - Landing ID
+ * @param previewKey - Hash de preview para acceder a landings no publicadas
+ */
+export async function getWizardConfigById(landingId: number, previewKey: string | null = null): Promise<WizardConfig | null> {
+  try {
+    const url = previewKey
+      ? `${API_BASE_URL}/public/landing/id/${landingId}/wizard?preview_key=${encodeURIComponent(previewKey)}`
+      : `${API_BASE_URL}/public/landing/id/${landingId}/wizard`;
+
+    const response = await fetch(url, {
+      cache: 'no-store', // Siempre no-store para preview por ID
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching wizard config by ID:', error);
+    return null;
+  }
+}
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================

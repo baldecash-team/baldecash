@@ -24,7 +24,7 @@ interface ProductCardState {
   selectedColorId: string | null;
 }
 
-export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, currentQuota, isCleanMode = false }) => {
+export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, currentQuota }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);

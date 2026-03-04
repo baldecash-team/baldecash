@@ -76,150 +76,169 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
   // Apply dynamic counts to options - use API data when available
   const dynamicBrandOptions = React.useMemo(() => {
-    // If API filters have brands, use those
-    if (apiFilters?.brands && apiFilters.brands.length > 0) {
-      return apiFilters.brands.map(b => ({
-        value: b.slug,
-        label: b.name,
-        count: b.count || 0,
-        logo: b.logo_url || undefined, // Convert null to undefined for FilterOption type
-      }));
+    // If API has responded, use its data (even if empty)
+    if (apiFilters) {
+      if (apiFilters.brands && apiFilters.brands.length > 0) {
+        return apiFilters.brands.map(b => ({
+          value: b.slug,
+          label: b.name,
+          count: b.count || 0,
+          logo: b.logo_url || undefined,
+        }));
+      }
+      return []; // API returned empty - no fallback to mock
     }
-    // Fallback to mock data with filterCounts
+    // API not called yet - use mock as placeholder while loading
     return filterCounts ? applyDynamicCounts(brandOptions, filterCounts.brands) : brandOptions;
   }, [apiFilters, filterCounts]);
   const dynamicUsageOptions = React.useMemo(() => {
-    // Use API usages if available
-    if (apiFilters?.usages && apiFilters.usages.length > 0) {
-      return apiFilters.usages.map(u => ({
-        value: u.value,
-        label: u.label,
-        count: u.count || 0,
-        icon: u.icon,
-      }));
+    // If API has responded, use its data (even if empty)
+    if (apiFilters) {
+      if (apiFilters.usages && apiFilters.usages.length > 0) {
+        return apiFilters.usages.map(u => ({
+          value: u.value,
+          label: u.label,
+          count: u.count || 0,
+          icon: u.icon,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data
     return filterCounts ? applyDynamicCounts(usageOptions, filterCounts.usage) : usageOptions;
   }, [apiFilters, filterCounts]);
   const dynamicGamaOptions = React.useMemo(() => {
-    // Use API gamas if available
-    if (apiFilters?.gamas && apiFilters.gamas.length > 0) {
-      return apiFilters.gamas.map(g => ({
-        value: g.value,
-        label: g.label,
-        count: g.count || 0,
-      }));
+    if (apiFilters) {
+      if (apiFilters.gamas && apiFilters.gamas.length > 0) {
+        return apiFilters.gamas.map(g => ({
+          value: g.value,
+          label: g.label,
+          count: g.count || 0,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data
     return filterCounts ? applyDynamicCounts(gamaOptions, filterCounts.gama) : gamaOptions;
   }, [apiFilters, filterCounts]);
   const dynamicConditionOptions = React.useMemo(() => {
-    // If API filters have conditions, use those
-    if (apiFilters?.conditions && apiFilters.conditions.length > 0) {
-      return apiFilters.conditions.map(c => ({
-        value: c.value,
-        label: c.label,
-        count: c.count || 0,
-      }));
+    if (apiFilters) {
+      if (apiFilters.conditions && apiFilters.conditions.length > 0) {
+        return apiFilters.conditions.map(c => ({
+          value: c.value,
+          label: c.label,
+          count: c.count || 0,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data with filterCounts
     return filterCounts ? applyDynamicCounts(conditionOptions, filterCounts.condition) : conditionOptions;
   }, [apiFilters, filterCounts]);
   const dynamicRamOptions = React.useMemo(() => {
-    // Use API specs if available
-    if (apiFilters?.specs?.ram?.values && apiFilters.specs.ram.values.length > 0) {
-      return apiFilters.specs.ram.values.map(v => ({
-        value: String(v.value),
-        label: v.display,
-        count: v.count || 0,
-      }));
+    if (apiFilters) {
+      if (apiFilters.specs?.ram?.values && apiFilters.specs.ram.values.length > 0) {
+        return apiFilters.specs.ram.values.map(v => ({
+          value: String(v.value),
+          label: v.display,
+          count: v.count || 0,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data
     return filterCounts ? applyDynamicCounts(ramOptions, filterCounts.ram) : ramOptions;
   }, [apiFilters, filterCounts]);
   const dynamicStorageOptions = React.useMemo(() => {
-    // Use API specs if available
-    if (apiFilters?.specs?.storage?.values && apiFilters.specs.storage.values.length > 0) {
-      return apiFilters.specs.storage.values.map(v => ({
-        value: String(v.value),
-        label: v.display,
-        count: v.count || 0,
-      }));
+    if (apiFilters) {
+      if (apiFilters.specs?.storage?.values && apiFilters.specs.storage.values.length > 0) {
+        return apiFilters.specs.storage.values.map(v => ({
+          value: String(v.value),
+          label: v.display,
+          count: v.count || 0,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data
     return filterCounts ? applyDynamicCounts(storageOptions, filterCounts.storage) : storageOptions;
   }, [apiFilters, filterCounts]);
   const dynamicDisplaySizeOptions = React.useMemo(() => {
-    // Use API specs if available (screen_size)
-    if (apiFilters?.specs?.screen_size?.values && apiFilters.specs.screen_size.values.length > 0) {
-      return apiFilters.specs.screen_size.values.map(v => ({
-        value: String(v.value),
-        label: v.display,
-        count: v.count || 0,
-      }));
+    if (apiFilters) {
+      if (apiFilters.specs?.screen_size?.values && apiFilters.specs.screen_size.values.length > 0) {
+        return apiFilters.specs.screen_size.values.map(v => ({
+          value: String(v.value),
+          label: v.display,
+          count: v.count || 0,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data
     return filterCounts ? applyDynamicCounts(displaySizeOptions, filterCounts.displaySize) : displaySizeOptions;
   }, [apiFilters, filterCounts]);
   const dynamicResolutionOptions = React.useMemo(() => {
-    // Use API specs if available (screen_resolution)
-    if (apiFilters?.specs?.screen_resolution?.values && apiFilters.specs.screen_resolution.values.length > 0) {
-      return apiFilters.specs.screen_resolution.values.map(v => ({
-        value: String(v.value),
-        label: v.display,
-        count: v.count || 0,
-      }));
+    if (apiFilters) {
+      if (apiFilters.specs?.screen_resolution?.values && apiFilters.specs.screen_resolution.values.length > 0) {
+        return apiFilters.specs.screen_resolution.values.map(v => ({
+          value: String(v.value),
+          label: v.display,
+          count: v.count || 0,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data
     return filterCounts ? applyDynamicCounts(resolutionOptions, filterCounts.resolution) : resolutionOptions;
   }, [apiFilters, filterCounts]);
   const dynamicDisplayTypeOptions = React.useMemo(() => {
-    // Use API specs if available (screen_type)
-    if (apiFilters?.specs?.screen_type?.values && apiFilters.specs.screen_type.values.length > 0) {
-      return apiFilters.specs.screen_type.values.map(v => ({
-        value: String(v.value),
-        label: v.display,
-        count: v.count || 0,
-      }));
+    if (apiFilters) {
+      if (apiFilters.specs?.screen_type?.values && apiFilters.specs.screen_type.values.length > 0) {
+        return apiFilters.specs.screen_type.values.map(v => ({
+          value: String(v.value),
+          label: v.display,
+          count: v.count || 0,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data
     return filterCounts ? applyDynamicCounts(displayTypeOptions, filterCounts.displayType) : displayTypeOptions;
   }, [apiFilters, filterCounts]);
   const dynamicDeviceTypeOptions = React.useMemo(() => {
-    // If API filters have types, use those
-    if (apiFilters?.types && apiFilters.types.length > 0) {
-      return apiFilters.types.map(t => ({
-        value: t.value,
-        label: t.label,
-        count: t.count || 0,
-      }));
+    // If API has responded, use its data (even if empty)
+    if (apiFilters) {
+      if (apiFilters.types && apiFilters.types.length > 0) {
+        return apiFilters.types.map(t => ({
+          value: t.value,
+          label: t.label,
+          count: t.count || 0,
+        }));
+      }
+      return []; // API returned empty - no fallback to mock
     }
-    // Fallback to mock data with filterCounts
+    // API not called yet - use mock as placeholder while loading
     return filterCounts ? applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType) : deviceTypeOptions;
   }, [apiFilters, filterCounts]);
   const dynamicTagOptions = React.useMemo(() => {
-    // If API filters have labels (tags), use those
-    if (apiFilters?.labels && apiFilters.labels.length > 0) {
-      return apiFilters.labels.map(l => ({
-        value: l.code,   // API returns 'code', not 'value'
-        label: l.name,   // API returns 'name', not 'label'
-        count: l.count || 0,
-        color: l.color,  // Include color from API
-      }));
+    // If API has responded, use its data (even if empty)
+    if (apiFilters) {
+      if (apiFilters.labels && apiFilters.labels.length > 0) {
+        return apiFilters.labels.map(l => ({
+          value: l.code,
+          label: l.name,
+          count: l.count || 0,
+          color: l.color,
+        }));
+      }
+      return []; // API returned empty - no fallback to mock
     }
-    // Fallback to mock data with filterCounts
+    // API not called yet - use mock as placeholder while loading
     return filterCounts ? applyDynamicCounts(tagOptions, filterCounts.tags) : tagOptions;
   }, [apiFilters, filterCounts]);
   const dynamicProcessorOptions = React.useMemo(() => {
-    // Use API specs if available (processor)
-    if (apiFilters?.specs?.processor?.values && apiFilters.specs.processor.values.length > 0) {
-      return apiFilters.specs.processor.values.map(v => ({
-        value: String(v.value),
-        label: v.display,
-        count: v.count || 0,
-      }));
+    if (apiFilters) {
+      if (apiFilters.specs?.processor?.values && apiFilters.specs.processor.values.length > 0) {
+        return apiFilters.specs.processor.values.map(v => ({
+          value: String(v.value),
+          label: v.display,
+          count: v.count || 0,
+        }));
+      }
+      return [];
     }
-    // Fallback to mock data
     return processorModelOptions;
   }, [apiFilters]);
 
@@ -571,10 +590,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
         {/* Content with Sidebar and Products */}
         <div className="flex items-start">
-          {/* Floating Filter Card - Sticky */}
-          <aside id="onboarding-filters-desktop" className="hidden lg:block w-[320px] p-6 pt-0 sticky top-0 self-start">
+          {/* Floating Filter Card - Sticky (top-40 = 160px para compensar navbars) */}
+          <aside id="onboarding-filters-desktop" className="hidden lg:block w-[320px] p-6 pt-0 sticky top-40 self-start">
             <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200/50">
-              <CardBody className="p-4 max-h-[calc(100vh-24px)] overflow-y-auto lg:pb-30">
+              <CardBody className="p-4 max-h-[calc(100vh-160px-24px)] overflow-y-auto lg:pb-30">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-200">
                   <h2 className="font-semibold text-neutral-800">Filtros</h2>

@@ -42,7 +42,6 @@ import { CatalogSecondaryNavbar } from './components/catalog/CatalogSecondaryNav
 import { SearchDrawer } from './components/catalog/SearchDrawer';
 import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { WebchatDrawer } from './components/webchat';
-import { QuizReminderPopup } from './components/catalog/QuizReminderPopup';
 import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 import { CartLimitModal } from './components/catalog/CartLimitModal';
 
@@ -56,6 +55,7 @@ import { useOnboarding } from './hooks/useOnboarding';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { PreviewBanner } from '@/app/prototipos/0.6/components/PreviewBanner';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -78,7 +78,6 @@ import {
   GpuType,
   CatalogProduct,
   CatalogViewMode,
-  calculateQuotaWithInitial,
   defaultOnboardingConfig,
   OnboardingStepCount,
   OnboardingHighlightStyle,
@@ -525,16 +524,15 @@ function CatalogoContent() {
   useScrollToTop();
 
   // Helper to save product to context (replaces saveProductForWizard)
+  // Usar cuota precalculada del backend
   const selectProductForWizard = useCallback((product: CatalogProduct) => {
-    const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
-
     setSelectedProduct({
       id: product.id,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
       price: product.price,
-      monthlyPayment: quota,
+      monthlyPayment: product.quotaMonthly,
       months: WIZARD_SELECTED_TERM,
       image: product.thumbnail,
       specs: {
@@ -618,7 +616,11 @@ function CatalogoContent() {
     return { stepCount, highlightStyle };
   }, [searchParams]);
 
-  const onboarding = useOnboarding(onboardingInitialConfig);
+  // Quiz data from API - check if landing has a quiz (moved before onboarding to pass questionCount)
+  const { hasQuiz, questions: quizQuestions } = useQuiz({ landingSlug: landing });
+  const questionCount = quizQuestions.length;
+
+  const onboarding = useOnboarding(onboardingInitialConfig, questionCount || 7, hasQuiz);
 
   // Preloading: dar tiempo a la página para cargar recursos
   useEffect(() => {
@@ -677,10 +679,6 @@ function CatalogoContent() {
   // Quiz state
   const [isQuizOpen, setIsQuizOpen] = useState(false);
 
-  // Quiz data from API - check if landing has a quiz
-  const { hasQuiz, questions: quizQuestions } = useQuiz({ landingSlug: landing });
-  const questionCount = quizQuestions.length;
-
   // Wishlist state with localStorage persistence
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<CatalogViewMode>('all');
@@ -706,7 +704,6 @@ function CatalogoContent() {
   const [wishlistProducts, setWishlistProducts] = useState<CatalogProduct[]>([]);
   const [cartProducts, setCartProducts] = useState<CatalogProduct[]>([]);
   const [isWebchatOpen, setIsWebchatOpen] = useState(false);
-  const [showQuizReminder, setShowQuizReminder] = useState(false);
   const { isOpen: isResumeModalOpen, close: closeResumeModal } = useResumeFinancingModal();
 
   // Helper to close all drawers/popups before opening a new one (mobile)
@@ -756,7 +753,11 @@ function CatalogoContent() {
 
       if (timeSinceLastInteraction >= oneMinute && canShowHint) {
         console.log('[Quiz Hint] ¡Mostrando tour de ayuda!');
-        onboarding.startTourAtHelpButton();
+        if (hasQuiz) {
+          onboarding.startTourAtHelpButton();  // Con quiz: solo paso del help button
+        } else {
+          onboarding.restartTour();  // Sin quiz: tour completo desde "Filtra por uso"
+        }
         // Reset timer for next cycle
         lastInteractionRef.current = Date.now();
       }
@@ -781,27 +782,8 @@ function CatalogoContent() {
     isSettingsOpen,
     isPageLoading,
     isWebchatOpen,
+    hasQuiz,
   ]);
-
-  // Quiz reminder popup - show once after 60 seconds
-  useEffect(() => {
-    const alreadyShown = sessionStorage.getItem('baldecash-quiz-reminder-shown');
-    if (alreadyShown) return;
-
-    const timer = setTimeout(() => {
-      // Only show if no drawers are open
-      const canShow = !isQuizOpen && !isHelpPopoverOpen && !isComparatorOpen &&
-                       !isCartDrawerOpen && !isWishlistDrawerOpen && !isFilterDrawerOpen &&
-                       !isSearchDrawerOpen && !isCartModalOpen && !isWebchatOpen &&
-                       !isSettingsOpen && !onboarding.shouldShowWelcome && !onboarding.shouldShowTour;
-      if (canShow) {
-        setShowQuizReminder(true);
-        sessionStorage.setItem('baldecash-quiz-reminder-shown', 'true');
-      }
-    }, 60000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   // Track scroll as interaction (significant scroll > 300px)
   useEffect(() => {
@@ -826,8 +808,9 @@ function CatalogoContent() {
   }, [filters]);
 
   // Centralized scroll lock for all drawers (iOS Safari fix)
+  // NOTE: isCartModalOpen and isQuizOpen are excluded because NextUI Modal handles scroll lock internally
   const isAnyDrawerOpen = isSearchDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen ||
-                          isQuizOpen || isComparatorOpen || isCartModalOpen || isWebchatOpen;
+                          isComparatorOpen || isWebchatOpen;
 
   useEffect(() => {
     if (isAnyDrawerOpen) {
@@ -911,10 +894,10 @@ function CatalogoContent() {
   }, [cart, isCartLoaded, landing]);
 
   // Calculate total monthly quota and check if over limit (S/600/mes max)
+  // Usar cuota precalculada del backend
   const { totalMonthlyQuota, isOverLimit } = useMemo(() => {
     const total = cartProducts.reduce((sum, item) => {
-      const { quota } = calculateQuotaWithInitial(item.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
-      return sum + quota;
+      return sum + item.quotaMonthly;
     }, 0);
     return { totalMonthlyQuota: total, isOverLimit: total > 600 };
   }, [cartProducts]);
@@ -974,8 +957,9 @@ function CatalogoContent() {
   const handleAddToCart = useCallback((productId: string, product?: CatalogProduct) => {
     if (!cart.includes(productId)) {
       // Check if adding this product would exceed the limit
+      // Usar cuota precalculada del backend
       if (product) {
-        const productQuota = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL).quota;
+        const productQuota = product.quotaMonthly;
         const newTotalQuota = totalMonthlyQuota + productQuota;
 
         if (newTotalQuota > 600) {
@@ -1021,31 +1005,30 @@ function CatalogoContent() {
   // cartProducts is now a state loaded from API via useEffect (see above)
 
   const handleCartContinue = useCallback(() => {
-    // Multi-product cart validation
-    const totalMonthlyQuota = cartProducts.reduce((sum, item) => {
-      const { quota } = calculateQuotaWithInitial(item.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
-      return sum + quota;
+    // Multi-product cart validation - usar cuota precalculada del backend
+    const totalQuota = cartProducts.reduce((sum, item) => {
+      return sum + item.quotaMonthly;
     }, 0);
-    const isDisabled = cart.length === 0 || totalMonthlyQuota > 600;
+    const isDisabled = cart.length === 0 || totalQuota > 600;
 
     if (isDisabled) {
-      if (totalMonthlyQuota > 600) {
+      if (totalQuota > 600) {
         showToast('La cuota total supera S/600/mes', 'warning');
       }
       return;
     }
 
     // Save ALL cart products to solicitar context (not just the first one)
+    // Usar cuota precalculada del backend
     if (cartProducts.length > 0) {
       const productsForContext = cartProducts.map((product) => {
-        const { quota } = calculateQuotaWithInitial(product.price, WIZARD_SELECTED_TERM, WIZARD_SELECTED_INITIAL);
         return {
           id: product.id,
           name: product.displayName,
           shortName: product.name,
           brand: product.brand,
           price: product.price,
-          monthlyPayment: quota,
+          monthlyPayment: product.quotaMonthly,
           months: WIZARD_SELECTED_TERM,
           image: product.thumbnail,
           specs: {
@@ -1334,11 +1317,19 @@ function CatalogoContent() {
     );
   }
 
+  // Check if promo banner has actual content
+  const hasPromoBannerContent = navbarProps?.promoBannerData &&
+    (navbarProps.promoBannerData.text || navbarProps.promoBannerData.highlight);
+  const shouldHidePromoBanner = isComparatorOpen || isFilterDrawerOpen || !hasPromoBannerContent;
+
   return (
     <div className="min-h-screen relative">
+      {/* Preview Banner - shows when navigating from /preview with preview_key */}
+      <PreviewBanner pageName="Catálogo" />
+
       {/* Navbar from Hero */}
       <Navbar
-        hidePromoBanner={isComparatorOpen || isFilterDrawerOpen}
+        hidePromoBanner={shouldHidePromoBanner}
         fullWidth
         landing={landing}
         promoBannerData={navbarProps?.promoBannerData}
@@ -1351,7 +1342,7 @@ function CatalogoContent() {
 
       {/* Secondary Navbar with Search, Wishlist, Cart */}
       <CatalogSecondaryNavbar
-        hidePromoBanner={isComparatorOpen || isFilterDrawerOpen}
+        hidePromoBanner={shouldHidePromoBanner}
         fullWidth
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -1842,19 +1833,6 @@ function CatalogoContent() {
         onboardingConfig={onboarding.config}
         onOnboardingConfigChange={onboarding.setConfig}
       />
-
-      {/* Quiz Reminder Popup - Solo mostrar si hay quiz asociado */}
-      {hasQuiz && (
-        <QuizReminderPopup
-          isVisible={showQuizReminder && !isQuizOpen && !isHelpPopoverOpen}
-          onClose={() => setShowQuizReminder(false)}
-          onOpenQuiz={() => {
-            closeAllDrawers();
-            setIsQuizOpen(true);
-          }}
-          questionCount={questionCount}
-        />
-      )}
 
       {/* Resume Financing Modal */}
       <ResumeFinancingModal

@@ -12,14 +12,22 @@ import { Check, Sparkles, Star } from 'lucide-react';
 export interface StepSuccessMessageProps {
   stepName: string;
   stepNumber: number;
+  totalSteps: number;
   onComplete?: () => void;
 }
 
-const stepMessages: Record<number, string> = {
-  1: '¡Excelente inicio!',
-  2: '¡Vas muy bien!',
-  3: '¡Casi lo logras!',
-  4: '¡Solicitud enviada!',
+/**
+ * Genera mensaje dinámico basado en la posición relativa del paso
+ * - Último paso: "¡Solicitud enviada!"
+ * - Primer paso: "¡Excelente inicio!"
+ * - Penúltimo paso: "¡Casi lo logras!"
+ * - Cualquier otro: "¡Vas muy bien!"
+ */
+const getMessage = (stepNumber: number, totalSteps: number): string => {
+  if (stepNumber === totalSteps) return '¡Solicitud enviada!';
+  if (stepNumber === 1) return '¡Excelente inicio!';
+  if (stepNumber >= totalSteps - 1) return '¡Casi lo logras!';
+  return '¡Vas muy bien!';
 };
 
 // Confetti particle component
@@ -56,6 +64,7 @@ const Particle: React.FC<{ delay: number; x: number; color: string }> = ({
 export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
   stepName,
   stepNumber,
+  totalSteps,
   onComplete,
 }) => {
   React.useEffect(() => {
@@ -65,7 +74,7 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  const message = stepMessages[stepNumber] || '¡Paso completado!';
+  const message = getMessage(stepNumber, totalSteps);
   const particles = Array.from({ length: 12 }, (_, i) => ({
     id: i,
     delay: Math.random() * 0.3,
@@ -134,18 +143,18 @@ export const StepSuccessMessage: React.FC<StepSuccessMessageProps> = ({
             {message}
           </p>
           <p className="text-sm text-neutral-500">
-            Paso {stepNumber} de 4 completado
+            Paso {stepNumber} de {totalSteps} completado
           </p>
         </motion.div>
 
-        {/* Progress dots */}
+        {/* Progress dots - dinámico basado en totalSteps */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
           className="flex items-center justify-center gap-2 mt-6"
         >
-          {[1, 2, 3, 4].map((step) => (
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
             <motion.div
               key={step}
               className={`w-2 h-2 rounded-full ${

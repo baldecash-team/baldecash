@@ -135,8 +135,6 @@ export interface HelpQuizProps {
   onComplete?: (results: QuizResult[], answers?: QuizAnswer[], questions?: QuizQuestion[]) => void;
   /** Contexto donde se muestra el quiz: 'hero' navega al catálogo, 'catalog' aplica filtros */
   context?: QuizContext;
-  /** Si está en modo clean (para propagar a URLs) */
-  isCleanMode?: boolean;
   /** Landing slug para URLs dinámicas */
   landing?: string;
 }

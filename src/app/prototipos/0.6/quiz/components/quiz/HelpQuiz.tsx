@@ -51,10 +51,9 @@ import { useQuiz } from '../../hooks/useQuiz';
 import { submitQuizResponse, getQuizRecommendations, mapApiToQuizResults } from '../../../services/quizApi';
 
 // URL helpers - updated for 0.6 dynamic routes
-const getWizardUrl = (isCleanMode: boolean, landing?: string) => {
+const getWizardUrl = (landing?: string) => {
   const landingSlug = landing || 'home';
-  const baseUrl = `/prototipos/0.6/${landingSlug}/solicitar`;
-  return isCleanMode ? `${baseUrl}?mode=clean` : baseUrl;
+  return `/prototipos/0.6/${landingSlug}/solicitar`;
 };
 
 // Configuración para cálculo de cuota
@@ -62,17 +61,12 @@ const WIZARD_SELECTED_TERM = 24;
 
 const getCatalogUrlWithFilters = (
   answers: QuizAnswer[],
-  isCleanMode: boolean,
   landing: string | undefined,
   questionsSource: QuizQuestion[]
 ) => {
   const landingSlug = landing || 'home';
   const baseUrl = `/prototipos/0.6/${landingSlug}/catalogo`;
   const params = new URLSearchParams();
-
-  if (isCleanMode) {
-    params.set('mode', 'clean');
-  }
 
   // Mapear respuestas a parámetros de filtro
   answers.forEach((answer) => {
@@ -149,7 +143,6 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   onClose,
   onComplete,
   context = 'catalog',
-  isCleanMode = false,
   landing,
 }) => {
   const router = useRouter();
@@ -328,9 +321,9 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       handleRestart();
 
       // Navegar al wizard
-      router.push(getWizardUrl(isCleanMode, landing));
+      router.push(getWizardUrl(landing));
     },
-    [results, onClose, handleRestart, router, isCleanMode, landing, selectProductForWizard]
+    [results, onClose, handleRestart, router, landing, selectProductForWizard]
   );
 
   // Handle "Ver otras opciones"
@@ -339,7 +332,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       // En Hero: Cerrar y navegar al catálogo con filtros
       onClose();
       handleRestart();
-      router.push(getCatalogUrlWithFilters(answers, isCleanMode, landing, questions));
+      router.push(getCatalogUrlWithFilters(answers, landing, questions));
     } else {
       // En Catalog: Cerrar y aplicar filtros mediante onComplete
       if (onComplete && results) {
@@ -348,7 +341,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       onClose();
       handleRestart();
     }
-  }, [context, onClose, handleRestart, router, answers, isCleanMode, landing, onComplete, results, questions]);
+  }, [context, onClose, handleRestart, router, answers, landing, onComplete, results, questions]);
 
   // Handle close and reset
   const handleClose = useCallback(() => {

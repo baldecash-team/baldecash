@@ -78,7 +78,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
     <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
       {/* Product Name + Brand - Above photos */}
       {(displayName || brand) && (
-        <div className="p-5 pb-0 relative z-10">
+        <div id="section-info" className="p-5 pb-0 relative z-10">
           {/* Brand + Rating Row */}
           {(brand || rating) && (
             <div className="flex items-center gap-3 mb-2">

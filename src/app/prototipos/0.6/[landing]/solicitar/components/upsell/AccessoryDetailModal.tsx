@@ -11,7 +11,7 @@ import {
 import { X, Check, Plus, Tag, Sparkles, Package } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import type { Accessory } from '../../types/upsell';
-import { formatMoney } from '../../utils/formatMoney';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
 
 interface AccessoryDetailModalProps {
@@ -111,13 +111,13 @@ const ModalContentShared: React.FC<{
           <div>
             <p className="text-xs text-neutral-500 uppercase tracking-wide">Precio total</p>
             <p className="text-xl font-bold text-neutral-800">
-              S/{formatMoney(accessory.price)}
+              S/{formatMoneyNoDecimals(Math.round(accessory.price))}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-neutral-500 uppercase tracking-wide">Cuota mensual</p>
             <p className="text-xl font-bold text-[var(--color-primary)]">
-              +S/{formatMoney(accessory.monthlyQuota)}
+              +S/{formatMoneyNoDecimals(Math.round(accessory.monthlyQuota))}
               <span className="text-sm font-normal text-neutral-500">/mes</span>
             </p>
           </div>

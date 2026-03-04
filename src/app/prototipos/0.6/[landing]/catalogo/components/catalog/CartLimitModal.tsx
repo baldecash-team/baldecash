@@ -10,12 +10,9 @@ import React, { useEffect, useRef } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@nextui-org/react';
 import { AlertTriangle, ShoppingCart, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
-import { formatMoney } from '../../utils/formatMoney';
+import { CatalogProduct } from '../../types/catalog';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
-
-const SELECTED_TERM = 24;
-const SELECTED_INITIAL = 10;
 
 interface CartLimitModalProps {
   isOpen: boolean;
@@ -35,9 +32,7 @@ const LimitModalContent: React.FC<{
   totalMonthlyQuota: number;
 }> = ({ cartItems, onRemoveItem, onClose, attemptedProduct, totalMonthlyQuota }) => {
   const excess = totalMonthlyQuota - 600;
-  const attemptedQuota = attemptedProduct
-    ? calculateQuotaWithInitial(attemptedProduct.price, SELECTED_TERM, SELECTED_INITIAL).quota
-    : 0;
+  const attemptedQuota = attemptedProduct ? attemptedProduct.quotaMonthly : 0;
 
   return (
     <div className="space-y-4">
@@ -51,9 +46,9 @@ const LimitModalContent: React.FC<{
             <p className="text-sm text-red-600">
               El máximo permitido es <span className="font-bold">S/600/mes</span>.
               {attemptedProduct ? (
-                <> Al agregar este producto, tu cuota total sería <span className="font-bold">S/{formatMoney(totalMonthlyQuota + attemptedQuota)}/mes</span>.</>
+                <> Al agregar este producto, tu cuota total sería <span className="font-bold">S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota + attemptedQuota))}/mes</span>.</>
               ) : (
-                <> Tu cuota actual es <span className="font-bold">S/{formatMoney(totalMonthlyQuota)}/mes</span> (exceso: S/{formatMoney(excess)}/mes).</>
+                <> Tu cuota actual es <span className="font-bold">S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota))}/mes</span> (exceso: S/{formatMoneyNoDecimals(Math.round(excess))}/mes).</>
               )}
             </p>
           </div>
@@ -72,7 +67,7 @@ const LimitModalContent: React.FC<{
         </p>
         <div className="max-h-[240px] overflow-y-auto space-y-2 pr-1">
           {cartItems.map((item, index) => {
-            const { quota } = calculateQuotaWithInitial(item.price, SELECTED_TERM, SELECTED_INITIAL);
+            const quota = item.quotaMonthly;
             return (
               <div
                 key={`${item.id}-${index}`}
@@ -91,7 +86,7 @@ const LimitModalContent: React.FC<{
                     {item.displayName}
                   </p>
                   <p className="text-sm font-bold text-[#4654CD]">
-                    S/{formatMoney(quota)}/mes
+                    S/{formatMoneyNoDecimals(Math.round(quota))}/mes
                   </p>
                 </div>
                 <button
@@ -127,7 +122,7 @@ const LimitModalContent: React.FC<{
                 {attemptedProduct.displayName}
               </p>
               <p className="text-sm font-bold text-red-600">
-                +S/{formatMoney(attemptedQuota)}/mes
+                +S/{formatMoneyNoDecimals(Math.round(attemptedQuota))}/mes
               </p>
             </div>
           </div>
@@ -138,7 +133,7 @@ const LimitModalContent: React.FC<{
       <div className="bg-neutral-100 rounded-xl p-3 flex items-center justify-between">
         <span className="text-sm text-neutral-600">Cuota total actual</span>
         <span className={`text-base font-bold ${totalMonthlyQuota > 600 ? 'text-red-600' : 'text-[#4654CD]'}`}>
-          S/{formatMoney(totalMonthlyQuota)}/mes
+          S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota))}/mes
         </span>
       </div>
 

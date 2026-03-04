@@ -34,6 +34,7 @@ export const LOAD_MORE_LIMIT = 8;
 
 export interface ApiPricingHook {
   monthly_price: number;
+  original_monthly_price?: number | null; // Cuota original antes de descuento
   term_months: number;
   initial_percent: number;
   tea: number;
@@ -442,6 +443,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     quotaMonthly,
     quotaBiweekly,
     quotaWeekly,
+    originalQuotaMonthly: hook.original_monthly_price ?? undefined,
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
@@ -695,9 +697,11 @@ export interface ProductSuggestion {
 
 /**
  * Search products for autocomplete suggestions
- * Uses the /products/search endpoint
+ * Uses the landing-specific products endpoint with search query
+ * Only returns products associated with the given landing
  */
 export async function searchProductSuggestions(
+  landingSlug: string,
   query: string,
   limit: number = 6
 ): Promise<ProductSuggestion[]> {
@@ -711,7 +715,8 @@ export async function searchProductSuggestions(
       limit: String(limit),
     });
 
-    const url = `${API_BASE_URL}/products/search?${params.toString()}`;
+    // Use landing-specific endpoint to only search products for this landing
+    const url = `${API_BASE_URL}/public/landing/${landingSlug}/products?${params.toString()}`;
 
     const response = await fetch(url, {
       cache: 'no-store',
@@ -724,24 +729,23 @@ export async function searchProductSuggestions(
 
     const data = await response.json();
 
-    // Map API response to frontend format
-    return data.map((item: {
+    // Map API response to frontend format (landing products endpoint format)
+    return (data.items || []).map((item: {
       id: number;
       name: string;
-      sku: string;
       slug: string;
-      brand: string | null;
-      category: string | null;
-      list_price: number | null;
-      image: string | null;
+      brand?: { name: string } | string | null;
+      pricing?: { final_price?: number; list_price?: number } | null;
+      image_url?: string | null;
+      colors?: { image_url?: string }[] | null;
     }) => ({
       id: String(item.id),
       name: item.name,
       slug: item.slug,
-      brand: item.brand || '',
-      category: item.category || '',
-      price: item.list_price || 0,
-      image: item.image,
+      brand: typeof item.brand === 'object' ? item.brand?.name || '' : item.brand || '',
+      category: '',
+      price: item.pricing?.final_price || item.pricing?.list_price || 0,
+      image: item.image_url || item.colors?.[0]?.image_url || null,
     }));
   } catch (error) {
     console.error('[Search API] Error searching products:', error);

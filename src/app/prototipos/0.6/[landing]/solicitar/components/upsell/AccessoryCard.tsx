@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardBody, Chip } from '@nextui-org/react';
 import { Check, Plus, Info } from 'lucide-react';
 import type { Accessory } from '../../types/upsell';
-import { formatMoney } from '../../utils/formatMoney';
+import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
 interface AccessoryCardProps {
   accessory: Accessory;
@@ -107,7 +107,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
         {/* Price */}
         <div className="mt-auto flex items-center justify-between">
           <span className="text-[var(--color-primary)] font-bold">
-            +S/{formatMoney(accessory.monthlyQuota)}/mes
+            +S/{formatMoneyNoDecimals(Math.round(accessory.monthlyQuota))}/mes
           </span>
           <Plus
             className={`w-5 h-5 text-neutral-400 transition-all duration-200 ${
