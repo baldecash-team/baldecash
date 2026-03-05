@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
-import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Check, Search } from 'lucide-react';
+import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
@@ -503,6 +503,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     laptop: Laptop,
     tablet: Tablet,
     celular: Smartphone,
+    accesorio: Headphones,
   };
 
   // Get filtered brand options based on selected device types
