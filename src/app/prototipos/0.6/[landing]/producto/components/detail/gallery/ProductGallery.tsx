@@ -133,7 +133,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             className="relative w-full h-full"
           >
             <img
-              src={filteredImages[selectedImage]?.url || ''}
+              src={filteredImages[selectedImage]?.url || undefined}
               alt={filteredImages[selectedImage]?.alt || productName}
               className="w-full h-full object-contain p-8 transition-transform duration-200"
               style={
@@ -189,7 +189,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
               whileTap={{ scale: 0.95 }}
             >
               <img
-                src={image.url}
+                src={image.url || undefined}
                 alt={image.alt}
                 className="w-full h-full object-contain p-1.5 bg-white"
                 loading="lazy"
