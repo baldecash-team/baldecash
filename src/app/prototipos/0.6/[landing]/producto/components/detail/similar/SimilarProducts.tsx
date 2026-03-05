@@ -15,8 +15,9 @@ import { SimilarProductsProps, SimilarProduct, SimilarProductImage } from '../..
 import { formatMoney, formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 
-// Storage key for selected product (same as ProductContext)
-const STORAGE_KEY = 'baldecash-solicitar-selected-product';
+// Dynamic storage keys based on landing slug (same pattern as ProductContext)
+const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
+const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
 
 // State per product for image and color selection
 interface ProductCardState {
@@ -163,9 +164,9 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
 
       // Save to localStorage
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedProduct));
+        localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProduct));
         // Clear cart products since this is a single product selection
-        localStorage.removeItem('baldecash-solicitar-cart-products');
+        localStorage.removeItem(getCartProductsKey(landing));
       } catch {
         // localStorage not available
       }

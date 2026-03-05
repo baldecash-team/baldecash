@@ -60,12 +60,17 @@ export function useSubmitApplication(
   // Get data from contexts
   const {
     selectedProduct,
+    cartProducts,
+    getAllProducts,
     selectedAccessories,
+    selectedInsurance,
     appliedCoupon,
     getDiscountedMonthlyPayment,
     getTotalPrice,
     clearProduct,
+    clearCartProducts,
     clearAccessories,
+    clearInsurance,
     clearCoupon,
   } = useProduct();
 
@@ -112,8 +117,11 @@ export function useSubmitApplication(
         return false;
       }
 
-      // Validate product is selected
-      if (!selectedProduct) {
+      // Get all products (cart or single)
+      const allProducts = getAllProducts();
+
+      // Validate at least one product is selected
+      if (allProducts.length === 0) {
         const msg = 'No hay producto seleccionado.';
         setError(msg);
         onToast?.(msg, 'error');
@@ -126,21 +134,35 @@ export function useSubmitApplication(
         // Map form data from wizard context
         const mappedFormData = mapFormData();
 
+        // Get first product for backward compatibility fields
+        const primaryProduct = allProducts[0];
+
         // Build product_data for API
         const productData: SubmitApplicationRequest['product_data'] = {
-          product_id: parseInt(selectedProduct.id, 10),
-          term_months: selectedProduct.months,
+          // Primary product (for backward compatibility)
+          product_id: parseInt(primaryProduct.id, 10),
+          term_months: primaryProduct.months,
           monthly_payment: getDiscountedMonthlyPayment(),
           total_amount: getTotalPrice(),
-          unit_price: selectedProduct.price,
-          initial_payment: 0, // Can be extended if initial payment feature is added
-          // Map accessories
+          unit_price: primaryProduct.price,
+          initial_payment: 0,
+          // Multiple products array
+          products: allProducts.map((p) => ({
+            product_id: parseInt(p.id, 10),
+            quantity: 1,
+            unit_price: p.price,
+            final_price: p.price, // For single term, final_price = unit_price
+          })),
+          // Map accessories with price for monthly calculation
           accessories: selectedAccessories.map((acc) => ({
             accessory_id: parseInt(acc.id, 10),
             price: acc.price,
           })),
           // Add insurance if selected
-          ...(insuranceId && { insurance_id: parseInt(insuranceId, 10) }),
+          ...(insuranceId && {
+            insurance_id: parseInt(insuranceId, 10),
+            insurance_premium: selectedInsurance?.monthlyPrice || 0,
+          }),
         };
 
         // Submit application
@@ -156,17 +178,17 @@ export function useSubmitApplication(
           clearSession();
           resetForm();
           clearProduct();
+          clearCartProducts();
           clearAccessories();
+          clearInsurance();
           clearCoupon();
 
           // Show success toast
           onToast?.('Solicitud enviada correctamente', 'success');
 
-          // Redirect to confirmation page with application code
+          // Redirect to confirmation page with application code only
           router.push(
-            `/prototipos/0.6/${landing}/solicitar/confirmacion?code=${encodeURIComponent(
-              result.application_code
-            )}`
+            `/prototipos/0.6/${landing}/solicitar/confirmacion?code=${result.application_code}`
           );
 
           return true;
@@ -189,8 +211,9 @@ export function useSubmitApplication(
     },
     [
       sessionUuid,
-      selectedProduct,
+      getAllProducts,
       selectedAccessories,
+      selectedInsurance,
       appliedCoupon,
       mapFormData,
       getDiscountedMonthlyPayment,
@@ -198,7 +221,9 @@ export function useSubmitApplication(
       clearSession,
       resetForm,
       clearProduct,
+      clearCartProducts,
       clearAccessories,
+      clearInsurance,
       clearCoupon,
       router,
       landing,

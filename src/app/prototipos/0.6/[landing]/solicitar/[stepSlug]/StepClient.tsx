@@ -150,7 +150,7 @@ function StepContent() {
     try {
       summarySteps.forEach(s => {
         s.fields.forEach(field => {
-          const savedValue = localStorage.getItem(`baldecash-wizard-field-${field.code}`);
+          const savedValue = localStorage.getItem(`baldecash-${landing}-wizard-field-${field.code}`);
           if (savedValue !== null) {
             setSummaryFieldValues(prev => ({ ...prev, [field.code]: savedValue }));
           }
@@ -158,17 +158,17 @@ function StepContent() {
       });
     } catch {}
     setIsHydrated(true);
-  }, [isSummaryStep, summarySteps]);
+  }, [isSummaryStep, summarySteps, landing]);
 
   // Save summary field values to localStorage
   useEffect(() => {
     if (!isHydrated || !isSummaryStep) return;
     try {
       Object.entries(summaryFieldValues).forEach(([fieldCode, value]) => {
-        localStorage.setItem(`baldecash-wizard-field-${fieldCode}`, value);
+        localStorage.setItem(`baldecash-${landing}-wizard-field-${fieldCode}`, value);
       });
     } catch {}
-  }, [summaryFieldValues, isHydrated, isSummaryStep]);
+  }, [summaryFieldValues, isHydrated, isSummaryStep, landing]);
 
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {

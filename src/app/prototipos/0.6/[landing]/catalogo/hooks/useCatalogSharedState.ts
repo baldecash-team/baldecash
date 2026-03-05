@@ -5,10 +5,11 @@
  * Lee/escribe en localStorage para persistencia entre páginas
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
-const WISHLIST_KEY = 'baldecash-wishlist';
-const CART_KEY = 'baldecash-cart';
+// Dynamic storage keys based on landing slug
+const getWishlistKey = (landing: string) => `baldecash-${landing}-wishlist`;
+const getCartKey = (landing: string) => `baldecash-${landing}-cart`;
 
 interface UseCatalogSharedStateReturn {
   // Wishlist
@@ -32,20 +33,24 @@ interface UseCatalogSharedStateReturn {
   isHydrated: boolean;
 }
 
-export function useCatalogSharedState(): UseCatalogSharedStateReturn {
+export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStateReturn {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [cart, setCart] = useState<string[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
+  // Memoize storage keys based on landing
+  const wishlistKey = useMemo(() => getWishlistKey(landingSlug), [landingSlug]);
+  const cartKey = useMemo(() => getCartKey(landingSlug), [landingSlug]);
+
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      const savedWishlist = localStorage.getItem(WISHLIST_KEY);
+      const savedWishlist = localStorage.getItem(wishlistKey);
       if (savedWishlist) {
         setWishlist(JSON.parse(savedWishlist));
       }
 
-      const savedCart = localStorage.getItem(CART_KEY);
+      const savedCart = localStorage.getItem(cartKey);
       if (savedCart) {
         setCart(JSON.parse(savedCart));
       }
@@ -53,29 +58,29 @@ export function useCatalogSharedState(): UseCatalogSharedStateReturn {
       console.error('Error loading catalog state from localStorage:', e);
     }
     setIsHydrated(true);
-  }, []);
+  }, [wishlistKey, cartKey]);
 
   // Persist wishlist to localStorage
   useEffect(() => {
     if (isHydrated) {
       try {
-        localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
+        localStorage.setItem(wishlistKey, JSON.stringify(wishlist));
       } catch (e) {
         console.error('Error saving wishlist to localStorage:', e);
       }
     }
-  }, [wishlist, isHydrated]);
+  }, [wishlist, isHydrated, wishlistKey]);
 
   // Persist cart to localStorage
   useEffect(() => {
     if (isHydrated) {
       try {
-        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        localStorage.setItem(cartKey, JSON.stringify(cart));
       } catch (e) {
         console.error('Error saving cart to localStorage:', e);
       }
     }
-  }, [cart, isHydrated]);
+  }, [cart, isHydrated, cartKey]);
 
   // Wishlist actions
   const addToWishlist = useCallback((productId: string) => {

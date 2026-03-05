@@ -63,7 +63,7 @@ function ProductDetailContent() {
   const [isApiLoading, setIsApiLoading] = useState(true);
 
   // Shared state for catalog (wishlist, cart)
-  const catalogState = useCatalogSharedState();
+  const catalogState = useCatalogSharedState(landing);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Drawer states for mobile

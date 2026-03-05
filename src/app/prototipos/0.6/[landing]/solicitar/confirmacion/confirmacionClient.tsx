@@ -4,13 +4,13 @@
  * Confirmacion - Página de confirmación de solicitud
  *
  * Comportamiento:
- * - Si hay ?code= en URL: Muestra confirmación real con código de solicitud
+ * - Si hay ?code= en URL: Muestra confirmación real con diseño ReceivedScreen
  * - Si NO hay ?code=: Muestra vista de demostración con opciones de resultado
  */
 
 import React, { Suspense, useState, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { CheckCircle2, XCircle, Clock, Copy, Check, Home, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -18,13 +18,43 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getApplicationStatus } from '../../../services/applicationApi';
+import { ReceivedScreen } from './components/received';
+import type { ReceivedData } from './types/received';
 
 // Types
 interface ApplicationStatusData {
   code: string;
   status: string;
   submitted_at: string | null;
-  evaluated_at: string | null;
+  approved_at: string | null;
+  applicant_name: string | null;
+  product: {
+    name: string;
+    image: string | null;
+    monthly_payment: number;
+    term_months: number;
+    total_amount: number;
+  } | null;
+  products?: {
+    name: string;
+    image: string | null;
+    quantity: number;
+    unit_price: number;
+    final_price: number;
+  }[];
+  accessories?: {
+    name: string;
+    monthly_quota: number;
+  }[] | null;
+  insurance?: {
+    name: string;
+    monthly_price: number;
+  } | null;
+  coupon?: {
+    code: string;
+    discount_amount: number;
+  } | null;
+  total_monthly_payment?: number;
   status_history: {
     previous_status: string | null;
     new_status: string;
@@ -33,16 +63,6 @@ interface ApplicationStatusData {
     changed_at: string | null;
   }[];
 }
-
-// Status labels in Spanish
-const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Enviada',
-  pending: 'Pendiente',
-  in_review: 'En revisión',
-  approved: 'Aprobada',
-  rejected: 'Rechazada',
-  cancelled: 'Cancelada',
-};
 
 // Demo options for testing
 const RESULT_OPTIONS = [
@@ -76,152 +96,91 @@ const RESULT_OPTIONS = [
 ];
 
 /**
+ * Build ReceivedData from API response (preferred) or URL params (fallback)
+ */
+function buildReceivedData(
+  applicationCode: string,
+  applicationData: ApplicationStatusData | null,
+  searchParams: URLSearchParams
+): ReceivedData {
+  // Prefer data from API, fallback to URL params
+  const apiProduct = applicationData?.product;
+
+  const productName = apiProduct?.name || searchParams.get('product') || 'Producto solicitado';
+  const productImage = apiProduct?.image || searchParams.get('image') || '';
+  const monthlyPayment = apiProduct?.monthly_payment || Number(searchParams.get('monthly')) || 0;
+  const termMonths = apiProduct?.term_months || Number(searchParams.get('term')) || 12;
+  const totalAmount = apiProduct?.total_amount || Number(searchParams.get('total')) || 0;
+  const userName = applicationData?.applicant_name || searchParams.get('name') || 'Usuario';
+
+  // Map accessories from API
+  const accessories = applicationData?.accessories?.map((acc) => ({
+    name: acc.name,
+    monthlyQuota: acc.monthly_quota,
+  }));
+
+  // Map insurance from API
+  const insurance = applicationData?.insurance
+    ? {
+        name: applicationData.insurance.name,
+        monthlyPrice: applicationData.insurance.monthly_price,
+      }
+    : undefined;
+
+  // Map coupon from API
+  const coupon = applicationData?.coupon
+    ? {
+        code: applicationData.coupon.code,
+        discountAmount: applicationData.coupon.discount_amount,
+      }
+    : undefined;
+
+  // Use total from API or calculate
+  const totalMonthlyQuota = applicationData?.total_monthly_payment || monthlyPayment;
+
+  return {
+    applicationId: applicationCode,
+    userName,
+    submittedAt: applicationData?.submitted_at ? new Date(applicationData.submitted_at) : new Date(),
+    estimatedResponseHours: 24,
+    product: {
+      name: productName,
+      thumbnail: productImage,
+      monthlyQuota: monthlyPayment,
+      term: termMonths,
+      totalAmount,
+    },
+    accessories,
+    insurance,
+    coupon,
+    totalMonthlyQuota,
+    notificationChannels: ['whatsapp', 'email'],
+  };
+}
+
+/**
  * Real Confirmation View - Shown when ?code= is present
  */
 function RealConfirmationContent({
   applicationCode,
   applicationData,
   isLoading,
-  hasError,
+  searchParams,
   onGoHome,
 }: {
   applicationCode: string;
   applicationData: ApplicationStatusData | null;
   isLoading: boolean;
-  hasError: boolean;
+  searchParams: URLSearchParams;
   onGoHome: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  if (isLoading) {
+    return <LoadingFallback />;
+  }
 
-  const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(applicationCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
-  };
+  const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
 
-  const statusLabel = applicationData?.status
-    ? STATUS_LABELS[applicationData.status] || applicationData.status
-    : 'Enviada';
-
-  return (
-    <div className="max-w-2xl mx-auto px-4 pt-14 pb-32 lg:pb-16">
-      {/* Success Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center mb-8"
-      >
-        <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle2 className="w-10 h-10 text-white" />
-        </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-neutral-800 mb-2">
-          ¡Solicitud Enviada!
-        </h1>
-        <p className="text-neutral-600">
-          Hemos recibido tu solicitud correctamente
-        </p>
-      </motion.div>
-
-      {/* Application Code Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="bg-white rounded-2xl shadow-lg border border-neutral-200 p-6 mb-6"
-      >
-        <p className="text-sm text-neutral-500 text-center mb-3">
-          Tu código de solicitud es:
-        </p>
-        <div className="flex items-center justify-center gap-3">
-          <span className="text-2xl md:text-3xl font-mono font-bold text-neutral-800 tracking-wider">
-            {applicationCode}
-          </span>
-          <button
-            onClick={handleCopyCode}
-            className="p-2 rounded-lg bg-neutral-100 hover:bg-neutral-200 transition-colors"
-            aria-label={copied ? 'Copiado' : 'Copiar código'}
-          >
-            {copied ? (
-              <Check className="w-5 h-5 text-green-600" />
-            ) : (
-              <Copy className="w-5 h-5 text-neutral-600" />
-            )}
-          </button>
-        </div>
-
-        {/* Status Badge */}
-        {isLoading ? (
-          <div className="mt-4 flex justify-center">
-            <div className="animate-pulse bg-neutral-200 h-6 w-24 rounded-full" />
-          </div>
-        ) : hasError ? (
-          <div className="mt-4 flex items-center justify-center gap-2 text-amber-600">
-            <AlertCircle className="w-4 h-4" />
-            <span className="text-sm">Código no encontrada</span>
-          </div>
-        ) : (
-          <div className="mt-4 flex justify-center">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              Estado: {statusLabel}
-            </span>
-          </div>
-        )}
-      </motion.div>
-
-      {/* Next Steps */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="bg-neutral-50 rounded-xl p-6 mb-6"
-      >
-        <h3 className="font-semibold text-neutral-800 mb-3">Próximos pasos:</h3>
-        <ul className="space-y-2 text-sm text-neutral-600">
-          <li className="flex items-start gap-2">
-            <span className="w-5 h-5 rounded-full bg-[var(--color-primary)] text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-              1
-            </span>
-            <span>Revisaremos tu solicitud en las próximas 24-48 horas</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="w-5 h-5 rounded-full bg-[var(--color-primary)] text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-              2
-            </span>
-            <span>Te contactaremos por WhatsApp o correo electrónico</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="w-5 h-5 rounded-full bg-[var(--color-primary)] text-white text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
-              3
-            </span>
-            <span>Guarda tu código de solicitud para consultas</span>
-          </li>
-        </ul>
-      </motion.div>
-
-      {/* Go Home Button */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="flex justify-center"
-      >
-        <button
-          onClick={onGoHome}
-          className="flex items-center gap-2 px-6 py-3 bg-[var(--color-primary)] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
-          aria-label="Volver al inicio"
-        >
-          <Home className="w-5 h-5" />
-          Volver al inicio
-        </button>
-      </motion.div>
-    </div>
-  );
+  return <ReceivedScreen data={receivedData} onGoToHome={onGoHome} />;
 }
 
 /**
@@ -308,7 +267,6 @@ function ConfirmacionContent() {
   // State for API data
   const [applicationData, setApplicationData] = useState<ApplicationStatusData | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
-  const [hasStatusError, setHasStatusError] = useState(false);
 
   // Scroll to top on page load
   useScrollToTop();
@@ -320,18 +278,15 @@ function ConfirmacionContent() {
   useEffect(() => {
     if (applicationCode) {
       setIsLoadingStatus(true);
-      setHasStatusError(false);
 
       getApplicationStatus(applicationCode)
         .then((data) => {
           if (data) {
             setApplicationData(data);
-          } else {
-            setHasStatusError(true);
           }
         })
         .catch(() => {
-          setHasStatusError(true);
+          // Silently fail - we'll show the page anyway with available data
         })
         .finally(() => {
           setIsLoadingStatus(false);
@@ -362,14 +317,14 @@ function ConfirmacionContent() {
     <>
       <div className="min-h-screen bg-neutral-50 relative">
         <Navbar {...navbarProps} />
-        <div className="h-[104px]" />
+        <div className="h-[68px]" />
 
         {applicationCode ? (
           <RealConfirmationContent
             applicationCode={applicationCode}
             applicationData={applicationData}
             isLoading={isLoadingStatus}
-            hasError={hasStatusError}
+            searchParams={searchParams}
             onGoHome={handleGoHome}
           />
         ) : (

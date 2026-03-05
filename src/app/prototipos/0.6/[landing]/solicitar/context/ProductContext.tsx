@@ -6,14 +6,15 @@
  * Persists to localStorage for refresh survival
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
 import type { Accessory, InsurancePlan } from '../types/upsell';
 
-const STORAGE_KEY = 'baldecash-solicitar-selected-product';
-const CART_PRODUCTS_STORAGE_KEY = 'baldecash-solicitar-cart-products';
-const ACCESSORIES_STORAGE_KEY = 'baldecash-solicitar-selected-accessories';
-const INSURANCE_STORAGE_KEY = 'baldecash-solicitar-selected-insurance';
-const COUPON_STORAGE_KEY = 'baldecash-solicitar-applied-coupon';
+// Dynamic storage keys based on landing slug
+const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
+const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
+const getAccessoriesKey = (landing: string) => `baldecash-${landing}-solicitar-selected-accessories`;
+const getInsuranceKey = (landing: string) => `baldecash-${landing}-solicitar-selected-insurance`;
+const getCouponKey = (landing: string) => `baldecash-${landing}-solicitar-applied-coupon`;
 
 // Maximum monthly quota limit from env
 const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
@@ -97,9 +98,10 @@ export const useProductOptional = () => {
 
 interface ProductProviderProps {
   children: ReactNode;
+  landingSlug: string;
 }
 
-export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) => {
+export const ProductProvider: React.FC<ProductProviderProps> = ({ children, landingSlug }) => {
   const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
   const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
@@ -108,26 +110,33 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
   const [isHydrated, setIsHydrated] = useState(false);
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
 
+  // Memoize storage keys based on landing
+  const storageKey = useMemo(() => getStorageKey(landingSlug), [landingSlug]);
+  const cartProductsKey = useMemo(() => getCartProductsKey(landingSlug), [landingSlug]);
+  const accessoriesKey = useMemo(() => getAccessoriesKey(landingSlug), [landingSlug]);
+  const insuranceKey = useMemo(() => getInsuranceKey(landingSlug), [landingSlug]);
+  const couponKey = useMemo(() => getCouponKey(landingSlug), [landingSlug]);
+
   // Load from localStorage on mount (client-side only)
   useEffect(() => {
     try {
-      const storedProduct = localStorage.getItem(STORAGE_KEY);
+      const storedProduct = localStorage.getItem(storageKey);
       if (storedProduct) {
         setSelectedProductState(JSON.parse(storedProduct));
       }
-      const storedCartProducts = localStorage.getItem(CART_PRODUCTS_STORAGE_KEY);
+      const storedCartProducts = localStorage.getItem(cartProductsKey);
       if (storedCartProducts) {
         setCartProductsState(JSON.parse(storedCartProducts));
       }
-      const storedAccessories = localStorage.getItem(ACCESSORIES_STORAGE_KEY);
+      const storedAccessories = localStorage.getItem(accessoriesKey);
       if (storedAccessories) {
         setSelectedAccessoriesState(JSON.parse(storedAccessories));
       }
-      const storedInsurance = localStorage.getItem(INSURANCE_STORAGE_KEY);
+      const storedInsurance = localStorage.getItem(insuranceKey);
       if (storedInsurance) {
         setSelectedInsuranceState(JSON.parse(storedInsurance));
       }
-      const storedCoupon = localStorage.getItem(COUPON_STORAGE_KEY);
+      const storedCoupon = localStorage.getItem(couponKey);
       if (storedCoupon) {
         setAppliedCouponState(JSON.parse(storedCoupon));
       }
@@ -135,67 +144,67 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
       // localStorage not available or invalid JSON
     }
     setIsHydrated(true);
-  }, []);
+  }, [storageKey, cartProductsKey, accessoriesKey, insuranceKey, couponKey]);
 
   // Save to localStorage when product changes
   const setSelectedProduct = useCallback((product: SelectedProduct | null) => {
     setSelectedProductState(product);
     try {
       if (product) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(product));
+        localStorage.setItem(storageKey, JSON.stringify(product));
       } else {
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(storageKey);
       }
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [storageKey]);
 
   const clearProduct = useCallback(() => {
     setSelectedProductState(null);
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(storageKey);
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [storageKey]);
 
   // Cart products functions (multi-product)
   const setCartProducts = useCallback((products: SelectedProduct[]) => {
     setCartProductsState(products);
     try {
       if (products.length > 0) {
-        localStorage.setItem(CART_PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+        localStorage.setItem(cartProductsKey, JSON.stringify(products));
       } else {
-        localStorage.removeItem(CART_PRODUCTS_STORAGE_KEY);
+        localStorage.removeItem(cartProductsKey);
       }
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [cartProductsKey]);
 
   const clearCartProducts = useCallback(() => {
     setCartProductsState([]);
     try {
-      localStorage.removeItem(CART_PRODUCTS_STORAGE_KEY);
+      localStorage.removeItem(cartProductsKey);
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [cartProductsKey]);
 
   // Accessories functions
   const setSelectedAccessories = useCallback((accessories: Accessory[]) => {
     setSelectedAccessoriesState(accessories);
     try {
       if (accessories.length > 0) {
-        localStorage.setItem(ACCESSORIES_STORAGE_KEY, JSON.stringify(accessories));
+        localStorage.setItem(accessoriesKey, JSON.stringify(accessories));
       } else {
-        localStorage.removeItem(ACCESSORIES_STORAGE_KEY);
+        localStorage.removeItem(accessoriesKey);
       }
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [accessoriesKey]);
 
   const toggleAccessory = useCallback((accessory: Accessory) => {
     setSelectedAccessoriesState((prev) => {
@@ -211,69 +220,69 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     if (!isHydrated) return;
     try {
       if (selectedAccessories.length > 0) {
-        localStorage.setItem(ACCESSORIES_STORAGE_KEY, JSON.stringify(selectedAccessories));
+        localStorage.setItem(accessoriesKey, JSON.stringify(selectedAccessories));
       } else {
-        localStorage.removeItem(ACCESSORIES_STORAGE_KEY);
+        localStorage.removeItem(accessoriesKey);
       }
     } catch {
       // localStorage not available
     }
-  }, [selectedAccessories, isHydrated]);
+  }, [selectedAccessories, isHydrated, accessoriesKey]);
 
   const clearAccessories = useCallback(() => {
     setSelectedAccessoriesState([]);
     try {
-      localStorage.removeItem(ACCESSORIES_STORAGE_KEY);
+      localStorage.removeItem(accessoriesKey);
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [accessoriesKey]);
 
   // Insurance functions
   const setSelectedInsurance = useCallback((insurance: InsurancePlan | null) => {
     setSelectedInsuranceState(insurance);
     try {
       if (insurance) {
-        localStorage.setItem(INSURANCE_STORAGE_KEY, JSON.stringify(insurance));
+        localStorage.setItem(insuranceKey, JSON.stringify(insurance));
       } else {
-        localStorage.removeItem(INSURANCE_STORAGE_KEY);
+        localStorage.removeItem(insuranceKey);
       }
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [insuranceKey]);
 
   const clearInsurance = useCallback(() => {
     setSelectedInsuranceState(null);
     try {
-      localStorage.removeItem(INSURANCE_STORAGE_KEY);
+      localStorage.removeItem(insuranceKey);
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [insuranceKey]);
 
   // Coupon functions
   const setAppliedCoupon = useCallback((coupon: AppliedCoupon | null) => {
     setAppliedCouponState(coupon);
     try {
       if (coupon) {
-        localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(coupon));
+        localStorage.setItem(couponKey, JSON.stringify(coupon));
       } else {
-        localStorage.removeItem(COUPON_STORAGE_KEY);
+        localStorage.removeItem(couponKey);
       }
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [couponKey]);
 
   const clearCoupon = useCallback(() => {
     setAppliedCouponState(null);
     try {
-      localStorage.removeItem(COUPON_STORAGE_KEY);
+      localStorage.removeItem(couponKey);
     } catch {
       // localStorage not available
     }
-  }, []);
+  }, [couponKey]);
 
   // Get all products (cart or single)
   const getAllProducts = useCallback((): SelectedProduct[] => {

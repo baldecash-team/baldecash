@@ -131,7 +131,12 @@ const getUpsellUrl = (landing: string) => {
 // Configuración fija para cálculo de cuota (igual que CartSelectionModal)
 const WIZARD_SELECTED_TERM = 24;
 const WIZARD_SELECTED_INITIAL = 0;
-const WIZARD_PRODUCT_STORAGE_KEY = 'baldecash-solicitar-selected-product';
+
+// Dynamic storage keys based on landing slug
+const getWizardProductKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
+const getWishlistKey = (landing: string) => `baldecash-${landing}-wishlist`;
+const getCartKey = (landing: string) => `baldecash-${landing}-cart`;
+const getCompareKey = (landing: string) => `baldecash-${landing}-compare`;
 
 // Mapear respuestas del quiz a filtros del catálogo
 const mapQuizAnswersToFilters = (
@@ -255,8 +260,11 @@ function LoadingFallback() {
 }
 
 export function CatalogoClient() {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+
   return (
-    <ProductProvider>
+    <ProductProvider landingSlug={landing}>
       <Suspense fallback={<LoadingFallback />}>
         <CatalogoContent />
       </Suspense>
@@ -620,7 +628,7 @@ function CatalogoContent() {
   const { hasQuiz, questions: quizQuestions } = useQuiz({ landingSlug: landing });
   const questionCount = quizQuestions.length;
 
-  const onboarding = useOnboarding(onboardingInitialConfig, questionCount || 7, hasQuiz);
+  const onboarding = useOnboarding(onboardingInitialConfig, questionCount || 7, hasQuiz, landing);
 
   // Preloading: dar tiempo a la página para cargar recursos
   useEffect(() => {
@@ -837,7 +845,7 @@ function CatalogoContent() {
 
   // Load wishlist from localStorage on mount (client-side only)
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-wishlist');
+    const saved = localStorage.getItem(getWishlistKey(landing));
     if (saved) {
       try {
         setWishlist(JSON.parse(saved));
@@ -846,18 +854,18 @@ function CatalogoContent() {
       }
     }
     setIsWishlistLoaded(true);
-  }, []);
+  }, [landing]);
 
   // Persist wishlist to localStorage (only after initial load)
   useEffect(() => {
     if (isWishlistLoaded) {
-      localStorage.setItem('baldecash-wishlist', JSON.stringify(wishlist));
+      localStorage.setItem(getWishlistKey(landing), JSON.stringify(wishlist));
     }
-  }, [wishlist, isWishlistLoaded]);
+  }, [wishlist, isWishlistLoaded, landing]);
 
   // Load cart from localStorage on mount (client-side only)
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-cart');
+    const saved = localStorage.getItem(getCartKey(landing));
     if (saved) {
       try {
         setCart(JSON.parse(saved));
@@ -866,14 +874,14 @@ function CatalogoContent() {
       }
     }
     setIsCartLoaded(true);
-  }, []);
+  }, [landing]);
 
   // Persist cart to localStorage (only after initial load)
   useEffect(() => {
     if (isCartLoaded) {
-      localStorage.setItem('baldecash-cart', JSON.stringify(cart));
+      localStorage.setItem(getCartKey(landing), JSON.stringify(cart));
     }
-  }, [cart, isCartLoaded]);
+  }, [cart, isCartLoaded, landing]);
 
   // Fetch wishlist products from API (independent of catalog filters)
   useEffect(() => {
@@ -904,7 +912,7 @@ function CatalogoContent() {
 
   // Load compareList from localStorage on mount (client-side only)
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-compare');
+    const saved = localStorage.getItem(getCompareKey(landing));
     if (saved) {
       try {
         setCompareList(JSON.parse(saved));
@@ -913,14 +921,14 @@ function CatalogoContent() {
       }
     }
     setIsCompareListLoaded(true);
-  }, []);
+  }, [landing]);
 
   // Persist compareList to localStorage (only after initial load)
   useEffect(() => {
     if (isCompareListLoaded) {
-      localStorage.setItem('baldecash-compare', JSON.stringify(compareList));
+      localStorage.setItem(getCompareKey(landing), JSON.stringify(compareList));
     }
-  }, [compareList, isCompareListLoaded]);
+  }, [compareList, isCompareListLoaded, landing]);
 
   // Fetch compare products from API (independent of catalog filters)
   useEffect(() => {
@@ -980,22 +988,22 @@ function CatalogoContent() {
 
     // Limpiar localStorage si el producto eliminado es el guardado para el wizard
     try {
-      const savedProduct = localStorage.getItem(WIZARD_PRODUCT_STORAGE_KEY);
+      const savedProduct = localStorage.getItem(getWizardProductKey(landing));
       if (savedProduct) {
         const parsed = JSON.parse(savedProduct);
         if (parsed.id === productId) {
-          localStorage.removeItem(WIZARD_PRODUCT_STORAGE_KEY);
+          localStorage.removeItem(getWizardProductKey(landing));
         }
       }
     } catch {
       // Ignorar errores de parsing
     }
-  }, []);
+  }, [landing]);
 
   const handleClearCart = useCallback(() => {
     setCart([]);
-    localStorage.removeItem(WIZARD_PRODUCT_STORAGE_KEY);
-  }, []);
+    localStorage.removeItem(getWizardProductKey(landing));
+  }, [landing]);
 
   const handleShowCartLimitModal = useCallback(() => {
     setAttemptedCartProduct(null);

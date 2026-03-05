@@ -24,7 +24,7 @@ export default function WizardPreviewLayout({
   const landing = (params.landing as string) || 'home';
 
   return (
-    <ProductProvider>
+    <ProductProvider landingSlug={landing}>
       <SessionProvider landingSlug={landing}>
         <WizardConfigProvider slug={landing}>
           <WizardProvider landingSlug={landing}>{children}</WizardProvider>

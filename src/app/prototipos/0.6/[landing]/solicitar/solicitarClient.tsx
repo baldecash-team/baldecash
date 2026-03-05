@@ -76,29 +76,29 @@ function WizardPreviewContent() {
   // Cargar valores desde localStorage al montar
   useEffect(() => {
     try {
-      const savedAcceptTerms = localStorage.getItem('baldecash-wizard-acceptTerms');
-      const savedAcceptPromos = localStorage.getItem('baldecash-wizard-acceptPromos');
+      const savedAcceptTerms = localStorage.getItem(`baldecash-${landing}-wizard-acceptTerms`);
+      const savedAcceptPromos = localStorage.getItem(`baldecash-${landing}-wizard-acceptPromos`);
       if (savedAcceptTerms !== null) setAcceptTerms(savedAcceptTerms === 'true');
       if (savedAcceptPromos !== null) setAcceptPromos(savedAcceptPromos === 'true');
     } catch {}
     setIsTermsHydrated(true);
-  }, []);
+  }, [landing]);
 
   // Guardar acceptTerms en localStorage
   useEffect(() => {
     if (!isTermsHydrated) return;
     try {
-      localStorage.setItem('baldecash-wizard-acceptTerms', String(acceptTerms));
+      localStorage.setItem(`baldecash-${landing}-wizard-acceptTerms`, String(acceptTerms));
     } catch {}
-  }, [acceptTerms, isTermsHydrated]);
+  }, [acceptTerms, isTermsHydrated, landing]);
 
   // Guardar acceptPromos en localStorage
   useEffect(() => {
     if (!isTermsHydrated) return;
     try {
-      localStorage.setItem('baldecash-wizard-acceptPromos', String(acceptPromos));
+      localStorage.setItem(`baldecash-${landing}-wizard-acceptPromos`, String(acceptPromos));
     } catch {}
-  }, [acceptPromos, isTermsHydrated]);
+  }, [acceptPromos, isTermsHydrated, landing]);
 
   // Redirect to catalog if no product was selected
   useEffect(() => {

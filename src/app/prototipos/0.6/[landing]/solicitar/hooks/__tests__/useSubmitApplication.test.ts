@@ -40,18 +40,27 @@ const mockSessionUuid = 'test-session-uuid';
 const mockClearSession = jest.fn();
 const mockResetForm = jest.fn();
 const mockClearProduct = jest.fn();
+const mockClearCartProducts = jest.fn();
 const mockClearAccessories = jest.fn();
+const mockClearInsurance = jest.fn();
 const mockClearCoupon = jest.fn();
+
+const mockSelectedInsurance = { id: '1', name: 'Protección', monthlyPrice: 45 };
 
 jest.mock('../../context/ProductContext', () => ({
   useProduct: () => ({
     selectedProduct: mockSelectedProduct,
+    cartProducts: [],
+    getAllProducts: () => [mockSelectedProduct],
     selectedAccessories: mockSelectedAccessories,
+    selectedInsurance: mockSelectedInsurance,
     appliedCoupon: mockAppliedCoupon,
     getDiscountedMonthlyPayment: () => 90,
     getTotalPrice: () => 1080,
     clearProduct: mockClearProduct,
+    clearCartProducts: mockClearCartProducts,
     clearAccessories: mockClearAccessories,
+    clearInsurance: mockClearInsurance,
     clearCoupon: mockClearCoupon,
   }),
 }));
@@ -110,6 +119,14 @@ describe('useSubmitApplication', () => {
           monthly_payment: 90,
           total_amount: 1080,
           unit_price: 1000,
+          products: expect.arrayContaining([
+            expect.objectContaining({
+              product_id: 1,
+              quantity: 1,
+              unit_price: 1000,
+              final_price: 1000,
+            }),
+          ]),
         }),
         coupon_code: 'TEST10',
       });
@@ -118,19 +135,21 @@ describe('useSubmitApplication', () => {
       expect(mockClearSession).toHaveBeenCalled();
       expect(mockResetForm).toHaveBeenCalled();
       expect(mockClearProduct).toHaveBeenCalled();
+      expect(mockClearCartProducts).toHaveBeenCalled();
       expect(mockClearAccessories).toHaveBeenCalled();
+      expect(mockClearInsurance).toHaveBeenCalled();
       expect(mockClearCoupon).toHaveBeenCalled();
 
       // Should show success toast
       expect(onToast).toHaveBeenCalledWith('Solicitud enviada correctamente', 'success');
 
-      // Should redirect to confirmation page
+      // Should redirect to confirmation page with code only (no product data in URL)
       expect(mockPush).toHaveBeenCalledWith(
         '/prototipos/0.6/test-landing/solicitar/confirmacion?code=APP-123'
       );
     });
 
-    it('includes insurance_id when provided', async () => {
+    it('includes insurance_id and insurance_premium when provided', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
         application_code: 'APP-456',
@@ -146,6 +165,7 @@ describe('useSubmitApplication', () => {
         expect.objectContaining({
           product_data: expect.objectContaining({
             insurance_id: 5,
+            insurance_premium: 45, // From mockSelectedInsurance.monthlyPrice
           }),
         })
       );

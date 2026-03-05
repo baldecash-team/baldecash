@@ -18,11 +18,12 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   ReactNode,
 } from 'react';
 
-// Storage key for session UUID
-const SESSION_STORAGE_KEY = 'baldecash-wizard-session-uuid';
+// Dynamic storage key based on landing slug
+const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
@@ -169,6 +170,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Memoize storage key based on landing
+  const sessionKey = useMemo(() => getSessionKey(landingSlug), [landingSlug]);
+
   /**
    * Create a new tracking session via API
    */
@@ -214,11 +218,14 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
   );
 
   /**
-   * Initialize or retrieve existing session
+   * Initialize or retrieve existing session.
+   *
+   * Always calls the API to ensure session exists in backend.
+   * The backend endpoint is idempotent: creates new or recovers existing.
    */
   const initSession = useCallback(
     async (slug: string): Promise<string | null> => {
-      // Check if already have a valid session
+      // Already initialized in this instance
       if (sessionUuid && isInitialized) {
         return sessionUuid;
       }
@@ -226,28 +233,21 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
       setIsCreating(true);
 
       try {
-        // Check localStorage for existing session
-        const storedUuid =
+        // Get UUID from localStorage or generate new one
+        const existingUuid =
           typeof window !== 'undefined'
-            ? localStorage.getItem(SESSION_STORAGE_KEY)
+            ? localStorage.getItem(sessionKey)
             : null;
 
-        if (storedUuid) {
-          // Use existing UUID
-          setSessionUuid(storedUuid);
-          setIsInitialized(true);
-          setIsCreating(false);
-          return storedUuid;
-        }
+        const uuid = existingUuid || generateUUID();
 
-        // Generate new UUID and create session
-        const newUuid = generateUUID();
-        const result = await createSession(newUuid, slug);
+        // ALWAYS call API (creates new or recovers existing session)
+        const result = await createSession(uuid, slug);
 
         if (result) {
           // Save to localStorage
           if (typeof window !== 'undefined') {
-            localStorage.setItem(SESSION_STORAGE_KEY, result.uuid);
+            localStorage.setItem(sessionKey, result.uuid);
           }
           setSessionUuid(result.uuid);
           setSessionId(result.id);
@@ -255,18 +255,17 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
           return result.uuid;
         }
 
-        // If API fails, still use the UUID locally (graceful degradation)
+        // If API fails completely, clear localStorage and report error
         if (typeof window !== 'undefined') {
-          localStorage.setItem(SESSION_STORAGE_KEY, newUuid);
+          localStorage.removeItem(sessionKey);
         }
-        setSessionUuid(newUuid);
-        setIsInitialized(true);
-        return newUuid;
+        console.error('Failed to initialize tracking session');
+        return null;
       } finally {
         setIsCreating(false);
       }
     },
-    [sessionUuid, isInitialized, createSession]
+    [sessionUuid, isInitialized, createSession, sessionKey]
   );
 
   /**
@@ -277,9 +276,9 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     setSessionId(null);
     setIsInitialized(false);
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.removeItem(sessionKey);
     }
-  }, []);
+  }, [sessionKey]);
 
   // Auto-initialize session on mount
   useEffect(() => {

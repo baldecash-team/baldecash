@@ -23,8 +23,8 @@ import { useRouter } from 'next/navigation';
 import { useProductOptional, type SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { useIsMobile } from '@/app/prototipos/_shared/hooks/useIsMobile';
 
-// Storage key for fallback when no ProductProvider
-const STORAGE_KEY = 'baldecash-solicitar-selected-product';
+// Dynamic storage key based on landing slug (fallback when no ProductProvider)
+const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 
 // Types
 import {
@@ -201,12 +201,12 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     } else {
       // Fallback: save directly to localStorage
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedProduct));
+        localStorage.setItem(getStorageKey(landing || 'home'), JSON.stringify(selectedProduct));
       } catch {
         // localStorage not available
       }
     }
-  }, [productContext]);
+  }, [productContext, landing]);
 
   // Get questions from API (all questions come from backend)
   const questions = apiQuestions;

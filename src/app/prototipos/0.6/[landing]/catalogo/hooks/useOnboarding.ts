@@ -6,7 +6,7 @@
  * Soporta hidratación segura (SSR-safe)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   OnboardingConfig,
   OnboardingStep,
@@ -17,7 +17,8 @@ import {
   getOnboardingStepsComplete,
 } from '../types/catalog';
 
-const STORAGE_KEY = 'baldecash-onboarding-catalog';
+// Dynamic storage key based on landing slug
+const getOnboardingKey = (landing: string) => `baldecash-${landing}-onboarding-catalog`;
 
 export interface OnboardingState {
   hasSeenWelcome: boolean;
@@ -64,13 +65,17 @@ interface UseOnboardingReturn {
 export function useOnboarding(
   initialConfig: OnboardingConfig = defaultOnboardingConfig,
   questionCount: number = 7,
-  hasQuiz: boolean = true
+  hasQuiz: boolean = true,
+  landingSlug: string = 'home'
 ): UseOnboardingReturn {
   const [state, setState] = useState<OnboardingState>(defaultState);
   const [config, setConfigState] = useState<OnboardingConfig>(initialConfig);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
   const [isHelpOnlyMode, setIsHelpOnlyMode] = useState(false);
+
+  // Memoize storage key based on landing
+  const storageKey = useMemo(() => getOnboardingKey(landingSlug), [landingSlug]);
 
   // Get steps based on config
   const steps = config.stepCount === 'complete'
@@ -80,7 +85,7 @@ export function useOnboarding(
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved) as OnboardingState;
         setState(parsed);
@@ -89,18 +94,18 @@ export function useOnboarding(
       console.error('Error loading onboarding state:', e);
     }
     setIsHydrated(true);
-  }, []);
+  }, [storageKey]);
 
   // Persist to localStorage when state changes (after hydration)
   useEffect(() => {
     if (isHydrated) {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(storageKey, JSON.stringify(state));
       } catch (e) {
         console.error('Error saving onboarding state:', e);
       }
     }
-  }, [state, isHydrated]);
+  }, [state, isHydrated, storageKey]);
 
   // Computed values
   const shouldShowWelcome = isHydrated && !state.hasSeenWelcome;
