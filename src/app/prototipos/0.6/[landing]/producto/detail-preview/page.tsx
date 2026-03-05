@@ -13,14 +13,27 @@ export default function ProductDetailPage() {
 
 // Generar rutas estaticas para output: export
 export async function generateStaticParams() {
-  const knownLandings = [
-    'home',
-    'laptops-estudiantes',
-    'celulares-2026',
-    'motos-lima',
-  ];
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL || 'https://ws2-production-0f0e.up.railway.app/api/v1';
 
-  return knownLandings.map((landing) => ({ landing }));
+  let slugs = ['home'];
+
+  try {
+    const response = await fetch(`${apiUrl}/public/landing/list/slugs`, {
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.slugs && Array.isArray(data.slugs)) {
+        slugs = data.slugs;
+      }
+    }
+  } catch {
+    console.log('[detail-preview/generateStaticParams] Using fallback (API unavailable)');
+  }
+
+  return slugs.map((landing) => ({ landing }));
 }
 
 // Metadata estatica
