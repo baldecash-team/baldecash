@@ -4,13 +4,14 @@
  * Complementos - Dynamic post-wizard sections page
  * Renders all sections configured to appear after wizard_steps
  * Handles submission with insurance selection if applicable
+ * Insurance and Accessories state is managed via ProductContext
  */
 
-import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
-import { Loader2, Shield, AlertTriangle } from 'lucide-react';
+import { Loader2, Shield, AlertTriangle, Package } from 'lucide-react';
 import { useProduct } from '../context/ProductContext';
 import { SelectedProductBar, SelectedProductSpacer } from '../components/solicitar/product/SelectedProductBar';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
@@ -24,8 +25,6 @@ import { getStepSlug } from '../../../services/wizardApi';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SectionRenderer } from '../components/solicitar/sections';
-import { getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
-import type { InsurancePlan } from '../types/upsell';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -35,12 +34,8 @@ function ComplementosContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  // Insurance selection state (for calculating totals)
-  const [selectedInsurance, setSelectedInsurance] = useState<string | null>(null);
-  const [insurancePlans, setInsurancePlans] = useState<InsurancePlan[]>([]);
-
-  // Get data from contexts
-  const { getDiscountedMonthlyPayment, selectedAccessories } = useProduct();
+  // Get data from ProductContext (includes insurance, accessories, products)
+  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance } = useProduct();
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
@@ -73,31 +68,10 @@ function ComplementosContent() {
     return sectionsAfterWizard.some(s => s.type === 'insurance');
   }, [sectionsAfterWizard]);
 
-  // Load insurance plans if insurance section is included (for total calculation)
-  useEffect(() => {
-    if (!hasInsuranceSection) return;
-
-    async function fetchInsurancePlans() {
-      try {
-        const plans = await getLandingInsurances(landing);
-        const mappedPlans: InsurancePlan[] = plans.map((plan) => ({
-          id: plan.id,
-          name: plan.name,
-          monthlyPrice: plan.monthlyPrice,
-          yearlyPrice: plan.yearlyPrice,
-          tier: plan.tier,
-          isRecommended: plan.isRecommended,
-          coverage: plan.coverage,
-          exclusions: plan.exclusions,
-        }));
-        setInsurancePlans(mappedPlans);
-      } catch (error) {
-        console.error('Error fetching insurance plans:', error);
-      }
-    }
-
-    fetchInsurancePlans();
-  }, [landing, hasInsuranceSection]);
+  // Check if accessories section is included
+  const hasAccessoriesSection = useMemo(() => {
+    return sectionsAfterWizard.some(s => s.type === 'accessories');
+  }, [sectionsAfterWizard]);
 
   const handleBack = () => {
     const lastStepSlug = lastStep ? getStepSlug(lastStep) : 'resumen';
@@ -105,20 +79,12 @@ function ComplementosContent() {
   };
 
   const handleSubmit = async () => {
-    await submitApplication({ insuranceId: selectedInsurance });
+    // Pass insurance ID from context (selectedInsurance is now the full plan object)
+    await submitApplication({ insuranceId: selectedInsurance?.id || null });
   };
 
-  // Calculate totals
-  const insuranceMonthly = selectedInsurance
-    ? insurancePlans.find((p) => p.id === selectedInsurance)?.monthlyPrice || 0
-    : 0;
-  const accessoriesMonthly = selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0);
-  const totalMonthly = getDiscountedMonthlyPayment() + insuranceMonthly + accessoriesMonthly;
-
-  // Calculate minimum insurance price for alert banner
-  const minInsurancePrice = insurancePlans.length > 0
-    ? Math.min(...insurancePlans.map(p => p.monthlyPrice))
-    : null;
+  // Total monthly is now calculated in ProductContext (includes insurance + accessories)
+  const totalMonthly = getDiscountedMonthlyPayment();
 
   // If no sections after wizard, redirect to confirmation (shouldn't happen normally)
   useEffect(() => {
@@ -137,8 +103,8 @@ function ComplementosContent() {
       <div className="h-[104px]" />
 
       <div className="max-w-3xl mx-auto px-4 pt-14 pb-32 lg:pb-6">
-        {/* Alert Banner - Show if insurance is included */}
-        {hasInsuranceSection && (
+        {/* Alert Banner - Show if insurance or accessories sections are included */}
+        {(hasInsuranceSection || hasAccessoriesSection) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -151,7 +117,6 @@ function ComplementosContent() {
               <div>
                 <h2 className="text-lg font-bold text-neutral-800">
                   Personaliza tu solicitud
-                  {minInsurancePrice ? ` - Protección desde S/${minInsurancePrice}/mes` : ''}
                 </h2>
                 <p className="text-sm text-neutral-600 mt-1">
                   Selecciona las opciones que mejor se adapten a tus necesidades
@@ -173,11 +138,7 @@ function ComplementosContent() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * (index + 1) }}
             >
-              <SectionRenderer
-                type={section.type}
-                onInsuranceChange={setSelectedInsurance}
-                selectedInsurance={selectedInsurance}
-              />
+              <SectionRenderer type={section.type} />
             </motion.div>
           ))}
         </div>
@@ -195,6 +156,7 @@ function ComplementosContent() {
               {(selectedInsurance || selectedAccessories.length > 0) && (
                 <p className="text-xs text-[var(--color-secondary)] flex items-center gap-1 mt-0.5">
                   {selectedInsurance && <Shield className="w-3 h-3" />}
+                  {selectedAccessories.length > 0 && <Package className="w-3 h-3" />}
                   {selectedInsurance && selectedAccessories.length > 0
                     ? 'Incluye seguro y accesorios'
                     : selectedInsurance

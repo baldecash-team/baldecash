@@ -3,12 +3,14 @@
 /**
  * InsuranceSection - Reusable insurance selection section
  * Can be used in Preview page (before wizard) or Complementos page (after wizard)
+ * Uses ProductContext for state management (same pattern as AccessoriesSection)
  */
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { InsuranceIntro, PlanComparison } from '../../upsell';
+import { useProduct } from '../../../context/ProductContext';
 import { getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
 import type { InsurancePlan } from '../../../types/upsell';
 
@@ -22,34 +24,20 @@ interface InsuranceSectionProps {
    * Optional: Custom class name for the container
    */
   className?: string;
-  /**
-   * Callback when insurance selection changes
-   */
-  onSelectionChange?: (insuranceId: string | null) => void;
-  /**
-   * External control of selected insurance (for controlled component usage)
-   */
-  selectedInsurance?: string | null;
 }
 
 export function InsuranceSection({
   showIntro = true,
   className = '',
-  onSelectionChange,
-  selectedInsurance: externalSelectedInsurance,
 }: InsuranceSectionProps) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
-  // Internal state for uncontrolled usage
-  const [internalSelectedInsurance, setInternalSelectedInsurance] = useState<string | null>(null);
+  // Use ProductContext for insurance state (persists to localStorage)
+  const { selectedInsurance, setSelectedInsurance } = useProduct();
+
   const [insurancePlans, setInsurancePlans] = useState<InsurancePlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Use external value if provided (controlled), otherwise use internal state
-  const selectedInsurance = externalSelectedInsurance !== undefined
-    ? externalSelectedInsurance
-    : internalSelectedInsurance;
 
   // Load insurance plans from API
   useEffect(() => {
@@ -80,15 +68,13 @@ export function InsuranceSection({
   }, [landing]);
 
   const handleSelect = (planId: string) => {
-    const newValue = planId === selectedInsurance ? null : planId;
-
-    // Update internal state if uncontrolled
-    if (externalSelectedInsurance === undefined) {
-      setInternalSelectedInsurance(newValue);
+    // Toggle: if same plan selected, deselect; otherwise select new plan
+    if (selectedInsurance?.id === planId) {
+      setSelectedInsurance(null);
+    } else {
+      const plan = insurancePlans.find(p => p.id === planId);
+      setSelectedInsurance(plan || null);
     }
-
-    // Notify parent
-    onSelectionChange?.(newValue);
   };
 
   return (
@@ -102,7 +88,7 @@ export function InsuranceSection({
       ) : insurancePlans.length > 0 ? (
         <PlanComparison
           plans={insurancePlans}
-          selectedPlan={selectedInsurance}
+          selectedPlan={selectedInsurance?.id || null}
           onSelect={handleSelect}
         />
       ) : (
@@ -112,14 +98,4 @@ export function InsuranceSection({
       )}
     </div>
   );
-}
-
-/**
- * Get the selected insurance monthly price
- * Utility hook for calculating totals
- */
-export function useInsurancePrice(selectedInsuranceId: string | null, plans: InsurancePlan[]): number {
-  if (!selectedInsuranceId) return 0;
-  const plan = plans.find(p => p.id === selectedInsuranceId);
-  return plan?.monthlyPrice || 0;
 }

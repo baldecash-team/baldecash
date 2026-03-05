@@ -10,7 +10,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart } from 'lucide-react';
+import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import Image from 'next/image';
 
@@ -19,7 +19,7 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
-  const { selectedProduct, selectedAccessories, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota } = useProduct();
+  const { selectedProduct, selectedAccessories, selectedInsurance, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota } = useProduct();
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
 
   // Usar el estado del contexto para la expansión
@@ -47,6 +47,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const totalMonthlyPayment = getTotalMonthlyPayment();
   const discountedMonthlyPayment = getDiscountedMonthlyPayment();
   const hasAccessories = selectedAccessories.length > 0;
+  const hasInsurance = !!selectedInsurance;
   const hasCoupon = !!appliedCoupon;
 
   return (
@@ -97,9 +98,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium text-neutral-800 truncate">
                 {allProducts.length > 1 ? `${allProducts.length} productos` : mainProduct.shortName}
-                {hasAccessories && (
+                {(hasAccessories || hasInsurance) && (
                   <span className="text-xs text-neutral-500 ml-1">
-                    +{selectedAccessories.length} acc.
+                    {hasAccessories && `+${selectedAccessories.length} acc.`}
+                    {hasAccessories && hasInsurance && ' '}
+                    {hasInsurance && '+seguro'}
                   </span>
                 )}
               </p>
@@ -198,6 +201,15 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}/mes</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Insurance Selected */}
+                  {hasInsurance && selectedInsurance && (
+                    <div className="mt-3 flex items-center gap-2 text-xs text-neutral-600 bg-[var(--color-secondary)]/10 px-3 py-2 rounded-lg">
+                      <Shield className="w-3 h-3 text-[var(--color-secondary)]" />
+                      <span className="flex-1 truncate">{selectedInsurance.name}</span>
+                      <span className="text-[var(--color-secondary)] font-medium">+{formatPrice(selectedInsurance.monthlyPrice)}/mes</span>
                     </div>
                   )}
 
@@ -327,8 +339,8 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             ))}
           </div>
 
-          {/* Total - only show if multiple products or accessories */}
-          {(allProducts.length > 1 || hasAccessories) && (
+          {/* Total - only show if multiple products, accessories or insurance */}
+          {(allProducts.length > 1 || hasAccessories || hasInsurance) && (
             <div className="mt-4 pt-4 border-t border-neutral-200 flex items-center justify-between">
               <span className="text-sm font-semibold text-neutral-800">Cuota total productos</span>
               <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
@@ -349,6 +361,26 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             </div>
           )}
         </div>
+
+        {/* Insurance Card - Only visible when insurance is selected */}
+        {hasInsurance && selectedInsurance && (
+          <div className="bg-[var(--color-secondary)]/5 rounded-xl border border-[var(--color-secondary)]/10 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[var(--color-secondary)]" />
+                <p className="text-sm font-semibold text-neutral-800">
+                  Seguro
+                </p>
+              </div>
+              <span className="text-sm font-medium text-[var(--color-secondary)]">
+                +{formatPrice(selectedInsurance.monthlyPrice)}/mes
+              </span>
+            </div>
+            <p className="text-xs text-neutral-600 mt-1 ml-6">
+              {selectedInsurance.name}
+            </p>
+          </div>
+        )}
 
         {/* Accessories Card with Accordion - Only visible when accessories are selected */}
         {hasAccessories && (

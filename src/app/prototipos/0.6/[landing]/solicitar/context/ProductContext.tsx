@@ -7,11 +7,12 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import type { Accessory } from '../types/upsell';
+import type { Accessory, InsurancePlan } from '../types/upsell';
 
 const STORAGE_KEY = 'baldecash-solicitar-selected-product';
 const CART_PRODUCTS_STORAGE_KEY = 'baldecash-solicitar-cart-products';
 const ACCESSORIES_STORAGE_KEY = 'baldecash-solicitar-selected-accessories';
+const INSURANCE_STORAGE_KEY = 'baldecash-solicitar-selected-insurance';
 const COUPON_STORAGE_KEY = 'baldecash-solicitar-applied-coupon';
 
 // Maximum monthly quota limit from env
@@ -33,7 +34,7 @@ export interface SelectedProduct {
   };
 }
 
-export type { Accessory };
+export type { Accessory, InsurancePlan };
 
 export interface AppliedCoupon {
   code: string;
@@ -58,6 +59,10 @@ interface ProductContextValue {
   appliedCoupon: AppliedCoupon | null;
   setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
   clearCoupon: () => void;
+  // Insurance
+  selectedInsurance: InsurancePlan | null;
+  setSelectedInsurance: (insurance: InsurancePlan | null) => void;
+  clearInsurance: () => void;
   getTotalPrice: () => number;
   getTotalMonthlyPayment: () => number;
   getDiscountedMonthlyPayment: () => number;
@@ -98,6 +103,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
   const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
   const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
+  const [selectedInsurance, setSelectedInsuranceState] = useState<InsurancePlan | null>(null);
   const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
@@ -116,6 +122,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
       const storedAccessories = localStorage.getItem(ACCESSORIES_STORAGE_KEY);
       if (storedAccessories) {
         setSelectedAccessoriesState(JSON.parse(storedAccessories));
+      }
+      const storedInsurance = localStorage.getItem(INSURANCE_STORAGE_KEY);
+      if (storedInsurance) {
+        setSelectedInsuranceState(JSON.parse(storedInsurance));
       }
       const storedCoupon = localStorage.getItem(COUPON_STORAGE_KEY);
       if (storedCoupon) {
@@ -219,6 +229,29 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     }
   }, []);
 
+  // Insurance functions
+  const setSelectedInsurance = useCallback((insurance: InsurancePlan | null) => {
+    setSelectedInsuranceState(insurance);
+    try {
+      if (insurance) {
+        localStorage.setItem(INSURANCE_STORAGE_KEY, JSON.stringify(insurance));
+      } else {
+        localStorage.removeItem(INSURANCE_STORAGE_KEY);
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
+  const clearInsurance = useCallback(() => {
+    setSelectedInsuranceState(null);
+    try {
+      localStorage.removeItem(INSURANCE_STORAGE_KEY);
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
   // Coupon functions
   const setAppliedCoupon = useCallback((coupon: AppliedCoupon | null) => {
     setAppliedCouponState(coupon);
@@ -254,15 +287,17 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
     const products = getAllProducts();
     const productsPrice = products.reduce((sum, p) => sum + p.price, 0);
     const accessoriesPrice = selectedAccessories.reduce((sum, acc) => sum + acc.price, 0);
-    return productsPrice + accessoriesPrice;
-  }, [getAllProducts, selectedAccessories]);
+    const insurancePrice = selectedInsurance?.yearlyPrice || 0;
+    return productsPrice + accessoriesPrice + insurancePrice;
+  }, [getAllProducts, selectedAccessories, selectedInsurance]);
 
   const getTotalMonthlyPayment = useCallback(() => {
     const products = getAllProducts();
     const productsMonthly = products.reduce((sum, p) => sum + p.monthlyPayment, 0);
     const accessoriesMonthly = selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0);
-    return productsMonthly + accessoriesMonthly;
-  }, [getAllProducts, selectedAccessories]);
+    const insuranceMonthly = selectedInsurance?.monthlyPrice || 0;
+    return productsMonthly + accessoriesMonthly + insuranceMonthly;
+  }, [getAllProducts, selectedAccessories, selectedInsurance]);
 
   const getDiscountedMonthlyPayment = useCallback(() => {
     const total = getTotalMonthlyPayment();
@@ -289,6 +324,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children }) =>
         appliedCoupon,
         setAppliedCoupon,
         clearCoupon,
+        selectedInsurance,
+        setSelectedInsurance,
+        clearInsurance,
         getTotalPrice,
         getTotalMonthlyPayment,
         getDiscountedMonthlyPayment,

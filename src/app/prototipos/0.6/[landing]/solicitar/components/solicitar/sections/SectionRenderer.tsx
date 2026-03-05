@@ -3,6 +3,7 @@
 /**
  * SectionRenderer - Renders a section dynamically based on type
  * Used by Preview page and Complementos page to render sections in configured order
+ * Both AccessoriesSection and InsuranceSection use ProductContext for state management
  */
 
 import React from 'react';
@@ -16,14 +17,6 @@ interface SectionRendererProps {
    */
   type: SolicitarSectionType;
   /**
-   * For insurance section: callback when selection changes
-   */
-  onInsuranceChange?: (insuranceId: string | null) => void;
-  /**
-   * For insurance section: controlled selected value
-   */
-  selectedInsurance?: string | null;
-  /**
    * Optional: Custom class name for the section
    */
   className?: string;
@@ -31,8 +24,6 @@ interface SectionRendererProps {
 
 export function SectionRenderer({
   type,
-  onInsuranceChange,
-  selectedInsurance,
   className = '',
 }: SectionRendererProps) {
   switch (type) {
@@ -40,13 +31,7 @@ export function SectionRenderer({
       return <AccessoriesSection className={className} />;
 
     case 'insurance':
-      return (
-        <InsuranceSection
-          className={className}
-          onSelectionChange={onInsuranceChange}
-          selectedInsurance={selectedInsurance}
-        />
-      );
+      return <InsuranceSection className={className} />;
 
     case 'wizard_steps':
       // wizard_steps are rendered by the wizard pages, not by SectionRenderer

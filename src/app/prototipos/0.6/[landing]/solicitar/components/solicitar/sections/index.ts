@@ -4,5 +4,5 @@
  */
 
 export { AccessoriesSection } from './AccessoriesSection';
-export { InsuranceSection, useInsurancePrice } from './InsuranceSection';
+export { InsuranceSection } from './InsuranceSection';
 export { SectionRenderer } from './SectionRenderer';

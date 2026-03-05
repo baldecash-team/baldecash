@@ -333,12 +333,19 @@ function WizardPreviewContent() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
             <Clock className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
-            <p className="text-sm font-medium text-neutral-800">1-2 minutos</p>
+            <p className="text-sm font-medium text-neutral-800">
+              {(() => {
+                const totalMinutes = steps.reduce((sum, s) => sum + (s.estimated_time_minutes || 0), 0);
+                return totalMinutes < 1 ? '~1 minuto' : `~${totalMinutes} minutos`;
+              })()}
+            </p>
             <p className="text-xs text-neutral-500">Tiempo estimado</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
             <FileText className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
-            <p className="text-sm font-medium text-neutral-800">4 pasos</p>
+            <p className="text-sm font-medium text-neutral-800">
+              {steps.filter(s => !s.is_summary_step).length} pasos
+            </p>
             <p className="text-xs text-neutral-500">Proceso simple</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
