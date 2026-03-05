@@ -1301,7 +1301,7 @@ function CatalogoContent() {
           megamenuItems={navbarProps?.megamenuItems}
           activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
         />
-        <main className="pt-40">
+        <main className={navbarProps?.promoBannerData ? 'pt-40' : 'pt-[120px]'}>
           <div className="max-w-2xl mx-auto px-4 py-16 text-center">
             <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -1386,7 +1386,7 @@ function CatalogoContent() {
       />
 
       {/* Main Content with padding for fixed navbars (promo + primary + secondary) */}
-      <main className="pt-40">
+      <main className={navbarProps?.promoBannerData ? 'pt-40' : 'pt-[120px]'}>
         {/* Catalog Layout with Products */}
         <CatalogLayout
         products={displayedProducts}
