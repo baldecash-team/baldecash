@@ -102,7 +102,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // Round to whole numbers to match the display format
     const monthlyQuota = Math.floor(pricingSelection?.monthlyQuota ?? product.lowestQuota);
     const months = pricingSelection?.term ?? 24;
-    const initialPercent = pricingSelection?.initialPercent ?? 10; // Default 10% to match catalog hook
+    const initialPercent = pricingSelection?.initialPercent ?? 0; // Default 0% (Sin inicial)
     const initialAmount = Math.floor(pricingSelection?.initialAmount ?? (product.price * initialPercent / 100));
 
     // Build SelectedProduct from current product

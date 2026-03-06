@@ -49,7 +49,7 @@ export interface WizardField {
   id: number;
   code: string;
   label: string;
-  type: 'text' | 'email' | 'phone' | 'document_number' | 'date' | 'radio' | 'select' | 'autocomplete' | 'file' | 'textarea' | 'currency' | 'number';
+  type: 'text' | 'email' | 'phone' | 'document_number' | 'date' | 'radio' | 'select' | 'autocomplete' | 'file' | 'textarea' | 'currency' | 'number' | 'checkbox';
   placeholder?: string | null;
   help_text?: WizardHelpText | null;
   required: boolean;

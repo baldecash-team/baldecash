@@ -15,6 +15,7 @@ import { SelectInput } from './SelectInput';
 import { DateInput } from './DateInput';
 import { FileUpload } from './FileUpload';
 import { TextArea } from './TextArea';
+import { CheckboxField } from './CheckboxField';
 
 interface DynamicFieldProps {
   field: WizardField;
@@ -252,6 +253,33 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           maxLength={field.max_length || undefined}
           rows={4}
           success={!error && !!value}
+        />
+      );
+
+    case 'checkbox':
+      // Checkbox puede ser simple (sin opciones) o múltiple (con opciones)
+      const checkboxOptions = filteredOptions.length > 0
+        ? filteredOptions.map((opt) => ({
+            value: opt.value,
+            label: opt.label,
+          }))
+        : undefined;
+
+      // Para checkbox, el value puede ser string o array
+      const checkboxValue = formData[field.code]?.value;
+
+      return (
+        <CheckboxField
+          id={field.code}
+          label={field.label}
+          value={checkboxValue as string | string[]}
+          onChange={(newValue) => updateField(field.code, newValue as string | string[])}
+          options={checkboxOptions}
+          error={error}
+          required={field.required}
+          disabled={field.readonly}
+          tooltip={tooltip}
+          success={!error && (Array.isArray(checkboxValue) ? checkboxValue.length > 0 : !!checkboxValue)}
         />
       );
 

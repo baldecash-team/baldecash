@@ -25,7 +25,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   onSelectionChange,
 }) => {
   const [selectedTerm, setSelectedTerm] = useState(paymentPlans[0]?.term ?? defaultTerm);
-  const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(10); // Default 10% to match catalog hook
+  const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(0); // Default 0% (Sin inicial)
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
 
   // Obtener opciones de pago inicial del primer plan (son iguales para todos los plazos)
