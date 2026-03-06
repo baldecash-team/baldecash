@@ -84,6 +84,7 @@ export interface ApiCatalogProduct {
   specs?: Record<string, string | number | boolean>;
   labels?: string[];
   image_url?: string;
+  images?: string[];
   colors?: ApiProductColor[];
 }
 
@@ -439,7 +440,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     brand: apiProduct.brand.name.toLowerCase(),
     brandLogo: apiProduct.brand.logo_url,
     thumbnail: apiProduct.image_url || '/images/products/placeholder.jpg',
-    images: apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
+    images: apiProduct.images && apiProduct.images.length > 0
+      ? apiProduct.images
+      : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
     colors: apiProduct.colors?.map(c => ({
       id: c.id,
       name: c.name,
