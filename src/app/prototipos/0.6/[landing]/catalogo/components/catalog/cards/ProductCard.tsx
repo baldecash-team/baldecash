@@ -67,7 +67,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Usa Set() para deduplicar imágenes (fix: algunas APIs devuelven thumbnail duplicado en images[])
   const getImagesForSelectedColor = (): string[] => {
     if (!selectedColorId || !product.colors) {
-      return [...new Set([product.thumbnail, ...product.images.slice(0, 3)])];
+      // Use all product images (ImageGallery caps at 4)
+      return [...new Set([product.thumbnail, ...product.images])];
     }
     const selectedColor = product.colors.find(c => c.id === selectedColorId);
     // Si el color tiene imágenes, usarlas; si no, fallback a thumbnail
