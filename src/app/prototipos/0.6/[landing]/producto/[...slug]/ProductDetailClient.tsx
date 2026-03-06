@@ -5,7 +5,7 @@
  * Fetches product data from API with fallback to mock data
  */
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -30,6 +30,9 @@ import type { CatalogProduct } from '@/app/prototipos/0.6/[landing]/catalogo/typ
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 
+// Product context for solicitar flow
+import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+
 // Import ProductDetail component and API
 import { ProductDetail } from '../components/detail/ProductDetail';
 import { fetchProductDetail, ProductDetailResult } from '../api/productDetailApi';
@@ -39,6 +42,9 @@ import {
   CronogramaVersion,
   defaultDetalleConfig,
 } from '../types/detail';
+
+// Fixed config for quota calculation (same as CatalogoClient)
+const WIZARD_SELECTED_TERM = 24;
 
 function ProductDetailContent() {
   const router = useRouter();
@@ -50,7 +56,10 @@ function ProductDetailContent() {
   const landing = (params.landing as string) || 'home';
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+
+  // Product context for solicitar flow
+  const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
 
   // Scroll to top on page load
   useScrollToTop();
@@ -92,6 +101,39 @@ function ProductDetailContent() {
       setCartProducts([]);
     }
   }, [catalogState.cart, catalogState.isHydrated, landing]);
+
+  // Handle cart continue - save products to context before navigating
+  const handleCartContinue = useCallback(() => {
+    if (cartProducts.length === 0) return;
+
+    // Transform CatalogProduct[] to SelectedProduct[] format for solicitar context
+    const productsForContext = cartProducts.map((product) => ({
+      id: product.id,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      monthlyPayment: product.quotaMonthly,
+      months: WIZARD_SELECTED_TERM,
+      initialPercent: 0,
+      initialAmount: 0,
+      image: product.thumbnail,
+      specs: {
+        processor: product.specs?.processor?.model || '',
+        ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
+        storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
+      },
+    }));
+
+    // Set all products to cart context
+    setContextCartProducts(productsForContext);
+
+    // Also set the first product as selectedProduct for backwards compatibility
+    setSelectedProduct(productsForContext[0]);
+
+    // Navigate to solicitar
+    router.push(`/prototipos/0.6/${landing}/solicitar`);
+  }, [cartProducts, router, setContextCartProducts, setSelectedProduct, landing]);
 
   // Build catalog URL helper
   const getCatalogUrl = (queryParams?: Record<string, string>) => {
@@ -248,7 +290,7 @@ function ProductDetailContent() {
         cartItems={cartProducts}
         onCartRemove={catalogState.removeFromCart}
         onCartClear={catalogState.clearCart}
-        onCartContinue={() => router.push(`/prototipos/0.6/${landing}/solicitar`)}
+        onCartContinue={handleCartContinue}
         onMobileSearchClick={() => setIsSearchDrawerOpen(true)}
         onMobileWishlistClick={() => setIsWishlistDrawerOpen(true)}
         onMobileCartClick={() => setIsCartDrawerOpen(true)}
@@ -310,7 +352,7 @@ function ProductDetailContent() {
         }}
         onContinue={() => {
           setIsCartDrawerOpen(false);
-          router.push(`/prototipos/0.6/${landing}/solicitar`);
+          handleCartContinue();
         }}
       />
     </div>
@@ -326,10 +368,15 @@ function LoadingFallback() {
 }
 
 export function ProductDetailClient() {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <ProductDetailContent />
-    </Suspense>
+    <ProductProvider landingSlug={landing}>
+      <Suspense fallback={<LoadingFallback />}>
+        <ProductDetailContent />
+      </Suspense>
+    </ProductProvider>
   );
 }
 
