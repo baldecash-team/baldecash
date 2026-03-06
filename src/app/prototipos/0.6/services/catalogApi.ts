@@ -82,6 +82,7 @@ export interface ApiCatalogProduct {
   badge_text?: string;
   pricing: ApiProductPricing;
   specs?: Record<string, string | number | boolean>;
+  labels?: string[];
   image_url?: string;
   colors?: ApiProductColor[];
 }
@@ -414,12 +415,13 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   const quotaBiweekly = Math.round(quotaMonthly / 2);
   const quotaWeekly = Math.round(quotaMonthly / 4);
 
-  // Determine tags based on API data
+  // Determine tags based on API data + labels from BD
+  const labels = apiProduct.labels || [];
   const tags: ProductTagType[] = [];
   if (apiProduct.is_featured) tags.push('recomendado');
   if (pricing.discount_percent > 0) tags.push('oferta');
-  if (apiProduct.badge_text?.toLowerCase().includes('vendido')) tags.push('mas_vendido');
-  if (hook.monthly_price < 150) tags.push('cuota_baja');
+  if (labels.includes('mas_vendido') || apiProduct.badge_text?.toLowerCase().includes('vendido')) tags.push('mas_vendido');
+  if (labels.includes('cuota_baja')) tags.push('cuota_baja');
 
   // Use real EAV specs when available, fallback to parsing from name
   const specs = apiProduct.specs && Object.keys(apiProduct.specs).length > 0
