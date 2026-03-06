@@ -14,9 +14,10 @@ const QUIZ_INITIAL = 10;
 // Predefined Quiz Questions - 7 preguntas
 // ============================================
 
+// Question codes match backend seeder (globally unique with prefix)
 export const quizQuestionsUsage: QuizQuestion[] = [
   {
-    id: 'usage',
+    id: 'laptop_usage',
     question: '¿Para qué usarás tu laptop principalmente?',
     helpText: 'Elige la actividad más importante para ti',
     options: [
@@ -25,41 +26,41 @@ export const quizQuestionsUsage: QuizQuestion[] = [
         label: 'Estudios y clases',
         icon: 'GraduationCap',
         description: 'Word, Excel, navegación, videollamadas',
-        weight: { ram: 8, gpu: 'integrated', usage: 'study' },
+        weight: { ram: 8, gpu: 'integrated', usage: 'study', tags: ['estudios'] },
       },
       {
         id: 'gaming',
         label: 'Gaming',
         icon: 'Gamepad2',
         description: 'Juegos modernos con buenos gráficos',
-        weight: { ram: 16, gpu: 'dedicated', usage: 'gaming' },
+        weight: { ram: 16, gpu: 'dedicated', usage: 'gaming', tags: ['gaming', 'potente'] },
       },
       {
         id: 'diseno',
         label: 'Diseño y edición',
         icon: 'Palette',
         description: 'Photoshop, Illustrator, Premiere',
-        weight: { ram: 16, gpu: 'dedicated', usage: 'design' },
+        weight: { ram: 16, gpu: 'dedicated', usage: 'design', tags: ['diseno', 'potente'] },
       },
       {
         id: 'oficina',
         label: 'Trabajo de oficina',
         icon: 'Briefcase',
         description: 'Email, documentos, hojas de cálculo',
-        weight: { ram: 8, gpu: 'integrated', usage: 'office' },
+        weight: { ram: 8, gpu: 'integrated', usage: 'office', tags: ['oficina'] },
       },
       {
         id: 'programacion',
         label: 'Programación',
         icon: 'Code',
         description: 'IDEs, compiladores, contenedores',
-        weight: { ram: 16, storage: 512, usage: 'coding' },
+        weight: { ram: 16, storage: 512, usage: 'coding', tags: ['programacion', 'potente'] },
       },
     ],
     type: 'single',
   },
   {
-    id: 'budget',
+    id: 'laptop_budget',
     question: '¿Cuál es tu presupuesto mensual para cuotas?',
     helpText: 'Financiamos hasta en 24 meses',
     options: [
@@ -95,7 +96,7 @@ export const quizQuestionsUsage: QuizQuestion[] = [
     type: 'single',
   },
   {
-    id: 'priority',
+    id: 'laptop_priority',
     question: '¿Qué es lo más importante para ti?',
     helpText: 'Esto nos ayuda a encontrar la laptop ideal',
     options: [
@@ -131,7 +132,7 @@ export const quizQuestionsUsage: QuizQuestion[] = [
     type: 'single',
   },
   {
-    id: 'brand_preference',
+    id: 'laptop_brand',
     question: '¿Tienes alguna marca preferida?',
     options: [
       { id: 'hp', label: 'HP', icon: 'Laptop', weight: { brand: 'HP' } },
@@ -143,7 +144,7 @@ export const quizQuestionsUsage: QuizQuestion[] = [
     type: 'single',
   },
   {
-    id: 'screen_size',
+    id: 'laptop_screen',
     question: '¿Qué tamaño de pantalla prefieres?',
     options: [
       { id: 'small', label: '13-14"', icon: 'Smartphone', description: 'Compacta y liviana', weight: { display: 14 } },
@@ -153,7 +154,7 @@ export const quizQuestionsUsage: QuizQuestion[] = [
     type: 'single',
   },
   {
-    id: 'delivery',
+    id: 'laptop_delivery',
     question: '¿Cuándo necesitas tu laptop?',
     options: [
       { id: 'urgent', label: 'Lo antes posible', icon: 'Clock', weight: { inStock: true } },
@@ -163,7 +164,7 @@ export const quizQuestionsUsage: QuizQuestion[] = [
     type: 'single',
   },
   {
-    id: 'condition',
+    id: 'laptop_condition',
     question: '¿Equipo nuevo o reacondicionado?',
     options: [
       { id: 'new', label: 'Solo nuevo', icon: 'Sparkles', weight: { condition: 'new' } },
@@ -331,14 +332,14 @@ const calculateMatchScore = (
 };
 
 export const generateMockResults = (answers: QuizAnswer[]): QuizResult[] => {
-  // Extraer todas las respuestas
-  const usageAnswer = answers.find(a => a.questionId === 'usage')?.selectedOptions[0];
-  const budgetAnswer = answers.find(a => a.questionId === 'budget')?.selectedOptions[0];
-  const brandAnswer = answers.find(a => a.questionId === 'brand_preference')?.selectedOptions[0];
-  const priorityAnswer = answers.find(a => a.questionId === 'priority')?.selectedOptions[0];
-  const screenSizeAnswer = answers.find(a => a.questionId === 'screen_size')?.selectedOptions[0];
-  const deliveryAnswer = answers.find(a => a.questionId === 'delivery')?.selectedOptions[0];
-  const conditionAnswer = answers.find(a => a.questionId === 'condition')?.selectedOptions[0];
+  // Extraer todas las respuestas (códigos con prefijo laptop_)
+  const usageAnswer = answers.find(a => a.questionId === 'laptop_usage')?.selectedOptions[0];
+  const budgetAnswer = answers.find(a => a.questionId === 'laptop_budget')?.selectedOptions[0];
+  const brandAnswer = answers.find(a => a.questionId === 'laptop_brand')?.selectedOptions[0];
+  const priorityAnswer = answers.find(a => a.questionId === 'laptop_priority')?.selectedOptions[0];
+  const screenSizeAnswer = answers.find(a => a.questionId === 'laptop_screen')?.selectedOptions[0];
+  const deliveryAnswer = answers.find(a => a.questionId === 'laptop_delivery')?.selectedOptions[0];
+  const conditionAnswer = answers.find(a => a.questionId === 'laptop_condition')?.selectedOptions[0];
 
   let filteredProducts = [...mockQuizProducts];
 

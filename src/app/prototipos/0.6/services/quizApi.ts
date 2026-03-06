@@ -52,13 +52,15 @@ interface ApiQuizFull {
   questions: ApiQuizQuestion[];
 }
 
-interface ApiLandingQuiz {
-  id: number;
+interface ApiLandingQuizLookup {
   landing_id: number;
-  quiz_id: number;
-  is_active: boolean;
+  landing_slug: string;
+  has_quiz: boolean;
+  id: number | null;
+  quiz_id: number | null;
+  is_active: boolean | null;
   config_override: Record<string, unknown> | null;
-  quiz: ApiQuizFull;
+  quiz: ApiQuizFull | null;
 }
 
 interface ApiQuizResponseCreate {
@@ -149,17 +151,6 @@ function transformQuiz(apiQuiz: ApiQuizFull): QuizData {
   };
 }
 
-function transformLandingQuiz(apiLandingQuiz: ApiLandingQuiz): LandingQuizData {
-  return {
-    id: apiLandingQuiz.id,
-    landingId: apiLandingQuiz.landing_id,
-    quizId: apiLandingQuiz.quiz_id,
-    isActive: apiLandingQuiz.is_active,
-    configOverride: apiLandingQuiz.config_override,
-    quiz: transformQuiz(apiLandingQuiz.quiz),
-  };
-}
-
 // ============================================
 // API Functions
 // ============================================
@@ -174,14 +165,28 @@ export async function fetchQuizForLanding(landingSlug: string): Promise<LandingQ
 
   if (!response.ok) {
     if (response.status === 404) {
-      // No quiz for this landing - this is a normal case, not an error
+      // Landing not found
       return null;
     }
     throw new Error(`Failed to fetch quiz: ${response.statusText}`);
   }
 
-  const data: ApiLandingQuiz = await response.json();
-  return transformLandingQuiz(data);
+  const data: ApiLandingQuizLookup = await response.json();
+
+  // Check if landing has an active quiz
+  if (!data.has_quiz || !data.quiz) {
+    return null;
+  }
+
+  // Transform to frontend format
+  return {
+    id: data.id!,
+    landingId: data.landing_id,
+    quizId: data.quiz_id!,
+    isActive: data.is_active!,
+    configOverride: data.config_override,
+    quiz: transformQuiz(data.quiz),
+  };
 }
 
 /**
@@ -258,6 +263,17 @@ interface RecommendRequest {
   limit?: number;
 }
 
+interface ProductSpecs {
+  ram: number | null;
+  ram_type: string | null;
+  storage: number | null;
+  storage_type: string | null;
+  processor: string | null;
+  screen_size: number | null;
+  screen_resolution: string | null;
+  gpu: string | null;
+}
+
 interface ProductRecommendation {
   id: number;
   sku: string;
@@ -268,16 +284,31 @@ interface ProductRecommendation {
   image_url: string | null;
   list_price: number;
   original_price: number | null;
+  monthly_payment: number;
+  term_months: number;
   gama: string | null;
   condition: string;
   match_score: number;
   match_reasons: string[];
+  specs: ProductSpecs;
+}
+
+export interface QuizUIConfig {
+  result_title: string;
+  result_subtitle: string;
+  match_label: string;
+  cta_primary: string;
+  cta_secondary: string;
+  others_title: string;
+  product_type: string;
 }
 
 export interface RecommendResponse {
   products: ProductRecommendation[];
   filters_applied: Record<string, unknown>;
   total_matches: number;
+  term_months: number;
+  ui_config: QuizUIConfig;
 }
 
 // ============================================
@@ -299,6 +330,17 @@ function mapGama(gama: string | null): 'entrada' | 'media' | 'alta' | 'premium' 
 }
 
 /**
+ * Map storage type from API to frontend format
+ */
+function mapStorageType(type: string | null): 'ssd' | 'hdd' | 'emmc' {
+  if (!type) return 'ssd';
+  const lower = type.toLowerCase();
+  if (lower.includes('hdd')) return 'hdd';
+  if (lower.includes('emmc')) return 'emmc';
+  return 'ssd';
+}
+
+/**
  * Transform API recommendation response to frontend QuizResult format
  */
 export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[] {
@@ -312,14 +354,16 @@ export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[
       image: product.image_url || '/images/placeholder-laptop.jpg',
       thumbnail: product.image_url || '/images/placeholder-laptop.jpg',
       price: product.list_price,
-      lowestQuota: Math.round(product.list_price / 24), // Estimado 24 meses
+      lowestQuota: product.monthly_payment,
       specs: {
-        ram: 8,           // Default - backend doesn't provide specs yet
-        storage: 256,     // Default
-        processor: 'Intel/AMD',
-        displaySize: 15.6,
-        resolution: '1920x1080',
-        storageType: 'ssd' as const
+        ram: product.specs.ram ?? 8,
+        ramType: product.specs.ram_type ?? undefined,
+        storage: product.specs.storage ?? 256,
+        storageType: mapStorageType(product.specs.storage_type),
+        processor: product.specs.processor ?? 'N/A',
+        displaySize: product.specs.screen_size ?? 15.6,
+        resolution: product.specs.screen_resolution ?? '1920x1080',
+        gpu: product.specs.gpu ?? undefined,
       },
       tags: product.match_reasons.map(r => r.toLowerCase().replace(/\s+/g, '-')),
       gama: mapGama(product.gama),

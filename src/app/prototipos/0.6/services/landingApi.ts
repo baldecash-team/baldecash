@@ -481,10 +481,14 @@ export function transformLandingData(data: LandingHeroResponse): {
       : (rawStudentCount as number) || 0;
 
     // Leer institution_count: primero directo del config (Admin V3), luego de stats (legacy)
+    // Puede venir como número o string, parseamos ambos casos
     const rawInstitutionCount = socialConfig.institution_count ?? stats.institution_count;
-    const institutionCount = typeof rawInstitutionCount === 'number'
+    const parsedInstitutionCount = typeof rawInstitutionCount === 'number'
       ? rawInstitutionCount
-      : institutions.length;
+      : typeof rawInstitutionCount === 'string'
+        ? parseInt(rawInstitutionCount.replace(/[^0-9]/g, ''), 10) || 0
+        : 0;
+    const institutionCount = parsedInstitutionCount > 0 ? parsedInstitutionCount : institutions.length;
 
     socialProof = {
       title: socialTitle,

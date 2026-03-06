@@ -38,6 +38,19 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
       url: inst.logo,
     }));
 
+  // Calcular cuántas veces repetir los logos para llenar el ancho
+  // Mínimo 2 repeticiones, más si hay pocos logos
+  const minLogosForFullWidth = 8;
+  const repeatCount = Math.max(2, Math.ceil(minLogosForFullWidth / Math.max(logos.length, 1)));
+
+  // Crear array de logos repetidos
+  const repeatedLogos = Array(repeatCount).fill(logos).flat();
+
+  // Calcular duración del marquee basada en cantidad de logos repetidos
+  // Base: 3 segundos por logo visible, mínimo 20s, máximo 60s
+  const marqueeBaseSpeed = 3; // segundos por logo
+  const marqueeDuration = Math.max(20, Math.min(60, repeatedLogos.length * marqueeBaseSpeed));
+
   // Renderizar título con palabra destacada
   const renderTitle = () => {
     const template = data.titleTemplate || '';
@@ -123,10 +136,15 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
         <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none" />
 
-        <div className="flex hover:[animation-play-state:paused] group">
-          {/* Primer set de logos */}
-          <div className="flex animate-marquee group-hover:[animation-play-state:paused]">
-            {logos.map((logo, index) => (
+        <div className="flex group">
+          {/* Primer set de logos (repetidos para llenar ancho) */}
+          <div
+            className="flex shrink-0"
+            style={{
+              animation: `marquee ${marqueeDuration}s linear infinite`,
+            }}
+          >
+            {repeatedLogos.map((logo, index) => (
               <div
                 key={`a-${logo.id}-${index}`}
                 className="flex-shrink-0 h-14 w-24 md:w-32 mx-3 md:mx-6 flex items-center justify-center grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300 cursor-pointer"
@@ -145,8 +163,13 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
             ))}
           </div>
           {/* Segundo set de logos (duplicado para loop infinito) */}
-          <div className="flex animate-marquee group-hover:[animation-play-state:paused]">
-            {logos.map((logo, index) => (
+          <div
+            className="flex shrink-0"
+            style={{
+              animation: `marquee ${marqueeDuration}s linear infinite`,
+            }}
+          >
+            {repeatedLogos.map((logo, index) => (
               <div
                 key={`b-${logo.id}-${index}`}
                 className="flex-shrink-0 h-14 w-24 md:w-32 mx-3 md:mx-6 flex items-center justify-center grayscale hover:grayscale-0 opacity-60 hover:opacity-100 transition-all duration-300 cursor-pointer"
@@ -321,21 +344,13 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
       </div>
       )}
 
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes marquee {
           0% {
             transform: translateX(0);
           }
           100% {
             transform: translateX(-100%);
-          }
-        }
-        .animate-marquee {
-          animation: marquee 60s linear infinite;
-        }
-        @media (max-width: 768px) {
-          .animate-marquee {
-            animation: marquee 45s linear infinite;
           }
         }
       `}</style>

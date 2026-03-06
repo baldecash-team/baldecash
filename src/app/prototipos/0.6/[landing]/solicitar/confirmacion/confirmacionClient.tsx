@@ -26,9 +26,10 @@ interface ApplicationStatusData {
   code: string;
   status: string;
   submitted_at: string | null;
-  approved_at: string | null;
-  applicant_name: string | null;
-  product: {
+  evaluated_at?: string | null;
+  approved_at?: string | null;
+  applicant_name?: string | null;
+  product?: {
     name: string;
     image: string | null;
     monthly_payment: number;

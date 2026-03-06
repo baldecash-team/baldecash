@@ -77,7 +77,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
           <Sparkles className="w-8 h-8 text-[#22c55e]" />
         </motion.div>
         <h2 className="text-2xl font-bold text-neutral-800 mb-1">
-          ¡Encontramos tu laptop ideal!
+          ¡Encontramos tu producto ideal!
         </h2>
         <p className="text-neutral-500">
           Basado en tus respuestas, esta es nuestra recomendación
