@@ -205,18 +205,19 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
         {/* Specs Section - Full Width */}
         <div id="section-specs" className="mt-12">
-          <SpecsDisplay
-            specs={product.specs}
-            productName={product.name}
-            productBrand={product.brand}
-            productImage={product.images[0]?.url}
-          />
+          <SpecsDisplay specs={product.specs} />
         </div>
 
         {/* Ports Display - Full Width (Only for Laptops) */}
         {showPorts && (
           <div id="section-ports" className="mt-12">
-            <PortsDisplay ports={product.ports} />
+            <PortsDisplay
+              ports={product.ports}
+              specs={product.specs}
+              productName={product.name}
+              productBrand={product.brand}
+              productImage={product.images[0]?.url}
+            />
           </div>
         )}
 

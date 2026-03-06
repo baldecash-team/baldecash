@@ -19,11 +19,19 @@ interface SpecCategory {
   specs: SpecItem[];
 }
 
+interface ProductPort {
+  name: string;
+  count: number;
+  position: 'left' | 'right' | 'back';
+  icon: string;
+}
+
 interface SpecSheetPDFData {
   productName: string;
   productBrand: string;
   productImage?: string;
   specs: SpecCategory[];
+  ports?: ProductPort[];
   generatedDate: Date;
 }
 
@@ -241,6 +249,82 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
     y += categoryPadding;
   });
+
+  // ===== PUERTOS Y CONECTIVIDAD =====
+  if (data.ports && data.ports.length > 0) {
+    // Verificar si necesitamos nueva página
+    const portsEstimatedHeight = 40 + (data.ports.length * 8);
+    if (y + portsEstimatedHeight > pageHeight - 25) {
+      doc.addPage();
+      y = 20;
+    }
+
+    y += 8;
+    doc.setTextColor(...textColor);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Puertos y Conectividad', margin, y);
+    y += 8;
+
+    // Agrupar puertos por posición
+    const leftPorts = data.ports.filter(p => p.position === 'left');
+    const rightPorts = data.ports.filter(p => p.position === 'right');
+    const backPorts = data.ports.filter(p => p.position === 'back');
+
+    const renderPortGroup = (ports: ProductPort[], title: string) => {
+      if (ports.length === 0) return;
+
+      // Header del grupo
+      doc.setFillColor(...primaryColor);
+      doc.roundedRect(margin, y, contentWidth, categoryHeaderHeight, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title.toUpperCase(), margin + 5, y + 7);
+      y += categoryHeaderHeight + 2;
+
+      // Lista de puertos
+      ports.forEach((port, idx) => {
+        if (y + rowHeight > pageHeight - 25) {
+          doc.addPage();
+          y = 20;
+        }
+
+        if (idx % 2 === 0) {
+          doc.setFillColor(250, 250, 250);
+          doc.rect(margin, y - 1, contentWidth, rowHeight, 'F');
+        }
+
+        doc.setTextColor(...grayColor);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(port.name, margin + 5, y + 5);
+
+        doc.setTextColor(...textColor);
+        doc.setFont('helvetica', 'normal');
+        doc.text(port.count > 1 ? `×${port.count}` : '1', margin + colWidth, y + 5);
+
+        y += rowHeight;
+      });
+
+      y += categoryPadding;
+    };
+
+    renderPortGroup(leftPorts, 'Lado Izquierdo');
+    renderPortGroup(rightPorts, 'Lado Derecho');
+    renderPortGroup(backPorts, 'Parte Trasera');
+
+    // Resumen de puertos
+    const totalPorts = data.ports.reduce((acc, p) => acc + p.count, 0);
+    y += 4;
+    doc.setFillColor(...lightGray);
+    doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'F');
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total: ${totalPorts} puertos`, margin + 5, y + 8);
+    y += 16;
+  }
 
   // ===== FOOTER =====
   y += 10;

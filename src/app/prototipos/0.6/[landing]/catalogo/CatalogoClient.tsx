@@ -542,6 +542,8 @@ function CatalogoContent() {
       price: product.price,
       monthlyPayment: product.quotaMonthly,
       months: WIZARD_SELECTED_TERM,
+      initialPercent: 0,
+      initialAmount: 0,
       image: product.thumbnail,
       specs: {
         processor: product.specs?.processor?.model || '',

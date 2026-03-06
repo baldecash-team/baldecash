@@ -4,13 +4,21 @@
  * Updated: Support for multiple products
  */
 
+export interface ProductSpecs {
+  processor?: string;
+  ram?: string;
+  storage?: string;
+}
+
 export interface ProductItem {
   name: string;
+  brand?: string;
   image: string;
   quantity: number;
   unitPrice: number;
   finalPrice: number;
   monthlyQuota: number;
+  specs?: ProductSpecs;
 }
 
 export interface AccessoryItem {

@@ -33,11 +33,17 @@ interface ApplicationStatusData {
   // Products array (multiple products support)
   products?: Array<{
     name: string;
+    brand?: string | null;
     image: string | null;
     quantity: number;
     unit_price: number;
     final_price: number;
     monthly_quota: number;
+    specs?: {
+      processor?: string;
+      ram?: string;
+      storage?: string;
+    } | null;
   }>;
 
   term_months?: number;
@@ -113,11 +119,13 @@ function buildReceivedData(
   // Mapear productos desde API
   const products = applicationData?.products?.map((p) => ({
     name: p.name,
+    brand: p.brand || undefined,
     image: p.image || '',
     quantity: p.quantity || 1,
     unitPrice: p.unit_price,
     finalPrice: p.final_price,
     monthlyQuota: p.monthly_quota,
+    specs: p.specs || undefined,
   })) || [];
 
   // Mapear accesorios desde API
@@ -143,7 +151,7 @@ function buildReceivedData(
     : undefined;
 
   return {
-    applicationId: applicationCode,
+    applicationId: applicationData?.code || applicationCode,
     userName,
     submittedAt: applicationData?.submitted_at
       ? new Date(applicationData.submitted_at)

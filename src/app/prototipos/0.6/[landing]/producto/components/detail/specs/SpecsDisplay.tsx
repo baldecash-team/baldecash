@@ -4,8 +4,8 @@
  * SpecsDisplay - Cards grid por categoria (basado en V2)
  */
 
-import React, { useState } from 'react';
-import { Card, CardBody, Button, Tooltip } from '@nextui-org/react';
+import React from 'react';
+import { Card, CardBody, Tooltip } from '@nextui-org/react';
 import {
   Cpu,
   MemoryStick,
@@ -21,15 +21,12 @@ import {
   Fingerprint,
   Gauge,
   Zap,
-  Download,
-  Check,
   Bluetooth,
   Settings,
   Volume2,
   Keyboard,
 } from 'lucide-react';
 import { SpecsProps } from '../../../types/detail';
-import { generateSpecSheetPDF } from '../../../utils/generateSpecSheetPDF';
 
 // Map API icon names (lowercase) to Lucide components
 const iconMap: Record<string, React.ElementType> = {
@@ -66,27 +63,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 
-export const SpecsDisplay: React.FC<SpecsProps> = ({ specs, productName, productBrand, productImage }) => {
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
-
-  const handleDownloadPDF = async () => {
-    try {
-      await generateSpecSheetPDF({
-        productName: productName || 'Producto',
-        productBrand: productBrand || '',
-        productImage,
-        specs,
-        generatedDate: new Date(),
-      });
-
-      // Mostrar feedback de éxito
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 3000);
-    } catch (error) {
-      console.error('Error generando PDF:', error);
-    }
-  };
-
+export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
   return (
     <div className="space-y-4">
       {/* Grid de specs */}
@@ -155,32 +132,6 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs, productName, product
           </Card>
         );
       })}
-      </div>
-
-      {/* Card de descarga */}
-      <div className="mt-6 p-4 bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.1)] rounded-xl border border-[rgba(var(--color-primary-rgb),0.2)]">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 text-center sm:text-left">
-            <div className="w-10 h-10 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shrink-0">
-              <Download className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-neutral-900 font-['Asap']">Ficha Técnica</h4>
-              <p className="text-sm text-neutral-600 hidden sm:block">Descarga todas las especificaciones en PDF</p>
-            </div>
-          </div>
-          <Button
-            className={`w-full sm:w-auto px-6 cursor-pointer transition-all ${
-              downloadSuccess
-                ? 'bg-green-500 text-white'
-                : 'bg-[var(--color-primary)] text-white hover:opacity-90'
-            }`}
-            startContent={downloadSuccess ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-            onPress={handleDownloadPDF}
-          >
-            {downloadSuccess ? 'Descargado' : 'Descargar PDF'}
-          </Button>
-        </div>
       </div>
     </div>
   );

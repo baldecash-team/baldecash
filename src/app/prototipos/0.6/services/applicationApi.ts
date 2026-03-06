@@ -27,6 +27,7 @@ export interface SubmitApplicationRequest {
       product_id: number;
       quantity: number;
       unit_price?: number;
+      monthly_price?: number;  // Cuota mensual con intereses
       initial_percent?: number;
     }[];
     accessories?: {

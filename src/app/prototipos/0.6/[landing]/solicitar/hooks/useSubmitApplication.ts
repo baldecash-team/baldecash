@@ -151,6 +151,7 @@ export function useSubmitApplication(
             product_id: parseInt(p.id, 10),
             quantity: 1,
             unit_price: p.price,
+            monthly_price: p.monthlyPayment,  // Cuota mensual con intereses
             initial_percent: p.initialPercent ?? 10,
           })),
           // Map accessories (backend calculates monthly quotas)

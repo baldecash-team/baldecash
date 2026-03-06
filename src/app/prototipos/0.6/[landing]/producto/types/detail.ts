@@ -287,4 +287,9 @@ export interface CronogramaProps {
 
 export interface PortsDisplayProps {
   ports: ProductPort[];
+  // Props para generación de PDF
+  specs?: ProductSpec[];
+  productName?: string;
+  productBrand?: string;
+  productImage?: string;
 }
