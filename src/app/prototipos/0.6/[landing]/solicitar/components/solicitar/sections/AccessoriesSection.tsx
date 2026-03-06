@@ -70,6 +70,11 @@ export function AccessoriesSection({
     fetchAccessories();
   }, [landing]);
 
+  // Si no hay accesorios disponibles, no mostrar la sección
+  if (!isLoading && accessories.length === 0) {
+    return null;
+  }
+
   return (
     <div className={`bg-white rounded-xl p-6 border border-neutral-200 ${className}`}>
       {showIntro && <AccessoryIntro />}
@@ -78,7 +83,7 @@ export function AccessoriesSection({
         <div className="flex justify-center py-8">
           <div className="w-8 h-8 border-4 border-[rgba(var(--color-primary-rgb),0.2)] border-t-[var(--color-primary)] rounded-full animate-spin" />
         </div>
-      ) : accessories.length > 0 ? (
+      ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {accessories.map((accessory) => (
             <AccessoryCard
@@ -90,8 +95,6 @@ export function AccessoriesSection({
             />
           ))}
         </div>
-      ) : (
-        <p className="text-center text-neutral-500 py-4">No hay accesorios disponibles</p>
       )}
 
       {/* Accessory Detail Modal */}

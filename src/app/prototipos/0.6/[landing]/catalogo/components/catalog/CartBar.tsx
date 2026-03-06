@@ -82,7 +82,7 @@ export const CartBar: React.FC<CartBarProps> = ({
                               {item.displayName}
                             </p>
                             <p className="text-sm font-bold text-[var(--color-primary)]">
-                              S/{formatMoneyNoDecimals(Math.round(quota))}/mes
+                              S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
                             </p>
                           </div>
                           <button
@@ -117,7 +117,7 @@ export const CartBar: React.FC<CartBarProps> = ({
                   {items.length} {items.length === 1 ? 'producto' : 'productos'}
                 </p>
                 <p className={`text-xs ${isOverLimit ? 'text-red-600 font-medium' : 'text-neutral-500'}`}>
-                  Cuota total: S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota))}/mes
+                  Cuota total: S/{formatMoneyNoDecimals(Math.floor(totalMonthlyQuota))}/mes
                   {isOverLimit && ' (excede S/600)'}
                 </p>
               </div>

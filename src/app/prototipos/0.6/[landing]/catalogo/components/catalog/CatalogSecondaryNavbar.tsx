@@ -75,8 +75,11 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   isSearchActive = false,
   config,
 }) => {
-  // Position below navbar: 64px navbar + 40px promo banner (if visible)
-  const topPosition = hidePromoBanner ? '64px' : '104px';
+  // Position below navbar: 64px navbar + promo banner height (dynamic)
+  // Uses CSS variable set by Navbar component
+  const topPosition = hidePromoBanner
+    ? '64px'
+    : 'calc(64px + var(--promo-banner-height, 40px))';
 
   return (
     <div

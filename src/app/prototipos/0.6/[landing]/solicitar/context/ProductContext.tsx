@@ -6,7 +6,7 @@
  * Persists to localStorage for refresh survival
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo, useRef } from 'react';
 import type { Accessory, InsurancePlan } from '../types/upsell';
 
 // Dynamic storage keys based on landing slug
@@ -27,6 +27,8 @@ export interface SelectedProduct {
   price: number;
   monthlyPayment: number;
   months: number;
+  initialPercent: number;  // 0, 10, 20, 30 - percentage of initial payment
+  initialAmount: number;   // Calculated initial payment amount
   image: string;
   specs?: {
     processor?: string;
@@ -66,6 +68,7 @@ interface ProductContextValue {
   clearInsurance: () => void;
   getTotalPrice: () => number;
   getTotalMonthlyPayment: () => number;
+  getDiscountAmount: () => number;
   getDiscountedMonthlyPayment: () => number;
   isHydrated: boolean;
   // Estado de la barra de producto (mobile)
@@ -284,6 +287,27 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     }
   }, [couponKey]);
 
+  // Track previous product ID to detect changes
+  const prevProductIdRef = useRef<string | null>(null);
+
+  // Clear coupon when product changes (coupon may not be valid for new product)
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const currentProductId = selectedProduct?.id || cartProducts[0]?.id || null;
+
+    // Only clear if product CHANGED (not on initial load)
+    if (
+      prevProductIdRef.current !== null &&
+      prevProductIdRef.current !== currentProductId &&
+      appliedCoupon
+    ) {
+      clearCoupon();
+    }
+
+    prevProductIdRef.current = currentProductId;
+  }, [selectedProduct?.id, cartProducts, isHydrated, appliedCoupon, clearCoupon]);
+
   // Get all products (cart or single)
   const getAllProducts = useCallback((): SelectedProduct[] => {
     if (cartProducts.length > 0) return cartProducts;
@@ -308,11 +332,33 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     return productsMonthly + accessoriesMonthly + insuranceMonthly;
   }, [getAllProducts, selectedAccessories, selectedInsurance]);
 
+  /**
+   * Calculate the discount amount based on coupon type
+   * - fixed: discount is a fixed amount (e.g., S/50)
+   * - percent_quotas: discount is a percentage (e.g., 10 = 10%)
+   */
+  const getDiscountAmount = useCallback(() => {
+    const total = getTotalMonthlyPayment();
+
+    if (!appliedCoupon) return 0;
+
+    if (appliedCoupon.couponType === 'fixed') {
+      // Fixed amount: return as-is
+      return appliedCoupon.discount;
+    } else if (appliedCoupon.couponType === 'percent_quotas') {
+      // Percentage: calculate amount based on total
+      return total * (appliedCoupon.discount / 100);
+    }
+
+    // Fallback: treat as fixed amount (backwards compatibility)
+    return appliedCoupon.discount;
+  }, [getTotalMonthlyPayment, appliedCoupon]);
+
   const getDiscountedMonthlyPayment = useCallback(() => {
     const total = getTotalMonthlyPayment();
-    const discount = appliedCoupon?.discount || 0;
-    return Math.max(0, total - discount);
-  }, [getTotalMonthlyPayment, appliedCoupon]);
+    const discountAmount = getDiscountAmount();
+    return Math.max(0, total - discountAmount);
+  }, [getTotalMonthlyPayment, getDiscountAmount]);
 
   // Check if over quota limit
   const isOverQuotaLimit = getTotalMonthlyPayment() > MAX_MONTHLY_QUOTA;
@@ -338,6 +384,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         clearInsurance,
         getTotalPrice,
         getTotalMonthlyPayment,
+        getDiscountAmount,
         getDiscountedMonthlyPayment,
         isHydrated,
         isProductBarExpanded,

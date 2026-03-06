@@ -526,7 +526,7 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                             {item.displayName}
                           </p>
                           <p className="text-sm font-bold text-[var(--color-primary)]">
-                            S/{formatMoneyNoDecimals(Math.round(quota))}/mes
+                            S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
                           </p>
                         </div>
                         <button
@@ -695,7 +695,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                               {item.displayName}
                             </p>
                             <p className="text-sm font-bold text-[var(--color-primary)]">
-                              S/{formatMoneyNoDecimals(Math.round(quota))}/mes
+                              S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
                             </p>
                           </div>
                           <button

@@ -203,7 +203,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             {item.displayName}
                           </p>
                           <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-                            S/{formatMoneyNoDecimals(Math.round(quota))}/mes
+                            S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
                           </p>
                         </div>
                         <button
@@ -223,7 +223,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             {items.length > 0 && (
               <div className="px-4 py-2 bg-neutral-100 border-t border-neutral-200">
                 <p className="text-sm text-neutral-600 text-center">
-                  Cuota total: S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota))}/mes
+                  Cuota total: S/{formatMoneyNoDecimals(Math.floor(totalMonthlyQuota))}/mes
                 </p>
               </div>
             )}

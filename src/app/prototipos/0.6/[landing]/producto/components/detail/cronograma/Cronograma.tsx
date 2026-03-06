@@ -248,7 +248,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     </td>
                     <td className="py-3 px-4 text-right">
                       <span className="text-sm font-semibold text-neutral-900">
-                        S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}
+                        S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
                       </span>
                     </td>
                   </tr>
@@ -293,18 +293,18 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         {getMonthDate(i)}
                       </td>
                       <td className="py-3 px-3 text-right text-sm text-neutral-700">
-                        S/{formatMoneyNoDecimals(Math.round(amort?.capital || 0))}
+                        S/{formatMoneyNoDecimals(Math.floor(amort?.capital || 0))}
                       </td>
                       <td className="py-3 px-3 text-right text-sm text-neutral-500">
-                        S/{formatMoneyNoDecimals(Math.round(amort?.interest || 0))}
+                        S/{formatMoneyNoDecimals(Math.floor(amort?.interest || 0))}
                       </td>
                       <td className="py-3 px-3 text-right">
                         <span className="text-sm font-semibold text-neutral-900">
-                          S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}
+                          S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
                         </span>
                       </td>
                       <td className="py-3 px-3 text-right text-sm text-neutral-600">
-                        S/{formatMoneyNoDecimals(Math.round(amort?.balance || 0))}
+                        S/{formatMoneyNoDecimals(Math.floor(amort?.balance || 0))}
                       </td>
                     </tr>
                   );
@@ -343,16 +343,16 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     {getMonthDate(i)}
                   </p>
                   <p className="text-sm font-bold text-neutral-900">
-                    S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}
+                    S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
                   </p>
                   <div className="mt-2 pt-2 border-t border-neutral-100">
                     <div className="flex justify-between text-[10px]">
                       <span className="text-neutral-400">Capital</span>
-                      <span className="text-neutral-600">S/{formatMoneyNoDecimals(Math.round(amort?.capital || 0))}</span>
+                      <span className="text-neutral-600">S/{formatMoneyNoDecimals(Math.floor(amort?.capital || 0))}</span>
                     </div>
                     <div className="flex justify-between text-[10px]">
                       <span className="text-neutral-400">Interés</span>
-                      <span className="text-neutral-600">S/{formatMoneyNoDecimals(Math.round(amort?.interest || 0))}</span>
+                      <span className="text-neutral-600">S/{formatMoneyNoDecimals(Math.floor(amort?.interest || 0))}</span>
                     </div>
                   </div>
                 </div>
@@ -388,7 +388,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             <span className="text-sm font-medium">Total a pagar</span>
           </div>
           <p className="text-2xl font-bold text-neutral-900">
-            S/{formatMoneyNoDecimals(Math.round(totalPayment))}
+            S/{formatMoneyNoDecimals(Math.floor(totalPayment))}
           </p>
         </div>
 
@@ -492,18 +492,18 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     {productPrice > 0 && (
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-neutral-600">Precio de lista del equipo</span>
-                        <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(productPrice))}</span>
+                        <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(productPrice))}</span>
                       </div>
                     )}
                     {selectedInitialPercent > 0 && initialAmount > 0 && (
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-neutral-600">Cuota inicial ({selectedInitialPercent}%)</span>
-                        <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(initialAmount))}</span>
+                        <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(initialAmount))}</span>
                       </div>
                     )}
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-neutral-600">Cuota mensual</span>
-                      <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}</span>
+                      <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-neutral-600">Plazo</span>
@@ -568,12 +568,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                           <p className="text-sm text-neutral-600">Monto total a pagar</p>
                           <p className="text-xs text-neutral-500">
                             {selectedInitialPercent > 0
-                              ? `S/${formatMoneyNoDecimals(Math.round(initialAmount))} inicial + ${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.round(adjustedQuota))}`
-                              : `${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.round(adjustedQuota))}`
+                              ? `S/${formatMoneyNoDecimals(Math.floor(initialAmount))} inicial + ${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
+                              : `${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
                             }
                           </p>
                         </div>
-                        <p className="text-2xl font-bold text-green-600">S/{formatMoneyNoDecimals(Math.round(totalPayment))}</p>
+                        <p className="text-2xl font-bold text-green-600">S/{formatMoneyNoDecimals(Math.floor(totalPayment))}</p>
                       </div>
                     </div>
 
@@ -637,18 +637,18 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 {productPrice > 0 && (
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-neutral-600">Precio de lista del equipo</span>
-                    <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(productPrice))}</span>
+                    <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(productPrice))}</span>
                   </div>
                 )}
                 {selectedInitialPercent > 0 && initialAmount > 0 && (
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-neutral-600">Cuota inicial ({selectedInitialPercent}%)</span>
-                    <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.round(initialAmount))}</span>
+                    <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(initialAmount))}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-neutral-600">Cuota mensual</span>
-                  <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.round(adjustedQuota))}</span>
+                  <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-600">Plazo</span>
@@ -713,12 +713,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       <p className="text-sm text-neutral-600">Monto total a pagar</p>
                       <p className="text-xs text-neutral-500">
                         {selectedInitialPercent > 0
-                          ? `S/${formatMoneyNoDecimals(Math.round(initialAmount))} inicial + ${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.round(adjustedQuota))}`
-                          : `${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.round(adjustedQuota))}`
+                          ? `S/${formatMoneyNoDecimals(Math.floor(initialAmount))} inicial + ${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
+                          : `${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
                         }
                       </p>
                     </div>
-                    <p className="text-2xl font-bold text-green-600">S/{formatMoneyNoDecimals(Math.round(totalPayment))}</p>
+                    <p className="text-2xl font-bold text-green-600">S/{formatMoneyNoDecimals(Math.floor(totalPayment))}</p>
                   </div>
                 </div>
 

@@ -27,7 +27,13 @@ const mockSelectedAccessories = [
   { id: '1', name: 'Accessory 1', price: 50 },
 ];
 
-const mockAppliedCoupon = { code: 'TEST10', discount: 10 };
+const mockAppliedCoupon = {
+  code: 'TEST10',
+  discount: 10,
+  label: 'Descuento de prueba',
+  couponType: 'fixed' as const,
+  quotasAffected: undefined,
+};
 
 const mockFormData = {
   nombres: { value: 'John', error: null },
@@ -55,6 +61,7 @@ jest.mock('../../context/ProductContext', () => ({
     selectedAccessories: mockSelectedAccessories,
     selectedInsurance: mockSelectedInsurance,
     appliedCoupon: mockAppliedCoupon,
+    getDiscountAmount: () => 10, // Fixed coupon: returns discount value directly
     getDiscountedMonthlyPayment: () => 90,
     getTotalPrice: () => 1080,
     clearProduct: mockClearProduct,

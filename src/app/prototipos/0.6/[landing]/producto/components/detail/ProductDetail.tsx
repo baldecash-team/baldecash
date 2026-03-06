@@ -100,8 +100,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const handleSolicitar = () => {
     // Use the user's selection from PricingCalculator, or fallback to defaults
     // Round to whole numbers to match the display format
-    const monthlyQuota = Math.round(pricingSelection?.monthlyQuota ?? product.lowestQuota);
-    const months = pricingSelection?.term ?? 36;
+    const monthlyQuota = Math.floor(pricingSelection?.monthlyQuota ?? product.lowestQuota);
+    const months = pricingSelection?.term ?? 24;
+    const initialPercent = pricingSelection?.initialPercent ?? 10; // Default 10% to match catalog hook
+    const initialAmount = Math.floor(pricingSelection?.initialAmount ?? (product.price * initialPercent / 100));
 
     // Build SelectedProduct from current product
     const selectedProduct: SelectedProduct = {
@@ -109,9 +111,11 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
-      price: Math.round(product.price),
+      price: Math.floor(product.price),
       monthlyPayment: monthlyQuota,
       months: months,
+      initialPercent: initialPercent,
+      initialAmount: initialAmount,
       image: product.images[0]?.url || '',
       specs: {
         processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model') || '',

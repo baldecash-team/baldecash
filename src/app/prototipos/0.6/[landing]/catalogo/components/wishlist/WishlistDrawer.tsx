@@ -121,7 +121,7 @@ const WishlistContentShared: React.FC<{
               </p>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-lg font-bold text-[var(--color-primary)]">
-                  S/{formatMoneyNoDecimals(Math.round(quota))}
+                  S/{formatMoneyNoDecimals(Math.floor(quota))}
                 </span>
                 <span className="text-xs text-neutral-500">/mes</span>
               </div>

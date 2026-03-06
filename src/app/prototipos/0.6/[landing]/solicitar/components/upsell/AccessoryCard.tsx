@@ -107,7 +107,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
         {/* Price */}
         <div className="mt-auto flex items-center justify-between">
           <span className="text-[var(--color-primary)] font-bold">
-            +S/{formatMoneyNoDecimals(Math.round(accessory.monthlyQuota))}/mes
+            +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}/mes
           </span>
           <Plus
             className={`w-5 h-5 text-neutral-400 transition-all duration-200 ${

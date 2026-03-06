@@ -239,7 +239,7 @@ export const calculateTotalWithUpsells = (
   selectedInsuranceId: string | null
 ): { totalPrice: number; totalQuota: number; breakdown: { item: string; price: number; quota: number }[] } => {
   const breakdown: { item: string; price: number; quota: number }[] = [
-    { item: 'Equipo', price: productPrice, quota: Math.round(productPrice / 24) },
+    { item: 'Equipo', price: productPrice, quota: Math.floor(productPrice / 24) },
   ];
 
   let totalPrice = productPrice;

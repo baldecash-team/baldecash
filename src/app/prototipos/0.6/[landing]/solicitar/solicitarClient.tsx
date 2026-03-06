@@ -272,7 +272,7 @@ function WizardPreviewContent() {
                         </div>
                       )}
                       <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
-                        S/{formatMoneyNoDecimals(Math.round(product.monthlyPayment))}/mes
+                        S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}/mes
                         <span className="text-xs text-neutral-500 font-normal ml-1">
                           x {product.months} meses
                         </span>
@@ -295,7 +295,7 @@ function WizardPreviewContent() {
                         {selectedAccessories.map((acc) => (
                           <div key={acc.id} className="flex items-center justify-between text-sm">
                             <span className="text-neutral-700">{acc.name}</span>
-                            <span className="text-[var(--color-primary)] font-medium">+S/{formatMoneyNoDecimals(Math.round(acc.monthlyQuota))}/mes</span>
+                            <span className="text-[var(--color-primary)] font-medium">+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}/mes</span>
                           </div>
                         ))}
                       </div>
@@ -306,7 +306,7 @@ function WizardPreviewContent() {
                   <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
                     <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
                     <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
-                      S/{formatMoneyNoDecimals(Math.round(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)))}/mes
+                      S/{formatMoneyNoDecimals(Math.floor(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)))}/mes
                     </span>
                   </div>
 
@@ -393,9 +393,7 @@ function WizardPreviewContent() {
 
         {/* Dynamic Sections Before Wizard - Rendered in configured order */}
         {sectionsBeforeWizard.map((section) => (
-          <div key={section.type} className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
-            <SectionRenderer type={section.type} />
-          </div>
+          <SectionRenderer key={section.type} type={section.type} className="mb-8" />
         ))}
 
         {/* Términos y Condiciones */}

@@ -44,7 +44,7 @@ interface CronogramaPDFData {
  * Formatea un número como moneda peruana (redondeado, sin decimales)
  */
 const formatMoney = (amount: number): string => {
-  return `S/${Math.round(amount).toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return `S/${Math.floor(amount).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
 
 /**

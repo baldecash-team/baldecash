@@ -111,13 +111,13 @@ const ModalContentShared: React.FC<{
           <div>
             <p className="text-xs text-neutral-500 uppercase tracking-wide">Precio total</p>
             <p className="text-xl font-bold text-neutral-800">
-              S/{formatMoneyNoDecimals(Math.round(accessory.price))}
+              S/{formatMoneyNoDecimals(Math.floor(accessory.price))}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-neutral-500 uppercase tracking-wide">Cuota mensual</p>
             <p className="text-xl font-bold text-[var(--color-primary)]">
-              +S/{formatMoneyNoDecimals(Math.round(accessory.monthlyQuota))}
+              +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}
               <span className="text-sm font-normal text-neutral-500">/mes</span>
             </p>
           </div>

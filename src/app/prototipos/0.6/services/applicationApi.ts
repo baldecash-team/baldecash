@@ -15,30 +15,24 @@ export interface SubmitApplicationRequest {
   session_uuid: string;
   /** Form data collected from wizard steps */
   form_data: Record<string, string | number | boolean>;
-  /** Product and pricing configuration */
+  /** Product and pricing configuration - backend calculates final amounts */
   product_data: {
     product_id: number;
     variant_id?: number;
     term_months: number;
-    monthly_payment: number;
-    total_amount: number;
-    unit_price: number;
-    tea?: number;
-    tcea?: number;
-    initial_payment?: number;
+    initial_percent: number; // 0, 10, 20, 30 - backend calculates amounts
+    unit_price?: number; // Hint for backend, will be validated against DB
     /** Multiple products for cart functionality */
     products?: {
       product_id: number;
       quantity: number;
-      unit_price: number;
-      final_price: number;
+      unit_price?: number;
+      initial_percent?: number;
     }[];
     accessories?: {
       accessory_id: number;
-      price: number;
     }[];
     insurance_id?: number;
-    insurance_premium?: number;
   };
   /** Optional coupon code for discount */
   coupon_code?: string;
@@ -48,6 +42,7 @@ export interface SubmitApplicationResponse {
   success: boolean;
   application_id?: number;
   application_code?: string;
+  public_token?: string;  // UUID for secure public URLs
   status?: string;
   error?: string;
   person_id?: number;
@@ -190,25 +185,62 @@ export async function saveFormStep(
 }
 
 /**
+ * Application status response type
+ */
+export interface ApplicationStatusResponse {
+  code: string;
+  status: string;
+  submitted_at: string | null;
+  evaluated_at?: string | null;
+  approved_at?: string | null;
+  applicant_name?: string | null;
+
+  // Products array (multiple products support)
+  products?: Array<{
+    name: string;
+    image: string | null;
+    quantity: number;
+    unit_price: number;
+    final_price: number;
+    monthly_quota: number;
+  }>;
+
+  term_months?: number;
+
+  accessories?: Array<{
+    name: string;
+    monthly_quota: number;
+  }> | null;
+
+  insurance?: {
+    name: string;
+    monthly_price: number;
+  } | null;
+
+  coupon?: {
+    code: string;
+    discount_amount: number;
+  } | null;
+
+  total_monthly_payment?: number;
+
+  status_history: Array<{
+    previous_status: string | null;
+    new_status: string;
+    reason_code: string | null;
+    reason_text: string | null;
+    changed_at: string | null;
+  }>;
+}
+
+/**
  * Get application status by code
  *
  * Public endpoint for applicants to check their status
  */
 export async function getApplicationStatus(
   code: string
-): Promise<{
-  code: string;
-  status: string;
-  submitted_at: string | null;
-  evaluated_at: string | null;
-  status_history: {
-    previous_status: string | null;
-    new_status: string;
-    reason_code: string | null;
-    reason_text: string | null;
-    changed_at: string | null;
-  }[];
-} | null> {
+): Promise<ApplicationStatusResponse | null> {
   try {
     const response = await fetch(
       `${API_BASE_URL}/public/form/application/${encodeURIComponent(code)}/status`

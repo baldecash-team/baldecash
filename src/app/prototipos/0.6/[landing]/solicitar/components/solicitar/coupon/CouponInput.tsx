@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tag, Loader2, Check, X, Sparkles } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
+import { useWizardConfig } from '../../../context/WizardConfigContext';
 
 type CouponState = 'idle' | 'validating' | 'success' | 'error';
 
@@ -35,7 +36,15 @@ export const CouponInput: React.FC = () => {
   const [couponCode, setCouponCode] = useState('');
   const [state, setState] = useState<CouponState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const { appliedCoupon, setAppliedCoupon, clearCoupon } = useProduct();
+  const {
+    appliedCoupon,
+    setAppliedCoupon,
+    clearCoupon,
+    selectedProduct,
+    cartProducts,
+    getDiscountAmount
+  } = useProduct();
+  const { config } = useWizardConfig();
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -48,12 +57,23 @@ export const CouponInput: React.FC = () => {
     setState('validating');
 
     try {
+      // Get product_id for validation (use selected product or first cart product)
+      const productId = selectedProduct?.id
+        ? parseInt(selectedProduct.id, 10)
+        : cartProducts[0]?.id
+          ? parseInt(cartProducts[0].id, 10)
+          : undefined;
+
       const response = await fetch(`${API_BASE_URL}/public/coupons/validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ code: couponCode.trim() }),
+        body: JSON.stringify({
+          code: couponCode.trim(),
+          product_id: productId,
+          landing_id: config?.landing_id,
+        }),
       });
 
       const data: CouponValidateResponse = await response.json();
@@ -132,8 +152,14 @@ export const CouponInput: React.FC = () => {
               transition={{ delay: 0.3, type: 'spring' }}
               className="text-right"
             >
-              <p className="text-lg font-bold text-green-600">-S/{appliedCoupon.discount}</p>
-              <p className="text-xs text-green-500">por mes</p>
+              <p className="text-lg font-bold text-green-600">
+                -S/{getDiscountAmount().toFixed(0)}
+              </p>
+              <p className="text-xs text-green-500">
+                {appliedCoupon.quotasAffected
+                  ? `en ${appliedCoupon.quotasAffected} cuotas`
+                  : 'por mes'}
+              </p>
             </motion.div>
 
             <button

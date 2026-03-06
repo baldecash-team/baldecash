@@ -1,47 +1,55 @@
+/// <reference types="jest" />
 /**
  * Tests for buildReceivedData function
- * Tests the mapping from API response to ReceivedData format
+ * Updated for multiple products support
  */
 
-// Import the function by extracting it for testing
-// We'll test the logic directly since buildReceivedData is internal to confirmacionClient
-
+// Type definitions matching the updated confirmacionClient.tsx
 interface ApplicationStatusData {
   code: string;
   status: string;
   submitted_at: string | null;
-  approved_at: string | null;
-  applicant_name: string | null;
-  product: {
-    name: string;
-    image: string | null;
-    monthly_payment: number;
-    term_months: number;
-    total_amount: number;
-  } | null;
-  products?: {
+  evaluated_at?: string | null;
+  approved_at?: string | null;
+  applicant_name?: string | null;
+  products: Array<{
     name: string;
     image: string | null;
     quantity: number;
     unit_price: number;
     final_price: number;
-  }[];
-  accessories?: {
+    monthly_quota: number;
+  }>;
+  term_months: number;
+  accessories?: Array<{
     name: string;
     monthly_quota: number;
-  }[] | null;
+  }> | null;
   insurance?: {
     name: string;
     monthly_price: number;
   } | null;
-  total_monthly_payment?: number;
-  status_history: {
+  coupon?: {
+    code: string;
+    discount_amount: number;
+  } | null;
+  total_monthly_payment: number;
+  status_history: Array<{
     previous_status: string | null;
     new_status: string;
     reason_code: string | null;
     reason_text: string | null;
     changed_at: string | null;
-  }[];
+  }>;
+}
+
+interface ProductItem {
+  name: string;
+  image: string;
+  quantity: number;
+  unitPrice: number;
+  finalPrice: number;
+  monthlyQuota: number;
 }
 
 interface ReceivedData {
@@ -49,13 +57,8 @@ interface ReceivedData {
   userName: string;
   submittedAt: Date;
   estimatedResponseHours: number;
-  product: {
-    name: string;
-    thumbnail: string;
-    monthlyQuota: number;
-    term: number;
-    totalAmount: number;
-  };
+  products: ProductItem[];
+  termMonths: number;
   accessories?: {
     name: string;
     monthlyQuota: number;
@@ -63,6 +66,10 @@ interface ReceivedData {
   insurance?: {
     name: string;
     monthlyPrice: number;
+  };
+  coupon?: {
+    code: string;
+    discountAmount: number;
   };
   totalMonthlyQuota: number;
   notificationChannels: ('whatsapp' | 'email' | 'sms')[];
@@ -77,20 +84,26 @@ function buildReceivedData(
   applicationData: ApplicationStatusData | null,
   searchParams: URLSearchParams
 ): ReceivedData {
-  const apiProduct = applicationData?.product;
-
-  const productName = apiProduct?.name || searchParams.get('product') || 'Producto solicitado';
-  const productImage = apiProduct?.image || searchParams.get('image') || '';
-  const monthlyPayment = apiProduct?.monthly_payment || Number(searchParams.get('monthly')) || 0;
-  const termMonths = apiProduct?.term_months || Number(searchParams.get('term')) || 12;
-  const totalAmount = apiProduct?.total_amount || Number(searchParams.get('total')) || 0;
+  const termMonths = applicationData?.term_months || 12;
   const userName = applicationData?.applicant_name || searchParams.get('name') || 'Usuario';
 
+  // Mapear productos desde API
+  const products = applicationData?.products?.map((p) => ({
+    name: p.name,
+    image: p.image || '',
+    quantity: p.quantity || 1,
+    unitPrice: p.unit_price,
+    finalPrice: p.final_price,
+    monthlyQuota: p.monthly_quota,
+  })) || [];
+
+  // Mapear accesorios desde API
   const accessories = applicationData?.accessories?.map((acc) => ({
     name: acc.name,
     monthlyQuota: acc.monthly_quota,
   }));
 
+  // Mapear seguro desde API
   const insurance = applicationData?.insurance
     ? {
         name: applicationData.insurance.name,
@@ -98,320 +111,403 @@ function buildReceivedData(
       }
     : undefined;
 
-  const totalMonthlyQuota = applicationData?.total_monthly_payment || monthlyPayment;
+  // Mapear cupón desde API
+  const coupon = applicationData?.coupon
+    ? {
+        code: applicationData.coupon.code,
+        discountAmount: applicationData.coupon.discount_amount,
+      }
+    : undefined;
 
   return {
     applicationId: applicationCode,
     userName,
-    submittedAt: applicationData?.submitted_at ? new Date(applicationData.submitted_at) : new Date(),
+    submittedAt: applicationData?.submitted_at
+      ? new Date(applicationData.submitted_at)
+      : new Date(),
     estimatedResponseHours: 24,
-    product: {
-      name: productName,
-      thumbnail: productImage,
-      monthlyQuota: monthlyPayment,
-      term: termMonths,
-      totalAmount,
-    },
+    products,
+    termMonths,
     accessories,
     insurance,
-    totalMonthlyQuota,
+    coupon,
+    totalMonthlyQuota: applicationData?.total_monthly_payment || 0,
     notificationChannels: ['whatsapp', 'email'],
   };
 }
 
 describe('buildReceivedData', () => {
-  const mockCode = 'BC-2026-TEST123';
+  const mockSearchParams = new URLSearchParams();
 
-  describe('with full API data', () => {
-    it('maps all fields from API response', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
+  describe('products mapping', () => {
+    it('should map products array from API response', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
         status: 'submitted',
-        submitted_at: '2026-03-05T10:00:00Z',
-        approved_at: null,
-        applicant_name: 'María',
-        product: {
-          name: 'Laptop Gaming',
-          image: 'https://example.com/laptop.jpg',
-          monthly_payment: 150.0,
-          term_months: 12,
-          total_amount: 1800.0,
-        },
-        accessories: [
-          { name: 'Mouse Inalámbrico', monthly_quota: 10.0 },
-          { name: 'Teclado Mecánico', monthly_quota: 15.0 },
+        submitted_at: '2026-03-06T12:00:00',
+        applicant_name: 'Test User',
+        products: [
+          {
+            name: 'Laptop V15',
+            image: 'https://example.com/img1.jpg',
+            quantity: 1,
+            unit_price: 2099,
+            final_price: 2099,
+            monthly_quota: 145,
+          },
+          {
+            name: 'Galaxy A36',
+            image: 'https://example.com/img2.jpg',
+            quantity: 1,
+            unit_price: 1349,
+            final_price: 1349,
+            monthly_quota: 98,
+          },
         ],
-        insurance: {
-          name: 'Protección Total',
-          monthly_price: 25.0,
-        },
-        total_monthly_payment: 200.0,
+        term_months: 24,
+        total_monthly_payment: 243,
         status_history: [],
       };
 
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
 
-      expect(result.applicationId).toBe(mockCode);
-      expect(result.userName).toBe('María');
-      expect(result.product.name).toBe('Laptop Gaming');
-      expect(result.product.thumbnail).toBe('https://example.com/laptop.jpg');
-      expect(result.product.monthlyQuota).toBe(150.0);
-      expect(result.product.term).toBe(12);
-      expect(result.product.totalAmount).toBe(1800.0);
+      expect(result.products).toHaveLength(2);
+      expect(result.products[0].name).toBe('Laptop V15');
+      expect(result.products[0].monthlyQuota).toBe(145);
+      expect(result.products[1].name).toBe('Galaxy A36');
+      expect(result.products[1].monthlyQuota).toBe(98);
+    });
+
+    it('should return empty products array when API has no products', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        products: [],
+        term_months: 12,
+        total_monthly_payment: 0,
+        status_history: [],
+      };
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
+      expect(result.products).toEqual([]);
+    });
+
+    it('should handle null applicationData gracefully', () => {
+      const result = buildReceivedData('test-uuid', null, mockSearchParams);
+
+      expect(result.products).toEqual([]);
+      expect(result.termMonths).toBe(12); // default
+    });
+
+    it('should map product image to empty string when null', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        products: [
+          {
+            name: 'Product without image',
+            image: null,
+            quantity: 1,
+            unit_price: 100,
+            final_price: 100,
+            monthly_quota: 10,
+          },
+        ],
+        term_months: 12,
+        total_monthly_payment: 10,
+        status_history: [],
+      };
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
+      expect(result.products[0].image).toBe('');
+    });
+
+    it('should default quantity to 1 when not provided', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        products: [
+          {
+            name: 'Product',
+            image: null,
+            quantity: 0, // falsy value
+            unit_price: 100,
+            final_price: 100,
+            monthly_quota: 10,
+          },
+        ],
+        term_months: 12,
+        total_monthly_payment: 10,
+        status_history: [],
+      };
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
+      expect(result.products[0].quantity).toBe(1);
+    });
+  });
+
+  describe('termMonths', () => {
+    it('should use term_months from API response', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        products: [],
+        term_months: 36,
+        total_monthly_payment: 0,
+        status_history: [],
+      };
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
+      expect(result.termMonths).toBe(36);
+    });
+
+    it('should default to 12 when term_months not provided', () => {
+      const applicationData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        products: [],
+        total_monthly_payment: 0,
+        status_history: [],
+      } as unknown as ApplicationStatusData;
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
+      expect(result.termMonths).toBe(12);
+    });
+  });
+
+  describe('accessories mapping', () => {
+    it('should map accessories from API response', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        products: [],
+        term_months: 24,
+        accessories: [
+          { name: 'Funda', monthly_quota: 2 },
+          { name: 'Mouse', monthly_quota: 3 },
+        ],
+        total_monthly_payment: 5,
+        status_history: [],
+      };
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
       expect(result.accessories).toHaveLength(2);
-      expect(result.accessories?.[0].name).toBe('Mouse Inalámbrico');
-      expect(result.accessories?.[0].monthlyQuota).toBe(10.0);
-      expect(result.insurance?.name).toBe('Protección Total');
-      expect(result.insurance?.monthlyPrice).toBe(25.0);
-      expect(result.totalMonthlyQuota).toBe(200.0);
+      expect(result.accessories![0].name).toBe('Funda');
+      expect(result.accessories![0].monthlyQuota).toBe(2);
     });
 
-    it('parses submitted_at as Date', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
-        status: 'submitted',
-        submitted_at: '2026-03-05T10:30:00Z',
-        approved_at: null,
-        applicant_name: 'Juan',
-        product: {
-          name: 'Test Product',
-          image: null,
-          monthly_payment: 100,
-          term_months: 6,
-          total_amount: 600,
-        },
-        status_history: [],
-      };
-
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
-
-      expect(result.submittedAt).toBeInstanceOf(Date);
-      expect(result.submittedAt.toISOString()).toBe('2026-03-05T10:30:00.000Z');
-    });
-  });
-
-  describe('with URL params fallback', () => {
-    it('uses URL params when API data is null', () => {
-      const params = new URLSearchParams({
-        product: 'Laptop Dell',
-        image: 'https://example.com/dell.jpg',
-        monthly: '200',
-        term: '18',
-        total: '3600',
-        name: 'Carlos',
-      });
-
-      const result = buildReceivedData(mockCode, null, params);
-
-      expect(result.applicationId).toBe(mockCode);
-      expect(result.userName).toBe('Carlos');
-      expect(result.product.name).toBe('Laptop Dell');
-      expect(result.product.thumbnail).toBe('https://example.com/dell.jpg');
-      expect(result.product.monthlyQuota).toBe(200);
-      expect(result.product.term).toBe(18);
-      expect(result.product.totalAmount).toBe(3600);
-      expect(result.totalMonthlyQuota).toBe(200);
-    });
-
-    it('uses URL params when API product is null', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
+    it('should return undefined when no accessories', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
         status: 'submitted',
         submitted_at: null,
-        approved_at: null,
-        applicant_name: 'Pedro',
-        product: null,
-        status_history: [],
-      };
-
-      const params = new URLSearchParams({
-        product: 'Tablet Samsung',
-        monthly: '80',
-        term: '6',
-        total: '480',
-      });
-
-      const result = buildReceivedData(mockCode, apiData, params);
-
-      expect(result.userName).toBe('Pedro'); // API takes precedence
-      expect(result.product.name).toBe('Tablet Samsung');
-      expect(result.product.monthlyQuota).toBe(80);
-    });
-  });
-
-  describe('with default values', () => {
-    it('uses defaults when no data available', () => {
-      const result = buildReceivedData(mockCode, null, new URLSearchParams());
-
-      expect(result.applicationId).toBe(mockCode);
-      expect(result.userName).toBe('Usuario');
-      expect(result.product.name).toBe('Producto solicitado');
-      expect(result.product.thumbnail).toBe('');
-      expect(result.product.monthlyQuota).toBe(0);
-      expect(result.product.term).toBe(12);
-      expect(result.product.totalAmount).toBe(0);
-      expect(result.estimatedResponseHours).toBe(24);
-      expect(result.notificationChannels).toEqual(['whatsapp', 'email']);
-    });
-
-    it('uses current date when submitted_at is null', () => {
-      const beforeTest = new Date();
-
-      const result = buildReceivedData(mockCode, null, new URLSearchParams());
-
-      const afterTest = new Date();
-      expect(result.submittedAt.getTime()).toBeGreaterThanOrEqual(beforeTest.getTime());
-      expect(result.submittedAt.getTime()).toBeLessThanOrEqual(afterTest.getTime());
-    });
-  });
-
-  describe('accessories handling', () => {
-    it('returns undefined when no accessories', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
-        status: 'submitted',
-        submitted_at: null,
-        approved_at: null,
-        applicant_name: null,
-        product: null,
+        products: [],
+        term_months: 24,
         accessories: null,
+        total_monthly_payment: 0,
         status_history: [],
       };
 
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
 
       expect(result.accessories).toBeUndefined();
     });
-
-    it('returns undefined when accessories array is empty', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
-        status: 'submitted',
-        submitted_at: null,
-        approved_at: null,
-        applicant_name: null,
-        product: null,
-        accessories: [],
-        status_history: [],
-      };
-
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
-
-      // Empty array maps to empty array, not undefined
-      expect(result.accessories).toEqual([]);
-    });
-
-    it('maps multiple accessories correctly', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
-        status: 'submitted',
-        submitted_at: null,
-        approved_at: null,
-        applicant_name: null,
-        product: null,
-        accessories: [
-          { name: 'Mochila', monthly_quota: 5.0 },
-          { name: 'Funda', monthly_quota: 3.0 },
-          { name: 'Cargador Extra', monthly_quota: 8.0 },
-        ],
-        status_history: [],
-      };
-
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
-
-      expect(result.accessories).toHaveLength(3);
-      expect(result.accessories?.[0]).toEqual({ name: 'Mochila', monthlyQuota: 5.0 });
-      expect(result.accessories?.[1]).toEqual({ name: 'Funda', monthlyQuota: 3.0 });
-      expect(result.accessories?.[2]).toEqual({ name: 'Cargador Extra', monthlyQuota: 8.0 });
-    });
   });
 
-  describe('insurance handling', () => {
-    it('returns undefined when no insurance', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
+  describe('insurance mapping', () => {
+    it('should map insurance from API response', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
         status: 'submitted',
         submitted_at: null,
-        approved_at: null,
-        applicant_name: null,
-        product: null,
-        insurance: null,
+        products: [],
+        term_months: 24,
+        insurance: { name: 'Protección Premium', monthly_price: 45 },
+        total_monthly_payment: 45,
         status_history: [],
       };
 
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
+      expect(result.insurance).toBeDefined();
+      expect(result.insurance!.name).toBe('Protección Premium');
+      expect(result.insurance!.monthlyPrice).toBe(45);
+    });
+
+    it('should return undefined when no insurance', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        products: [],
+        term_months: 24,
+        insurance: null,
+        total_monthly_payment: 0,
+        status_history: [],
+      };
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
 
       expect(result.insurance).toBeUndefined();
     });
+  });
 
-    it('maps insurance correctly', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
+  describe('coupon mapping', () => {
+    it('should map coupon from API response', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
         status: 'submitted',
         submitted_at: null,
-        approved_at: null,
-        applicant_name: null,
-        product: null,
-        insurance: {
-          name: 'Seguro Premium',
-          monthly_price: 35.5,
-        },
+        products: [],
+        term_months: 24,
+        coupon: { code: 'BALDE20', discount_amount: 50 },
+        total_monthly_payment: 0,
         status_history: [],
       };
 
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
 
-      expect(result.insurance).toEqual({
-        name: 'Seguro Premium',
-        monthlyPrice: 35.5,
-      });
+      expect(result.coupon).toBeDefined();
+      expect(result.coupon!.code).toBe('BALDE20');
+      expect(result.coupon!.discountAmount).toBe(50);
+    });
+
+    it('should return undefined when no coupon', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        products: [],
+        term_months: 24,
+        coupon: null,
+        total_monthly_payment: 0,
+        status_history: [],
+      };
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
+      expect(result.coupon).toBeUndefined();
     });
   });
 
-  describe('total monthly calculation', () => {
-    it('uses total_monthly_payment from API when available', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
+  describe('totalMonthlyQuota', () => {
+    it('should use total_monthly_payment from API', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
         status: 'submitted',
         submitted_at: null,
-        approved_at: null,
-        applicant_name: null,
-        product: {
-          name: 'Test',
-          image: null,
-          monthly_payment: 100,
-          term_months: 12,
-          total_amount: 1200,
-        },
-        total_monthly_payment: 185.0, // Includes accessories + insurance
+        products: [],
+        term_months: 24,
+        total_monthly_payment: 298,
         status_history: [],
       };
 
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
 
-      expect(result.totalMonthlyQuota).toBe(185.0);
+      expect(result.totalMonthlyQuota).toBe(298);
     });
 
-    it('falls back to monthly_payment when total_monthly_payment not provided', () => {
-      const apiData: ApplicationStatusData = {
-        code: mockCode,
+    it('should default to 0 when total_monthly_payment not provided', () => {
+      const result = buildReceivedData('test-uuid', null, mockSearchParams);
+
+      expect(result.totalMonthlyQuota).toBe(0);
+    });
+  });
+
+  describe('userName', () => {
+    it('should use applicant_name from API', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
         status: 'submitted',
         submitted_at: null,
-        approved_at: null,
-        applicant_name: null,
-        product: {
-          name: 'Test',
-          image: null,
-          monthly_payment: 150,
-          term_months: 12,
-          total_amount: 1800,
-        },
+        applicant_name: 'Emilio',
+        products: [],
+        term_months: 24,
+        total_monthly_payment: 0,
         status_history: [],
       };
 
-      const result = buildReceivedData(mockCode, apiData, new URLSearchParams());
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
 
-      expect(result.totalMonthlyQuota).toBe(150);
+      expect(result.userName).toBe('Emilio');
+    });
+
+    it('should fallback to URL param when applicant_name not provided', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: null,
+        applicant_name: null,
+        products: [],
+        term_months: 24,
+        total_monthly_payment: 0,
+        status_history: [],
+      };
+
+      const paramsWithName = new URLSearchParams({ name: 'Juan' });
+      const result = buildReceivedData('test-uuid', applicationData, paramsWithName);
+
+      expect(result.userName).toBe('Juan');
+    });
+
+    it('should default to "Usuario" when no name available', () => {
+      const result = buildReceivedData('test-uuid', null, mockSearchParams);
+
+      expect(result.userName).toBe('Usuario');
+    });
+  });
+
+  describe('submittedAt', () => {
+    it('should parse submitted_at from API', () => {
+      const applicationData: ApplicationStatusData = {
+        code: 'APP-2026-00001',
+        status: 'submitted',
+        submitted_at: '2026-03-06T12:00:00',
+        products: [],
+        term_months: 24,
+        total_monthly_payment: 0,
+        status_history: [],
+      };
+
+      const result = buildReceivedData('test-uuid', applicationData, mockSearchParams);
+
+      expect(result.submittedAt).toBeInstanceOf(Date);
+      expect(result.submittedAt.toISOString()).toContain('2026-03-06');
+    });
+
+    it('should use current date when submitted_at is null', () => {
+      const before = new Date();
+      const result = buildReceivedData('test-uuid', null, mockSearchParams);
+      const after = new Date();
+
+      expect(result.submittedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(result.submittedAt.getTime()).toBeLessThanOrEqual(after.getTime());
+    });
+  });
+
+  describe('constants', () => {
+    it('should always set estimatedResponseHours to 24', () => {
+      const result = buildReceivedData('test-uuid', null, mockSearchParams);
+
+      expect(result.estimatedResponseHours).toBe(24);
+    });
+
+    it('should always set notificationChannels to whatsapp and email', () => {
+      const result = buildReceivedData('test-uuid', null, mockSearchParams);
+
+      expect(result.notificationChannels).toEqual(['whatsapp', 'email']);
     });
   });
 });

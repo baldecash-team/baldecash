@@ -67,6 +67,11 @@ export function InsuranceSection({
     fetchInsurancePlans();
   }, [landing]);
 
+  // Si no hay planes de seguro disponibles, no mostrar la sección
+  if (!isLoading && insurancePlans.length === 0) {
+    return null;
+  }
+
   const handleSelect = (planId: string) => {
     // Toggle: if same plan selected, deselect; otherwise select new plan
     if (selectedInsurance?.id === planId) {
@@ -85,16 +90,12 @@ export function InsuranceSection({
         <div className="flex justify-center py-8">
           <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
         </div>
-      ) : insurancePlans.length > 0 ? (
+      ) : (
         <PlanComparison
           plans={insurancePlans}
           selectedPlan={selectedInsurance?.id || null}
           onSelect={handleSelect}
         />
-      ) : (
-        <p className="text-center text-neutral-500 py-4">
-          No hay planes de seguro disponibles
-        </p>
       )}
     </div>
   );

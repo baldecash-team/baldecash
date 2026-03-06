@@ -19,7 +19,7 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
-  const { selectedProduct, selectedAccessories, selectedInsurance, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota } = useProduct();
+  const { selectedProduct, selectedAccessories, selectedInsurance, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota } = useProduct();
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
 
   // Usar el estado del contexto para la expansión
@@ -35,12 +35,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const mainProduct = allProducts[0];
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
+    return `S/${Math.floor(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
   const totalPrice = getTotalPrice();
@@ -218,7 +213,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     <div className="mt-3 flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">
                       <Tag className="w-3 h-3" />
                       <span className="font-medium">{appliedCoupon.code}</span>
-                      <span className="text-green-500">-{formatPrice(appliedCoupon.discount)}/mes</span>
+                      <span className="text-green-500">
+                        -{formatPrice(getDiscountAmount())}
+                        {appliedCoupon.quotasAffected ? ` en ${appliedCoupon.quotasAffected} cuotas` : '/mes'}
+                      </span>
                     </div>
                   )}
 
@@ -357,7 +355,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 <span className="font-medium">{appliedCoupon.code}</span>
                 <span className="text-green-600">{appliedCoupon.label}</span>
               </div>
-              <span className="font-bold text-green-600">-{formatPrice(appliedCoupon.discount)}/mes</span>
+              <span className="font-bold text-green-600">
+                -{formatPrice(getDiscountAmount())}
+                {appliedCoupon.quotasAffected ? ` en ${appliedCoupon.quotasAffected} cuotas` : '/mes'}
+              </span>
             </div>
           )}
         </div>

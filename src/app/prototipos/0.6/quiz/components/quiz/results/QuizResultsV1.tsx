@@ -178,7 +178,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
                   </p>
                 </div>
                 <p className="text-sm text-neutral-400">
-                  Total: S/{topResult.product.price.toLocaleString()}
+                  Total: S/{topResult.product.price.toLocaleString('en-US')}
                 </p>
               </div>
 

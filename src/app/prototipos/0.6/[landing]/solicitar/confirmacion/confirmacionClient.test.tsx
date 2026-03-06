@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 /**
  * Tests for ConfirmacionClient
  *
@@ -10,6 +11,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
 
 // Declare global mocks (defined in jest.setup.js)
 declare global {
@@ -108,12 +110,24 @@ describe('ConfirmacionClient', () => {
         return null;
       });
 
-      // Mock successful API response
+      // Mock successful API response with products array
       mockGetApplicationStatus.mockResolvedValue({
         code: mockCode,
         status: 'submitted',
         submitted_at: '2025-03-03T10:00:00Z',
         evaluated_at: null,
+        products: [
+          {
+            name: 'Laptop Test',
+            image: null,
+            quantity: 1,
+            unit_price: 1000,
+            final_price: 1000,
+            monthly_quota: 100,
+          },
+        ],
+        term_months: 12,
+        total_monthly_payment: 100,
         status_history: [],
       });
     });
@@ -182,6 +196,18 @@ describe('ConfirmacionClient', () => {
         status: 'submitted',
         submitted_at: '2025-03-03T10:00:00Z',
         evaluated_at: null,
+        products: [
+          {
+            name: 'Laptop Test',
+            image: null,
+            quantity: 1,
+            unit_price: 1000,
+            final_price: 1000,
+            monthly_quota: 100,
+          },
+        ],
+        term_months: 12,
+        total_monthly_payment: 100,
         status_history: [],
       });
 
@@ -280,6 +306,18 @@ describe('ConfirmacionClient', () => {
         status: 'submitted',
         submitted_at: '2025-03-03T10:00:00Z',
         evaluated_at: null,
+        products: [
+          {
+            name: 'Laptop Test',
+            image: null,
+            quantity: 1,
+            unit_price: 1000,
+            final_price: 1000,
+            monthly_quota: 100,
+          },
+        ],
+        term_months: 12,
+        total_monthly_payment: 100,
         status_history: [],
       });
     });

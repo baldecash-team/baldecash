@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { Card, CardBody, Button } from '@nextui-org/react';
+import { Card, CardBody, Button, Tooltip } from '@nextui-org/react';
 import {
   Cpu,
   MemoryStick,
@@ -23,6 +23,10 @@ import {
   Zap,
   Download,
   Check,
+  Bluetooth,
+  Settings,
+  Volume2,
+  Keyboard,
 } from 'lucide-react';
 import { SpecsProps } from '../../../types/detail';
 import { generateSpecSheetPDF } from '../../../utils/generateSpecSheetPDF';
@@ -43,6 +47,10 @@ const iconMap: Record<string, React.ElementType> = {
   fingerprint: Fingerprint,
   gauge: Gauge,
   zap: Zap,
+  bluetooth: Bluetooth,
+  settings: Settings,
+  'volume-2': Volume2,
+  keyboard: Keyboard,
   // PascalCase fallbacks
   Cpu,
   MemoryStick,
@@ -51,40 +59,12 @@ const iconMap: Record<string, React.ElementType> = {
   Battery,
   Wifi,
   HelpCircle,
+  Bluetooth,
+  Settings,
+  Volume2,
+  Keyboard,
 };
 
-// Tooltip component for specs (estilo 0.5: fondo blanco, borde, sombra)
-const SpecTooltip: React.FC<{
-  content: string;
-  children: React.ReactNode;
-}> = ({ content, children }) => {
-  const [isVisible, setIsVisible] = React.useState(false);
-
-  const handleToggle = () => setIsVisible(!isVisible);
-  const handleMouseEnter = () => setIsVisible(true);
-  const handleMouseLeave = () => setIsVisible(false);
-
-  return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleToggle}
-    >
-      {children}
-      <div
-        className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-white border border-neutral-200 shadow-lg rounded-lg w-64 z-[9999] transition-all duration-200 ${
-          isVisible ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
-        }`}
-      >
-        <p className="text-sm text-neutral-700 leading-relaxed">{content}</p>
-        {/* Arrow with border effect */}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-neutral-200" />
-        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[5px] border-transparent border-t-white" />
-      </div>
-    </div>
-  );
-};
 
 export const SpecsDisplay: React.FC<SpecsProps> = ({ specs, productName, productBrand, productImage }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -135,7 +115,7 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs, productName, product
                 {specCategory.specs.map((spec, idx) => (
                   <div
                     key={idx}
-                    className={`flex items-center justify-between ${
+                    className={`flex items-start justify-between gap-2 ${
                       spec.highlight
                         ? 'bg-[rgba(var(--color-primary-rgb),0.05)] -mx-2 px-2 py-1.5 rounded-lg'
                         : ''
@@ -146,13 +126,21 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs, productName, product
                         {spec.label}
                       </span>
                       {spec.tooltip && (
-                        <SpecTooltip content={spec.tooltip}>
-                          <HelpCircle className="w-4 h-4 text-neutral-400 hover:text-[var(--color-primary)] transition-colors cursor-help" />
-                        </SpecTooltip>
+                        <Tooltip
+                          content={spec.tooltip}
+                          placement="top"
+                          classNames={{
+                            content: 'bg-white text-neutral-700 border border-neutral-200 shadow-lg px-3 py-2 max-w-[min(16rem,calc(100vw-2rem))] text-sm',
+                          }}
+                        >
+                          <span className="cursor-help">
+                            <HelpCircle className="w-4 h-4 text-neutral-400 hover:text-[var(--color-primary)] transition-colors" />
+                          </span>
+                        </Tooltip>
                       )}
                     </div>
                     <span
-                      className={`text-sm font-medium font-['Asap'] ${
+                      className={`text-sm font-medium font-['Asap'] text-right max-w-[40%] ${
                         spec.highlight
                           ? 'text-[var(--color-primary)]'
                           : 'text-neutral-900'

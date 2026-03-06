@@ -138,30 +138,28 @@ export function useSubmitApplication(
         const primaryProduct = allProducts[0];
 
         // Build product_data for API
+        // Backend calculates monthly_payment and initial_amount using PricingService
         const productData: SubmitApplicationRequest['product_data'] = {
-          // Primary product (for backward compatibility)
+          // Primary product - backend calculates pricing
           product_id: parseInt(primaryProduct.id, 10),
           term_months: primaryProduct.months,
-          monthly_payment: getDiscountedMonthlyPayment(),
-          total_amount: getTotalPrice(),
+          initial_percent: primaryProduct.initialPercent ?? 10, // Send selection, backend calculates amounts
+          // Frontend-calculated values as hints (backend will recalculate)
           unit_price: primaryProduct.price,
-          initial_payment: 0,
           // Multiple products array
           products: allProducts.map((p) => ({
             product_id: parseInt(p.id, 10),
             quantity: 1,
             unit_price: p.price,
-            final_price: p.price, // For single term, final_price = unit_price
+            initial_percent: p.initialPercent ?? 10,
           })),
-          // Map accessories with price for monthly calculation
+          // Map accessories (backend calculates monthly quotas)
           accessories: selectedAccessories.map((acc) => ({
             accessory_id: parseInt(acc.id, 10),
-            price: acc.price,
           })),
           // Add insurance if selected
           ...(insuranceId && {
             insurance_id: parseInt(insuranceId, 10),
-            insurance_premium: selectedInsurance?.monthlyPrice || 0,
           }),
         };
 
@@ -173,7 +171,7 @@ export function useSubmitApplication(
           coupon_code: appliedCoupon?.code,
         });
 
-        if (result.success && result.application_code) {
+        if (result.success && result.public_token) {
           // Clear all wizard state
           clearSession();
           resetForm();
@@ -186,9 +184,9 @@ export function useSubmitApplication(
           // Show success toast
           onToast?.('Solicitud enviada correctamente', 'success');
 
-          // Redirect to confirmation page with application code only
+          // Redirect to confirmation page with public token (UUID - secure)
           router.push(
-            `/prototipos/0.6/${landing}/solicitar/confirmacion?code=${result.application_code}`
+            `/prototipos/0.6/${landing}/solicitar/confirmacion?code=${result.public_token}`
           );
 
           return true;

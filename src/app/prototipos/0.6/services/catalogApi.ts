@@ -412,8 +412,8 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
 
   // Calculate biweekly and weekly from monthly
   const quotaMonthly = hook.monthly_price;
-  const quotaBiweekly = Math.round(quotaMonthly / 2);
-  const quotaWeekly = Math.round(quotaMonthly / 4);
+  const quotaBiweekly = Math.floor(quotaMonthly / 2);
+  const quotaWeekly = Math.floor(quotaMonthly / 4);
 
   // Determine tags based on API data + labels from BD
   const labels = apiProduct.labels || [];
@@ -822,8 +822,8 @@ export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct
 
   // Calculate quotas using real French amortization formula (TEA 75%, 24 months default)
   const quotaMonthly = price > 0 ? calculateQuotaForTerm(price, 24) : 0;
-  const quotaBiweekly = Math.round(quotaMonthly / 2);
-  const quotaWeekly = Math.round(quotaMonthly / 4);
+  const quotaBiweekly = Math.floor(quotaMonthly / 2);
+  const quotaWeekly = Math.floor(quotaMonthly / 4);
 
   // Determine tags from labels and features
   const tags: ProductTagType[] = [];

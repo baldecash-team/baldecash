@@ -29,40 +29,43 @@ interface ApplicationStatusData {
   evaluated_at?: string | null;
   approved_at?: string | null;
   applicant_name?: string | null;
-  product?: {
-    name: string;
-    image: string | null;
-    monthly_payment: number;
-    term_months: number;
-    total_amount: number;
-  } | null;
-  products?: {
+
+  // Products array (multiple products support)
+  products?: Array<{
     name: string;
     image: string | null;
     quantity: number;
     unit_price: number;
     final_price: number;
-  }[];
-  accessories?: {
+    monthly_quota: number;
+  }>;
+
+  term_months?: number;
+
+  accessories?: Array<{
     name: string;
     monthly_quota: number;
-  }[] | null;
+  }> | null;
+
   insurance?: {
     name: string;
     monthly_price: number;
   } | null;
+
   coupon?: {
     code: string;
     discount_amount: number;
   } | null;
+
   total_monthly_payment?: number;
-  status_history: {
+
+  status_history: Array<{
     previous_status: string | null;
     new_status: string;
     reason_code: string | null;
     reason_text: string | null;
     changed_at: string | null;
-  }[];
+  }>;
 }
 
 // Demo options for testing
@@ -104,23 +107,26 @@ function buildReceivedData(
   applicationData: ApplicationStatusData | null,
   searchParams: URLSearchParams
 ): ReceivedData {
-  // Prefer data from API, fallback to URL params
-  const apiProduct = applicationData?.product;
-
-  const productName = apiProduct?.name || searchParams.get('product') || 'Producto solicitado';
-  const productImage = apiProduct?.image || searchParams.get('image') || '';
-  const monthlyPayment = apiProduct?.monthly_payment || Number(searchParams.get('monthly')) || 0;
-  const termMonths = apiProduct?.term_months || Number(searchParams.get('term')) || 12;
-  const totalAmount = apiProduct?.total_amount || Number(searchParams.get('total')) || 0;
+  const termMonths = applicationData?.term_months || 12;
   const userName = applicationData?.applicant_name || searchParams.get('name') || 'Usuario';
 
-  // Map accessories from API
+  // Mapear productos desde API
+  const products = applicationData?.products?.map((p) => ({
+    name: p.name,
+    image: p.image || '',
+    quantity: p.quantity || 1,
+    unitPrice: p.unit_price,
+    finalPrice: p.final_price,
+    monthlyQuota: p.monthly_quota,
+  })) || [];
+
+  // Mapear accesorios desde API
   const accessories = applicationData?.accessories?.map((acc) => ({
     name: acc.name,
     monthlyQuota: acc.monthly_quota,
   }));
 
-  // Map insurance from API
+  // Mapear seguro desde API
   const insurance = applicationData?.insurance
     ? {
         name: applicationData.insurance.name,
@@ -128,7 +134,7 @@ function buildReceivedData(
       }
     : undefined;
 
-  // Map coupon from API
+  // Mapear cupón desde API
   const coupon = applicationData?.coupon
     ? {
         code: applicationData.coupon.code,
@@ -136,25 +142,19 @@ function buildReceivedData(
       }
     : undefined;
 
-  // Use total from API or calculate
-  const totalMonthlyQuota = applicationData?.total_monthly_payment || monthlyPayment;
-
   return {
     applicationId: applicationCode,
     userName,
-    submittedAt: applicationData?.submitted_at ? new Date(applicationData.submitted_at) : new Date(),
+    submittedAt: applicationData?.submitted_at
+      ? new Date(applicationData.submitted_at)
+      : new Date(),
     estimatedResponseHours: 24,
-    product: {
-      name: productName,
-      thumbnail: productImage,
-      monthlyQuota: monthlyPayment,
-      term: termMonths,
-      totalAmount,
-    },
+    products,
+    termMonths,
     accessories,
     insurance,
     coupon,
-    totalMonthlyQuota,
+    totalMonthlyQuota: applicationData?.total_monthly_payment || 0,
     notificationChannels: ['whatsapp', 'email'],
   };
 }

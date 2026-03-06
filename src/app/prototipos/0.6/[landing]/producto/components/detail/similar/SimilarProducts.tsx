@@ -26,6 +26,11 @@ interface ProductCardState {
 }
 
 export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, currentQuota }) => {
+  // Si no hay productos similares, no mostrar la sección
+  if (!products || products.length === 0) {
+    return null;
+  }
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -144,7 +149,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
       // Build SelectedProduct from SimilarProduct
       // Note: SimilarProduct doesn't have price, so we estimate it from monthlyQuota
       // Price ≈ monthlyQuota * months (assuming 24 months with 10% initial)
-      const estimatedPrice = Math.round(product.monthlyQuota * 24 / 0.9);
+      const estimatedPrice = Math.floor(product.monthlyQuota * 24 / 0.9);
 
       const selectedProduct: SelectedProduct = {
         id: product.id,

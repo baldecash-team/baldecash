@@ -37,9 +37,9 @@ export const PriceRangeFilter: React.FC<PriceRangeFilterProps> = ({
         formatOptions={{ style: 'currency', currency: 'PEN', maximumFractionDigits: 0 }}
       />
       <div className="flex justify-between text-xs">
-        <span className="text-neutral-700 font-medium">S/{value[0].toLocaleString()}</span>
+        <span className="text-neutral-700 font-medium">S/{value[0].toLocaleString('en-US')}</span>
         <span className="text-neutral-300">-</span>
-        <span className="text-neutral-700 font-medium">S/{value[1].toLocaleString()}</span>
+        <span className="text-neutral-700 font-medium">S/{value[1].toLocaleString('en-US')}</span>
       </div>
     </div>
   );

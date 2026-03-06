@@ -354,7 +354,7 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   });
 
   // Price
-  const priceValues = products.map(p => `S/${p.price.toLocaleString()}`);
+  const priceValues = products.map(p => `S/${p.price.toLocaleString('en-US')}`);
   const priceRaw = products.map(p => p.price);
   specs.push({
     key: 'price',

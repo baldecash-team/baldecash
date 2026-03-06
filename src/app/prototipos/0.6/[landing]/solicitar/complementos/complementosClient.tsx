@@ -166,7 +166,7 @@ function ComplementosContent() {
               )}
             </div>
             <p className="text-2xl font-bold text-[var(--color-primary)]">
-              S/{formatMoneyNoDecimals(Math.round(totalMonthly))}/mes
+              S/{formatMoneyNoDecimals(Math.floor(totalMonthly))}/mes
             </p>
           </div>
         </motion.div>

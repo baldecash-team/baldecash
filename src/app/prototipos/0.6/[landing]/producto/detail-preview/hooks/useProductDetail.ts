@@ -67,8 +67,8 @@ function mapLandingDetailToCatalogProduct(data: Record<string, unknown>): Catalo
   const discountPercent = (pricing?.discount_percent as number) || 0;
 
   const quotaMonthly = price > 0 ? (hook?.monthly_price || calculateQuotaForTerm(price, 24)) : 0;
-  const quotaBiweekly = Math.round(quotaMonthly / 2);
-  const quotaWeekly = Math.round(quotaMonthly / 4);
+  const quotaBiweekly = Math.floor(quotaMonthly / 2);
+  const quotaWeekly = Math.floor(quotaMonthly / 4);
 
   const productType = (data.type as string) || 'laptop';
 

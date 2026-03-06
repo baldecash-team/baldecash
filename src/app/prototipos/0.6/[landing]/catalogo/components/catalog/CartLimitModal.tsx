@@ -46,9 +46,9 @@ const LimitModalContent: React.FC<{
             <p className="text-sm text-red-600">
               El máximo permitido es <span className="font-bold">S/600/mes</span>.
               {attemptedProduct ? (
-                <> Al agregar este producto, tu cuota total sería <span className="font-bold">S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota + attemptedQuota))}/mes</span>.</>
+                <> Al agregar este producto, tu cuota total sería <span className="font-bold">S/{formatMoneyNoDecimals(Math.floor(totalMonthlyQuota + attemptedQuota))}/mes</span>.</>
               ) : (
-                <> Tu cuota actual es <span className="font-bold">S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota))}/mes</span> (exceso: S/{formatMoneyNoDecimals(Math.round(excess))}/mes).</>
+                <> Tu cuota actual es <span className="font-bold">S/{formatMoneyNoDecimals(Math.floor(totalMonthlyQuota))}/mes</span> (exceso: S/{formatMoneyNoDecimals(Math.floor(excess))}/mes).</>
               )}
             </p>
           </div>
@@ -86,7 +86,7 @@ const LimitModalContent: React.FC<{
                     {item.displayName}
                   </p>
                   <p className="text-sm font-bold text-[#4654CD]">
-                    S/{formatMoneyNoDecimals(Math.round(quota))}/mes
+                    S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
                   </p>
                 </div>
                 <button
@@ -122,7 +122,7 @@ const LimitModalContent: React.FC<{
                 {attemptedProduct.displayName}
               </p>
               <p className="text-sm font-bold text-red-600">
-                +S/{formatMoneyNoDecimals(Math.round(attemptedQuota))}/mes
+                +S/{formatMoneyNoDecimals(Math.floor(attemptedQuota))}/mes
               </p>
             </div>
           </div>
@@ -133,7 +133,7 @@ const LimitModalContent: React.FC<{
       <div className="bg-neutral-100 rounded-xl p-3 flex items-center justify-between">
         <span className="text-sm text-neutral-600">Cuota total actual</span>
         <span className={`text-base font-bold ${totalMonthlyQuota > 600 ? 'text-red-600' : 'text-[#4654CD]'}`}>
-          S/{formatMoneyNoDecimals(Math.round(totalMonthlyQuota))}/mes
+          S/{formatMoneyNoDecimals(Math.floor(totalMonthlyQuota))}/mes
         </span>
       </div>
 

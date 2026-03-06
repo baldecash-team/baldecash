@@ -25,7 +25,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   onSelectionChange,
 }) => {
   const [selectedTerm, setSelectedTerm] = useState(paymentPlans[0]?.term ?? defaultTerm);
-  const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(0);
+  const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(10); // Default 10% to match catalog hook
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
 
   // Obtener opciones de pago inicial del primer plan (son iguales para todos los plazos)
@@ -38,7 +38,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       amount: opt.initialAmount,
       label: opt.initialPercent === 0
         ? 'Sin inicial'
-        : `S/${formatMoneyNoDecimals(Math.round(opt.initialAmount))}`,
+        : `S/${formatMoneyNoDecimals(Math.floor(opt.initialAmount))}`,
     }));
   }, [paymentPlans]);
 
@@ -144,7 +144,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                       isSelected ? 'text-white/60' : 'text-neutral-400'
                     }`}
                   >
-                    S/{formatMoneyNoDecimals(Math.round(option.originalQuota))}
+                    S/{formatMoneyNoDecimals(Math.floor(option.originalQuota))}
                   </p>
                 )}
 
@@ -153,7 +153,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                     isSelected ? 'text-white' : 'text-[var(--color-primary)]'
                   }`}
                 >
-                  S/{formatMoneyNoDecimals(Math.round(option.monthlyQuota))}
+                  S/{formatMoneyNoDecimals(Math.floor(option.monthlyQuota))}
                 </p>
 
                 <p
@@ -175,17 +175,17 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
           <p className="text-sm text-neutral-600 mb-2">Pagarías</p>
           {selectedOption?.originalQuota && (
             <p className="line-through text-neutral-400 text-xl mb-1">
-              S/{formatMoneyNoDecimals(Math.round(selectedOption.originalQuota))}/mes
+              S/{formatMoneyNoDecimals(Math.floor(selectedOption.originalQuota))}/mes
             </p>
           )}
           <p className="text-4xl font-bold text-[var(--color-primary)]">
-            S/{formatMoneyNoDecimals(Math.round(selectedOption?.monthlyQuota || 0))}/mes
+            S/{formatMoneyNoDecimals(Math.floor(selectedOption?.monthlyQuota || 0))}/mes
           </p>
           <p className="text-sm text-neutral-500 mt-2">
             durante {selectedTerm} meses
             {selectedInitialPercent > 0 && selectedOption && (
               <span className="block text-xs text-neutral-400 mt-1">
-                + S/{formatMoneyNoDecimals(Math.round(selectedOption.initialAmount))} de inicial
+                + S/{formatMoneyNoDecimals(Math.floor(selectedOption.initialAmount))} de inicial
               </span>
             )}
           </p>

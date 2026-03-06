@@ -5,7 +5,7 @@
  * Estilo: Banner colorido arriba del navbar, con botón para cerrar
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
 import {
@@ -213,6 +213,28 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
   const [showPromo, setShowPromo] = useState(true);
   const [activeMegaMenu, setActiveMegaMenu] = useState<'equipos' | 'convenios' | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const promoBannerRef = useRef<HTMLDivElement>(null);
+  const [promoBannerHeight, setPromoBannerHeight] = useState(40);
+
+  // Medir altura real del banner promocional y exponer como CSS variable
+  useEffect(() => {
+    const measureBannerHeight = () => {
+      if (promoBannerRef.current) {
+        const height = promoBannerRef.current.offsetHeight;
+        setPromoBannerHeight(height);
+        document.documentElement.style.setProperty('--promo-banner-height', `${height}px`);
+      } else {
+        document.documentElement.style.setProperty('--promo-banner-height', '0px');
+      }
+    };
+
+    measureBannerHeight();
+    window.addEventListener('resize', measureBannerHeight);
+    return () => {
+      window.removeEventListener('resize', measureBannerHeight);
+      document.documentElement.style.removeProperty('--promo-banner-height');
+    };
+  }, [showPromo, promoBannerData]);
 
   // Logo Only mode: blue background with centered white logo
   if (logoOnly) {
@@ -243,6 +265,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
       {/* Promo Banner */}
       {showPromo && !hidePromoBanner && hasPromoBannerContent && (
         <div
+          ref={promoBannerRef}
           className="fixed left-0 right-0 z-[60] text-white text-center py-2 sm:py-2.5 px-4 text-sm"
           style={{
             top: previewBannerOffset,
@@ -274,7 +297,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
 
       <nav
         className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
-        style={{ top: showPromo && !hidePromoBanner && hasPromoBannerContent ? (40 + previewBannerOffset) : previewBannerOffset }}
+        style={{ top: showPromo && !hidePromoBanner && hasPromoBannerContent ? (promoBannerHeight + previewBannerOffset) : previewBannerOffset }}
       >
         <div className={fullWidth ? "px-4 lg:px-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
           <div className="flex items-center justify-between h-16">

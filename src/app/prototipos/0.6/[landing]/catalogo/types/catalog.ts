@@ -114,7 +114,7 @@ export function calculateQuotaWithInitial(
   initialPercent: InitialPaymentPercent,
   tea: number = DEFAULT_TEA
 ): { quota: number; initialAmount: number; financedAmount: number } {
-  const initialAmount = Math.round(price * (initialPercent / 100));
+  const initialAmount = Math.floor(price * (initialPercent / 100));
   const financedAmount = price - initialAmount;
   const quota = calculateQuotaForTerm(financedAmount, term, tea);
 

@@ -87,7 +87,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const selectedTerm = 24;
   const selectedInitial = 10;
   const quota = product.quotaMonthly;
-  const initialAmount = Math.round(product.price * (selectedInitial / 100));
+  const initialAmount = Math.floor(product.price * (selectedInitial / 100));
 
   // Original quota for discount display (usar valor del backend si existe)
   const originalQuota = product.originalQuotaMonthly ?? null;
@@ -235,7 +235,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <div className="h-5 flex items-center justify-center gap-1.5">
                 {originalQuota && originalQuota > quota ? (
                   <>
-                    <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.round(originalQuota))}/mes</span>
+                    <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}/mes</span>
                     {product.discount && product.discount > 0 && (
                       <span className="text-xs font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
                         -{product.discount}%
@@ -248,12 +248,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
               {/* Precio actual */}
               <div className="flex items-baseline justify-center gap-0.5 mt-1">
-                <span className="text-3xl font-black text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.round(quota))}</span>
+                <span className="text-3xl font-black text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.floor(quota))}</span>
                 <span className="text-lg text-neutral-400">/mes</span>
               </div>
               {/* Info adicional */}
               <p className="text-xs text-neutral-500 mt-2">
-                en {selectedTerm} meses · inicial S/{formatMoneyNoDecimals(Math.round(initialAmount))}
+                en {selectedTerm} meses · inicial S/{formatMoneyNoDecimals(Math.floor(initialAmount))}
               </p>
             </div>
 

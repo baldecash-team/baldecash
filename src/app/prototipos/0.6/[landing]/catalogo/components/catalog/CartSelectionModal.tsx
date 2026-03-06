@@ -54,7 +54,7 @@ const ModalContentShared: React.FC<{
           {product.displayName}
         </h3>
         <p className="text-base lg:text-lg font-bold text-[var(--color-primary)] mt-0.5">
-          S/{formatMoneyNoDecimals(Math.round(quota))}/mes
+          S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
         </p>
       </div>
     </div>

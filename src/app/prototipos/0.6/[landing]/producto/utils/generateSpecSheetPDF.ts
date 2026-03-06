@@ -39,26 +39,29 @@ const formatDate = (date: Date): string => {
 };
 
 /**
- * Convierte una URL de imagen a base64
+ * Convierte una URL de imagen a base64 usando API proxy para evitar CORS
  */
-const loadImageAsBase64 = (url: string): Promise<string> => {
+const loadImageAsBase64 = async (url: string): Promise<string> => {
+  // Usar nuestro endpoint de API como proxy para evitar CORS
+  const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  console.log('[PDF] Proxy URL:', proxyUrl);
+  console.log('[PDF] Original URL:', url);
+
+  const response = await fetch(proxyUrl);
+  console.log('[PDF] Proxy response status:', response.status);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[PDF] Proxy error:', errorText);
+    throw new Error('Failed to load image via proxy');
+  }
+
+  const blob = await response.blob();
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      } else {
-        reject(new Error('No se pudo obtener el contexto del canvas'));
-      }
-    };
-    img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
-    img.src = url;
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
 };
 
@@ -122,10 +125,15 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
   let productImageBase64: string | null = null;
   if (data.productImage) {
     try {
+      console.log('[PDF] Intentando cargar imagen:', data.productImage);
       productImageBase64 = await loadImageAsBase64(data.productImage);
-    } catch {
+      console.log('[PDF] Imagen cargada exitosamente');
+    } catch (error) {
+      console.error('[PDF] Error cargando imagen:', error);
       // Si falla la carga de la imagen, continuar sin ella
     }
+  } else {
+    console.log('[PDF] No se proporcionó imagen del producto');
   }
 
   const productBoxHeight = productImageBase64 ? 50 : 18;
@@ -218,16 +226,17 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       doc.setTextColor(spec.highlight ? primaryColor[0] : textColor[0], spec.highlight ? primaryColor[1] : textColor[1], spec.highlight ? primaryColor[2] : textColor[2]);
       doc.setFont('helvetica', spec.highlight ? 'bold' : 'normal');
 
-      // Truncar valor si es muy largo
-      let displayValue = spec.value;
+      // Dividir valor en múltiples líneas si es muy largo
       const maxValueWidth = colWidth - 10;
-      while (doc.getTextWidth(displayValue) > maxValueWidth && displayValue.length > 3) {
-        displayValue = displayValue.slice(0, -4) + '...';
-      }
+      const valueLines = doc.splitTextToSize(spec.value, maxValueWidth);
 
-      doc.text(displayValue, margin + colWidth, y + 5);
+      valueLines.forEach((line: string, lineIndex: number) => {
+        doc.text(line, margin + colWidth, y + 5 + (lineIndex * 4));
+      });
 
-      y += rowHeight;
+      // Ajustar altura según líneas del valor
+      const extraLines = valueLines.length - 1;
+      y += rowHeight + (extraLines * 4);
     });
 
     y += categoryPadding;
