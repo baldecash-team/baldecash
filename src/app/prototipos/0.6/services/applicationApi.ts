@@ -26,11 +26,19 @@ export interface SubmitApplicationRequest {
     tea?: number;
     tcea?: number;
     initial_payment?: number;
+    /** Multiple products for cart functionality */
+    products?: {
+      product_id: number;
+      quantity: number;
+      unit_price: number;
+      final_price: number;
+    }[];
     accessories?: {
       accessory_id: number;
       price: number;
     }[];
     insurance_id?: number;
+    insurance_premium?: number;
   };
   /** Optional coupon code for discount */
   coupon_code?: string;
