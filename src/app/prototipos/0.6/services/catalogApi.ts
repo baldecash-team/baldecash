@@ -81,6 +81,7 @@ export interface ApiCatalogProduct {
   promo_tag?: string;
   badge_text?: string;
   pricing: ApiProductPricing;
+  specs?: Record<string, string | number | boolean>;
   image_url?: string;
   colors?: ApiProductColor[];
 }
@@ -420,8 +421,13 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   if (apiProduct.badge_text?.toLowerCase().includes('vendido')) tags.push('mas_vendido');
   if (hook.monthly_price < 150) tags.push('cuota_baja');
 
-  // Create default specs (will be replaced when viewing product detail)
-  const defaultSpecs = createDefaultSpecs(apiProduct);
+  // Use real EAV specs when available, fallback to parsing from name
+  const specs = apiProduct.specs && Object.keys(apiProduct.specs).length > 0
+    ? apiProduct.specs
+    : null;
+  const productSpecs = specs
+    ? createSpecsFromEav(specs, apiProduct.type || 'laptop')
+    : createDefaultSpecs(apiProduct);
 
   return {
     id: String(apiProduct.id),
@@ -456,7 +462,8 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     isFeatured: apiProduct.is_featured,
     isNew: false, // Not in API response
     tags,
-    specs: defaultSpecs,
+    specs: productSpecs,
+    rawSpecs: specs || undefined,
     createdAt: new Date().toISOString(),
   };
 }
@@ -558,7 +565,7 @@ function createDefaultSpecs(apiProduct: ApiCatalogProduct): ProductSpecs {
   // Extract processor model from short_description
   let processorModel = '';
   const procPatterns = [
-    /ryzen\s*\d+\s*\w*/i,
+    /ryzen\s*\d+(?:\s+\d{4}\w*)?/i,
     /core\s*i\d+-?\w*/i,
     /core\s*\d+\s*\w*/i,
     /celeron\s*\w*/i,
@@ -895,12 +902,35 @@ export function createSpecsFromEav(specs: Record<string, string | number | boole
   const storage = Number(specs.storage || specs.storage_gb || specs.ssd || 256);
   const screenSize = Number(specs.screen_size || specs.display_size || (isLaptop ? 15.6 : isCelular ? 6.5 : 10));
 
+  // Detect storage type for display
+  const storageTypeRaw = String(specs.storage_type || 'ssd').toLowerCase();
+  const storageType: 'ssd' | 'hdd' | 'emmc' = storageTypeRaw.includes('ssd') ? 'ssd'
+    : storageTypeRaw.includes('hdd') ? 'hdd'
+    : storageTypeRaw.includes('emmc') ? 'emmc' : 'ssd';
+
+  // Detect display type from screen_type (e.g. "TN LED FHD", "IPS FHD", "Super AMOLED")
+  const screenTypeRaw = String(specs.screen_type || specs.display_type || specs.panel_type || '').toLowerCase();
+  const displayType: 'ips' | 'tn' | 'oled' | 'va' = screenTypeRaw.includes('oled') || screenTypeRaw.includes('amoled') ? 'oled'
+    : screenTypeRaw.includes('tn') ? 'tn'
+    : screenTypeRaw.includes('va') ? 'va' : 'ips';
+
+  // Detect GPU type (dedicated if NVIDIA/GeForce/RTX or VRAM mentioned)
+  const gpuStr = String(specs.gpu || specs.gpu_model || '');
+  const isGpuDedicated = Boolean(specs.gpu_dedicated) ||
+    /nvidia|geforce|rtx|gtx/i.test(gpuStr) ||
+    (specs.gpu_vram && Number(specs.gpu_vram) > 0);
+
+  // OS detection
+  const osStr = String(specs.operating_system || '').toLowerCase();
+  const hasWindows = specs.has_windows !== undefined ? Boolean(specs.has_windows) :
+    osStr.includes('windows') ? true : (isLaptop && !osStr.includes('no incluido') && !osStr.includes('sin sistema'));
+
   return {
     processor: {
       brand: processorBrand,
       model: processorStr || (processorBrand === 'amd' ? 'Ryzen 5' : 'Core i5'),
-      cores: Number(specs.cores || specs.cpu_cores || 4),
-      speed: String(specs.cpu_speed || specs.speed || '3.5 GHz'),
+      cores: Number(specs.processor_cores || specs.cores || specs.cpu_cores || 4),
+      speed: String(specs.processor_speed || specs.cpu_speed || specs.speed || '3.5 GHz'),
     },
     ram: {
       size: ram,
@@ -910,39 +940,39 @@ export function createSpecsFromEav(specs: Record<string, string | number | boole
     },
     storage: {
       size: storage,
-      type: (String(specs.storage_type || 'ssd').toLowerCase() as 'ssd' | 'hdd' | 'emmc') || 'ssd',
+      type: storageType,
       hasSecondSlot: Boolean(specs.has_second_slot || isLaptop),
     },
     display: {
       size: screenSize,
-      resolution: mapResolution(String(specs.resolution || specs.display_resolution || 'fhd')),
-      resolutionPixels: String(specs.resolution_pixels || (screenSize > 10 ? '1920x1080' : '1080x2400')),
-      type: (String(specs.display_type || specs.panel_type || 'ips').toLowerCase() as 'ips' | 'tn' | 'oled' | 'va') || 'ips',
+      resolution: mapResolution(String(specs.screen_resolution || specs.resolution || specs.display_resolution || 'fhd')),
+      resolutionPixels: String(specs.resolution_pixels || specs.screen_resolution || (screenSize > 10 ? '1920x1080' : '1080x2400')),
+      type: displayType,
       refreshRate: Number(specs.refresh_rate || 60),
       touchScreen: Boolean(specs.touch_screen || isCelular),
     },
     gpu: {
-      type: specs.gpu_dedicated ? 'dedicated' : 'integrated' as 'integrated' | 'dedicated',
-      brand: String(specs.gpu_brand || (processorBrand === 'amd' ? 'AMD' : 'Intel')),
-      model: String(specs.gpu || specs.gpu_model || (processorBrand === 'amd' ? 'Radeon Graphics' : 'UHD Graphics')),
+      type: isGpuDedicated ? 'dedicated' : 'integrated' as 'integrated' | 'dedicated',
+      brand: String(specs.gpu_brand || (isGpuDedicated && /nvidia|geforce/i.test(gpuStr) ? 'NVIDIA' : processorBrand === 'amd' ? 'AMD' : 'Intel')),
+      model: gpuStr || (processorBrand === 'amd' ? 'Radeon Graphics' : 'UHD Graphics'),
       vram: specs.gpu_vram ? Number(specs.gpu_vram) : undefined,
     },
     connectivity: {
-      wifi: String(specs.wifi || 'Wi-Fi 6'),
-      bluetooth: String(specs.bluetooth || '5.0'),
-      hasEthernet: Boolean(specs.has_ethernet ?? isLaptop),
+      wifi: String(specs.wifi_version || specs.wifi || 'Wi-Fi 6'),
+      bluetooth: String(specs.bluetooth_version || specs.bluetooth || '5.0'),
+      hasEthernet: Boolean(specs.ethernet_port ?? specs.has_ethernet ?? isLaptop),
     },
     ports: {
       usb: Number(specs.usb_ports || (isLaptop ? 2 : 0)),
       usbC: Number(specs.usb_c_ports || 1),
-      hdmi: Boolean(specs.has_hdmi ?? isLaptop),
+      hdmi: Boolean(specs.hdmi_port ?? specs.has_hdmi ?? isLaptop),
       thunderbolt: Boolean(specs.has_thunderbolt || false),
       sdCard: Boolean(specs.has_sd_card ?? isLaptop),
-      headphone: true,
+      headphone: Boolean(specs.headphone_jack ?? true),
     },
     keyboard: {
       backlit: Boolean(specs.backlit_keyboard ?? isLaptop),
-      numericPad: Boolean(specs.numeric_pad || false),
+      numericPad: Boolean(specs.numeric_keypad ?? specs.numeric_pad ?? false),
       language: 'Español Latino',
     },
     security: {
@@ -951,8 +981,9 @@ export function createSpecsFromEav(specs: Record<string, string | number | boole
       tpmChip: Boolean(specs.tpm_chip ?? isLaptop),
     },
     os: {
-      hasWindows: Boolean(specs.has_windows ?? isLaptop),
-      windowsVersion: specs.windows_version ? String(specs.windows_version) : (isLaptop ? 'Windows 11 Home' : undefined),
+      hasWindows: hasWindows,
+      windowsVersion: specs.windows_version ? String(specs.windows_version)
+        : hasWindows ? (osStr.includes('11') ? 'Windows 11 Home' : 'Windows 11 Home') : undefined,
     },
     battery: {
       capacity: String(specs.battery_capacity || specs.battery || (isLaptop ? '45Wh' : '5000mAh')),
