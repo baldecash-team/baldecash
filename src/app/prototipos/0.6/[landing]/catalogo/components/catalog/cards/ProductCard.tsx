@@ -86,7 +86,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Usar cuota pre-calculada del backend (con TEA correcta)
   // El backend calcula con la fórmula francesa de amortización
   const selectedTerm = 24;
-  const selectedInitial = 10;
+  const selectedInitial = 0;
   const quota = product.quotaMonthly;
   const initialAmount = Math.floor(product.price * (selectedInitial / 100));
 
@@ -254,7 +254,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
               {/* Info adicional */}
               <p className="text-xs text-neutral-500 mt-2">
-                en {selectedTerm} meses · inicial S/{formatMoneyNoDecimals(Math.floor(initialAmount))}
+                en {selectedTerm} meses{initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(initialAmount))}` : ' · sin inicial'}
               </p>
             </div>
 
