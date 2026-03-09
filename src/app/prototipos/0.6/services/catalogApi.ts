@@ -686,7 +686,7 @@ function createDefaultSpecs(apiProduct: ApiCatalogProduct): ProductSpecs {
       size: ramSize,
       type: ramType,
       maxSize: ramSize * 2,
-      expandable: isLaptop,
+      expandable: false,
     },
     storage: {
       size: storageSize,
@@ -941,7 +941,7 @@ export function createSpecsFromEav(specs: Record<string, string | number | boole
       size: ram,
       type: String(specs.ram_type || 'DDR4'),
       maxSize: Number(specs.ram_max || ram * 2),
-      expandable: specs.ram_expandable !== false,
+      expandable: specs.ram_expandable === true,
     },
     storage: {
       size: storage,
