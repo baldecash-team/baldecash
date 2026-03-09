@@ -374,12 +374,18 @@ export interface FetchError {
 
 /**
  * Fetch product detail from API
+ * @param landing - Landing slug (e.g., "home")
  * @param slug - Product slug
  * @returns Product detail data or null if not found
+ *
+ * Uses the PUBLIC endpoint that validates:
+ * - Product is assigned to this landing
+ * - Product is within availability dates
+ * - Landing and product are active
  */
-export async function fetchProductDetail(slug: string): Promise<ProductDetailResult | null> {
+export async function fetchProductDetail(landing: string, slug: string): Promise<ProductDetailResult | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/products/${slug}/detail`, {
+    const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${slug}/detail`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -412,12 +418,12 @@ export async function fetchProductDetail(slug: string): Promise<ProductDetailRes
 /**
  * Hook-friendly fetch with loading/error states
  */
-export async function getProductDetail(slug: string): Promise<{
+export async function getProductDetail(landing: string, slug: string): Promise<{
   data: ProductDetailResult | null;
   error: FetchError | null;
 }> {
   try {
-    const data = await fetchProductDetail(slug);
+    const data = await fetchProductDetail(landing, slug);
     return { data, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

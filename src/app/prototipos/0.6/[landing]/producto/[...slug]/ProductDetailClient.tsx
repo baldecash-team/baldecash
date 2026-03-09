@@ -177,11 +177,11 @@ function ProductDetailContent() {
       setApiError(null);
 
       try {
-        const data = await fetchProductDetail(slug);
+        const data = await fetchProductDetail(landing, slug);
         if (data) {
           setApiData(data);
         } else {
-          setApiError(`Producto "${slug}" no encontrado en la base de datos`);
+          setApiError(`Producto "${slug}" no disponible`);
         }
       } catch (error) {
         console.error('Error fetching product:', error);
@@ -192,7 +192,7 @@ function ProductDetailContent() {
     }
 
     loadProductData();
-  }, [slug]);
+  }, [landing, slug]);
 
   // Preloading: dar tiempo a la página para cargar recursos
   useEffect(() => {

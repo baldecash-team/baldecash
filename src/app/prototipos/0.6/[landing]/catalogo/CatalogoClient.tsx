@@ -297,9 +297,17 @@ function CatalogoContent() {
   // Brand slug-to-id mapping from API (stable once loaded)
   const [brandMapping, setBrandMapping] = useState<Map<string, number>>(new Map());
 
+  // Search query state - initialized from URL params
+  const [searchQuery, setSearchQuery] = useState(() => initialUrlFilters.searchQuery || '');
+
   // Build API filters from frontend FilterState
   const apiFiltersForProducts = useMemo((): ApiCatalogFilters => {
     const apiFilters: ApiCatalogFilters = {};
+
+    // Text search
+    if (searchQuery.trim()) {
+      apiFilters.q = searchQuery.trim();
+    }
 
     // Device types
     if (filters.deviceTypes.length > 0) {
@@ -490,6 +498,7 @@ function CatalogoContent() {
     filters.minUSBPorts,
     filters.ramExpandable,
     brandMapping,
+    searchQuery,
   ]);
 
   // Map frontend sort to API sort
@@ -695,8 +704,7 @@ function CatalogoContent() {
   const [isWishlistLoaded, setIsWishlistLoaded] = useState(false);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
-  // Search state - initialized from URL params
-  const [searchQuery, setSearchQuery] = useState(() => initialUrlFilters.searchQuery || '');
+  // Search drawer state
   const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
   const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
 
@@ -1113,19 +1121,10 @@ function CatalogoContent() {
     return sortProducts(catalogProducts, sort);
   }, [sort, catalogProducts]);
 
-  // Products to display based on viewMode and search
+  // Products to display based on viewMode
+  // Note: Search filter is now applied by the API (q parameter), not locally
   const displayedProducts = useMemo(() => {
     let products = filteredProducts;
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      products = products.filter((p) =>
-        p.displayName.toLowerCase().includes(query) ||
-        p.brand.toLowerCase().includes(query) ||
-        p.name.toLowerCase().includes(query)
-      );
-    }
 
     // Apply favorites filter
     if (viewMode === 'favorites') {
@@ -1133,7 +1132,7 @@ function CatalogoContent() {
     }
 
     return products;
-  }, [viewMode, filteredProducts, wishlist, searchQuery]);
+  }, [viewMode, filteredProducts, wishlist]);
 
   // filterCounts removed - use apiFilters counts instead (static from all products)
 

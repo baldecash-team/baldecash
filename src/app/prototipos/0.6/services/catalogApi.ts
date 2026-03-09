@@ -142,6 +142,8 @@ export interface ApiInstallmentResult {
 // ============================================
 
 export interface CatalogFilters {
+  // Text search
+  q?: string;
   // Product IDs (for wishlist/cart)
   product_ids?: number[];
   // Single value filters (legacy)
@@ -192,6 +194,8 @@ export async function getCatalogProducts(
     const params = new URLSearchParams();
 
     if (options.filters) {
+      // Text search (API requires at least 2 characters)
+      if (options.filters.q?.trim() && options.filters.q.trim().length >= 2) params.set('q', options.filters.q.trim());
       // Product IDs filter (for wishlist/cart)
       if (options.filters.product_ids?.length) params.set('product_ids', options.filters.product_ids.join(','));
       // Single value filters (legacy)
