@@ -187,6 +187,8 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       price: product.price,
       monthlyPayment: product.lowestQuota,
       months: WIZARD_SELECTED_TERM,
+      initialPercent: 0,
+      initialAmount: 0,
       image: product.thumbnail || product.image,
       specs: {
         processor: product.specs?.processor || '',

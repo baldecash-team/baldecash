@@ -159,6 +159,8 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
         price: estimatedPrice,
         monthlyPayment: product.monthlyQuota,
         months: 24, // Default term
+        initialPercent: 0,
+        initialAmount: 0,
         image: product.thumbnail,
         specs: product.specs ? {
           processor: product.specs.processor || '',

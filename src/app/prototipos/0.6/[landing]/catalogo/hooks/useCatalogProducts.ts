@@ -18,6 +18,7 @@ import {
   type ApiInstallmentResult,
   type CatalogFilters,
   type SortBy,
+  type SearchSuggestion,
 } from '../../../services/catalogApi';
 
 export interface UseCatalogProductsOptions {
@@ -45,6 +46,8 @@ export interface UseCatalogProductsResult {
   isFromApi: boolean;
   /** Error message if API failed */
   error: string | null;
+  /** Search suggestions when no results found (e.g., "Did you mean: redmi?") */
+  suggestions: SearchSuggestion[];
   /** Load more products (8 at a time) */
   loadMore: () => Promise<void>;
   /** Refresh products from API (resets to initial load) */
@@ -77,6 +80,7 @@ export function useCatalogProducts({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isFromApi, setIsFromApi] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
 
   // Track if we've already attempted to load
   const hasLoadedRef = useRef(false);
@@ -91,6 +95,7 @@ export function useCatalogProducts({
   const loadProducts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setSuggestions([]); // Clear previous suggestions
 
     try {
       console.log('[Catalog] Loading products with filters:', filters, 'sortBy:', sortBy);
@@ -108,6 +113,7 @@ export function useCatalogProducts({
         setOffset(result.products.length);
         setHasMore(result.hasMore);
         setIsFromApi(true);
+        setSuggestions([]); // Clear suggestions when there are results
       } else {
         // API returned empty or null - show EmptyState (not an error)
         console.log('[Catalog] API returned no products (catalog empty or filtered)');
@@ -116,7 +122,11 @@ export function useCatalogProducts({
         setOffset(0);
         setHasMore(false);
         setIsFromApi(true);
-        // No error - EmptyState will be shown by the UI
+        // Store suggestions for "Did you mean?" UI
+        if (result?.suggestions && result.suggestions.length > 0) {
+          console.log('[Catalog] Search suggestions:', result.suggestions);
+          setSuggestions(result.suggestions);
+        }
       }
     } catch (err) {
       // API failed - NO fallback, show error
@@ -231,6 +241,7 @@ export function useCatalogProducts({
     hasMore,
     isFromApi,
     error,
+    suggestions,
     loadMore,
     refresh: loadProducts,
     getInstallment,

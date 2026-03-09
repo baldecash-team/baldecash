@@ -102,7 +102,7 @@ export interface ComparableSpec {
   rawValues: number[];
   unit?: string;
   higherIsBetter: boolean;
-  winner?: number; // Index of winning product
+  winner?: number; // Index of winning product, undefined if tie
   isDifferent: boolean;
 }
 
@@ -219,6 +219,35 @@ export function getMaxProducts(version: 1 | 2): number {
 // Helpers
 // ============================================
 
+/**
+ * Helper: Encuentra el índice del ganador, o undefined si hay empate.
+ * @param rawValues - Valores numéricos a comparar
+ * @param higherIsBetter - true si mayor es mejor, false si menor es mejor
+ * @returns índice del ganador o undefined si hay empate
+ */
+function findWinner(rawValues: number[], higherIsBetter: boolean): number | undefined {
+  if (rawValues.length === 0) return undefined;
+
+  const bestValue = higherIsBetter
+    ? Math.max(...rawValues)
+    : Math.min(...rawValues);
+
+  // Contar cuántos productos tienen el mejor valor
+  const winnersCount = rawValues.filter(v => v === bestValue).length;
+
+  // Si hay empate (más de uno con el mejor valor), no hay ganador
+  if (winnersCount > 1) return undefined;
+
+  return rawValues.indexOf(bestValue);
+}
+
+/**
+ * Helper: Normaliza un string para comparación (quita espacios, lowercase)
+ */
+function normalizeForComparison(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, '');
+}
+
 export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   if (products.length < 2) return [];
 
@@ -234,6 +263,7 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     if (model.includes('i3') || model.includes('ryzen 3')) return 3;
     return 1;
   });
+  const processorNormalized = processorValues.map(normalizeForComparison);
   specs.push({
     key: 'processor',
     label: 'Procesador',
@@ -241,8 +271,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     values: processorValues,
     rawValues: processorRaw,
     higherIsBetter: true,
-    winner: processorRaw.indexOf(Math.max(...processorRaw)),
-    isDifferent: !processorValues.every(v => v === processorValues[0]),
+    winner: findWinner(processorRaw, true),
+    isDifferent: !processorNormalized.every(v => v === processorNormalized[0]),
   });
 
   // RAM
@@ -256,7 +286,7 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     rawValues: ramRaw,
     unit: 'GB',
     higherIsBetter: true,
-    winner: ramRaw.indexOf(Math.max(...ramRaw)),
+    winner: findWinner(ramRaw, true),
     isDifferent: !ramRaw.every(v => v === ramRaw[0]),
   });
 
@@ -271,8 +301,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     rawValues: storageRaw,
     unit: 'GB',
     higherIsBetter: true,
-    winner: storageRaw.indexOf(Math.max(...storageRaw)),
-    isDifferent: !storageValues.every(v => v === storageValues[0]),
+    winner: findWinner(storageRaw, true),
+    isDifferent: !storageRaw.every(v => v === storageRaw[0]),
   });
 
   // Display Size
@@ -286,12 +316,13 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     rawValues: displayRaw,
     unit: '"',
     higherIsBetter: true,
-    winner: displayRaw.indexOf(Math.max(...displayRaw)),
+    winner: findWinner(displayRaw, true),
     isDifferent: !displayRaw.every(v => v === displayRaw[0]),
   });
 
   // Resolution
   const resValues = products.map(p => p.specs.display?.resolutionPixels ?? 'N/A');
+  const resNormalized = resValues.map(normalizeForComparison);
   const resRaw: number[] = products.map(p => {
     const res = p.specs.display?.resolution;
     if (res === '4k') return 4;
@@ -306,12 +337,13 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     values: resValues,
     rawValues: resRaw,
     higherIsBetter: true,
-    winner: resRaw.indexOf(Math.max(...resRaw)),
-    isDifferent: !resValues.every(v => v === resValues[0]),
+    winner: findWinner(resRaw, true),
+    isDifferent: !resNormalized.every(v => v === resNormalized[0]),
   });
 
   // GPU
   const gpuValues = products.map(p => `${p.specs.gpu?.brand ?? 'N/A'} ${p.specs.gpu?.model ?? ''}`);
+  const gpuNormalized = gpuValues.map(normalizeForComparison);
   const gpuRaw: number[] = products.map(p => p.specs.gpu?.type === 'dedicated' ? 2 : 1);
   specs.push({
     key: 'gpu',
@@ -320,8 +352,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     values: gpuValues,
     rawValues: gpuRaw,
     higherIsBetter: true,
-    winner: gpuRaw.indexOf(Math.max(...gpuRaw)),
-    isDifferent: !gpuValues.every(v => v === gpuValues[0]),
+    winner: findWinner(gpuRaw, true),
+    isDifferent: !gpuNormalized.every(v => v === gpuNormalized[0]),
   });
 
   // Weight
@@ -335,12 +367,13 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     rawValues: weightRaw,
     unit: 'kg',
     higherIsBetter: false,
-    winner: weightRaw.indexOf(Math.min(...weightRaw)),
+    winner: findWinner(weightRaw, false),
     isDifferent: !weightRaw.every(v => v === weightRaw[0]),
   });
 
   // Battery
   const batteryValues = products.map(p => p.specs.battery?.life ?? 'N/A');
+  const batteryNormalized = batteryValues.map(normalizeForComparison);
   const batteryRaw = products.map(p => parseInt(p.specs.battery?.life ?? '0') || 0);
   specs.push({
     key: 'battery',
@@ -349,8 +382,8 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     values: batteryValues,
     rawValues: batteryRaw,
     higherIsBetter: true,
-    winner: batteryRaw.indexOf(Math.max(...batteryRaw)),
-    isDifferent: !batteryValues.every(v => v === batteryValues[0]),
+    winner: findWinner(batteryRaw, true),
+    isDifferent: !batteryNormalized.every(v => v === batteryNormalized[0]),
   });
 
   // Price
@@ -363,7 +396,7 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     values: priceValues,
     rawValues: priceRaw,
     higherIsBetter: false,
-    winner: priceRaw.indexOf(Math.min(...priceRaw)),
+    winner: findWinner(priceRaw, false),
     isDifferent: !priceRaw.every(v => v === priceRaw[0]),
   });
 
@@ -377,11 +410,19 @@ export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
     values: quotaValues,
     rawValues: quotaRaw,
     higherIsBetter: false,
-    winner: quotaRaw.indexOf(Math.min(...quotaRaw)),
+    winner: findWinner(quotaRaw, false),
     isDifferent: !quotaRaw.every(v => v === quotaRaw[0]),
   });
 
   return specs;
+}
+
+/**
+ * Cuenta las victorias de un producto en todas las specs comparables.
+ * Solo cuenta specs donde hay diferencia (isDifferent) y hay un ganador claro.
+ */
+export function countProductWins(specs: ComparableSpec[], productIndex: number): number {
+  return specs.filter(spec => spec.isDifferent && spec.winner === productIndex).length;
 }
 
 export function calculatePriceDifference(products: ComparisonProduct[]): { absolute: number[]; quota: number[]; annualSaving: number } {

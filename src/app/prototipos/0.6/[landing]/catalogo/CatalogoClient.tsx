@@ -527,6 +527,7 @@ function CatalogoContent() {
     hasMore: hasMoreFromApi,
     isFromApi,
     error: productsError,
+    suggestions: searchSuggestions,
     loadMore: loadMoreFromApi,
     getInstallment,
   } = useCatalogProducts({
@@ -1496,6 +1497,29 @@ function CatalogoContent() {
               </div>
             ) : (
               <>
+                {/* Search suggestions - "¿Quisiste decir...?" */}
+                {searchSuggestions.length > 0 && searchQuery && (
+                  <div className="mb-6 px-4">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                      <p className="text-sm text-amber-800">
+                        <span className="font-medium">¿Quisiste decir:</span>{' '}
+                        {searchSuggestions.map((suggestion, index) => (
+                          <span key={suggestion.suggested}>
+                            <button
+                              onClick={() => setSearchQuery(suggestion.suggested)}
+                              className="text-[var(--color-primary)] font-semibold hover:underline cursor-pointer"
+                            >
+                              {suggestion.suggested}
+                            </button>
+                            {index < searchSuggestions.length - 1 && ', '}
+                          </span>
+                        ))}
+                        ?
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <EmptyState
                   appliedFilters={appliedFilters}
                   onClearFilters={() => {

@@ -71,6 +71,7 @@ export interface ApiCatalogProduct {
   id: number;
   sku: string;
   name: string;
+  display_name?: string;
   slug: string;
   type: string;
   condition: string;
@@ -88,6 +89,12 @@ export interface ApiCatalogProduct {
   colors?: ApiProductColor[];
 }
 
+export interface SearchSuggestion {
+  original: string;
+  suggested: string;
+  corrections: Record<string, string>;
+}
+
 export interface ApiCatalogResponse {
   items: ApiCatalogProduct[];
   total: number;
@@ -99,6 +106,8 @@ export interface ApiCatalogResponse {
   offset: number;
   has_more: boolean;
   filters_applied: Record<string, unknown>;
+  // Search suggestions when no results found
+  suggestions?: SearchSuggestion[];
 }
 
 /** Legacy filter options type - kept for backwards compatibility */
@@ -490,6 +499,8 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
   limit: number;
   offset: number;
   hasMore: boolean;
+  // Search suggestions
+  suggestions: SearchSuggestion[];
 } {
   return {
     products: response.items.map(mapApiProductToCatalogProduct),
@@ -500,6 +511,7 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
     limit: response.limit,
     offset: response.offset,
     hasMore: response.has_more,
+    suggestions: response.suggestions || [],
   };
 }
 
@@ -760,6 +772,7 @@ export interface DirectApiProduct {
   id: number;
   sku: string;
   name: string;
+  display_name?: string;
   short_name?: string;
   slug: string;
   type: string | null;
@@ -1101,6 +1114,7 @@ export async function fetchCatalogData(
   limit: number;
   offset: number;
   hasMore: boolean;
+  suggestions: SearchSuggestion[];
 } | null> {
   const response = await getCatalogProducts(landingSlug, options);
 
@@ -1219,6 +1233,7 @@ export async function searchProductSuggestions(
     return (data.items || []).map((item: {
       id: number;
       name: string;
+      display_name?: string;
       slug: string;
       brand?: { name: string } | string | null;
       pricing?: { final_price?: number; list_price?: number } | null;
@@ -1226,7 +1241,7 @@ export async function searchProductSuggestions(
       colors?: { image_url?: string }[] | null;
     }) => ({
       id: String(item.id),
-      name: item.name,
+      name: item.display_name || item.name,
       slug: item.slug,
       brand: typeof item.brand === 'object' ? item.brand?.name || '' : item.brand || '',
       category: '',

@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import { X, Trash2, Scale, Trophy, ChevronDown, ChevronUp, ShoppingCart } from 'lucide-react';
-import { ComparatorLayoutProps, compareSpecs, calculatePriceDifference, ComparisonProduct, getDisplayQuota } from '../../types/comparator';
+import { ComparatorLayoutProps, compareSpecs, calculatePriceDifference, ComparisonProduct, getDisplayQuota, countProductWins } from '../../types/comparator';
 import { DesignStyleA } from './DesignStyleA';
 import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
@@ -48,6 +48,8 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       price: product.price,
       monthlyPayment: product.quotaMonthly,
       months: WIZARD_SELECTED_TERM,
+      initialPercent: 0,
+      initialAmount: 0,
       image: product.thumbnail,
       specs: {
         processor: product.specs?.processor?.model || '',
@@ -64,14 +66,28 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     }
   }, [isOpen]);
 
-  // Find the best option (lowest monthly quota)
-  // Find the best option (lowest monthly quota using calculated value)
+  // Find the best option: most spec wins, then lowest quota as tiebreaker
   const bestProduct = useMemo(() => {
     if (products.length === 0) return null;
-    return products.reduce((best, current) =>
-      getDisplayQuota(current) < getDisplayQuota(best) ? current : best
-    , products[0]);
-  }, [products]);
+
+    // Count wins for each product
+    const winsPerProduct = products.map((_, index) => countProductWins(specs, index));
+
+    // Find the max wins
+    const maxWins = Math.max(...winsPerProduct);
+
+    // Get all products with max wins
+    const topProducts = products.filter((_, index) => winsPerProduct[index] === maxWins);
+
+    // If tie in wins, use lowest quota as tiebreaker
+    if (topProducts.length > 1) {
+      return topProducts.reduce((best, current) =>
+        getDisplayQuota(current) < getDisplayQuota(best) ? current : best
+      , topProducts[0]);
+    }
+
+    return topProducts[0];
+  }, [products, specs]);
 
   const bestProductIndex = useMemo(() => {
     if (!bestProduct) return -1;
