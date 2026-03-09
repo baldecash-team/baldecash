@@ -19,6 +19,7 @@ import {
   type CatalogFilters,
   type SortBy,
   type SearchSuggestion,
+  type SearchCorrected,
 } from '../../../services/catalogApi';
 
 export interface UseCatalogProductsOptions {
@@ -48,6 +49,8 @@ export interface UseCatalogProductsResult {
   error: string | null;
   /** Search suggestions when no results found (e.g., "Did you mean: redmi?") */
   suggestions: SearchSuggestion[];
+  /** Search correction info when fuzzy search was applied (e.g., "readmi" -> "redmi") */
+  searchCorrected: SearchCorrected | null;
   /** Load more products (8 at a time) */
   loadMore: () => Promise<void>;
   /** Refresh products from API (resets to initial load) */
@@ -81,6 +84,7 @@ export function useCatalogProducts({
   const [isFromApi, setIsFromApi] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [searchCorrected, setSearchCorrected] = useState<SearchCorrected | null>(null);
 
   // Track if we've already attempted to load
   const hasLoadedRef = useRef(false);
@@ -96,6 +100,7 @@ export function useCatalogProducts({
     setIsLoading(true);
     setError(null);
     setSuggestions([]); // Clear previous suggestions
+    setSearchCorrected(null); // Clear previous search correction
 
     try {
       console.log('[Catalog] Loading products with filters:', filters, 'sortBy:', sortBy);
@@ -114,6 +119,13 @@ export function useCatalogProducts({
         setHasMore(result.hasMore);
         setIsFromApi(true);
         setSuggestions([]); // Clear suggestions when there are results
+        // Store search correction info if fuzzy search was applied
+        if (result.searchCorrected) {
+          console.log('[Catalog] Search was corrected:', result.searchCorrected);
+          setSearchCorrected(result.searchCorrected);
+        } else {
+          setSearchCorrected(null);
+        }
       } else {
         // API returned empty or null - show EmptyState (not an error)
         console.log('[Catalog] API returned no products (catalog empty or filtered)');
@@ -242,6 +254,7 @@ export function useCatalogProducts({
     isFromApi,
     error,
     suggestions,
+    searchCorrected,
     loadMore,
     refresh: loadProducts,
     getInstallment,

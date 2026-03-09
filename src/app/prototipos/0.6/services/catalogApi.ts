@@ -95,6 +95,12 @@ export interface SearchSuggestion {
   corrections: Record<string, string>;
 }
 
+/** Info about automatic search correction (fuzzy search) */
+export interface SearchCorrected {
+  original: string;
+  corrected: string;
+}
+
 export interface ApiCatalogResponse {
   items: ApiCatalogProduct[];
   total: number;
@@ -106,8 +112,10 @@ export interface ApiCatalogResponse {
   offset: number;
   has_more: boolean;
   filters_applied: Record<string, unknown>;
-  // Search suggestions when no results found
+  // Search suggestions when no results found (legacy - now using search_corrected)
   suggestions?: SearchSuggestion[];
+  // Automatic search correction info (fuzzy search was applied)
+  search_corrected?: SearchCorrected | null;
 }
 
 /** Legacy filter options type - kept for backwards compatibility */
@@ -499,8 +507,10 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
   limit: number;
   offset: number;
   hasMore: boolean;
-  // Search suggestions
+  // Search suggestions (legacy)
   suggestions: SearchSuggestion[];
+  // Automatic search correction (fuzzy search)
+  searchCorrected: SearchCorrected | null;
 } {
   return {
     products: response.items.map(mapApiProductToCatalogProduct),
@@ -512,6 +522,7 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
     offset: response.offset,
     hasMore: response.has_more,
     suggestions: response.suggestions || [],
+    searchCorrected: response.search_corrected || null,
   };
 }
 
@@ -1115,6 +1126,7 @@ export async function fetchCatalogData(
   offset: number;
   hasMore: boolean;
   suggestions: SearchSuggestion[];
+  searchCorrected: SearchCorrected | null;
 } | null> {
   const response = await getCatalogProducts(landingSlug, options);
 

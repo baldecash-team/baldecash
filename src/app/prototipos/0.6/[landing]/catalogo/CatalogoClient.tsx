@@ -528,6 +528,7 @@ function CatalogoContent() {
     isFromApi,
     error: productsError,
     suggestions: searchSuggestions,
+    searchCorrected,
     loadMore: loadMoreFromApi,
     getInstallment,
   } = useCatalogProducts({
@@ -1412,6 +1413,20 @@ function CatalogoContent() {
         searchQuery={searchQuery}
         onSearchClear={handleSearchClear}
       >
+        {/* Search correction banner - shown when fuzzy search was applied */}
+        {searchCorrected && !isProductsLoading && (
+          <div className="col-span-full mb-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-sm text-blue-800">
+                Mostrando resultados para <strong>&quot;{searchCorrected.corrected}&quot;</strong>
+              </span>
+              <span className="text-xs text-blue-600">
+                (buscaste &quot;{searchCorrected.original}&quot;)
+              </span>
+            </div>
+          </div>
+        )}
+
         {isProductsLoading ? (
           // Show skeletons while products are loading (initial or filter change)
           Array.from({ length: 16 }).map((_, index) => (
