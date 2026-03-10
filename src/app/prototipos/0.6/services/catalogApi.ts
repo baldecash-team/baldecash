@@ -67,6 +67,32 @@ export interface ApiProductColor {
   images?: string[];   // Array de URLs de imágenes para carousel
 }
 
+/** Color sibling from ProductFamily grouping */
+export interface ApiColorSibling {
+  product_id: number;
+  sku: string;
+  slug: string;
+  name: string;
+  display_name: string;
+  color: string;
+  color_hex: string;
+  image_url?: string;
+  specs: Record<string, string | number | boolean>;
+  pricing: {
+    list_price: number;
+    final_price: number;
+    discount_percent: number;
+    currency: string;
+    hook?: {
+      monthly_price: number;
+      original_monthly_price?: number | null;
+      term_months: number;
+      initial_percent: number;
+      tea: number;
+    } | null;
+  };
+}
+
 export interface ApiCatalogProduct {
   id: number;
   sku: string;
@@ -87,6 +113,7 @@ export interface ApiCatalogProduct {
   image_url?: string;
   images?: string[];
   colors?: ApiProductColor[];
+  color_siblings?: ApiColorSibling[];
 }
 
 export interface SearchSuggestion {
@@ -464,13 +491,34 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
-    colors: apiProduct.colors?.map(c => ({
-      id: c.id,
-      name: c.name,
-      hex: c.hex,
-      imageUrl: c.image_url,  // Imagen principal de variante
-      images: c.images || (c.image_url ? [c.image_url] : []),  // Array para carousel
-    })) || [],
+    colors: apiProduct.color_siblings && apiProduct.color_siblings.length > 0
+      ? apiProduct.color_siblings.map(sib => {
+          const sibSpecs = sib.specs && Object.keys(sib.specs).length > 0
+            ? createSpecsFromEav(sib.specs, apiProduct.type || 'laptop')
+            : undefined;
+          return {
+            id: String(sib.product_id),
+            name: sib.color,
+            hex: sib.color_hex,
+            imageUrl: sib.image_url || undefined,
+            images: sib.image_url ? [sib.image_url] : [],
+            productId: String(sib.product_id),
+            displayName: sib.display_name || sib.name,
+            price: sib.pricing.final_price,
+            quotaMonthly: sib.pricing.hook?.monthly_price || 0,
+            originalQuotaMonthly: sib.pricing.hook?.original_monthly_price ?? undefined,
+            discount: sib.pricing.discount_percent > 0 ? sib.pricing.discount_percent : undefined,
+            specs: sibSpecs,
+            rawSpecs: sib.specs && Object.keys(sib.specs).length > 0 ? sib.specs : undefined,
+          };
+        })
+      : apiProduct.colors?.map(c => ({
+          id: c.id,
+          name: c.name,
+          hex: c.hex,
+          imageUrl: c.image_url,
+          images: c.images || (c.image_url ? [c.image_url] : []),
+        })) || [],
     deviceType: mapDeviceType(apiProduct.type),
     price: pricing.final_price,
     originalPrice: pricing.list_price > pricing.final_price ? pricing.list_price : undefined,
