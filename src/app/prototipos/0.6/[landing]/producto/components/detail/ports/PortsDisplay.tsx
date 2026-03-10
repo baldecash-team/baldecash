@@ -3,7 +3,8 @@
 /**
  * PortsDisplay - Visual Laptop Ports Layout (basado en V1)
  * Shows ports organized by position with a visual representation.
- * Includes PDF download for spec sheet.
+ *
+ * SpecSheetDownload - Separate component for downloading spec sheet PDF
  */
 
 import React, { useState } from 'react';
@@ -18,7 +19,7 @@ import {
   Download,
   Check,
 } from 'lucide-react';
-import { PortsDisplayProps, ProductPort } from '../../../types/detail';
+import { PortsDisplayProps, ProductPort, SpecSheetDownloadProps } from '../../../types/detail';
 import { generateSpecSheetPDF } from '../../../utils/generateSpecSheetPDF';
 
 const iconMap: Record<string, React.ElementType> = {
@@ -30,18 +31,18 @@ const iconMap: Record<string, React.ElementType> = {
   HelpCircle,
 };
 
-export const PortsDisplay: React.FC<PortsDisplayProps> = ({
-  ports,
+/**
+ * SpecSheetDownload - Component for downloading spec sheet PDF
+ * Rendered outside the ports card, below it
+ */
+export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
   specs = [],
+  ports = [],
   productName,
   productBrand,
-  productImage
+  productImage,
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
-
-  const leftPorts = ports.filter(p => p.position === 'left');
-  const rightPorts = ports.filter(p => p.position === 'right');
-  const backPorts = ports.filter(p => p.position === 'back');
 
   const handleDownloadPDF = async () => {
     try {
@@ -61,6 +62,41 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({
       console.error('Error generando PDF:', error);
     }
   };
+
+  return (
+    <div className="w-full p-4 bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl border border-[rgba(var(--color-primary-rgb),0.2)]">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3 text-center sm:text-left">
+          <div className="w-10 h-10 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shrink-0">
+            <Download className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-neutral-900 font-['Asap']">Ficha Técnica</h4>
+            <p className="text-sm text-neutral-600 hidden sm:block">Descarga todas las especificaciones en PDF</p>
+          </div>
+        </div>
+        <Button
+          className={`w-full sm:w-auto px-6 cursor-pointer transition-all ${
+            downloadSuccess
+              ? 'bg-green-500 text-white'
+              : 'bg-[var(--color-primary)] text-white hover:opacity-90'
+          }`}
+          startContent={downloadSuccess ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+          onPress={handleDownloadPDF}
+        >
+          {downloadSuccess ? 'Descargado' : 'Descargar PDF'}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export const PortsDisplay: React.FC<PortsDisplayProps> = ({
+  ports,
+}) => {
+  const leftPorts = ports.filter(p => p.position === 'left');
+  const rightPorts = ports.filter(p => p.position === 'right');
+  const backPorts = ports.filter(p => p.position === 'back');
 
   const renderPort = (port: ProductPort, index: number) => {
     const IconComponent = iconMap[port.icon] || HelpCircle;
@@ -135,32 +171,6 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({
           <span className="px-3 py-1 bg-neutral-100 text-neutral-600 rounded-full text-xs font-medium">
             {leftPorts.reduce((acc, p) => acc + p.count, 0)} izquierda • {rightPorts.reduce((acc, p) => acc + p.count, 0)} derecha
           </span>
-        </div>
-      </div>
-
-      {/* Card de descarga - Ficha Técnica */}
-      <div className="mt-6 p-4 bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.1)] rounded-xl border border-[rgba(var(--color-primary-rgb),0.2)]">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3 text-center sm:text-left">
-            <div className="w-10 h-10 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shrink-0">
-              <Download className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-neutral-900 font-['Asap']">Ficha Técnica</h4>
-              <p className="text-sm text-neutral-600 hidden sm:block">Descarga todas las especificaciones en PDF</p>
-            </div>
-          </div>
-          <Button
-            className={`w-full sm:w-auto px-6 cursor-pointer transition-all ${
-              downloadSuccess
-                ? 'bg-green-500 text-white'
-                : 'bg-[var(--color-primary)] text-white hover:opacity-90'
-            }`}
-            startContent={downloadSuccess ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-            onPress={handleDownloadPDF}
-          >
-            {downloadSuccess ? 'Descargado' : 'Descargar PDF'}
-          </Button>
         </div>
       </div>
     </div>

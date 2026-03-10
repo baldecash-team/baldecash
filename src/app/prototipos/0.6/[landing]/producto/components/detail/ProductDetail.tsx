@@ -37,6 +37,7 @@ import {
   ProductLimitations,
   Certifications,
   PortsDisplay,
+  SpecSheetDownload,
 } from './index';
 import type { PricingSelection } from './pricing/PricingCalculator';
 
@@ -210,16 +211,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
         {/* Ports Display - Full Width (Only for Laptops) */}
         {showPorts && (
-          <div id="section-ports" className="mt-12">
-            <PortsDisplay
-              ports={product.ports}
-              specs={product.specs}
-              productName={product.name}
-              productBrand={product.brand}
-              productImage={product.images[0]?.url}
-            />
+          <div id="section-ports" className="mt-4">
+            <PortsDisplay ports={product.ports} />
           </div>
         )}
+
+        {/* Spec Sheet Download - All products */}
+        <div id="section-spec-sheet" className="mt-6">
+          <SpecSheetDownload
+            specs={product.specs}
+            ports={product.ports}
+            productName={product.displayName}
+            productBrand={product.brand}
+            productImage={product.images[0]?.url}
+          />
+        </div>
 
         {/* Cronograma Section - Full Width */}
         <div id="section-cronograma" className="mt-12">

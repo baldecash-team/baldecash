@@ -104,8 +104,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     >
       <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white">
         <CardBody className="p-0 flex flex-col">
-          {/* Image - Large (gallerySizeVersion=3) */}
-          <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6">
+          {/* Image - Altura fija para consistencia */}
+          <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6 h-[220px] flex items-center justify-center">
             <ImageGallery
               images={selectedImages}
               alt={product.displayName}
@@ -184,25 +184,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {product.brand}
             </p>
 
-            {/* Title */}
-            <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3">
+            {/* Title - Altura fija para 2 líneas */}
+            <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3 min-h-[3.5rem]">
               {product.displayName}
             </h3>
 
-            {/* Color Selector - ÚNICO ELEMENTO ITERABLE v0.6 */}
-            {product.colors && product.colors.length > 0 && (
-              <div className="flex justify-center mb-4">
+            {/* Color Selector - Altura fija reservada */}
+            <div className="flex justify-center mb-4 min-h-[32px]">
+              {product.colors && product.colors.length > 0 ? (
                 <ColorSelector
                   colors={product.colors}
                   selectedColorId={selectedColorId}
                   onColorSelect={setSelectedColorId}
                   version={colorSelectorVersion}
                 />
-              </div>
-            )}
+              ) : null}
+            </div>
 
             {/* Specs técnicas con iconos - siempre mostrar con fallback genérico */}
-            <div className="space-y-2 mb-4">
+            <div className="space-y-2">
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>{product.specs?.processor?.model || 'Procesador'}</span>
@@ -229,6 +229,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Spacer - empuja pricing y CTAs al fondo */}
+            <div className="flex-1 min-h-4" />
 
             {/* Pricing - Altura fija para consistencia entre cards */}
             <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
@@ -257,9 +260,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 en {selectedTerm} meses{initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(initialAmount))}` : ' · sin inicial'}
               </p>
             </div>
-
-            {/* Spacer */}
-            <div className="flex-1" />
 
             {/* CTAs */}
             <div className="flex gap-2 w-full">
