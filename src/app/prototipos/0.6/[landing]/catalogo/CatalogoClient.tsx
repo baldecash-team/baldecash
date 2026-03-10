@@ -1443,7 +1443,7 @@ function CatalogoContent() {
                 onFavorite={() => handleToggleWishlist(product.id)}
                 isFavorite={wishlist.includes(product.id)}
                 isInCart={cart.includes(product.id)}
-                onViewDetail={() => router.push(getDetailUrl(landing, product.slug))}
+                onViewDetail={(siblingSlug) => router.push(getDetailUrl(landing, siblingSlug || product.slug))}
                 onCompare={() => handleToggleCompare(product.id)}
                 isCompareSelected={compareList.includes(product.id)}
                 compareDisabled={compareList.length >= maxCompareProducts}

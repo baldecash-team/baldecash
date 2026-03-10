@@ -24,7 +24,7 @@ interface ProductCardProps {
   product: CatalogProduct;
   onAddToCart?: () => void;
   onFavorite?: () => void;
-  onViewDetail?: () => void;
+  onViewDetail?: (slug?: string) => void;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
   colorSelectorVersion?: ColorSelectorVersion;
@@ -274,7 +274,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 variant="bordered"
                 className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
                 startContent={<Eye className="w-5 h-5" />}
-                onPress={onViewDetail}
+                onPress={() => onViewDetail?.(selectedColor?.slug)}
               >
                 Detalle
               </Button>

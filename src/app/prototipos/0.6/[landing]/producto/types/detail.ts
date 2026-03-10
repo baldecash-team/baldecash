@@ -108,6 +108,16 @@ export interface ProductColor {
   hex: string;
 }
 
+export interface ColorSibling {
+  productId: number;
+  slug: string;
+  name: string;
+  displayName: string;
+  color: string;
+  colorHex: string;
+  imageUrl?: string;
+}
+
 export interface ProductDetail {
   id: string;
   slug: string;
@@ -122,6 +132,7 @@ export interface ProductDetail {
   originalQuota?: number;
   images: ProductImage[];
   colors: ProductColor[];
+  colorSiblings: ColorSibling[];
   description: string;
   shortDescription: string;
   specs: ProductSpec[];
