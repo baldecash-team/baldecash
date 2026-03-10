@@ -432,6 +432,7 @@ export interface ProductColor {
   images?: string[];   // Array de imágenes para carousel
   // Color sibling data (from ProductFamily)
   productId?: string;   // ID del producto sibling
+  slug?: string;        // Slug del producto sibling (para navegación)
   displayName?: string; // Nombre display del sibling
   price?: number;       // Precio final del sibling
   quotaMonthly?: number; // Cuota mensual del sibling
@@ -836,7 +837,7 @@ export interface ProductCardProps {
   gallerySizeVersion?: GallerySizeVersion;
   onAddToCart?: () => void;
   onFavorite?: () => void;
-  onViewDetail?: () => void;
+  onViewDetail?: (slug?: string) => void;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
   showPricingOptions?: boolean;

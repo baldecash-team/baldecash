@@ -78,12 +78,47 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const params = useParams();
   const landing = params.landing as string || 'home';
 
-  // Color state - default to first color
+  // Color siblings: use family siblings if available, otherwise variant colors
+  const hasSiblings = product.colorSiblings && product.colorSiblings.length > 1;
+
+  // Build colors from siblings for the ColorSelector
+  const siblingColors = useMemo(() => {
+    if (!hasSiblings) return null;
+    return product.colorSiblings.map(sib => ({
+      id: String(sib.productId),
+      name: sib.color,
+      hex: sib.colorHex,
+    }));
+  }, [hasSiblings, product.colorSiblings]);
+
+  // Use sibling colors if available, otherwise variant colors
+  const displayColors = siblingColors || product.colors;
+
+  // Color state - default to current product
   const defaultColorId = useMemo(() => {
+    if (hasSiblings) {
+      // Find current product in siblings
+      const currentSibling = product.colorSiblings.find(
+        sib => sib.slug === product.slug
+      );
+      return currentSibling ? String(currentSibling.productId) : String(product.colorSiblings[0].productId);
+    }
     return product.colors && product.colors.length > 0 ? product.colors[0].id : '';
-  }, [product.colors]);
+  }, [product.colors, product.colorSiblings, product.slug, hasSiblings]);
 
   const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
+
+  // Navigate to sibling product when color is selected
+  const handleColorSelect = useCallback((colorId: string) => {
+    if (hasSiblings) {
+      const sibling = product.colorSiblings.find(sib => String(sib.productId) === colorId);
+      if (sibling && sibling.slug !== product.slug) {
+        router.push(`/prototipos/0.6/${landing}/producto/${sibling.slug}`);
+        return;
+      }
+    }
+    setSelectedColorId(colorId);
+  }, [hasSiblings, product.colorSiblings, product.slug, landing, router]);
 
   // Pricing selection state (from PricingCalculator)
   const [pricingSelection, setPricingSelection] = useState<PricingSelection | null>(null);
@@ -158,9 +193,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               rating={product.rating}
               reviewCount={product.reviewCount}
               displayName={product.displayName}
-              colors={product.colors}
+              colors={displayColors}
               selectedColorId={selectedColorId}
-              onColorSelect={setSelectedColorId}
+              onColorSelect={handleColorSelect}
             />
           </div>
 

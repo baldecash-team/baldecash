@@ -44,6 +44,7 @@ export const mockProductDetail: ProductDetail = {
     { id: 'laptop-silver', name: 'Plata', hex: '#C0C0C0' },
     { id: 'laptop-black', name: 'Negro', hex: '#1A1A1A' },
   ],
+  colorSiblings: [],
   description: 'La Lenovo V15 G4 es la laptop perfecta para estudiantes universitarios. Con su procesador AMD Ryzen 5 y 8GB de RAM, podrás ejecutar todas tus aplicaciones de estudio sin problemas. Su pantalla de 15.6 pulgadas Full HD te permite trabajar cómodamente durante horas.',
   shortDescription: 'Laptop ideal para estudios universitarios con Ryzen 5, 8GB RAM y SSD de 256GB.',
   badges: [
@@ -404,6 +405,7 @@ export const mockTabletDetail: ProductDetail = {
     { id: 'tablet-beige', name: 'Beige', hex: '#D4C4B0' },
     { id: 'tablet-pink', name: 'Rosa Lavanda', hex: '#E8D5E0' },
   ],
+  colorSiblings: [],
   description: 'La Samsung Galaxy Tab S9 es la tablet perfecta para estudiantes y profesionales. Con su pantalla Dynamic AMOLED 2X de 11 pulgadas y el S Pen incluido, podrás tomar notas, dibujar y disfrutar contenido multimedia como nunca antes.',
   shortDescription: 'Tablet premium con pantalla AMOLED 11", S Pen incluido y 128GB de almacenamiento.',
   badges: [
@@ -637,6 +639,7 @@ export const mockCelularDetail: ProductDetail = {
     { id: 'cel-violet', name: 'Violeta Asombroso', hex: '#8B5CF6' },
     { id: 'cel-lime', name: 'Lima Increíble', hex: '#84CC16' },
   ],
+  colorSiblings: [],
   description: 'El Samsung Galaxy A54 5G combina diseño premium con tecnología de punta. Su cámara de 50MP con estabilización óptica captura fotos increíbles, mientras que su pantalla Super AMOLED de 120Hz ofrece una experiencia visual impresionante.',
   shortDescription: 'Smartphone 5G con cámara 50MP OIS, pantalla AMOLED 120Hz y 128GB.',
   badges: [
