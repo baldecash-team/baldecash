@@ -26,6 +26,9 @@ interface WizardConfigContextValue {
   getNavigation: (stepCode: string) => ReturnType<typeof getStepNavigation>;
   getUrlSlugForStep: (stepCode: string) => string | undefined;
   steps: WizardStep[];
+  // Display values for intro page (from admin config)
+  displayStepsCount: number;
+  displayEstimatedMinutes: number;
 }
 
 const WizardConfigContext = createContext<WizardConfigContextValue | undefined>(undefined);
@@ -126,6 +129,23 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
     return [...config.steps].sort((a, b) => a.order - b.order);
   }, [config]);
 
+  // Display values from admin config (fallback to calculated if not set)
+  const displayStepsCount = useMemo(() => {
+    if (config?.display_steps_count !== undefined) {
+      return config.display_steps_count;
+    }
+    // Fallback: count non-summary steps
+    return steps.filter(s => !s.is_summary_step).length;
+  }, [config, steps]);
+
+  const displayEstimatedMinutes = useMemo(() => {
+    if (config?.display_estimated_minutes !== undefined) {
+      return config.display_estimated_minutes;
+    }
+    // Fallback: sum estimated times
+    return steps.reduce((sum, s) => sum + (s.estimated_time_minutes || 0), 0);
+  }, [config, steps]);
+
   const value = useMemo(
     () => ({
       config,
@@ -136,8 +156,10 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
       getNavigation,
       getUrlSlugForStep,
       steps,
+      displayStepsCount,
+      displayEstimatedMinutes,
     }),
-    [config, isLoading, error, getStep, getStepByUrlSlug, getNavigation, getUrlSlugForStep, steps]
+    [config, isLoading, error, getStep, getStepByUrlSlug, getNavigation, getUrlSlugForStep, steps, displayStepsCount, displayEstimatedMinutes]
   );
 
   return (

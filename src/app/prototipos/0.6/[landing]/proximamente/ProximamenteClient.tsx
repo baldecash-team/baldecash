@@ -23,6 +23,7 @@ import {
   Newspaper,
   HelpCircle,
   MessageCircleQuestion,
+  MessageCircle,
   Search,
   Mail,
   Scale,
@@ -192,16 +193,38 @@ function ProximamenteContent() {
             </Button>
           </div>
 
-          {/* Additional info */}
+          {/* WhatsApp CTA */}
           <div className="mt-12 p-4 bg-white rounded-xl border border-neutral-200">
+            <div className="flex items-start gap-3 text-left">
+              <div className="w-10 h-10 rounded-lg bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
+                <MessageCircle className="w-5 h-5 text-[#25D366]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-neutral-800 text-sm">¿Tienes alguna consulta?</p>
+                <p className="text-neutral-500 text-sm mt-1 mb-3">
+                  Nuestro equipo está disponible para ayudarte.
+                </p>
+                <Button
+                  size="sm"
+                  className="bg-[#25D366] text-white font-semibold cursor-pointer"
+                  startContent={<MessageCircle className="w-4 h-4" />}
+                  onPress={() => window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer')}
+                >
+                  Escríbenos por WhatsApp
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Email info */}
+          <div className="mt-4 p-4 bg-white rounded-xl border border-neutral-200">
             <div className="flex items-start gap-3 text-left">
               <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
                 <Bell className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="font-medium text-neutral-800 text-sm">Tienes alguna consulta?</p>
+                <p className="font-medium text-neutral-800 text-sm">También puedes escribirnos</p>
                 <p className="text-neutral-500 text-sm mt-1">
-                  Mientras tanto, puedes escribirnos a{' '}
                   <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
                     prestamos@baldecash.com
                   </a>

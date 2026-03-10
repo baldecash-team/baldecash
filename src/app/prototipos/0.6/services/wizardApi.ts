@@ -98,6 +98,9 @@ export interface WizardConfig {
   landing_slug: string;
   landing_name: string;
   steps: WizardStep[];
+  // Display values for intro page (configured in admin)
+  display_steps_count?: number;
+  display_estimated_minutes?: number;
 }
 
 // ============================================================================

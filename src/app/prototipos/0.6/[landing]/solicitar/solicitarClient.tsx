@@ -55,7 +55,7 @@ function WizardPreviewContent() {
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config for dynamic first step
-  const { steps, isLoading: isConfigLoading } = useWizardConfig();
+  const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
 
   // Get solicitar flow configuration (accessories, wizard_steps, insurance order & enabled state)
   const { isEnabled: isSectionEnabled, sectionsBeforeWizard, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
@@ -334,17 +334,14 @@ function WizardPreviewContent() {
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
             <Clock className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-800">
-              {(() => {
-                const totalMinutes = steps.reduce((sum, s) => sum + (s.estimated_time_minutes || 0), 0);
-                return totalMinutes < 1 ? '~1 minuto' : `~${totalMinutes} minutos`;
-              })()}
+              {displayEstimatedMinutes < 1 ? '~1 minuto' : `~${displayEstimatedMinutes} minutos`}
             </p>
             <p className="text-xs text-neutral-500">Tiempo estimado</p>
           </div>
           <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
             <FileText className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-800">
-              {steps.filter(s => !s.is_summary_step).length} pasos
+              {displayStepsCount} pasos
             </p>
             <p className="text-xs text-neutral-500">Proceso simple</p>
           </div>

@@ -36,6 +36,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
             size="sm"
             className="bg-[#25D366] text-white font-semibold cursor-pointer"
             startContent={<MessageCircle className="w-4 h-4" />}
+            onPress={() => window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer')}
           >
             Escríbenos por WhatsApp
           </Button>
