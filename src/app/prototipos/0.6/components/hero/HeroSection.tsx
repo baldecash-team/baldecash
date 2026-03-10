@@ -14,7 +14,7 @@
  * - Footer: V2 (Newsletter + Columnas)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { UnderlinedText } from './common/UnderlinedText';
 
 // Types
@@ -23,6 +23,12 @@ import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial
 // Quiz
 import { HelpQuiz } from '../../quiz';
 import { useQuiz } from '../../quiz/hooks/useQuiz';
+
+// Shared state for cart (same localStorage as catalog)
+import { useCatalogSharedState } from '../../[landing]/catalogo/hooks/useCatalogSharedState';
+
+// Toast for feedback
+import { Toast, useToast } from '@/app/prototipos/_shared';
 
 // Components
 import { Navbar } from './Navbar';
@@ -120,6 +126,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   // Quiz data from API - check if landing has a quiz
   const { hasQuiz, questions } = useQuiz({ landingSlug: landing });
   const questionCount = questions.length;
+
+  // Cart state - shares localStorage with catalog
+  const { cart, addToCart } = useCatalogSharedState(landing);
+
+  // Toast for cart feedback
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Add to cart with toast feedback
+  const handleAddToCart = useCallback((productId: string) => {
+    if (!cart.includes(productId)) {
+      addToCart(productId);
+      showToast('Producto añadido al carrito', 'success');
+    }
+  }, [cart, addToCart, showToast]);
 
   // Quiz handlers
   const handleQuizOpen = () => {
@@ -239,6 +259,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           onClose={handleQuizClose}
           context="hero"
           landing={landing}
+          onAddToCart={handleAddToCart}
+          cartItems={cart}
+        />
+      )}
+
+      {/* Toast para feedback de carrito */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={isToastVisible}
+          onClose={hideToast}
+          duration={4000}
+          position="bottom"
         />
       )}
     </div>

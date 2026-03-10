@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardBody, CardHeader, CardFooter, Button } from '@nextui-org/react';
-import { Trophy, TrendingDown, Check, X, ArrowRight, Cpu, HardDrive, Monitor, MemoryStick, Zap } from 'lucide-react';
+import { Trophy, TrendingDown, Check, X, ArrowRight, Cpu, HardDrive, Monitor, MemoryStick, Zap, ShoppingCart } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../utils/formatMoney';
 
@@ -14,6 +14,8 @@ interface DesignStyleBProps {
   bestProductIndex: number;
   onRemoveProduct: (productId: string) => void;
   onSelectProduct?: (productId: string) => void;
+  onAddToCart?: (productId: string) => void;
+  cartItems?: string[];
   priceDiff: ReturnType<typeof calculatePriceDifference>;
 }
 
@@ -45,6 +47,8 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
   bestProductIndex,
   onRemoveProduct,
   onSelectProduct,
+  onAddToCart,
+  cartItems = [],
   priceDiff,
 }) => {
   // Get winner status for a spec and product
@@ -226,7 +230,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               )}
             </CardBody>
 
-            <CardFooter className="px-4 py-4 border-t border-neutral-100">
+            <CardFooter className="px-4 py-4 border-t border-neutral-100 flex flex-col gap-2">
               <Button
                 fullWidth
                 className={`cursor-pointer font-semibold transition-all ${
@@ -238,6 +242,20 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                 endContent={<ArrowRight className="w-4 h-4" />}
               >
                 {isBest ? 'Elegir ganador' : 'Seleccionar'}
+              </Button>
+              <Button
+                fullWidth
+                variant="bordered"
+                className={`cursor-pointer font-medium ${
+                  cartItems.includes(product.id)
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-600'
+                    : 'border-neutral-200 text-neutral-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                }`}
+                startContent={cartItems.includes(product.id) ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}
+                isDisabled={cartItems.includes(product.id)}
+              >
+                {cartItems.includes(product.id) ? 'Añadido al carrito' : 'Añadir al carrito'}
               </Button>
             </CardFooter>
           </Card>

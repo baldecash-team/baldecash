@@ -53,6 +53,9 @@ interface ProductDetailProps {
   cronogramaVersion?: CronogramaVersion;
   onAddToCart?: () => void;
   isInCart?: boolean;
+  // Cart props for similar products
+  onSimilarAddToCart?: (productId: string) => void;
+  cartItems?: string[];
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -67,6 +70,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   cronogramaVersion = 1,
   onAddToCart,
   isInCart = false,
+  // Cart props for similar products
+  onSimilarAddToCart,
+  cartItems = [],
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -245,7 +251,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
         {/* Similar Products - Full Width */}
         <div id="section-similar" className="mt-12">
-          <SimilarProducts products={similarProducts} currentQuota={product.lowestQuota} />
+          <SimilarProducts
+            products={similarProducts}
+            currentQuota={product.lowestQuota}
+            onAddToCart={onSimilarAddToCart}
+            cartItems={cartItems}
+          />
         </div>
 
         {/* Limitations */}

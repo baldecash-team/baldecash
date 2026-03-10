@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Trophy, TrendingDown, Check, X } from 'lucide-react';
+import { Button } from '@nextui-org/react';
+import { Trophy, TrendingDown, Check, X, ShoppingCart } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../utils/formatMoney';
 
@@ -12,6 +13,9 @@ interface DesignStyleAProps {
   showBestOption: boolean;
   bestProductIndex: number;
   onRemoveProduct: (productId: string) => void;
+  onSelectProduct?: (productId: string) => void;
+  onAddToCart?: (productId: string) => void;
+  cartItems?: string[];
   priceDiff: ReturnType<typeof calculatePriceDifference>;
 }
 
@@ -27,6 +31,9 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
   showBestOption,
   bestProductIndex,
   onRemoveProduct,
+  onSelectProduct,
+  onAddToCart,
+  cartItems = [],
   priceDiff,
 }) => {
   const productColumnWidth = products.length > 0 ? `${(100 - 25) / products.length}%` : 'auto';
@@ -144,6 +151,31 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                             <span className="text-xs font-normal text-neutral-500">/mes</span>
                             {renderPriceDiff(index)}
                           </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex flex-col gap-1 mt-2">
+                          <Button
+                            size="sm"
+                            className="bg-[var(--color-primary)] text-white cursor-pointer text-xs px-3 min-w-0 h-7"
+                            onPress={() => onSelectProduct?.(product.id)}
+                          >
+                            Elegir
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="bordered"
+                            className={`cursor-pointer text-xs px-3 min-w-0 h-7 ${
+                              cartItems.includes(product.id)
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-600'
+                                : 'border-neutral-200 text-neutral-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                            }`}
+                            startContent={cartItems.includes(product.id) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
+                            onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}
+                            isDisabled={cartItems.includes(product.id)}
+                          >
+                            {cartItems.includes(product.id) ? 'Añadido' : 'Carrito'}
+                          </Button>
                         </div>
                       </div>
                     </th>

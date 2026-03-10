@@ -123,6 +123,10 @@ export interface QuizResultsProps {
   onRestartQuiz: () => void;
   /** Callback para "Ver otras opciones" */
   onViewOtherOptions?: () => void;
+  /** Callback para agregar al carrito */
+  onAddToCart?: (productId: string) => void;
+  /** Lista de IDs de productos en el carrito */
+  cartItems?: string[];
 }
 
 export type QuizContext = 'hero' | 'catalog' | 'landing';
@@ -137,4 +141,8 @@ export interface HelpQuizProps {
   context?: QuizContext;
   /** Landing slug para URLs dinámicas */
   landing?: string;
+  /** Callback para agregar al carrito */
+  onAddToCart?: (productId: string) => void;
+  /** Lista de IDs de productos en el carrito */
+  cartItems?: string[];
 }

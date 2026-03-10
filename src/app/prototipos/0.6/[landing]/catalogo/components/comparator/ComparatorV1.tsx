@@ -18,7 +18,7 @@ const WIZARD_SELECTED_TERM = 24;
  * Modal inmersivo con overlay oscuro
  * Referencia: Amazon, Best Buy comparison modal
  */
-export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; onClose: () => void; onAddToCart?: (productId: string) => void }> = ({
+export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; onClose: () => void; onAddToCart?: (productId: string) => void; cartItems?: string[] }> = ({
   products,
   config,
   onRemoveProduct,
@@ -28,6 +28,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   isOpen,
   onClose,
   onAddToCart,
+  cartItems = [],
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -144,14 +145,16 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
 
     switch (config.designStyle) {
       case 1:
-        return <DesignStyleA {...commonProps} />;
+        return <DesignStyleA {...commonProps} onSelectProduct={handleSelectProduct} onAddToCart={onAddToCart} cartItems={cartItems} />;
       case 2:
-        return <DesignStyleB {...commonProps} onSelectProduct={handleSelectProduct} />;
+        return <DesignStyleB {...commonProps} onSelectProduct={handleSelectProduct} onAddToCart={onAddToCart} cartItems={cartItems} />;
       case 3:
         return (
           <DesignStyleC
             {...commonProps}
             onSelectProduct={handleSelectProduct}
+            onAddToCart={onAddToCart}
+            cartItems={cartItems}
             showOnlyDifferences={comparisonState.showOnlyDifferences}
             onToggleDifferences={(value) => onStateChange({
               ...comparisonState,
@@ -160,7 +163,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           />
         );
       default:
-        return <DesignStyleA {...commonProps} />;
+        return <DesignStyleA {...commonProps} onSelectProduct={handleSelectProduct} onAddToCart={onAddToCart} cartItems={cartItems} />;
     }
   };
 

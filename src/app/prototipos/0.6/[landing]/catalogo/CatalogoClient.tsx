@@ -1719,6 +1719,8 @@ function CatalogoContent() {
           onClearAll={handleClearCompare}
           comparisonState={comparisonState}
           onStateChange={setComparisonState}
+          onAddToCart={(productId) => handleAddToCart(productId)}
+          cartItems={cart}
         />
       )}
 
@@ -1851,6 +1853,8 @@ function CatalogoContent() {
               }));
             }
           }}
+          onAddToCart={(productId) => handleAddToCart(productId)}
+          cartItems={cart}
         />
       )}
 

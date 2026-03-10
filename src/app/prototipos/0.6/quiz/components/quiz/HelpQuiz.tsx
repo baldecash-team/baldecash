@@ -144,6 +144,8 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   onComplete,
   context = 'catalog',
   landing,
+  onAddToCart,
+  cartItems = [],
 }) => {
   const router = useRouter();
   // Use optional hook - may be null if outside ProductProvider (e.g., Hero page)
@@ -420,6 +422,8 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
           onViewProduct={handleViewProduct}
           onRestartQuiz={handleRestart}
           onViewOtherOptions={handleViewOtherOptions}
+          onAddToCart={onAddToCart}
+          cartItems={cartItems}
         />
       );
     }

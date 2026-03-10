@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
-import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { AlertCircle } from 'lucide-react';
 
@@ -74,6 +74,17 @@ function ProductDetailContent() {
   // Shared state for catalog (wishlist, cart)
   const catalogState = useCatalogSharedState(landing);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Toast for feedback
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Add to cart with toast feedback
+  const handleAddToCart = useCallback((productId: string) => {
+    if (!catalogState.cart.includes(productId)) {
+      catalogState.addToCart(productId);
+      showToast('Producto añadido al carrito', 'success');
+    }
+  }, [catalogState, showToast]);
 
   // Drawer states for mobile
   const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
@@ -306,6 +317,10 @@ function ProductDetailContent() {
           certifications={apiData.certifications}
           deviceType={config.deviceType}
           cronogramaVersion={config.cronogramaVersion}
+          onAddToCart={() => handleAddToCart(apiData.product.id)}
+          isInCart={catalogState.cart.includes(apiData.product.id)}
+          onSimilarAddToCart={handleAddToCart}
+          cartItems={catalogState.cart}
         />
       </main>
 
@@ -355,6 +370,18 @@ function ProductDetailContent() {
           handleCartContinue();
         }}
       />
+
+      {/* Toast para feedback de carrito */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={isToastVisible}
+          onClose={hideToast}
+          duration={4000}
+          position="bottom"
+        />
+      )}
     </div>
   );
 }

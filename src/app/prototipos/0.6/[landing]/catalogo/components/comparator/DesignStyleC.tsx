@@ -3,7 +3,7 @@
 import React from 'react';
 import { Button, Card, CardBody } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown, Filter } from 'lucide-react';
+import { Trophy, Sparkles, ArrowRight, Check, X, Star, TrendingDown, Filter, ShoppingCart } from 'lucide-react';
 import { ComparableSpec, ComparisonProduct, ComparatorConfig, calculatePriceDifference, getDisplayQuota } from '../../types/comparator';
 import { formatMoney } from '../../utils/formatMoney';
 
@@ -15,6 +15,8 @@ interface DesignStyleCProps {
   bestProductIndex: number;
   onRemoveProduct: (productId: string) => void;
   onSelectProduct?: (productId: string) => void;
+  onAddToCart?: (productId: string) => void;
+  cartItems?: string[];
   priceDiff: ReturnType<typeof calculatePriceDifference>;
   showOnlyDifferences?: boolean;
   onToggleDifferences?: (value: boolean) => void;
@@ -34,6 +36,8 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
   bestProductIndex,
   onRemoveProduct,
   onSelectProduct,
+  onAddToCart,
+  cartItems = [],
   priceDiff,
   showOnlyDifferences,
   onToggleDifferences,
@@ -437,6 +441,30 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                           }`}>
                             {product.displayName}
                           </p>
+                        </div>
+                        {/* Action buttons */}
+                        <div className="flex flex-col gap-1 mt-2">
+                          <Button
+                            size="sm"
+                            className="bg-[var(--color-primary)] text-white cursor-pointer text-[10px] md:text-xs px-2 md:px-3 min-w-0 h-7"
+                            onPress={() => onSelectProduct?.(product.id)}
+                          >
+                            Elegir
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="bordered"
+                            className={`cursor-pointer text-[10px] md:text-xs px-2 md:px-3 min-w-0 h-7 ${
+                              cartItems.includes(product.id)
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-600'
+                                : 'border-neutral-200 text-neutral-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                            }`}
+                            startContent={cartItems.includes(product.id) ? <Check className="w-3 h-3" /> : <ShoppingCart className="w-3 h-3" />}
+                            onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}
+                            isDisabled={cartItems.includes(product.id)}
+                          >
+                            {cartItems.includes(product.id) ? 'Añadido' : 'Carrito'}
+                          </Button>
                         </div>
                       </div>
                     </th>

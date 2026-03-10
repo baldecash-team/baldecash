@@ -5,15 +5,18 @@
  * Incluye: match %, comparación vs precio actual, tags diferenciadores
  * Diseño basado en ProductCard del catálogo
  * Incluye galería de imágenes con miniaturas y selector de colores
+ *
+ * v0.6.1: Agregado CartSelectionModal para ofrecer opción de carrito
  */
 
 import React, { useRef, useState, useEffect } from 'react';
-import { Card, CardBody, Button } from '@nextui-org/react';
-import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, Cpu, MemoryStick, HardDrive, Monitor, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody } from '@nextui-org/react';
+import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, Cpu, MemoryStick, HardDrive, Monitor, Check, ShoppingCart, X } from 'lucide-react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { SimilarProductsProps, SimilarProduct, SimilarProductImage } from '../../../types/detail';
 import { formatMoney, formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { useIsMobile } from '@/app/prototipos/_shared';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -25,7 +28,20 @@ interface ProductCardState {
   selectedColorId: string | null;
 }
 
-export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, currentQuota }) => {
+// Extended props for cart integration
+interface SimilarProductsExtendedProps extends SimilarProductsProps {
+  onAddToCart?: (productId: string) => void;
+  cartItems?: string[];
+}
+
+export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
+  products,
+  currentQuota,
+  onAddToCart,
+  cartItems = [],
+}) => {
+  const isMobile = useIsMobile();
+
   // Si no hay productos similares, no mostrar la sección
   if (!products || products.length === 0) {
     return null;
@@ -34,6 +50,21 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Modal state for cart selection
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProductForModal, setSelectedProductForModal] = useState<SimilarProduct | null>(null);
+
+  // Open modal when clicking "Lo quiero"
+  const handleOpenModal = (product: SimilarProduct) => {
+    setSelectedProductForModal(product);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProductForModal(null);
+  };
 
   // State for each product's selected image and color
   const [productStates, setProductStates] = useState<Record<string, ProductCardState>>(() => {
@@ -473,13 +504,16 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
                       <Button
                         size="lg"
                         className={`flex-1 font-bold cursor-pointer rounded-xl ${
-                          isCheaper
-                            ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                            : 'bg-[var(--color-primary)] text-white hover:brightness-90'
+                          cartItems.includes(product.id)
+                            ? 'bg-emerald-500 text-white cursor-default'
+                            : isCheaper
+                              ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                              : 'bg-[var(--color-primary)] text-white hover:brightness-90'
                         }`}
-                        onPress={() => handleAddToCart(product)}
+                        onPress={() => !cartItems.includes(product.id) && handleOpenModal(product)}
+                        isDisabled={cartItems.includes(product.id)}
                       >
-                        {isCheaper ? 'Ahorrar' : 'Lo quiero'}
+                        {cartItems.includes(product.id) ? 'En el carrito' : isCheaper ? 'Ahorrar' : 'Lo quiero'}
                       </Button>
                     </div>
                   </div>
@@ -494,7 +528,262 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products, curr
       <p className="md:hidden text-center text-xs text-neutral-400 mt-3">
         Desliza para ver más →
       </p>
+
+      {/* Cart Selection Modal */}
+      {selectedProductForModal && (
+        isMobile ? (
+          <SimilarProductMobileModal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            product={selectedProductForModal}
+            onRequestEquipment={() => handleAddToCart(selectedProductForModal)}
+            onAddToCart={() => {
+              onAddToCart?.(selectedProductForModal.id);
+              handleCloseModal();
+            }}
+          />
+        ) : (
+          <SimilarProductDesktopModal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            product={selectedProductForModal}
+            onRequestEquipment={() => handleAddToCart(selectedProductForModal)}
+            onAddToCart={() => {
+              onAddToCart?.(selectedProductForModal.id);
+              handleCloseModal();
+            }}
+          />
+        )
+      )}
     </div>
+  );
+};
+
+// ============================================
+// Cart Selection Modal Components for SimilarProduct
+// ============================================
+
+interface SimilarProductModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  product: SimilarProduct;
+  onRequestEquipment: () => void;
+  onAddToCart: () => void;
+}
+
+// Shared content for both mobile and desktop modals
+const ModalContentShared: React.FC<{
+  product: SimilarProduct;
+  onRequestEquipment: () => void;
+  onAddToCart: () => void;
+  onClose: () => void;
+}> = ({ product, onRequestEquipment, onAddToCart, onClose }) => {
+  return (
+    <div className="space-y-4">
+      {/* Product Preview */}
+      <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-xl">
+        <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-neutral-200">
+          <img
+            src={product.thumbnail}
+            alt={product.displayName}
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wide">
+            {product.brand}
+          </p>
+          <h3 className="text-sm lg:text-base font-semibold text-neutral-800 line-clamp-2">
+            {product.displayName}
+          </h3>
+          <p className="text-base lg:text-lg font-bold text-[var(--color-primary)] mt-0.5">
+            S/{formatMoneyNoDecimals(Math.floor(product.monthlyQuota))}/mes
+          </p>
+        </div>
+      </div>
+
+      {/* Options */}
+      <div className="space-y-3">
+        {/* Option 1: Request Equipment */}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => {
+            onRequestEquipment();
+            onClose();
+          }}
+          className="w-full p-4 bg-[var(--color-primary)] text-white rounded-xl flex items-center gap-4 cursor-pointer hover:brightness-90 transition-colors"
+        >
+          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <ArrowRight className="w-6 h-6" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-semibold text-base">Solicitar equipo</p>
+            <p className="text-sm text-white/80">
+              Iniciar proceso de solicitud ahora
+            </p>
+          </div>
+        </motion.button>
+
+        {/* Option 2: Add to Cart */}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => {
+            onAddToCart();
+          }}
+          className="w-full p-4 bg-white border-2 border-neutral-200 text-neutral-800 rounded-xl flex items-center gap-4 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] transition-all"
+        >
+          <div className="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <ShoppingCart className="w-6 h-6 text-neutral-600" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-semibold text-base">Añadir al carrito</p>
+            <p className="text-sm text-neutral-500">
+              Guardar y seguir explorando
+            </p>
+          </div>
+        </motion.button>
+      </div>
+    </div>
+  );
+};
+
+// Desktop Modal (NextUI)
+const SimilarProductDesktopModal: React.FC<SimilarProductModalProps> = ({
+  isOpen,
+  onClose,
+  product,
+  onRequestEquipment,
+  onAddToCart,
+}) => (
+  <Modal
+    isOpen={isOpen}
+    onClose={onClose}
+    size="md"
+    backdrop="blur"
+    placement="center"
+    classNames={{
+      wrapper: 'z-[100]',
+      backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
+      base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200',
+      header: 'border-b border-neutral-100 pb-4',
+      body: 'p-0',
+      closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+    }}
+  >
+    <ModalContent>
+      <ModalHeader className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+          <ShoppingCart className="w-5 h-5 text-[var(--color-primary)]" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-neutral-800">¿Qué deseas hacer?</h2>
+          <p className="text-sm text-neutral-500">Elige una opción</p>
+        </div>
+      </ModalHeader>
+      <ModalBody className="p-6">
+        <ModalContentShared
+          product={product}
+          onRequestEquipment={onRequestEquipment}
+          onAddToCart={onAddToCart}
+          onClose={onClose}
+        />
+      </ModalBody>
+    </ModalContent>
+  </Modal>
+);
+
+// Mobile Bottom Sheet (Framer Motion)
+const SimilarProductMobileModal: React.FC<SimilarProductModalProps> = ({
+  isOpen,
+  onClose,
+  product,
+  onRequestEquipment,
+  onAddToCart,
+}) => {
+  const dragControls = useDragControls();
+
+  return (
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="similar-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-[9998]"
+          />
+
+          {/* Bottom Sheet */}
+          <motion.div
+            key="similar-sheet"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            drag="y"
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) {
+                onClose();
+              }
+            }}
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col"
+          >
+            {/* Drag Handle */}
+            <div
+              onPointerDown={(e) => dragControls.start(e)}
+              className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
+            >
+              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                  <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-neutral-800">
+                    ¿Qué deseas hacer?
+                  </h2>
+                  <p className="text-xs text-neutral-500">
+                    Elige una opción
+                  </p>
+                </div>
+              </div>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                onPress={onClose}
+                className="cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 pb-8">
+              <ModalContentShared
+                product={product}
+                onRequestEquipment={onRequestEquipment}
+                onAddToCart={onAddToCart}
+                onClose={onClose}
+              />
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 

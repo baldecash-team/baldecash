@@ -4,11 +4,13 @@
  * QuizResultsV1 - Producto destacado + opciones secundarias
  * Muestra el mejor match como recomendación principal con énfasis visual,
  * y los demás resultados como alternativas en cards más pequeñas.
+ *
+ * v0.6.1: Agregado CartSelectionModal para ofrecer opción de carrito
  */
 
-import React from 'react';
-import { Card, CardBody, Button, Chip } from '@nextui-org/react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { Card, CardBody, Button, Chip, Modal, ModalContent, ModalHeader, ModalBody } from '@nextui-org/react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import {
   Check,
   Star,
@@ -16,15 +18,36 @@ import {
   RefreshCw,
   Sparkles,
   ChevronRight,
+  ArrowRight,
+  X,
 } from 'lucide-react';
-import { QuizResultsProps, QuizResult } from '../../../types/quiz';
+import { QuizResultsProps, QuizResult, QuizProduct } from '../../../types/quiz';
+import { useIsMobile } from '@/app/prototipos/_shared';
 
 export const QuizResultsV1: React.FC<QuizResultsProps> = ({
   results,
   onViewProduct,
   onRestartQuiz,
   onViewOtherOptions,
+  onAddToCart,
+  cartItems = [],
 }) => {
+  const isMobile = useIsMobile();
+
+  // Modal state for cart selection
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProductForModal, setSelectedProductForModal] = useState<QuizProduct | null>(null);
+
+  // Open modal when clicking "Lo quiero"
+  const handleOpenModal = (product: QuizProduct) => {
+    setSelectedProductForModal(product);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedProductForModal(null);
+  };
   const topResult = results[0];
   const secondaryResults = results.slice(1); // Productos secundarios
 
@@ -185,13 +208,18 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               {/* Actions */}
               <div className="flex gap-3">
                 <Button
-                  className="flex-1 text-white font-semibold cursor-pointer"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
+                  className={`flex-1 font-semibold cursor-pointer ${
+                    cartItems.includes(topResult.product.id)
+                      ? 'bg-emerald-500 text-white cursor-default'
+                      : 'text-white'
+                  }`}
+                  style={cartItems.includes(topResult.product.id) ? {} : { backgroundColor: 'var(--color-primary)' }}
                   size="lg"
-                  endContent={<ShoppingCart className="w-4 h-4" />}
-                  onPress={() => onViewProduct(topResult.product.id)}
+                  endContent={cartItems.includes(topResult.product.id) ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                  onPress={() => !cartItems.includes(topResult.product.id) && handleOpenModal(topResult.product)}
+                  isDisabled={cartItems.includes(topResult.product.id)}
                 >
-                  Lo quiero
+                  {cartItems.includes(topResult.product.id) ? 'En el carrito' : 'Lo quiero'}
                 </Button>
               </div>
             </div>
@@ -215,7 +243,8 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               <SecondaryProductCard
                 key={result.product.id}
                 result={result}
-                onViewProduct={onViewProduct}
+                onOpenModal={handleOpenModal}
+                isInCart={cartItems.includes(result.product.id)}
                 delay={0.5 + index * 0.1}
               />
             ))}
@@ -240,6 +269,39 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
           Ver más en el catálogo
         </button>
       </motion.div>
+
+      {/* Cart Selection Modal */}
+      {selectedProductForModal && (
+        isMobile ? (
+          <QuizProductMobileModal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            product={selectedProductForModal}
+            onRequestEquipment={() => {
+              onViewProduct(selectedProductForModal.id);
+              handleCloseModal();
+            }}
+            onAddToCart={() => {
+              onAddToCart?.(selectedProductForModal.id);
+              handleCloseModal();
+            }}
+          />
+        ) : (
+          <QuizProductDesktopModal
+            isOpen={isModalOpen}
+            onClose={handleCloseModal}
+            product={selectedProductForModal}
+            onRequestEquipment={() => {
+              onViewProduct(selectedProductForModal.id);
+              handleCloseModal();
+            }}
+            onAddToCart={() => {
+              onAddToCart?.(selectedProductForModal.id);
+              handleCloseModal();
+            }}
+          />
+        )
+      )}
     </div>
   );
 };
@@ -249,9 +311,10 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
  */
 const SecondaryProductCard: React.FC<{
   result: QuizResult;
-  onViewProduct: (productId: string) => void;
+  onOpenModal: (product: QuizProduct) => void;
+  isInCart: boolean;
   delay: number;
-}> = ({ result, onViewProduct, delay }) => {
+}> = ({ result, onOpenModal, isInCart, delay }) => {
   const { product, matchScore } = result;
 
   return (
@@ -263,8 +326,13 @@ const SecondaryProductCard: React.FC<{
     >
       <Card
         isPressable
-        onPress={() => onViewProduct(product.id)}
-        className="border border-neutral-200 hover:border-[var(--color-primary)] transition-colors w-full"
+        isDisabled={isInCart}
+        onPress={() => !isInCart && onOpenModal(product)}
+        className={`border transition-colors w-full ${
+          isInCart
+            ? 'border-emerald-300 bg-emerald-50/50 cursor-default'
+            : 'border-neutral-200 hover:border-[var(--color-primary)]'
+        }`}
       >
         <CardBody className="p-3 sm:p-4">
           <div className="flex items-center gap-4">
@@ -307,17 +375,28 @@ const SecondaryProductCard: React.FC<{
                 {product.displayName}
               </p>
               <div className="flex items-center justify-between">
-                <p className="text-base font-bold" style={{ color: 'var(--color-primary)' }}>
+                <p className="text-base font-bold" style={{ color: isInCart ? '#10b981' : 'var(--color-primary)' }}>
                   S/{product.lowestQuota}
                   <span className="text-xs font-normal text-neutral-400">/mes</span>
                 </p>
                 {/* Visual indicator instead of nested button */}
                 <div
-                  className="flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-lg text-white"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
+                  className={`flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-lg text-white ${
+                    isInCart ? 'bg-emerald-500' : ''
+                  }`}
+                  style={isInCart ? {} : { backgroundColor: 'var(--color-primary)' }}
                 >
-                  Lo quiero
-                  <ChevronRight className="w-4 h-4" />
+                  {isInCart ? (
+                    <>
+                      En el carrito
+                      <Check className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      Lo quiero
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -325,6 +404,234 @@ const SecondaryProductCard: React.FC<{
         </CardBody>
       </Card>
     </motion.div>
+  );
+};
+
+// ============================================
+// Cart Selection Modal Components for QuizProduct
+// ============================================
+
+interface QuizProductModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  product: QuizProduct;
+  onRequestEquipment: () => void;
+  onAddToCart: () => void;
+}
+
+// Shared content for both mobile and desktop modals
+const QuizModalContentShared: React.FC<{
+  product: QuizProduct;
+  onRequestEquipment: () => void;
+  onAddToCart: () => void;
+  onClose: () => void;
+}> = ({ product, onRequestEquipment, onAddToCart, onClose }) => {
+  return (
+    <div className="space-y-4">
+      {/* Product Preview */}
+      <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-xl">
+        <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-neutral-200">
+          <img
+            src={product.thumbnail || product.image}
+            alt={product.displayName}
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wide">
+            {product.brand}
+          </p>
+          <h3 className="text-sm lg:text-base font-semibold text-neutral-800 line-clamp-2">
+            {product.displayName}
+          </h3>
+          <p className="text-base lg:text-lg font-bold text-[var(--color-primary)] mt-0.5">
+            S/{product.lowestQuota}/mes
+          </p>
+        </div>
+      </div>
+
+      {/* Options */}
+      <div className="space-y-3">
+        {/* Option 1: Request Equipment */}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => {
+            onRequestEquipment();
+            onClose();
+          }}
+          className="w-full p-4 bg-[var(--color-primary)] text-white rounded-xl flex items-center gap-4 cursor-pointer hover:brightness-90 transition-colors"
+        >
+          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+            <ArrowRight className="w-6 h-6" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-semibold text-base">Solicitar equipo</p>
+            <p className="text-sm text-white/80">
+              Iniciar proceso de solicitud ahora
+            </p>
+          </div>
+        </motion.button>
+
+        {/* Option 2: Add to Cart */}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => {
+            onAddToCart();
+          }}
+          className="w-full p-4 bg-white border-2 border-neutral-200 text-neutral-800 rounded-xl flex items-center gap-4 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] transition-all"
+        >
+          <div className="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <ShoppingCart className="w-6 h-6 text-neutral-600" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-semibold text-base">Añadir al carrito</p>
+            <p className="text-sm text-neutral-500">
+              Guardar y seguir explorando
+            </p>
+          </div>
+        </motion.button>
+      </div>
+    </div>
+  );
+};
+
+// Desktop Modal (NextUI)
+const QuizProductDesktopModal: React.FC<QuizProductModalProps> = ({
+  isOpen,
+  onClose,
+  product,
+  onRequestEquipment,
+  onAddToCart,
+}) => (
+  <Modal
+    isOpen={isOpen}
+    onClose={onClose}
+    size="md"
+    backdrop="blur"
+    placement="center"
+    classNames={{
+      wrapper: 'z-[100]',
+      backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
+      base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200',
+      header: 'border-b border-neutral-100 pb-4',
+      body: 'p-0',
+      closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+    }}
+  >
+    <ModalContent>
+      <ModalHeader className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+          <ShoppingCart className="w-5 h-5 text-[var(--color-primary)]" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-neutral-800">¿Qué deseas hacer?</h2>
+          <p className="text-sm text-neutral-500">Elige una opción</p>
+        </div>
+      </ModalHeader>
+      <ModalBody className="p-6">
+        <QuizModalContentShared
+          product={product}
+          onRequestEquipment={onRequestEquipment}
+          onAddToCart={onAddToCart}
+          onClose={onClose}
+        />
+      </ModalBody>
+    </ModalContent>
+  </Modal>
+);
+
+// Mobile Bottom Sheet (Framer Motion)
+const QuizProductMobileModal: React.FC<QuizProductModalProps> = ({
+  isOpen,
+  onClose,
+  product,
+  onRequestEquipment,
+  onAddToCart,
+}) => {
+  const dragControls = useDragControls();
+
+  return (
+    <AnimatePresence mode="wait">
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="quiz-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-[9998]"
+          />
+
+          {/* Bottom Sheet */}
+          <motion.div
+            key="quiz-sheet"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            drag="y"
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 100) {
+                onClose();
+              }
+            }}
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col"
+          >
+            {/* Drag Handle */}
+            <div
+              onPointerDown={(e) => dragControls.start(e)}
+              className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
+            >
+              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                  <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-neutral-800">
+                    ¿Qué deseas hacer?
+                  </h2>
+                  <p className="text-xs text-neutral-500">
+                    Elige una opción
+                  </p>
+                </div>
+              </div>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                onPress={onClose}
+                className="cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 pb-8">
+              <QuizModalContentShared
+                product={product}
+                onRequestEquipment={onRequestEquipment}
+                onAddToCart={onAddToCart}
+                onClose={onClose}
+              />
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 
