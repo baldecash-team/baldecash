@@ -14,6 +14,7 @@
 10. [Flujos de Datos](#flujos-de-datos)
 11. [Sistema de Imágenes por Color (Carousel)](#sistema-de-imágenes-por-color-carousel)
 12. [Cómo Extender](#cómo-extender)
+13. [ProductCard - Layout y Consistencia de Alturas](#productcard---layout-y-consistencia-de-alturas)
 
 ---
 
@@ -1009,3 +1010,133 @@ const [isNewDrawerOpen, setIsNewDrawerOpen] = useState(false);
 3. **Agregar trigger en UI** (navbar, botón, etc.)
 
 4. **Renderizar drawer** con AnimatePresence
+
+---
+
+## ProductCard - Layout y Consistencia de Alturas
+
+### Problema Resuelto
+
+Las ProductCards en el grid del catálogo pueden tener contenido variable:
+- Productos con 1-4 imágenes en el carousel
+- Nombres de productos de 1 o 2 líneas
+- Algunos productos tienen selector de colores, otros no
+- Textos de specs de diferentes longitudes
+
+Esto causaba **inconsistencia visual** donde las cards tenían alturas diferentes.
+
+### Solución: Alturas Fijas por Sección
+
+Cada sección de la card tiene una altura mínima reservada para garantizar consistencia:
+
+```
+┌─────────────────────────────────────────┐
+│          IMAGEN + ACTIONS               │
+│            h-[220px]                    │  ← Altura fija
+│  ┌─────────────────────────────────┐    │
+│  │    ImageGallery                 │    │
+│  │    - Imagen: h-36               │    │
+│  │    - Texto ref: mt-2            │    │
+│  │    - Thumbnails: min-h-[40px]   │    │
+│  └─────────────────────────────────┘    │
+│  [♡] [⚖] (actions top-right)           │
+│  [Tags] (top-left)                      │
+├─────────────────────────────────────────┤
+│          CONTENIDO (p-5)                │
+│                                         │
+│  BRAND (text-xs uppercase)              │
+│                                         │
+│  TÍTULO                                 │
+│  min-h-[3.5rem] line-clamp-2            │  ← 2 líneas reservadas
+│                                         │
+│  COLOR SELECTOR                         │
+│  min-h-[32px]                           │  ← Espacio reservado
+│                                         │
+│  SPECS (4 líneas fijas)                 │
+│  min-h-[100px]                          │  ← 4 specs siempre
+│  - Procesador                           │
+│  - RAM                                  │
+│  - Storage                              │
+│  - Display                              │
+│                                         │
+│  ─────────────────────────────────────  │
+│  SPACER (flex-1 min-h-4)                │  ← Absorbe diferencias
+│  ─────────────────────────────────────  │
+│                                         │
+│  PRICING BOX (rounded-2xl py-4 px-6)    │
+│  - Precio anterior + descuento          │
+│  - Cuota mensual grande                 │
+│  - Info plazo                           │
+│                                         │
+│  CTAs (flex gap-2)                      │
+│  - [Detalle] [Lo quiero]                │
+└─────────────────────────────────────────┘
+```
+
+### Tabla de Alturas Fijas
+
+| Sección | Clase CSS | Valor | Razón |
+|---------|-----------|-------|-------|
+| Imagen container | `h-[220px]` | 220px | Contiene gallery + actions + tags |
+| Imagen principal | `h-36` | 144px | Imagen del producto |
+| Thumbnails row | `min-h-[40px]` | 40px | 4 thumbnails de 40x40px |
+| Título | `min-h-[3.5rem]` | 56px | Espacio para 2 líneas |
+| Color selector | `min-h-[32px]` | 32px | Altura de dots/swatches |
+| Specs | `min-h-[100px]` | 100px | 4 líneas de specs |
+| Spacer | `flex-1 min-h-4` | 16px+ | Absorbe diferencias |
+
+### ImageGallery Unificado
+
+El componente `ImageGallery.tsx` usa un layout unificado:
+
+```tsx
+// Siempre muestra thumbnails, incluso con 1 imagen
+<div>
+  {/* Imagen principal - altura fija */}
+  <img className="w-full h-36 object-contain" />
+
+  {/* Texto referencial - siempre presente */}
+  <p className="text-[10px] text-center mt-2">Imagen referencial</p>
+
+  {/* Thumbnails - altura fija siempre */}
+  <div className="flex gap-1 mt-2 justify-center min-h-[40px]">
+    {displayImages.map((img, index) => (
+      <button className="w-10 h-10 rounded border-2">
+        <img />
+      </button>
+    ))}
+  </div>
+</div>
+```
+
+**Comportamiento:**
+- Muestra hasta 4 imágenes como thumbnails
+- Con 1 imagen: thumbnail presente pero no interactivo (`cursor-default`)
+- Con 2+ imágenes: thumbnails clickeables (`cursor-pointer`)
+- El borde activo usa `border-[var(--color-primary)]`
+
+### Posición del Spacer
+
+El spacer (`flex-1 min-h-4`) está posicionado **después de los specs y antes del pricing**:
+
+```tsx
+{/* Specs */}
+<div className="space-y-2 min-h-[100px]">...</div>
+
+{/* Spacer - empuja pricing al fondo */}
+<div className="flex-1 min-h-4" />
+
+{/* Pricing */}
+<div className="bg-[rgba(var(--color-primary-rgb),0.05)] ...">
+```
+
+Esto garantiza que:
+1. El pricing siempre está al fondo de la card
+2. Los CTAs están alineados entre todas las cards
+3. Las diferencias de contenido se absorben en el spacer
+
+### Archivos Relacionados
+
+- `components/catalog/cards/ProductCard.tsx` - Card principal
+- `components/catalog/ImageGallery.tsx` - Galería de imágenes
+- `components/catalog/color-selector/ColorSelector.tsx` - Selector de colores

@@ -201,8 +201,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               ) : null}
             </div>
 
-            {/* Specs técnicas con iconos - siempre mostrar con fallback genérico */}
-            <div className="space-y-2">
+            {/* Specs técnicas con iconos - altura fija (siempre 4 specs) */}
+            <div className="space-y-2 min-h-[100px]">
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>{product.specs?.processor?.model || 'Procesador'}</span>

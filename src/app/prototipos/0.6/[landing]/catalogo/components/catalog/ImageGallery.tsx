@@ -13,45 +13,46 @@ interface ImageGalleryProps {
 }
 
 // Galería V2 con thumbnails (configuración fija de v0.6)
+// Layout unificado para consistencia de altura entre cards
 export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const displayImages = images.slice(0, 4);
-
-  // Si no hay imágenes o solo 1, usar imagen simple
-  if (displayImages.length <= 1) {
-    return (
-      <img
-        src={displayImages[0] || '/placeholder-laptop.png'}
-        alt={alt}
-        className="w-full h-52 object-contain"
-        loading="lazy"
-      />
-    );
-  }
+  const hasMultipleImages = displayImages.length > 1;
 
   return (
     <div>
+      {/* Imagen principal - altura fija */}
       <img
-        src={displayImages[currentIndex]}
+        src={displayImages[currentIndex] || '/placeholder-laptop.png'}
         alt={alt}
-        className="w-full h-44 object-contain transition-opacity duration-200"
+        className="w-full h-36 object-contain transition-opacity duration-200"
         loading="lazy"
       />
+
+      {/* Texto referencial - siempre presente para mantener altura */}
       <p className="text-[10px] text-neutral-400 uppercase tracking-wider text-center mt-2">
         Imagen referencial
       </p>
-      <div className="flex gap-1 mt-2 justify-center">
+
+      {/* Thumbnails row - altura fija siempre */}
+      <div className="flex gap-1 mt-2 justify-center min-h-[40px]">
         {displayImages.map((img, index) => (
           <button
             key={index}
             onClick={(e) => {
               e.stopPropagation();
-              setCurrentIndex(index);
+              if (hasMultipleImages) {
+                setCurrentIndex(index);
+              }
             }}
-            className={`w-10 h-10 rounded border-2 overflow-hidden cursor-pointer transition-all ${
+            className={`w-10 h-10 rounded border-2 overflow-hidden transition-all ${
+              hasMultipleImages ? 'cursor-pointer' : 'cursor-default'
+            } ${
               index === currentIndex
                 ? 'border-[var(--color-primary)]'
-                : 'border-transparent hover:border-neutral-300'
+                : hasMultipleImages
+                  ? 'border-transparent hover:border-neutral-300'
+                  : 'border-transparent'
             }`}
           >
             <img
