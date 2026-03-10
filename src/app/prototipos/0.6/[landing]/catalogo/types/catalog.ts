@@ -430,6 +430,15 @@ export interface ProductColor {
   hex: string;
   imageUrl?: string;   // Imagen principal de la variante
   images?: string[];   // Array de imágenes para carousel
+  // Color sibling data (from ProductFamily)
+  productId?: string;   // ID del producto sibling
+  displayName?: string; // Nombre display del sibling
+  price?: number;       // Precio final del sibling
+  quotaMonthly?: number; // Cuota mensual del sibling
+  originalQuotaMonthly?: number;
+  discount?: number;
+  specs?: ProductSpecs; // Specs del sibling
+  rawSpecs?: Record<string, string | number | boolean>;
 }
 
 export const colorSelectorVersionLabels: Record<ColorSelectorVersion, { name: string; description: string }> = {

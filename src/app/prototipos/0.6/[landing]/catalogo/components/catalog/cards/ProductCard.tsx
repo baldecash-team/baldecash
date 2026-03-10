@@ -58,20 +58,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   detailButtonId,
   addToCartButtonId,
 }) => {
-  // Color selector state
+  // Color selector state — default to current product's ID if it's in the siblings
+  const currentProductColor = product.colors?.find(c => c.productId === product.id);
   const [selectedColorId, setSelectedColorId] = useState<string>(
-    product.colors?.[0]?.id || ''
+    currentProductColor?.id || product.colors?.[0]?.id || ''
   );
 
+  // Get the selected color sibling data
+  const selectedColor = product.colors?.find(c => c.id === selectedColorId);
+
+  // Override card data when a different color sibling is selected
+  const displayName = selectedColor?.displayName || product.displayName;
+  const displayPrice = selectedColor?.price ?? product.price;
+  const displayQuota = selectedColor?.quotaMonthly ?? product.quotaMonthly;
+  const displayOriginalQuota = selectedColor?.originalQuotaMonthly ?? product.originalQuotaMonthly ?? null;
+  const displayDiscount = selectedColor?.discount ?? product.discount;
+  const displaySpecs = selectedColor?.specs ?? product.specs;
+
   // Obtener imágenes según color seleccionado (para carousel)
-  // Usa Set() para deduplicar imágenes (fix: algunas APIs devuelven thumbnail duplicado en images[])
   const getImagesForSelectedColor = (): string[] => {
     if (!selectedColorId || !product.colors) {
-      // Use all product images (ImageGallery caps at 4)
       return [...new Set([product.thumbnail, ...product.images])];
     }
-    const selectedColor = product.colors.find(c => c.id === selectedColorId);
-    // Si el color tiene imágenes, usarlas; si no, fallback a thumbnail
     if (selectedColor?.images && selectedColor.images.length > 0) {
       return [...new Set(selectedColor.images)];
     }
@@ -83,15 +91,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const selectedImages = getImagesForSelectedColor();
 
-  // Usar cuota pre-calculada del backend (con TEA correcta)
-  // El backend calcula con la fórmula francesa de amortización
   const selectedTerm = 24;
   const selectedInitial = 0;
-  const quota = product.quotaMonthly;
-  const initialAmount = Math.floor(product.price * (selectedInitial / 100));
+  const quota = displayQuota;
+  const initialAmount = Math.floor(displayPrice * (selectedInitial / 100));
 
-  // Original quota for discount display (usar valor del backend si existe)
-  const originalQuota = product.originalQuotaMonthly ?? null;
+  const originalQuota = displayOriginalQuota;
 
   return (
     <motion.div
@@ -108,7 +113,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6 h-[220px] flex items-center justify-center">
             <ImageGallery
               images={selectedImages}
-              alt={product.displayName}
+              alt={displayName}
             />
 
             {/* Action buttons - top right */}
@@ -186,7 +191,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* Title - Altura fija para 2 líneas */}
             <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3 min-h-[3.5rem]">
-              {product.displayName}
+              {displayName}
             </h3>
 
             {/* Color Selector - Altura fija reservada */}
@@ -205,13 +210,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="space-y-2 min-h-[100px]">
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                <span>{product.specs?.processor?.model || 'Procesador'}</span>
+                <span>{displaySpecs?.processor?.model || 'Procesador'}</span>
               </div>
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <MemoryStick className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>
-                  {product.specs?.ram?.size || 8}GB {product.specs?.ram?.type || 'DDR4'}
-                  {product.specs?.ram?.expandable && (
+                  {displaySpecs?.ram?.size || 8}GB {displaySpecs?.ram?.type || 'DDR4'}
+                  {displaySpecs?.ram?.expandable && (
                     <span className="text-[#22c55e] ml-1">(expandible)</span>
                   )}
                 </span>
@@ -219,13 +224,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <HardDrive className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>
-                  {product.specs?.storage?.size || 256}GB {(product.specs?.storage?.type || 'ssd').toUpperCase()}
+                  {displaySpecs?.storage?.size || 256}GB {(displaySpecs?.storage?.type || 'ssd').toUpperCase()}
                 </span>
               </div>
               <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                 <Monitor className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                 <span>
-                  {product.specs?.display?.size || 15.6}&quot; {(product.specs?.display?.resolution || 'fhd').toUpperCase()}
+                  {displaySpecs?.display?.size || 15.6}&quot; {(displaySpecs?.display?.resolution || 'fhd').toUpperCase()}
                 </span>
               </div>
             </div>
@@ -240,9 +245,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {originalQuota && originalQuota > quota ? (
                   <>
                     <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}/mes</span>
-                    {product.discount && product.discount > 0 && (
+                    {displayDiscount && displayDiscount > 0 && (
                       <span className="text-xs font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
-                        -{product.discount}%
+                        -{displayDiscount}%
                       </span>
                     )}
                   </>
