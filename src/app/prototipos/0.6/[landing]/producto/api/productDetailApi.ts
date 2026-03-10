@@ -13,6 +13,7 @@ import {
   Certification,
   ProductImage,
   ProductColor,
+  ColorSibling,
   ProductSpec,
   SpecItem,
   ProductPort,
@@ -42,6 +43,16 @@ interface ApiProductColor {
   id: string;
   name: string;
   hex: string;
+}
+
+interface ApiColorSibling {
+  product_id: number;
+  slug: string;
+  name: string;
+  display_name: string;
+  color: string;
+  color_hex: string;
+  image_url?: string;
 }
 
 interface ApiProductBadge {
@@ -98,6 +109,7 @@ interface ApiProductData {
   original_quota: string | null;
   images: ApiProductImage[];
   colors: ApiProductColor[];
+  color_siblings?: ApiColorSibling[];
   description: string;
   short_description: string;
   badges: ApiProductBadge[];
@@ -333,6 +345,15 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     originalQuota: apiProduct.original_quota ? parseFloat(apiProduct.original_quota) : undefined,
     images: apiProduct.images.map(transformImage),
     colors: apiProduct.colors.map(transformColor),
+    colorSiblings: (apiProduct.color_siblings || []).map((sib): ColorSibling => ({
+      productId: sib.product_id,
+      slug: sib.slug,
+      name: sib.name,
+      displayName: sib.display_name || sib.name,
+      color: sib.color,
+      colorHex: sib.color_hex,
+      imageUrl: sib.image_url,
+    })),
     description: apiProduct.description,
     shortDescription: apiProduct.short_description,
     specs: apiProduct.specs.map(transformSpecCategory),
