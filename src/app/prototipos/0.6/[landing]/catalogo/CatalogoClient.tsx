@@ -1791,7 +1791,7 @@ function CatalogoContent() {
                       <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-neutral-800">Encuentra tu laptop ideal</p>
+                      <p className="text-sm font-semibold text-neutral-800">Encuentra tu equipo ideal</p>
                       <p className="text-xs text-neutral-500">Responde {questionCount} preguntas</p>
                     </div>
                   </button>

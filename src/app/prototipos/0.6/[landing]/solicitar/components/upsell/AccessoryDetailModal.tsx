@@ -189,7 +189,8 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
     size="md"
     scrollBehavior="inside"
     classNames={{
-      backdrop: 'bg-black/60 backdrop-blur-sm',
+      wrapper: 'z-[100]',
+      backdrop: 'bg-black/60 backdrop-blur-sm z-[99]',
       base: 'bg-white rounded-2xl',
       body: 'p-0',
       closeButton: 'top-4 right-4 z-10 bg-white/80 backdrop-blur hover:bg-white cursor-pointer',

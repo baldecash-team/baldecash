@@ -416,7 +416,7 @@ export const CatalogLayoutV1: React.FC<CatalogLayoutProps> = ({
           />
         </div>
 
-        {/* Quick Usage Cards - "Encuentra tu laptop ideal" */}
+        {/* Quick Usage Cards - "Encuentra tu equipo ideal" */}
         <QuickUsageCards
           selected={filters.usage}
           onChange={(usage) => updateFilter('usage', usage)}

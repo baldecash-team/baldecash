@@ -370,7 +370,7 @@ export const CatalogLayoutV2: React.FC<CatalogLayoutProps> = ({
                 />
               </motion.div>
 
-              {/* Quick Usage Cards - "Encuentra tu laptop ideal" - Full Width */}
+              {/* Quick Usage Cards - "Encuentra tu equipo ideal" - Full Width */}
               <QuickUsageCards
                 selected={filters.usage}
                 onChange={(usage) => updateFilter('usage', usage)}

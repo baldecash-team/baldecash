@@ -560,7 +560,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-neutral-800 font-['Baloo_2']">
-                      Encuentra tu laptop ideal
+                      Encuentra tu equipo ideal
                     </h2>
                     <p className="text-sm text-neutral-500">
                       Selecciona según tu necesidad principal
@@ -577,7 +577,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 </div>
               </motion.div>
 
-              {/* Quick Usage Cards - "Encuentra tu laptop ideal" - Full Width */}
+              {/* Quick Usage Cards - "Encuentra tu equipo ideal" - Full Width */}
               <div id="onboarding-quick-cards">
                 <QuickUsageCards
                   selected={filters.usage}
