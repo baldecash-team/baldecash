@@ -954,6 +954,10 @@ export interface SolicitarSection {
  */
 export interface SolicitarFlowConfig {
   sections: SolicitarSection[];
+  /**
+   * Si es true, el usuario debe ingresar un cupón válido para comenzar la solicitud
+   */
+  is_coupon_required?: boolean;
 }
 
 /**
@@ -965,6 +969,7 @@ export const DEFAULT_SOLICITAR_FLOW: SolicitarFlowConfig = {
     { type: 'wizard_steps', enabled: true, order: 2 },
     { type: 'insurance', enabled: true, order: 3 },
   ],
+  is_coupon_required: false,
 };
 
 /**
@@ -1001,6 +1006,7 @@ export async function getSolicitarConfig(
     // Asegurar que las secciones estén ordenadas
     return {
       sections: [...data.sections].sort((a, b) => a.order - b.order),
+      is_coupon_required: data.is_coupon_required ?? false,
     };
   } catch (error) {
     console.error('Error fetching solicitar config:', error);

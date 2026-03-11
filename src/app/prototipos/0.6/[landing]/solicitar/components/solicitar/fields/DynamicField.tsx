@@ -12,6 +12,7 @@ import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
 import { SelectInput } from './SelectInput';
+import { CascadingSelectField } from './CascadingSelectField';
 import { DateInput } from './DateInput';
 import { FileUpload } from './FileUpload';
 import { TextArea } from './TextArea';
@@ -212,23 +213,28 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'select':
+      // Use CascadingSelectField for all selects (handles both regular and cascading)
       const selectOptions = filteredOptions.map((opt) => ({
         value: opt.value,
         label: opt.label,
         description: opt.description || undefined,
       }));
 
+      // Enable search for dynamic selects (fields with options_source or cascade_from)
+      // This covers geo fields (department, province, district) and other API-sourced selects
+      const enableSelectSearch = Boolean(field.options_source || field.cascade_from);
+
       return (
-        <SelectInput
-          {...commonProps}
-          options={selectOptions}
-          placeholder={field.placeholder || 'Selecciona una opción'}
-          searchable={false}
-          success={!error && !!value}
+        <CascadingSelectField
+          field={field}
+          staticOptions={selectOptions}
+          showError={showError}
+          searchable={enableSelectSearch}
         />
       );
 
     case 'autocomplete':
+      // Use CascadingSelectField for all autocompletes (handles both regular and cascading)
       const autocompleteOptions = filteredOptions.map((opt) => ({
         value: opt.value,
         label: opt.label,
@@ -236,12 +242,11 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       }));
 
       return (
-        <SelectInput
-          {...commonProps}
-          options={autocompleteOptions}
-          placeholder={field.placeholder || 'Buscar...'}
+        <CascadingSelectField
+          field={field}
+          staticOptions={autocompleteOptions}
+          showError={showError}
           searchable={true}
-          success={!error && !!value}
         />
       );
 

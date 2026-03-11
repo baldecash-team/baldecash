@@ -32,7 +32,14 @@ interface CouponValidateResponse {
   error_message: string | null;
 }
 
-export const CouponInput: React.FC = () => {
+interface CouponInputProps {
+  /**
+   * Si es true, muestra un indicador de que el cupón es obligatorio
+   */
+  isRequired?: boolean;
+}
+
+export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) => {
   const [couponCode, setCouponCode] = useState('');
   const [state, setState] = useState<CouponState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -219,7 +226,15 @@ export const CouponInput: React.FC = () => {
     <div className="bg-white rounded-xl p-4 border border-neutral-200">
       <div className="flex items-center gap-2 mb-3">
         <Tag className="w-5 h-5 text-[var(--color-primary)]" />
-        <h3 className="font-semibold text-neutral-800">Cupón de descuento</h3>
+        <h3 className="font-semibold text-neutral-800">
+          Cupón de descuento
+          {isRequired && <span className="text-red-500 ml-1">*</span>}
+        </h3>
+        {isRequired && (
+          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+            Obligatorio
+          </span>
+        )}
       </div>
 
       <div className="flex gap-2">

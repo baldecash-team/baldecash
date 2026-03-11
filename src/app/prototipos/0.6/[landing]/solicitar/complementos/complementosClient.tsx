@@ -34,8 +34,8 @@ function ComplementosContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  // Get data from ProductContext (includes insurance, accessories, products)
-  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance } = useProduct();
+  // Get data from ProductContext (includes insurance, accessories, products, coupon)
+  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, appliedCoupon } = useProduct();
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
@@ -55,8 +55,16 @@ function ComplementosContent() {
   const {
     sectionsAfterWizard,
     isEnabled,
+    isCouponRequired,
     isLoading: isFlowConfigLoading,
   } = useSolicitarFlow({ slug: landing });
+
+  // Redirect to /solicitar if coupon is required but not applied
+  useEffect(() => {
+    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
+      router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Get the last wizard step for back navigation
   const lastStep = useMemo(() => {

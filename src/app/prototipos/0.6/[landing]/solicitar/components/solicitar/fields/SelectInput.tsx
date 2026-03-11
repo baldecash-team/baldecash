@@ -26,7 +26,7 @@ interface SelectInputProps {
   id: string;
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, selectedLabel?: string) => void;
   options: SelectOption[];
   placeholder?: string;
   error?: string;
@@ -36,6 +36,16 @@ interface SelectInputProps {
   disabled?: boolean;
   required?: boolean;
   searchable?: boolean;
+  /** Callback for remote search (lazy loading). If provided, disables local filtering. */
+  onSearch?: (searchTerm: string) => void;
+  /** Whether remote search is in progress */
+  isSearching?: boolean;
+  /** Minimum characters required before searching (for lazy loading) */
+  minSearchLength?: number;
+  /** Message to show when user hasn't typed enough characters */
+  searchPrompt?: string;
+  /** Saved label from localStorage (for lazy-loaded fields after refresh) */
+  savedLabel?: string;
 }
 
 export const SelectInput: React.FC<SelectInputProps> = ({
@@ -52,6 +62,11 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   disabled = false,
   required = true,
   searchable = true,
+  onSearch,
+  isSearching = false,
+  minSearchLength = 0,
+  searchPrompt,
+  savedLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,17 +74,34 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   const showError = !!error;
   const showSuccess = success && !error && value;
 
+  // Determine if we're using remote search
+  const isRemoteSearch = !!onSearch;
+
+  // For remote search, use options directly (they come from API)
+  // For local search, filter the options
   const filteredOptions = useMemo(() => {
+    if (isRemoteSearch) {
+      // Remote search: options are already filtered by API
+      return options;
+    }
+    // Local search: filter options by search term
     if (!searchTerm) return options;
     return options.filter((option) =>
       option.label.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [options, searchTerm]);
+  }, [options, searchTerm, isRemoteSearch]);
+
+  // Check if user needs to type more characters for remote search
+  const needsMoreChars = isRemoteSearch && minSearchLength > 0 && searchTerm.length < minSearchLength;
 
   const selectedOption = options.find((opt) => opt.value === value);
+  // Use savedLabel as fallback when options aren't loaded (lazy search after refresh)
+  const displayLabel = selectedOption?.label || savedLabel;
 
   const handleSelect = (optionValue: string) => {
-    onChange(optionValue);
+    // Find the selected option to get its label
+    const selected = options.find((opt) => opt.value === optionValue);
+    onChange(optionValue, selected?.label);
     setIsOpen(false);
     setSearchTerm('');
   };
@@ -119,8 +151,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}
         >
-          <span className={selectedOption ? 'text-neutral-800' : 'text-neutral-400'}>
-            {selectedOption?.label || placeholder}
+          <span className={displayLabel ? 'text-neutral-800' : 'text-neutral-400'}>
+            {displayLabel || placeholder}
           </span>
 
           <div className="flex items-center gap-1">
@@ -153,19 +185,38 @@ export const SelectInput: React.FC<SelectInputProps> = ({
                   <input
                     autoFocus
                     type="text"
-                    placeholder="Buscar..."
+                    placeholder={minSearchLength > 0 ? `Escribe al menos ${minSearchLength} letras...` : 'Buscar...'}
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      setSearchTerm(newValue);
+                      // For remote search, call onSearch when user types enough characters
+                      if (onSearch && newValue.length >= minSearchLength) {
+                        onSearch(newValue);
+                      }
+                    }}
                     style={{ fontSize: '16px' }}
                     className="flex-1 bg-transparent outline-none text-neutral-800 placeholder:text-neutral-400"
                   />
+                  {isSearching && (
+                    <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
+                  )}
                 </div>
               </div>
             )}
 
             {/* Options list */}
             <div className="max-h-60 overflow-y-auto p-1">
-              {filteredOptions.length === 0 ? (
+              {needsMoreChars ? (
+                <div className="py-8 text-center text-neutral-400 text-sm">
+                  {searchPrompt || `Escribe al menos ${minSearchLength} caracteres para buscar`}
+                </div>
+              ) : isSearching ? (
+                <div className="py-8 text-center text-neutral-400 text-sm flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full animate-spin" />
+                  Buscando...
+                </div>
+              ) : filteredOptions.length === 0 ? (
                 <div className="py-8 text-center text-neutral-400 text-sm">
                   No se encontraron resultados
                 </div>

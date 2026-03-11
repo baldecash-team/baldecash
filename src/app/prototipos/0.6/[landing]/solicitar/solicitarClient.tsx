@@ -45,11 +45,12 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon } = useProduct();
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
   const [isTermsHydrated, setIsTermsHydrated] = useState(false);
   const [termsError, setTermsError] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   // Get layout data from context (fetched once at [landing] level)
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
@@ -58,7 +59,7 @@ function WizardPreviewContent() {
   const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
 
   // Get solicitar flow configuration (accessories, wizard_steps, insurance order & enabled state)
-  const { isEnabled: isSectionEnabled, sectionsBeforeWizard, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
+  const { isEnabled: isSectionEnabled, sectionsBeforeWizard, isLoading: isFlowConfigLoading, isCouponRequired } = useSolicitarFlow({ slug: landing });
 
   // Clear accessories if section is disabled (prevents orphaned selections from previous sessions)
   useEffect(() => {
@@ -66,6 +67,13 @@ function WizardPreviewContent() {
       clearAccessories();
     }
   }, [isFlowConfigLoading, isSectionEnabled, selectedAccessories.length, clearAccessories]);
+
+  // Clear coupon error when coupon is applied
+  useEffect(() => {
+    if (appliedCoupon && couponError) {
+      setCouponError(null);
+    }
+  }, [appliedCoupon, couponError]);
 
   // Get first regular step (not summary step) for dynamic navigation
   const firstStep = useMemo(() => {
@@ -113,6 +121,14 @@ function WizardPreviewContent() {
 
 
   const handleStart = () => {
+    // Validar cupón si es requerido
+    if (isCouponRequired && !appliedCoupon) {
+      setCouponError('Debes ingresar un cupón válido para continuar');
+      // Scroll al campo de cupón
+      document.getElementById('coupon-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     // Validar términos antes de continuar
     if (!acceptTerms) {
       setTermsError('Debes aceptar los términos y condiciones para continuar');
@@ -134,6 +150,7 @@ function WizardPreviewContent() {
     }
 
     setTermsError(null);
+    setCouponError(null);
     router.push(`/prototipos/0.6/${landing}/solicitar/${firstStepSlug}`);
   };
 
@@ -419,8 +436,11 @@ function WizardPreviewContent() {
         </div>
 
         {/* Cupón de Descuento */}
-        <div className="mb-8">
-          <CouponInput />
+        <div id="coupon-section" className={`mb-8 ${couponError ? 'ring-2 ring-red-500/30 rounded-xl' : ''}`}>
+          <CouponInput isRequired={isCouponRequired} />
+          {couponError && !appliedCoupon && (
+            <p className="text-xs text-red-500 mt-2 ml-1">{couponError}</p>
+          )}
         </div>
 
         {/* CTA Button */}

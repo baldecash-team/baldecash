@@ -15,13 +15,14 @@ const getStorageKey = (landingSlug: string) => `baldecash-wizard-${landingSlug}-
 interface WizardContextValue {
   formData: Record<string, FieldState>;
   completedSteps: WizardStepId[];
-  updateField: (fieldId: string, value: string | string[] | File[]) => void;
+  updateField: (fieldId: string, value: string | string[] | File[], label?: string) => void;
   setFieldError: (fieldId: string, error: string | null) => void;
   setFieldTouched: (fieldId: string) => void;
   validateField: (fieldId: string, value: string, rules?: ValidationRule) => string | null;
   markStepCompleted: (stepId: WizardStepId) => void;
   isStepCompleted: (stepId: WizardStepId) => boolean;
   getFieldValue: (fieldId: string) => string | string[] | File[];
+  getFieldLabel: (fieldId: string) => string | undefined;
   getFieldError: (fieldId: string) => string | undefined;
   isFieldTouched: (fieldId: string) => boolean;
   resetForm: () => void;
@@ -90,13 +91,15 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
     }
   }, [formData, isHydrated, storageKey]);
 
-  const updateField = useCallback((fieldId: string, value: string | string[] | File[]) => {
+  const updateField = useCallback((fieldId: string, value: string | string[] | File[], label?: string) => {
     setFormData((prev) => ({
       ...prev,
       [fieldId]: {
         ...prev[fieldId],
         value,
         touched: true,
+        // Save label for select/autocomplete fields (persisted for lazy-loaded options)
+        ...(label !== undefined ? { label } : {}),
       },
     }));
   }, []);
@@ -190,6 +193,13 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
     [formData]
   );
 
+  const getFieldLabel = useCallback(
+    (fieldId: string) => {
+      return formData[fieldId]?.label;
+    },
+    [formData]
+  );
+
   const getFieldError = useCallback(
     (fieldId: string) => {
       return formData[fieldId]?.error;
@@ -225,6 +235,7 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
         markStepCompleted,
         isStepCompleted,
         getFieldValue,
+        getFieldLabel,
         getFieldError,
         isFieldTouched,
         resetForm,

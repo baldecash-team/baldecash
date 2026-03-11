@@ -32,7 +32,10 @@ export const MotivationalCard: React.FC<MotivationalCardProps> = ({ motivational
           <span className="text-[var(--color-primary)]">{motivational.highlight}</span>
           {motivational.title_end && <> {motivational.title_end}</>}
         </h2>
-        <p className="text-neutral-500 text-base italic mt-4">{motivational.subtitle}</p>
+        <p
+          className="text-neutral-500 text-base italic mt-4"
+          dangerouslySetInnerHTML={{ __html: motivational.subtitle }}
+        />
       </div>
 
       {/* Ilustración */}

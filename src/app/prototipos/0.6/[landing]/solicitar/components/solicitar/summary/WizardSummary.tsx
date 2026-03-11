@@ -9,9 +9,10 @@
  * - Respects field visibility (hidden fields not shown)
  * - Groups by step with edit buttons
  * - Fully dynamic - 100% from API config
+ * - Auto-resolves labels for dynamic fields from API
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useWizard } from '../../../context/WizardContext';
@@ -19,9 +20,9 @@ import { FieldState } from '../../../types/solicitar';
 import {
   WizardStep,
   WizardField,
-  WizardFieldOption,
   evaluateFieldVisibility,
   getStepSlug,
+  fetchOptionById,
 } from '../../../../../services/wizardApi';
 
 interface WizardSummaryProps {
@@ -33,12 +34,24 @@ interface WizardSummaryProps {
   className?: string;
 }
 
+// Map of field codes to their options_source endpoints
+const FIELD_OPTIONS_SOURCE_MAP: Record<string, string> = {
+  department: 'geo-units/departments',
+  province: 'geo-units/provinces',
+  district: 'geo-units/districts',
+  institution: 'study-centers',
+  career: 'careers',
+  marital_status: 'marital-status',
+};
+
 /**
  * Resolves a field value to its display label
- * For fields with options (radio, select, etc.), shows the option label
- * For other fields, shows the raw value
  */
-function resolveFieldValue(field: WizardField, value: string | string[] | undefined): string {
+function resolveFieldValue(
+  field: WizardField,
+  value: string | string[] | undefined,
+  resolvedLabel?: string
+): string {
   if (value === undefined || value === null || value === '') {
     return '-';
   }
@@ -67,10 +80,16 @@ function resolveFieldValue(field: WizardField, value: string | string[] | undefi
     }
   }
 
+  // Use resolved label from API
+  if (resolvedLabel) {
+    return resolvedLabel;
+  }
+
   // Date formatting
   if (field.type === 'date' && value) {
     try {
-      const date = new Date(value);
+      // Parse date safely to avoid timezone issues
+      const date = new Date(value + 'T12:00:00');
       return date.toLocaleDateString('es-PE', {
         year: 'numeric',
         month: 'long',
@@ -103,8 +122,9 @@ function resolveFieldValue(field: WizardField, value: string | string[] | undefi
 const SummaryFieldRow: React.FC<{
   field: WizardField;
   value: string | string[] | undefined;
-}> = ({ field, value }) => {
-  const displayValue = resolveFieldValue(field, value);
+  resolvedLabel?: string;
+}> = ({ field, value, resolvedLabel }) => {
+  const displayValue = resolveFieldValue(field, value, resolvedLabel);
 
   return (
     <div className="flex justify-between items-start py-2 border-b border-neutral-100 last:border-b-0">
@@ -124,13 +144,15 @@ const SummaryFieldRow: React.FC<{
 const SummaryStepSection: React.FC<{
   step: WizardStep;
   formValues: Record<string, string | string[]>;
+  formData: Record<string, FieldState>;
+  resolvedLabels: Record<string, string>;
   onEdit?: () => void;
   showEditButton?: boolean;
-}> = ({ step, formValues, onEdit, showEditButton = true }) => {
+}> = ({ step, formValues, formData, resolvedLabels, onEdit, showEditButton = true }) => {
   // Filter visible fields
   const visibleFields = useMemo(() => {
     return step.fields.filter((field) => {
-      // Skip hidden fields and fields with no value
+      // Skip hidden fields
       if (field.hidden) return false;
 
       // Check visibility based on dependencies
@@ -169,13 +191,18 @@ const SummaryStepSection: React.FC<{
 
       {/* Fields */}
       <div className="px-4 py-2">
-        {visibleFields.map((field) => (
-          <SummaryFieldRow
-            key={field.code}
-            field={field}
-            value={formValues[field.code]}
-          />
-        ))}
+        {visibleFields.map((field) => {
+          // Priority: 1) resolved from API, 2) saved in localStorage, 3) raw value
+          const resolvedLabel = resolvedLabels[field.code] || formData[field.code]?.label;
+          return (
+            <SummaryFieldRow
+              key={field.code}
+              field={field}
+              value={formValues[field.code]}
+              resolvedLabel={resolvedLabel}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -190,7 +217,9 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
   className = '',
 }) => {
   const { steps, isLoading, error } = useWizardConfig();
-  const { formData } = useWizard();
+  const { formData, updateField } = useWizard();
+  const [resolvedLabels, setResolvedLabels] = useState<Record<string, string>>({});
+  const [isResolvingLabels, setIsResolvingLabels] = useState(false);
 
   // Build form values object from formData
   const formValues = useMemo(() => {
@@ -207,6 +236,88 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
   const regularSteps = useMemo(() => {
     return steps.filter((step) => !step.is_summary_step);
   }, [steps]);
+
+  // Identify fields that need label resolution
+  const fieldsNeedingResolution = useMemo(() => {
+    const fields: Array<{ code: string; value: string; optionsSource: string }> = [];
+
+    console.log('[WizardSummary] Checking fields for resolution. Steps:', regularSteps.length);
+    console.log('[WizardSummary] formValues:', formValues);
+    console.log('[WizardSummary] formData:', formData);
+
+    for (const step of regularSteps) {
+      for (const field of step.fields) {
+        const value = formValues[field.code];
+        const savedLabel = formData[field.code]?.label;
+
+        // Skip if no value, already has label, or not a dynamic field
+        if (!value || savedLabel || Array.isArray(value)) {
+          if (value && !savedLabel && ['department', 'province', 'district', 'institution', 'career', 'marital_status'].includes(field.code)) {
+            console.log(`[WizardSummary] Field ${field.code} skipped: value=${value}, savedLabel=${savedLabel}, isArray=${Array.isArray(value)}`);
+          }
+          continue;
+        }
+
+        // Check if field has options_source or is in our known map
+        const optionsSource = field.options_source || FIELD_OPTIONS_SOURCE_MAP[field.code];
+        console.log(`[WizardSummary] Field ${field.code}: options_source=${field.options_source}, mapped=${FIELD_OPTIONS_SOURCE_MAP[field.code]}, final=${optionsSource}`);
+
+        // Skip if field has static options that can resolve the value
+        if (field.options && field.options.length > 0) {
+          const found = field.options.find(opt => opt.value === value);
+          if (found) {
+            console.log(`[WizardSummary] Field ${field.code} has static option for value ${value}`);
+            continue;
+          }
+        }
+
+        if (optionsSource) {
+          console.log(`[WizardSummary] Adding field ${field.code} for resolution`);
+          fields.push({ code: field.code, value: value as string, optionsSource });
+        }
+      }
+    }
+
+    console.log('[WizardSummary] Fields needing resolution:', fields);
+    return fields;
+  }, [regularSteps, formValues, formData]);
+
+  // Fetch labels for fields that need resolution
+  useEffect(() => {
+    console.log('[WizardSummary] fieldsNeedingResolution:', fieldsNeedingResolution);
+    if (fieldsNeedingResolution.length === 0) {
+      console.log('[WizardSummary] No fields need resolution');
+      return;
+    }
+
+    const resolveLabels = async () => {
+      setIsResolvingLabels(true);
+      const newLabels: Record<string, string> = {};
+
+      // Fetch all labels in parallel
+      const promises = fieldsNeedingResolution.map(async ({ code, value, optionsSource }) => {
+        try {
+          console.log(`[WizardSummary] Fetching label for ${code}: ${optionsSource}?id=${value}`);
+          const option = await fetchOptionById(optionsSource, value);
+          console.log(`[WizardSummary] Got option for ${code}:`, option);
+          if (option) {
+            newLabels[code] = option.label;
+            // Also save to localStorage for future use
+            updateField(code, value, option.label);
+          }
+        } catch (err) {
+          console.error(`[WizardSummary] Error resolving label for ${code}:`, err);
+        }
+      });
+
+      await Promise.all(promises);
+      console.log('[WizardSummary] Resolved labels:', newLabels);
+      setResolvedLabels(prev => ({ ...prev, ...newLabels }));
+      setIsResolvingLabels(false);
+    };
+
+    resolveLabels();
+  }, [fieldsNeedingResolution, updateField]);
 
   if (isLoading) {
     return (
@@ -247,11 +358,18 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
+      {isResolvingLabels && (
+        <div className="text-center text-sm text-neutral-500 py-2">
+          Cargando información...
+        </div>
+      )}
       {regularSteps.map((step) => (
         <SummaryStepSection
           key={step.code}
           step={step}
           formValues={formValues}
+          formData={formData}
+          resolvedLabels={resolvedLabels}
           showEditButton={showEditButtons}
           onEdit={
             onEditStep

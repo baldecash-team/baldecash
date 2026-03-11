@@ -48,6 +48,8 @@ export interface FieldState {
   value: string | string[] | File[];
   error?: string;
   touched: boolean;
+  /** Display label for select/autocomplete fields (persisted for lazy-loaded options) */
+  label?: string;
 }
 
 // Full wizard state

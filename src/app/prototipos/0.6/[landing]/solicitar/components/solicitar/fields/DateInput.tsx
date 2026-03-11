@@ -50,8 +50,14 @@ export const DateInput: React.FC<DateInputProps> = ({
   minAge = 18,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  // Parse date string (YYYY-MM-DD) safely to avoid timezone issues
+  const parseDateString = (dateStr: string): Date => {
+    // Adding T12:00:00 ensures the date stays on the correct day in any timezone
+    return new Date(dateStr + 'T12:00:00');
+  };
+
   const [viewDate, setViewDate] = useState(() => {
-    if (value) return new Date(value);
+    if (value) return parseDateString(value);
     const d = new Date();
     d.setFullYear(d.getFullYear() - 20);
     return d;
@@ -60,7 +66,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   const showError = !!error;
   const showSuccess = success && !error && value;
 
-  const selectedDate = value ? new Date(value) : null;
+  const selectedDate = value ? parseDateString(value) : null;
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -83,14 +89,20 @@ export const DateInput: React.FC<DateInputProps> = ({
   };
 
   const handleSelectDay = (day: number) => {
-    const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-    onChange(newDate.toISOString().split('T')[0]);
+    // Format as YYYY-MM-DD without timezone conversion
+    // Using padStart to ensure two-digit month and day
+    const year = viewDate.getFullYear();
+    const month = String(viewDate.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    onChange(`${year}-${month}-${dayStr}`);
     setIsOpen(false);
     onBlur?.();
   };
 
   const formatDisplayDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // Parse YYYY-MM-DD without timezone issues
+    // Adding T12:00:00 ensures the date stays on the correct day in any timezone
+    const date = new Date(dateStr + 'T12:00:00');
     return date.toLocaleDateString('es-PE', {
       day: '2-digit',
       month: 'long',

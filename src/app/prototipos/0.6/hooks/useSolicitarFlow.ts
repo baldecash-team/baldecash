@@ -63,6 +63,10 @@ interface UseSolicitarFlowResult {
    * True si hay secciones después del wizard (debe mostrarse /complementos)
    */
   shouldShowComplementos: boolean;
+  /**
+   * True si el cupón de descuento es obligatorio para comenzar la solicitud
+   */
+  isCouponRequired: boolean;
 }
 
 /**
@@ -166,6 +170,9 @@ export function useSolicitarFlow({
   // Si hay secciones después del wizard, debe mostrarse /complementos
   const shouldShowComplementos = sectionsAfterWizard.length > 0;
 
+  // Si el cupón es obligatorio para comenzar la solicitud
+  const isCouponRequired = config.is_coupon_required ?? false;
+
   return {
     config,
     enabledSections,
@@ -177,6 +184,7 @@ export function useSolicitarFlow({
     sectionsBeforeWizard,
     sectionsAfterWizard,
     shouldShowComplementos,
+    isCouponRequired,
   };
 }
 

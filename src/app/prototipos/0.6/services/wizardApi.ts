@@ -74,6 +74,11 @@ export interface WizardField {
   accepted_file_types?: string | null;
   max_file_size_mb?: number | null;
   max_files: number;
+  // Cascading selects (department → province → district)
+  cascade_from?: string | null;    // Parent field code (e.g., "department")
+  cascade_param?: string | null;   // Query param for API (e.g., "parent_id")
+  // Lazy loading for large datasets (study-centers, careers)
+  min_search_length?: number | null; // Minimum characters before searching
 }
 
 export interface WizardStep {
@@ -474,4 +479,138 @@ export function validateStep(
   }
 
   return firstErrorField;
+}
+
+// ============================================================================
+// CASCADING OPTIONS
+// ============================================================================
+
+export interface CascadingOption {
+  value: string | number;
+  label: string;
+  code?: string;
+  parent_id?: number;
+}
+
+/**
+ * Fetches options for a cascading select field
+ * @param optionsSource - API path (e.g., "geo-units/provinces")
+ * @param cascadeParam - Query param name (e.g., "parent_id")
+ * @param parentValue - Value of parent field
+ */
+/**
+ * Fetches options for a cascading select field (with parent dependency)
+ * @param optionsSource - API path (e.g., "geo-units/provinces")
+ * @param cascadeParam - Query param name (e.g., "parent_id")
+ * @param parentValue - Value of parent field
+ */
+export async function fetchCascadingOptions(
+  optionsSource: string,
+  cascadeParam: string,
+  parentValue: string | number
+): Promise<CascadingOption[]> {
+  try {
+    const url = `${API_BASE_URL}/public/options/${optionsSource}?${cascadeParam}=${parentValue}`;
+    const response = await fetch(url, { cache: 'no-store' });
+
+    if (!response.ok) {
+      console.error(`Error fetching cascading options: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.options || [];
+  } catch (error) {
+    console.error('Error fetching cascading options:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches options for a field with options_source but NO cascade dependency
+ * Used for root-level selects like "department" that load all options on mount
+ * @param optionsSource - API path (e.g., "geo-units/departments")
+ */
+export async function fetchOptionsFromSource(
+  optionsSource: string
+): Promise<CascadingOption[]> {
+  try {
+    const url = `${API_BASE_URL}/public/options/${optionsSource}`;
+    const response = await fetch(url, { cache: 'no-store' });
+
+    if (!response.ok) {
+      console.error(`Error fetching options from source: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.options || [];
+  } catch (error) {
+    console.error('Error fetching options from source:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches options with search query (lazy loading)
+ * Used for large datasets like study-centers (41k+) and careers (1100+)
+ * @param optionsSource - API path (e.g., "study-centers", "careers")
+ * @param searchTerm - Search query (min 3 characters)
+ * @param filterType - Optional type filter (e.g., "university", "institute" for study-centers)
+ */
+export async function fetchOptionsWithSearch(
+  optionsSource: string,
+  searchTerm: string,
+  filterType?: string
+): Promise<CascadingOption[]> {
+  try {
+    const params = new URLSearchParams();
+    params.append('search', searchTerm);
+    if (filterType) {
+      params.append('type', filterType);
+    }
+
+    const url = `${API_BASE_URL}/public/options/${optionsSource}?${params.toString()}`;
+    const response = await fetch(url, { cache: 'no-store' });
+
+    if (!response.ok) {
+      console.error(`Error fetching options with search: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return data.options || [];
+  } catch (error) {
+    console.error('Error fetching options with search:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetches a single option by its ID
+ * Used to resolve labels for existing data that doesn't have a saved label
+ * @param optionsSource - API path (e.g., "study-centers", "careers", "geo-units/departments")
+ * @param optionId - The ID of the option to fetch
+ */
+export async function fetchOptionById(
+  optionsSource: string,
+  optionId: string | number
+): Promise<CascadingOption | null> {
+  try {
+    const url = `${API_BASE_URL}/public/options/${optionsSource}?id=${optionId}`;
+    const response = await fetch(url, { cache: 'no-store' });
+
+    if (!response.ok) {
+      console.error(`Error fetching option by ID: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    // API returns { options: [...] } - we expect single result when querying by ID
+    const options = data.options || [];
+    return options.length > 0 ? options[0] : null;
+  } catch (error) {
+    console.error('Error fetching option by ID:', error);
+    return null;
+  }
 }

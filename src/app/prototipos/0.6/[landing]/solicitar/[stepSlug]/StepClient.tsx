@@ -25,6 +25,7 @@ import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { useWizard } from '../context/WizardContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { useProduct } from '../context/ProductContext';
 
 // Hooks
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
@@ -97,10 +98,21 @@ function StepContent() {
     setFieldError,
     markStepCompleted,
     getFieldValue,
+    getFieldLabel,
   } = useWizard();
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
+  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
+
+  // Get applied coupon from product context
+  const { appliedCoupon } = useProduct();
+
+  // Redirect to /solicitar if coupon is required but not applied
+  useEffect(() => {
+    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
+      router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Toast notifications for submit
   const { showToast } = useToast(4000);
@@ -185,7 +197,7 @@ function StepContent() {
   };
 
   // Get display value for a field in summary
-  const getFieldDisplayValue = (field: WizardField, value: string | string[] | undefined): string => {
+  const getFieldDisplayValue = (field: WizardField, value: string | string[] | undefined, savedLabel?: string): string => {
     if (value === undefined || value === null || value === '') return '-';
 
     if (field.type === 'file') {
@@ -195,12 +207,41 @@ function StepContent() {
       return 'No adjunto';
     }
 
-    if (field.type === 'date' && typeof value === 'string') {
-      const parts = value.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    // Checkbox fields: show "Sí" or "No"
+    if (field.type === 'checkbox') {
+      if (typeof value === 'string') {
+        return value === 'true' ? 'Sí' : 'No';
       }
-      return value;
+      // Multiple checkbox: show selected labels or count
+      if (Array.isArray(value) && value.length > 0) {
+        if (field.options && field.options.length > 0) {
+          const labels = value.map(v => {
+            const opt = field.options.find(o => o.value === v);
+            return opt ? opt.label : v;
+          });
+          return labels.join(', ');
+        }
+        return value.join(', ');
+      }
+      return 'No';
+    }
+
+    if (field.type === 'date' && typeof value === 'string') {
+      // Parse date safely to avoid timezone issues
+      try {
+        const date = new Date(value + 'T12:00:00');
+        return date.toLocaleDateString('es-PE', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+      } catch {
+        const parts = value.split('-');
+        if (parts.length === 3) {
+          return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        return value;
+      }
     }
 
     if (field.type === 'currency' && typeof value === 'string') {
@@ -208,10 +249,16 @@ function StepContent() {
       return `${prefix} ${value}`;
     }
 
+    // Check static options first
     if (field.options && field.options.length > 0) {
       const strValue = Array.isArray(value) ? value[0] : value;
       const option = field.options.find(opt => opt.value === strValue);
       if (option) return option.label;
+    }
+
+    // Use saved label for dynamic fields (cascading selects, lazy search)
+    if (savedLabel) {
+      return savedLabel;
     }
 
     if (field.type === 'phone' && field.prefix && typeof value === 'string') {
@@ -428,7 +475,8 @@ function StepContent() {
               >
                 {visibleFields.map((field) => {
                   const value = getFieldValue(field.code);
-                  const displayValue = getFieldDisplayValue(field, value as string | string[] | undefined);
+                  const savedLabel = getFieldLabel(field.code);
+                  const displayValue = getFieldDisplayValue(field, value as string | string[] | undefined, savedLabel);
 
                   return (
                     <SummaryItem
