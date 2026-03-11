@@ -59,11 +59,6 @@ export const ColorSelectorV1: React.FC<ColorSelectorV1Props> = ({
           );
         })}
       </div>
-      {selectedColor && (
-        <p className="text-xs text-neutral-600 font-medium">
-          {selectedColor.name}
-        </p>
-      )}
     </div>
   );
 };
