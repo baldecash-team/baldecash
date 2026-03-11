@@ -22,18 +22,21 @@ import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 
 interface ProductCardProps {
   product: CatalogProduct;
-  onAddToCart?: () => void;
-  onFavorite?: () => void;
+  onAddToCart?: (activeProductId: string) => void;
+  onFavorite?: (activeProductId: string) => void;
   onViewDetail?: (slug?: string) => void;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
+  isFavoriteCheck?: (productId: string) => boolean;
   colorSelectorVersion?: ColorSelectorVersion;
   // Compare props
-  onCompare?: () => void;
+  onCompare?: (activeProductId: string) => void;
   isCompareSelected?: boolean;
+  isCompareCheck?: (productId: string) => boolean;
   compareDisabled?: boolean;
   // Cart state
   isInCart?: boolean;
+  isInCartCheck?: (productId: string) => boolean;
   // Onboarding IDs (optional, only for first card)
   favoriteButtonId?: string;
   compareButtonId?: string;
@@ -51,8 +54,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   colorSelectorVersion = 1,
   onCompare,
   isCompareSelected = false,
+  isCompareCheck,
   compareDisabled = false,
   isInCart = false,
+  isInCartCheck,
+  isFavoriteCheck,
   favoriteButtonId,
   compareButtonId,
   detailButtonId,
@@ -66,6 +72,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   // Get the selected color sibling data
   const selectedColor = product.colors?.find(c => c.id === selectedColorId);
+
+  // Determine the active product ID (sibling's productId if selected, else card's product)
+  const activeProductId = selectedColor?.productId || product.id;
+
+  // Resolve favorite/compare/cart state using sibling-aware checks
+  const resolvedIsFavorite = isFavoriteCheck ? isFavoriteCheck(activeProductId) : isFavorite;
+  const resolvedIsCompareSelected = isCompareCheck ? isCompareCheck(activeProductId) : isCompareSelected;
+  const resolvedIsInCart = isInCartCheck ? isInCartCheck(activeProductId) : isInCart;
 
   // Override card data when a different color sibling is selected
   const displayName = selectedColor?.displayName || product.displayName;
@@ -123,13 +137,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 id={favoriteButtonId}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onFavorite?.();
+                  onFavorite?.(activeProductId);
                 }}
                 className="p-2.5 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
               >
                 <Heart
                   className={`w-5 h-5 transition-colors ${
-                    isFavorite
+                    resolvedIsFavorite
                       ? 'fill-[var(--color-primary)] text-[var(--color-primary)]'
                       : 'text-neutral-300 hover:text-[var(--color-primary)]'
                   }`}
@@ -141,29 +155,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   id={compareButtonId}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (!compareDisabled || isCompareSelected) {
-                      onCompare();
+                    if (!compareDisabled || resolvedIsCompareSelected) {
+                      onCompare(activeProductId);
                     }
                   }}
-                  disabled={compareDisabled && !isCompareSelected}
+                  disabled={compareDisabled && !resolvedIsCompareSelected}
                   className={`p-2.5 rounded-full shadow-md transition-all ${
-                    isCompareSelected
+                    resolvedIsCompareSelected
                       ? 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                       : compareDisabled
                         ? 'bg-white/50 text-neutral-300 cursor-not-allowed'
                         : 'bg-white/90 hover:bg-[rgba(var(--color-primary-rgb),0.1)] cursor-pointer'
                   }`}
                   title={
-                    compareDisabled && !isCompareSelected
+                    compareDisabled && !resolvedIsCompareSelected
                       ? 'Máximo 3 productos'
-                      : isCompareSelected
+                      : resolvedIsCompareSelected
                         ? 'Quitar de comparación'
                         : 'Agregar a comparación'
                   }
                 >
                   <GitCompare
                     className={`w-5 h-5 transition-colors ${
-                      isCompareSelected
+                      resolvedIsCompareSelected
                         ? 'text-white'
                         : compareDisabled
                           ? 'text-neutral-300'
@@ -282,14 +296,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 id={addToCartButtonId}
                 size="lg"
                 className={`flex-1 font-bold rounded-xl ${
-                  isInCart
+                  resolvedIsInCart
                     ? 'bg-emerald-500 text-white cursor-default'
                     : 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                 }`}
-                onPress={!isInCart ? onAddToCart : undefined}
-                isDisabled={isInCart}
+                onPress={!resolvedIsInCart ? () => onAddToCart?.(activeProductId) : undefined}
+                isDisabled={resolvedIsInCart}
               >
-                {isInCart ? 'En el carrito' : 'Lo quiero'}
+                {resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
               </Button>
             </div>
           </div>

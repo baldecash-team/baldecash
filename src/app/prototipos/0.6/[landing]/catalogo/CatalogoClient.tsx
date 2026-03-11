@@ -1186,6 +1186,35 @@ function CatalogoContent() {
     });
   }, []);
 
+  // Helper: find product by ID in catalogProducts, or build from sibling color data
+  const findProductOrSibling = useCallback((productId: string): CatalogProduct | null => {
+    // Direct match in loaded products
+    const direct = catalogProducts.find((p) => p.id === productId);
+    if (direct) return direct;
+
+    // Search through color siblings of loaded products
+    for (const parent of catalogProducts) {
+      const sibling = parent.colors?.find((c) => c.productId === productId);
+      if (sibling) {
+        return {
+          ...parent,
+          id: productId,
+          slug: sibling.slug || parent.slug,
+          displayName: sibling.displayName || parent.displayName,
+          name: sibling.displayName || parent.name,
+          price: sibling.price ?? parent.price,
+          quotaMonthly: sibling.quotaMonthly ?? parent.quotaMonthly,
+          originalQuotaMonthly: sibling.originalQuotaMonthly ?? parent.originalQuotaMonthly,
+          discount: sibling.discount ?? parent.discount,
+          specs: sibling.specs ?? parent.specs,
+          thumbnail: sibling.imageUrl || (sibling.images?.[0]) || parent.thumbnail,
+          images: sibling.images || (sibling.imageUrl ? [sibling.imageUrl] : parent.images),
+        };
+      }
+    }
+    return null;
+  }, [catalogProducts]);
+
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
     // Si tiene deviceType definido, usarlo. Si no, asumir 'laptop' (productos generados)
@@ -1202,8 +1231,8 @@ function CatalogoContent() {
     // Verificar límite
     if (compareList.length >= maxCompareProducts) return;
 
-    // Obtener el producto a agregar
-    const productToAdd = catalogProducts.find((p) => p.id === productId);
+    // Obtener el producto a agregar (puede ser un sibling)
+    const productToAdd = findProductOrSibling(productId);
     if (!productToAdd) return;
 
     // Verificar tipo de dispositivo si ya hay productos en la lista
@@ -1236,7 +1265,7 @@ function CatalogoContent() {
 
     // Agregar a la lista
     setCompareList((prev) => [...prev, productId]);
-  }, [compareList, maxCompareProducts, showToast, catalogProducts]);
+  }, [compareList, maxCompareProducts, showToast, findProductOrSibling]);
 
   const handleRemoveFromCompare = useCallback((productId: string) => {
     setCompareList((prev) => prev.filter((id) => id !== productId));
@@ -1364,7 +1393,7 @@ function CatalogoContent() {
         onWishlistRemove={handleToggleWishlist}
         onWishlistClear={() => setWishlist([])}
         onWishlistViewProduct={(productId) => {
-          const product = catalogProducts.find((p) => p.id === productId);
+          const product = findProductOrSibling(productId);
           if (product) {
             router.push(getDetailUrl(landing, product.slug));
           }
@@ -1439,13 +1468,16 @@ function CatalogoContent() {
                 key={product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
-                onAddToCart={() => handleOpenCartModal(product)}
-                onFavorite={() => handleToggleWishlist(product.id)}
-                isFavorite={wishlist.includes(product.id)}
-                isInCart={cart.includes(product.id)}
+                onAddToCart={(activeId) => {
+                  const target = findProductOrSibling(activeId) || product;
+                  handleOpenCartModal(target);
+                }}
+                onFavorite={(activeId) => handleToggleWishlist(activeId)}
+                isFavoriteCheck={(id) => wishlist.includes(id)}
+                isInCartCheck={(id) => cart.includes(id)}
                 onViewDetail={(siblingSlug) => router.push(getDetailUrl(landing, siblingSlug || product.slug))}
-                onCompare={() => handleToggleCompare(product.id)}
-                isCompareSelected={compareList.includes(product.id)}
+                onCompare={(activeId) => handleToggleCompare(activeId)}
+                isCompareCheck={(id) => compareList.includes(id)}
                 compareDisabled={compareList.length >= maxCompareProducts}
                 // Onboarding IDs only for first card
                 {...(index === 0 && {
@@ -1597,7 +1629,7 @@ function CatalogoContent() {
         }}
         onAddToCart={() => {
           if (selectedProductForCart) {
-            handleAddToCart(selectedProductForCart.id);
+            handleAddToCart(selectedProductForCart.id, selectedProductForCart);
           }
         }}
       />
@@ -1639,7 +1671,7 @@ function CatalogoContent() {
         onClearAll={() => setWishlist([])}
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
-          const product = catalogProducts.find((p) => p.id === productId);
+          const product = findProductOrSibling(productId);
           if (product) {
             router.push(getDetailUrl(landing, product.slug));
           }
