@@ -99,6 +99,7 @@ function StepContent() {
     markStepCompleted,
     getFieldValue,
     getFieldLabel,
+    getAllDynamicOptions,
   } = useWizard();
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
@@ -185,8 +186,8 @@ function StepContent() {
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {
     if (!step) return null;
-    return validateStepFields(step, formValues, setFieldError);
-  }, [step, formValues, setFieldError]);
+    return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions());
+  }, [step, formValues, setFieldError, getAllDynamicOptions]);
 
   // Helper to update summary field value
   const updateSummaryFieldValue = (fieldCode: string, value: string) => {

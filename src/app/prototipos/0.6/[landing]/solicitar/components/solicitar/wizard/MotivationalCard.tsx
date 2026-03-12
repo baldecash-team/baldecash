@@ -6,6 +6,11 @@
  * Muestra contenido contextual según el paso actual del wizard.
  * El contenido viene 100% desde la API (base de datos).
  *
+ * Estructura:
+ * - title: Mensaje principal con HTML (puede incluir <strong>, <em>, <span class="highlight">)
+ * - subtitle: Mensaje corto de cierre (texto plano)
+ * - illustration: Path a la imagen de Baldi
+ *
  * Solo visible en desktop (lg:). En mobile se oculta.
  */
 
@@ -23,30 +28,43 @@ export const MotivationalCard: React.FC<MotivationalCardProps> = ({ motivational
   // Si no hay contenido motivacional desde la API, no renderizar
   if (!motivational) return null;
 
+  // Procesar el título para convertir .highlight a color primario
+  const processTitle = (html: string) => {
+    return html.replace(
+      /<span class="highlight">(.*?)<\/span>/g,
+      '<span class="text-[var(--color-primary)]">$1</span>'
+    );
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 lg:p-10 sticky top-24">
       {/* Contenido de texto */}
       <div className="mb-6">
-        <h2 className="text-2xl lg:text-3xl font-bold text-neutral-800 leading-tight">
-          {motivational.title}{' '}
-          <span className="text-[var(--color-primary)]">{motivational.highlight}</span>
-          {motivational.title_end && <> {motivational.title_end}</>}
-        </h2>
-        <p
-          className="text-neutral-500 text-base italic mt-4"
-          dangerouslySetInnerHTML={{ __html: motivational.subtitle }}
+        {/* Mensaje Principal - con HTML */}
+        <h2
+          className="text-2xl lg:text-3xl font-bold text-neutral-800 leading-tight"
+          dangerouslySetInnerHTML={{ __html: processTitle(motivational.title || '') }}
         />
+
+        {/* Subtítulo - texto simple en cursiva */}
+        {motivational.subtitle && (
+          <p className="text-neutral-500 text-base italic mt-4">
+            {motivational.subtitle}
+          </p>
+        )}
       </div>
 
       {/* Ilustración */}
-      <div className="flex justify-center mt-8">
-        <img
-          src={motivational.illustration}
-          alt="Ilustración motivacional"
-          className="w-full max-w-[260px] h-auto object-contain"
-          loading="lazy"
-        />
-      </div>
+      {motivational.illustration && (
+        <div className="flex justify-center mt-8">
+          <img
+            src={motivational.illustration}
+            alt="Ilustración motivacional"
+            className="w-full max-w-[260px] h-auto object-contain"
+            loading="lazy"
+          />
+        </div>
+      )}
     </div>
   );
 };

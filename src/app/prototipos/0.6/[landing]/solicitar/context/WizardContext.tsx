@@ -5,8 +5,9 @@
  * Persists form data across route-based steps
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
 import { WizardStepId, FieldState, ValidationRule } from '../types/solicitar';
+import { CascadingOption } from '../../../services/wizardApi';
 
 // Dynamic storage key based on landing slug (100% scalable)
 // Follows project convention: baldecash-{feature}-{context}
@@ -26,6 +27,13 @@ interface WizardContextValue {
   getFieldError: (fieldId: string) => string | undefined;
   isFieldTouched: (fieldId: string) => boolean;
   resetForm: () => void;
+  // Dynamic options cache for fields with validation rules per option
+  setDynamicOptions: (fieldCode: string, options: CascadingOption[]) => void;
+  getDynamicOptions: (fieldCode: string) => CascadingOption[];
+  getAllDynamicOptions: () => Record<string, CascadingOption[]>;
+  // Field dependencies - scalable system for clearing dependent fields
+  registerDependency: (childField: string, parentField: string) => void;
+  unregisterDependency: (childField: string, parentField: string) => void;
 }
 
 const WizardContext = createContext<WizardContextValue | undefined>(undefined);
@@ -67,6 +75,14 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
   const [completedSteps, setCompletedSteps] = useState<WizardStepId[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
 
+  // Cache for dynamic options with validation rules (e.g., document_type options)
+  // Using ref to avoid re-renders when options change (they're used only for validation lookup)
+  const dynamicOptionsCache = useRef<Record<string, CascadingOption[]>>({});
+
+  // Field dependencies map: parentField -> Set of childFields that depend on it
+  // This enables automatic clearing of dependent fields when parent changes
+  const fieldDependencies = useRef<Map<string, Set<string>>>(new Map());
+
   // Get storage key for this specific landing
   const storageKey = getStorageKey(landingSlug);
 
@@ -92,16 +108,61 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
   }, [formData, isHydrated, storageKey]);
 
   const updateField = useCallback((fieldId: string, value: string | string[] | File[], label?: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [fieldId]: {
-        ...prev[fieldId],
-        value,
-        touched: true,
-        // Save label for select/autocomplete fields (persisted for lazy-loaded options)
-        ...(label !== undefined ? { label } : {}),
-      },
-    }));
+    setFormData((prev) => {
+      // Check if value is being cleared
+      const isEmpty = value === '' || (Array.isArray(value) && value.length === 0);
+
+      // Check if value actually changed (to avoid clearing dependents on same-value updates)
+      const prevValue = prev[fieldId]?.value;
+      const valueChanged = prevValue !== value;
+
+      // Start with updating the current field
+      const newData = {
+        ...prev,
+        [fieldId]: {
+          ...prev[fieldId],
+          value,
+          touched: true,
+          // Clear label if value is empty, otherwise preserve/update existing label
+          ...(isEmpty ? { label: undefined } : (label !== undefined ? { label } : {})),
+        },
+      };
+
+      // If value changed and this field has dependents, clear them recursively
+      if (valueChanged) {
+        // DEBUG
+        console.log(`[WizardContext] updateField: ${fieldId} changed from "${prevValue}" to "${value}"`);
+        console.log(`[WizardContext] Looking for dependents of ${fieldId}:`, fieldDependencies.current.get(fieldId));
+
+        const clearDependents = (parentField: string, data: Record<string, FieldState>): Record<string, FieldState> => {
+          const dependents = fieldDependencies.current.get(parentField);
+          if (!dependents || dependents.size === 0) {
+            console.log(`[WizardContext] No dependents found for ${parentField}`);
+            return data;
+          }
+          console.log(`[WizardContext] Clearing dependents of ${parentField}:`, Array.from(dependents));
+
+          let result = { ...data };
+          for (const childField of dependents) {
+            // Only clear if child has a value
+            if (result[childField]?.value) {
+              result[childField] = {
+                ...result[childField],
+                value: '',
+                label: undefined,
+              };
+              // Recursively clear children of this child
+              result = clearDependents(childField, result);
+            }
+          }
+          return result;
+        };
+
+        return clearDependents(fieldId, newData);
+      }
+
+      return newData;
+    });
   }, []);
 
   const setFieldError = useCallback((fieldId: string, error: string | null) => {
@@ -217,11 +278,52 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
   const resetForm = useCallback(() => {
     setFormData({});
     setCompletedSteps([]);
+    dynamicOptionsCache.current = {};
     // Clear localStorage for this landing
     if (typeof window !== 'undefined') {
       localStorage.removeItem(storageKey);
     }
   }, [storageKey]);
+
+  // Store dynamic options for a field (used for validation lookup)
+  const setDynamicOptions = useCallback((fieldCode: string, options: CascadingOption[]) => {
+    dynamicOptionsCache.current[fieldCode] = options;
+  }, []);
+
+  // Get dynamic options for a field
+  const getDynamicOptions = useCallback((fieldCode: string): CascadingOption[] => {
+    return dynamicOptionsCache.current[fieldCode] || [];
+  }, []);
+
+  // Get all dynamic options (for validation)
+  const getAllDynamicOptions = useCallback((): Record<string, CascadingOption[]> => {
+    return dynamicOptionsCache.current;
+  }, []);
+
+  // Register a dependency: childField depends on parentField
+  // When parentField changes, childField will be automatically cleared
+  const registerDependency = useCallback((childField: string, parentField: string) => {
+    if (!fieldDependencies.current.has(parentField)) {
+      fieldDependencies.current.set(parentField, new Set());
+    }
+    fieldDependencies.current.get(parentField)!.add(childField);
+    // DEBUG
+    console.log(`[WizardContext] Registered dependency: ${childField} depends on ${parentField}`);
+    console.log(`[WizardContext] Current dependencies:`, Object.fromEntries(
+      Array.from(fieldDependencies.current.entries()).map(([k, v]) => [k, Array.from(v)])
+    ));
+  }, []);
+
+  // Unregister a dependency (useful for cleanup when component unmounts)
+  const unregisterDependency = useCallback((childField: string, parentField: string) => {
+    const dependents = fieldDependencies.current.get(parentField);
+    if (dependents) {
+      dependents.delete(childField);
+      if (dependents.size === 0) {
+        fieldDependencies.current.delete(parentField);
+      }
+    }
+  }, []);
 
   return (
     <WizardContext.Provider
@@ -239,6 +341,11 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
         getFieldError,
         isFieldTouched,
         resetForm,
+        setDynamicOptions,
+        getDynamicOptions,
+        getAllDynamicOptions,
+        registerDependency,
+        unregisterDependency,
       }}
     >
       {children}

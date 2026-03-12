@@ -213,23 +213,56 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'select':
-      // Use CascadingSelectField for all selects (handles both regular and cascading)
+      // Map options for select
       const selectOptions = filteredOptions.map((opt) => ({
         value: opt.value,
         label: opt.label,
         description: opt.description || undefined,
       }));
 
-      // Enable search for dynamic selects (fields with options_source or cascade_from)
-      // This covers geo fields (department, province, district) and other API-sourced selects
-      const enableSelectSearch = Boolean(field.options_source || field.cascade_from);
+      // Check if this is a dynamic select (API-sourced options)
+      const isDynamicSelect = Boolean(field.options_source || field.cascade_from);
 
+      // For dynamic selects (API), always use dropdown
+      if (isDynamicSelect) {
+        return (
+          <CascadingSelectField
+            field={field}
+            staticOptions={selectOptions}
+            showError={showError}
+            searchable={true}
+          />
+        );
+      }
+
+      // For static selects, apply visual rules based on option count
+      if (selectOptions.length <= 3) {
+        // 2-3 options: horizontal buttons (SegmentedControl)
+        return (
+          <SegmentedControl
+            {...commonProps}
+            options={selectOptions}
+            success={!error && !!value}
+          />
+        );
+      }
+      if (selectOptions.length <= 5) {
+        // 4-5 options: vertical card list (RadioGroup)
+        return (
+          <RadioGroup
+            {...commonProps}
+            options={selectOptions}
+            success={!error && !!value}
+          />
+        );
+      }
+      // 6+ options: dropdown select
       return (
         <CascadingSelectField
           field={field}
           staticOptions={selectOptions}
           showError={showError}
-          searchable={enableSelectSearch}
+          searchable={selectOptions.length >= 10}
         />
       );
 

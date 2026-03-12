@@ -44,19 +44,18 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   showError = false,
   searchable = false,
 }) => {
-  const { getFieldValue, getFieldLabel, getFieldError, updateField } = useWizard();
+  const { getFieldValue, getFieldLabel, getFieldError, updateField, setDynamicOptions, registerDependency, unregisterDependency } = useWizard();
 
   // Current field value, saved label, and error
   const value = getFieldValue(field.code) as string;
   const savedLabel = getFieldLabel(field.code);
   const error = showError ? getFieldError(field.code) : undefined;
 
-  // Cascading state
-  const [dynamicOptions, setDynamicOptions] = useState<CascadingOption[]>([]);
+  // Cascading state (local options loaded from API)
+  const [localDynamicOptions, setLocalDynamicOptions] = useState<CascadingOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const prevParentValue = useRef<string | undefined>(undefined);
-  const prevFilterValue = useRef<string | undefined>(undefined);
   const initialLoadDone = useRef(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -75,6 +74,44 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // Get parent field value (only for cascading fields)
   const parentValue = isCascading ? (getFieldValue(field.cascade_from!) as string) : undefined;
 
+  // Get filter field code for options_filter dependency
+  const filterFieldCode = field.options_filter?.depends_on;
+
+  // Register field dependencies on mount, unregister on unmount
+  // This enables automatic clearing when parent fields change
+  useEffect(() => {
+    // DEBUG: Log dependency registration
+    console.log(`[CascadingSelectField] ${field.code}: cascade_from=${field.cascade_from}, filterFieldCode=${filterFieldCode}, validation_source_field=${field.validation_source_field}`);
+
+    // Register dependency for cascade_from
+    if (field.cascade_from) {
+      console.log(`[CascadingSelectField] Registering: ${field.code} depends on ${field.cascade_from} (cascade_from)`);
+      registerDependency(field.code, field.cascade_from);
+    }
+    // Register dependency for options_filter.depends_on
+    if (filterFieldCode) {
+      console.log(`[CascadingSelectField] Registering: ${field.code} depends on ${filterFieldCode} (options_filter)`);
+      registerDependency(field.code, filterFieldCode);
+    }
+    // Register dependency for validation_source_field
+    if (field.validation_source_field) {
+      registerDependency(field.code, field.validation_source_field);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (field.cascade_from) {
+        unregisterDependency(field.code, field.cascade_from);
+      }
+      if (filterFieldCode) {
+        unregisterDependency(field.code, filterFieldCode);
+      }
+      if (field.validation_source_field) {
+        unregisterDependency(field.code, field.validation_source_field);
+      }
+    };
+  }, [field.code, field.cascade_from, filterFieldCode, field.validation_source_field, registerDependency, unregisterDependency]);
+
   // Load initial options for root-level fields with options_source (e.g., department)
   useEffect(() => {
     if (!hasOptionsSource || initialLoadDone.current) {
@@ -85,18 +122,20 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       setIsLoading(true);
       try {
         const options = await fetchOptionsFromSource(field.options_source!);
-        setDynamicOptions(options);
+        setLocalDynamicOptions(options);
+        // Store in WizardContext for validation rules lookup
+        setDynamicOptions(field.code, options);
         initialLoadDone.current = true;
       } catch (error) {
         console.error('Error loading initial options:', error);
-        setDynamicOptions([]);
+        setLocalDynamicOptions([]);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadInitialOptions();
-  }, [hasOptionsSource, field.options_source]);
+  }, [hasOptionsSource, field.options_source, field.code, setDynamicOptions]);
 
   // Handle parent value changes for cascading fields - fetch new options
   useEffect(() => {
@@ -116,7 +155,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
 
     // If no parent value, clear options
     if (!parentValue) {
-      setDynamicOptions([]);
+      setLocalDynamicOptions([]);
       return;
     }
 
@@ -129,10 +168,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
           field.cascade_param!,
           parentValue
         );
-        setDynamicOptions(options);
+        setLocalDynamicOptions(options);
       } catch (error) {
         console.error('Error loading cascading options:', error);
-        setDynamicOptions([]);
+        setLocalDynamicOptions([]);
       } finally {
         setIsLoading(false);
       }
@@ -145,17 +184,17 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // find the matching option and save its label (handles legacy data migration)
   useEffect(() => {
     // Only repair if we have options, a value, but no saved label
-    if (dynamicOptions.length === 0 || !value || savedLabel) {
+    if (localDynamicOptions.length === 0 || !value || savedLabel) {
       return;
     }
 
     // Find the option matching our current value
-    const matchingOption = dynamicOptions.find((opt) => String(opt.value) === value);
+    const matchingOption = localDynamicOptions.find((opt) => String(opt.value) === value);
     if (matchingOption) {
       // Save the label to repair legacy data
       updateField(field.code, value, matchingOption.label);
     }
-  }, [dynamicOptions, value, savedLabel, field.code, updateField]);
+  }, [localDynamicOptions, value, savedLabel, field.code, updateField]);
 
   // Ref to track if we already attempted label repair for lazy search fields
   const labelRepairAttempted = useRef(false);
@@ -185,26 +224,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
     repairLabel();
   }, [isLazySearch, field.options_source, value, savedLabel, field.code, updateField]);
 
-  // For lazy search fields with options_filter: clear value and options when filter field changes
-  const filterFieldCode = field.options_filter?.depends_on;
+  // Get filter value for lazy search (used to filter API results)
+  // Note: Clearing of this field when filter changes is handled by WizardContext.updateField
+  // via the registered dependency (registerDependency above)
   const filterValue = filterFieldCode ? (getFieldValue(filterFieldCode) as string) : undefined;
-
-  useEffect(() => {
-    if (!isLazySearch || !filterFieldCode) {
-      return;
-    }
-
-    // Check if filter value changed (and it's not the initial render)
-    const filterChanged = prevFilterValue.current !== undefined && prevFilterValue.current !== filterValue;
-
-    // If filter changed, clear this field's value and options
-    if (filterChanged) {
-      updateField(field.code, '');
-      setDynamicOptions([]);
-    }
-
-    prevFilterValue.current = filterValue;
-  }, [isLazySearch, filterFieldCode, filterValue, field.code, updateField]);
 
   // Handle lazy search (debounced)
   const handleSearch = useCallback((searchTerm: string) => {
@@ -217,7 +240,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
 
     // Don't search if less than min characters
     if (searchTerm.length < minSearchLength) {
-      setDynamicOptions([]);
+      setLocalDynamicOptions([]);
       return;
     }
 
@@ -230,10 +253,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
           searchTerm,
           filterValue // Use filterValue from outer scope (institution_type value)
         );
-        setDynamicOptions(options);
+        setLocalDynamicOptions(options);
       } catch (error) {
         console.error('Error searching options:', error);
-        setDynamicOptions([]);
+        setLocalDynamicOptions([]);
       } finally {
         setIsSearching(false);
       }
@@ -259,10 +282,10 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
     : undefined;
 
   // Determine options to use:
-  // - isLazySearch, isCascading or hasOptionsSource: use dynamicOptions from API
+  // - isLazySearch, isCascading or hasOptionsSource: use localDynamicOptions from API
   // - otherwise: use staticOptions passed from DynamicField
   const options = (isLazySearch || isCascading || hasOptionsSource)
-    ? dynamicOptions.map((opt) => ({
+    ? localDynamicOptions.map((opt) => ({
         value: String(opt.value),
         label: opt.label,
         description: undefined,
@@ -298,7 +321,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // - readonly from field config
   // - cascading field without parent value
   // - field with options_source still loading initial options
-  const isDisabled = field.readonly || (isCascading && !parentValue) || (hasOptionsSource && isLoading && dynamicOptions.length === 0);
+  const isDisabled = field.readonly || (isCascading && !parentValue) || (hasOptionsSource && isLoading && localDynamicOptions.length === 0);
 
   return (
     <SelectInput

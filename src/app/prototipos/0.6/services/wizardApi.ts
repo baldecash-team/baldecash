@@ -79,6 +79,8 @@ export interface WizardField {
   cascade_param?: string | null;   // Query param for API (e.g., "parent_id")
   // Lazy loading for large datasets (study-centers, careers)
   min_search_length?: number | null; // Minimum characters before searching
+  // Dynamic validation from another field's option (e.g., document_number validated by document_type selection)
+  validation_source_field?: string | null; // Field code whose selected option provides validation rules
 }
 
 export interface WizardStep {
@@ -313,11 +315,16 @@ export interface FieldValidationResult {
 
 /**
  * Valida un campo individual usando la configuración del API
+ * @param field - Configuración del campo
+ * @param value - Valor actual del campo
+ * @param formValues - Valores de todos los campos del formulario
+ * @param dynamicOptionsCache - Cache de opciones dinámicas con reglas de validación por opción
  */
 export function validateField(
   field: WizardField,
   value: string | string[] | undefined,
-  formValues: Record<string, string | string[]>
+  formValues: Record<string, string | string[]>,
+  dynamicOptionsCache?: Record<string, CascadingOption[]>
 ): FieldValidationResult {
   // Si el campo no es visible, es válido (no validar campos ocultos)
   if (!evaluateFieldVisibility(field, formValues)) {
@@ -339,7 +346,50 @@ export function validateField(
     return { isValid: true, error: null };
   }
 
-  // 2. Validaciones de longitud (propiedades directas del campo)
+  // 2. Dynamic validation from source field (e.g., document_number validated by document_type)
+  if (field.validation_source_field && dynamicOptionsCache) {
+    const sourceFieldValue = formValues[field.validation_source_field] as string;
+    const sourceOptions = dynamicOptionsCache[field.validation_source_field] || [];
+    const selectedOption = sourceOptions.find((opt) => String(opt.value) === sourceFieldValue);
+
+    if (selectedOption?.validation) {
+      const v = selectedOption.validation;
+
+      // Apply validation rules from the selected option
+      if (v.min_length && trimmedValue.length < v.min_length) {
+        return {
+          isValid: false,
+          error: v.error_message || `Mínimo ${v.min_length} caracteres`,
+        };
+      }
+
+      if (v.max_length && trimmedValue.length > v.max_length) {
+        return {
+          isValid: false,
+          error: v.error_message || `Máximo ${v.max_length} caracteres`,
+        };
+      }
+
+      if (v.pattern) {
+        try {
+          const regex = new RegExp(v.pattern);
+          if (!regex.test(trimmedValue)) {
+            return {
+              isValid: false,
+              error: v.error_message || 'Formato inválido',
+            };
+          }
+        } catch {
+          // Invalid pattern, skip
+        }
+      }
+
+      // If dynamic validation passed, skip static min/max_length validation
+      return { isValid: true, error: null };
+    }
+  }
+
+  // 3. Validaciones de longitud (propiedades directas del campo)
   if (field.min_length && trimmedValue.length < field.min_length) {
     return { isValid: false, error: `Mínimo ${field.min_length} caracteres` };
   }
@@ -458,17 +508,22 @@ export function validateField(
 /**
  * Valida todos los campos de un step
  * Retorna el código del primer campo con error, o null si todo es válido
+ * @param step - Configuración del step
+ * @param formValues - Valores de todos los campos
+ * @param setFieldError - Función para setear error en un campo
+ * @param dynamicOptionsCache - Cache de opciones dinámicas con reglas de validación
  */
 export function validateStep(
   step: WizardStep,
   formValues: Record<string, string | string[]>,
-  setFieldError: (fieldCode: string, error: string | null) => void
+  setFieldError: (fieldCode: string, error: string | null) => void,
+  dynamicOptionsCache?: Record<string, CascadingOption[]>
 ): string | null {
   let firstErrorField: string | null = null;
 
   for (const field of step.fields) {
     const value = formValues[field.code];
-    const result = validateField(field, value as string | string[] | undefined, formValues);
+    const result = validateField(field, value as string | string[] | undefined, formValues, dynamicOptionsCache);
 
     // Siempre actualizar el error (limpiar si es válido, setear si hay error)
     setFieldError(field.code, result.error);
@@ -485,11 +540,25 @@ export function validateStep(
 // CASCADING OPTIONS
 // ============================================================================
 
+/**
+ * Validation rules that can be attached to select options
+ * Used for dynamic field validation (e.g., document_number validation based on document_type)
+ */
+export interface OptionValidation {
+  min_length?: number;
+  max_length?: number;
+  pattern?: string;
+  input_mode?: string;
+  placeholder?: string;
+  error_message?: string;
+}
+
 export interface CascadingOption {
   value: string | number;
   label: string;
   code?: string;
   parent_id?: number;
+  validation?: OptionValidation;
 }
 
 /**
