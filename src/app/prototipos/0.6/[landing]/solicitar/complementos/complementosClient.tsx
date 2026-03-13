@@ -35,7 +35,7 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, appliedCoupon } = useProduct();
+  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, appliedCoupon, hasUnifiedTerms, cartProducts } = useProduct();
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
@@ -65,6 +65,13 @@ function ComplementosContent() {
       router.push(`/prototipos/0.6/${landing}/solicitar`);
     }
   }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
+
+  // Redirect to /solicitar if terms are not unified (multiple products with different terms)
+  useEffect(() => {
+    if (cartProducts.length > 1 && !hasUnifiedTerms()) {
+      router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  }, [cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Get the last wizard step for back navigation
   // Secuencia correcta: pasos regulares primero, luego pasos de resumen

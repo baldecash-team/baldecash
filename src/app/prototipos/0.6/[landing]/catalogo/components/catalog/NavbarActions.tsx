@@ -10,7 +10,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { Search, Heart, ShoppingCart, X, Trash2, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CatalogProduct, calculateQuotaWithInitial } from '../../types/catalog';
+import { CatalogProduct, CartItem, WishlistItem, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 
@@ -400,7 +400,7 @@ interface NavbarWishlistConfig {
 }
 
 interface NavbarWishlistProps {
-  items: CatalogProduct[];
+  items: WishlistItem[];
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onViewProduct: (productId: string) => void;
@@ -493,22 +493,23 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
               <div className="max-h-[280px] overflow-y-auto">
                 <div className="p-3 space-y-2">
                   {items.map((item) => {
-                    const quota = item.quotaMonthly;
+                    // v0.6.2: Use lowestQuota from WishlistItem (default 24 months, 0% initial)
+                    const quota = item.lowestQuota;
                     return (
                       <div
-                        key={item.id}
+                        key={item.productId}
                         className="flex items-center gap-3 p-2 bg-neutral-50 rounded-lg group"
                       >
                         <div
                           onClick={() => {
-                            onViewProduct(item.id);
+                            onViewProduct(item.productId);
                             setIsOpen(false);
                           }}
                           className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200 cursor-pointer hover:border-[var(--color-primary)] transition-colors"
                         >
                           <img
-                            src={item.thumbnail}
-                            alt={item.displayName}
+                            src={item.image}
+                            alt={item.name}
                             className="w-full h-full object-contain"
                           />
                         </div>
@@ -518,19 +519,23 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                           </p>
                           <p
                             onClick={() => {
-                              onViewProduct(item.id);
+                              onViewProduct(item.productId);
                               setIsOpen(false);
                             }}
                             className="text-sm font-medium text-neutral-800 truncate cursor-pointer hover:text-[var(--color-primary)] transition-colors"
+                            title={item.name}
                           >
-                            {item.displayName}
+                            {item.name}
                           </p>
                           <p className="text-sm font-bold text-[var(--color-primary)]">
                             S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
+                            <span className="text-xs font-normal text-neutral-500 ml-1">
+                              x 24 meses
+                            </span>
                           </p>
                         </div>
                         <button
-                          onClick={() => onRemoveItem(item.id)}
+                          onClick={() => onRemoveItem(item.productId)}
                           className="p-1.5 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer"
                         >
                           <X className="w-4 h-4" />
@@ -559,7 +564,7 @@ interface NavbarCartConfig {
 }
 
 interface NavbarCartProps {
-  items: CatalogProduct[];
+  items: CartItem[];
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onContinue: () => void;
@@ -580,9 +585,9 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Multi-product cart logic - usar cuota precalculada del backend
+  // Multi-product cart logic - usar cuota del usuario (monthlyPayment)
   const totalMonthlyQuota = items.reduce((sum, item) => {
-    return sum + item.quotaMonthly;
+    return sum + item.monthlyPayment;
   }, 0);
   const isOverQuotaLimit = totalMonthlyQuota > MAX_MONTHLY_QUOTA;
   const isDisabled = items.length === 0 || isOverQuotaLimit || isOverLimit;
@@ -674,16 +679,18 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                 <div className="max-h-[280px] overflow-y-auto">
                   <div className="p-3 space-y-2">
                     {items.map((item) => {
-                      const quota = item.quotaMonthly;
+                      // v0.6.2: Use monthlyPayment from CartItem (user's selected config)
+                      const quota = item.monthlyPayment;
+                      const hasInitial = item.initialAmount > 0;
                       return (
                         <div
-                          key={item.id}
+                          key={item.productId}
                           className="flex items-center gap-3 p-2 bg-neutral-50 rounded-lg"
                         >
                           <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
                             <img
-                              src={item.thumbnail}
-                              alt={item.displayName}
+                              src={item.image}
+                              alt={item.name}
                               className="w-full h-full object-contain"
                             />
                           </div>
@@ -691,15 +698,23 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                             <p className="text-xs text-neutral-500 uppercase">
                               {item.brand}
                             </p>
-                            <p className="text-sm font-medium text-neutral-800 truncate">
-                              {item.displayName}
+                            <p className="text-sm font-medium text-neutral-800 truncate" title={item.name}>
+                              {item.name}
                             </p>
                             <p className="text-sm font-bold text-[var(--color-primary)]">
                               S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
+                              <span className="text-xs font-normal text-neutral-500 ml-1">
+                                x {item.months} meses
+                              </span>
                             </p>
+                            {hasInitial && (
+                              <p className="text-xs text-neutral-500">
+                                + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
+                              </p>
+                            )}
                           </div>
                           <button
-                            onClick={() => onRemoveItem(item.id)}
+                            onClick={() => onRemoveItem(item.productId)}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer"
                           >
                             <X className="w-4 h-4" />

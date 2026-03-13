@@ -1407,7 +1407,7 @@ function CatalogoContent() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onSearchClear={handleSearchClear}
-        wishlistItems={wishlistProducts}
+        wishlistItems={wishlistItems}
         onWishlistRemove={handleToggleWishlist}
         onWishlistClear={() => clearWishlistItems()}
         onWishlistViewProduct={(productId) => {
@@ -1416,7 +1416,7 @@ function CatalogoContent() {
             router.push(getDetailUrl(landing, product.slug));
           }
         }}
-        cartItems={cartProducts}
+        cartItems={cartItems}
         onCartRemove={handleRemoveFromCart}
         onCartClear={handleClearCart}
         onCartContinue={handleCartContinue}
@@ -1808,7 +1808,13 @@ function CatalogoContent() {
           onClearAll={handleClearCompare}
           comparisonState={comparisonState}
           onStateChange={setComparisonState}
-          onAddToCart={(productId) => handleAddToCart(productId)}
+          onAddToCart={(productId) => {
+            // v0.6.2: Find product in compareProducts and pass to handleAddToCart
+            const product = compareProducts.find(p => p.id === productId);
+            if (product) {
+              handleAddToCart(productId, product);
+            }
+          }}
           cartItems={cart}
         />
       )}
@@ -1942,7 +1948,28 @@ function CatalogoContent() {
               }));
             }
           }}
-          onAddToCart={(productId) => handleAddToCart(productId)}
+          onAddToCart={(quizProduct) => {
+            // v0.6.2: Build CartItem from QuizProduct with default pricing
+            const cartItem: CartItem = {
+              productId: quizProduct.id,
+              name: quizProduct.displayName,
+              shortName: quizProduct.name,
+              brand: quizProduct.brand,
+              image: quizProduct.thumbnail || quizProduct.image,
+              price: quizProduct.price,
+              months: WIZARD_SELECTED_TERM,
+              initialPercent: WIZARD_SELECTED_INITIAL,
+              initialAmount: Math.round((quizProduct.price * WIZARD_SELECTED_INITIAL) / 100),
+              monthlyPayment: quizProduct.lowestQuota,
+              addedAt: Date.now(),
+              specs: {
+                processor: quizProduct.specs?.processor || '',
+                ram: quizProduct.specs?.ram ? `${quizProduct.specs.ram}GB` : '',
+                storage: quizProduct.specs?.storage ? `${quizProduct.specs.storage}GB` : '',
+              },
+            };
+            handleAddToCart(quizProduct.id, undefined, cartItem);
+          }}
           cartItems={cart}
         />
       )}
@@ -1991,7 +2018,7 @@ function CatalogoContent() {
           setIsCartLimitModalOpen(false);
           setAttemptedCartProduct(null);
         }}
-        cartItems={cartProducts}
+        cartItems={cartItems}
         onRemoveItem={handleRemoveFromCart}
         attemptedProduct={attemptedCartProduct}
         totalMonthlyQuota={totalMonthlyQuota}

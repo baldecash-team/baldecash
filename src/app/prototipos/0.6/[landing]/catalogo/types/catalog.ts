@@ -889,6 +889,22 @@ export interface CartItem {
 
   // Metadata
   addedAt: number;
+
+  // Payment plans from API (for term standardization in /solicitar)
+  paymentPlans?: CartPaymentPlan[];
+}
+
+// Payment plan structure for CartItem (simplified from detail API)
+export interface CartPaymentPlanOption {
+  initialPercent: number;  // 0, 10, 20, 30
+  initialAmount: number;
+  monthlyQuota: number;
+  originalQuota?: number;
+}
+
+export interface CartPaymentPlan {
+  term: number;  // 12, 18, 24, 36
+  options: CartPaymentPlanOption[];
 }
 
 // ============================================

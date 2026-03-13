@@ -23,6 +23,7 @@ import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial
 // Quiz
 import { HelpQuiz } from '../../quiz';
 import { useQuiz } from '../../quiz/hooks/useQuiz';
+import type { QuizProduct } from '../../quiz/types/quiz';
 
 // Shared state for cart (same localStorage as catalog)
 import { useCatalogSharedState } from '../../[landing]/catalogo/hooks/useCatalogSharedState';
@@ -135,15 +136,34 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   // Toast for cart feedback
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
+  // Default pricing config
+  const WIZARD_SELECTED_TERM = 24;
+  const WIZARD_SELECTED_INITIAL = 10;
+
   // Add to cart with toast feedback
-  // v0.6.1: Accept CartItem with variant info
-  const handleAddToCart = useCallback((productId: string, cartItem?: CartItem) => {
-    if (!isInCart(productId)) {
-      if (cartItem) {
-        addToCart(cartItem);
-        showToast('Producto añadido al carrito', 'success');
-      }
-      // If no cartItem provided, caller should provide one
+  // v0.6.2: Accept QuizProduct and build CartItem
+  const handleAddToCart = useCallback((quizProduct: QuizProduct) => {
+    if (!isInCart(quizProduct.id)) {
+      const cartItem: CartItem = {
+        productId: quizProduct.id,
+        name: quizProduct.displayName,
+        shortName: quizProduct.name,
+        brand: quizProduct.brand,
+        image: quizProduct.thumbnail || quizProduct.image,
+        price: quizProduct.price,
+        months: WIZARD_SELECTED_TERM,
+        initialPercent: WIZARD_SELECTED_INITIAL,
+        initialAmount: Math.round((quizProduct.price * WIZARD_SELECTED_INITIAL) / 100),
+        monthlyPayment: quizProduct.lowestQuota,
+        addedAt: Date.now(),
+        specs: {
+          processor: quizProduct.specs?.processor || '',
+          ram: quizProduct.specs?.ram ? `${quizProduct.specs.ram}GB` : '',
+          storage: quizProduct.specs?.storage ? `${quizProduct.specs.storage}GB` : '',
+        },
+      };
+      addToCart(cartItem);
+      showToast('Producto añadido al carrito', 'success');
     }
   }, [isInCart, addToCart, showToast]);
 

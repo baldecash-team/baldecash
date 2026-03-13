@@ -8,6 +8,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo, useRef } from 'react';
 import type { Accessory, InsurancePlan } from '../types/upsell';
+import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 // Dynamic storage keys based on landing slug
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -18,6 +19,20 @@ const getCouponKey = (landing: string) => `baldecash-${landing}-solicitar-applie
 
 // Maximum monthly quota limit from env
 const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
+
+// Payment plan option for a specific initial percentage
+export interface PaymentPlanOption {
+  initialPercent: number;  // 0, 10, 20, 30
+  initialAmount: number;
+  monthlyQuota: number;
+  originalQuota?: number;
+}
+
+// Payment plan for a specific term
+export interface PaymentPlan {
+  term: number;  // 12, 18, 24, 36
+  options: PaymentPlanOption[];
+}
 
 export interface SelectedProduct {
   id: string;
@@ -40,6 +55,8 @@ export interface SelectedProduct {
   variantId?: string;
   colorName?: string;
   colorHex?: string;
+  // Payment plans from API (for term standardization)
+  paymentPlans?: PaymentPlan[];
 }
 
 export type { Accessory, InsurancePlan };
@@ -84,6 +101,10 @@ interface ProductContextValue {
   maxMonthlyQuota: number;
   // Get all products (cart or single)
   getAllProducts: () => SelectedProduct[];
+  // Term standardization for multi-product cart
+  hasUnifiedTerms: () => boolean;
+  getAvailableTerms: () => number[];
+  updateAllProductsToTerm: (term: number) => void;
 }
 
 const ProductContext = createContext<ProductContextValue | undefined>(undefined);
@@ -368,6 +389,110 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   // Check if over quota limit
   const isOverQuotaLimit = getTotalMonthlyPayment() > MAX_MONTHLY_QUOTA;
 
+  // ============================================
+  // Term Standardization Functions
+  // ============================================
+
+  /**
+   * Check if all products have the same term (months)
+   * Returns true if single product or all products have same term
+   */
+  const hasUnifiedTerms = useCallback((): boolean => {
+    const products = getAllProducts();
+    if (products.length <= 1) return true;
+    const firstTerm = products[0].months;
+    return products.every(p => p.months === firstTerm);
+  }, [getAllProducts]);
+
+  /**
+   * Get available terms that ALL products support
+   * Returns intersection of terms from all products' paymentPlans
+   */
+  const getAvailableTerms = useCallback((): number[] => {
+    const products = getAllProducts();
+    if (products.length === 0) return [12, 18, 24, 36]; // Default terms
+
+    // Get terms for each product
+    const termsPerProduct = products.map(p => {
+      if (p.paymentPlans && p.paymentPlans.length > 0) {
+        return p.paymentPlans.map(plan => plan.term);
+      }
+      // Fallback: if no plans, assume all standard terms are available
+      return [12, 18, 24, 36];
+    });
+
+    // Find intersection of all terms
+    const intersection = termsPerProduct.reduce((acc, terms) => {
+      return acc.filter(t => terms.includes(t));
+    });
+
+    return intersection.sort((a, b) => a - b);
+  }, [getAllProducts]);
+
+  /**
+   * Update all products to use the same term
+   * Recalculates monthlyPayment and initialAmount using paymentPlans
+   * Falls back to calculateQuotaWithInitial if no plans available
+   */
+  const updateAllProductsToTerm = useCallback((term: number) => {
+    const products = getAllProducts();
+    if (products.length === 0) return;
+
+    const updatedProducts = products.map(p => {
+      // Find the payment plan for this term
+      const plan = p.paymentPlans?.find(pl => pl.term === term);
+
+      if (plan) {
+        // Use real API data
+        // Find the option matching current initialPercent, or default to 0%
+        const option = plan.options.find(opt => opt.initialPercent === p.initialPercent)
+          || plan.options.find(opt => opt.initialPercent === 0)
+          || plan.options[0];
+
+        if (option) {
+          return {
+            ...p,
+            months: term,
+            monthlyPayment: option.monthlyQuota,
+            initialAmount: option.initialAmount,
+            initialPercent: option.initialPercent,
+          };
+        }
+      }
+
+      // Fallback: calculate using formula (may not match exact API values but better than nothing)
+      // This handles products added before paymentPlans were saved
+      const validInitialPercent = [0, 10, 20, 30].includes(p.initialPercent)
+        ? p.initialPercent as InitialPaymentPercent
+        : 0;
+      const validTerm = [12, 18, 24, 36].includes(term)
+        ? term as TermMonths
+        : 24;
+
+      const { quota, initialAmount } = calculateQuotaWithInitial(
+        p.price,
+        validTerm,
+        validInitialPercent
+      );
+
+      return {
+        ...p,
+        months: term,
+        monthlyPayment: quota,
+        initialAmount: initialAmount,
+        initialPercent: validInitialPercent,
+      };
+    });
+
+    // Update state
+    if (cartProducts.length > 0) {
+      setCartProducts(updatedProducts);
+    }
+    if (selectedProduct) {
+      setSelectedProduct(updatedProducts[0]);
+    }
+  }, [getAllProducts, cartProducts, selectedProduct, setCartProducts, setSelectedProduct]);
+
   return (
     <ProductContext.Provider
       value={{
@@ -397,6 +522,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         isOverQuotaLimit,
         maxMonthlyQuota: MAX_MONTHLY_QUOTA,
         getAllProducts,
+        hasUnifiedTerms,
+        getAvailableTerms,
+        updateAllProductsToTerm,
       }}
     >
       {children}

@@ -22,7 +22,7 @@ import {
   Certification,
 } from '../../types/detail';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
-import type { CartItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import type { CartItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -54,9 +54,12 @@ interface ProductDetailProps {
   cronogramaVersion?: CronogramaVersion;
   // v0.6.1: onAddToCart now receives CartItem with full config (variant, pricing)
   onAddToCart?: (cartItem: CartItem) => void;
+  onRemoveFromCart?: (productId: string) => void;
+  onUpdateCart?: (productId: string, updates: Partial<CartItem>) => void;
+  cartItem?: CartItem;  // Current cart item for comparison
   isInCart?: boolean;
-  // Cart props for similar products
-  onSimilarAddToCart?: (productId: string, cartItem?: CartItem) => void;
+  // Cart props for similar products - v0.6.2: receives SimilarProduct
+  onSimilarAddToCart?: (product: SimilarProduct) => void;
   cartItems?: string[];
 }
 
@@ -71,6 +74,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   deviceType = 'laptop',
   cronogramaVersion = 1,
   onAddToCart,
+  onRemoveFromCart,
+  onUpdateCart,
+  cartItem,
   isInCart = false,
   // Cart props for similar products
   onSimilarAddToCart,
@@ -130,6 +136,19 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     setPricingSelection(selection);
   }, []);
 
+  // Transform PaymentPlan[] to CartPaymentPlan[] format
+  const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
+    return paymentPlans.map(plan => ({
+      term: plan.term,
+      options: plan.options.map(opt => ({
+        initialPercent: opt.initialPercent,
+        initialAmount: opt.initialAmount,
+        monthlyQuota: opt.monthlyQuota,
+        originalQuota: opt.originalQuota,
+      })),
+    }));
+  }, [paymentPlans]);
+
   // v0.6.1: Build CartItem with full product config and call onAddToCart
   const handleAddToCart = useCallback(() => {
     if (!onAddToCart || !pricingSelection) return;
@@ -140,11 +159,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // Build CartItem with full config
     const cartItem: CartItem = {
       productId: product.id,
-      name: product.name,
-      shortName: product.name,
+      name: product.displayName,  // Full name for cart display
+      shortName: product.name,    // Short name for compact views
       brand: product.brand,
       price: product.price,
       image: product.images[0]?.url || '',
+      type: product.category as CartItem['type'],  // Product type for accessory compatibility
       months: pricingSelection.term as TermMonths,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
@@ -154,10 +174,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       variantId: selectedColorId || undefined,
       colorName: selectedColor?.name,
       colorHex: selectedColor?.hex,
+      // Payment plans for term standardization
+      paymentPlans: cartPaymentPlans,
     };
 
     onAddToCart(cartItem);
-  }, [onAddToCart, pricingSelection, displayColors, selectedColorId, product]);
+  }, [onAddToCart, pricingSelection, displayColors, selectedColorId, product, cartPaymentPlans]);
 
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
@@ -195,6 +217,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         ram: getSpecValue('memoria', 'capacidad') || getSpecValue('ram', 'size') || '',
         storage: getSpecValue('almacenamiento', 'capacidad') || getSpecValue('storage', 'size') || '',
       },
+      // Payment plans for term standardization
+      paymentPlans: cartPaymentPlans,
     };
 
     // Save to localStorage
@@ -248,20 +272,61 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 >
                   ¡Lo quiero! Solicitar ahora
                 </button>
-                {onAddToCart && (
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={!pricingSelection}
-                    className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold transition-colors cursor-pointer border ${
-                      isInCart
-                        ? 'text-[#22c55e] bg-[#22c55e]/10 border-[#22c55e]/20 hover:bg-[#22c55e]/20'
-                        : 'text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[rgba(var(--color-primary-rgb),0.2)]'
-                    }`}
-                  >
-                    {isInCart ? <Check className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
-                    <span className="hidden sm:inline">{isInCart ? 'En el carrito' : 'Al carrito'}</span>
-                  </button>
-                )}
+                {onAddToCart && (() => {
+                  // Determine cart button state
+                  const configChanged = isInCart && cartItem && pricingSelection && (
+                    cartItem.months !== pricingSelection.term ||
+                    cartItem.initialPercent !== pricingSelection.initialPercent
+                  );
+
+                  const handleCartAction = () => {
+                    if (!isInCart) {
+                      handleAddToCart();
+                    } else if (configChanged && onUpdateCart && pricingSelection) {
+                      onUpdateCart(product.id, {
+                        months: pricingSelection.term as TermMonths,
+                        initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
+                        initialAmount: pricingSelection.initialAmount,
+                        monthlyPayment: pricingSelection.monthlyQuota,
+                      });
+                    } else if (onRemoveFromCart) {
+                      onRemoveFromCart(product.id);
+                    }
+                  };
+
+                  const getButtonStyle = () => {
+                    if (!isInCart) {
+                      return 'text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[rgba(var(--color-primary-rgb),0.2)]';
+                    }
+                    if (configChanged) {
+                      return 'text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[rgba(var(--color-primary-rgb),0.2)]';
+                    }
+                    return 'text-[#22c55e] bg-[#22c55e]/10 border-[#22c55e]/20 hover:bg-red-50 hover:text-red-500 hover:border-red-200';
+                  };
+
+                  const getButtonContent = () => {
+                    if (!isInCart) {
+                      return { icon: <ShoppingCart className="w-5 h-5" />, text: 'Al carrito' };
+                    }
+                    if (configChanged) {
+                      return { icon: <ShoppingCart className="w-5 h-5" />, text: 'Actualizar carrito' };
+                    }
+                    return { icon: <Check className="w-5 h-5" />, text: 'Quitar del carrito' };
+                  };
+
+                  const { icon, text } = getButtonContent();
+
+                  return (
+                    <button
+                      onClick={handleCartAction}
+                      disabled={!isInCart && !pricingSelection}
+                      className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold transition-colors cursor-pointer border ${getButtonStyle()}`}
+                    >
+                      {icon}
+                      <span className="hidden sm:inline">{text}</span>
+                    </button>
+                  );
+                })()}
               </div>
             </div>
 

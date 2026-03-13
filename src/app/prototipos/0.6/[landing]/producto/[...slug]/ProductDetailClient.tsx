@@ -117,27 +117,30 @@ function ProductDetailContent() {
   }, [catalogState.cartIds, catalogState.isHydrated, landing]);
 
   // Handle cart continue - save products to context before navigating
+  // v0.6.2: Use catalogState.cart (CartItem[]) to preserve user's pricing config
   const handleCartContinue = useCallback(() => {
-    if (cartProducts.length === 0) return;
+    if (catalogState.cart.length === 0) return;
 
-    // Transform CatalogProduct[] to SelectedProduct[] format for solicitar context
-    const productsForContext = cartProducts.map((product) => ({
-      id: product.id,
-      name: product.displayName,
-      shortName: product.name,
-      brand: product.brand,
-      price: product.price,
-      monthlyPayment: product.quotaMonthly,
-      months: WIZARD_SELECTED_TERM,
-      initialPercent: 0,
-      initialAmount: 0,
-      image: product.thumbnail,
-      type: product.deviceType || 'laptop',  // Product type for accessory compatibility filtering
-      specs: {
-        processor: product.specs?.processor?.model || '',
-        ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
-        storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
-      },
+    // Transform CartItem[] to SelectedProduct[] format for solicitar context
+    // This preserves the user's selected months, initialPercent, and monthlyPayment
+    const productsForContext = catalogState.cart.map((cartItem) => ({
+      id: cartItem.productId,
+      name: cartItem.name,
+      shortName: cartItem.shortName,
+      brand: cartItem.brand,
+      price: cartItem.price,
+      monthlyPayment: cartItem.monthlyPayment,  // User's selected config
+      months: cartItem.months,                   // User's selected config
+      initialPercent: cartItem.initialPercent,   // User's selected config
+      initialAmount: cartItem.initialAmount,     // User's selected config
+      image: cartItem.image,
+      type: cartItem.type,  // Product type for accessory compatibility (no fallback)
+      variantId: cartItem.variantId,
+      colorName: cartItem.colorName,
+      colorHex: cartItem.colorHex,
+      specs: cartItem.specs,
+      // Payment plans for term standardization
+      paymentPlans: cartItem.paymentPlans,
     }));
 
     // Set all products to cart context
@@ -148,7 +151,7 @@ function ProductDetailContent() {
 
     // Navigate to solicitar
     router.push(`/prototipos/0.6/${landing}/solicitar`);
-  }, [cartProducts, router, setContextCartProducts, setSelectedProduct, landing]);
+  }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
 
   // Build catalog URL helper
   const getCatalogUrl = (queryParams?: Record<string, string>) => {
@@ -293,7 +296,7 @@ function ProductDetailContent() {
             router.push(getCatalogUrl({ search: searchQuery }));
           }
         }}
-        wishlistItems={wishlistProducts}
+        wishlistItems={catalogState.wishlist}
         onWishlistRemove={catalogState.removeFromWishlist}
         onWishlistClear={catalogState.clearWishlist}
         onWishlistViewProduct={(productId) => {
@@ -302,7 +305,7 @@ function ProductDetailContent() {
             router.push(`/prototipos/0.6/${landing}/producto/${product.slug}`);
           }
         }}
-        cartItems={cartProducts}
+        cartItems={catalogState.cart}
         onCartRemove={catalogState.removeFromCart}
         onCartClear={catalogState.clearCart}
         onCartContinue={handleCartContinue}
@@ -322,8 +325,33 @@ function ProductDetailContent() {
           deviceType={config.deviceType}
           cronogramaVersion={config.cronogramaVersion}
           onAddToCart={handleAddToCart}
+          onRemoveFromCart={catalogState.removeFromCart}
+          onUpdateCart={catalogState.updateCartItem}
+          cartItem={catalogState.getCartItem(apiData.product.id)}
           isInCart={catalogState.isInCart(apiData.product.id)}
-          onSimilarAddToCart={(productId, cartItem) => cartItem && handleAddToCart(cartItem)}
+          onSimilarAddToCart={(similarProduct) => {
+            // v0.6.2: Build CartItem from SimilarProduct with default pricing
+            const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24 / 0.9);
+            const cartItem: CartItem = {
+              productId: similarProduct.id,
+              name: similarProduct.displayName,
+              shortName: similarProduct.name,
+              brand: similarProduct.brand,
+              image: similarProduct.thumbnail,
+              price: estimatedPrice,
+              months: WIZARD_SELECTED_TERM,
+              initialPercent: 0,
+              initialAmount: 0,
+              monthlyPayment: similarProduct.monthlyQuota,
+              addedAt: Date.now(),
+              specs: similarProduct.specs ? {
+                processor: similarProduct.specs.processor || '',
+                ram: similarProduct.specs.ram || '',
+                storage: similarProduct.specs.storage || '',
+              } : undefined,
+            };
+            handleAddToCart(cartItem);
+          }}
           cartItems={catalogState.cartIds}
         />
       </main>
@@ -363,7 +391,7 @@ function ProductDetailContent() {
       <CartDrawer
         isOpen={isCartDrawerOpen}
         onClose={() => setIsCartDrawerOpen(false)}
-        items={cartProducts}
+        items={catalogState.cart}
         onRemoveItem={catalogState.removeFromCart}
         onClearAll={() => {
           catalogState.clearCart();

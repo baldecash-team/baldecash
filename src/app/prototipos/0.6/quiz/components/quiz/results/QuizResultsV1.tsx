@@ -283,7 +283,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               handleCloseModal();
             }}
             onAddToCart={() => {
-              onAddToCart?.(selectedProductForModal.id);
+              onAddToCart?.(selectedProductForModal);
               handleCloseModal();
             }}
           />
@@ -297,7 +297,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               handleCloseModal();
             }}
             onAddToCart={() => {
-              onAddToCart?.(selectedProductForModal.id);
+              onAddToCart?.(selectedProductForModal);
               handleCloseModal();
             }}
           />

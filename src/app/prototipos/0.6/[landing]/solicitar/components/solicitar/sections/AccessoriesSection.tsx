@@ -42,25 +42,31 @@ export function AccessoriesSection({
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
   // Extract unique product types from cart for accessory compatibility filtering
-  // Includes fallback detection for products without explicit type field
+  // Always uses name-based detection to ensure correct type (handles legacy products with wrong type)
   const cartProducts = getAllProducts();
   const productTypes = useMemo(() => {
     const types = cartProducts
       .map((p) => {
-        // Use explicit type if available
-        if (p.type) return p.type;
-
-        // Fallback: infer type from product name
+        // Always infer type from product name for reliability
+        // This handles legacy products that may have incorrect type stored
         const nameLower = p.name.toLowerCase();
-        if (nameLower.includes('galaxy') || nameLower.includes('iphone') || nameLower.includes('redmi') || nameLower.includes('xiaomi') || nameLower.includes('motorola') || nameLower.includes('poco')) {
+
+        // Celular patterns
+        if (nameLower.includes('galaxy') || nameLower.includes('iphone') || nameLower.includes('redmi') || nameLower.includes('xiaomi') || nameLower.includes('motorola') || nameLower.includes('poco') || nameLower.includes('samsung') || nameLower.includes('cel ') || nameLower.includes('cel-')) {
           return 'celular';
         }
-        if (nameLower.includes('macbook') || nameLower.includes('laptop') || nameLower.includes('ideapad') || nameLower.includes('thinkpad') || nameLower.includes('pavilion') || nameLower.includes('vivobook')) {
-          return 'laptop';
-        }
+        // Tablet patterns
         if (nameLower.includes('ipad') || nameLower.includes('tab ') || nameLower.includes('tablet')) {
           return 'tablet';
         }
+        // Laptop patterns (check after tablet since some tablets have "tab" in name)
+        if (nameLower.includes('macbook') || nameLower.includes('laptop') || nameLower.includes('ideapad') || nameLower.includes('thinkpad') || nameLower.includes('pavilion') || nameLower.includes('vivobook') || nameLower.includes('notebook')) {
+          return 'laptop';
+        }
+
+        // Fallback to explicit type if no pattern matched
+        if (p.type) return p.type;
+
         return null;
       })
       .filter((t): t is string => !!t);

@@ -101,8 +101,8 @@ function StepContent() {
   // Get solicitar flow configuration (to check if there are sections after wizard)
   const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
 
-  // Get applied coupon from product context
-  const { appliedCoupon } = useProduct();
+  // Get applied coupon and term validation from product context
+  const { appliedCoupon, hasUnifiedTerms, cartProducts } = useProduct();
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
@@ -110,6 +110,13 @@ function StepContent() {
       router.push(`/prototipos/0.6/${landing}/solicitar`);
     }
   }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
+
+  // Redirect to /solicitar if terms are not unified (multiple products with different terms)
+  useEffect(() => {
+    if (cartProducts.length > 1 && !hasUnifiedTerms()) {
+      router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  }, [cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Toast notifications for submit
   const { showToast } = useToast(4000);

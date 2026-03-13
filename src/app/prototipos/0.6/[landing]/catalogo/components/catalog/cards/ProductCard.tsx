@@ -152,8 +152,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // ============================================
   const createWishlistItem = (): WishlistItem => ({
     productId: activeProductId,
-    name: product.name,
-    shortName: displayName,
+    name: displayName,           // Full name for display
+    shortName: product.name,     // Short name
     brand: product.brand,
     price: displayPrice,
     image: selectedImages[0] || product.thumbnail,

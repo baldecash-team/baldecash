@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { CatalogProduct } from '../../types/catalog';
+import { CatalogProduct, CartItem, WishlistItem } from '../../types/catalog';
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 import {
   NavbarSearch,
@@ -28,14 +28,14 @@ interface CatalogSecondaryNavbarProps {
   onSearchClear: () => void;
   onSearchSubmit?: () => void;
 
-  // Wishlist
-  wishlistItems: CatalogProduct[];
+  // Wishlist - v0.6.2: Now receives WishlistItem[] from localStorage
+  wishlistItems: WishlistItem[];
   onWishlistRemove: (productId: string) => void;
   onWishlistClear: () => void;
   onWishlistViewProduct: (productId: string) => void;
 
-  // Cart
-  cartItems: CatalogProduct[];
+  // Cart - v0.6.2: Now receives CartItem[] to preserve user's pricing config
+  cartItems: CartItem[];
   onCartRemove: (productId: string) => void;
   onCartClear: () => void;
   onCartContinue: () => void;

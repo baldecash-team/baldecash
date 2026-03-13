@@ -5,9 +5,9 @@
  * Landing page before starting the wizard flow
  */
 
-import React, { Suspense, useEffect, useState, useMemo } from 'react';
+import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart, AlertTriangle } from 'lucide-react';
+import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart, AlertTriangle, X } from 'lucide-react';
 import { useProduct } from './context/ProductContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -45,7 +45,27 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, cartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm } = useProduct();
+
+  // Remove product from cart (or clear selectedProduct if single)
+  const handleRemoveProduct = useCallback((productId: string) => {
+    if (cartProducts.length > 1) {
+      // Remove from cart, keep others
+      const updated = cartProducts.filter(p => p.id !== productId);
+      setCartProducts(updated);
+      // Also update selectedProduct to first remaining
+      setSelectedProduct(updated[0]);
+    } else if (cartProducts.length === 1) {
+      // Last cart product - clear and go to catalog
+      setCartProducts([]);
+      setSelectedProduct(null);
+      router.replace(`/prototipos/0.6/${landing}/catalogo`);
+    } else if (selectedProduct?.id === productId) {
+      // Single product mode - clear and go to catalog
+      setSelectedProduct(null);
+      router.replace(`/prototipos/0.6/${landing}/catalogo`);
+    }
+  }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct, router, landing]);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
   const [isTermsHydrated, setIsTermsHydrated] = useState(false);
@@ -120,20 +140,45 @@ function WizardPreviewContent() {
   }, [isHydrated, selectedProduct, router, landing]);
 
 
+  // Check if terms need to be unified (multiple products with different terms)
+  const needsTermUnification = cartProducts.length > 1 && !hasUnifiedTerms();
+  const availableTerms = getAvailableTerms();
+
+  // Helper function for smooth scroll with highlight effect
+  const scrollToSection = useCallback((sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      // Scroll to element
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Add highlight effect
+      element.classList.add('ring-2', 'ring-[var(--color-primary)]', 'ring-offset-2');
+      setTimeout(() => {
+        element.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'ring-offset-2');
+      }, 2000);
+    }
+  }, []);
+
   const handleStart = () => {
+    // Validar que los plazos estén estandarizados (para múltiples productos)
+    if (needsTermUnification) {
+      // Scroll al selector de plazos
+      scrollToSection('term-selector-section');
+      return;
+    }
+
+    // Validar términos antes de continuar (primera validación requerida)
+    if (!acceptTerms) {
+      setTermsError('Debes aceptar los términos y condiciones para continuar');
+      // Scroll al checkbox de términos
+      scrollToSection('terms-section');
+      return;
+    }
+
     // Validar cupón si es requerido
     if (isCouponRequired && !appliedCoupon) {
       setCouponError('Debes ingresar un cupón válido para continuar');
       // Scroll al campo de cupón
-      document.getElementById('coupon-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-
-    // Validar términos antes de continuar
-    if (!acceptTerms) {
-      setTermsError('Debes aceptar los términos y condiciones para continuar');
-      // Scroll al checkbox de términos
-      document.getElementById('terms-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollToSection('coupon-section');
       return;
     }
 
@@ -240,14 +285,53 @@ function WizardPreviewContent() {
           const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
 
           return (
-            <div className="hidden lg:block bg-white rounded-xl border border-neutral-200 mb-8 overflow-hidden">
-              {/* Header */}
+            <div id="term-selector-section" className={`hidden lg:block bg-white rounded-xl border mb-8 overflow-hidden ${needsTermUnification ? 'border-amber-300' : 'border-neutral-200'}`}>
+              {/* Header with term selector */}
               {productsToShow.length > 1 && (
-                <div className="px-5 py-3 bg-[rgba(var(--color-primary-rgb),0.05)] border-b border-neutral-200 flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
-                  <span className="text-sm font-semibold text-neutral-800">
-                    {productsToShow.length} productos seleccionados
-                  </span>
+                <div className={`px-5 py-3 border-b flex items-center justify-between ${needsTermUnification ? 'bg-amber-50 border-amber-200' : 'bg-[rgba(var(--color-primary-rgb),0.05)] border-neutral-200'}`}>
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className={`w-4 h-4 ${needsTermUnification ? 'text-amber-600' : 'text-[var(--color-primary)]'}`} />
+                    <span className="text-sm font-semibold text-neutral-800">
+                      {productsToShow.length} productos seleccionados
+                    </span>
+                  </div>
+                  {/* Term selector dropdown */}
+                  {needsTermUnification ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-amber-700">Unificar plazo:</span>
+                      <select
+                        className="text-sm border border-amber-300 rounded-lg px-3 py-1.5 bg-white text-neutral-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        onChange={(e) => {
+                          const term = parseInt(e.target.value);
+                          if (term) updateAllProductsToTerm(term);
+                        }}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>Seleccionar</option>
+                        {availableTerms.map((term) => (
+                          <option key={term} value={term}>{term} meses</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-neutral-500">
+                      {productsToShow[0]?.months} meses
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Warning banner for unequal terms */}
+              {needsTermUnification && (
+                <div className="px-5 py-3 bg-amber-50 border-b border-amber-200 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Plazos diferentes detectados</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Para continuar, selecciona un plazo único para todos los productos.
+                      Esto permite generar un cronograma de pagos unificado.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -294,7 +378,20 @@ function WizardPreviewContent() {
                           x {product.months} meses
                         </span>
                       </p>
+                      {product.initialAmount > 0 && (
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                          + S/{formatMoneyNoDecimals(Math.floor(product.initialAmount))} inicial
+                        </p>
+                      )}
                     </div>
+                    {/* Remove button */}
+                    <button
+                      onClick={() => handleRemoveProduct(product.id)}
+                      className="p-1.5 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                      title="Quitar producto"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -411,7 +508,7 @@ function WizardPreviewContent() {
         ))}
 
         {/* Términos y Condiciones */}
-        <div id="terms-section" className={`bg-white rounded-xl p-6 border mb-8 transition-colors ${termsError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
+        <div id="terms-section" className={`bg-white rounded-xl p-6 border mb-8 transition-all duration-300 ${termsError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
           <h3 className="font-semibold text-neutral-800 mb-4">Términos y Condiciones</h3>
           <div className="space-y-4">
             <Checkbox
@@ -436,23 +533,19 @@ function WizardPreviewContent() {
         </div>
 
         {/* Cupón de Descuento */}
-        <div id="coupon-section" className={`mb-8 ${couponError ? 'ring-2 ring-red-500/30 rounded-xl' : ''}`}>
+        <div id="coupon-section" className={`mb-8 transition-all duration-300 rounded-xl ${couponError ? 'ring-2 ring-red-500/30' : ''}`}>
           <CouponInput isRequired={isCouponRequired} />
           {couponError && !appliedCoupon && (
             <p className="text-xs text-red-500 mt-2 ml-1">{couponError}</p>
           )}
         </div>
 
-        {/* CTA Button */}
+        {/* CTA Button - Always looks enabled, validates on click */}
         <button
           onClick={handleStart}
-          disabled={isOverQuotaLimit}
-          className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
-                     font-semibold text-lg transition-colors shadow-lg
-                     ${isOverQuotaLimit
-                       ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
-                       : 'bg-[var(--color-primary)] text-white hover:brightness-90 shadow-[rgba(var(--color-primary-rgb),0.25)] cursor-pointer'
-                     }`}
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
+                     font-semibold text-lg transition-colors shadow-lg cursor-pointer
+                     bg-[var(--color-primary)] text-white hover:brightness-90 shadow-[rgba(var(--color-primary-rgb),0.25)]"
         >
           <span>Comenzar Solicitud</span>
           <ArrowRight className="w-5 h-5" />

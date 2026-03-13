@@ -10,14 +10,14 @@ import React, { useEffect, useRef } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, Button } from '@nextui-org/react';
 import { AlertTriangle, ShoppingCart, X, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { CatalogProduct } from '../../types/catalog';
+import { CatalogProduct, CartItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
 
 interface CartLimitModalProps {
   isOpen: boolean;
   onClose: () => void;
-  cartItems: CatalogProduct[];
+  cartItems: CartItem[];
   onRemoveItem: (productId: string) => void;
   attemptedProduct?: CatalogProduct | null;
   totalMonthlyQuota: number;
@@ -25,7 +25,7 @@ interface CartLimitModalProps {
 
 // Contenido compartido
 const LimitModalContent: React.FC<{
-  cartItems: CatalogProduct[];
+  cartItems: CartItem[];
   onRemoveItem: (productId: string) => void;
   onClose: () => void;
   attemptedProduct?: CatalogProduct | null;
@@ -67,30 +67,31 @@ const LimitModalContent: React.FC<{
         </p>
         <div className="max-h-[240px] overflow-y-auto space-y-2 pr-1">
           {cartItems.map((item, index) => {
-            const quota = item.quotaMonthly;
+            // v0.6.2: Use monthlyPayment from CartItem (user's selected config)
+            const quota = item.monthlyPayment;
             return (
               <div
-                key={`${item.id}-${index}`}
+                key={`${item.productId}-${index}`}
                 className="flex items-center gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-100"
               >
                 <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
                   <img
-                    src={item.thumbnail}
-                    alt={item.displayName}
+                    src={item.image}
+                    alt={item.name}
                     className="w-full h-full object-contain"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-neutral-500 uppercase">{item.brand}</p>
                   <p className="text-sm font-medium text-neutral-800 truncate">
-                    {item.displayName}
+                    {item.name}
                   </p>
                   <p className="text-sm font-bold text-[#4654CD]">
                     S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
                   </p>
                 </div>
                 <button
-                  onClick={() => onRemoveItem(item.id)}
+                  onClick={() => onRemoveItem(item.productId)}
                   className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
                   title="Quitar del carrito"
                 >

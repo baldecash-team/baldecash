@@ -28,8 +28,9 @@ interface ProductCardState {
 }
 
 // Extended props for cart integration
+// v0.6.2: onAddToCart now receives SimilarProduct to build CartItem
 interface SimilarProductsExtendedProps extends SimilarProductsProps {
-  onAddToCart?: (productId: string) => void;
+  onAddToCart?: (product: SimilarProduct) => void;
   cartItems?: string[];
 }
 
@@ -424,7 +425,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
             product={selectedProductForModal}
             onRequestEquipment={() => handleAddToCart(selectedProductForModal)}
             onAddToCart={() => {
-              onAddToCart?.(selectedProductForModal.id);
+              onAddToCart?.(selectedProductForModal);
               handleCloseModal();
             }}
           />
@@ -435,7 +436,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
             product={selectedProductForModal}
             onRequestEquipment={() => handleAddToCart(selectedProductForModal)}
             onAddToCart={() => {
-              onAddToCart?.(selectedProductForModal.id);
+              onAddToCart?.(selectedProductForModal);
               handleCloseModal();
             }}
           />

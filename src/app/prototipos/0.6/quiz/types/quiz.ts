@@ -123,8 +123,8 @@ export interface QuizResultsProps {
   onRestartQuiz: () => void;
   /** Callback para "Ver otras opciones" */
   onViewOtherOptions?: () => void;
-  /** Callback para agregar al carrito */
-  onAddToCart?: (productId: string) => void;
+  /** Callback para agregar al carrito - v0.6.2: ahora pasa QuizProduct completo */
+  onAddToCart?: (product: QuizProduct) => void;
   /** Lista de IDs de productos en el carrito */
   cartItems?: string[];
 }
@@ -141,8 +141,8 @@ export interface HelpQuizProps {
   context?: QuizContext;
   /** Landing slug para URLs dinámicas */
   landing?: string;
-  /** Callback para agregar al carrito */
-  onAddToCart?: (productId: string) => void;
+  /** Callback para agregar al carrito - v0.6.2: ahora pasa QuizProduct completo */
+  onAddToCart?: (product: QuizProduct) => void;
   /** Lista de IDs de productos en el carrito */
   cartItems?: string[];
 }
