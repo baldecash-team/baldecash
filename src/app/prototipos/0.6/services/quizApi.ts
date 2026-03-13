@@ -278,6 +278,7 @@ interface ProductRecommendation {
   id: number;
   sku: string;
   name: string;
+  display_name: string;  // Formatted: "$Modelo $Procesador $RAM $Almacenamiento"
   slug: string;
   brand: string;
   brand_slug: string;
@@ -330,14 +331,14 @@ function mapGama(gama: string | null): 'entrada' | 'media' | 'alta' | 'premium' 
 }
 
 /**
- * Map storage type from API to frontend format
+ * Format storage type for display
+ * Extracts the main type from longer descriptions (e.g., "UFS 2.2 (ampliable...)" -> "UFS 2.2")
  */
-function mapStorageType(type: string | null): 'ssd' | 'hdd' | 'emmc' {
-  if (!type) return 'ssd';
-  const lower = type.toLowerCase();
-  if (lower.includes('hdd')) return 'hdd';
-  if (lower.includes('emmc')) return 'emmc';
-  return 'ssd';
+function formatStorageType(type: string | null): string {
+  if (!type) return 'SSD';
+  // If it contains parentheses, take only the part before them
+  const mainPart = type.split('(')[0].trim();
+  return mainPart || type;
 }
 
 /**
@@ -349,7 +350,7 @@ export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[
     product: {
       id: String(product.id),
       name: product.name,
-      displayName: product.name.split(' ').slice(0, 4).join(' '),
+      displayName: product.display_name || product.name,
       brand: product.brand,
       image: product.image_url || '/images/placeholder-laptop.jpg',
       thumbnail: product.image_url || '/images/placeholder-laptop.jpg',
@@ -359,7 +360,7 @@ export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[
         ram: product.specs.ram ?? 8,
         ramType: product.specs.ram_type ?? undefined,
         storage: product.specs.storage ?? 256,
-        storageType: mapStorageType(product.specs.storage_type),
+        storageType: formatStorageType(product.specs.storage_type),
         processor: product.specs.processor ?? 'N/A',
         displaySize: product.specs.screen_size ?? 15.6,
         resolution: product.specs.screen_resolution ?? '1920x1080',

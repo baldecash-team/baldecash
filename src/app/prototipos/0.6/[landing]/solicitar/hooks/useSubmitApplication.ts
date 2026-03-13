@@ -142,17 +142,22 @@ export function useSubmitApplication(
         const productData: SubmitApplicationRequest['product_data'] = {
           // Primary product - backend calculates pricing
           product_id: parseInt(primaryProduct.id, 10),
+          // Variant/Color selection (if user selected a specific color)
+          variant_id: primaryProduct.variantId
+            ? parseInt(primaryProduct.variantId, 10)
+            : undefined,
           term_months: primaryProduct.months,
-          initial_percent: primaryProduct.initialPercent ?? 10, // Send selection, backend calculates amounts
+          initial_percent: primaryProduct.initialPercent ?? 0, // Send selection, backend calculates amounts
           // Frontend-calculated values as hints (backend will recalculate)
           unit_price: primaryProduct.price,
           // Multiple products array
           products: allProducts.map((p) => ({
             product_id: parseInt(p.id, 10),
+            variant_id: p.variantId ? parseInt(p.variantId, 10) : undefined,
             quantity: 1,
             unit_price: p.price,
             monthly_price: p.monthlyPayment,  // Cuota mensual con intereses
-            initial_percent: p.initialPercent ?? 10,
+            initial_percent: p.initialPercent ?? 0,
           })),
           // Map accessories (backend calculates monthly quotas)
           accessories: selectedAccessories.map((acc) => ({

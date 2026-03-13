@@ -26,6 +26,7 @@ import { useQuiz } from '../../quiz/hooks/useQuiz';
 
 // Shared state for cart (same localStorage as catalog)
 import { useCatalogSharedState } from '../../[landing]/catalogo/hooks/useCatalogSharedState';
+import type { CartItem } from '../../[landing]/catalogo/types/catalog';
 
 // Toast for feedback
 import { Toast, useToast } from '@/app/prototipos/_shared';
@@ -128,18 +129,23 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const questionCount = questions.length;
 
   // Cart state - shares localStorage with catalog
-  const { cart, addToCart } = useCatalogSharedState(landing);
+  // v0.6.1: Use isInCart and addToCart with CartItem
+  const { isInCart, addToCart, cartIds } = useCatalogSharedState(landing);
 
   // Toast for cart feedback
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Add to cart with toast feedback
-  const handleAddToCart = useCallback((productId: string) => {
-    if (!cart.includes(productId)) {
-      addToCart(productId);
-      showToast('Producto añadido al carrito', 'success');
+  // v0.6.1: Accept CartItem with variant info
+  const handleAddToCart = useCallback((productId: string, cartItem?: CartItem) => {
+    if (!isInCart(productId)) {
+      if (cartItem) {
+        addToCart(cartItem);
+        showToast('Producto añadido al carrito', 'success');
+      }
+      // If no cartItem provided, caller should provide one
     }
-  }, [cart, addToCart, showToast]);
+  }, [isInCart, addToCart, showToast]);
 
   // Quiz handlers
   const handleQuizOpen = () => {
@@ -260,7 +266,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           context="hero"
           landing={landing}
           onAddToCart={handleAddToCart}
-          cartItems={cart}
+          cartItems={cartIds}
         />
       )}
 

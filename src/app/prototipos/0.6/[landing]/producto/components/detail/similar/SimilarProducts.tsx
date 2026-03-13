@@ -3,15 +3,15 @@
 /**
  * SimilarProducts - Carousel con cards estilo catálogo v0.6
  * Incluye: match %, comparación vs precio actual, tags diferenciadores
- * Diseño basado en ProductCard del catálogo
- * Incluye galería de imágenes con miniaturas y selector de colores
+ * Diseño basado en ProductCard del catálogo con alturas fijas para consistencia
  *
  * v0.6.1: Agregado CartSelectionModal para ofrecer opción de carrito
+ * v0.6.2: Alturas fijas para consistencia visual, removido selector de colores
  */
 
 import React, { useRef, useState, useEffect } from 'react';
 import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody } from '@nextui-org/react';
-import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, Cpu, MemoryStick, HardDrive, Monitor, Check, ShoppingCart, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, ShoppingCart, X } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { SimilarProductsProps, SimilarProduct, SimilarProductImage } from '../../../types/detail';
 import { formatMoney, formatMoneyNoDecimals } from '../../../utils/formatMoney';
@@ -22,10 +22,9 @@ import { useIsMobile } from '@/app/prototipos/_shared';
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
 
-// State per product for image and color selection
+// State per product for image selection
 interface ProductCardState {
   selectedImageIndex: number;
-  selectedColorId: string | null;
 }
 
 // Extended props for cart integration
@@ -66,26 +65,20 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
     setSelectedProductForModal(null);
   };
 
-  // State for each product's selected image and color
+  // State for each product's selected image
   const [productStates, setProductStates] = useState<Record<string, ProductCardState>>(() => {
     const initial: Record<string, ProductCardState> = {};
     products.forEach((p) => {
-      initial[p.id] = {
-        selectedImageIndex: 0,
-        selectedColorId: p.colors?.[0]?.id || null,
-      };
+      initial[p.id] = { selectedImageIndex: 0 };
     });
     return initial;
   });
 
-  // Reinitialize state when products change (e.g., device type change)
+  // Reinitialize state when products change
   useEffect(() => {
     const newStates: Record<string, ProductCardState> = {};
     products.forEach((p) => {
-      newStates[p.id] = {
-        selectedImageIndex: 0,
-        selectedColorId: p.colors?.[0]?.id || null,
-      };
+      newStates[p.id] = { selectedImageIndex: 0 };
     });
     setProductStates(newStates);
   }, [products]);
@@ -106,54 +99,13 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
     }));
   };
 
-  // Extraer variantId del colorId (formato "variant-{id}")
-  const getVariantIdFromColorId = (colorId: string | null): number | null => {
-    if (!colorId) return null;
-    const match = colorId.match(/variant-(\d+)/);
-    return match ? parseInt(match[1], 10) : null;
-  };
-
-  // Filtrar imágenes por variantId seleccionado
-  const getFilteredImages = (
+  // Obtener URLs de imágenes
+  const getImageUrls = (
     images: SimilarProductImage[] | undefined,
-    thumbnail: string,
-    selectedColorId: string | null
+    thumbnail: string
   ): string[] => {
     if (!images || images.length === 0) return [thumbnail];
-
-    const variantId = getVariantIdFromColorId(selectedColorId);
-
-    // Si no hay variantId seleccionado o las imágenes no tienen variantId, mostrar todas
-    if (variantId === null) {
-      return images.map((img) => img.url);
-    }
-
-    // Filtrar por variantId
-    const filtered = images.filter((img) => img.variantId === variantId);
-
-    // Si no hay imágenes para esta variante, mostrar todas
-    if (filtered.length === 0) {
-      return images.map((img) => img.url);
-    }
-
-    return filtered.map((img) => img.url);
-  };
-
-  // Manejar cambio de color: resetear índice de imagen
-  const handleColorSelect = (productId: string, colorId: string) => {
-    updateProductState(productId, {
-      selectedColorId: colorId,
-      selectedImageIndex: 0, // Reset al cambiar color
-    });
-  };
-
-  // Helper function to determine if a color is light (for check icon contrast)
-  const isLightColor = (hex: string): boolean => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5;
+    return images.map((img) => img.url);
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -278,10 +230,9 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
         {products.map((product, index) => {
           const isCheaper = product.quotaDifference < 0;
           const priceDiff = Math.abs(product.quotaDifference);
-          const state = productStates[product.id] || { selectedImageIndex: 0, selectedColorId: null };
-          // Filtrar imágenes por color seleccionado
-          const filteredImages = getFilteredImages(product.images, product.thumbnail, state.selectedColorId);
-          const currentImage = filteredImages[state.selectedImageIndex] || product.thumbnail;
+          const state = productStates[product.id] || { selectedImageIndex: 0 };
+          const imageUrls = getImageUrls(product.images, product.thumbnail);
+          const currentImage = imageUrls[state.selectedImageIndex] || product.thumbnail;
 
           return (
             <motion.div
@@ -318,9 +269,9 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                     </p>
 
                     {/* Image Thumbnails */}
-                    {filteredImages.length > 1 && (
+                    {imageUrls.length > 1 && (
                       <div className="flex justify-center gap-1.5">
-                        {filteredImages.map((imgUrl, idx) => (
+                        {imageUrls.map((imgUrl, idx) => (
                           <button
                             key={idx}
                             onClick={() => updateProductState(product.id, { selectedImageIndex: idx })}
@@ -375,81 +326,16 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       {product.brand}
                     </p>
 
-                    {/* Title */}
-                    <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-2">
+                    {/* Title - Altura fija para 2 líneas (igual que catálogo) */}
+                    <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3 min-h-[3.5rem]">
                       {product.displayName}
                     </h3>
 
-                    {/* Color Selector - V1 Swatches Style */}
-                    {product.colors && product.colors.length > 0 && (
-                      <div className="space-y-1.5 mb-3">
-                        <div className="flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                          {product.colors.map((color) => {
-                            const isSelected = state.selectedColorId === color.id;
-                            const isDarkColor = !isLightColor(color.hex);
-
-                            return (
-                              <button
-                                key={color.id}
-                                type="button"
-                                onClick={() => handleColorSelect(product.id, color.id)}
-                                className={`
-                                  w-7 h-7 rounded-md border-2 transition-all flex-shrink-0
-                                  flex items-center justify-center cursor-pointer
-                                  ${isSelected
-                                    ? 'border-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.20)]'
-                                    : 'border-neutral-200 hover:border-neutral-400'}
-                                `}
-                                style={{ backgroundColor: color.hex }}
-                                aria-label={`Seleccionar color ${color.name}`}
-                                aria-pressed={isSelected}
-                              >
-                                {isSelected && (
-                                  <Check
-                                    className={`w-4 h-4 ${isDarkColor ? 'text-white' : 'text-neutral-800'}`}
-                                    style={{
-                                      filter: isDarkColor ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' : 'none',
-                                    }}
-                                  />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {/* Selected color name */}
-                        {state.selectedColorId && (
-                          <p className="text-xs text-neutral-600 font-medium">
-                            {product.colors.find((c) => c.id === state.selectedColorId)?.name}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Specs técnicas con iconos - Estilo catálogo */}
-                    {product.specs && (
-                      <div className="space-y-1.5 mb-3">
-                        <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                          <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                          <span>{product.specs.processor}</span>
-                        </div>
-                        <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                          <MemoryStick className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                          <span>{product.specs.ram}</span>
-                        </div>
-                        <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                          <HardDrive className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                          <span>{product.specs.storage}</span>
-                        </div>
-                        <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                          <Monitor className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                          <span>{product.specs.display}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Differentiator Tags */}
-                    <div className="flex flex-wrap justify-center gap-1.5 mb-3">
-                      {product.differentiators.map((diff, idx) => (
+                    {/* Differentiator Tags - Altura fija para consistencia */}
+                    <div className="flex flex-wrap justify-center gap-1.5 mb-3 min-h-[28px]">
+                      {product.differentiators
+                        .filter((diff) => diff.toLowerCase() !== product.brand.toLowerCase())
+                        .map((diff, idx) => (
                         <span
                           key={idx}
                           className="px-2.5 py-1 bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)] text-xs font-medium rounded-full"
@@ -487,8 +373,8 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       </div>
                     </div>
 
-                    {/* Spacer */}
-                    <div className="flex-1" />
+                    {/* Spacer - empuja pricing y CTAs al fondo */}
+                    <div className="flex-1 min-h-4" />
 
                     {/* CTAs - Estilo catálogo */}
                     <div className="flex gap-2">

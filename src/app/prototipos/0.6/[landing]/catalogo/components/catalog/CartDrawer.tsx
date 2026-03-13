@@ -3,13 +3,16 @@
 /**
  * CartDrawer - Bottom sheet para mostrar el carrito en mobile
  * Diseño y animación igual que QuizLayoutV4
+ *
+ * v0.6.1: Soporta tanto CatalogProduct[] (legacy) como CartItem[] (nuevo)
+ * Muestra color/config cuando está disponible en CartItem
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Button } from '@nextui-org/react';
 import { ShoppingCart, Trash2, X, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { CatalogProduct } from '../../types/catalog';
+import { CatalogProduct, CartItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
 // Configuración fija igual que ProductCard
@@ -26,10 +29,29 @@ interface CartConfig {
   continue_button?: string;
 }
 
+/** v0.6.1: Normalized item for display - works with both CartItem and CatalogProduct */
+interface NormalizedCartItem {
+  id: string;
+  name: string;
+  brand: string;
+  image: string;
+  monthlyQuota: number;
+  months: number;
+  initialPercent: number;
+  colorName?: string;
+  colorHex?: string;
+}
+
+/** Type guard to check if item is CartItem */
+function isCartItem(item: CartItem | CatalogProduct): item is CartItem {
+  return 'productId' in item && 'monthlyPayment' in item;
+}
+
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  items: CatalogProduct[];
+  /** Accepts both CartItem[] (new) and CatalogProduct[] (legacy) */
+  items: (CartItem | CatalogProduct)[];
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onContinue: () => void;
@@ -47,12 +69,43 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 }) => {
   const dragControls = useDragControls();
 
-  // Multi-product cart logic - usar cuota precalculada del backend
-  const totalMonthlyQuota = items.reduce((sum, item) => {
-    return sum + item.quotaMonthly;
+  // v0.6.1: Normalize items to unified format for display
+  const normalizedItems = useMemo((): NormalizedCartItem[] => {
+    return items.map((item) => {
+      if (isCartItem(item)) {
+        // New CartItem format
+        return {
+          id: item.productId,
+          name: item.shortName || item.name,
+          brand: item.brand,
+          image: item.image,
+          monthlyQuota: item.monthlyPayment,
+          months: item.months,
+          initialPercent: item.initialPercent,
+          colorName: item.colorName,
+          colorHex: item.colorHex,
+        };
+      } else {
+        // Legacy CatalogProduct format
+        return {
+          id: item.id,
+          name: item.displayName,
+          brand: item.brand,
+          image: item.thumbnail,
+          monthlyQuota: item.quotaMonthly,
+          months: SELECTED_TERM,
+          initialPercent: SELECTED_INITIAL,
+        };
+      }
+    });
+  }, [items]);
+
+  // Multi-product cart logic - usar cuota normalizada
+  const totalMonthlyQuota = normalizedItems.reduce((sum, item) => {
+    return sum + item.monthlyQuota;
   }, 0);
   const isOverQuotaLimit = totalMonthlyQuota > MAX_MONTHLY_QUOTA;
-  const isDisabled = items.length === 0 || isOverQuotaLimit;
+  const isDisabled = normalizedItems.length === 0 || isOverQuotaLimit;
 
   // Block body scroll when drawer is open (iOS Safari fix)
   // Note: In catalog page, scroll lock is managed centrally - this is a fallback for standalone usage
@@ -140,7 +193,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     {config?.title || 'Tu Carrito'}
                   </h2>
                   <p className="text-xs text-neutral-500">
-                    {items.length} {items.length === 1 ? 'producto' : 'productos'}
+                    {normalizedItems.length} {normalizedItems.length === 1 ? 'producto' : 'productos'}
                   </p>
                 </div>
               </div>
@@ -160,7 +213,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               className="flex-1 overflow-y-auto p-4 bg-neutral-50"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
-              {items.length === 0 ? (
+              {normalizedItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
                     <ShoppingCart className="w-8 h-8 text-neutral-300" />
@@ -180,47 +233,53 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </p>
                     </div>
                   )}
-                  {items.map((item) => {
-                    // Usar cuota precalculada del backend (igual que ProductCard)
-                    const quota = item.quotaMonthly;
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-3 p-3 bg-white rounded-xl border border-neutral-200"
-                      >
-                        <div className="w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
-                          <img
-                            src={item.thumbnail}
-                            alt={item.displayName}
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs text-neutral-500 uppercase">
-                            {item.brand}
-                          </p>
-                          <p className="text-sm font-medium text-neutral-800 line-clamp-2">
-                            {item.displayName}
-                          </p>
-                          <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-                            S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => onRemoveItem(item.id)}
-                          className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
+                  {normalizedItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 p-3 bg-white rounded-xl border border-neutral-200"
+                    >
+                      <div className="w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-contain"
+                        />
                       </div>
-                    );
-                  })}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-neutral-500 uppercase">
+                          {item.brand}
+                        </p>
+                        <p className="text-sm font-medium text-neutral-800 line-clamp-2">
+                          {item.name}
+                        </p>
+                        {/* v0.6.1: Show color if available */}
+                        {item.colorName && (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full border border-neutral-200 flex-shrink-0"
+                              style={{ backgroundColor: item.colorHex }}
+                            />
+                            <span className="text-xs text-neutral-400">{item.colorName}</span>
+                          </div>
+                        )}
+                        <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
+                          S/{formatMoneyNoDecimals(Math.floor(item.monthlyQuota))}/mes
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => onRemoveItem(item.id)}
+                        className="p-2 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
             {/* Total quota info */}
-            {items.length > 0 && (
+            {normalizedItems.length > 0 && (
               <div className="px-4 py-2 bg-neutral-100 border-t border-neutral-200">
                 <p className="text-sm text-neutral-600 text-center">
                   Cuota total: S/{formatMoneyNoDecimals(Math.floor(totalMonthlyQuota))}/mes
@@ -229,7 +288,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             )}
 
             {/* Footer */}
-            {items.length > 0 && (
+            {normalizedItems.length > 0 && (
               <div className="border-t border-neutral-200 bg-white p-4">
                 {/* Actions */}
                 <div className="flex gap-2 items-center justify-center">

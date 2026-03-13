@@ -4,13 +4,16 @@
  * WishlistDrawer - Panel/Bottom sheet para mostrar favoritos
  * Desktop: Modal lateral con NextUI
  * Mobile: Bottom sheet con Framer Motion (patrón estándar)
+ *
+ * v0.6.1: Soporta tanto CatalogProduct[] (legacy) como WishlistItem[] (nuevo)
+ * Muestra color cuando está disponible en WishlistItem
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { X, Heart, Trash2, GitCompare } from 'lucide-react';
-import { CatalogProduct } from '../../types/catalog';
+import { X, Heart, Trash2, GitCompare, ShoppingCart } from 'lucide-react';
+import { CatalogProduct, WishlistItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
 
@@ -24,16 +27,36 @@ interface WishlistConfig {
   remove_button?: string;
   compare_button?: string;
   in_compare_button?: string;
+  add_to_cart_button?: string;
+}
+
+/** v0.6.1: Normalized item for display - works with both WishlistItem and CatalogProduct */
+interface NormalizedWishlistItem {
+  id: string;
+  name: string;
+  brand: string;
+  image: string;
+  lowestQuota: number;
+  colorName?: string;
+  colorHex?: string;
+}
+
+/** Type guard to check if item is WishlistItem */
+function isWishlistItem(item: WishlistItem | CatalogProduct): item is WishlistItem {
+  return 'productId' in item && 'lowestQuota' in item;
 }
 
 interface WishlistDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  products: CatalogProduct[];
+  /** Accepts both WishlistItem[] (new) and CatalogProduct[] (legacy) */
+  products: (WishlistItem | CatalogProduct)[];
   onRemoveProduct: (productId: string) => void;
   onClearAll: () => void;
   onViewProduct: (productId: string) => void;
   onAddToCompare?: (productId: string) => void;
+  /** v0.6.1: Add item to cart with configuration */
+  onAddToCart?: (productId: string) => void;
   compareList?: string[];
   maxCompareProducts?: number;
   config?: WishlistConfig;
@@ -41,10 +64,11 @@ interface WishlistDrawerProps {
 
 // Contenido compartido entre mobile y desktop
 const WishlistContentShared: React.FC<{
-  products: CatalogProduct[];
+  products: (WishlistItem | CatalogProduct)[];
   onRemoveProduct: (productId: string) => void;
   onViewProduct: (productId: string) => void;
   onAddToCompare?: (productId: string) => void;
+  onAddToCart?: (productId: string) => void;
   compareList: string[];
   maxCompareProducts: number;
   onClose: () => void;
@@ -54,12 +78,40 @@ const WishlistContentShared: React.FC<{
   onRemoveProduct,
   onViewProduct,
   onAddToCompare,
+  onAddToCart,
   compareList,
   maxCompareProducts,
   onClose,
   config,
 }) => {
-  if (products.length === 0) {
+  // v0.6.1: Normalize items to unified format for display
+  const normalizedItems = useMemo((): NormalizedWishlistItem[] => {
+    return products.map((item) => {
+      if (isWishlistItem(item)) {
+        // New WishlistItem format
+        return {
+          id: item.productId,
+          name: item.shortName || item.name,
+          brand: item.brand,
+          image: item.image,
+          lowestQuota: item.lowestQuota,
+          colorName: item.colorName,
+          colorHex: item.colorHex,
+        };
+      } else {
+        // Legacy CatalogProduct format
+        return {
+          id: item.id,
+          name: item.displayName,
+          brand: item.brand,
+          image: item.thumbnail,
+          lowestQuota: item.quotaMonthly,
+        };
+      }
+    });
+  }, [products]);
+
+  if (normalizedItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center px-6 py-12">
         <div className="w-20 h-20 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
@@ -84,15 +136,13 @@ const WishlistContentShared: React.FC<{
 
   return (
     <div className="space-y-3">
-      {products.map((product, index) => {
-        // Usar cuota precalculada del backend (igual que ProductCard)
-        const quota = product.quotaMonthly;
-        const isInCompare = compareList.includes(product.id);
+      {normalizedItems.map((item, index) => {
+        const isInCompare = compareList.includes(item.id);
         const canAddToCompare = compareList.length < maxCompareProducts;
 
         return (
           <motion.div
-            key={product.id}
+            key={item.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
@@ -100,39 +150,61 @@ const WishlistContentShared: React.FC<{
           >
             {/* Product Image */}
             <div
-              onClick={() => onViewProduct(product.id)}
+              onClick={() => onViewProduct(item.id)}
               className="w-20 h-20 rounded-lg bg-white flex-shrink-0 flex items-center justify-center p-2 cursor-pointer hover:shadow-md transition-shadow"
             >
               <img
-                src={product.thumbnail}
-                alt={product.displayName}
+                src={item.image}
+                alt={item.name}
                 className="w-full h-full object-contain"
               />
             </div>
 
             {/* Product Info */}
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-neutral-500">{product.brand}</p>
+              <p className="text-xs text-neutral-500">{item.brand}</p>
               <p
-                onClick={() => onViewProduct(product.id)}
+                onClick={() => onViewProduct(item.id)}
                 className="text-sm font-semibold text-neutral-800 line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors"
               >
-                {product.displayName}
+                {item.name}
               </p>
+              {/* v0.6.1: Show color if available */}
+              {item.colorName && (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full border border-neutral-200 flex-shrink-0"
+                    style={{ backgroundColor: item.colorHex }}
+                  />
+                  <span className="text-xs text-neutral-400">{item.colorName}</span>
+                </div>
+              )}
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-lg font-bold text-[var(--color-primary)]">
-                  S/{formatMoneyNoDecimals(Math.floor(quota))}
+                  S/{formatMoneyNoDecimals(Math.floor(item.lowestQuota))}
                 </span>
                 <span className="text-xs text-neutral-500">/mes</span>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                {/* Add to Cart button - v0.6.1 */}
+                {onAddToCart && (
+                  <Button
+                    size="sm"
+                    variant="solid"
+                    onPress={() => onAddToCart(item.id)}
+                    className="cursor-pointer text-xs h-7 bg-[var(--color-primary)] text-white"
+                    startContent={<ShoppingCart className="w-3 h-3" />}
+                  >
+                    {config?.add_to_cart_button || 'Agregar'}
+                  </Button>
+                )}
                 {onAddToCompare && (
                   <Button
                     size="sm"
                     variant={isInCompare ? 'solid' : 'bordered'}
-                    onPress={() => onAddToCompare(product.id)}
+                    onPress={() => onAddToCompare(item.id)}
                     isDisabled={!isInCompare && !canAddToCompare}
                     className={`cursor-pointer text-xs h-7 ${
                       isInCompare
@@ -147,7 +219,7 @@ const WishlistContentShared: React.FC<{
                 <Button
                   size="sm"
                   variant="light"
-                  onPress={() => onRemoveProduct(product.id)}
+                  onPress={() => onRemoveProduct(item.id)}
                   className="cursor-pointer text-xs h-7 text-red-500 hover:bg-red-50"
                   startContent={<Trash2 className="w-3 h-3" />}
                 >
@@ -171,6 +243,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
   onClearAll,
   onViewProduct,
   onAddToCompare,
+  onAddToCart,
   compareList = [],
   maxCompareProducts = 3,
   config,
@@ -207,6 +280,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
           onRemoveProduct={onRemoveProduct}
           onViewProduct={onViewProduct}
           onAddToCompare={onAddToCompare}
+          onAddToCart={onAddToCart}
           compareList={compareList}
           maxCompareProducts={maxCompareProducts}
           onClose={onClose}
@@ -240,6 +314,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
   onClearAll,
   onViewProduct,
   onAddToCompare,
+  onAddToCart,
   compareList = [],
   maxCompareProducts = 3,
   config,
@@ -357,6 +432,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                 onRemoveProduct={onRemoveProduct}
                 onViewProduct={onViewProduct}
                 onAddToCompare={onAddToCompare}
+                onAddToCart={onAddToCart}
                 compareList={compareList}
                 maxCompareProducts={maxCompareProducts}
                 onClose={onClose}

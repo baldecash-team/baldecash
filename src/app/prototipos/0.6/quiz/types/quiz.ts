@@ -68,7 +68,7 @@ export interface QuizProduct {
     ramType?: string;
     ramExpandable?: boolean;
     storage: number;
-    storageType: 'ssd' | 'hdd' | 'emmc';
+    storageType: string;
     processor: string;
     displaySize: number;
     resolution: string;

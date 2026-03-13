@@ -25,7 +25,7 @@ import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
 import { SearchDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/SearchDrawer';
 import { WishlistDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/wishlist/WishlistDrawer';
-import type { CatalogProduct } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import type { CatalogProduct, CartItem } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -79,9 +79,10 @@ function ProductDetailContent() {
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Add to cart with toast feedback
-  const handleAddToCart = useCallback((productId: string) => {
-    if (!catalogState.cart.includes(productId)) {
-      catalogState.addToCart(productId);
+  // v0.6.1: Accept CartItem with variant info - always requires CartItem
+  const handleAddToCart = useCallback((cartItem: CartItem) => {
+    if (!catalogState.isInCart(cartItem.productId)) {
+      catalogState.addToCart(cartItem);
       showToast('Producto añadido al carrito', 'success');
     }
   }, [catalogState, showToast]);
@@ -96,22 +97,24 @@ function ProductDetailContent() {
   const [cartProducts, setCartProducts] = useState<CatalogProduct[]>([]);
 
   // Fetch wishlist products from API
+  // v0.6.1: Use wishlistIds (string[]) for API fetch
   useEffect(() => {
-    if (catalogState.isHydrated && catalogState.wishlist.length > 0) {
-      fetchProductsByIds(landing, catalogState.wishlist).then(setWishlistProducts);
+    if (catalogState.isHydrated && catalogState.wishlistIds.length > 0) {
+      fetchProductsByIds(landing, catalogState.wishlistIds).then(setWishlistProducts);
     } else {
       setWishlistProducts([]);
     }
-  }, [catalogState.wishlist, catalogState.isHydrated, landing]);
+  }, [catalogState.wishlistIds, catalogState.isHydrated, landing]);
 
   // Fetch cart products from API
+  // v0.6.1: Use cartIds (string[]) for API fetch
   useEffect(() => {
-    if (catalogState.isHydrated && catalogState.cart.length > 0) {
-      fetchProductsByIds(landing, catalogState.cart).then(setCartProducts);
+    if (catalogState.isHydrated && catalogState.cartIds.length > 0) {
+      fetchProductsByIds(landing, catalogState.cartIds).then(setCartProducts);
     } else {
       setCartProducts([]);
     }
-  }, [catalogState.cart, catalogState.isHydrated, landing]);
+  }, [catalogState.cartIds, catalogState.isHydrated, landing]);
 
   // Handle cart continue - save products to context before navigating
   const handleCartContinue = useCallback(() => {
@@ -318,10 +321,10 @@ function ProductDetailContent() {
           certifications={apiData.certifications}
           deviceType={config.deviceType}
           cronogramaVersion={config.cronogramaVersion}
-          onAddToCart={() => handleAddToCart(apiData.product.id)}
-          isInCart={catalogState.cart.includes(apiData.product.id)}
-          onSimilarAddToCart={handleAddToCart}
-          cartItems={catalogState.cart}
+          onAddToCart={handleAddToCart}
+          isInCart={catalogState.isInCart(apiData.product.id)}
+          onSimilarAddToCart={(productId, cartItem) => cartItem && handleAddToCart(cartItem)}
+          cartItems={catalogState.cartIds}
         />
       </main>
 

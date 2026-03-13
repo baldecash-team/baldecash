@@ -44,9 +44,19 @@ interface ApplicationStatusData {
       ram?: string;
       storage?: string;
     } | null;
+    // v0.6.1: Variant/color info
+    variant?: {
+      id: number;
+      color_name: string;
+      color_hex: string;
+    } | null;
   }>;
 
   term_months?: number;
+
+  // v0.6.1: Initial payment info for data coherence
+  initial_payment_percent?: number;
+  initial_payment?: number;
 
   accessories?: Array<{
     name: string;
@@ -116,7 +126,7 @@ function buildReceivedData(
   const termMonths = applicationData?.term_months || 12;
   const userName = applicationData?.applicant_name || searchParams.get('name') || 'Usuario';
 
-  // Mapear productos desde API
+  // Mapear productos desde API (v0.6.1: incluye variant info)
   const products = applicationData?.products?.map((p) => ({
     name: p.name,
     brand: p.brand || undefined,
@@ -126,6 +136,14 @@ function buildReceivedData(
     finalPrice: p.final_price,
     monthlyQuota: p.monthly_quota,
     specs: p.specs || undefined,
+    // v0.6.1: Map variant/color info
+    variant: p.variant
+      ? {
+          id: p.variant.id,
+          colorName: p.variant.color_name,
+          colorHex: p.variant.color_hex,
+        }
+      : undefined,
   })) || [];
 
   // Mapear accesorios desde API
@@ -159,6 +177,9 @@ function buildReceivedData(
     estimatedResponseHours: 24,
     products,
     termMonths,
+    // v0.6.1: Initial payment info
+    initialPaymentPercent: applicationData?.initial_payment_percent || 0,
+    initialPayment: applicationData?.initial_payment || 0,
     accessories,
     insurance,
     coupon,

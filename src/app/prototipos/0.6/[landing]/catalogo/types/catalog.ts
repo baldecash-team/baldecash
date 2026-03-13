@@ -853,3 +853,221 @@ export interface ColorSelectorProps {
   onColorSelect: (colorId: string) => void;
   version?: ColorSelectorVersion;
 }
+
+// ============================================
+// CART ITEM - Estructura completa del carrito
+// ============================================
+
+export interface CartItem {
+  productId: string;
+
+  // Información del producto (para mostrar sin refetch)
+  name: string;
+  shortName: string;
+  brand: string;
+  price: number;
+  image: string;
+  type?: CatalogDeviceType;
+
+  // Variante/Color seleccionado
+  variantId?: string;
+  colorName?: string;
+  colorHex?: string;
+
+  // Configuración de financiamiento
+  months: TermMonths;
+  initialPercent: InitialPaymentPercent;
+  initialAmount: number;
+  monthlyPayment: number;
+
+  // Specs para mostrar en resumen
+  specs?: {
+    processor?: string;
+    ram?: string;
+    storage?: string;
+  };
+
+  // Metadata
+  addedAt: number;
+}
+
+// ============================================
+// WISHLIST ITEM - Estructura de favoritos
+// ============================================
+
+export interface WishlistItem {
+  productId: string;
+
+  // Información básica (para mostrar sin refetch)
+  name: string;
+  shortName: string;
+  brand: string;
+  price: number;
+  image: string;
+  lowestQuota: number;
+  type?: CatalogDeviceType;
+
+  // Variante que estaba viendo (opcional)
+  variantId?: string;
+  colorName?: string;
+  colorHex?: string;
+
+  // Metadata
+  addedAt: number;
+}
+
+// ============================================
+// Helpers para transformar datos
+// ============================================
+
+/**
+ * Transforma un CatalogProduct a CartItem con la configuración seleccionada
+ */
+export function productToCartItem(
+  product: CatalogProduct,
+  config: {
+    variantId?: string;
+    colorName?: string;
+    colorHex?: string;
+    months?: TermMonths;
+    initialPercent?: InitialPaymentPercent;
+  }
+): CartItem {
+  const months = config.months ?? 24;
+  const initialPercent = config.initialPercent ?? 0;
+  const { quota, initialAmount } = calculateQuotaWithInitial(
+    product.price,
+    months,
+    initialPercent
+  );
+
+  return {
+    productId: product.id,
+    name: product.name,
+    shortName: product.displayName,
+    brand: product.brand,
+    price: product.price,
+    image: product.thumbnail,
+    type: product.deviceType,
+    variantId: config.variantId,
+    colorName: config.colorName,
+    colorHex: config.colorHex,
+    months,
+    initialPercent,
+    initialAmount,
+    monthlyPayment: quota,
+    specs: {
+      processor: product.specs?.processor?.model,
+      ram: product.specs?.ram ? `${product.specs.ram.size}GB` : undefined,
+      storage: product.specs?.storage ? `${product.specs.storage.size}GB` : undefined,
+    },
+    addedAt: Date.now(),
+  };
+}
+
+/**
+ * Transforma un CatalogProduct a WishlistItem
+ */
+export function productToWishlistItem(
+  product: CatalogProduct,
+  config?: {
+    variantId?: string;
+    colorName?: string;
+    colorHex?: string;
+  }
+): WishlistItem {
+  return {
+    productId: product.id,
+    name: product.name,
+    shortName: product.displayName,
+    brand: product.brand,
+    price: product.price,
+    image: product.thumbnail,
+    lowestQuota: product.quotaMonthly,
+    type: product.deviceType,
+    variantId: config?.variantId,
+    colorName: config?.colorName,
+    colorHex: config?.colorHex,
+    addedAt: Date.now(),
+  };
+}
+
+/**
+ * Transforma un WishlistItem a CartItem con nueva configuración
+ */
+export function wishlistItemToCartItem(
+  item: WishlistItem,
+  config: {
+    months: TermMonths;
+    initialPercent: InitialPaymentPercent;
+  }
+): CartItem {
+  const { quota, initialAmount } = calculateQuotaWithInitial(
+    item.price,
+    config.months,
+    config.initialPercent
+  );
+
+  return {
+    productId: item.productId,
+    name: item.name,
+    shortName: item.shortName,
+    brand: item.brand,
+    price: item.price,
+    image: item.image,
+    type: item.type,
+    variantId: item.variantId,
+    colorName: item.colorName,
+    colorHex: item.colorHex,
+    months: config.months,
+    initialPercent: config.initialPercent,
+    initialAmount,
+    monthlyPayment: quota,
+    addedAt: Date.now(),
+  };
+}
+
+/**
+ * Migra datos de carrito del formato antiguo (string[]) al nuevo (CartItem[])
+ * Retorna array vacío si el formato es antiguo (usuario debe re-agregar)
+ */
+export function migrateCartData(stored: string): CartItem[] {
+  try {
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Detectar formato antiguo: primer elemento es string
+      if (typeof parsed[0] === 'string') {
+        return [];
+      }
+      // Validar que tenga estructura de CartItem
+      if (parsed[0].productId && typeof parsed[0].months === 'number') {
+        return parsed as CartItem[];
+      }
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Migra datos de wishlist del formato antiguo (string[]) al nuevo (WishlistItem[])
+ */
+export function migrateWishlistData(stored: string): WishlistItem[] {
+  try {
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Detectar formato antiguo: primer elemento es string
+      if (typeof parsed[0] === 'string') {
+        return [];
+      }
+      // Validar que tenga estructura de WishlistItem
+      if (parsed[0].productId && typeof parsed[0].addedAt === 'number') {
+        return parsed as WishlistItem[];
+      }
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}

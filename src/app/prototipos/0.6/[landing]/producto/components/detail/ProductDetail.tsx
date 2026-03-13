@@ -22,6 +22,7 @@ import {
   Certification,
 } from '../../types/detail';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import type { CartItem, TermMonths, InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -51,10 +52,11 @@ interface ProductDetailProps {
   // Config props
   deviceType?: DeviceType;
   cronogramaVersion?: CronogramaVersion;
-  onAddToCart?: () => void;
+  // v0.6.1: onAddToCart now receives CartItem with full config (variant, pricing)
+  onAddToCart?: (cartItem: CartItem) => void;
   isInCart?: boolean;
   // Cart props for similar products
-  onSimilarAddToCart?: (productId: string) => void;
+  onSimilarAddToCart?: (productId: string, cartItem?: CartItem) => void;
   cartItems?: string[];
 }
 
@@ -127,6 +129,35 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
     setPricingSelection(selection);
   }, []);
+
+  // v0.6.1: Build CartItem with full product config and call onAddToCart
+  const handleAddToCart = useCallback(() => {
+    if (!onAddToCart || !pricingSelection) return;
+
+    // Find selected color info
+    const selectedColor = displayColors?.find(c => c.id === selectedColorId);
+
+    // Build CartItem with full config
+    const cartItem: CartItem = {
+      productId: product.id,
+      name: product.name,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: product.images[0]?.url || '',
+      months: pricingSelection.term as TermMonths,
+      initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
+      initialAmount: pricingSelection.initialAmount,
+      monthlyPayment: pricingSelection.monthlyQuota,
+      addedAt: Date.now(),
+      // Variant/color info
+      variantId: selectedColorId || undefined,
+      colorName: selectedColor?.name,
+      colorHex: selectedColor?.hex,
+    };
+
+    onAddToCart(cartItem);
+  }, [onAddToCart, pricingSelection, displayColors, selectedColorId, product]);
 
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
@@ -219,7 +250,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 </button>
                 {onAddToCart && (
                   <button
-                    onClick={onAddToCart}
+                    onClick={handleAddToCart}
+                    disabled={!pricingSelection}
                     className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold transition-colors cursor-pointer border ${
                       isInCart
                         ? 'text-[#22c55e] bg-[#22c55e]/10 border-[#22c55e]/20 hover:bg-[#22c55e]/20'

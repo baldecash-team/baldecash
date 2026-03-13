@@ -80,7 +80,8 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
     const storage = topResult.product.specs?.storage;
     const storageType = topResult.product.specs?.storageType;
     if (!storage) return 'N/A';
-    return `${storage}GB ${storageType?.toUpperCase() || 'SSD'}`;
+    // storageType ya viene formateado desde quizApi (e.g., "UFS 2.2", "SSD M.2 PCIe NVMe")
+    return `${storage}GB ${storageType || 'SSD'}`;
   };
 
   return (

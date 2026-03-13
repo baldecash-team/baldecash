@@ -4,6 +4,7 @@
  * ProductSummary - Resumen de productos solicitados
  * Estilo visual igual al checkout (SelectedProductBar)
  * Soporta múltiples productos, accesorios, seguro y cupón
+ * v0.6.1: Added variant/color display and initial payment info
  */
 
 import React, { useState } from 'react';
@@ -106,6 +107,19 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                         product.specs.storage
                       ].filter(Boolean).join(' · ')}
                     </p>
+                  )}
+                  {/* v0.6.1: Show selected color */}
+                  {product.variant && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span
+                        className="w-3 h-3 rounded-full border border-neutral-200 flex-shrink-0"
+                        style={{ backgroundColor: product.variant.colorHex }}
+                        title={product.variant.colorName}
+                      />
+                      <span className="text-xs text-neutral-500">
+                        {product.variant.colorName}
+                      </span>
+                    </div>
                   )}
                   {product.quantity > 1 && (
                     <span className="text-xs text-neutral-500">
@@ -250,6 +264,10 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
         </div>
         <p className="text-xs text-neutral-500 mt-1">
           {data.termMonths} cuotas
+          {/* v0.6.1: Show initial payment if applicable */}
+          {data.initialPayment && data.initialPayment > 0 && (
+            <> · Inicial {formatPrice(data.initialPayment)} ({data.initialPaymentPercent}%)</>
+          )}
         </p>
       </div>
     </motion.div>

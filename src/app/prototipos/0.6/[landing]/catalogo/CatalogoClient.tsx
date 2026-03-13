@@ -82,7 +82,12 @@ import {
   OnboardingStepCount,
   OnboardingHighlightStyle,
   OnboardingConfig,
+  CartItem,
+  WishlistItem,
 } from './types/catalog';
+
+// Import the shared state hook for cart/wishlist
+import { useCatalogSharedState } from './hooks/useCatalogSharedState';
 
 // Data
 import {
@@ -129,8 +134,10 @@ const getUpsellUrl = (landing: string) => {
 };
 
 // Configuración fija para cálculo de cuota (igual que CartSelectionModal)
-const WIZARD_SELECTED_TERM = 24;
-const WIZARD_SELECTED_INITIAL = 0;
+// v0.6.1: Use typed constants for CartItem compatibility
+import type { TermMonths, InitialPaymentPercent } from './types/catalog';
+const WIZARD_SELECTED_TERM: TermMonths = 24;
+const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
 
 // Dynamic storage keys based on landing slug
 const getWizardProductKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -700,27 +707,43 @@ function CatalogoContent() {
   // Quiz state
   const [isQuizOpen, setIsQuizOpen] = useState(false);
 
-  // Wishlist state with localStorage persistence
-  const [wishlist, setWishlist] = useState<string[]>([]);
+  // v0.6.1: Use shared state hook for cart/wishlist with full CartItem/WishlistItem data
+  const {
+    cart: cartItems,
+    cartIds: cart,  // Legacy: array of IDs for backwards compatibility
+    cartCount,
+    addToCart: addCartItem,
+    removeFromCart: removeCartItem,
+    isInCart,
+    clearCart: clearCartItems,
+    wishlist: wishlistItems,
+    wishlistIds: wishlist,  // Legacy: array of IDs for backwards compatibility
+    wishlistCount,
+    addToWishlist: addWishlistItem,
+    removeFromWishlist: removeWishlistItem,
+    isInWishlist,
+    clearWishlist: clearWishlistItems,
+    isHydrated: isCartWishlistHydrated,
+  } = useCatalogSharedState(landing);
+
   const [viewMode, setViewMode] = useState<CatalogViewMode>('all');
-  const [isWishlistLoaded, setIsWishlistLoaded] = useState(false);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   // Search drawer state
   const [isSearchDrawerOpen, setIsSearchDrawerOpen] = useState(false);
   const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
 
-  // Cart state with localStorage persistence
-  const [cart, setCart] = useState<string[]>([]);
+  // Cart UI state
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
-  const [isCartLoaded, setIsCartLoaded] = useState(false);
+  const [selectedVariantForCart, setSelectedVariantForCart] = useState<CartItem | null>(null);  // v0.6.1: Store selected variant
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
   const [attemptedCartProduct, setAttemptedCartProduct] = useState<CatalogProduct | null>(null);
 
-  // Products loaded from API for cart/wishlist (independent of filters)
+  // Products loaded from API for cart/wishlist display (independent of filters)
+  // v0.6.1: These are used as fallback when CartItem doesn't have full product data
   const [wishlistProducts, setWishlistProducts] = useState<CatalogProduct[]>([]);
   const [cartProducts, setCartProducts] = useState<CatalogProduct[]>([]);
   const [isWebchatOpen, setIsWebchatOpen] = useState(false);
@@ -855,72 +878,35 @@ function CatalogoContent() {
     }
   }, [isAnyDrawerOpen]);
 
-  // Load wishlist from localStorage on mount (client-side only)
-  useEffect(() => {
-    const saved = localStorage.getItem(getWishlistKey(landing));
-    if (saved) {
-      try {
-        setWishlist(JSON.parse(saved));
-      } catch (e) {
-        console.error('Error parsing wishlist from localStorage:', e);
-      }
-    }
-    setIsWishlistLoaded(true);
-  }, [landing]);
-
-  // Persist wishlist to localStorage (only after initial load)
-  useEffect(() => {
-    if (isWishlistLoaded) {
-      localStorage.setItem(getWishlistKey(landing), JSON.stringify(wishlist));
-    }
-  }, [wishlist, isWishlistLoaded, landing]);
-
-  // Load cart from localStorage on mount (client-side only)
-  useEffect(() => {
-    const saved = localStorage.getItem(getCartKey(landing));
-    if (saved) {
-      try {
-        setCart(JSON.parse(saved));
-      } catch (e) {
-        console.error('Error parsing cart from localStorage:', e);
-      }
-    }
-    setIsCartLoaded(true);
-  }, [landing]);
-
-  // Persist cart to localStorage (only after initial load)
-  useEffect(() => {
-    if (isCartLoaded) {
-      localStorage.setItem(getCartKey(landing), JSON.stringify(cart));
-    }
-  }, [cart, isCartLoaded, landing]);
+  // v0.6.1: localStorage persistence is handled by useCatalogSharedState hook
+  // These useEffects fetch full product data from API for display purposes
 
   // Fetch wishlist products from API (independent of catalog filters)
   useEffect(() => {
-    if (isWishlistLoaded && wishlist.length > 0) {
+    if (isCartWishlistHydrated && wishlist.length > 0) {
       fetchProductsByIds(landing, wishlist).then(setWishlistProducts);
     } else {
       setWishlistProducts([]);
     }
-  }, [wishlist, isWishlistLoaded, landing]);
+  }, [wishlist, isCartWishlistHydrated, landing]);
 
   // Fetch cart products from API (independent of catalog filters)
   useEffect(() => {
-    if (isCartLoaded && cart.length > 0) {
+    if (isCartWishlistHydrated && cart.length > 0) {
       fetchProductsByIds(landing, cart).then(setCartProducts);
     } else {
       setCartProducts([]);
     }
-  }, [cart, isCartLoaded, landing]);
+  }, [cart, isCartWishlistHydrated, landing]);
 
   // Calculate total monthly quota and check if over limit (S/600/mes max)
-  // Usar cuota precalculada del backend
+  // v0.6.1: Use cartItems (CartItem[]) which has monthlyPayment from user selection
   const { totalMonthlyQuota, isOverLimit } = useMemo(() => {
-    const total = cartProducts.reduce((sum, item) => {
-      return sum + item.quotaMonthly;
+    const total = cartItems.reduce((sum, item) => {
+      return sum + item.monthlyPayment;
     }, 0);
     return { totalMonthlyQuota: total, isOverLimit: total > 600 };
-  }, [cartProducts]);
+  }, [cartItems]);
 
   // Load compareList from localStorage on mount (client-side only)
   useEffect(() => {
@@ -956,17 +942,22 @@ function CatalogoContent() {
   // Mark filters as initialized (state already initialized from URL params)
   const isFiltersInitialized = useRef(true);
 
-  const handleToggleWishlist = useCallback((productId: string) => {
-    setWishlist((prev) => {
-      const isAdding = !prev.includes(productId);
-      if (isAdding) {
+  // v0.6.1: Updated to use WishlistItem through the hook
+  // Note: findProductOrSibling is defined later, so we handle fallback in the callback
+  const handleToggleWishlist = useCallback((productId: string, wishlistItem?: WishlistItem) => {
+    const isAdding = !isInWishlist(productId);
+    if (isAdding) {
+      // If we have a WishlistItem, use it directly
+      if (wishlistItem) {
+        addWishlistItem(wishlistItem);
         showToast('Producto añadido a favoritos', 'success');
       }
-      return isAdding
-        ? [...prev, productId]
-        : prev.filter((id) => id !== productId);
-    });
-  }, [showToast]);
+      // If no wishlistItem provided, the caller should provide one
+      // (ProductCard always provides WishlistItem via onFavorite callback)
+    } else {
+      removeWishlistItem(productId);
+    }
+  }, [isInWishlist, addWishlistItem, removeWishlistItem, showToast]);
 
   // Cart handlers
   const handleOpenCartModal = useCallback((product: CatalogProduct) => {
@@ -974,29 +965,49 @@ function CatalogoContent() {
     setIsCartModalOpen(true);
   }, []);
 
-  const handleAddToCart = useCallback((productId: string, product?: CatalogProduct) => {
-    if (!cart.includes(productId)) {
+  // v0.6.1: Updated to accept CartItem with full variant/config info
+  const handleAddToCart = useCallback((productId: string, product?: CatalogProduct, cartItem?: CartItem) => {
+    if (!isInCart(productId)) {
       // Check if adding this product would exceed the limit
-      // Usar cuota precalculada del backend
-      if (product) {
-        const productQuota = product.quotaMonthly;
-        const newTotalQuota = totalMonthlyQuota + productQuota;
+      const productQuota = cartItem?.monthlyPayment || product?.quotaMonthly || 0;
+      const newTotalQuota = totalMonthlyQuota + productQuota;
 
-        if (newTotalQuota > 600) {
-          // Show limit modal instead of adding
+      if (newTotalQuota > 600) {
+        // Show limit modal instead of adding
+        if (product) {
           setAttemptedCartProduct(product);
-          setIsCartLimitModalOpen(true);
-          return;
         }
+        setIsCartLimitModalOpen(true);
+        return;
       }
 
-      setCart((prev) => [...prev, productId]);
+      // If we have a CartItem, use it directly; otherwise create one from product
+      if (cartItem) {
+        addCartItem(cartItem);
+      } else if (product) {
+        // Fallback: create CartItem from CatalogProduct (legacy behavior)
+        addCartItem({
+          productId: product.id,
+          name: product.displayName,
+          shortName: product.name,
+          brand: product.brand,
+          image: product.thumbnail,
+          price: product.price,
+          months: WIZARD_SELECTED_TERM,
+          initialPercent: WIZARD_SELECTED_INITIAL,
+          initialAmount: Math.round((product.price * WIZARD_SELECTED_INITIAL) / 100),
+          monthlyPayment: product.quotaMonthly,
+          addedAt: Date.now(),
+          // No variant info in legacy path
+        });
+      }
       showToast('Producto añadido al carrito', 'success');
     }
-  }, [cart, showToast, totalMonthlyQuota]);
+  }, [isInCart, addCartItem, showToast, totalMonthlyQuota]);
 
+  // v0.6.1: Use removeCartItem from hook
   const handleRemoveFromCart = useCallback((productId: string) => {
-    setCart((prev) => prev.filter((id) => id !== productId));
+    removeCartItem(productId);
 
     // Limpiar localStorage si el producto eliminado es el guardado para el wizard
     try {
@@ -1010,12 +1021,13 @@ function CatalogoContent() {
     } catch {
       // Ignorar errores de parsing
     }
-  }, [landing]);
+  }, [removeCartItem, landing]);
 
+  // v0.6.1: Use clearCartItems from hook
   const handleClearCart = useCallback(() => {
-    setCart([]);
+    clearCartItems();
     localStorage.removeItem(getWizardProductKey(landing));
-  }, [landing]);
+  }, [clearCartItems, landing]);
 
   const handleShowCartLimitModal = useCallback(() => {
     setAttemptedCartProduct(null);
@@ -1024,41 +1036,46 @@ function CatalogoContent() {
 
   // cartProducts is now a state loaded from API via useEffect (see above)
 
+  // v0.6.1: Use cartItems (CartItem[]) which has variant/color info from user selection
   const handleCartContinue = useCallback(() => {
-    // Multi-product cart validation - usar cuota precalculada del backend
-    const totalQuota = cartProducts.reduce((sum, item) => {
-      return sum + item.quotaMonthly;
-    }, 0);
-    const isDisabled = cart.length === 0 || totalQuota > 600;
+    // Multi-product cart validation - use totalMonthlyQuota from cartItems
+    const isDisabled = cartItems.length === 0 || totalMonthlyQuota > 600;
 
     if (isDisabled) {
-      if (totalQuota > 600) {
+      if (totalMonthlyQuota > 600) {
         showToast('La cuota total supera S/600/mes', 'warning');
       }
       return;
     }
 
-    // Save ALL cart products to solicitar context (not just the first one)
-    // Usar cuota precalculada del backend
-    if (cartProducts.length > 0) {
-      const productsForContext = cartProducts.map((product) => {
+    // Save ALL cart items to solicitar context with variant info preserved
+    if (cartItems.length > 0) {
+      // Build products for context from CartItem[] + supplementary data from cartProducts
+      const productsForContext = cartItems.map((item) => {
+        // Find corresponding CatalogProduct for additional data (specs, deviceType)
+        const product = cartProducts.find((p) => p.id === item.productId);
+
         return {
-          id: product.id,
-          name: product.displayName,
-          shortName: product.name,
-          brand: product.brand,
-          price: product.price,
-          monthlyPayment: product.quotaMonthly,
-          months: WIZARD_SELECTED_TERM,
-          initialPercent: 0,
-          initialAmount: 0,
-          image: product.thumbnail,
-          type: product.deviceType || 'laptop',  // Product type for accessory compatibility filtering
-          specs: {
-            processor: product.specs?.processor?.model || '',
-            ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
-            storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
-          },
+          id: item.productId,
+          name: item.name,
+          shortName: item.shortName || item.name,
+          brand: item.brand,
+          price: item.price,
+          monthlyPayment: item.monthlyPayment,
+          months: item.months,
+          initialPercent: item.initialPercent,
+          initialAmount: Math.round((item.price * item.initialPercent) / 100),
+          image: item.image,
+          type: product?.deviceType || 'laptop',  // Product type for accessory compatibility filtering
+          specs: product?.specs ? {
+            processor: product.specs.processor?.model || '',
+            ram: product.specs.ram ? `${product.specs.ram.size}GB RAM` : '',
+            storage: product.specs.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
+          } : undefined,
+          // v0.6.1: Include variant/color info if selected
+          variantId: item.variantId,
+          colorName: item.colorName,
+          colorHex: item.colorHex,
         };
       });
 
@@ -1069,7 +1086,7 @@ function CatalogoContent() {
       setSelectedProduct(productsForContext[0]);
     }
     router.push(getWizardUrl(landing));
-  }, [cart, cartProducts, router, showToast, setContextCartProducts, setSelectedProduct, landing]);
+  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, setContextCartProducts, setSelectedProduct, landing]);
 
   // wishlistProducts is now a state loaded from API via useEffect (see above)
 
@@ -1392,7 +1409,7 @@ function CatalogoContent() {
         onSearchClear={handleSearchClear}
         wishlistItems={wishlistProducts}
         onWishlistRemove={handleToggleWishlist}
-        onWishlistClear={() => setWishlist([])}
+        onWishlistClear={() => clearWishlistItems()}
         onWishlistViewProduct={(productId) => {
           const product = findProductOrSibling(productId);
           if (product) {
@@ -1469,11 +1486,16 @@ function CatalogoContent() {
                 key={product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
-                onAddToCart={(activeId) => {
-                  const target = findProductOrSibling(activeId) || product;
+                onAddToCart={(cartItem: CartItem) => {
+                  // v0.6.1: Store CartItem with variant info for modal
+                  setSelectedVariantForCart(cartItem);
+                  const target = findProductOrSibling(cartItem.productId) || product;
                   handleOpenCartModal(target);
                 }}
-                onFavorite={(activeId) => handleToggleWishlist(activeId)}
+                onFavorite={(wishlistItem: WishlistItem) => {
+                  // v0.6.1: Pass full WishlistItem to store variant/color info
+                  handleToggleWishlist(wishlistItem.productId, wishlistItem);
+                }}
                 isFavoriteCheck={(id) => wishlist.includes(id)}
                 isInCartCheck={(id) => cart.includes(id)}
                 onViewDetail={(siblingSlug) => router.push(getDetailUrl(landing, siblingSlug || product.slug))}
@@ -1620,28 +1642,39 @@ function CatalogoContent() {
       {/* Cart Selection Modal */}
       <CartSelectionModal
         isOpen={isCartModalOpen}
-        onClose={() => setIsCartModalOpen(false)}
+        onClose={() => {
+          setIsCartModalOpen(false);
+          setSelectedVariantForCart(null);  // Clean up variant state
+        }}
         product={selectedProductForCart}
         onRequestEquipment={() => {
           if (selectedProductForCart) {
             selectProductForWizard(selectedProductForCart);
           }
+          setSelectedVariantForCart(null);
           router.push(getWizardUrl(landing));
         }}
         onAddToCart={() => {
           if (selectedProductForCart) {
-            handleAddToCart(selectedProductForCart.id, selectedProductForCart);
+            // v0.6.1: Use CartItem with variant info if available
+            handleAddToCart(
+              selectedProductForCart.id,
+              selectedProductForCart,
+              selectedVariantForCart || undefined
+            );
           }
+          setSelectedVariantForCart(null);
         }}
       />
 
       {/* Cart Bar - Removed from here, now in Navbar for desktop */}
 
       {/* Cart Drawer - Mobile only */}
+      {/* v0.6.1: Pass cartItems (CartItem[]) to show variant/color info */}
       <CartDrawer
         isOpen={isCartDrawerOpen}
         onClose={() => setIsCartDrawerOpen(false)}
-        items={cartProducts}
+        items={cartItems}
         onRemoveItem={handleRemoveFromCart}
         onClearAll={() => {
           handleClearCart();
@@ -1664,12 +1697,13 @@ function CatalogoContent() {
       />
 
       {/* Wishlist Drawer - Mobile only */}
+      {/* v0.6.1: Pass wishlistItems (WishlistItem[]) to show variant/color info */}
       <WishlistDrawer
         isOpen={isWishlistDrawerOpen}
         onClose={() => setIsWishlistDrawerOpen(false)}
-        products={wishlistProducts}
-        onRemoveProduct={handleToggleWishlist}
-        onClearAll={() => setWishlist([])}
+        products={wishlistItems}
+        onRemoveProduct={(productId) => handleToggleWishlist(productId)}
+        onClearAll={() => clearWishlistItems()}
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
           const product = findProductOrSibling(productId);
@@ -1678,6 +1712,28 @@ function CatalogoContent() {
           }
         }}
         onAddToCompare={handleToggleCompare}
+        onAddToCart={(productId) => {
+          // Find the WishlistItem and convert to CartItem for cart
+          const wishlistItem = wishlistItems.find((w) => w.productId === productId);
+          if (wishlistItem) {
+            handleAddToCart(productId, undefined, {
+              productId: wishlistItem.productId,
+              name: wishlistItem.name,
+              shortName: wishlistItem.shortName,
+              brand: wishlistItem.brand,
+              image: wishlistItem.image,
+              price: wishlistItem.price,
+              months: WIZARD_SELECTED_TERM,
+              initialPercent: WIZARD_SELECTED_INITIAL,
+              initialAmount: Math.round((wishlistItem.price * WIZARD_SELECTED_INITIAL) / 100),
+              monthlyPayment: wishlistItem.lowestQuota,
+              variantId: wishlistItem.variantId,
+              colorName: wishlistItem.colorName,
+              colorHex: wishlistItem.colorHex,
+              addedAt: Date.now(),
+            });
+          }
+        }}
         compareList={compareList}
         maxCompareProducts={maxCompareProducts}
         config={catalogSecondaryNavbarConfig?.wishlist}

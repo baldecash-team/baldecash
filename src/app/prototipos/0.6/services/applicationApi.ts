@@ -25,6 +25,7 @@ export interface SubmitApplicationRequest {
     /** Multiple products for cart functionality */
     products?: {
       product_id: number;
+      variant_id?: number;  // Color/variant selection
       quantity: number;
       unit_price?: number;
       monthly_price?: number;  // Cuota mensual con intereses
@@ -204,9 +205,19 @@ export interface ApplicationStatusResponse {
     unit_price: number;
     final_price: number;
     monthly_quota: number;
+    // Variant/Color info
+    variant?: {
+      id: number;
+      color_name: string;
+      color_hex: string;
+    } | null;
   }>;
 
   term_months?: number;
+
+  // Initial payment info (NEW - for coherent data display)
+  initial_payment_percent?: number;
+  initial_payment?: number;
 
   accessories?: Array<{
     name: string;

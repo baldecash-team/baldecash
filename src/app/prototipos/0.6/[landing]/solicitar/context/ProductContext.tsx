@@ -36,6 +36,10 @@ export interface SelectedProduct {
     ram?: string;
     storage?: string;
   };
+  // Variant/Color information
+  variantId?: string;
+  colorName?: string;
+  colorHex?: string;
 }
 
 export type { Accessory, InsurancePlan };

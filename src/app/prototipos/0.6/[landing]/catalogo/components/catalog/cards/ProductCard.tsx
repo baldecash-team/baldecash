@@ -1,19 +1,25 @@
 'use client';
 
 /**
- * ProductCard v0.6 - Basado en ProductCardV6 de v0.4
+ * ProductCard v0.6.1 - Basado en ProductCardV6 de v0.4
  * Configuración fija con la única variable siendo el ColorSelector
  * Layout: Centrado Impacto (cuota gigante, CTA full-width)
  * Referencia: Spotify, Apple Music, Netflix
+ *
+ * ACTUALIZACIÓN v0.6.1: Ahora pasa CartItem y WishlistItem completos
+ * para mantener coherencia de datos en todo el flujo.
  */
 
 import React, { useState } from 'react';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { ArrowRight, Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Check, ShoppingCart } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
   ColorSelectorVersion,
+  CartItem,
+  WishlistItem,
+  calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
@@ -22,8 +28,10 @@ import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 
 interface ProductCardProps {
   product: CatalogProduct;
-  onAddToCart?: (activeProductId: string) => void;
-  onFavorite?: (activeProductId: string) => void;
+  /** Callback con CartItem completo incluyendo configuración y color */
+  onAddToCart?: (item: CartItem) => void;
+  /** Callback con WishlistItem completo incluyendo color seleccionado */
+  onFavorite?: (item: WishlistItem) => void;
   onViewDetail?: (slug?: string) => void;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
@@ -105,12 +113,57 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const selectedImages = getImagesForSelectedColor();
 
-  const selectedTerm = 24;
-  const selectedInitial = 0;
+  // Configuración fija de financiamiento (se puede expandir a selector en futuro)
+  const selectedTerm = 24 as const;
+  const selectedInitial = 0 as const;
   const quota = displayQuota;
-  const initialAmount = Math.floor(displayPrice * (selectedInitial / 100));
+  const { initialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, selectedInitial);
 
   const originalQuota = displayOriginalQuota;
+
+  // ============================================
+  // Crear CartItem completo para onAddToCart
+  // ============================================
+  const createCartItem = (): CartItem => ({
+    productId: activeProductId,
+    name: product.name,
+    shortName: displayName,
+    brand: product.brand,
+    price: displayPrice,
+    image: selectedImages[0] || product.thumbnail,
+    type: product.deviceType,
+    variantId: selectedColor?.id,
+    colorName: selectedColor?.name,
+    colorHex: selectedColor?.hex,
+    months: selectedTerm,
+    initialPercent: selectedInitial,
+    initialAmount,
+    monthlyPayment: quota,
+    specs: {
+      processor: displaySpecs?.processor?.model,
+      ram: displaySpecs?.ram ? `${displaySpecs.ram.size}GB` : undefined,
+      storage: displaySpecs?.storage ? `${displaySpecs.storage.size}GB` : undefined,
+    },
+    addedAt: Date.now(),
+  });
+
+  // ============================================
+  // Crear WishlistItem completo para onFavorite
+  // ============================================
+  const createWishlistItem = (): WishlistItem => ({
+    productId: activeProductId,
+    name: product.name,
+    shortName: displayName,
+    brand: product.brand,
+    price: displayPrice,
+    image: selectedImages[0] || product.thumbnail,
+    lowestQuota: quota,
+    type: product.deviceType,
+    variantId: selectedColor?.id,
+    colorName: selectedColor?.name,
+    colorHex: selectedColor?.hex,
+    addedAt: Date.now(),
+  });
 
   return (
     <motion.div
@@ -137,7 +190,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 id={favoriteButtonId}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onFavorite?.(activeProductId);
+                  onFavorite?.(createWishlistItem());
                 }}
                 className="p-2.5 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
               >
@@ -300,7 +353,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     ? 'bg-emerald-500 text-white cursor-default'
                     : 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                 }`}
-                onPress={!resolvedIsInCart ? () => onAddToCart?.(activeProductId) : undefined}
+                onPress={!resolvedIsInCart ? () => onAddToCart?.(createCartItem()) : undefined}
                 isDisabled={resolvedIsInCart}
               >
                 {resolvedIsInCart ? 'En el carrito' : 'Lo quiero'}
