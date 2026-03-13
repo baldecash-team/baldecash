@@ -12,6 +12,8 @@ import { DynamicField } from '../fields/DynamicField';
 interface DynamicWizardStepProps {
   step: WizardStep;
   showErrors?: boolean;
+  /** Step order number for event tracking */
+  stepOrder?: number;
 }
 
 // Tailwind requires static class names - dynamic classes like `col-span-${n}` get purged
@@ -49,6 +51,7 @@ const GRID_COL_MOBILE_CLASSES: Record<number, string> = {
 export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   step,
   showErrors = false,
+  stepOrder,
 }) => {
   // Fields come already ordered by display_order from the API
   return (
@@ -70,6 +73,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
             <DynamicField
               field={field}
               showError={showErrors}
+              stepOrder={stepOrder}
             />
           </div>
         );

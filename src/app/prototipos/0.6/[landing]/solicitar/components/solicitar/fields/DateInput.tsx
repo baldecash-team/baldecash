@@ -16,6 +16,7 @@ interface DateInputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onFocus?: () => void;
   onBlur?: () => void;
   placeholder?: string;
   error?: string;
@@ -39,6 +40,7 @@ export const DateInput: React.FC<DateInputProps> = ({
   label,
   value,
   onChange,
+  onFocus,
   onBlur,
   placeholder = 'Selecciona una fecha',
   error,
@@ -157,7 +159,11 @@ export const DateInput: React.FC<DateInputProps> = ({
       )}
 
       {/* Date Input with Popover */}
-      <Popover isOpen={isOpen} onOpenChange={setIsOpen} placement="bottom-start">
+      <Popover isOpen={isOpen} onOpenChange={(open) => {
+        setIsOpen(open);
+        if (open) onFocus?.();
+        if (!open) onBlur?.();
+      }} placement="bottom-start">
         <PopoverTrigger>
           <div
             className={`

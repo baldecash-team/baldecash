@@ -20,6 +20,7 @@ interface TextInputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onFocus?: () => void;
   onBlur?: () => void;
   placeholder?: string;
   type?: 'text' | 'email' | 'tel' | 'number' | 'date';
@@ -38,6 +39,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   label,
   value,
   onChange,
+  onFocus,
   onBlur,
   placeholder,
   type = 'text',
@@ -106,7 +108,10 @@ export const TextInput: React.FC<TextInputProps> = ({
           inputMode={getInputMode()}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocus?.();
+          }}
           onBlur={() => {
             setIsFocused(false);
             onBlur?.();

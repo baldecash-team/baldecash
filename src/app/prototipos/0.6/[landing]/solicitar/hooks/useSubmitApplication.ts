@@ -11,6 +11,7 @@ import { useProduct } from '../context/ProductContext';
 import { useWizard } from '../context/WizardContext';
 import { useSession } from '../context/SessionContext';
 import { submitApplication, type SubmitApplicationRequest } from '../../../services/applicationApi';
+import { resetFormStartTracking } from './useFieldTracking';
 
 interface UseSubmitApplicationOptions {
   /**
@@ -180,6 +181,7 @@ export function useSubmitApplication(
         if (result.success && result.public_token) {
           // Clear all wizard state
           clearSession();
+          resetFormStartTracking();
           resetForm();
           clearProduct();
           clearCartProducts();

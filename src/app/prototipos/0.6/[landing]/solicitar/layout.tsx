@@ -14,6 +14,7 @@ import { WizardProvider } from './context/WizardContext';
 import { WizardConfigProvider } from './context/WizardConfigContext';
 import { ProductProvider } from './context/ProductContext';
 import { SessionProvider } from './context/SessionContext';
+import { EventTrackerProvider } from './context/EventTrackerContext';
 
 export default function WizardPreviewLayout({
   children,
@@ -26,9 +27,11 @@ export default function WizardPreviewLayout({
   return (
     <ProductProvider landingSlug={landing}>
       <SessionProvider landingSlug={landing}>
-        <WizardConfigProvider slug={landing}>
-          <WizardProvider landingSlug={landing}>{children}</WizardProvider>
-        </WizardConfigProvider>
+        <EventTrackerProvider>
+          <WizardConfigProvider slug={landing}>
+            <WizardProvider landingSlug={landing}>{children}</WizardProvider>
+          </WizardConfigProvider>
+        </EventTrackerProvider>
       </SessionProvider>
     </ProductProvider>
   );

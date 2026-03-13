@@ -28,6 +28,8 @@ interface FileUploadProps {
   label: string;
   value: UploadedFile[];
   onChange: (files: UploadedFile[]) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   accept?: string;
   maxFiles?: number;
   maxSize?: number; // in bytes
@@ -43,6 +45,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   label,
   value = [],
   onChange,
+  onFocus,
+  onBlur,
   accept = '.pdf,.jpg,.jpeg,.png',
   maxFiles = 1,
   maxSize = 5 * 1024 * 1024, // 5MB default
@@ -133,6 +137,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const handleClick = () => {
     if (!disabled) {
+      onFocus?.();
       inputRef.current?.click();
     }
   };

@@ -20,6 +20,7 @@ interface TextAreaProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onFocus?: () => void;
   onBlur?: () => void;
   placeholder?: string;
   rows?: number;
@@ -37,6 +38,7 @@ export const TextArea: React.FC<TextAreaProps> = ({
   label,
   value,
   onChange,
+  onFocus,
   onBlur,
   placeholder,
   rows = 4,
@@ -86,7 +88,10 @@ export const TextArea: React.FC<TextAreaProps> = ({
           name={id}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocus?.();
+          }}
           onBlur={() => {
             setIsFocused(false);
             onBlur?.();

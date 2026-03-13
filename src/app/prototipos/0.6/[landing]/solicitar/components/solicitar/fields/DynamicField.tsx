@@ -5,9 +5,10 @@
  * Maps WizardField type to the appropriate UI component
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { WizardField, WizardFieldOption, evaluateFieldVisibility, filterFieldOptions } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
+import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
 import { RadioGroup } from './RadioGroup';
@@ -21,10 +22,13 @@ import { CheckboxField } from './CheckboxField';
 interface DynamicFieldProps {
   field: WizardField;
   showError?: boolean;
+  /** Step order number for event tracking */
+  stepOrder?: number;
 }
 
-export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false }) => {
+export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = false, stepOrder }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
+  const { onFieldFocus, onFieldBlur } = useFieldTracking(stepOrder);
 
   // Get current value and error
   const value = getFieldValue(field.code) as string;
@@ -64,6 +68,19 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     return undefined;
   }, [field.help_text, field.label]);
 
+  // Focus/blur handlers for event tracking
+  const handleFocus = useCallback(() => {
+    onFieldFocus(field.code);
+  }, [field.code, onFieldFocus]);
+
+  const handleBlur = useCallback(() => {
+    const currentValue = getFieldValue(field.code);
+    const hasValue = Array.isArray(currentValue)
+      ? currentValue.length > 0
+      : !!currentValue;
+    onFieldBlur(field.code, hasValue);
+  }, [field.code, getFieldValue, onFieldBlur]);
+
   // If field is not visible, don't render
   if (!isVisible) {
     return null;
@@ -75,6 +92,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     label: field.label,
     value,
     onChange: (newValue: string) => updateField(field.code, newValue),
+    onFocus: handleFocus,
+    onBlur: handleBlur,
     error,
     required: field.required,
     disabled: field.readonly,
@@ -312,6 +331,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           label={field.label}
           value={checkboxValue as string | string[]}
           onChange={(newValue) => updateField(field.code, newValue as string | string[])}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           options={checkboxOptions}
           error={error}
           required={field.required}
@@ -332,6 +353,8 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           label={field.label}
           value={files as unknown as { id: string; file: File; name: string; size: number; type: string }[]}
           onChange={(newFiles) => updateField(field.code, newFiles as unknown as File[])}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           accept={field.accepted_file_types || '.pdf,.jpg,.jpeg,.png'}
           maxFiles={field.max_files || 1}
           maxSize={(field.max_file_size_mb || 5) * 1024 * 1024}
