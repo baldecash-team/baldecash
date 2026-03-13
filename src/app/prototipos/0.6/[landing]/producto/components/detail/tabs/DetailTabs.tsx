@@ -12,20 +12,29 @@ import {
   Cpu,
   Calendar,
   Package,
+  AlertTriangle,
 } from 'lucide-react';
 import { DetailTabsProps } from '../../../types/detail';
 
-export const DetailTabs: React.FC<DetailTabsProps> = () => {
+interface NavItem {
+  id: string;
+  label: string;
+  mobileLabel?: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean }> = ({ hasLimitations = true }) => {
   const [activeSection, setActiveSection] = useState('section-gallery');
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const navItems = [
-    { id: 'section-gallery', label: 'Galeria', icon: Image },
+  const navItems: NavItem[] = [
+    { id: 'section-gallery', label: 'Galería', icon: Image },
     { id: 'section-pricing', label: 'Cuotas', icon: Calculator },
     { id: 'section-specs', label: 'Specs', icon: Cpu },
-    { id: 'section-cronograma', label: 'Cronograma', icon: Calendar },
+    { id: 'section-cronograma', label: 'Cronograma', mobileLabel: 'Pagos', icon: Calendar },
     { id: 'section-similar', label: 'Similares', icon: Package },
+    ...(hasLimitations ? [{ id: 'section-limitations', label: 'Consideraciones', mobileLabel: 'Notas', icon: AlertTriangle }] : []),
   ];
 
   useEffect(() => {
@@ -123,7 +132,7 @@ export const DetailTabs: React.FC<DetailTabsProps> = () => {
                 }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'scale-110' : ''} transition-transform`} />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium">{item.mobileLabel || item.label}</span>
               </button>
             );
           })}
