@@ -240,10 +240,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
         </div>
 
-        {/* Tabs Section - Full Width */}
-        <div id="section-tabs" className="mt-12">
-          <DetailTabs product={product} />
-        </div>
+        {/* Section Navigation (Sidebar desktop / Bottom bar mobile) */}
+        <DetailTabs product={product} hasLimitations={limitations.length > 0} />
 
         {/* Specs Section - Full Width */}
         <div id="section-specs" className="mt-12">
