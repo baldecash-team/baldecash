@@ -67,8 +67,19 @@ function ComplementosContent() {
   }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Get the last wizard step for back navigation
+  // Secuencia correcta: pasos regulares primero, luego pasos de resumen
   const lastStep = useMemo(() => {
-    return steps.length > 0 ? steps[steps.length - 1] : null;
+    if (steps.length === 0) return null;
+
+    // Separar y ordenar pasos
+    const regularSteps = steps.filter(s => !s.is_summary_step).sort((a, b) => a.order - b.order);
+    const summarySteps = steps.filter(s => s.is_summary_step).sort((a, b) => a.order - b.order);
+
+    // El último paso es: último resumen si existe, sino último regular
+    if (summarySteps.length > 0) {
+      return summarySteps[summarySteps.length - 1];
+    }
+    return regularSteps.length > 0 ? regularSteps[regularSteps.length - 1] : null;
   }, [steps]);
 
   // Check if insurance section is included
