@@ -356,6 +356,8 @@ export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[
       thumbnail: product.image_url || '/images/placeholder-laptop.jpg',
       price: product.list_price,
       lowestQuota: product.monthly_payment,
+      termMonths: product.term_months || apiResponse.term_months || 24,
+      initialPercent: 0, // Quiz siempre muestra el precio gancho (0% inicial)
       specs: {
         ram: product.specs.ram ?? 8,
         ramType: product.specs.ram_type ?? undefined,

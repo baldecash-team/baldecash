@@ -188,8 +188,8 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       brand: product.brand,
       price: product.price,
       monthlyPayment: product.lowestQuota,
-      months: WIZARD_SELECTED_TERM,
-      initialPercent: 0,
+      months: product.termMonths || WIZARD_SELECTED_TERM,
+      initialPercent: product.initialPercent || 0,
       initialAmount: 0,
       image: product.thumbnail || product.image,
       specs: {
@@ -201,11 +201,18 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
 
     // If we have context, use it
     if (productContext?.setSelectedProduct) {
+      // Clear cart and accessories - user explicitly selected THIS product
+      productContext.clearCartProducts?.();
+      productContext.clearAccessories?.();
       productContext.setSelectedProduct(selectedProduct);
     } else {
-      // Fallback: save directly to localStorage
+      // Fallback: save directly to localStorage and clear cart storage
+      const landingKey = landing || 'home';
       try {
-        localStorage.setItem(getStorageKey(landing || 'home'), JSON.stringify(selectedProduct));
+        localStorage.setItem(getStorageKey(landingKey), JSON.stringify(selectedProduct));
+        // Also clear cart from localStorage
+        localStorage.removeItem(`baldecash-${landingKey}-solicitar-cart-products`);
+        localStorage.removeItem(`baldecash-${landingKey}-solicitar-selected-accessories`);
       } catch {
         // localStorage not available
       }
@@ -309,6 +316,15 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     setResults(null);
   }, []);
 
+  // Helper to clean up body styles (in case modal left them)
+  const cleanupBodyStyles = useCallback(() => {
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.overflow = '';
+  }, []);
+
   // Handle "Lo quiero" - navegar al wizard
   const handleViewProduct = useCallback(
     (productId: string) => {
@@ -324,10 +340,13 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       onClose();
       handleRestart();
 
+      // Limpiar estilos del body antes de navegar (el modal mobile los bloquea)
+      cleanupBodyStyles();
+
       // Navegar al wizard
       router.push(getWizardUrl(landing));
     },
-    [results, onClose, handleRestart, router, landing, selectProductForWizard]
+    [results, onClose, handleRestart, router, landing, selectProductForWizard, cleanupBodyStyles]
   );
 
   // Handle "Ver otras opciones"
@@ -336,6 +355,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       // En Hero: Cerrar y navegar al catálogo con filtros
       onClose();
       handleRestart();
+      cleanupBodyStyles();
       router.push(getCatalogUrlWithFilters(answers, landing, questions));
     } else {
       // En Catalog: Cerrar y aplicar filtros mediante onComplete
@@ -344,8 +364,9 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       }
       onClose();
       handleRestart();
+      cleanupBodyStyles();
     }
-  }, [context, onClose, handleRestart, router, answers, landing, onComplete, results, questions]);
+  }, [context, onClose, handleRestart, router, answers, landing, onComplete, results, questions, cleanupBodyStyles]);
 
   // Handle close and reset
   const handleClose = useCallback(() => {

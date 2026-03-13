@@ -63,6 +63,8 @@ export interface QuizProduct {
   thumbnail: string;
   price: number;
   lowestQuota: number;
+  termMonths: number;       // Plazo en meses (e.g., 24)
+  initialPercent: number;   // Porcentaje de inicial (e.g., 0)
   specs: {
     ram: number;
     ramType?: string;

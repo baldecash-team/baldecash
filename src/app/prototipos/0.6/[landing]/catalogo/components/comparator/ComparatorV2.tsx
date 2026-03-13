@@ -33,7 +33,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
-  const { setSelectedProduct } = useProduct();
+  const { setSelectedProduct, clearCartProducts, clearAccessories } = useProduct();
   const specs = compareSpecs(products);
   const priceDiff = calculatePriceDifference(products);
   const [showBestOption, setShowBestOption] = useState(false);
@@ -41,6 +41,9 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
 
   // Helper to save product to context - usar cuota precalculada del backend
   const selectProductForWizard = useCallback((product: ComparisonProduct) => {
+    // Clear cart and accessories - user explicitly selected THIS product
+    clearCartProducts();
+    clearAccessories();
     setSelectedProduct({
       id: product.id,
       name: product.displayName,
@@ -58,7 +61,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
         storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
       },
     });
-  }, [setSelectedProduct]);
+  }, [setSelectedProduct, clearCartProducts, clearAccessories]);
 
   // Reset showBestOption when comparator opens
   useEffect(() => {
@@ -95,6 +98,15 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     return products.findIndex(p => p.id === bestProduct.id);
   }, [products, bestProduct]);
 
+  // Helper to clean up body styles (panel may affect scroll)
+  const cleanupBodyStyles = useCallback(() => {
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.overflow = '';
+  }, []);
+
   const handleShowBestOption = () => {
     setShowBestOption(true);
   };
@@ -104,6 +116,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     if (bestProduct) {
       selectProductForWizard(bestProduct);
     }
+    cleanupBodyStyles();
     router.push(`/prototipos/0.6/${landing}/solicitar`);
   };
 
@@ -127,6 +140,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     if (product) {
       selectProductForWizard(product);
     }
+    cleanupBodyStyles();
     router.push(`/prototipos/0.6/${landing}/solicitar`);
   };
 

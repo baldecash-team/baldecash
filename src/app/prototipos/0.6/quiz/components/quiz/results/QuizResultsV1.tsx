@@ -200,6 +200,9 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
                     S/{topResult.product.lowestQuota}
                     <span className="text-base font-normal text-neutral-500">/mes</span>
                   </p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {topResult.product.termMonths} meses · {topResult.product.initialPercent}% inicial
+                  </p>
                 </div>
                 <p className="text-sm text-neutral-400">
                   Total: S/{topResult.product.price.toLocaleString('en-US')}
@@ -376,10 +379,15 @@ const SecondaryProductCard: React.FC<{
                 {product.displayName}
               </p>
               <div className="flex items-center justify-between">
-                <p className="text-base font-bold" style={{ color: isInCart ? '#10b981' : 'var(--color-primary)' }}>
-                  S/{product.lowestQuota}
-                  <span className="text-xs font-normal text-neutral-400">/mes</span>
-                </p>
+                <div>
+                  <p className="text-base font-bold" style={{ color: isInCart ? '#10b981' : 'var(--color-primary)' }}>
+                    S/{product.lowestQuota}
+                    <span className="text-xs font-normal text-neutral-400">/mes</span>
+                  </p>
+                  <p className="text-[10px] text-neutral-400">
+                    {product.termMonths} meses · {product.initialPercent}% inicial
+                  </p>
+                </div>
                 {/* Visual indicator instead of nested button */}
                 <div
                   className={`flex items-center gap-1 text-sm font-medium px-3 py-1.5 rounded-lg text-white ${
@@ -447,6 +455,9 @@ const QuizModalContentShared: React.FC<{
           </h3>
           <p className="text-base lg:text-lg font-bold text-[var(--color-primary)] mt-0.5">
             S/{product.lowestQuota}/mes
+          </p>
+          <p className="text-xs text-neutral-400">
+            {product.termMonths} meses · {product.initialPercent}% inicial
           </p>
         </div>
       </div>

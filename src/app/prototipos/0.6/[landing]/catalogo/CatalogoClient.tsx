@@ -285,7 +285,7 @@ function CatalogoContent() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const isMobile = useIsMobile();
-  const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
+  const { setSelectedProduct, setCartProducts: setContextCartProducts, clearCartProducts, clearAccessories } = useProduct();
 
   // Get layout data from context (fetched once at [landing] level)
   const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
@@ -552,6 +552,9 @@ function CatalogoContent() {
   // Helper to save product to context (replaces saveProductForWizard)
   // Usar cuota precalculada del backend
   const selectProductForWizard = useCallback((product: CatalogProduct) => {
+    // Clear cart and accessories - user explicitly selected THIS product
+    clearCartProducts();
+    clearAccessories();
     setSelectedProduct({
       id: product.id,
       name: product.displayName,
@@ -569,7 +572,7 @@ function CatalogoContent() {
         storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
       },
     });
-  }, [setSelectedProduct]);
+  }, [setSelectedProduct, clearCartProducts, clearAccessories]);
 
   // Config state - FIJO excepto colorSelectorVersion
   const [config, setConfig] = useState<CatalogLayoutConfig & { colorSelectorVersion: ColorSelectorVersion }>(() => {

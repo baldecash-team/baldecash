@@ -235,6 +235,8 @@ const convertCatalogToQuizProduct = (product: CatalogProduct): QuizProduct => {
     thumbnail: product.thumbnail,
     price: product.price,
     lowestQuota: quota,
+    termMonths: 24,
+    initialPercent: 0,
     specs: {
       ram: product.specs.ram?.size ?? 0,
       ramType: product.specs.ram?.type ?? 'DDR4',

@@ -36,42 +36,45 @@ export function AccessoriesSection({
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
-  const { selectedAccessories, toggleAccessory, setSelectedAccessories, getAllProducts } = useProduct();
+  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts } = useProduct();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
-  // Extract unique product types from cart for accessory compatibility filtering
-  // Always uses name-based detection to ensure correct type (handles legacy products with wrong type)
-  const cartProducts = getAllProducts();
-  const productTypes = useMemo(() => {
-    const types = cartProducts
-      .map((p) => {
-        // Always infer type from product name for reliability
-        // This handles legacy products that may have incorrect type stored
-        const nameLower = p.name.toLowerCase();
+  // Helper function to infer product type from name
+  const inferProductType = (name: string): string | null => {
+    const nameLower = name.toLowerCase();
 
-        // Celular patterns
-        if (nameLower.includes('galaxy') || nameLower.includes('iphone') || nameLower.includes('redmi') || nameLower.includes('xiaomi') || nameLower.includes('motorola') || nameLower.includes('poco') || nameLower.includes('samsung') || nameLower.includes('cel ') || nameLower.includes('cel-')) {
-          return 'celular';
-        }
-        // Tablet patterns
-        if (nameLower.includes('ipad') || nameLower.includes('tab ') || nameLower.includes('tablet')) {
-          return 'tablet';
-        }
-        // Laptop patterns (check after tablet since some tablets have "tab" in name)
-        if (nameLower.includes('macbook') || nameLower.includes('laptop') || nameLower.includes('ideapad') || nameLower.includes('thinkpad') || nameLower.includes('pavilion') || nameLower.includes('vivobook') || nameLower.includes('notebook')) {
-          return 'laptop';
-        }
+    // Celular patterns
+    if (nameLower.includes('galaxy') || nameLower.includes('iphone') || nameLower.includes('redmi') || nameLower.includes('xiaomi') || nameLower.includes('motorola') || nameLower.includes('poco') || nameLower.includes('samsung') || nameLower.includes('cel ') || nameLower.includes('cel-')) {
+      return 'celular';
+    }
+    // Tablet patterns
+    if (nameLower.includes('ipad') || nameLower.includes('tab ') || nameLower.includes('tablet')) {
+      return 'tablet';
+    }
+    // Laptop patterns
+    if (nameLower.includes('macbook') || nameLower.includes('laptop') || nameLower.includes('ideapad') || nameLower.includes('thinkpad') || nameLower.includes('pavilion') || nameLower.includes('vivobook') || nameLower.includes('notebook')) {
+      return 'laptop';
+    }
+    return null;
+  };
 
-        // Fallback to explicit type if no pattern matched
-        if (p.type) return p.type;
+  // Create a STABLE key based on product IDs - this won't change unless products actually change
+  // Using raw context values (cartProducts, selectedProduct) which have stable references
+  const productsKey = useMemo(() => {
+    const products = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
+    return products.map(p => p.id).sort().join(',');
+  }, [cartProducts, selectedProduct]);
 
-        return null;
-      })
+  // Calculate product types from the stable products key
+  const productTypesKey = useMemo(() => {
+    const products = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
+    const types = products
+      .map((p) => inferProductType(p.name) || p.type || null)
       .filter((t): t is string => !!t);
-    return [...new Set(types)];
-  }, [cartProducts]);
+    return [...new Set(types)].sort().join(',');
+  }, [productsKey, cartProducts, selectedProduct]);
 
   // Load accessories from API - filtered by product types in cart
   useEffect(() => {
@@ -80,7 +83,8 @@ export function AccessoriesSection({
       try {
         // Pass product types to filter compatible accessories
         // If empty, backend returns all accessories (max 6)
-        const apiAccessories = await getLandingAccessories(landing, productTypes);
+        const typesArray = productTypesKey ? productTypesKey.split(',').filter(Boolean) : [];
+        const apiAccessories = await getLandingAccessories(landing, typesArray);
         if (apiAccessories && apiAccessories.length > 0) {
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
@@ -107,7 +111,7 @@ export function AccessoriesSection({
     }
 
     fetchAccessories();
-  }, [landing, productTypes]);
+  }, [landing, productTypesKey]);
 
   // Clean up selected accessories that are no longer available
   // This happens when cart products change and some accessories become incompatible
