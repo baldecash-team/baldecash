@@ -3,9 +3,14 @@
 /**
  * AccessoriesSection - Reusable accessories selection section
  * Can be used in Preview page (before wizard) or Complementos page (after wizard)
+ *
+ * Accessory Compatibility:
+ * - Filters accessories based on product types in the cart
+ * - If cart is empty, shows all accessories for the landing
+ * - If cart has products, shows only compatible accessories (max 6)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useProduct } from '../../../context/ProductContext';
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from '../../upsell';
@@ -31,17 +36,45 @@ export function AccessoriesSection({
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
-  const { selectedAccessories, toggleAccessory } = useProduct();
+  const { selectedAccessories, toggleAccessory, setSelectedAccessories, getAllProducts } = useProduct();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
-  // Load accessories from API
+  // Extract unique product types from cart for accessory compatibility filtering
+  // Includes fallback detection for products without explicit type field
+  const cartProducts = getAllProducts();
+  const productTypes = useMemo(() => {
+    const types = cartProducts
+      .map((p) => {
+        // Use explicit type if available
+        if (p.type) return p.type;
+
+        // Fallback: infer type from product name
+        const nameLower = p.name.toLowerCase();
+        if (nameLower.includes('galaxy') || nameLower.includes('iphone') || nameLower.includes('redmi') || nameLower.includes('xiaomi') || nameLower.includes('motorola') || nameLower.includes('poco')) {
+          return 'celular';
+        }
+        if (nameLower.includes('macbook') || nameLower.includes('laptop') || nameLower.includes('ideapad') || nameLower.includes('thinkpad') || nameLower.includes('pavilion') || nameLower.includes('vivobook')) {
+          return 'laptop';
+        }
+        if (nameLower.includes('ipad') || nameLower.includes('tab ') || nameLower.includes('tablet')) {
+          return 'tablet';
+        }
+        return null;
+      })
+      .filter((t): t is string => !!t);
+    return [...new Set(types)];
+  }, [cartProducts]);
+
+  // Load accessories from API - filtered by product types in cart
   useEffect(() => {
     async function fetchAccessories() {
       setIsLoading(true);
       try {
-        const apiAccessories = await getLandingAccessories(landing);
+        // Pass product types to filter compatible accessories
+        // If empty, backend returns all accessories (max 6)
+        const apiAccessories = await getLandingAccessories(landing, productTypes);
         if (apiAccessories && apiAccessories.length > 0) {
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
@@ -68,7 +101,27 @@ export function AccessoriesSection({
     }
 
     fetchAccessories();
-  }, [landing]);
+  }, [landing, productTypes]);
+
+  // Clean up selected accessories that are no longer available
+  // This happens when cart products change and some accessories become incompatible
+  // Use ref to avoid infinite loops when updating selectedAccessories
+  const selectedAccessoriesRef = useRef(selectedAccessories);
+  selectedAccessoriesRef.current = selectedAccessories;
+
+  useEffect(() => {
+    if (isLoading || accessories.length === 0) return;
+
+    const availableIds = new Set(accessories.map((a) => a.id));
+    const currentSelected = selectedAccessoriesRef.current;
+    const hasInvalidSelected = currentSelected.some((a) => !availableIds.has(a.id));
+
+    if (hasInvalidSelected) {
+      // Remove accessories that are no longer compatible
+      const validSelected = currentSelected.filter((a) => availableIds.has(a.id));
+      setSelectedAccessories(validSelected);
+    }
+  }, [accessories, isLoading, setSelectedAccessories]);
 
   // Si no hay accesorios disponibles, no mostrar la sección
   if (!isLoading && accessories.length === 0) {

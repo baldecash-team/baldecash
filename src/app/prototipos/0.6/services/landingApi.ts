@@ -798,10 +798,21 @@ interface ApiAccessory {
 
 /**
  * Obtiene los accesorios disponibles para una landing
+ * @param slug - Landing slug
+ * @param productTypes - Optional array of product types to filter compatible accessories (e.g., ['celular', 'laptop'])
+ *                       If empty or not provided, returns all accessories for the landing
  */
-export async function getLandingAccessories(slug: string): Promise<ApiAccessory[]> {
+export async function getLandingAccessories(
+  slug: string,
+  productTypes?: string[]
+): Promise<ApiAccessory[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/accessories`, {
+    // Build query params for product type filtering
+    const params = productTypes && productTypes.length > 0
+      ? `?product_types=${productTypes.join(',')}`
+      : '';
+
+    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/accessories${params}`, {
       next: { revalidate: 60 },
     });
 

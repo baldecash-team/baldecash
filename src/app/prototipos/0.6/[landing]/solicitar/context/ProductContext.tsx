@@ -30,6 +30,7 @@ export interface SelectedProduct {
   initialPercent: number;  // 0, 10, 20, 30 - percentage of initial payment
   initialAmount: number;   // Calculated initial payment amount
   image: string;
+  type?: string;           // Product type: "celular", "laptop", "tablet", etc. Used for accessory compatibility
   specs?: {
     processor?: string;
     ram?: string;
