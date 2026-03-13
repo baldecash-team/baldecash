@@ -202,9 +202,16 @@ export function getStepBySlug(config: WizardConfig, slug: string): WizardStep | 
 /**
  * Obtiene la navegación del wizard (prev/next) basado en el step actual
  *
- * IMPORTANTE: Los pasos con is_summary_step=true se excluyen de la secuencia
- * de navegación regular. El paso de resumen solo aparece como nextStep
- * del último paso regular.
+ * ARQUITECTURA ESCALABLE:
+ * - Soporta MÚLTIPLES pasos de resumen (is_summary_step=true)
+ * - Los pasos regulares van primero, luego los pasos de resumen (ambos ordenados por 'order')
+ * - La navegación funciona a través de toda la secuencia
+ * - isLast es true SOLO para el último paso de la secuencia completa
+ *
+ * Esto permite:
+ * - Un paso de resumen que continúa a otro paso
+ * - Múltiples pasos de resumen en secuencia
+ * - Determinar dinámicamente el texto del botón basado en navegación, no en tipo de paso
  */
 export function getStepNavigation(config: WizardConfig, currentStepCode: string): {
   currentIndex: number;
@@ -213,33 +220,18 @@ export function getStepNavigation(config: WizardConfig, currentStepCode: string)
   isFirst: boolean;
   isLast: boolean;
 } {
-  // Separar pasos regulares de pasos de resumen
+  // Separar y ordenar pasos regulares y de resumen
   const regularSteps = config.steps.filter(s => !s.is_summary_step);
-  const summaryStep = config.steps.find(s => s.is_summary_step);
+  const summarySteps = config.steps.filter(s => s.is_summary_step);
 
-  // Ordenar solo los pasos regulares
   const sortedRegularSteps = [...regularSteps].sort((a, b) => a.order - b.order);
+  const sortedSummarySteps = [...summarySteps].sort((a, b) => a.order - b.order);
 
-  // Verificar si el paso actual es un paso de resumen
-  const currentStep = config.steps.find(s => s.code === currentStepCode);
-  const isCurrentSummaryStep = currentStep?.is_summary_step || false;
+  // Secuencia completa: pasos regulares primero, luego pasos de resumen
+  const fullSequence = [...sortedRegularSteps, ...sortedSummarySteps];
 
-  if (isCurrentSummaryStep) {
-    // El paso actual es el resumen - prev es el último paso regular, no hay next
-    const lastRegularStep = sortedRegularSteps.length > 0
-      ? sortedRegularSteps[sortedRegularSteps.length - 1]
-      : null;
-    return {
-      currentIndex: sortedRegularSteps.length, // Después del último paso regular
-      prevStep: lastRegularStep,
-      nextStep: null,
-      isFirst: false,
-      isLast: true,
-    };
-  }
-
-  // Buscar índice en los pasos regulares
-  const currentIndex = sortedRegularSteps.findIndex(step => step.code === currentStepCode);
+  // Buscar índice en la secuencia completa
+  const currentIndex = fullSequence.findIndex(step => step.code === currentStepCode);
 
   if (currentIndex === -1) {
     // Paso no encontrado
@@ -252,18 +244,12 @@ export function getStepNavigation(config: WizardConfig, currentStepCode: string)
     };
   }
 
-  const isLastRegularStep = currentIndex === sortedRegularSteps.length - 1;
-
   return {
     currentIndex,
-    prevStep: currentIndex > 0 ? sortedRegularSteps[currentIndex - 1] : null,
-    // Si es el último paso regular, el siguiente es el paso de resumen (si existe)
-    nextStep: isLastRegularStep
-      ? (summaryStep || null)
-      : sortedRegularSteps[currentIndex + 1],
+    prevStep: currentIndex > 0 ? fullSequence[currentIndex - 1] : null,
+    nextStep: currentIndex < fullSequence.length - 1 ? fullSequence[currentIndex + 1] : null,
     isFirst: currentIndex === 0,
-    // Es el último solo si no hay paso de resumen después
-    isLast: isLastRegularStep && !summaryStep,
+    isLast: currentIndex === fullSequence.length - 1,
   };
 }
 

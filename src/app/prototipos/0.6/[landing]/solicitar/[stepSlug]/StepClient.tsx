@@ -16,7 +16,6 @@ import * as LucideIcons from 'lucide-react';
 import { WizardLayout } from '../components/solicitar/wizard';
 import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardStep';
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
-import { SelectInput } from '../components/solicitar/fields';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
@@ -76,9 +75,6 @@ function StepContent() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
-  const [summaryFieldErrors, setSummaryFieldErrors] = useState<Record<string, string | null>>({});
-  const [isHydrated, setIsHydrated] = useState(false);
 
   // Get layout data from context
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
@@ -154,48 +150,11 @@ function StepContent() {
     return values;
   }, [formData]);
 
-  // Load summary field values from localStorage
-  useEffect(() => {
-    if (!isSummaryStep) {
-      setIsHydrated(true);
-      return;
-    }
-    try {
-      summarySteps.forEach(s => {
-        s.fields.forEach(field => {
-          const savedValue = localStorage.getItem(`baldecash-${landing}-wizard-field-${field.code}`);
-          if (savedValue !== null) {
-            setSummaryFieldValues(prev => ({ ...prev, [field.code]: savedValue }));
-          }
-        });
-      });
-    } catch {}
-    setIsHydrated(true);
-  }, [isSummaryStep, summarySteps, landing]);
-
-  // Save summary field values to localStorage
-  useEffect(() => {
-    if (!isHydrated || !isSummaryStep) return;
-    try {
-      Object.entries(summaryFieldValues).forEach(([fieldCode, value]) => {
-        localStorage.setItem(`baldecash-${landing}-wizard-field-${fieldCode}`, value);
-      });
-    } catch {}
-  }, [summaryFieldValues, isHydrated, isSummaryStep, landing]);
-
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {
     if (!step) return null;
     return validateStepFields(step, formValues, setFieldError, getAllDynamicOptions());
   }, [step, formValues, setFieldError, getAllDynamicOptions]);
-
-  // Helper to update summary field value
-  const updateSummaryFieldValue = (fieldCode: string, value: string) => {
-    setSummaryFieldValues(prev => ({ ...prev, [fieldCode]: value }));
-    if (value) {
-      setSummaryFieldErrors(prev => ({ ...prev, [fieldCode]: null }));
-    }
-  };
 
   // Get display value for a field in summary
   const getFieldDisplayValue = (field: WizardField, value: string | string[] | undefined, savedLabel?: string): string => {
@@ -325,25 +284,17 @@ function StepContent() {
     // Wait for flow config to be ready
     if (isFlowConfigLoading) return;
 
-    // Validate required summary fields
-    let hasErrors = false;
-    let firstErrorFieldId: string | null = null;
-
-    summarySteps.forEach(s => {
-      s.fields.forEach(field => {
-        if (field.required && !summaryFieldValues[field.code]) {
-          setSummaryFieldErrors(prev => ({ ...prev, [field.code]: 'Este campo es requerido' }));
-          hasErrors = true;
-          if (!firstErrorFieldId) {
-            firstErrorFieldId = field.code;
-          }
-        }
-      });
-    });
-
-    if (hasErrors && firstErrorFieldId) {
-      document.getElementById(firstErrorFieldId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Validar campos del paso de resumen usando la misma lógica que pasos regulares
+    setSubmitted(true);
+    const firstErrorField = validateStep();
+    if (firstErrorField) {
+      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
+    }
+
+    // Mark step as completed
+    if (step) {
+      markStepCompleted(step.url_slug || step.code);
     }
 
     // Check if there are sections after wizard (complementos page)
@@ -360,12 +311,34 @@ function StepContent() {
   };
 
   const handleSummaryBack = () => {
-    if (regularSteps.length > 0) {
-      const lastStep = regularSteps[regularSteps.length - 1];
-      const slug = getStepSlug(lastStep);
-      router.push(`/prototipos/0.6/${landing}/solicitar/${slug}`);
+    // Usar navigation.prevStep para navegación dinámica
+    if (navigation.prevStep) {
+      const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
+      router.push(`/prototipos/0.6/${landing}/solicitar/${prevSlug}`);
     } else {
       router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  };
+
+  // Handler para pasos de resumen que NO son el último (continúan a otro paso)
+  const handleSummaryNext = () => {
+    // Validar campos del paso de resumen usando la misma lógica que pasos regulares
+    setSubmitted(true);
+    const firstErrorField = validateStep();
+    if (firstErrorField) {
+      document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Mark step as completed
+    if (step) {
+      markStepCompleted(step.url_slug || step.code);
+    }
+
+    // Navegar al siguiente paso
+    if (navigation.nextStep) {
+      const nextSlug = navigation.nextStep.url_slug || navigation.nextStep.code;
+      router.push(`/prototipos/0.6/${landing}/solicitar/${nextSlug}`);
     }
   };
 
@@ -444,15 +417,28 @@ function StepContent() {
 
   // Render summary step content
   if (isSummaryStep) {
+    // Determinar dinámicamente si es el último paso del wizard
+    // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
+    const isActuallyLastStep = navigation.isLast && !shouldShowComplementos;
+
+    // Determinar el handler correcto para el botón:
+    // - Si NO es el último paso real: onNext maneja "Continuar"
+    // - Si ES el último paso real: onSubmit maneja "Enviar Solicitud"
+    // Nota: handleSummarySubmit ya sabe navegar a complementos si existen
+    const nextHandler = !isActuallyLastStep
+      ? (navigation.isLast ? handleSummarySubmit : handleSummaryNext)
+      : undefined;
+
     const pageContent = (
       <WizardLayout
         currentStep={step.url_slug || step.code}
         title={step.title}
         description={step.description}
         onBack={handleSummaryBack}
-        onSubmit={handleSummarySubmit}
+        onNext={nextHandler}
+        onSubmit={isActuallyLastStep ? handleSummarySubmit : undefined}
         onStepClick={handleStepClick}
-        isLastStep
+        isLastStep={isActuallyLastStep}
         isSubmitting={isSubmitting || isAppSubmitting}
         canProceed={true}
         navbarProps={navbarProps || undefined}
@@ -491,50 +477,16 @@ function StepContent() {
             );
           })}
 
-          {/* Dynamic summary steps section (is_summary_step=true) */}
-          {summarySteps.map((s) => {
-            const visibleFields = getVisibleFields(s);
-            if (visibleFields.length === 0) return null;
-
-            const IconComponent = getIconComponent(s.icon);
-
-            return (
-              <div key={s.id} className="bg-neutral-50 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <IconComponent className="w-5 h-5 text-[var(--color-primary)]" />
-                  <h3 className="font-semibold text-neutral-800">{s.title}</h3>
-                </div>
-                <div className="space-y-4">
-                  {visibleFields.map((field) => {
-                    const options = field.options.map(opt => ({
-                      value: opt.value,
-                      label: opt.label,
-                    }));
-
-                    return (
-                      <SelectInput
-                        key={field.id}
-                        id={field.code}
-                        label={field.label}
-                        value={summaryFieldValues[field.code] || ''}
-                        onChange={(value) => updateSummaryFieldValue(field.code, value)}
-                        options={options}
-                        placeholder={field.placeholder || 'Selecciona una opcion'}
-                        error={summaryFieldErrors[field.code] || undefined}
-                        success={!!summaryFieldValues[field.code] && !summaryFieldErrors[field.code]}
-                        required={field.required}
-                        tooltip={field.help_text ? {
-                          title: field.help_text.title || field.label,
-                          description: field.help_text.description || '',
-                          recommendation: field.help_text.recommendation ?? undefined,
-                        } : undefined}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {/* Campos editables del paso de resumen actual - usa DynamicWizardStep para renderizar
+              los campos con el tipo correcto (RadioGroup, FileUpload, etc.) */}
+          {step.fields.length > 0 && (
+            <div className="bg-white rounded-xl border border-neutral-200 p-6">
+              <DynamicWizardStep
+                step={step}
+                showErrors={submitted}
+              />
+            </div>
+          )}
         </div>
       </WizardLayout>
     );
@@ -548,6 +500,10 @@ function StepContent() {
   }
 
   // Render regular form step content
+  // Determinar dinámicamente si es el último paso del wizard
+  // Solo mostrar "Enviar Solicitud" si no hay más pasos Y no hay complementos
+  const isActuallyLastRegularStep = navigation.isLast && !shouldShowComplementos;
+
   const pageContent = (
     <>
       <AnimatePresence>
@@ -569,6 +525,7 @@ function StepContent() {
         onNext={handleNext}
         onStepClick={handleStepClick}
         isFirstStep={navigation.isFirst}
+        isLastStep={isActuallyLastRegularStep}
         canProceed={true}
         navbarProps={navbarProps || undefined}
         motivational={step.motivational}
