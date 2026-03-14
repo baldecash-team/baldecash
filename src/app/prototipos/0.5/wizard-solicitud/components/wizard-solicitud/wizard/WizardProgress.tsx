@@ -13,12 +13,15 @@ import { Check } from 'lucide-react';
 import { WizardStepId } from '../../../types/wizard-solicitud';
 import { STEP_ORDER, getStepById } from '../../../data/wizardSteps';
 
+// S3 base URL for illustrations
+const S3_ILLUSTRATIONS_URL = 'https://baldecash.s3.amazonaws.com/illustrations/baldi';
+
 // Ilustraciones de Baldi por paso
 const STEP_ILLUSTRATIONS: Record<WizardStepId, string> = {
-  'datos-personales': '/images/baldi/BALDI_IDEA.png',
-  'datos-academicos': '/images/baldi/BALDI_COMPU.png',
-  'datos-economicos': '/images/baldi/BALDI_EJECUTIVO.png',
-  'resumen': '/images/baldi/BALDI_ALEGRE.png',
+  'datos-personales': `${S3_ILLUSTRATIONS_URL}/BALDI_IDEA.png`,
+  'datos-academicos': `${S3_ILLUSTRATIONS_URL}/BALDI_COMPU.png`,
+  'datos-economicos': `${S3_ILLUSTRATIONS_URL}/BALDI_EJECUTIVO.png`,
+  'resumen': `${S3_ILLUSTRATIONS_URL}/BALDI_ALEGRE.png`,
 };
 
 interface WizardProgressProps {

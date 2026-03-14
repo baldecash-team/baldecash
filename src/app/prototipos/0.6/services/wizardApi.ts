@@ -49,7 +49,7 @@ export interface WizardField {
   id: number;
   code: string;
   label: string;
-  type: 'text' | 'email' | 'phone' | 'document_number' | 'date' | 'radio' | 'select' | 'autocomplete' | 'file' | 'textarea' | 'currency' | 'number' | 'checkbox';
+  type: 'text' | 'email' | 'phone' | 'document_number' | 'date' | 'radio' | 'select' | 'autocomplete' | 'file' | 'textarea' | 'currency' | 'number' | 'checkbox' | 'address_autocomplete';
   placeholder?: string | null;
   help_text?: WizardHelpText | null;
   required: boolean;
@@ -81,6 +81,19 @@ export interface WizardField {
   min_search_length?: number | null; // Minimum characters before searching
   // Dynamic validation from another field's option (e.g., document_number validated by document_type selection)
   validation_source_field?: string | null; // Field code whose selected option provides validation rules
+  // Address autocomplete configuration (Google Maps Places)
+  address_config?: {
+    country_restriction?: string;      // "pe" | "co" | "mx" etc.
+    auto_fill_fields?: {               // Fields to auto-fill when address is selected
+      department?: string;             // code of department field
+      province?: string;               // code of province field
+      district?: string;               // code of district field
+      latitude?: string;               // code of lat field (hidden)
+      longitude?: string;              // code of lng field (hidden)
+    };
+    show_use_location?: boolean;       // Show "Use my location" button
+    require_selection?: boolean;       // Must select from suggestions
+  } | null;
 }
 
 export interface WizardStep {

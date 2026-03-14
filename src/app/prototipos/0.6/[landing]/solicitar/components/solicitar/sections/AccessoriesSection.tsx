@@ -36,7 +36,7 @@ export function AccessoriesSection({
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
-  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts } = useProduct();
+  const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts } = useProduct();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
@@ -60,31 +60,45 @@ export function AccessoriesSection({
     return null;
   };
 
-  // Create a STABLE key based on product IDs - this won't change unless products actually change
-  // Using raw context values (cartProducts, selectedProduct) which have stable references
-  const productsKey = useMemo(() => {
-    const products = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
-    return products.map(p => p.id).sort().join(',');
-  }, [cartProducts, selectedProduct]);
+  // Create STABLE product types key using refs to track changes
+  // This avoids infinite loops caused by unstable array references
+  const prevProductIdsRef = useRef<string>('');
+  const productTypesKeyRef = useRef<string>('');
 
-  // Calculate product types from the stable products key
-  const productTypesKey = useMemo(() => {
+  // Calculate current product IDs as a string (computed on every render but cheap)
+  const currentProductIds = cartProducts.length > 0
+    ? cartProducts.map(p => p.id).sort().join(',')
+    : (selectedProduct?.id || '');
+
+  // Only recalculate types if product IDs actually changed
+  if (currentProductIds !== prevProductIdsRef.current) {
+    prevProductIdsRef.current = currentProductIds;
     const products = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
     const types = products
-      .map((p) => inferProductType(p.name) || p.type || null)
+      .map((p) => inferProductType(p.name || '') || p.type || null)
       .filter((t): t is string => !!t);
-    return [...new Set(types)].sort().join(',');
-  }, [productsKey, cartProducts, selectedProduct]);
+    productTypesKeyRef.current = [...new Set(types)].sort().join(',');
+  }
+
+  const productTypesKey = productTypesKeyRef.current;
+
+  // Get current term from cart (use first product's term or default 24)
+  const currentTerm = useMemo(() => {
+    const products = getAllProducts();
+    if (products.length > 0 && products[0].months) {
+      return products[0].months;
+    }
+    return 24; // Default term
+  }, [getAllProducts]);
 
   // Load accessories from API - filtered by product types in cart
   useEffect(() => {
     async function fetchAccessories() {
       setIsLoading(true);
       try {
-        // Pass product types to filter compatible accessories
-        // If empty, backend returns all accessories (max 6)
+        // Pass product types and term to calculate correct monthly quota
         const typesArray = productTypesKey ? productTypesKey.split(',').filter(Boolean) : [];
-        const apiAccessories = await getLandingAccessories(landing, typesArray);
+        const apiAccessories = await getLandingAccessories(landing, typesArray, currentTerm);
         if (apiAccessories && apiAccessories.length > 0) {
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
@@ -111,7 +125,7 @@ export function AccessoriesSection({
     }
 
     fetchAccessories();
-  }, [landing, productTypesKey]);
+  }, [landing, productTypesKey, currentTerm]);
 
   // Clean up selected accessories that are no longer available
   // This happens when cart products change and some accessories become incompatible

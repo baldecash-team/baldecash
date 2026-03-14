@@ -10,7 +10,11 @@ import { useRouter, useParams } from 'next/navigation';
 import { useProduct } from '../context/ProductContext';
 import { useWizard } from '../context/WizardContext';
 import { useSession } from '../context/SessionContext';
-import { submitApplication, type SubmitApplicationRequest } from '../../../services/applicationApi';
+import {
+  submitApplication,
+  type SubmitApplicationRequest,
+  type UploadedFileData,
+} from '../../../services/applicationApi';
 
 interface UseSubmitApplicationOptions {
   /**
@@ -80,22 +84,37 @@ export function useSubmitApplication(
   /**
    * Maps WizardContext formData to the API form_data format
    * Extracts only the value from each FieldState
+   * Also extracts files from file fields
    */
-  const mapFormData = useCallback((): Record<string, string | number | boolean> => {
+  const mapFormData = useCallback((): {
+    data: Record<string, string | number | boolean>;
+    files: UploadedFileData[];
+  } => {
     const mapped: Record<string, string | number | boolean> = {};
+    const files: UploadedFileData[] = [];
 
     for (const [key, fieldState] of Object.entries(formData)) {
       if (fieldState?.value !== undefined && fieldState.value !== '') {
-        // Handle arrays (like file inputs)
+        // Handle file arrays
         if (Array.isArray(fieldState.value)) {
-          // Skip file arrays for now, or convert to string if needed
+          // Check if this is a file array (UploadedFile objects from FileUpload component)
+          for (const item of fieldState.value) {
+            if (item && typeof item === 'object' && 'file' in item && item.file instanceof File) {
+              // Extract field code from the key (remove any suffix like _123456)
+              const fieldCode = key.includes('_') ? key.split('_')[0] : key;
+              files.push({
+                fieldCode,
+                file: item.file,
+              });
+            }
+          }
           continue;
         }
         mapped[key] = fieldState.value;
       }
     }
 
-    return mapped;
+    return { data: mapped, files };
   }, [formData]);
 
   /**
@@ -131,8 +150,8 @@ export function useSubmitApplication(
       setIsSubmitting(true);
 
       try {
-        // Map form data from wizard context
-        const mappedFormData = mapFormData();
+        // Map form data and extract files from wizard context
+        const { data: mappedFormData, files: uploadFiles } = mapFormData();
 
         // Get first product for backward compatibility fields
         const primaryProduct = allProducts[0];
@@ -169,12 +188,13 @@ export function useSubmitApplication(
           }),
         };
 
-        // Submit application
+        // Submit application (with files if any)
         const result = await submitApplication({
           session_uuid: sessionUuid,
           form_data: mappedFormData,
           product_data: productData,
           coupon_code: appliedCoupon?.code,
+          files: uploadFiles.length > 0 ? uploadFiles : undefined,
         });
 
         if (result.success && result.public_token) {

@@ -27,6 +27,9 @@ interface StepContent {
   illustration: string;
 }
 
+// S3 base URL for illustrations
+const S3_ILLUSTRATIONS_URL = 'https://baldecash.s3.amazonaws.com/illustrations/baldi';
+
 // Contenido por paso
 const STEP_CONTENT: Record<WizardStepId, StepContent> = {
   'datos-personales': {
@@ -34,28 +37,28 @@ const STEP_CONTENT: Record<WizardStepId, StepContent> = {
     highlight: 'número de DNI',
     titleEnd: 'correctamente',
     subtitle: 'Revisa 2 veces que tus datos estén en orden.',
-    illustration: '/images/baldi/BALDI_IDEA.png',
+    illustration: `${S3_ILLUSTRATIONS_URL}/BALDI_IDEA.png`,
   },
   'datos-academicos': {
     title: 'Más de',
     highlight: '5,000 estudiantes',
     titleEnd: 'ya tienen su laptop',
     subtitle: 'Únete a la comunidad de estudiantes que financiaron con BaldeCash.',
-    illustration: '/images/baldi/BALDI_COMPU.png',
+    illustration: `${S3_ILLUSTRATIONS_URL}/BALDI_COMPU.png`,
   },
   'datos-economicos': {
     title: 'Sin letra pequeña,',
     highlight: 'cuotas fijas',
     titleEnd: 'sin sorpresas',
     subtitle: 'Transparencia total en todas nuestras condiciones.',
-    illustration: '/images/baldi/BALDI_EJECUTIVO.png',
+    illustration: `${S3_ILLUSTRATIONS_URL}/BALDI_EJECUTIVO.png`,
   },
   resumen: {
     title: '¡Estás a',
     highlight: 'un paso',
     titleEnd: 'de tu nueva laptop!',
     subtitle: 'Revisa tu información y envía tu solicitud.',
-    illustration: '/images/baldi/BALDI_ALEGRE.png',
+    illustration: `${S3_ILLUSTRATIONS_URL}/BALDI_ALEGRE.png`,
   },
 };
 

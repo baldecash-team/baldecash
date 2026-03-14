@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, Loader2 } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
 
 export interface FieldTooltipInfo {
@@ -31,6 +31,8 @@ interface TextInputProps {
   required?: boolean;
   maxLength?: number;
   inputMode?: 'text' | 'tel' | 'numeric' | 'email' | 'decimal' | 'search' | 'url' | 'none';
+  /** Show loading spinner (e.g., while checking person data) */
+  isLoading?: boolean;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -49,6 +51,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   required = true,
   maxLength,
   inputMode: inputModeProp,
+  isLoading = false,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showError = !!error;
@@ -127,8 +130,9 @@ export const TextInput: React.FC<TextInputProps> = ({
         />
 
         {/* Status icons */}
-        {showSuccess && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
-        {showError && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
+        {isLoading && <Loader2 className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 animate-spin" />}
+        {!isLoading && showSuccess && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
+        {!isLoading && showError && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
       </div>
 
       {/* Error message & Character counter - same line */}

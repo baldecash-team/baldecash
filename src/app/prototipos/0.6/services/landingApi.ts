@@ -801,16 +801,23 @@ interface ApiAccessory {
  * @param slug - Landing slug
  * @param productTypes - Optional array of product types to filter compatible accessories (e.g., ['celular', 'laptop'])
  *                       If empty or not provided, returns all accessories for the landing
+ * @param term - Optional financing term in months to calculate monthly quota (default: 24)
  */
 export async function getLandingAccessories(
   slug: string,
-  productTypes?: string[]
+  productTypes?: string[],
+  term?: number
 ): Promise<ApiAccessory[]> {
   try {
-    // Build query params for product type filtering
-    const params = productTypes && productTypes.length > 0
-      ? `?product_types=${productTypes.join(',')}`
-      : '';
+    // Build query params for product type filtering and term
+    const queryParams = new URLSearchParams();
+    if (productTypes && productTypes.length > 0) {
+      queryParams.set('product_types', productTypes.join(','));
+    }
+    if (term && term > 0) {
+      queryParams.set('term', term.toString());
+    }
+    const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
     const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/accessories${params}`, {
       next: { revalidate: 60 },

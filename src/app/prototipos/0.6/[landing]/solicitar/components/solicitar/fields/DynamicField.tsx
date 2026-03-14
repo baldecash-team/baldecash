@@ -17,6 +17,8 @@ import { DateInput } from './DateInput';
 import { FileUpload } from './FileUpload';
 import { TextArea } from './TextArea';
 import { CheckboxField } from './CheckboxField';
+import { DocumentNumberField } from './DocumentNumberField';
+import { AddressAutocompleteField } from './AddressAutocompleteField';
 
 interface DynamicFieldProps {
   field: WizardField;
@@ -84,8 +86,25 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
 
   // Render based on field type
   switch (field.type) {
-    case 'text':
     case 'document_number':
+      // Special field that triggers auto-prefill on complete document number
+      return (
+        <DocumentNumberField
+          field={field}
+          showError={showError}
+        />
+      );
+
+    case 'address_autocomplete':
+      // Google Maps Places autocomplete for address input
+      return (
+        <AddressAutocompleteField
+          field={field}
+          showError={showError}
+        />
+      );
+
+    case 'text':
       return (
         <TextInput
           {...commonProps}

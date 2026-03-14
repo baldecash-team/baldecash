@@ -10,6 +10,14 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/a
 // Types
 // ============================================
 
+/** File to upload with the application */
+export interface UploadedFileData {
+  /** Field code (e.g., "dni_front", "payslip") - used for DocumentType matching */
+  fieldCode: string;
+  /** The actual File object */
+  file: File;
+}
+
 export interface SubmitApplicationRequest {
   /** Tracking session UUID */
   session_uuid: string;
@@ -38,6 +46,16 @@ export interface SubmitApplicationRequest {
   };
   /** Optional coupon code for discount */
   coupon_code?: string;
+  /** Optional files to upload (e.g., DNI, payslips) */
+  files?: UploadedFileData[];
+}
+
+export interface UploadedDocument {
+  field_code: string;
+  file_name: string;
+  s3_key: string;
+  document_type: string | null;
+  size_kb: number;
 }
 
 export interface SubmitApplicationResponse {
@@ -49,6 +67,13 @@ export interface SubmitApplicationResponse {
   error?: string;
   person_id?: number;
   discount_amount?: number;
+  /** Document upload results */
+  documents?: {
+    uploaded_count: number;
+    uploaded: UploadedDocument[];
+    errors: Array<{ field_code: string; error: string }> | null;
+  };
+  documents_error?: string;
 }
 
 export interface CheckPersonRequest {
@@ -56,16 +81,32 @@ export interface CheckPersonRequest {
   document_number: string;
 }
 
+export interface PrefillData {
+  first_name: string | null;
+  paternal_surname: string | null;
+  maternal_surname: string | null;
+  birth_date: string | null;
+  gender: 'male' | 'female' | null;
+  email: string | null;
+  phone: string | null;
+  department: string | null;
+  province: string | null;
+  district: string | null;
+  source: 'person' | 'equifax_cache' | 'equifax_api';
+}
+
+export interface PreapprovedData {
+  max_amount: number | null;
+  special_rate: number | null;
+  offer_code: string | null;
+  valid_until: string | null;
+}
+
 export interface CheckPersonResponse {
   exists: boolean;
   is_preapproved: boolean;
-  prefill_data?: {
-    nombres?: string;
-    apellido_paterno?: string;
-    apellido_materno?: string;
-    email?: string;
-    phone_mobile?: string;
-  };
+  preapproved_data: PreapprovedData | null;
+  prefill_data: PrefillData | null;
 }
 
 export interface SaveStepRequest {
@@ -89,15 +130,41 @@ export interface SaveStepResponse {
  *
  * Creates or updates person record and creates the application
  * with all related data (products, accessories, employment, etc.)
+ *
+ * Always uses multipart/form-data for consistency.
+ * Files are optional but the format is always multipart.
  */
 export async function submitApplication(
   data: SubmitApplicationRequest
 ): Promise<SubmitApplicationResponse> {
   try {
+    // Always use multipart/form-data
+    const formData = new FormData();
+
+    // Add JSON data as form_data field
+    const jsonData = {
+      session_uuid: data.session_uuid,
+      form_data: data.form_data,
+      product_data: data.product_data,
+      coupon_code: data.coupon_code,
+    };
+    formData.append('form_data', JSON.stringify(jsonData));
+
+    // Add files if any, with "file__" prefix for field identification
+    if (data.files && data.files.length > 0) {
+      for (const uploadedFile of data.files) {
+        // Get file extension from original filename
+        const ext = uploadedFile.file.name.split('.').pop() || '';
+        // Create filename with field code prefix: file__dni_front.jpg
+        const filename = `file__${uploadedFile.fieldCode}.${ext}`;
+        formData.append('files', uploadedFile.file, filename);
+      }
+    }
+
     const response = await fetch(`${API_BASE_URL}/public/form/submit`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      // Don't set Content-Type header - browser will set it with boundary
+      body: formData,
     });
 
     const result = await response.json();
@@ -138,6 +205,8 @@ export async function checkPerson(
       return {
         exists: false,
         is_preapproved: false,
+        preapproved_data: null,
+        prefill_data: null,
       };
     }
 
@@ -147,6 +216,8 @@ export async function checkPerson(
     return {
       exists: false,
       is_preapproved: false,
+      preapproved_data: null,
+      prefill_data: null,
     };
   }
 }

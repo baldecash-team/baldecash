@@ -18,16 +18,19 @@ import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useWizard } from '../../../context/WizardContext';
 import { getStepSlug, WizardStep, evaluateFieldVisibility } from '../../../../../services/wizardApi';
 
-// Ilustraciones de Baldi por step slug
+// S3 base URL for illustrations
+const S3_ILLUSTRATIONS_URL = 'https://baldecash.s3.amazonaws.com/illustrations/baldi';
+
+// Ilustraciones de Baldi por step slug (fallback cuando no viene del API)
 const STEP_ILLUSTRATIONS: Record<string, string> = {
-  'datos-personales': '/images/baldi/BALDI_IDEA.png',
-  'datos-academicos': '/images/baldi/BALDI_COMPU.png',
-  'datos-economicos': '/images/baldi/BALDI_EJECUTIVO.png',
-  'resumen': '/images/baldi/BALDI_ALEGRE.png',
+  'datos-personales': `${S3_ILLUSTRATIONS_URL}/BALDI_IDEA.png`,
+  'datos-academicos': `${S3_ILLUSTRATIONS_URL}/BALDI_COMPU.png`,
+  'datos-economicos': `${S3_ILLUSTRATIONS_URL}/BALDI_EJECUTIVO.png`,
+  'resumen': `${S3_ILLUSTRATIONS_URL}/BALDI_ALEGRE.png`,
 };
 
 // Default illustration for unknown steps
-const DEFAULT_ILLUSTRATION = '/images/baldi/BALDI_IDEA.png';
+const DEFAULT_ILLUSTRATION = `${S3_ILLUSTRATIONS_URL}/BALDI_IDEA.png`;
 
 interface ProgressStep {
   slug: WizardStepId;
