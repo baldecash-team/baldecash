@@ -28,6 +28,8 @@ interface SegmentedControlProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   options: SegmentedOption[];
   error?: string;
   success?: boolean;
@@ -42,6 +44,8 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
   label,
   value,
   onChange,
+  onFocus,
+  onBlur,
   options,
   error,
   success,
@@ -76,12 +80,14 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
               type="button"
               onClick={() => {
                 if (option.disabled || disabled) return;
+                onFocus?.();
                 // Toggle: si ya está seleccionado, limpiar
                 if (value === option.value) {
                   onChange('');
                 } else {
                   onChange(option.value);
                 }
+                onBlur?.();
               }}
               disabled={option.disabled || disabled}
               className={`

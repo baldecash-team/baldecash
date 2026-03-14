@@ -28,6 +28,8 @@ interface CheckboxFieldProps {
   label: string;
   value: string | string[];
   onChange: (value: string | string[]) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   options?: CheckboxOption[];
   error?: string;
   success?: boolean;
@@ -42,6 +44,8 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   label,
   value,
   onChange,
+  onFocus,
+  onBlur,
   options,
   error,
   success,
@@ -64,16 +68,20 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   // Handler para modo simple
   const handleSimpleChange = () => {
     if (disabled) return;
+    onFocus?.();
     onChange(isCheckedSimple ? 'false' : 'true');
+    onBlur?.();
   };
 
   // Handler para modo múltiple
   const handleMultipleChange = (optionValue: string) => {
     if (disabled) return;
+    onFocus?.();
     const newValues = selectedValues.includes(optionValue)
       ? selectedValues.filter(v => v !== optionValue)
       : [...selectedValues, optionValue];
     onChange(newValues);
+    onBlur?.();
   };
 
   // Renderizar checkbox individual

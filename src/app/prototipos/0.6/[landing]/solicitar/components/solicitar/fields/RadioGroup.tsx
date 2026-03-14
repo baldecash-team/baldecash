@@ -27,6 +27,8 @@ interface RadioGroupProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   options: RadioOption[];
   error?: string;
   success?: boolean;
@@ -41,6 +43,8 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
   label,
   value,
   onChange,
+  onFocus,
+  onBlur,
   options,
   error,
   success,
@@ -69,12 +73,14 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
             type="button"
             onClick={() => {
               if (option.disabled || disabled) return;
+              onFocus?.();
               // Toggle: si ya está seleccionado, limpiar
               if (value === option.value) {
                 onChange('');
               } else {
                 onChange(option.value);
               }
+              onBlur?.();
             }}
             disabled={option.disabled || disabled}
             className={`

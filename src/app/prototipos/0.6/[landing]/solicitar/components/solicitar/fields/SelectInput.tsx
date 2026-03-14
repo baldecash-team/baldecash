@@ -27,6 +27,8 @@ interface SelectInputProps {
   label: string;
   value: string;
   onChange: (value: string, selectedLabel?: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   options: SelectOption[];
   placeholder?: string;
   error?: string;
@@ -53,6 +55,8 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   label,
   value,
   onChange,
+  onFocus,
+  onBlur,
   options,
   placeholder = 'Selecciona una opción',
   error,
@@ -104,6 +108,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
     onChange(optionValue, selected?.label);
     setIsOpen(false);
     setSearchTerm('');
+    onBlur?.();
   };
 
   const handleClear = () => {
@@ -137,7 +142,13 @@ export const SelectInput: React.FC<SelectInputProps> = ({
         <div
           role="button"
           tabIndex={disabled ? -1 : 0}
-          onClick={() => !disabled && setIsOpen(!isOpen)}
+          onClick={() => {
+            if (disabled) return;
+            const willOpen = !isOpen;
+            setIsOpen(willOpen);
+            if (willOpen) onFocus?.();
+            else onBlur?.();
+          }}
           onKeyDown={(e) => {
             if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
               e.preventDefault();
@@ -255,7 +266,10 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       {isOpen && (
         <div
           className="fixed inset-0 z-40"
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            setIsOpen(false);
+            onBlur?.();
+          }}
         />
       )}
 

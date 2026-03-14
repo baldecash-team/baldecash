@@ -41,6 +41,9 @@ import {
   evaluateFieldVisibility,
 } from '../../../services/wizardApi';
 
+// Event tracking
+import { useEventTrackerOptional } from '../context/EventTrackerContext';
+
 
 // Helper function to get Lucide icon by name
 function getIconComponent(iconName: string): React.ElementType {
@@ -97,6 +100,9 @@ function StepContent() {
     getFieldLabel,
     getAllDynamicOptions,
   } = useWizard();
+
+  // Event tracker
+  const tracker = useEventTrackerOptional();
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
   const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
@@ -156,6 +162,62 @@ function StepContent() {
     }
     return values;
   }, [formData]);
+
+  // Track form_abandon on beforeunload (when user closes/reloads mid-form)
+  useEffect(() => {
+    if (!step || !tracker) return;
+
+    const startTime = Date.now();
+
+    const handleBeforeUnload = () => {
+      const visibleFields = step.fields.filter(f => evaluateFieldVisibility(f, formValues));
+      const filledCount = visibleFields.filter(f => {
+        const val = formData[f.code]?.value;
+        return Array.isArray(val) ? val.length > 0 : !!val;
+      }).length;
+
+      tracker.track('form_abandon', {
+        form_id: 'onboarding-solicitud',
+        last_active_step: step.order + 1,
+        fields_completed: filledCount,
+        total_fields: visibleFields.length,
+        time_in_form_ms: Date.now() - startTime,
+      });
+      tracker.flush();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [step, tracker, formValues, formData]);
+
+  // Load summary field values from localStorage
+  useEffect(() => {
+    if (!isSummaryStep) {
+      setIsHydrated(true);
+      return;
+    }
+    try {
+      summarySteps.forEach(s => {
+        s.fields.forEach(field => {
+          const savedValue = localStorage.getItem(`baldecash-${landing}-wizard-field-${field.code}`);
+          if (savedValue !== null) {
+            setSummaryFieldValues(prev => ({ ...prev, [field.code]: savedValue }));
+          }
+        });
+      });
+    } catch {}
+    setIsHydrated(true);
+  }, [isSummaryStep, summarySteps, landing]);
+
+  // Save summary field values to localStorage
+  useEffect(() => {
+    if (!isHydrated || !isSummaryStep) return;
+    try {
+      Object.entries(summaryFieldValues).forEach(([fieldCode, value]) => {
+        localStorage.setItem(`baldecash-${landing}-wizard-field-${fieldCode}`, value);
+      });
+    } catch {}
+  }, [summaryFieldValues, isHydrated, isSummaryStep, landing]);
 
   // Validate all fields in the step
   const validateStep = useCallback((): string | null => {
@@ -540,6 +602,7 @@ function StepContent() {
         <DynamicWizardStep
           step={step}
           showErrors={submitted}
+          stepOrder={step.order}
         />
       </WizardLayout>
     </>

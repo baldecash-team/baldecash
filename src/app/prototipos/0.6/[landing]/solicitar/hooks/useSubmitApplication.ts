@@ -15,7 +15,7 @@ import {
   type SubmitApplicationRequest,
   type UploadedFileData,
 } from '../../../services/applicationApi';
-
+import { resetFormStartTracking } from './useFieldTracking';
 interface UseSubmitApplicationOptions {
   /**
    * Callback for showing toast notifications
@@ -200,6 +200,7 @@ export function useSubmitApplication(
         if (result.success && result.public_token) {
           // Clear all wizard state
           clearSession();
+          resetFormStartTracking();
           resetForm();
           clearProduct();
           clearCartProducts();
