@@ -52,11 +52,10 @@ export async function generateStaticParams() {
       const data = await response.json();
       if (data.slugs && Array.isArray(data.slugs)) {
         slugs = data.slugs;
-        console.log(`[generateStaticParams] Found ${slugs.length} landings from API`);
       }
     }
-  } catch (error) {
-    console.log('[generateStaticParams] Using fallback (API unavailable)');
+  } catch {
+    // API unavailable, using fallback
   }
 
   return [

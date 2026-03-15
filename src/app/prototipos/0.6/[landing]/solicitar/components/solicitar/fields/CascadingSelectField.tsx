@@ -80,17 +80,12 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   // Register field dependencies on mount, unregister on unmount
   // This enables automatic clearing when parent fields change
   useEffect(() => {
-    // DEBUG: Log dependency registration
-    console.log(`[CascadingSelectField] ${field.code}: cascade_from=${field.cascade_from}, filterFieldCode=${filterFieldCode}, validation_source_field=${field.validation_source_field}`);
-
     // Register dependency for cascade_from
     if (field.cascade_from) {
-      console.log(`[CascadingSelectField] Registering: ${field.code} depends on ${field.cascade_from} (cascade_from)`);
       registerDependency(field.code, field.cascade_from);
     }
     // Register dependency for options_filter.depends_on
     if (filterFieldCode) {
-      console.log(`[CascadingSelectField] Registering: ${field.code} depends on ${filterFieldCode} (options_filter)`);
       registerDependency(field.code, filterFieldCode);
     }
     // Register dependency for validation_source_field

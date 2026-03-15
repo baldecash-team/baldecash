@@ -241,10 +241,6 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
   const fieldsNeedingResolution = useMemo(() => {
     const fields: Array<{ code: string; value: string; optionsSource: string }> = [];
 
-    console.log('[WizardSummary] Checking fields for resolution. Steps:', regularSteps.length);
-    console.log('[WizardSummary] formValues:', formValues);
-    console.log('[WizardSummary] formData:', formData);
-
     for (const step of regularSteps) {
       for (const field of step.fields) {
         const value = formValues[field.code];
@@ -252,41 +248,32 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
 
         // Skip if no value, already has label, or not a dynamic field
         if (!value || savedLabel || Array.isArray(value)) {
-          if (value && !savedLabel && ['department', 'province', 'district', 'institution', 'career', 'marital_status'].includes(field.code)) {
-            console.log(`[WizardSummary] Field ${field.code} skipped: value=${value}, savedLabel=${savedLabel}, isArray=${Array.isArray(value)}`);
-          }
           continue;
         }
 
         // Check if field has options_source or is in our known map
         const optionsSource = field.options_source || FIELD_OPTIONS_SOURCE_MAP[field.code];
-        console.log(`[WizardSummary] Field ${field.code}: options_source=${field.options_source}, mapped=${FIELD_OPTIONS_SOURCE_MAP[field.code]}, final=${optionsSource}`);
 
         // Skip if field has static options that can resolve the value
         if (field.options && field.options.length > 0) {
           const found = field.options.find(opt => opt.value === value);
           if (found) {
-            console.log(`[WizardSummary] Field ${field.code} has static option for value ${value}`);
             continue;
           }
         }
 
         if (optionsSource) {
-          console.log(`[WizardSummary] Adding field ${field.code} for resolution`);
           fields.push({ code: field.code, value: value as string, optionsSource });
         }
       }
     }
 
-    console.log('[WizardSummary] Fields needing resolution:', fields);
     return fields;
   }, [regularSteps, formValues, formData]);
 
   // Fetch labels for fields that need resolution
   useEffect(() => {
-    console.log('[WizardSummary] fieldsNeedingResolution:', fieldsNeedingResolution);
     if (fieldsNeedingResolution.length === 0) {
-      console.log('[WizardSummary] No fields need resolution');
       return;
     }
 
@@ -297,21 +284,18 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
       // Fetch all labels in parallel
       const promises = fieldsNeedingResolution.map(async ({ code, value, optionsSource }) => {
         try {
-          console.log(`[WizardSummary] Fetching label for ${code}: ${optionsSource}?id=${value}`);
           const option = await fetchOptionById(optionsSource, value);
-          console.log(`[WizardSummary] Got option for ${code}:`, option);
           if (option) {
             newLabels[code] = option.label;
             // Also save to localStorage for future use
             updateField(code, value, option.label);
           }
-        } catch (err) {
-          console.error(`[WizardSummary] Error resolving label for ${code}:`, err);
+        } catch {
+          // Error resolving label, field will show raw value
         }
       });
 
       await Promise.all(promises);
-      console.log('[WizardSummary] Resolved labels:', newLabels);
       setResolvedLabels(prev => ({ ...prev, ...newLabels }));
       setIsResolvingLabels(false);
     };

@@ -140,7 +140,6 @@ export function useProductDetail(
           setProduct(mapped);
           setIsFromApi(true);
           setDataSource('detail-api');
-          console.log(`[ProductDetail] Level 1: Loaded product ${productId} from detail API`);
 
           // Load similar products from list API
           await loadSimilarProducts(mapped);
@@ -181,8 +180,6 @@ export function useProductDetail(
               .filter((p) => p.id !== found.id && p.deviceType === found.deviceType)
               .slice(0, 4);
             setSimilarProducts(similar);
-
-            console.log(`[ProductDetail] Level 2: Found product in list API (${allMapped.length} products)`);
             setIsLoading(false);
             return;
           }
@@ -195,7 +192,6 @@ export function useProductDetail(
     }
 
     // Level 3: Mock data fallback
-    console.log('[ProductDetail] Level 3: Using mock data');
     const mockProduct = productId
       ? mockProducts.find((p) => p.id === productId) || mockProducts[0]
       : mockProducts[0];

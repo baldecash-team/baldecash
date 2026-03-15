@@ -103,7 +103,6 @@ export function useCatalogProducts({
     setSearchCorrected(null); // Clear previous search correction
 
     try {
-      console.log('[Catalog] Loading products with filters:', filters, 'sortBy:', sortBy);
       const result = await fetchCatalogData(landingSlug, {
         filters,
         sort_by: sortBy,
@@ -112,7 +111,6 @@ export function useCatalogProducts({
       });
 
       if (result && result.products.length > 0) {
-        console.log(`[Catalog] Loaded ${result.products.length} of ${result.total} products from API`);
         setProducts(result.products);
         setTotal(result.total);
         setOffset(result.products.length);
@@ -121,14 +119,12 @@ export function useCatalogProducts({
         setSuggestions([]); // Clear suggestions when there are results
         // Store search correction info if fuzzy search was applied
         if (result.searchCorrected) {
-          console.log('[Catalog] Search was corrected:', result.searchCorrected);
           setSearchCorrected(result.searchCorrected);
         } else {
           setSearchCorrected(null);
         }
       } else {
         // API returned empty or null - show EmptyState (not an error)
-        console.log('[Catalog] API returned no products (catalog empty or filtered)');
         setProducts([]);
         setTotal(0);
         setOffset(0);
@@ -136,7 +132,6 @@ export function useCatalogProducts({
         setIsFromApi(true);
         // Store suggestions for "Did you mean?" UI
         if (result?.suggestions && result.suggestions.length > 0) {
-          console.log('[Catalog] Search suggestions:', result.suggestions);
           setSuggestions(result.suggestions);
         }
       }
@@ -168,7 +163,6 @@ export function useCatalogProducts({
       });
 
       if (result && result.products.length > 0) {
-        console.log(`[Catalog] Loaded ${result.products.length} more products (offset: ${offset})`);
         setProducts(prev => [...prev, ...result.products]);
         setOffset(prev => prev + result.products.length);
         setHasMore(result.hasMore);
@@ -203,7 +197,6 @@ export function useCatalogProducts({
       return;
     }
     if (lastFiltersKeyRef.current !== filtersKey) {
-      console.log('[Catalog] Filters changed, re-fetching products');
       lastFiltersKeyRef.current = filtersKey;
       loadProducts();
     }
@@ -212,7 +205,6 @@ export function useCatalogProducts({
   // Handle enabled changing from false to true (trigger initial load)
   useEffect(() => {
     if (enabled && !wasEnabledRef.current && !hasLoadedRef.current) {
-      console.log('[Catalog] Enabled changed to true, triggering initial load');
       hasLoadedRef.current = true;
       lastFiltersKeyRef.current = filtersKey;
       loadProducts();
@@ -349,8 +341,6 @@ export function useCatalogFilters(
   landingSlug: string,
   appliedFilters?: AppliedFiltersForCounts
 ): UseCatalogFiltersResult {
-  console.log('[useCatalogFilters] 🔵 Hook called with appliedFilters:', appliedFilters);
-
   const [filters, setFilters] = useState<UseCatalogFiltersResult>({
     ...DEFAULT_FILTERS,
     isLoading: true,
@@ -363,12 +353,9 @@ export function useCatalogFilters(
   useEffect(() => {
     // Re-fetch when landing or applied filters change
     const shouldFetch = lastFiltersKey.current !== appliedFiltersKey;
-    console.log('[useCatalogFilters] 🔄 Check refetch:', { shouldFetch, appliedFiltersKey, lastKey: lastFiltersKey.current, isFromApi: filters.isFromApi });
     if (!shouldFetch && filters.isFromApi) {
-      console.log('[useCatalogFilters] ⏭️ SKIPPING refetch (no changes)');
       return;
     }
-    console.log('[useCatalogFilters] ✅ WILL REFETCH!');
 
     lastFiltersKey.current = appliedFiltersKey;
 
@@ -402,7 +389,6 @@ export function useCatalogFilters(
 
         const queryString = params.toString();
         const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1'}/public/landing/${landingSlug}/filters${queryString ? `?${queryString}` : ''}`;
-        console.log('[useCatalogFilters] Fetching:', url);
 
         const response = await fetch(url, {
           cache: 'no-store', // Don't cache - counts depend on filters
@@ -413,10 +399,6 @@ export function useCatalogFilters(
         }
 
         const data: CatalogFiltersResponse = await response.json();
-        console.log('[useCatalogFilters] 📥 API Response received:', {
-          brandsCount: data.brands?.length,
-          typesWithCounts: data.types?.map(t => `${t.value}(${t.count})`),
-        });
 
         setFilters({
           brands: data.brands || [],
@@ -432,7 +414,6 @@ export function useCatalogFilters(
           error: null,
           apiFilters: data,
         });
-        console.log('[useCatalogFilters] ✅ State updated with new filters');
       } catch (err) {
         console.error('[Catalog Filters] Error loading, using defaults:', err);
         setFilters({

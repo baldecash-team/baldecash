@@ -149,11 +149,13 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         {/* Map pin icon */}
         <MapPin className="w-5 h-5 text-neutral-400 flex-shrink-0" />
 
-        {/* Input */}
+        {/* Input for Google Places Autocomplete */}
         <input
           ref={inputRef}
-          name={field.code}
+          name={`place_${field.code}`}
+          id={`input_${field.code}`}
           type="text"
+          role="combobox"
           value={value}
           onChange={handleInputChange}
           onFocus={() => setIsFocused(true)}
@@ -165,11 +167,8 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
             placeholder:text-neutral-400
             ${field.readonly ? 'cursor-not-allowed' : ''}
           `}
-          style={{
-            WebkitBoxShadow: '0 0 0 1000px white inset',
-            WebkitTextFillColor: '#262626',
-          }}
           autoComplete="off"
+          aria-autocomplete="list"
         />
 
         {/* Status icons */}
@@ -191,7 +190,7 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           onClick={handleUseLocation}
           disabled={isGettingLocation || field.readonly}
           className={`
-            flex items-center gap-1.5 text-sm text-[var(--color-primary)]
+            flex items-center gap-1.5 text-sm text-[var(--color-primary)] cursor-pointer
             hover:underline disabled:opacity-50 disabled:cursor-not-allowed
           `}
         >

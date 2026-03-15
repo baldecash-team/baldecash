@@ -241,3 +241,46 @@ select:focus-visible {
   outline: none !important;
   --tw-ring-shadow: none !important;
 }
+
+
+/* ============================================
+   Google Places Autocomplete
+   ============================================
+   Ensure Google Maps suggestions appear above browser autofill
+*/
+.pac-container {
+  z-index: 100000 !important;
+  border-radius: 8px !important;
+  border: 1px solid #e5e5e5 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  margin-top: 4px !important;
+  font-family: inherit !important;
+}
+
+.pac-item {
+  padding: 8px 12px !important;
+  cursor: pointer !important;
+  border-top: 1px solid #f5f5f5 !important;
+}
+
+.pac-item:first-child {
+  border-top: none !important;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background-color: #f5f5f5 !important;
+}
+
+.pac-icon {
+  margin-right: 8px !important;
+}
+
+.pac-item-query {
+  font-size: 14px !important;
+  color: #262626 !important;
+}
+
+.pac-matched {
+  font-weight: 600 !important;
+}

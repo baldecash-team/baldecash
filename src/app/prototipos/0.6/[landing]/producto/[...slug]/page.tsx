@@ -39,7 +39,7 @@ export async function generateStaticParams() {
       if (data.slugs?.length) productSlugs = data.slugs;
     }
   } catch {
-    console.log('[generateStaticParams:producto] Using fallbacks (API unavailable)');
+    // API unavailable, using fallbacks
   }
 
   return landings.flatMap((landing) =>

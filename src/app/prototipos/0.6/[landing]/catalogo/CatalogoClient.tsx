@@ -777,9 +777,6 @@ function CatalogoContent() {
     const checkInactivity = () => {
       const timeSinceLastInteraction = Date.now() - lastInteractionRef.current;
       const oneMinute = 60000;
-      const secondsElapsed = Math.floor(timeSinceLastInteraction / 1000);
-
-      console.log(`[Quiz Hint] Inactividad: ${secondsElapsed}s / 60s`);
 
       // Show help tour if 1 minute passed without interaction and nothing else is open
       const canShowHint =
@@ -798,7 +795,6 @@ function CatalogoContent() {
         !isWebchatOpen;
 
       if (timeSinceLastInteraction >= oneMinute && canShowHint) {
-        console.log('[Quiz Hint] ¡Mostrando tour de ayuda!');
         if (hasQuiz) {
           onboarding.startTourAtHelpButton();  // Con quiz: solo paso del help button
         } else {

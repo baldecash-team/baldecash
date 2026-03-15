@@ -263,7 +263,6 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
 
         if (apiResponse && apiResponse.products.length > 0) {
           quizResults = mapApiToQuizResults(apiResponse);
-          console.log('[Quiz] API recommendations:', quizResults.length, 'limit:', resultsCount, 'landing:', landingId);
         } else {
           // Sin resultados - mostrar vacío para ver el problema real
           console.warn('[Quiz] No products found. Filters:', apiResponse?.filters_applied);

@@ -55,7 +55,7 @@ export async function generateStaticParams() {
       })
     );
   } catch {
-    console.log('[generateStaticParams:stepSlug] Using fallbacks (API unavailable)');
+    // API unavailable, using fallbacks
     landings.forEach((l) => stepSlugsMap.set(l, fallbackSteps));
   }
 
@@ -69,6 +69,5 @@ export async function generateStaticParams() {
     }
   }
 
-  console.log(`[generateStaticParams:stepSlug] Generated ${params.length} routes`);
   return params;
 }

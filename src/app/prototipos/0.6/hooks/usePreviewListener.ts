@@ -166,10 +166,6 @@ export function usePreviewListener() {
     const shouldEnablePreview = previewParam === 'true';
 
     setIsPreviewMode(shouldEnablePreview);
-
-    if (shouldEnablePreview) {
-      console.log('[PreviewListener] Preview mode enabled', { inIframe });
-    }
   }, [searchParams]);
 
   // Escuchar mensajes solo si estamos en modo preview
@@ -192,7 +188,6 @@ export function usePreviewListener() {
       return;
     }
 
-    console.log('[PreviewListener] Received preview update:', data.payload);
     setPreviewData(data.payload);
     setLastUpdate(data.timestamp);
   }, []);
@@ -202,11 +197,9 @@ export function usePreviewListener() {
       return;
     }
 
-    console.log('[PreviewListener] Adding message listener');
     window.addEventListener('message', handleMessage);
 
     return () => {
-      console.log('[PreviewListener] Removing message listener');
       window.removeEventListener('message', handleMessage);
     };
   }, [isPreviewMode, handleMessage]);

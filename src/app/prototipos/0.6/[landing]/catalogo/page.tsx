@@ -29,7 +29,7 @@ export async function generateStaticParams() {
       }
     }
   } catch {
-    console.log('[catalogo/generateStaticParams] Using fallback (API unavailable)');
+    // API unavailable, using fallback
   }
 
   return slugs.map((landing) => ({ landing }));

@@ -114,8 +114,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
         />
       );
 
+    case 'address':
     case 'address_autocomplete':
       // Google Maps Places autocomplete for address input
+      // Backend sends 'address' (FieldType.ADDRESS), frontend also supports 'address_autocomplete'
       return (
         <AddressAutocompleteField
           field={field}

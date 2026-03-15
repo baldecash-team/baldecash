@@ -130,17 +130,11 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
 
       // If value changed and this field has dependents, clear them recursively
       if (valueChanged) {
-        // DEBUG
-        console.log(`[WizardContext] updateField: ${fieldId} changed from "${prevValue}" to "${value}"`);
-        console.log(`[WizardContext] Looking for dependents of ${fieldId}:`, fieldDependencies.current.get(fieldId));
-
         const clearDependents = (parentField: string, data: Record<string, FieldState>): Record<string, FieldState> => {
           const dependents = fieldDependencies.current.get(parentField);
           if (!dependents || dependents.size === 0) {
-            console.log(`[WizardContext] No dependents found for ${parentField}`);
             return data;
           }
-          console.log(`[WizardContext] Clearing dependents of ${parentField}:`, Array.from(dependents));
 
           let result = { ...data };
           for (const childField of dependents) {
@@ -307,11 +301,6 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
       fieldDependencies.current.set(parentField, new Set());
     }
     fieldDependencies.current.get(parentField)!.add(childField);
-    // DEBUG
-    console.log(`[WizardContext] Registered dependency: ${childField} depends on ${parentField}`);
-    console.log(`[WizardContext] Current dependencies:`, Object.fromEntries(
-      Array.from(fieldDependencies.current.entries()).map(([k, v]) => [k, Array.from(v)])
-    ));
   }, []);
 
   // Unregister a dependency (useful for cleanup when component unmounts)

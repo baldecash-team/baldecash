@@ -22,7 +22,7 @@ export async function generateStaticParams() {
       }
     }
   } catch {
-    console.log('[complementos/generateStaticParams] Using fallback (API unavailable)');
+    // API unavailable, using fallback
   }
 
   return slugs.map((landing) => ({ landing }));

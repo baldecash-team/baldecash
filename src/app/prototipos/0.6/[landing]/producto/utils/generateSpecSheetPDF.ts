@@ -63,8 +63,6 @@ const formatDate = (date: Date): string => {
  * Convierte una URL de imagen a base64
  */
 const loadImageAsBase64 = async (url: string): Promise<string> => {
-  console.log('[PDF] Loading image:', url);
-
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -82,7 +80,7 @@ const loadImageAsBase64 = async (url: string): Promise<string> => {
       return blobToBase64(blob);
     }
   } catch {
-    console.log('[PDF] Direct fetch failed, trying external proxy...');
+    // Direct fetch failed, try external proxy
   }
 
   // Intento 2: Proxy externo

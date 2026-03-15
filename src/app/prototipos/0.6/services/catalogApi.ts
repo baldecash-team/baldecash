@@ -283,7 +283,6 @@ export async function getCatalogProducts(
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.log(`[Catalog API] Landing "${landingSlug}" not found`);
         return null;
       }
       // Get error details for debugging
