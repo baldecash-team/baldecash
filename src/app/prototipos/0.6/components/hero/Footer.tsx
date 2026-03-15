@@ -103,9 +103,9 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
 
   const socialLinks = buildSocialLinks();
 
-  // Logo URL from company (with fallback)
-  const DEFAULT_LOGO = 'https://cdn.prod.website-files.com/62141f21700a64ab3f816206/621cec3ede9cbc00d538e2e4_logo-2%203.png';
-  const logoUrl = data?.company?.logo_url || DEFAULT_LOGO;
+  // Logo URL from company - use white version for dark footer background
+  const DEFAULT_LOGO_WHITE = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
+  const logoUrl = data?.company?.logo_white_url || DEFAULT_LOGO_WHITE;
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -252,7 +252,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
               <img
                 src={logoUrl}
                 alt="BaldeCash"
-                className="h-8 object-contain brightness-0 invert"
+                className="h-8 object-contain"
               />
             </a>
             <p className="text-sm text-neutral-400 mb-4">{tagline}</p>
