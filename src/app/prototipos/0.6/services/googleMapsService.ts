@@ -1,3 +1,4 @@
+/// <reference types="@types/google.maps" />
 /**
  * Google Maps Service - BaldeCash v0.6
  * Singleton service for dynamically loading Google Maps API
@@ -9,6 +10,7 @@ let googleMapsLoadPromise: Promise<void> | null = null;
 /**
  * Load Google Maps script dynamically (singleton pattern)
  * Only loads once, subsequent calls return the same promise
+ * Uses async loading pattern with importLibrary for optimal performance
  */
 export function loadGoogleMapsScript(): Promise<void> {
   // Return existing promise if already loading/loaded

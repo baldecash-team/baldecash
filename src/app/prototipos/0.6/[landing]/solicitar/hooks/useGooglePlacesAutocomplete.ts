@@ -1,3 +1,4 @@
+/// <reference types="@types/google.maps" />
 /**
  * useGooglePlacesAutocomplete Hook - BaldeCash v0.6
  * Manages Google Places Autocomplete integration
