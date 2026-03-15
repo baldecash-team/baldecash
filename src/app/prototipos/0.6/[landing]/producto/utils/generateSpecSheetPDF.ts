@@ -547,19 +547,56 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       portY += 8;
     });
 
-    // Laptop visual (centro)
-    const laptopX = margin + colWidthPorts + 15;
-    const laptopY = portsContentY + 5;
-    doc.setFillColor(...PDF_COLORS.pageBg);
-    doc.roundedRect(laptopX, laptopY, 30, 20, 2, 2, 'F');
-    doc.setDrawColor(...PDF_COLORS.border);
-    doc.roundedRect(laptopX, laptopY, 30, 20, 2, 2, 'S');
+    // Laptop visual mejorada (centro)
+    const laptopX = margin + colWidthPorts + 12;
+    const laptopY = portsContentY + 3;
+    const laptopW = 36;
+    const laptopH = 28;
 
-    // Indicadores de puertos
+    // Pantalla (parte superior)
+    const screenH = laptopH * 0.7;
+    doc.setFillColor(60, 60, 70); // Gris oscuro para pantalla
+    doc.roundedRect(laptopX, laptopY, laptopW, screenH, 1.5, 1.5, 'F');
+
+    // Borde de pantalla (marco)
+    doc.setFillColor(40, 40, 50);
+    doc.roundedRect(laptopX, laptopY, laptopW, screenH, 1.5, 1.5, 'S');
+
+    // Pantalla interior (área de display)
+    doc.setFillColor(80, 90, 110); // Azul grisáceo para simular pantalla encendida
+    doc.roundedRect(laptopX + 2, laptopY + 2, laptopW - 4, screenH - 4, 0.5, 0.5, 'F');
+
+    // Reflejo sutil en pantalla
+    doc.setFillColor(255, 255, 255);
+    doc.setGState(new GState({ opacity: 0.1 }));
+    doc.roundedRect(laptopX + 3, laptopY + 3, laptopW - 6, screenH * 0.3, 0.5, 0.5, 'F');
+    doc.setGState(new GState({ opacity: 1 }));
+
+    // Cámara web (punto en el borde superior)
+    doc.setFillColor(30, 30, 35);
+    doc.circle(laptopX + laptopW / 2, laptopY + 1.5, 0.6, 'F');
+
+    // Base/Teclado (parte inferior)
+    const baseY = laptopY + screenH;
+    const baseH = laptopH - screenH;
+    doc.setFillColor(180, 180, 185); // Gris claro para base
+    doc.roundedRect(laptopX - 1, baseY, laptopW + 2, baseH, 1, 1, 'F');
+
+    // Touchpad
+    doc.setFillColor(160, 160, 165);
+    doc.roundedRect(laptopX + laptopW / 2 - 5, baseY + 2, 10, 4, 0.5, 0.5, 'F');
+
+    // Indicadores de puertos (barras laterales)
     doc.setFillColor(...PDF_COLORS.primary);
-    doc.setGState(new GState({ opacity: 0.3 }));
-    doc.rect(laptopX - 1, laptopY + 6, 2, 8, 'F'); // left
-    doc.rect(laptopX + 29, laptopY + 6, 2, 8, 'F'); // right
+    doc.setGState(new GState({ opacity: 0.5 }));
+    // Izquierda
+    doc.roundedRect(laptopX - 2.5, laptopY + screenH * 0.3, 2, screenH * 0.4, 0.5, 0.5, 'F');
+    // Derecha
+    doc.roundedRect(laptopX + laptopW + 0.5, laptopY + screenH * 0.3, 2, screenH * 0.4, 0.5, 0.5, 'F');
+    // Trasera (si hay puertos traseros)
+    if (backPorts.length > 0) {
+      doc.roundedRect(laptopX + laptopW * 0.3, laptopY - 2, laptopW * 0.4, 1.5, 0.5, 0.5, 'F');
+    }
     doc.setGState(new GState({ opacity: 1 }));
 
     // Derecha
@@ -603,39 +640,44 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       });
     }
 
-    // Badges de resumen
+    // Badges de resumen (alineados verticalmente, centrados)
     const totalPorts = data.ports.reduce((acc, p) => acc + p.count, 0);
     const leftCount = leftPorts.reduce((acc, p) => acc + p.count, 0);
     const rightCount = rightPorts.reduce((acc, p) => acc + p.count, 0);
 
-    const badgeY = y + portsCardHeight - 14;
-    const badgeGap = 4;
+    const badgeFontSize = 7;
+    const badgeHeight = 8;
+    const badgeGapV = 3;
+    const badgesStartY = y + portsCardHeight - 22;
+    const centerX = margin + contentWidth / 2;
 
-    // Badge 1: Total puertos (azul)
+    // Cálculo para centrar texto verticalmente en badge
+    // En jsPDF Y es baseline. Para centrar: badgeHeight/2 + pequeño ajuste
+    const textOffsetY = badgeHeight / 2 + 1.5;
+
+    // Badge 1: Total puertos (azul) - arriba
     const totalText = `${totalPorts} puertos totales`;
-    const totalBadgeWidth = doc.getTextWidth(totalText) + 12;
-    doc.setFillColor(
-      PDF_COLORS.primary[0] + (255 - PDF_COLORS.primary[0]) * 0.9,
-      PDF_COLORS.primary[1] + (255 - PDF_COLORS.primary[1]) * 0.9,
-      PDF_COLORS.primary[2] + (255 - PDF_COLORS.primary[2]) * 0.9
-    );
-    const badge1X = margin + contentWidth / 2 - (totalBadgeWidth + badgeGap) / 2 - 30;
-    doc.roundedRect(badge1X, badgeY, totalBadgeWidth, 8, 3, 3, 'F');
-    doc.setTextColor(...PDF_COLORS.primary);
-    doc.setFontSize(7);
+    doc.setFontSize(badgeFontSize);
     doc.setFont('helvetica', 'bold');
-    doc.text(totalText, badge1X + totalBadgeWidth / 2, badgeY + 5.5, { align: 'center' });
+    const totalBadgeWidth = doc.getTextWidth(totalText) + 14;
+    doc.setFillColor(
+      PDF_COLORS.primary[0] + (255 - PDF_COLORS.primary[0]) * 0.85,
+      PDF_COLORS.primary[1] + (255 - PDF_COLORS.primary[1]) * 0.85,
+      PDF_COLORS.primary[2] + (255 - PDF_COLORS.primary[2]) * 0.85
+    );
+    doc.roundedRect(centerX - totalBadgeWidth / 2, badgesStartY, totalBadgeWidth, badgeHeight, 3, 3, 'F');
+    doc.setTextColor(...PDF_COLORS.primary);
+    doc.text(totalText, centerX, badgesStartY + textOffsetY, { align: 'center' });
 
-    // Badge 2: Distribución izquierda/derecha (gris)
+    // Badge 2: Distribución izquierda/derecha (gris) - abajo
     const distText = `${leftCount} izquierda • ${rightCount} derecha`;
-    const distBadgeWidth = doc.getTextWidth(distText) + 12;
-    doc.setFillColor(PDF_COLORS.pageBg[0] - 10, PDF_COLORS.pageBg[1] - 10, PDF_COLORS.pageBg[2] - 10);
-    const badge2X = badge1X + totalBadgeWidth + badgeGap;
-    doc.roundedRect(badge2X, badgeY, distBadgeWidth, 8, 3, 3, 'F');
-    doc.setTextColor(...PDF_COLORS.textMuted);
-    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text(distText, badge2X + distBadgeWidth / 2, badgeY + 5.5, { align: 'center' });
+    const distBadgeWidth = doc.getTextWidth(distText) + 14;
+    doc.setFillColor(PDF_COLORS.pageBg[0] - 15, PDF_COLORS.pageBg[1] - 15, PDF_COLORS.pageBg[2] - 15);
+    const badge2Y = badgesStartY + badgeHeight + badgeGapV;
+    doc.roundedRect(centerX - distBadgeWidth / 2, badge2Y, distBadgeWidth, badgeHeight, 3, 3, 'F');
+    doc.setTextColor(...PDF_COLORS.textMuted);
+    doc.text(distText, centerX, badge2Y + textOffsetY, { align: 'center' });
 
     y += portsCardHeight + 10;
   }
