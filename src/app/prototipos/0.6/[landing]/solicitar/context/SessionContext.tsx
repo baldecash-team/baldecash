@@ -174,45 +174,71 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
   const sessionKey = useMemo(() => getSessionKey(landingSlug), [landingSlug]);
 
   /**
-   * Create a new tracking session via API
+   * Create a new tracking session via API with retry logic
    */
   const createSession = useCallback(
     async (uuid: string, slug: string): Promise<{ uuid: string; id: number } | null> => {
-      try {
-        const { browser, browserVersion } = getBrowserInfo();
-        const utmParams = getUtmParams();
-        const referrer = getReferrerInfo();
-
-        const response = await fetch(`${API_BASE_URL}/public/tracking/session`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            landing_slug: slug,
-            uuid,
-            device_type: getDeviceType(),
-            browser,
-            browser_version: browserVersion,
-            screen_width: typeof window !== 'undefined' ? window.screen.width : undefined,
-            screen_height: typeof window !== 'undefined' ? window.screen.height : undefined,
-            ...utmParams,
-            ...referrer,
-          }),
-        });
-
-        if (!response.ok) {
-          console.error('Failed to create tracking session:', response.status);
-          return null;
-        }
-
-        const data = await response.json();
-        return {
-          uuid: data.session_uuid,
-          id: data.session_id,
-        };
-      } catch (error) {
-        console.error('Error creating tracking session:', error);
+      // Ensure we're in the browser
+      if (typeof window === 'undefined') {
         return null;
       }
+
+      const { browser, browserVersion } = getBrowserInfo();
+      const utmParams = getUtmParams();
+      const referrer = getReferrerInfo();
+
+      const payload = {
+        landing_slug: slug,
+        uuid,
+        device_type: getDeviceType(),
+        browser,
+        browser_version: browserVersion,
+        screen_width: window.screen.width,
+        screen_height: window.screen.height,
+        ...utmParams,
+        ...referrer,
+      };
+
+      // Retry logic: 3 attempts with increasing delay
+      const maxRetries = 3;
+      const delays = [0, 500, 1500]; // ms: immediate, 0.5s, 1.5s
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          // Wait before retry (skip delay on first attempt)
+          if (delays[attempt] > 0) {
+            await new Promise((resolve) => setTimeout(resolve, delays[attempt]));
+          }
+
+          const response = await fetch(`${API_BASE_URL}/public/tracking/session`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            // Only log on final attempt
+            if (attempt === maxRetries - 1) {
+              console.error('Failed to create tracking session:', response.status);
+            }
+            continue;
+          }
+
+          const data = await response.json();
+          return {
+            uuid: data.session_uuid,
+            id: data.session_id,
+          };
+        } catch (error) {
+          // Only log error on final attempt to avoid noise
+          if (attempt === maxRetries - 1) {
+            console.error('Error creating tracking session after retries:', error);
+          }
+          // Continue to next retry
+        }
+      }
+
+      return null;
     },
     []
   );

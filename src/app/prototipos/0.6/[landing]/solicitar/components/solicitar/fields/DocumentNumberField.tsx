@@ -119,7 +119,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
   // Determine success state
   const hasValue = !!value;
-  const isSuccess = !error && hasValue && (prefilled || response?.exists === true);
+  const isSuccess = !error && hasValue;
 
   return (
     <TextInput

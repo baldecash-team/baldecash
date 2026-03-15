@@ -204,11 +204,16 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       );
 
     case 'date':
+      // Determinar el offset de año inicial según el tipo de campo
+      // birth_date: -20 años (para personas ~20 años)
+      // work_start_date y otros: 0 (año actual)
+      const dateYearOffset = field.code === 'birth_date' ? -20 : 0;
       return (
         <DateInput
           {...commonProps}
           placeholder={field.placeholder || 'Selecciona una fecha'}
           success={!error && !!value}
+          defaultYearOffset={dateYearOffset}
         />
       );
 

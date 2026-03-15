@@ -67,9 +67,11 @@ function WizardPreviewContent() {
     }
   }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct, router, landing]);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
   const [isTermsHydrated, setIsTermsHydrated] = useState(false);
   const [termsError, setTermsError] = useState<string | null>(null);
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
 
   // Get layout data from context (fetched once at [landing] level)
@@ -105,8 +107,10 @@ function WizardPreviewContent() {
   useEffect(() => {
     try {
       const savedAcceptTerms = localStorage.getItem(`baldecash-${landing}-wizard-acceptTerms`);
+      const savedAcceptPrivacy = localStorage.getItem(`baldecash-${landing}-wizard-acceptPrivacy`);
       const savedAcceptPromos = localStorage.getItem(`baldecash-${landing}-wizard-acceptPromos`);
       if (savedAcceptTerms !== null) setAcceptTerms(savedAcceptTerms === 'true');
+      if (savedAcceptPrivacy !== null) setAcceptPrivacy(savedAcceptPrivacy === 'true');
       if (savedAcceptPromos !== null) setAcceptPromos(savedAcceptPromos === 'true');
     } catch {}
     setIsTermsHydrated(true);
@@ -119,6 +123,14 @@ function WizardPreviewContent() {
       localStorage.setItem(`baldecash-${landing}-wizard-acceptTerms`, String(acceptTerms));
     } catch {}
   }, [acceptTerms, isTermsHydrated, landing]);
+
+  // Guardar acceptPrivacy en localStorage
+  useEffect(() => {
+    if (!isTermsHydrated) return;
+    try {
+      localStorage.setItem(`baldecash-${landing}-wizard-acceptPrivacy`, String(acceptPrivacy));
+    } catch {}
+  }, [acceptPrivacy, isTermsHydrated, landing]);
 
   // Guardar acceptPromos en localStorage
   useEffect(() => {
@@ -174,6 +186,13 @@ function WizardPreviewContent() {
       return;
     }
 
+    // Validar política de privacidad
+    if (!acceptPrivacy) {
+      setPrivacyError('Debes aceptar la política de privacidad para continuar');
+      scrollToSection('terms-section');
+      return;
+    }
+
     // Validar cupón si es requerido
     if (isCouponRequired && !appliedCoupon) {
       setCouponError('Debes ingresar un cupón válido para continuar');
@@ -195,6 +214,7 @@ function WizardPreviewContent() {
     }
 
     setTermsError(null);
+    setPrivacyError(null);
     setCouponError(null);
     router.push(`/prototipos/0.6/${landing}/solicitar/${firstStepSlug}`);
   };
@@ -286,40 +306,41 @@ function WizardPreviewContent() {
 
           return (
             <div id="term-selector-section" className={`hidden lg:block bg-white rounded-xl border mb-8 overflow-hidden ${needsTermUnification ? 'border-amber-300' : 'border-neutral-200'}`}>
-              {/* Header with term selector */}
-              {productsToShow.length > 1 && (
-                <div className={`px-5 py-3 border-b flex items-center justify-between ${needsTermUnification ? 'bg-amber-50 border-amber-200' : 'bg-[rgba(var(--color-primary-rgb),0.05)] border-neutral-200'}`}>
-                  <div className="flex items-center gap-2">
-                    <ShoppingCart className={`w-4 h-4 ${needsTermUnification ? 'text-amber-600' : 'text-[var(--color-primary)]'}`} />
-                    <span className="text-sm font-semibold text-neutral-800">
-                      {productsToShow.length} productos seleccionados
-                    </span>
-                  </div>
-                  {/* Term selector dropdown */}
-                  {needsTermUnification ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-amber-700">Unificar plazo:</span>
-                      <select
-                        className="text-sm border border-amber-300 rounded-lg px-3 py-1.5 bg-white text-neutral-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400"
-                        onChange={(e) => {
-                          const term = parseInt(e.target.value);
-                          if (term) updateAllProductsToTerm(term);
-                        }}
-                        defaultValue=""
-                      >
-                        <option value="" disabled>Seleccionar</option>
-                        {availableTerms.map((term) => (
-                          <option key={term} value={term}>{term} meses</option>
-                        ))}
-                      </select>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-neutral-500">
-                      {productsToShow[0]?.months} meses
-                    </span>
-                  )}
+              {/* Header with term selector - Always visible */}
+              <div className={`px-5 py-3 border-b flex items-center justify-between ${needsTermUnification ? 'bg-amber-50 border-amber-200' : 'bg-[rgba(var(--color-primary-rgb),0.05)] border-neutral-200'}`}>
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className={`w-4 h-4 ${needsTermUnification ? 'text-amber-600' : 'text-[var(--color-primary)]'}`} />
+                  <span className="text-sm font-semibold text-neutral-800">
+                    {productsToShow.length === 1 ? 'Producto seleccionado' : `${productsToShow.length} productos seleccionados`}
+                  </span>
                 </div>
-              )}
+                {/* Term selector dropdown - Always show selector */}
+                <div className="flex items-center gap-2">
+                  {needsTermUnification && (
+                    <span className="text-xs text-amber-700">Unificar plazo:</span>
+                  )}
+                  {!needsTermUnification && (
+                    <span className="text-xs text-neutral-500">Plazo:</span>
+                  )}
+                  <select
+                    className={`text-sm border rounded-lg px-3 py-1.5 bg-white text-neutral-800 cursor-pointer focus:outline-none focus:ring-2 ${
+                      needsTermUnification
+                        ? 'border-amber-300 focus:ring-amber-400'
+                        : 'border-neutral-300 focus:ring-[var(--color-primary)]'
+                    }`}
+                    onChange={(e) => {
+                      const term = parseInt(e.target.value);
+                      if (term) updateAllProductsToTerm(term);
+                    }}
+                    value={needsTermUnification ? '' : productsToShow[0]?.months || ''}
+                  >
+                    {needsTermUnification && <option value="" disabled>Seleccionar</option>}
+                    {availableTerms.map((term) => (
+                      <option key={term} value={term}>{term} meses</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
               {/* Warning banner for unequal terms */}
               {needsTermUnification && (
@@ -508,7 +529,7 @@ function WizardPreviewContent() {
         ))}
 
         {/* Términos y Condiciones */}
-        <div id="terms-section" className={`bg-white rounded-xl p-6 border mb-8 transition-all duration-300 ${termsError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
+        <div id="terms-section" className={`bg-white rounded-xl p-6 border mb-8 transition-all duration-300 ${termsError || privacyError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
           <h3 className="font-semibold text-neutral-800 mb-4">Términos y Condiciones</h3>
           <div className="space-y-4">
             <Checkbox
@@ -516,11 +537,22 @@ function WizardPreviewContent() {
               checked={acceptTerms}
               onChange={(checked) => {
                 setAcceptTerms(checked);
-                if (checked) setTermsError(null); // Limpiar error al marcar
+                if (checked) setTermsError(null);
               }}
               label="Acepto los términos y condiciones"
-              description="He leído y acepto los términos de uso y la política de privacidad"
+              description="He leído y acepto los términos de uso del servicio"
               error={termsError}
+            />
+            <Checkbox
+              id="acceptPrivacy"
+              checked={acceptPrivacy}
+              onChange={(checked) => {
+                setAcceptPrivacy(checked);
+                if (checked) setPrivacyError(null);
+              }}
+              label="Acepto la política de privacidad"
+              description="He leído y acepto cómo se usan y protegen mis datos personales"
+              error={privacyError}
             />
             <Checkbox
               id="acceptPromos"

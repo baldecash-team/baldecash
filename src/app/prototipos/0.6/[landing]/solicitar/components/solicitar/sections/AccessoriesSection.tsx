@@ -127,23 +127,43 @@ export function AccessoriesSection({
     fetchAccessories();
   }, [landing, productTypesKey, currentTerm]);
 
-  // Clean up selected accessories that are no longer available
-  // This happens when cart products change and some accessories become incompatible
-  // Use ref to avoid infinite loops when updating selectedAccessories
+  // Update selected accessories when term changes or accessories list changes
+  // This handles:
+  // 1. Removing accessories that are no longer compatible (product type change)
+  // 2. Updating monthlyQuota when term changes (recalculated by API)
   const selectedAccessoriesRef = useRef(selectedAccessories);
   selectedAccessoriesRef.current = selectedAccessories;
 
   useEffect(() => {
     if (isLoading || accessories.length === 0) return;
 
-    const availableIds = new Set(accessories.map((a) => a.id));
+    const accessoriesMap = new Map(accessories.map((a) => [a.id, a]));
     const currentSelected = selectedAccessoriesRef.current;
-    const hasInvalidSelected = currentSelected.some((a) => !availableIds.has(a.id));
 
-    if (hasInvalidSelected) {
-      // Remove accessories that are no longer compatible
-      const validSelected = currentSelected.filter((a) => availableIds.has(a.id));
-      setSelectedAccessories(validSelected);
+    // Check if any selected accessory needs update
+    let needsUpdate = false;
+    const updatedSelected: Accessory[] = [];
+
+    for (const selected of currentSelected) {
+      const freshAccessory = accessoriesMap.get(selected.id);
+
+      if (!freshAccessory) {
+        // Accessory no longer available (incompatible) - remove it
+        needsUpdate = true;
+        continue;
+      }
+
+      // Check if monthlyQuota changed (term changed)
+      if (selected.monthlyQuota !== freshAccessory.monthlyQuota) {
+        needsUpdate = true;
+        updatedSelected.push(freshAccessory); // Use fresh data with new monthlyQuota
+      } else {
+        updatedSelected.push(selected);
+      }
+    }
+
+    if (needsUpdate) {
+      setSelectedAccessories(updatedSelected);
     }
   }, [accessories, isLoading, setSelectedAccessories]);
 

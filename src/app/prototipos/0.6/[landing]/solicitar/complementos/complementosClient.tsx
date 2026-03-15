@@ -41,7 +41,7 @@ function ComplementosContent() {
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Submit application hook
-  const { submit: submitApplication, isSubmitting } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting, submitMessage } = useSubmitApplication({
     onToast: showToast,
   });
 
@@ -219,7 +219,7 @@ function ComplementosContent() {
             isLoading={isSubmitting}
             spinner={<Loader2 className="w-5 h-5 animate-spin" />}
           >
-            Enviar Solicitud
+            {isSubmitting ? (submitMessage || 'Enviando...') : 'Enviar Solicitud'}
           </Button>
         </motion.div>
 

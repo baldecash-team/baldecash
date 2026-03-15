@@ -5,7 +5,7 @@
  * Extracts submit logic to be reusable from both segurosClient and StepClient
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useProduct } from '../context/ProductContext';
 import { useWizard } from '../context/WizardContext';
@@ -30,6 +30,28 @@ interface SubmitOptions {
   insuranceId?: string | null;
 }
 
+/**
+ * Submission progress stages for user feedback
+ */
+export type SubmitStage =
+  | 'idle'
+  | 'validating'      // Validando datos...
+  | 'uploading'       // Subiendo archivos...
+  | 'processing'      // Procesando solicitud...
+  | 'slow'            // Esto está tardando más de lo esperado...
+  | 'success'
+  | 'error';
+
+export const SUBMIT_STAGE_MESSAGES: Record<SubmitStage, string> = {
+  idle: '',
+  validating: 'Validando datos...',
+  uploading: 'Subiendo archivos...',
+  processing: 'Procesando solicitud...',
+  slow: 'Esto está tardando más de lo esperado. Por favor espera...',
+  success: 'Solicitud enviada correctamente',
+  error: 'Error al enviar la solicitud',
+};
+
 interface UseSubmitApplicationResult {
   /**
    * Submit the application
@@ -39,6 +61,14 @@ interface UseSubmitApplicationResult {
    * Whether submission is in progress
    */
   isSubmitting: boolean;
+  /**
+   * Current submission stage for progress messages
+   */
+  submitStage: SubmitStage;
+  /**
+   * Human-readable message for current stage
+   */
+  submitMessage: string;
   /**
    * Last error message (if any)
    */
@@ -59,7 +89,32 @@ export function useSubmitApplication(
   const landing = (params.landing as string) || 'home';
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
   const [error, setError] = useState<string | null>(null);
+  const slowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Bloqueo de navegación durante el envío
+  useEffect(() => {
+    if (!isSubmitting) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Tu solicitud está siendo procesada. ¿Seguro que quieres salir?';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isSubmitting]);
+
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => {
+      if (slowTimeoutRef.current) {
+        clearTimeout(slowTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Get data from contexts
   const {
@@ -148,10 +203,23 @@ export function useSubmitApplication(
       }
 
       setIsSubmitting(true);
+      setSubmitStage('validating');
+
+      // Iniciar timeout para mensaje "slow" después de 15 segundos
+      slowTimeoutRef.current = setTimeout(() => {
+        setSubmitStage('slow');
+      }, 15000);
 
       try {
         // Map form data and extract files from wizard context
         const { data: mappedFormData, files: uploadFiles } = mapFormData();
+
+        // Cambiar a estado "uploading" si hay archivos, sino directo a "processing"
+        if (uploadFiles.length > 0) {
+          setSubmitStage('uploading');
+        } else {
+          setSubmitStage('processing');
+        }
 
         // Get first product for backward compatibility fields
         const primaryProduct = allProducts[0];
@@ -188,6 +256,9 @@ export function useSubmitApplication(
           }),
         };
 
+        // Cambiar a "processing" antes de enviar (si estábamos en uploading)
+        setSubmitStage('processing');
+
         // Submit application (with files if any)
         const result = await submitApplication({
           session_uuid: sessionUuid,
@@ -198,6 +269,13 @@ export function useSubmitApplication(
         });
 
         if (result.success && result.public_token) {
+          // Limpiar timeout de "slow"
+          if (slowTimeoutRef.current) {
+            clearTimeout(slowTimeoutRef.current);
+            slowTimeoutRef.current = null;
+          }
+          setSubmitStage('success');
+
           // Clear all wizard state
           clearSession();
           resetFormStartTracking();
@@ -219,6 +297,7 @@ export function useSubmitApplication(
           return true;
         } else {
           // Show error
+          setSubmitStage('error');
           const msg = result.error || 'Error al enviar la solicitud. Por favor intenta nuevamente.';
           setError(msg);
           onToast?.(msg, 'error');
@@ -226,12 +305,20 @@ export function useSubmitApplication(
         }
       } catch (err) {
         console.error('Error submitting application:', err);
+        setSubmitStage('error');
         const msg = 'Error de conexión. Por favor intenta nuevamente.';
         setError(msg);
         onToast?.(msg, 'error');
         return false;
       } finally {
+        // Limpiar timeout de "slow"
+        if (slowTimeoutRef.current) {
+          clearTimeout(slowTimeoutRef.current);
+          slowTimeoutRef.current = null;
+        }
         setIsSubmitting(false);
+        // Reset stage after a short delay (para que el UI pueda mostrar el estado final)
+        setTimeout(() => setSubmitStage('idle'), 100);
       }
     },
     [
@@ -259,6 +346,8 @@ export function useSubmitApplication(
   return {
     submit,
     isSubmitting,
+    submitStage,
+    submitMessage: SUBMIT_STAGE_MESSAGES[submitStage],
     error,
   };
 }

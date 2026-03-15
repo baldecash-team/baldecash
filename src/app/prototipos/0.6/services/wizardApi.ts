@@ -283,21 +283,28 @@ export function evaluateFieldVisibility(
     const fieldValue = formValues[dep.depends_on_field];
     let conditionMet = false;
 
+    // Normalizar a string para comparación (API puede devolver int o string)
+    const normalizedFieldValue = fieldValue != null ? String(fieldValue) : '';
+    const normalizedDepValue = dep.value != null ? String(dep.value) : '';
+
     switch (dep.operator) {
       case 'equals':
-        conditionMet = fieldValue === dep.value;
+        conditionMet = normalizedFieldValue === normalizedDepValue;
         break;
       case 'not_equals':
-        conditionMet = fieldValue !== dep.value;
+        conditionMet = normalizedFieldValue !== normalizedDepValue;
         break;
       case 'in':
         if (Array.isArray(dep.value)) {
-          conditionMet = dep.value.includes(fieldValue as string);
+          // Normalizar cada valor del array a string
+          const normalizedArray = dep.value.map(v => String(v));
+          conditionMet = normalizedArray.includes(normalizedFieldValue);
         }
         break;
       case 'not_in':
         if (Array.isArray(dep.value)) {
-          conditionMet = !dep.value.includes(fieldValue as string);
+          const normalizedArray = dep.value.map(v => String(v));
+          conditionMet = !normalizedArray.includes(normalizedFieldValue);
         }
         break;
       case 'is_empty':

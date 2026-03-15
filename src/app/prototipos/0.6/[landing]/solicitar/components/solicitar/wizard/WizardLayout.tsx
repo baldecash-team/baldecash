@@ -41,6 +41,8 @@ interface WizardLayoutProps {
   isFirstStep?: boolean;
   isSubmitting?: boolean;
   canProceed?: boolean;
+  /** Mensaje dinámico de progreso durante el envío */
+  submitMessage?: string;
   navbarProps?: NavbarProps;
   /** Contenido motivacional desde API */
   motivational?: WizardMotivational | null;
@@ -59,6 +61,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   isFirstStep = false,
   isSubmitting = false,
   canProceed = true,
+  submitMessage,
   navbarProps,
   motivational,
 }) => {
@@ -107,6 +110,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               isLastStep={isLastStep}
               isSubmitting={isSubmitting}
               canProceed={canProceed}
+              submitMessage={submitMessage}
             />
 
             {/* Bottom Spacer for Mobile fixed product bar */}

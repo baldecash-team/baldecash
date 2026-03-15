@@ -78,6 +78,8 @@ function StepContent() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
@@ -128,7 +130,7 @@ function StepContent() {
   const { showToast } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
-  const { submit: submitApplication, isSubmitting: isAppSubmitting } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage } = useSubmitApplication({
     onToast: showToast,
   });
 
@@ -509,6 +511,7 @@ function StepContent() {
         onStepClick={handleStepClick}
         isLastStep={isActuallyLastStep}
         isSubmitting={isSubmitting || isAppSubmitting}
+        submitMessage={submitMessage}
         canProceed={true}
         navbarProps={navbarProps || undefined}
         motivational={step.motivational}

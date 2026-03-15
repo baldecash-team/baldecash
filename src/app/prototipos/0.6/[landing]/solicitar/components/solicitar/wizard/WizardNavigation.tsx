@@ -16,6 +16,8 @@ interface WizardNavigationProps {
   isLastStep?: boolean;
   isSubmitting?: boolean;
   canProceed?: boolean;
+  /** Mensaje dinámico de progreso durante el envío */
+  submitMessage?: string;
 }
 
 export const WizardNavigation: React.FC<WizardNavigationProps> = ({
@@ -26,6 +28,7 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
   isLastStep = false,
   isSubmitting = false,
   canProceed = true,
+  submitMessage,
 }) => {
   return (
     <div className="flex flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between mt-8">
@@ -59,7 +62,7 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
           {isSubmitting ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Enviando...</span>
+              <span>{submitMessage || 'Enviando...'}</span>
             </>
           ) : (
             <>
