@@ -95,7 +95,7 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
     const search = institutionName.toLowerCase();
     const institution = data.institutions.find((inst) =>
       inst.code?.toLowerCase() === search ||
-      inst.short_name?.toLowerCase() === search ||
+      inst.shortName?.toLowerCase() === search ||
       inst.name?.toLowerCase().includes(search)
     );
     return institution?.logo || '';
