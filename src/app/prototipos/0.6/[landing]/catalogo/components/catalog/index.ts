@@ -8,7 +8,6 @@ export { ProductCardSkeleton } from './ProductCardSkeleton';
 export { LoadMoreButton } from './LoadMoreButton';
 export { ImageGallery } from './ImageGallery';
 export { ProductTags } from './ProductTags';
-export { FloatingFilterPanel } from './FloatingFilterPanel';
 export { CatalogSecondaryNavbar } from './CatalogSecondaryNavbar';
 
 // Color selector (único iterable v0.6)

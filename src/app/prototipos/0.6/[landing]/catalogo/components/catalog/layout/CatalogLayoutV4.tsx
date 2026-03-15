@@ -23,8 +23,6 @@ import {
   BrandFilterV6,
 } from '../filters/brand';
 import {
-  brandOptions,
-  brandsByDeviceType,
   deviceTypeOptions,
   usageOptions,
   ramOptions,
@@ -84,13 +82,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           label: b.name,
           count: b.count || 0,
           logo: b.logo_url || undefined,
+          primaryColor: b.primary_color || undefined,
         }));
       }
       return []; // API returned empty - no fallback to mock
     }
-    // API not called yet - use mock as placeholder while loading
-    return filterCounts ? applyDynamicCounts(brandOptions, filterCounts.brands) : brandOptions;
-  }, [apiFilters, filterCounts]);
+    // API not called yet - return empty while loading (no mock fallback)
+    return [];
+  }, [apiFilters]);
   const dynamicUsageOptions = React.useMemo(() => {
     // If API has responded, use its data (even if empty)
     if (apiFilters) {
@@ -260,7 +259,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     });
 
     filters.brands.forEach((brand) => {
-      const opt = brandOptions.find((o) => o.value === brand);
+      const opt = dynamicBrandOptions.find((o) => o.value === brand);
       applied.push({ id: `brand-${brand}`, category: 'Marca', label: opt?.label || brand, value: brand });
     });
 
@@ -506,20 +505,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     accesorio: Headphones,
   };
 
-  // Get filtered brand options based on selected device types
+  // Get brand options from API (no mock filtering needed - API handles contextual counts)
   const getFilteredBrandOptions = () => {
-    if (filters.deviceTypes.length === 0) {
-      return dynamicBrandOptions;
-    }
-
-    // Get all brands available for selected device types
-    const availableBrands = new Set<string>();
-    filters.deviceTypes.forEach((deviceType) => {
-      const brands = brandsByDeviceType[deviceType] || [];
-      brands.forEach((brand) => availableBrands.add(brand));
-    });
-
-    return dynamicBrandOptions.filter((opt) => availableBrands.has(opt.value));
+    return dynamicBrandOptions;
   };
 
   const renderBrandFilter = () => {

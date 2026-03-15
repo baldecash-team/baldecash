@@ -45,7 +45,7 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct } = useProduct();
 
   // Remove product from cart (or clear selectedProduct if single)
   const handleRemoveProduct = useCallback((productId: string) => {
@@ -393,6 +393,27 @@ function WizardPreviewContent() {
                           )}
                         </div>
                       )}
+
+                      {/* Initial Payment Selector */}
+                      <div className="mt-2">
+                        <p className="text-[11px] text-neutral-500 mb-1">Inicial:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {getInitialOptionsForProduct(product.id).map((option) => (
+                            <button
+                              key={option.percent}
+                              onClick={() => updateProductInitial(product.id, option.percent)}
+                              className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
+                                product.initialPercent === option.percent
+                                  ? 'bg-[var(--color-primary)] text-white font-medium'
+                                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
                         S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}/mes
                         <span className="text-xs text-neutral-500 font-normal ml-1">

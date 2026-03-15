@@ -19,7 +19,7 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
-  const { selectedProduct, selectedAccessories, selectedInsurance, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota } = useProduct();
+  const { selectedProduct, selectedAccessories, selectedInsurance, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct } = useProduct();
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
 
   // Usar el estado del contexto para la expansión
@@ -182,6 +182,30 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                               )}
                             </div>
                           )}
+
+                          {/* Initial Payment Selector - Mobile */}
+                          <div className="mt-2">
+                            <p className="text-[10px] text-neutral-400 mb-1">Inicial:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {getInitialOptionsForProduct(product.id).map((option) => (
+                                <button
+                                  key={option.percent}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateProductInitial(product.id, option.percent);
+                                  }}
+                                  className={`text-[10px] px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                                    product.initialPercent === option.percent
+                                      ? 'bg-[var(--color-primary)] text-white font-medium'
+                                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
                           <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
                             {formatPrice(product.monthlyPayment)}/mes
                           </p>
@@ -339,6 +363,26 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       ].filter(Boolean).join(' · ')}
                     </p>
                   )}
+
+                  {/* Initial Payment Selector - Desktop */}
+                  <div className="mt-2">
+                    <p className="text-[11px] text-neutral-400 mb-1">Inicial:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getInitialOptionsForProduct(product.id).map((option) => (
+                        <button
+                          key={option.percent}
+                          onClick={() => updateProductInitial(product.id, option.percent)}
+                          className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
+                            product.initialPercent === option.percent
+                              ? 'bg-[var(--color-primary)] text-white font-medium'
+                              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Pricing - Monthly + Initial */}

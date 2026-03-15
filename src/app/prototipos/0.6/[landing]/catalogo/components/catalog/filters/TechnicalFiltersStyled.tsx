@@ -20,15 +20,14 @@ import {
   Maximize,
   Layers,
   CheckCircle2,
-  MemoryStick,
-  Briefcase,
-  Package,
-  GraduationCap,
-  Gamepad2,
-  Palette,
-  Code,
-  PenTool
+  MemoryStick
 } from 'lucide-react';
+import {
+  usageIconMap,
+  defaultUsageIcon,
+  conditionIconMap,
+  defaultConditionIcon,
+} from '../iconRegistry';
 
 // Define which filters to show
 type FilterVisibility = 'all' | 'main' | 'advanced';
@@ -487,21 +486,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
 // ============================================
 // VERSION 3: Cards con Iconos
 // ============================================
-// Mapping of usage types to specific icons
-const usageIconMap: Record<string, React.ElementType> = {
-  estudiante: GraduationCap,
-  oficina: Briefcase,
-  gaming: Gamepad2,
-  diseño: Palette,
-  programacion: Code,
-  creativo: PenTool,
-};
-
-// Mapping of condition types to specific icons
-const conditionIconMap: Record<string, React.ElementType> = {
-  nuevo: Package,
-  reacondicionado: CheckCircle2,
-};
+// Icon mappings imported from ../iconRegistry.ts
 
 // IconCardFilterContent extracted outside to prevent re-mounting
 const IconCardFilterWithMappingContent: React.FC<{
@@ -626,7 +611,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
         <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>
           <IconCardFilterWithMappingContent
             iconMap={usageIconMap}
-            defaultIcon={Briefcase}
+            defaultIcon={defaultUsageIcon}
             options={usageOptions}
             selected={selectedUsage}
             onToggle={(val) => toggleArrayValue(selectedUsage, val as UsageType, onUsageChange)}
@@ -640,7 +625,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
         <FilterSection title="Condición" tooltip={filterTooltips.condition} defaultExpanded={false}>
           <IconCardFilterWithMappingContent
             iconMap={conditionIconMap}
-            defaultIcon={Package}
+            defaultIcon={defaultConditionIcon}
             options={conditionOptions}
             selected={selectedCondition}
             onToggle={(val) => toggleArrayValue(selectedCondition, val as ProductCondition, onConditionChange)}

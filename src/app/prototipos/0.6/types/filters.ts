@@ -43,6 +43,7 @@ export interface BrandFilter {
   name: string;
   slug: string;
   logo_url?: string | null;
+  primary_color?: string | null;  // Hex color for brand identity (e.g., "#0096D6")
   count: number;
 }
 

@@ -90,8 +90,14 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
   const nextPage = () => setPage((prev) => (prev + 1) % totalPages);
   const prevPage = () => setPage((prev) => (prev - 1 + totalPages) % totalPages);
 
-  const getInstitutionLogo = (institutionCode: string) => {
-    const institution = data.institutions.find((inst) => inst.code === institutionCode);
+  const getInstitutionLogo = (institutionName: string) => {
+    if (!institutionName) return '';
+    const search = institutionName.toLowerCase();
+    const institution = data.institutions.find((inst) =>
+      inst.code?.toLowerCase() === search ||
+      inst.short_name?.toLowerCase() === search ||
+      inst.name?.toLowerCase().includes(search)
+    );
     return institution?.logo || '';
   };
 

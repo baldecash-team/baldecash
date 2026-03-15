@@ -2,9 +2,13 @@
 
 import React from 'react';
 import { Card, CardBody } from '@nextui-org/react';
-import { GraduationCap, Palette, Briefcase, Gamepad2, LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { UsageType } from '../../types/catalog';
+import {
+  usageIconMap,
+  usageLabels,
+  usageDescriptions,
+} from './iconRegistry';
 
 interface QuickUsageCardsProps {
   selected: UsageType[];
@@ -12,18 +16,8 @@ interface QuickUsageCardsProps {
   className?: string;
 }
 
-// The 4 main quick usage cards - fixed structure like v0.5
-const quickUsageCards: Array<{
-  value: UsageType;
-  label: string;
-  icon: LucideIcon;
-  description: string;
-}> = [
-  { value: 'estudios', label: 'Para estudiar', icon: GraduationCap, description: 'Clases online, investigación y proyectos' },
-  { value: 'diseno', label: 'Para crear', icon: Palette, description: 'Diseño gráfico, video y fotografía' },
-  { value: 'oficina', label: 'Para trabajar', icon: Briefcase, description: 'Excel, reuniones y multitarea' },
-  { value: 'gaming', label: 'Para jugar', icon: Gamepad2, description: 'Juegos, streaming y multimedia' },
-];
+// The 4 main quick usage cards - use centralized registry
+const quickUsageCardKeys: UsageType[] = ['estudios', 'diseno', 'oficina', 'gaming'];
 
 /**
  * QuickUsageCards - Selector rápido de uso con cards visuales
@@ -46,13 +40,15 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
   return (
     <div className={className}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {quickUsageCards.map((card, index) => {
-          const isSelected = selected.includes(card.value);
-          const Icon = card.icon;
+        {quickUsageCardKeys.map((usageKey, index) => {
+          const isSelected = selected.includes(usageKey);
+          const Icon = usageIconMap[usageKey];
+          const label = usageLabels[usageKey];
+          const description = usageDescriptions[usageKey];
 
           return (
             <motion.div
-              key={card.value}
+              key={usageKey}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
@@ -60,7 +56,7 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
             >
               <Card
                 isPressable
-                onPress={() => handleCardClick(card.value)}
+                onPress={() => handleCardClick(usageKey)}
                 className={`w-full cursor-pointer transition-all duration-200 ${
                   isSelected
                     ? 'border-2 border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] shadow-md'
@@ -84,10 +80,10 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
                         isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-800'
                       }`}
                     >
-                      {card.label}
+                      {label}
                     </h3>
                     <p className="text-xs text-neutral-500 truncate hidden sm:block">
-                      {card.description}
+                      {description}
                     </p>
                   </div>
 

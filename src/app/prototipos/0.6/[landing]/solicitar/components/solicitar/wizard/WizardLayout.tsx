@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import { useParams } from 'next/navigation';
 import { WizardProgress } from './WizardProgress';
 import { WizardNavigation } from './WizardNavigation';
 import { MotivationalCard } from './MotivationalCard';
@@ -65,10 +66,13 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   navbarProps,
   motivational,
 }) => {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+
   return (
     <div className="min-h-screen bg-neutral-50 relative">
       {/* Preview Banner - shows when navigating from /preview with preview_key */}
-      <PreviewBanner pageName="Solicitar" />
+      <PreviewBanner landingSlug={landing} pageName="Solicitar" />
 
       {/* Navbar del Hero */}
       <Navbar {...navbarProps} />

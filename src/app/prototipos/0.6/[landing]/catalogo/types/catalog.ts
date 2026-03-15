@@ -287,6 +287,7 @@ export interface FilterOption {
   count: number;
   icon?: string;
   logo?: string;
+  primaryColor?: string;  // Hex color for brand identity (e.g., "#0096D6")
   disabled?: boolean;
 }
 

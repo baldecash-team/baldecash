@@ -28,6 +28,9 @@ export interface ProductItem {
   specs?: ProductSpecs;
   /** v0.6.1: Selected color/variant */
   variant?: VariantInfo;
+  /** v0.6.1: Per-product initial payment */
+  initialPaymentPercent?: number;
+  initialPayment?: number;
 }
 
 export interface AccessoryItem {

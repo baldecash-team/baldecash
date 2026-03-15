@@ -36,6 +36,12 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
     0
   ) || 0;
 
+  // Calcular total de inicial (suma de valores redondeados para coincidir con display)
+  const totalInitialPayment = data.products.reduce(
+    (sum, p) => sum + Math.floor(p.initialPayment || 0),
+    0
+  );
+
   const hasAccessories = data.accessories && data.accessories.length > 0;
   const hasInsurance = !!data.insurance;
   const hasCoupon = !!data.coupon;
@@ -134,7 +140,9 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                     {formatPrice(product.monthlyQuota)}/mes
                   </p>
                   <p className="text-xs text-neutral-500">
-                    {data.termMonths} meses
+                    {data.termMonths} meses · {product.initialPayment && product.initialPayment > 0
+                      ? `Inicial ${formatPrice(product.initialPayment)}`
+                      : 'Sin inicial'}
                   </p>
                 </div>
               </div>
@@ -263,11 +271,9 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
           </div>
         </div>
         <p className="text-xs text-neutral-500 mt-1">
-          {data.termMonths} cuotas
-          {/* v0.6.1: Show initial payment if applicable */}
-          {data.initialPayment && data.initialPayment > 0 && (
-            <> · Inicial {formatPrice(data.initialPayment)} ({data.initialPaymentPercent}%)</>
-          )}
+          {data.termMonths} cuotas · {totalInitialPayment > 0
+            ? `Inicial ${formatPrice(totalInitialPayment)}`
+            : 'Sin inicial'}
         </p>
       </div>
     </motion.div>

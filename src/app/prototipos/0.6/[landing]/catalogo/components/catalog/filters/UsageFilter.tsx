@@ -2,13 +2,8 @@
 
 import React from 'react';
 import { Checkbox } from '@nextui-org/react';
-import {
-  GraduationCap,
-  Gamepad2,
-  Palette,
-  Briefcase,
-} from 'lucide-react';
 import { UsageType, FilterOption } from '../../../types/catalog';
+import { getUsageIcon, defaultUsageIcon } from '../iconRegistry';
 
 interface UsageFilterProps {
   options: FilterOption[];
@@ -16,13 +11,6 @@ interface UsageFilterProps {
   onChange: (usage: UsageType[]) => void;
   showCounts?: boolean;
 }
-
-const iconMap: Record<string, React.ReactNode> = {
-  GraduationCap: <GraduationCap className="w-4 h-4" />,
-  Gamepad2: <Gamepad2 className="w-4 h-4" />,
-  Palette: <Palette className="w-4 h-4" />,
-  Briefcase: <Briefcase className="w-4 h-4" />,
-};
 
 export const UsageFilter: React.FC<UsageFilterProps> = ({
   options,
@@ -42,6 +30,7 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
     <div className="space-y-1 bg-white">
       {options.map((option) => {
         const isSelected = selected.includes(option.value as UsageType);
+        const Icon = getUsageIcon(option.value);
 
         return (
           <label
@@ -63,7 +52,7 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
                   isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-500'
                 }`}
               >
-                {option.icon && iconMap[option.icon]}
+                <Icon className="w-4 h-4" />
               </span>
               <span
                 className={`text-xs transition-colors ${

@@ -1384,7 +1384,7 @@ function CatalogoContent() {
   return (
     <div className="min-h-screen relative">
       {/* Preview Banner - shows when navigating from /preview with preview_key */}
-      <PreviewBanner pageName="Catálogo" />
+      <PreviewBanner landingSlug={landing} pageName="Catálogo" />
 
       {/* Navbar from Hero */}
       <Navbar

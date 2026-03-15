@@ -3,11 +3,13 @@
 import React, { useState } from 'react';
 import { Checkbox } from '@nextui-org/react';
 import { BrandFilterProps } from '../../../../types/catalog';
+import { BrandLogo } from './BrandLogo';
 
 /**
  * BrandFilterV2 - Logo + Texto
  * Logo pequeno 24px + nombre + checkbox
  * Balance visual entre reconocimiento y compacidad
+ * Uses CSS mask-image for dynamic brand colors on hover/selected
  */
 export const BrandFilterV2: React.FC<BrandFilterProps> = ({
   options,
@@ -52,11 +54,13 @@ export const BrandFilterV2: React.FC<BrandFilterProps> = ({
 
             <div className="w-8 h-6 flex items-center justify-center flex-shrink-0">
               {option.logo && !hasError ? (
-                <img
+                <BrandLogo
                   src={option.logo}
                   alt={option.label}
-                  className="max-w-full max-h-full object-contain grayscale group-hover:grayscale-0 transition-all"
-                  loading="lazy"
+                  primaryColor={option.primaryColor}
+                  isSelected={isSelected}
+                  showColorOnHover={true}
+                  className="w-full h-full"
                   onError={() => handleImageError(option.value)}
                 />
               ) : (

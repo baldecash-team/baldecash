@@ -3,11 +3,13 @@
 import React, { useRef, useState } from 'react';
 import { BrandFilterProps } from '../../../../types/catalog';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
 
 /**
  * BrandFilterV4 - Carousel de Logos
  * Scroll horizontal de logos, seleccion multiple
  * Ideal para muchas marcas en poco espacio
+ * Uses CSS mask-image for dynamic brand colors on hover/selected
  */
 export const BrandFilterV4: React.FC<BrandFilterProps> = ({
   options,
@@ -78,13 +80,13 @@ export const BrandFilterV4: React.FC<BrandFilterProps> = ({
 
               <div className="w-12 h-8 flex items-center justify-center mb-1">
                 {option.logo && !hasError ? (
-                  <img
+                  <BrandLogo
                     src={option.logo}
                     alt={option.label}
-                    className={`max-w-full max-h-full object-contain transition-all ${
-                      isSelected ? '' : 'grayscale hover:grayscale-0'
-                    }`}
-                    loading="lazy"
+                    primaryColor={option.primaryColor}
+                    isSelected={isSelected}
+                    showColorOnHover={true}
+                    className="w-full h-full"
                     onError={() => handleImageError(option.value)}
                   />
                 ) : (

@@ -50,6 +50,9 @@ interface ApplicationStatusData {
       color_name: string;
       color_hex: string;
     } | null;
+    // v0.6.1: Per-product initial payment
+    initial_payment_percent?: number;
+    initial_payment?: number;
   }>;
 
   term_months?: number;
@@ -126,7 +129,7 @@ function buildReceivedData(
   const termMonths = applicationData?.term_months || 12;
   const userName = applicationData?.applicant_name || searchParams.get('name') || 'Usuario';
 
-  // Mapear productos desde API (v0.6.1: incluye variant info)
+  // Mapear productos desde API (v0.6.1: incluye variant info y initial payment)
   const products = applicationData?.products?.map((p) => ({
     name: p.name,
     brand: p.brand || undefined,
@@ -144,6 +147,9 @@ function buildReceivedData(
           colorHex: p.variant.color_hex,
         }
       : undefined,
+    // v0.6.1: Per-product initial payment
+    initialPaymentPercent: p.initial_payment_percent || 0,
+    initialPayment: p.initial_payment || 0,
   })) || [];
 
   // Mapear accesorios desde API

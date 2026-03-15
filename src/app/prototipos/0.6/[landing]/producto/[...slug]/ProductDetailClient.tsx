@@ -273,7 +273,7 @@ function ProductDetailContent() {
   return (
     <div className="min-h-screen bg-neutral-50 overflow-x-hidden">
       {/* Preview Banner - shows when navigating from /preview with preview_key */}
-      <PreviewBanner pageName="Detalle del Producto" />
+      <PreviewBanner landingSlug={landing} pageName="Detalle del Producto" />
 
       {/* Navbar from Hero */}
       <Navbar

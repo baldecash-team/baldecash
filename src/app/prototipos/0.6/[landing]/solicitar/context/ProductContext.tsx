@@ -105,6 +105,9 @@ interface ProductContextValue {
   hasUnifiedTerms: () => boolean;
   getAvailableTerms: () => number[];
   updateAllProductsToTerm: (term: number) => void;
+  // Initial payment per product
+  updateProductInitial: (productId: string, newInitialPercent: number) => void;
+  getInitialOptionsForProduct: (productId: string) => { percent: number; amount: number; label: string }[];
 }
 
 const ProductContext = createContext<ProductContextValue | undefined>(undefined);
@@ -493,6 +496,97 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     }
   }, [getAllProducts, cartProducts, selectedProduct, setCartProducts, setSelectedProduct]);
 
+  /**
+   * Get available initial payment options for a specific product
+   * Returns array of { percent, amount, label } based on current term
+   * Falls back to calculated values if paymentPlans not available
+   */
+  const getInitialOptionsForProduct = useCallback((productId: string): { percent: number; amount: number; label: string }[] => {
+    const products = getAllProducts();
+    const product = products.find(p => p.id === productId);
+    if (!product) return [];
+
+    // Try to use paymentPlans data first
+    if (product.paymentPlans && product.paymentPlans.length > 0) {
+      const plan = product.paymentPlans.find(p => p.term === product.months);
+      if (plan?.options) {
+        return plan.options.map(opt => ({
+          percent: opt.initialPercent,
+          amount: opt.initialAmount,
+          label: opt.initialPercent === 0
+            ? 'Sin inicial'
+            : `S/${Math.floor(opt.initialAmount).toLocaleString()}`,
+        }));
+      }
+    }
+
+    // Fallback: Calculate options based on product price
+    const initialPercentages = [0, 10, 20, 30] as const;
+    return initialPercentages.map(percent => {
+      const amount = Math.floor(product.price * (percent / 100));
+      return {
+        percent,
+        amount,
+        label: percent === 0 ? 'Sin inicial' : `S/${amount.toLocaleString()}`,
+      };
+    });
+  }, [getAllProducts]);
+
+  /**
+   * Update initial payment for a specific product
+   * Recalculates monthlyPayment based on paymentPlans or calculation fallback
+   */
+  const updateProductInitial = useCallback((productId: string, newInitialPercent: number) => {
+    const updateProduct = (product: SelectedProduct): SelectedProduct => {
+      if (product.id !== productId) return product;
+
+      // Try to use paymentPlans data first
+      const plan = product.paymentPlans?.find(p => p.term === product.months);
+      if (plan?.options) {
+        const option = plan.options.find(o => o.initialPercent === newInitialPercent);
+        if (option) {
+          return {
+            ...product,
+            initialPercent: newInitialPercent,
+            initialAmount: option.initialAmount,
+            monthlyPayment: option.monthlyQuota,
+          };
+        }
+      }
+
+      // Fallback: Calculate using formula
+      const validInitialPercent = [0, 10, 20, 30].includes(newInitialPercent)
+        ? newInitialPercent as InitialPaymentPercent
+        : 0;
+      const validTerm = [12, 18, 24, 36].includes(product.months)
+        ? product.months as TermMonths
+        : 24;
+
+      const { quota, initialAmount } = calculateQuotaWithInitial(
+        product.price,
+        validTerm,
+        validInitialPercent
+      );
+
+      return {
+        ...product,
+        initialPercent: newInitialPercent,
+        initialAmount: initialAmount,
+        monthlyPayment: quota,
+      };
+    };
+
+    // Update cart products
+    if (cartProducts.length > 0) {
+      setCartProducts(cartProducts.map(updateProduct));
+    }
+
+    // Update selected product if it matches
+    if (selectedProduct?.id === productId) {
+      setSelectedProduct(updateProduct(selectedProduct));
+    }
+  }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct]);
+
   return (
     <ProductContext.Provider
       value={{
@@ -525,6 +619,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         hasUnifiedTerms,
         getAvailableTerms,
         updateAllProductsToTerm,
+        updateProductInitial,
+        getInitialOptionsForProduct,
       }}
     >
       {children}
