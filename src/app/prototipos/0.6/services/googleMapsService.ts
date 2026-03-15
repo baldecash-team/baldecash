@@ -1,4 +1,4 @@
-/// <reference types="@types/google.maps" />
+/// <reference types="google.maps" />
 /**
  * Google Maps Service - BaldeCash v0.6
  * Singleton service for dynamically loading Google Maps API
