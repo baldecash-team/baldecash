@@ -58,6 +58,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   productName = 'Producto',
   productBrand = 'BaldeCash',
   productPrice = 0,
+  productUrl,
   // Sincronización con PricingCalculator
   selectedTerm: externalSelectedTerm,
   selectedInitialPercent: externalInitialPercent,
@@ -150,7 +151,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   // Total = cuotas mensuales + cuota inicial (si aplica)
   const totalPayment = (adjustedQuota * selectedTerm) + initialAmount;
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     // Generar datos para el PDF
     const pdfSchedule = amortizationSchedule.map((row, index) => ({
       month: row.month,
@@ -161,10 +162,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
       balance: row.balance,
     }));
 
-    generateCronogramaPDF({
+    await generateCronogramaPDF({
       productName,
       productBrand,
       productPrice,
+      productUrl: productUrl || (typeof window !== 'undefined' ? window.location.href : undefined),
       term: selectedTerm,
       monthlyQuota: adjustedQuota,
       totalPayment,

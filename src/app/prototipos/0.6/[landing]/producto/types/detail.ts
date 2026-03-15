@@ -286,6 +286,7 @@ export interface CronogramaProps {
   productName?: string;
   productBrand?: string;
   productPrice?: number;
+  productUrl?: string;
   // Sincronización con PricingCalculator
   selectedTerm?: number;
   selectedInitialPercent?: InitialPaymentPercentage;
@@ -306,4 +307,5 @@ export interface SpecSheetDownloadProps {
   productName?: string;
   productBrand?: string;
   productImage?: string;
+  productUrl?: string;
 }

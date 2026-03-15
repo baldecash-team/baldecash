@@ -1,10 +1,22 @@
 /**
  * Generador de PDF para Ficha Técnica (Spec Sheet)
- * Diseño visual similar a la web: cards en grid 2 columnas
+ * Usa utilidades compartidas de ./pdf/
  */
 
 import { jsPDF, GState } from 'jspdf';
-import { BALDECASH_LOGO_BASE64 } from './baldecashLogo';
+import {
+  PDF_COLORS,
+  PDF_LAYOUT,
+  LEGAL_TEXTS,
+  drawHeader,
+  drawCard,
+  drawPageBackground,
+  addFootersToAllPages,
+  addWatermarksToAllPages,
+  loadImageAsBase64,
+  loadQRCodeAsBase64,
+} from './pdf';
+import { COMPANY_INFO } from './pdf/constants';
 
 // Tipos para los datos del spec sheet
 interface SpecItem {
@@ -30,107 +42,264 @@ interface SpecSheetPDFData {
   productName: string;
   productBrand: string;
   productImage?: string;
+  productUrl?: string;
   specs: SpecCategory[];
   ports?: ProductPort[];
   generatedDate: Date;
 }
 
-// Colores del tema (matching web)
-const COLORS = {
-  primary: { r: 61, g: 71, b: 176 }, // #3D47B0
-  primaryLight: { r: 61, g: 71, b: 176, a: 0.1 }, // rgba for backgrounds
-  text: { r: 23, g: 23, b: 23 },
-  textMuted: { r: 115, g: 115, b: 115 },
-  border: { r: 229, g: 229, b: 229 }, // neutral-200
-  cardBg: { r: 255, g: 255, b: 255 },
-  pageBg: { r: 250, g: 250, b: 250 }, // neutral-50
-  highlightBg: { r: 239, g: 240, b: 250 }, // primary/5%
-  shadow: { r: 0, g: 0, b: 0, a: 0.08 },
-};
-
 /**
- * Formatea una fecha en español
+ * Dibuja un ícono simplificado dentro de un cuadrado
+ * Los íconos son versiones minimalistas dibujadas con líneas y formas
  */
-const formatDate = (date: Date): string => {
-  return date.toLocaleDateString('es-PE', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
-};
-
-/**
- * Convierte una URL de imagen a base64
- */
-const loadImageAsBase64 = async (url: string): Promise<string> => {
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
-
-  // Intento 1: Fetch directo
-  try {
-    const response = await fetch(url, { mode: 'cors' });
-    if (response.ok) {
-      const blob = await response.blob();
-      return blobToBase64(blob);
-    }
-  } catch {
-    // Direct fetch failed, try external proxy
-  }
-
-  // Intento 2: Proxy externo
-  const proxyUrl = `https://images.weserv.nl/?url=${encodeURIComponent(url)}`;
-  const response = await fetch(proxyUrl);
-
-  if (!response.ok) {
-    throw new Error(`Failed to load image: ${response.status}`);
-  }
-
-  const blob = await response.blob();
-  return blobToBase64(blob);
-};
-
-/**
- * Dibuja una card con sombra simulada y bordes redondeados
- */
-const drawCard = (
+const drawCategoryIcon = (
   doc: jsPDF,
+  iconName: string,
   x: number,
   y: number,
-  width: number,
-  height: number,
-  options: { shadow?: boolean; radius?: number } = {}
-) => {
-  const { shadow = true, radius = 4 } = options;
+  size: number
+): void => {
+  const centerX = x + size / 2;
+  const centerY = y + size / 2;
+  const iconSize = size * 0.5; // Ícono ocupa 50% del cuadrado
 
-  // Sombra (rectángulo offset gris)
-  if (shadow) {
-    doc.setFillColor(0, 0, 0);
-    doc.setGState(new GState({ opacity: 0.06 }));
-    doc.roundedRect(x + 1, y + 1, width, height, radius, radius, 'F');
-    doc.setGState(new GState({ opacity: 1 }));
+  doc.setDrawColor(255, 255, 255);
+  doc.setLineWidth(0.4);
+  doc.setFillColor(255, 255, 255);
+
+  switch (iconName.toLowerCase()) {
+    case 'cpu':
+      // Chip: cuadrado central con líneas saliendo
+      const chipSize = iconSize * 0.6;
+      doc.rect(centerX - chipSize / 2, centerY - chipSize / 2, chipSize, chipSize, 'S');
+      // Líneas (pines)
+      const pinOffset = chipSize / 2 + 1;
+      doc.line(centerX - 1.5, centerY - pinOffset, centerX - 1.5, centerY - pinOffset - 1.5);
+      doc.line(centerX + 1.5, centerY - pinOffset, centerX + 1.5, centerY - pinOffset - 1.5);
+      doc.line(centerX - 1.5, centerY + pinOffset, centerX - 1.5, centerY + pinOffset + 1.5);
+      doc.line(centerX + 1.5, centerY + pinOffset, centerX + 1.5, centerY + pinOffset + 1.5);
+      break;
+
+    case 'memory':
+      // RAM stick: rectángulo horizontal con muescas
+      const ramW = iconSize * 0.9;
+      const ramH = iconSize * 0.4;
+      doc.rect(centerX - ramW / 2, centerY - ramH / 2, ramW, ramH, 'S');
+      // Chips internos
+      doc.rect(centerX - ramW / 2 + 1, centerY - ramH / 2 + 0.8, 1.5, ramH - 1.6, 'F');
+      doc.rect(centerX - 0.75, centerY - ramH / 2 + 0.8, 1.5, ramH - 1.6, 'F');
+      doc.rect(centerX + ramW / 2 - 2.5, centerY - ramH / 2 + 0.8, 1.5, ramH - 1.6, 'F');
+      break;
+
+    case 'storage':
+      // HDD/SSD: rectángulo con círculo interno
+      const hddW = iconSize * 0.8;
+      const hddH = iconSize * 0.6;
+      doc.roundedRect(centerX - hddW / 2, centerY - hddH / 2, hddW, hddH, 0.5, 0.5, 'S');
+      doc.circle(centerX, centerY, hddH * 0.25, 'S');
+      break;
+
+    case 'monitor':
+      // Pantalla con base
+      const monW = iconSize * 0.85;
+      const monH = iconSize * 0.55;
+      doc.rect(centerX - monW / 2, centerY - monH / 2 - 1, monW, monH, 'S');
+      // Base
+      doc.line(centerX, centerY + monH / 2 - 1, centerX, centerY + monH / 2 + 1);
+      doc.line(centerX - 2, centerY + monH / 2 + 1, centerX + 2, centerY + monH / 2 + 1);
+      break;
+
+    case 'battery':
+      // Batería horizontal
+      const batW = iconSize * 0.7;
+      const batH = iconSize * 0.4;
+      doc.rect(centerX - batW / 2, centerY - batH / 2, batW, batH, 'S');
+      // Terminal
+      doc.rect(centerX + batW / 2, centerY - batH / 4, 1, batH / 2, 'F');
+      // Nivel de carga (75%)
+      doc.rect(centerX - batW / 2 + 0.5, centerY - batH / 2 + 0.5, batW * 0.6, batH - 1, 'F');
+      break;
+
+    case 'wifi':
+      // Arcos de señal WiFi
+      doc.circle(centerX, centerY + 2, 0.8, 'F'); // Punto base
+      // Arcos (simulados con líneas curvas)
+      doc.setLineWidth(0.3);
+      const drawArc = (radius: number) => {
+        const steps = 8;
+        for (let i = 0; i < steps; i++) {
+          const angle1 = Math.PI * (1.25 - (i / steps) * 0.5);
+          const angle2 = Math.PI * (1.25 - ((i + 1) / steps) * 0.5);
+          doc.line(
+            centerX + Math.cos(angle1) * radius,
+            centerY + 2 + Math.sin(angle1) * radius,
+            centerX + Math.cos(angle2) * radius,
+            centerY + 2 + Math.sin(angle2) * radius
+          );
+        }
+      };
+      drawArc(2);
+      drawArc(3.5);
+      break;
+
+    case 'scale':
+      // Báscula/peso
+      const scaleW = iconSize * 0.8;
+      doc.roundedRect(centerX - scaleW / 2, centerY - 1, scaleW, iconSize * 0.4, 0.5, 0.5, 'S');
+      // Display
+      doc.rect(centerX - scaleW / 4, centerY, scaleW / 2, iconSize * 0.15, 'S');
+      break;
+
+    case 'camera':
+      // Cámara
+      const camW = iconSize * 0.75;
+      const camH = iconSize * 0.5;
+      doc.roundedRect(centerX - camW / 2, centerY - camH / 2, camW, camH, 0.5, 0.5, 'S');
+      // Lente
+      doc.circle(centerX, centerY, camH * 0.3, 'S');
+      // Flash
+      doc.rect(centerX + camW / 4, centerY - camH / 2 - 1, camW / 5, 1, 'F');
+      break;
+
+    case 'shield':
+      // Escudo
+      const shieldW = iconSize * 0.6;
+      const shieldH = iconSize * 0.75;
+      const shieldTop = centerY - shieldH / 2;
+      // Dibujar forma de escudo con líneas
+      doc.line(centerX - shieldW / 2, shieldTop, centerX + shieldW / 2, shieldTop);
+      doc.line(centerX - shieldW / 2, shieldTop, centerX - shieldW / 2, centerY);
+      doc.line(centerX + shieldW / 2, shieldTop, centerX + shieldW / 2, centerY);
+      doc.line(centerX - shieldW / 2, centerY, centerX, centerY + shieldH / 2);
+      doc.line(centerX + shieldW / 2, centerY, centerX, centerY + shieldH / 2);
+      break;
+
+    case 'smartphone':
+      // Teléfono móvil
+      const phoneW = iconSize * 0.45;
+      const phoneH = iconSize * 0.75;
+      doc.roundedRect(centerX - phoneW / 2, centerY - phoneH / 2, phoneW, phoneH, 0.8, 0.8, 'S');
+      // Pantalla
+      doc.rect(centerX - phoneW / 2 + 0.5, centerY - phoneH / 2 + 1.5, phoneW - 1, phoneH - 3, 'S');
+      // Botón home
+      doc.circle(centerX, centerY + phoneH / 2 - 1, 0.6, 'S');
+      break;
+
+    case 'fingerprint':
+      // Huella dactilar (arcos concéntricos)
+      doc.circle(centerX, centerY, iconSize * 0.35, 'S');
+      doc.circle(centerX, centerY, iconSize * 0.22, 'S');
+      doc.circle(centerX, centerY, iconSize * 0.1, 'F');
+      break;
+
+    case 'gauge':
+      // Velocímetro/medidor
+      const gaugeR = iconSize * 0.35;
+      // Semicírculo
+      doc.setLineWidth(0.5);
+      const gaugeSteps = 12;
+      for (let i = 0; i <= gaugeSteps; i++) {
+        const angle = Math.PI + (i / gaugeSteps) * Math.PI;
+        const x1 = centerX + Math.cos(angle) * gaugeR;
+        const y1 = centerY + Math.sin(angle) * gaugeR;
+        const x2 = centerX + Math.cos(angle) * (gaugeR - 0.8);
+        const y2 = centerY + Math.sin(angle) * (gaugeR - 0.8);
+        if (i % 3 === 0) doc.line(x1, y1, x2, y2);
+      }
+      // Aguja
+      doc.line(centerX, centerY, centerX + gaugeR * 0.6, centerY - gaugeR * 0.4);
+      doc.circle(centerX, centerY, 0.8, 'F');
+      doc.setLineWidth(0.4);
+      break;
+
+    case 'zap':
+      // Rayo/energía
+      const zapW = iconSize * 0.4;
+      const zapH = iconSize * 0.7;
+      const zapTop = centerY - zapH / 2;
+      // Forma de rayo con líneas
+      doc.line(centerX + zapW * 0.3, zapTop, centerX - zapW * 0.2, centerY);
+      doc.line(centerX - zapW * 0.2, centerY, centerX + zapW * 0.1, centerY);
+      doc.line(centerX + zapW * 0.1, centerY, centerX - zapW * 0.3, zapTop + zapH);
+      break;
+
+    case 'bluetooth':
+      // Símbolo Bluetooth
+      const btH = iconSize * 0.6;
+      const btW = iconSize * 0.35;
+      // Forma de B estilizada
+      doc.line(centerX, centerY - btH / 2, centerX, centerY + btH / 2); // Línea vertical
+      doc.line(centerX, centerY - btH / 2, centerX + btW, centerY - btH / 6); // Superior derecha
+      doc.line(centerX + btW, centerY - btH / 6, centerX - btW / 2, centerY + btH / 6); // Diagonal
+      doc.line(centerX - btW / 2, centerY + btH / 6, centerX + btW, centerY + btH / 3); // Diagonal inferior
+      doc.line(centerX + btW, centerY + btH / 3, centerX, centerY + btH / 2); // Inferior derecha
+      break;
+
+    case 'settings':
+      // Engranaje
+      const gearR = iconSize * 0.3;
+      doc.circle(centerX, centerY, gearR * 0.4, 'S'); // Centro
+      // Dientes del engranaje
+      const teeth = 6;
+      for (let i = 0; i < teeth; i++) {
+        const angle = (i / teeth) * Math.PI * 2;
+        const x1 = centerX + Math.cos(angle) * (gearR - 0.5);
+        const y1 = centerY + Math.sin(angle) * (gearR - 0.5);
+        const x2 = centerX + Math.cos(angle) * (gearR + 0.8);
+        const y2 = centerY + Math.sin(angle) * (gearR + 0.8);
+        doc.line(x1, y1, x2, y2);
+      }
+      break;
+
+    case 'volume-2':
+    case 'volume':
+      // Altavoz con ondas
+      const spkW = iconSize * 0.3;
+      const spkH = iconSize * 0.4;
+      // Cono del altavoz
+      doc.rect(centerX - spkW, centerY - spkH / 4, spkW * 0.4, spkH / 2, 'F');
+      doc.line(centerX - spkW + spkW * 0.4, centerY - spkH / 4, centerX, centerY - spkH / 2);
+      doc.line(centerX - spkW + spkW * 0.4, centerY + spkH / 4, centerX, centerY + spkH / 2);
+      doc.line(centerX, centerY - spkH / 2, centerX, centerY + spkH / 2);
+      // Ondas de sonido
+      doc.setLineWidth(0.3);
+      doc.line(centerX + 1.5, centerY - 1.5, centerX + 2.5, centerY - 2.5);
+      doc.line(centerX + 1.5, centerY + 1.5, centerX + 2.5, centerY + 2.5);
+      doc.setLineWidth(0.4);
+      break;
+
+    case 'keyboard':
+      // Teclado
+      const kbW = iconSize * 0.8;
+      const kbH = iconSize * 0.45;
+      doc.roundedRect(centerX - kbW / 2, centerY - kbH / 2, kbW, kbH, 0.5, 0.5, 'S');
+      // Teclas (3 filas)
+      const keySize = 1;
+      const keyGap = 1.8;
+      for (let row = 0; row < 2; row++) {
+        for (let col = 0; col < 4; col++) {
+          const kx = centerX - kbW / 2 + 1 + col * keyGap;
+          const ky = centerY - kbH / 2 + 1 + row * keyGap;
+          doc.rect(kx, ky, keySize, keySize, 'F');
+        }
+      }
+      // Barra espaciadora
+      doc.rect(centerX - kbW / 4, centerY + kbH / 2 - 2, kbW / 2, 1, 'F');
+      break;
+
+    default:
+      // Ícono genérico: cuadrado con punto
+      doc.rect(centerX - iconSize / 3, centerY - iconSize / 3, iconSize * 0.66, iconSize * 0.66, 'S');
+      doc.circle(centerX, centerY, 1, 'F');
+      break;
   }
-
-  // Card background
-  doc.setFillColor(COLORS.cardBg.r, COLORS.cardBg.g, COLORS.cardBg.b);
-  doc.roundedRect(x, y, width, height, radius, radius, 'F');
-
-  // Border
-  doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(x, y, width, height, radius, radius, 'S');
 };
 
 /**
  * Calcula la altura necesaria para una categoría
  */
 const calculateCategoryHeight = (doc: jsPDF, category: SpecCategory, contentWidth: number): number => {
-  const headerHeight = 14;
+  const headerHeight = 20; // iconY(5) + iconSize(10) + lineOffset(3) + gap(2)
   const specRowHeight = 6;
   const paddingTop = 4;
   const paddingBottom = 4;
@@ -149,45 +318,29 @@ const calculateCategoryHeight = (doc: jsPDF, category: SpecCategory, contentWidt
 };
 
 /**
- * Genera y descarga el PDF de la ficha técnica (diseño tipo web)
+ * Genera y descarga el PDF de la ficha técnica
  */
 export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void> => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 15;
+  const margin = PDF_LAYOUT.margin;
   const contentWidth = pageWidth - margin * 2;
 
-  // Background de página
-  doc.setFillColor(COLORS.pageBg.r, COLORS.pageBg.g, COLORS.pageBg.b);
-  doc.rect(0, 0, pageWidth, pageHeight, 'F');
-
-  let y = 15;
-
-  // ===== HEADER =====
-  // Logo BaldeCash (derecha)
-  try {
-    const logoWidth = 50;
-    const logoHeight = 14;
-    const logoX = pageWidth - logoWidth - margin;
-    doc.addImage(BALDECASH_LOGO_BASE64, 'PNG', logoX, y, logoWidth, logoHeight);
-  } catch {
-    // Si falla, continuar sin logo
+  // Cargar QR code si hay URL del producto
+  let qrBase64: string | null = null;
+  if (data.productUrl) {
+    qrBase64 = await loadQRCodeAsBase64(data.productUrl, 80);
   }
 
-  // Título
-  doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Ficha Técnica', margin, y + 10);
+  // Fondo de página
+  drawPageBackground(doc);
 
-  // Fecha
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Generado el ${formatDate(data.generatedDate)}`, margin, y + 18);
-
-  y += 28;
+  // Header estandarizado
+  let y = drawHeader(doc, 'Ficha Técnica', 'Especificaciones del producto', {
+    showDate: true,
+    date: data.generatedDate,
+  });
 
   // ===== PRODUCTO CARD =====
   let productImageBase64: string | null = null;
@@ -211,23 +364,23 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       // Sin imagen si falla
     }
 
-    doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+    doc.setTextColor(...PDF_COLORS.text);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(data.productBrand.toUpperCase(), margin + imgSize + 12, y + 15);
 
-    doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+    doc.setTextColor(...PDF_COLORS.primary);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(data.productName, margin + imgSize + 12, y + 24);
   } else {
     // Sin imagen
-    doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+    doc.setTextColor(...PDF_COLORS.text);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(data.productBrand.toUpperCase(), margin + 8, y + 10);
 
-    doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+    doc.setTextColor(...PDF_COLORS.primary);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text(data.productName, margin + 8, y + 18);
@@ -236,57 +389,72 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
   y += productCardHeight + 10;
 
   // ===== TÍTULO ESPECIFICACIONES =====
-  doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+  doc.setTextColor(...PDF_COLORS.text);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.text('Especificaciones Técnicas', margin, y);
   y += 8;
 
-  // ===== GRID DE CARDS (2 columnas) =====
-  const gap = 8;
+  // ===== MASONRY GRID DE CARDS (2 columnas independientes) =====
+  const gap = PDF_LAYOUT.gap;
   const cardWidth = (contentWidth - gap) / 2;
 
   const categories = data.specs;
-  let col = 0;
-  let rowY = y;
-  let maxHeightInRow = 0;
+
+  // Masonry: cada columna tiene su propia posición Y
+  let leftY = y;
+  let rightY = y;
+  let currentPage = doc.internal.pages.length;
 
   for (let i = 0; i < categories.length; i++) {
     const category = categories[i];
     const cardHeight = calculateCategoryHeight(doc, category, cardWidth - 16);
 
-    // Calcular posición X
+    // Elegir la columna con menor Y (masonry)
+    const useLeftColumn = leftY <= rightY;
+    const col = useLeftColumn ? 0 : 1;
+    const cardY = useLeftColumn ? leftY : rightY;
     const cardX = margin + col * (cardWidth + gap);
 
     // Verificar si necesitamos nueva página
-    if (rowY + cardHeight > pageHeight - 25) {
+    if (cardY + cardHeight > pageHeight - PDF_LAYOUT.footerHeight - 10) {
       doc.addPage();
-      doc.setFillColor(COLORS.pageBg.r, COLORS.pageBg.g, COLORS.pageBg.b);
-      doc.rect(0, 0, pageWidth, pageHeight, 'F');
-      rowY = 15;
-      maxHeightInRow = 0;
+      drawPageBackground(doc);
+      // Reset ambas columnas en nueva página
+      leftY = margin;
+      rightY = margin;
+      currentPage = doc.internal.pages.length;
     }
 
+    // Recalcular cardY después de posible cambio de página
+    const finalCardY = useLeftColumn ? leftY : rightY;
+
     // Dibujar la card
-    drawCard(doc, cardX, rowY, cardWidth, cardHeight);
+    drawCard(doc, cardX, finalCardY, cardWidth, cardHeight);
 
     // Header de categoría
-    const headerY = rowY + 3;
     const headerPadding = 6;
+    const iconSize = 10;
+    const iconX = cardX + headerPadding;
+    const iconY = finalCardY + 5;
 
-    // Bullet decorativo (cuadrado sólido)
-    doc.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
-    doc.roundedRect(cardX + headerPadding + 1, headerY + 2, 6, 6, 1, 1, 'F');
+    // Cuadrado con ícono
+    doc.setFillColor(...PDF_COLORS.primary);
+    doc.roundedRect(iconX, iconY, iconSize, iconSize, 1.5, 1.5, 'F');
 
-    // Título de categoría
-    doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+    // Dibujar ícono dentro del cuadrado
+    drawCategoryIcon(doc, category.icon, iconX, iconY, iconSize);
+
+    // Título de categoría (alineado verticalmente con el centro del ícono)
+    const textY = iconY + iconSize / 2 + 1; // Centro vertical del ícono + ajuste baseline
+    doc.setTextColor(...PDF_COLORS.text);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text(category.category, cardX + headerPadding + 13, headerY + 7);
+    doc.text(category.category, iconX + iconSize + 4, textY);
 
     // Línea separadora bajo header
-    const lineY = headerY + 11;
-    doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b);
+    const lineY = iconY + iconSize + 3;
+    doc.setDrawColor(...PDF_COLORS.border);
     doc.setLineWidth(0.3);
     doc.line(cardX + headerPadding, lineY, cardX + cardWidth - headerPadding, lineY);
 
@@ -298,20 +466,20 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
     category.specs.forEach((spec) => {
       if (spec.highlight) {
-        doc.setFillColor(COLORS.highlightBg.r, COLORS.highlightBg.g, COLORS.highlightBg.b);
+        doc.setFillColor(...PDF_COLORS.primaryLight);
         doc.roundedRect(cardX + 3, specY - 2, cardWidth - 6, 6, 1, 1, 'F');
       }
 
-      doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b);
+      doc.setTextColor(...PDF_COLORS.textMuted);
       doc.setFontSize(7.5);
       doc.setFont('helvetica', 'normal');
       doc.text(spec.label, labelX, specY + 2);
 
       if (spec.highlight) {
-        doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+        doc.setTextColor(...PDF_COLORS.primary);
         doc.setFont('helvetica', 'bold');
       } else {
-        doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+        doc.setTextColor(...PDF_COLORS.text);
         doc.setFont('helvetica', 'normal');
       }
 
@@ -324,34 +492,28 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       specY += rowHeight;
     });
 
-    maxHeightInRow = Math.max(maxHeightInRow, cardHeight);
-
-    col++;
-    if (col >= 2) {
-      col = 0;
-      rowY += maxHeightInRow + gap;
-      maxHeightInRow = 0;
+    // Actualizar solo la columna usada (masonry)
+    if (useLeftColumn) {
+      leftY = finalCardY + cardHeight + gap;
+    } else {
+      rightY = finalCardY + cardHeight + gap;
     }
   }
 
-  // Ajustar Y después del grid
-  if (col !== 0) {
-    rowY += maxHeightInRow + gap;
-  }
-  y = rowY;
+  // Ajustar Y al máximo de ambas columnas
+  y = Math.max(leftY, rightY);
 
   // ===== PUERTOS (si hay) =====
   if (data.ports && data.ports.length > 0) {
     // Verificar espacio
-    if (y + 60 > pageHeight - 25) {
+    if (y + 60 > pageHeight - PDF_LAYOUT.footerHeight - 10) {
       doc.addPage();
-      doc.setFillColor(COLORS.pageBg.r, COLORS.pageBg.g, COLORS.pageBg.b);
-      doc.rect(0, 0, pageWidth, pageHeight, 'F');
-      y = 15;
+      drawPageBackground(doc);
+      y = margin;
     }
 
     // Título
-    doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+    doc.setTextColor(...PDF_COLORS.text);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Puertos y Conectividad', margin, y);
@@ -369,16 +531,16 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     const colWidthPorts = (contentWidth - 60) / 2;
 
     // Izquierda
-    doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b);
+    doc.setTextColor(...PDF_COLORS.textMuted);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.text('IZQUIERDA', margin + 10, portsContentY);
 
     let portY = portsContentY + 6;
     leftPorts.forEach((port) => {
-      doc.setFillColor(COLORS.pageBg.r, COLORS.pageBg.g, COLORS.pageBg.b);
+      doc.setFillColor(...PDF_COLORS.pageBg);
       doc.roundedRect(margin + 8, portY - 3, colWidthPorts - 10, 7, 1, 1, 'F');
-      doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+      doc.setTextColor(...PDF_COLORS.text);
       doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       doc.text(port.name + (port.count > 1 ? ` ×${port.count}` : ''), margin + 12, portY + 1);
@@ -388,29 +550,29 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     // Laptop visual (centro)
     const laptopX = margin + colWidthPorts + 15;
     const laptopY = portsContentY + 5;
-    doc.setFillColor(COLORS.pageBg.r, COLORS.pageBg.g, COLORS.pageBg.b);
+    doc.setFillColor(...PDF_COLORS.pageBg);
     doc.roundedRect(laptopX, laptopY, 30, 20, 2, 2, 'F');
-    doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b);
+    doc.setDrawColor(...PDF_COLORS.border);
     doc.roundedRect(laptopX, laptopY, 30, 20, 2, 2, 'S');
 
     // Indicadores de puertos
-    doc.setFillColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+    doc.setFillColor(...PDF_COLORS.primary);
     doc.setGState(new GState({ opacity: 0.3 }));
     doc.rect(laptopX - 1, laptopY + 6, 2, 8, 'F'); // left
     doc.rect(laptopX + 29, laptopY + 6, 2, 8, 'F'); // right
     doc.setGState(new GState({ opacity: 1 }));
 
     // Derecha
-    doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b);
+    doc.setTextColor(...PDF_COLORS.textMuted);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.text('DERECHA', margin + colWidthPorts + 55, portsContentY);
 
     portY = portsContentY + 6;
     rightPorts.forEach((port) => {
-      doc.setFillColor(COLORS.pageBg.r, COLORS.pageBg.g, COLORS.pageBg.b);
+      doc.setFillColor(...PDF_COLORS.pageBg);
       doc.roundedRect(margin + colWidthPorts + 53, portY - 3, colWidthPorts - 10, 7, 1, 1, 'F');
-      doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+      doc.setTextColor(...PDF_COLORS.text);
       doc.setFontSize(7);
       doc.setFont('helvetica', 'normal');
       doc.text(port.name + (port.count > 1 ? ` ×${port.count}` : ''), margin + colWidthPorts + 57, portY + 1);
@@ -420,20 +582,20 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     // Trasera (si hay)
     if (backPorts.length > 0) {
       const backY = portsContentY + 24 + Math.max(leftPorts.length, rightPorts.length) * 8;
-      doc.setDrawColor(COLORS.border.r, COLORS.border.g, COLORS.border.b);
+      doc.setDrawColor(...PDF_COLORS.border);
       doc.line(margin + 10, backY - 5, margin + contentWidth - 10, backY - 5);
 
-      doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b);
+      doc.setTextColor(...PDF_COLORS.textMuted);
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
       doc.text('PARTE TRASERA', margin + 10, backY);
 
       let backX = margin + 10;
       backPorts.forEach((port) => {
-        doc.setFillColor(COLORS.pageBg.r, COLORS.pageBg.g, COLORS.pageBg.b);
+        doc.setFillColor(...PDF_COLORS.pageBg);
         const portWidth = doc.getTextWidth(port.name + (port.count > 1 ? ` ×${port.count}` : '')) + 8;
         doc.roundedRect(backX, backY + 3, portWidth, 7, 1, 1, 'F');
-        doc.setTextColor(COLORS.text.r, COLORS.text.g, COLORS.text.b);
+        doc.setTextColor(...PDF_COLORS.text);
         doc.setFontSize(7);
         doc.setFont('helvetica', 'normal');
         doc.text(port.name + (port.count > 1 ? ` ×${port.count}` : ''), backX + 4, backY + 8);
@@ -441,7 +603,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       });
     }
 
-    // Badges de resumen (como en la web)
+    // Badges de resumen
     const totalPorts = data.ports.reduce((acc, p) => acc + p.count, 0);
     const leftCount = leftPorts.reduce((acc, p) => acc + p.count, 0);
     const rightCount = rightPorts.reduce((acc, p) => acc + p.count, 0);
@@ -453,13 +615,13 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     const totalText = `${totalPorts} puertos totales`;
     const totalBadgeWidth = doc.getTextWidth(totalText) + 12;
     doc.setFillColor(
-      COLORS.primary.r + (255 - COLORS.primary.r) * 0.9,
-      COLORS.primary.g + (255 - COLORS.primary.g) * 0.9,
-      COLORS.primary.b + (255 - COLORS.primary.b) * 0.9
+      PDF_COLORS.primary[0] + (255 - PDF_COLORS.primary[0]) * 0.9,
+      PDF_COLORS.primary[1] + (255 - PDF_COLORS.primary[1]) * 0.9,
+      PDF_COLORS.primary[2] + (255 - PDF_COLORS.primary[2]) * 0.9
     );
     const badge1X = margin + contentWidth / 2 - (totalBadgeWidth + badgeGap) / 2 - 30;
     doc.roundedRect(badge1X, badgeY, totalBadgeWidth, 8, 3, 3, 'F');
-    doc.setTextColor(COLORS.primary.r, COLORS.primary.g, COLORS.primary.b);
+    doc.setTextColor(...PDF_COLORS.primary);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.text(totalText, badge1X + totalBadgeWidth / 2, badgeY + 5.5, { align: 'center' });
@@ -467,10 +629,10 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     // Badge 2: Distribución izquierda/derecha (gris)
     const distText = `${leftCount} izquierda • ${rightCount} derecha`;
     const distBadgeWidth = doc.getTextWidth(distText) + 12;
-    doc.setFillColor(COLORS.pageBg.r - 10, COLORS.pageBg.g - 10, COLORS.pageBg.b - 10);
+    doc.setFillColor(PDF_COLORS.pageBg[0] - 10, PDF_COLORS.pageBg[1] - 10, PDF_COLORS.pageBg[2] - 10);
     const badge2X = badge1X + totalBadgeWidth + badgeGap;
     doc.roundedRect(badge2X, badgeY, distBadgeWidth, 8, 3, 3, 'F');
-    doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b);
+    doc.setTextColor(...PDF_COLORS.textMuted);
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.text(distText, badge2X + distBadgeWidth / 2, badgeY + 5.5, { align: 'center' });
@@ -478,22 +640,9 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     y += portsCardHeight + 10;
   }
 
-  // ===== FOOTER =====
-  if (y + 20 > pageHeight - 15) {
-    doc.addPage();
-    doc.setFillColor(COLORS.pageBg.r, COLORS.pageBg.g, COLORS.pageBg.b);
-    doc.rect(0, 0, pageWidth, pageHeight, 'F');
-    y = 15;
-  }
-
-  doc.setFontSize(7);
-  doc.setTextColor(COLORS.textMuted.r, COLORS.textMuted.g, COLORS.textMuted.b);
-  doc.text(
-    'Las especificaciones pueden variar según el modelo y configuración.',
-    margin,
-    y + 5
-  );
-  doc.text('BaldeCash - Financiamiento para estudiantes | www.baldecash.com', margin, y + 10);
+  // ===== WATERMARK Y FOOTER =====
+  addWatermarksToAllPages(doc, LEGAL_TEXTS.watermark);
+  addFootersToAllPages(doc, LEGAL_TEXTS.specSheet, qrBase64);
 
   // Descargar
   const brandSlug = data.productBrand.toLowerCase().replace(/\s+/g, '-');
