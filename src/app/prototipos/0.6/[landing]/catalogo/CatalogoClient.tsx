@@ -771,7 +771,7 @@ function CatalogoContent() {
     setIsFilterDrawerOpen(false);
     setIsCartModalOpen(false);
     setIsHelpPopoverOpen(false);
-    setIsWebchatOpen(false);
+    setIsBlipChatOpen(false);
   }, []);
 
   // Ref to store scroll position when any drawer opens
