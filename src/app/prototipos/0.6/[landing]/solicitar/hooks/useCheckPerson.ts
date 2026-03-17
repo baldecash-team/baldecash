@@ -20,6 +20,8 @@ import {
 interface UseCheckPersonOptions {
   /** Callback when prefill data is available */
   onPrefillReady?: (data: PrefillData) => void;
+  /** Callback when no prefill data is available (to clear fields) */
+  onNoPrefillData?: () => void;
   /** Callback when customer is preapproved */
   onPreapproved?: (data: PreapprovedData) => void;
   /** Callback on error */
@@ -69,6 +71,7 @@ export function useCheckPerson(
 ): UseCheckPersonResult {
   const {
     onPrefillReady,
+    onNoPrefillData,
     onPreapproved,
     onError,
     debounceMs = 300,
@@ -115,9 +118,12 @@ export function useCheckPerson(
 
           setResponse(result);
 
-          // Trigger prefill callback
+          // Trigger prefill callback or clear fields
           if (result.prefill_data && onPrefillReady) {
             onPrefillReady(result.prefill_data);
+          } else if (!result.prefill_data && onNoPrefillData) {
+            // No prefill data available - clear the fields
+            onNoPrefillData();
           }
 
           // Trigger preapproved callback
@@ -133,7 +139,7 @@ export function useCheckPerson(
         }
       }, debounceMs);
     },
-    [onPrefillReady, onPreapproved, onError, debounceMs]
+    [onPrefillReady, onNoPrefillData, onPreapproved, onError, debounceMs]
   );
 
   const reset = useCallback(() => {

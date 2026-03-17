@@ -61,17 +61,19 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     for (const [prefillKey, possibleCodes] of Object.entries(PREFILL_FIELD_MAP)) {
       const prefillValue = data[prefillKey as keyof PrefillData];
 
-      // Skip if no value or if it's the source field
-      if (!prefillValue || prefillKey === 'source') continue;
+      // Skip if it's the source field (internal use only)
+      if (prefillKey === 'source') continue;
 
       // Find a matching field code in the form
       for (const code of possibleCodes) {
         if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
-          // Only update if the field exists or it's the primary code
-          const existingValue = formData[code]?.value;
-          // Don't overwrite if user already filled this field
-          if (!existingValue) {
+          // Always update with prefill data (even if field has value)
+          // This ensures changing DNI updates all fields correctly
+          if (prefillValue) {
             updateField(code, String(prefillValue));
+          } else {
+            // Clear the field if new prefill has no value for it
+            updateField(code, '');
           }
           break;
         }
@@ -81,9 +83,29 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     setPrefilled(true);
   }, [formData, updateField]);
 
+  // Handle clearing fields when no prefill data is available
+  const handleNoPrefillData = useCallback(() => {
+    const formFieldCodes = Object.keys(formData);
+
+    // Clear all prefillable fields
+    for (const [prefillKey, possibleCodes] of Object.entries(PREFILL_FIELD_MAP)) {
+      if (prefillKey === 'source') continue;
+
+      for (const code of possibleCodes) {
+        if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
+          updateField(code, '');
+          break;
+        }
+      }
+    }
+
+    setPrefilled(false);
+  }, [formData, updateField]);
+
   // Initialize the check-person hook
-  const { check, isChecking, response } = useCheckPerson({
+  const { check, isChecking, response, reset: resetCheck } = useCheckPerson({
     onPrefillReady: handlePrefillReady,
+    onNoPrefillData: handleNoPrefillData,
     debounceMs: 500,
   });
 
@@ -104,11 +126,12 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Handle value change
   const handleChange = useCallback((newValue: string) => {
     updateField(field.code, newValue);
-    // Reset prefilled state when user changes the value
+    // Reset prefilled state and check cache when user changes the value
     if (prefilled) {
       setPrefilled(false);
+      resetCheck(); // Allow re-checking when DNI changes
     }
-  }, [field.code, updateField, prefilled]);
+  }, [field.code, updateField, prefilled, resetCheck]);
 
   // Build tooltip from API help_text
   const tooltip = field.help_text ? {
