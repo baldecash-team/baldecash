@@ -41,7 +41,9 @@ import { NavbarSearch, NavbarWishlist, NavbarCart, NavbarCartButton, NavbarSearc
 import { CatalogSecondaryNavbar } from './components/catalog/CatalogSecondaryNavbar';
 import { SearchDrawer } from './components/catalog/SearchDrawer';
 import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
-import { WebchatDrawer } from './components/webchat';
+// COMENTADO: Webchat local reemplazado por Blip Chat
+// import { WebchatDrawer } from './components/webchat';
+import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 import { CartLimitModal } from './components/catalog/CartLimitModal';
 
@@ -288,7 +290,10 @@ function CatalogoContent() {
   const { setSelectedProduct, setCartProducts: setContextCartProducts, clearCartProducts, clearAccessories } = useProduct();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor } = useLayout();
+
+  // Blip Chat control
+  const blipChat = useBlipChat();
 
   // Parse URL params once for initial state
   const initialUrlFilters = useMemo(() => parseFiltersFromParams(searchParams), []);
@@ -738,6 +743,9 @@ function CatalogoContent() {
 
   // Cart UI state
   const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+
+  // Blip Chat state
+  const [isBlipChatOpen, setIsBlipChatOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [selectedVariantForCart, setSelectedVariantForCart] = useState<CartItem | null>(null);  // v0.6.1: Store selected variant
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
@@ -749,7 +757,8 @@ function CatalogoContent() {
   // v0.6.1: These are used as fallback when CartItem doesn't have full product data
   const [wishlistProducts, setWishlistProducts] = useState<CatalogProduct[]>([]);
   const [cartProducts, setCartProducts] = useState<CatalogProduct[]>([]);
-  const [isWebchatOpen, setIsWebchatOpen] = useState(false);
+  // COMENTADO: Webchat local reemplazado por Blip Chat
+  // const [isWebchatOpen, setIsWebchatOpen] = useState(false);
   const { isOpen: isResumeModalOpen, close: closeResumeModal } = useResumeFinancingModal();
 
   // Helper to close all drawers/popups before opening a new one (mobile)
@@ -791,8 +800,8 @@ function CatalogoContent() {
         !isSearchDrawerOpen &&
         !isCartModalOpen &&
         !isSettingsOpen &&
-        !isPageLoading &&
-        !isWebchatOpen;
+        !isPageLoading;
+        // && !isWebchatOpen; // COMENTADO: Blip Chat
 
       if (timeSinceLastInteraction >= oneMinute && canShowHint) {
         if (hasQuiz) {
@@ -823,7 +832,7 @@ function CatalogoContent() {
     isCartModalOpen,
     isSettingsOpen,
     isPageLoading,
-    isWebchatOpen,
+    // isWebchatOpen, // COMENTADO: Blip Chat
     hasQuiz,
   ]);
 
@@ -852,7 +861,7 @@ function CatalogoContent() {
   // Centralized scroll lock for all drawers (iOS Safari fix)
   // NOTE: isCartModalOpen and isQuizOpen are excluded because NextUI Modal handles scroll lock internally
   const isAnyDrawerOpen = isSearchDrawerOpen || isCartDrawerOpen || isWishlistDrawerOpen ||
-                          isComparatorOpen || isWebchatOpen;
+                          isComparatorOpen; // || isWebchatOpen; // COMENTADO: Blip Chat
 
   useEffect(() => {
     if (isAnyDrawerOpen) {
@@ -1821,8 +1830,9 @@ function CatalogoContent() {
         />
       )}
 
-      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, webchat, or welcome modal is open) */}
-      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isWebchatOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
+      {/* Floating buttons - Bottom Left (hidden when quiz, comparator, filter drawer, cart drawer, wishlist drawer, search drawer, cart modal, settings, or welcome modal is open) */}
+      {!isQuizOpen && !isComparatorOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isCartModalOpen && !isSearchDrawerOpen && !isSettingsOpen && !onboarding.shouldShowWelcome && (
+      // && !isWebchatOpen // COMENTADO: Blip Chat maneja su propio botón
         <div className="fixed bottom-6 left-6 z-[100] flex flex-col gap-3">
           {/* Compare button - mobile only, visible when products are selected */}
           {compareList.length > 0 && (
@@ -1911,11 +1921,11 @@ function CatalogoContent() {
                   </div>
                 </button>
 
-                {/* Option 3: Webchat */}
+                {/* Option 3: Blip Chat */}
                 <button
                   onClick={() => {
                     setIsHelpPopoverOpen(false);
-                    setIsWebchatOpen(true);
+                    blipChat.openChat();
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer text-left"
                 >
@@ -1976,14 +1986,23 @@ function CatalogoContent() {
         />
       )}
 
-      {/* Webchat Drawer */}
+      {/* COMENTADO: Webchat Drawer - Reemplazado por Blip Chat
       <WebchatDrawer
         isOpen={isWebchatOpen}
         onClose={() => setIsWebchatOpen(false)}
       />
+      */}
+
+      {/* Blip Chat Widget (botón flotante oculto, se abre desde "¿Necesitas ayuda?") */}
+      <BlipChat
+        buttonColor={primaryColor}
+        hideFloatingButton={true}
+        onOpen={() => setIsBlipChatOpen(true)}
+        onClose={() => setIsBlipChatOpen(false)}
+      />
 
       {/* Back to top button */}
-      {showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !isWebchatOpen && !onboarding.shouldShowWelcome && (
+      {showScrollTop && !isQuizOpen && !isCartModalOpen && !isFilterDrawerOpen && !isCartDrawerOpen && !isWishlistDrawerOpen && !isComparatorOpen && !isSearchDrawerOpen && !isBlipChatOpen && !onboarding.shouldShowWelcome && (
         <div className="fixed bottom-6 right-6 z-[100]">
           <Button
             isIconOnly
