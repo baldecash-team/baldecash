@@ -15,6 +15,7 @@ import {
   addFootersToAllPages,
   addWatermarksToAllPages,
   loadQRCodeAsBase64,
+  registerAsapFont,
 } from './pdf';
 
 // Tipos para los datos del cronograma
@@ -62,6 +63,9 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   const margin = PDF_LAYOUT.margin;
   const contentWidth = pageWidth - margin * 2;
 
+  // Registrar fuente Asap (misma que usa la web)
+  registerAsapFont(doc);
+
   // Cargar QR code si hay URL del producto
   let qrBase64: string | null = null;
   if (data.productUrl) {
@@ -80,7 +84,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   // ===== DATOS DEL PRODUCTO =====
   doc.setTextColor(...PDF_COLORS.text);
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text('Datos del Producto', margin, y);
   y += 6;
 
@@ -88,43 +92,43 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   y += 8;
 
   doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Asap', 'normal');
   doc.setTextColor(...PDF_COLORS.textMuted);
   doc.text('Producto:', margin + 5, y);
   doc.setTextColor(...PDF_COLORS.text);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text(`${data.productBrand} ${data.productName}`, margin + 35, y);
   y += 8;
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Asap', 'normal');
   doc.setTextColor(...PDF_COLORS.textMuted);
   doc.text('Precio:', margin + 5, y);
   doc.setTextColor(...PDF_COLORS.text);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text(formatMoney(data.productPrice), margin + 35, y);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Asap', 'normal');
   doc.setTextColor(...PDF_COLORS.textMuted);
   doc.text('Plazo:', pageWidth / 2, y);
   doc.setTextColor(...PDF_COLORS.text);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text(`${data.term} meses`, pageWidth / 2 + 25, y);
   y += 8;
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Asap', 'normal');
   doc.setTextColor(...PDF_COLORS.textMuted);
   doc.text('Cuota:', margin + 5, y);
   doc.setTextColor(...PDF_COLORS.primary);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text(`${formatMoney(data.monthlyQuota)}/mes`, margin + 35, y);
 
   // Cuota inicial (si aplica)
   if (data.initialAmount && data.initialPercent) {
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Asap', 'normal');
     doc.setTextColor(...PDF_COLORS.textMuted);
     doc.text(`Inicial (${data.initialPercent}%):`, pageWidth / 2, y);
     doc.setTextColor(...PDF_COLORS.text);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Asap', 'bold');
     doc.text(formatMoney(data.initialAmount), pageWidth / 2 + 35, y);
   }
 
@@ -133,7 +137,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   // ===== TASAS E INFORMACIÓN FINANCIERA =====
   doc.setTextColor(...PDF_COLORS.text);
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text('Información Financiera', margin, y);
   y += 6;
 
@@ -146,18 +150,18 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   doc.text('TEA', margin + 5, y + 8);
   doc.setFontSize(14);
   doc.setTextColor(...PDF_COLORS.text);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text(`${data.financialData.tea}%`, margin + 5, y + 18);
 
   // TCEA
   drawCard(doc, margin + colWidth, y, colWidth - 5, 25, { shadow: false });
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Asap', 'normal');
   doc.setTextColor(...PDF_COLORS.textMuted);
   doc.text('TCEA', margin + colWidth + 5, y + 8);
   doc.setFontSize(14);
   doc.setTextColor(...PDF_COLORS.text);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text(`${data.financialData.tcea}%`, margin + colWidth + 5, y + 18);
 
   // Total
@@ -166,12 +170,12 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
     fillColor: PDF_COLORS.successBg,
   });
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Asap', 'normal');
   doc.setTextColor(...PDF_COLORS.textMuted);
   doc.text('Total a Pagar', margin + colWidth * 2 + 5, y + 8);
   doc.setFontSize(14);
   doc.setTextColor(...PDF_COLORS.success);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text(formatMoney(data.totalPayment), margin + colWidth * 2 + 5, y + 18);
 
   y += 38;
@@ -179,7 +183,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   // ===== TABLA DE AMORTIZACIÓN =====
   doc.setTextColor(...PDF_COLORS.text);
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text('Tabla de Amortización', margin, y);
   y += 6;
 
@@ -193,7 +197,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   doc.rect(margin, y, contentWidth, headerHeight, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
 
   tableHeaders.forEach((header, i) => {
     doc.text(header, x + 3, y + 8);
@@ -203,7 +207,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   y += headerHeight + 2;
 
   // Filas de la tabla
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Asap', 'normal');
   doc.setFontSize(8);
 
   const rowHeight = 7;
@@ -221,7 +225,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
       doc.rect(margin, y, contentWidth, headerHeight, 'F');
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('Asap', 'bold');
 
       tableHeaders.forEach((header, i) => {
         doc.text(header, x + 3, y + 8);
@@ -229,7 +233,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
       });
 
       y += headerHeight + 2;
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('Asap', 'normal');
       doc.setFontSize(8);
     }
 
@@ -261,9 +265,9 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
 
     // Monto (cuota)
     doc.setTextColor(...PDF_COLORS.text);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Asap', 'bold');
     doc.text(formatMoney(row.quota), x + 2, y + 3);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Asap', 'normal');
     x += colWidths[4];
 
     // Saldo

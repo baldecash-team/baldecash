@@ -18,6 +18,9 @@ import {
   HelpCircle,
   Download,
   Check,
+  Network,
+  Zap,
+  Cable,
 } from 'lucide-react';
 import { PortsDisplayProps, ProductPort, SpecSheetDownloadProps } from '../../../types/detail';
 import { generateSpecSheetPDF } from '../../../utils/generateSpecSheetPDF';
@@ -29,6 +32,9 @@ const iconMap: Record<string, React.ElementType> = {
   CreditCard,
   Laptop,
   HelpCircle,
+  Network,
+  Zap,
+  Cable,
 };
 
 /**

@@ -117,20 +117,20 @@ export const drawHeader = (
     // Si falla el logo, mostrar texto
     doc.setTextColor(...PDF_COLORS.primary);
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Asap', 'bold');
     doc.text(COMPANY_INFO.name, pageWidth - margin, y + 10, { align: 'right' });
   }
 
   // Título
   doc.setTextColor(...PDF_COLORS.primary);
   doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
   doc.text(title, margin, y + 8);
 
   // Subtítulo / Fecha
   doc.setTextColor(...PDF_COLORS.textMuted);
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Asap', 'normal');
 
   if (showDate) {
     doc.text(`${subtitle} • ${formatDate(date)}`, margin, y + 16);
@@ -208,7 +208,7 @@ export const drawWatermark = (
   doc.setGState(new GState({ opacity: 0.08 }));
   doc.setTextColor(...PDF_COLORS.watermark);
   doc.setFontSize(60);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Asap', 'bold');
 
   // Rotar y centrar
   const textWidth = doc.getTextWidth(text);
