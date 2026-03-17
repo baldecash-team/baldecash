@@ -95,7 +95,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const displayQuota = selectedColor?.quotaMonthly ?? product.quotaMonthly;
   const displayOriginalQuota = selectedColor?.originalQuotaMonthly ?? product.originalQuotaMonthly ?? null;
   const displayDiscount = selectedColor?.discount ?? product.discount;
-  const displaySpecs = selectedColor?.specs ?? product.specs;
+  const displaySpecs = product.specs; // Specs fijos del producto base, no varían por color
 
   // Obtener imágenes según color seleccionado (para carousel)
   const getImagesForSelectedColor = (): string[] => {
