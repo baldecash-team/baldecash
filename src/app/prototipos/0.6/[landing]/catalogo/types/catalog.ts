@@ -861,6 +861,7 @@ export interface ColorSelectorProps {
 
 export interface CartItem {
   productId: string;
+  slug?: string;  // Product slug for API calls (e.g., "cel-xiaomi-redmi-note14")
 
   // Información del producto (para mostrar sin refetch)
   name: string;

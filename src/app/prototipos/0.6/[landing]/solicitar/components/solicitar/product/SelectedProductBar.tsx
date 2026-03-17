@@ -19,7 +19,7 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
-  const { selectedProduct, selectedAccessories, selectedInsurance, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct } = useProduct();
+  const { selectedProduct, selectedAccessories, selectedInsurance, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
 
   // Usar el estado del contexto para la expansión
@@ -44,6 +44,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const hasAccessories = selectedAccessories.length > 0;
   const hasInsurance = !!selectedInsurance;
   const hasCoupon = !!appliedCoupon;
+  const availableTerms = getAvailableTerms();
 
   // Calculate total initial payment from all products
   const totalInitialPayment = allProducts.reduce((sum, p) => sum + (p.initialAmount || 0), 0);
@@ -184,27 +185,33 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           )}
 
                           {/* Initial Payment Selector - Mobile */}
-                          <div className="mt-2">
-                            <p className="text-[10px] text-neutral-400 mb-1">Inicial:</p>
-                            <div className="flex flex-wrap gap-1">
-                              {getInitialOptionsForProduct(product.id).map((option) => (
-                                <button
-                                  key={option.percent}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateProductInitial(product.id, option.percent);
-                                  }}
-                                  className={`text-[10px] px-2 py-0.5 rounded-full transition-all cursor-pointer ${
-                                    product.initialPercent === option.percent
-                                      ? 'bg-[var(--color-primary)] text-white font-medium'
-                                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                                  }`}
-                                >
-                                  {option.label}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
+                          {(() => {
+                            const initialOptions = getInitialOptionsForProduct(product.id);
+                            if (initialOptions.length === 0) return null;
+                            return (
+                              <div className="mt-2">
+                                <p className="text-[10px] text-neutral-400 mb-1">Inicial:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {initialOptions.map((option) => (
+                                    <button
+                                      key={option.percent}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateProductInitial(product.id, option.percent);
+                                      }}
+                                      className={`text-[10px] px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                                        product.initialPercent === option.percent
+                                          ? 'bg-[var(--color-primary)] text-white font-medium'
+                                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                      }`}
+                                    >
+                                      {option.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
                             {formatPrice(product.monthlyPayment)}/mes
@@ -278,9 +285,23 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         </span>
                       </div>
                     </div>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      {mainProduct.months} meses
-                    </p>
+                    {/* Term Selector - Mobile */}
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-neutral-500">Plazo:</span>
+                      <select
+                        className="text-xs border border-neutral-200 rounded-lg px-2 py-1 bg-white text-neutral-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                        value={mainProduct.months}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          const term = parseInt(e.target.value);
+                          if (term) updateAllProductsToTerm(term);
+                        }}
+                      >
+                        {availableTerms.map((term) => (
+                          <option key={term} value={term}>{term} meses</option>
+                        ))}
+                      </select>
+                    </div>
                     {hasInitialPayment && (
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
                         <span className="text-xs text-neutral-500">Inicial total</span>
@@ -317,15 +338,31 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
         {/* Products Card */}
         <div className="bg-white rounded-xl border border-neutral-200 p-4">
-          {/* Header if multiple products */}
-          {allProducts.length > 1 && (
-            <div className="flex items-center gap-2 mb-4 pb-3 border-b border-neutral-100">
+          {/* Header with term selector */}
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-100">
+            <div className="flex items-center gap-2">
               <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
               <span className="text-sm font-semibold text-neutral-800">
-                {allProducts.length} productos seleccionados
+                {allProducts.length > 1 ? `${allProducts.length} productos seleccionados` : 'Producto seleccionado'}
               </span>
             </div>
-          )}
+            {/* Term Selector - Desktop */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-neutral-500">Plazo:</span>
+              <select
+                className="text-sm border border-neutral-300 rounded-lg px-3 py-1.5 bg-white text-neutral-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                value={mainProduct.months}
+                onChange={(e) => {
+                  const term = parseInt(e.target.value);
+                  if (term) updateAllProductsToTerm(term);
+                }}
+              >
+                {availableTerms.map((term) => (
+                  <option key={term} value={term}>{term} meses</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           {/* Products List */}
           <div className="space-y-4">
@@ -365,24 +402,30 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   )}
 
                   {/* Initial Payment Selector - Desktop */}
-                  <div className="mt-2">
-                    <p className="text-[11px] text-neutral-400 mb-1">Inicial:</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {getInitialOptionsForProduct(product.id).map((option) => (
-                        <button
-                          key={option.percent}
-                          onClick={() => updateProductInitial(product.id, option.percent)}
-                          className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
-                            product.initialPercent === option.percent
-                              ? 'bg-[var(--color-primary)] text-white font-medium'
-                              : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {(() => {
+                    const initialOptions = getInitialOptionsForProduct(product.id);
+                    if (initialOptions.length === 0) return null;
+                    return (
+                      <div className="mt-2">
+                        <p className="text-[11px] text-neutral-400 mb-1">Inicial:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {initialOptions.map((option) => (
+                            <button
+                              key={option.percent}
+                              onClick={() => updateProductInitial(product.id, option.percent)}
+                              className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
+                                product.initialPercent === option.percent
+                                  ? 'bg-[var(--color-primary)] text-white font-medium'
+                                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Pricing - Monthly + Initial */}

@@ -126,6 +126,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // ============================================
   const createCartItem = (): CartItem => ({
     productId: activeProductId,
+    slug: selectedColor?.slug || product.slug,  // For API calls when fetching payment plans
     name: product.name,
     shortName: displayName,
     brand: product.brand,

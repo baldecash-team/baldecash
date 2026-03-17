@@ -125,6 +125,7 @@ function ProductDetailContent() {
     // This preserves the user's selected months, initialPercent, and monthlyPayment
     const productsForContext = catalogState.cart.map((cartItem) => ({
       id: cartItem.productId,
+      slug: cartItem.slug,  // For API calls when fetching payment plans
       name: cartItem.name,
       shortName: cartItem.shortName,
       brand: cartItem.brand,
@@ -334,6 +335,7 @@ function ProductDetailContent() {
             const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24 / 0.9);
             const cartItem: CartItem = {
               productId: similarProduct.id,
+              slug: similarProduct.slug,  // For API calls when fetching payment plans
               name: similarProduct.displayName,
               shortName: similarProduct.name,
               brand: similarProduct.brand,

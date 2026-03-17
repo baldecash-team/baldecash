@@ -395,24 +395,30 @@ function WizardPreviewContent() {
                       )}
 
                       {/* Initial Payment Selector */}
-                      <div className="mt-2">
-                        <p className="text-[11px] text-neutral-500 mb-1">Inicial:</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {getInitialOptionsForProduct(product.id).map((option) => (
-                            <button
-                              key={option.percent}
-                              onClick={() => updateProductInitial(product.id, option.percent)}
-                              className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
-                                product.initialPercent === option.percent
-                                  ? 'bg-[var(--color-primary)] text-white font-medium'
-                                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                              }`}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      {(() => {
+                        const initialOptions = getInitialOptionsForProduct(product.id);
+                        if (initialOptions.length === 0) return null;
+                        return (
+                          <div className="mt-2">
+                            <p className="text-[11px] text-neutral-500 mb-1">Inicial:</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {initialOptions.map((option) => (
+                                <button
+                                  key={option.percent}
+                                  onClick={() => updateProductInitial(product.id, option.percent)}
+                                  className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
+                                    product.initialPercent === option.percent
+                                      ? 'bg-[var(--color-primary)] text-white font-medium'
+                                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
                         S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}/mes

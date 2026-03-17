@@ -159,6 +159,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // Build CartItem with full config
     const cartItem: CartItem = {
       productId: product.id,
+      slug: product.slug,  // For API calls when fetching payment plans
       name: product.displayName,  // Full name for cart display
       shortName: product.name,    // Short name for compact views
       brand: product.brand,
@@ -203,6 +204,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // Build SelectedProduct from current product
     const selectedProduct: SelectedProduct = {
       id: product.id,
+      slug: product.slug,  // For API calls when fetching payment plans
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,

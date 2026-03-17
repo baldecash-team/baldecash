@@ -1056,6 +1056,7 @@ function CatalogoContent() {
 
         return {
           id: item.productId,
+          slug: item.slug || product?.slug,  // Required for payment plans API sync
           name: item.name,
           shortName: item.shortName || item.name,
           brand: item.brand,
@@ -1075,6 +1076,8 @@ function CatalogoContent() {
           variantId: item.variantId,
           colorName: item.colorName,
           colorHex: item.colorHex,
+          // v0.6.2: Include payment plans for dynamic initial options (no hardcoded fallback)
+          paymentPlans: item.paymentPlans,
         };
       });
 

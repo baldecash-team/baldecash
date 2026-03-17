@@ -270,7 +270,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                     </p>
 
                     {/* Image Thumbnails */}
-                    {imageUrls.length > 1 && (
+                    {imageUrls.length >= 1 && (
                       <div className="flex justify-center gap-1.5">
                         {imageUrls.map((imgUrl, idx) => (
                           <button

@@ -454,3 +454,36 @@ export async function getProductDetail(landing: string, slug: string): Promise<{
     };
   }
 }
+
+/**
+ * Fetch only payment plans for a product
+ * Used when a product in cart/context is missing paymentPlans data
+ * @param landing - Landing slug (e.g., "home")
+ * @param productId - Product ID
+ * @returns Payment plans array or null if not found
+ */
+export async function fetchProductPaymentPlans(landing: string, productId: string): Promise<PaymentPlan[] | null> {
+  try {
+    // Use the detail endpoint but only extract payment_plans
+    const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${productId}/detail`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data: ApiProductDetailResponse = await response.json();
+    return data.payment_plans.map(transformPaymentPlan);
+  } catch (error) {
+    console.error('Error fetching payment plans:', error);
+    return null;
+  }
+}

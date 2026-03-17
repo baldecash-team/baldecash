@@ -9,6 +9,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useMemo, useRef } from 'react';
 import type { Accessory, InsurancePlan } from '../types/upsell';
 import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/producto/api/productDetailApi';
+import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 
 // Dynamic storage keys based on landing slug
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -36,6 +38,7 @@ export interface PaymentPlan {
 
 export interface SelectedProduct {
   id: string;
+  slug?: string;           // Product slug for API calls (e.g., "cel-xiaomi-redmi-note14")
   name: string;
   shortName: string;
   brand: string;
@@ -108,6 +111,9 @@ interface ProductContextValue {
   // Initial payment per product
   updateProductInitial: (productId: string, newInitialPercent: number) => void;
   getInitialOptionsForProduct: (productId: string) => { percent: number; amount: number; label: string }[];
+  // Payment plans sync (fetch missing plans from API)
+  syncMissingPaymentPlans: () => Promise<void>;
+  isSyncingPaymentPlans: boolean;
 }
 
 const ProductContext = createContext<ProductContextValue | undefined>(undefined);
@@ -141,6 +147,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
+  const [isSyncingPaymentPlans, setIsSyncingPaymentPlans] = useState(false);
 
   // Memoize storage keys based on landing
   const storageKey = useMemo(() => getStorageKey(landingSlug), [landingSlug]);
@@ -465,7 +472,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
 
       // Fallback: calculate using formula (may not match exact API values but better than nothing)
       // This handles products added before paymentPlans were saved
-      const validInitialPercent = [0, 10, 20, 30].includes(p.initialPercent)
+      const validInitialPercent = [0, 10, 20].includes(p.initialPercent)
         ? p.initialPercent as InitialPaymentPercent
         : 0;
       const validTerm = [12, 18, 24, 36].includes(term)
@@ -499,17 +506,18 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   /**
    * Get available initial payment options for a specific product
    * Returns array of { percent, amount, label } based on current term
-   * Falls back to calculated values if paymentPlans not available
+   * Data comes from API paymentPlans only (database)
    */
   const getInitialOptionsForProduct = useCallback((productId: string): { percent: number; amount: number; label: string }[] => {
     const products = getAllProducts();
     const product = products.find(p => p.id === productId);
     if (!product) return [];
 
-    // Try to use paymentPlans data first
+    // Use paymentPlans from API - source of truth from database
     if (product.paymentPlans && product.paymentPlans.length > 0) {
-      const plan = product.paymentPlans.find(p => p.term === product.months);
-      if (plan?.options) {
+      const plan = product.paymentPlans.find(p => p.term === product.months)
+        || product.paymentPlans[0];
+      if (plan?.options && plan.options.length > 0) {
         return plan.options.map(opt => ({
           percent: opt.initialPercent,
           amount: opt.initialAmount,
@@ -520,17 +528,103 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       }
     }
 
-    // Fallback: Calculate options based on product price
-    const initialPercentages = [0, 10, 20, 30] as const;
-    return initialPercentages.map(percent => {
-      const amount = Math.floor(product.price * (percent / 100));
-      return {
-        percent,
-        amount,
-        label: percent === 0 ? 'Sin inicial' : `S/${amount.toLocaleString()}`,
-      };
-    });
+    // No paymentPlans - return empty (sync should fetch them)
+    return [];
   }, [getAllProducts]);
+
+  /**
+   * Sync missing payment plans from API
+   * 1. First, fetch slugs for products that don't have them (using catalog API)
+   * 2. Then fetch paymentPlans using the slugs
+   * 3. Update products with both slug and paymentPlans
+   */
+  const syncMissingPaymentPlans = useCallback(async () => {
+    const products = getAllProducts();
+    const productsWithoutPlans = products.filter(
+      p => !p.paymentPlans || p.paymentPlans.length === 0
+    );
+
+    if (productsWithoutPlans.length === 0) return;
+
+    setIsSyncingPaymentPlans(true);
+
+    try {
+      // Step 1: Get slugs for products that don't have them
+      const productsWithoutSlug = productsWithoutPlans.filter(p => !p.slug);
+      const slugMap = new Map<string, string>();
+
+      if (productsWithoutSlug.length > 0) {
+        // Fetch product data from catalog API to get slugs
+        const productIds = productsWithoutSlug.map(p => p.id);
+        const catalogProducts = await fetchProductsByIds(landingSlug, productIds);
+
+        // Build slug map
+        catalogProducts.forEach(cp => {
+          slugMap.set(cp.id, cp.slug);
+        });
+      }
+
+      // Step 2: Fetch payment plans for all products (using slug from product or from map)
+      const fetchPromises = productsWithoutPlans.map(async (product) => {
+        const slug = product.slug || slugMap.get(product.id);
+        if (!slug) return { productId: product.id, plans: null, slug: null };
+
+        const plans = await fetchProductPaymentPlans(landingSlug, slug);
+        return { productId: product.id, plans, slug };
+      });
+
+      const results = await Promise.all(fetchPromises);
+
+      // Build maps
+      const plansMap = new Map<string, PaymentPlan[]>();
+      const newSlugMap = new Map<string, string>();
+
+      results.forEach(({ productId, plans, slug }) => {
+        if (plans) plansMap.set(productId, plans);
+        if (slug) newSlugMap.set(productId, slug);
+      });
+
+      // Step 3: Update products with fetched plans and slugs
+      const updateProductWithPlans = (product: SelectedProduct): SelectedProduct => {
+        const plans = plansMap.get(product.id);
+        const slug = newSlugMap.get(product.id);
+
+        if (!plans && !slug) return product;
+
+        // Find the option for current term and initial percent
+        const plan = plans?.find(p => p.term === product.months);
+        const option = plan?.options.find(o => o.initialPercent === product.initialPercent)
+          || plan?.options[0];
+
+        return {
+          ...product,
+          slug: product.slug || slug,  // Add slug if missing
+          paymentPlans: plans || product.paymentPlans,
+          // Update monthlyPayment and initialAmount if we found a matching option
+          ...(option && {
+            monthlyPayment: option.monthlyQuota,
+            initialAmount: option.initialAmount,
+            initialPercent: option.initialPercent,
+          }),
+        };
+      };
+
+      // Apply updates to cartProducts
+      if (cartProducts.length > 0) {
+        const updatedCart = cartProducts.map(updateProductWithPlans);
+        setCartProducts(updatedCart);
+      }
+
+      // Apply updates to selectedProduct
+      if (selectedProduct) {
+        setSelectedProduct(updateProductWithPlans(selectedProduct));
+      }
+    } catch (error) {
+      console.error('Error syncing payment plans:', error);
+    } finally {
+      setIsSyncingPaymentPlans(false);
+    }
+  }, [getAllProducts, landingSlug, cartProducts, selectedProduct, setCartProducts, setSelectedProduct]);
 
   /**
    * Update initial payment for a specific product
@@ -555,7 +649,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       }
 
       // Fallback: Calculate using formula
-      const validInitialPercent = [0, 10, 20, 30].includes(newInitialPercent)
+      const validInitialPercent = [0, 10, 20].includes(newInitialPercent)
         ? newInitialPercent as InitialPaymentPercent
         : 0;
       const validTerm = [12, 18, 24, 36].includes(product.months)
@@ -586,6 +680,23 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       setSelectedProduct(updateProduct(selectedProduct));
     }
   }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct]);
+
+  // Auto-sync missing payment plans when products are loaded
+  // This runs once after hydration when products without plans are detected
+  const hasSyncedRef = useRef(false);
+  useEffect(() => {
+    if (!isHydrated || hasSyncedRef.current || isSyncingPaymentPlans) return;
+
+    const products = getAllProducts();
+    const hasProductsWithoutPlans = products.some(
+      p => !p.paymentPlans || p.paymentPlans.length === 0
+    );
+
+    if (hasProductsWithoutPlans && products.length > 0) {
+      hasSyncedRef.current = true;
+      syncMissingPaymentPlans();
+    }
+  }, [isHydrated, getAllProducts, syncMissingPaymentPlans, isSyncingPaymentPlans]);
 
   return (
     <ProductContext.Provider
@@ -621,6 +732,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         updateAllProductsToTerm,
         updateProductInitial,
         getInitialOptionsForProduct,
+        syncMissingPaymentPlans,
+        isSyncingPaymentPlans,
       }}
     >
       {children}
