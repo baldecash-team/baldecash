@@ -87,6 +87,7 @@ export function useSubmitApplication(
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+  const keepData = typeof window !== 'undefined' && sessionStorage.getItem('keepData') === 'true';
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
@@ -276,15 +277,17 @@ export function useSubmitApplication(
           }
           setSubmitStage('success');
 
-          // Clear all wizard state
-          clearSession();
-          resetFormStartTracking();
-          resetForm();
-          clearProduct();
-          clearCartProducts();
-          clearAccessories();
-          clearInsurance();
-          clearCoupon();
+          // Clear all wizard state (skip if keepData param is set for testing)
+          if (!keepData) {
+            clearSession();
+            resetFormStartTracking();
+            resetForm();
+            clearProduct();
+            clearCartProducts();
+            clearAccessories();
+            clearInsurance();
+            clearCoupon();
+          }
 
           // Show success toast
           onToast?.('Solicitud enviada correctamente', 'success');
