@@ -1,15 +1,41 @@
 /**
  * Google Maps Service - BaldeCash v0.6
  * Singleton service for dynamically loading Google Maps API
+ * Uses the recommended async loading pattern via importLibrary
  */
 
 // Promise for tracking script load state
 let googleMapsLoadPromise: Promise<void> | null = null;
 
 /**
+ * Bootstrap the Google Maps JS API with loading=async (recommended pattern).
+ * This avoids the "loaded directly without loading=async" console warning.
+ * @see https://developers.google.com/maps/documentation/javascript/load-maps-js-api
+ */
+async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
+  // Load the core script with loading=async
+  await new Promise<void>((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&language=es&loading=async`;
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => resolve();
+    script.onerror = () => {
+      googleMapsLoadPromise = null;
+      reject(new Error('Failed to load Google Maps script'));
+    };
+
+    document.head.appendChild(script);
+  });
+
+  // With loading=async, libraries must be loaded via importLibrary
+  await google.maps.importLibrary('places');
+}
+
+/**
  * Load Google Maps script dynamically (singleton pattern)
  * Only loads once, subsequent calls return the same promise
- * Uses async loading pattern with importLibrary for optimal performance
  */
 export function loadGoogleMapsScript(): Promise<void> {
   // Return existing promise if already loading/loaded
@@ -17,43 +43,20 @@ export function loadGoogleMapsScript(): Promise<void> {
     return googleMapsLoadPromise;
   }
 
-  googleMapsLoadPromise = new Promise((resolve, reject) => {
-    // Check if already loaded
-    if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-      resolve();
-      return;
-    }
+  // Check if already loaded
+  if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+    googleMapsLoadPromise = Promise.resolve();
+    return googleMapsLoadPromise;
+  }
 
-    // Get API key from environment
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      reject(new Error('Google Maps API key not configured'));
-      return;
-    }
+  // Get API key from environment
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  if (!apiKey) {
+    googleMapsLoadPromise = Promise.reject(new Error('Google Maps API key not configured'));
+    return googleMapsLoadPromise;
+  }
 
-    // Create and append script
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=es`;
-    script.async = true;
-    script.defer = true;
-
-    script.onload = () => {
-      // Verify Places library is available
-      if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-        resolve();
-      } else {
-        reject(new Error('Google Maps Places library not available'));
-      }
-    };
-
-    script.onerror = () => {
-      googleMapsLoadPromise = null; // Reset to allow retry
-      reject(new Error('Failed to load Google Maps script'));
-    };
-
-    document.head.appendChild(script);
-  });
-
+  googleMapsLoadPromise = bootstrapGoogleMaps(apiKey);
   return googleMapsLoadPromise;
 }
 

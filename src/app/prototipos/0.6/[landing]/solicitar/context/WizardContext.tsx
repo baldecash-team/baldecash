@@ -116,11 +116,12 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
       const prevValue = prev[fieldId]?.value;
       const valueChanged = prevValue !== value;
 
-      // Start with updating the current field
+      // Start with updating the current field, clearing error on change
+      const { error: _prevError, ...prevFieldWithoutError } = prev[fieldId] || {};
       const newData = {
         ...prev,
         [fieldId]: {
-          ...prev[fieldId],
+          ...prevFieldWithoutError,
           value,
           touched: true,
           // Clear label if value is empty, otherwise preserve/update existing label
