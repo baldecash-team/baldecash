@@ -4,7 +4,7 @@
  */
 
 // API Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
 // ============================================================================
 // TIPOS - Mapean la respuesta del endpoint /wizard

@@ -26,7 +26,7 @@ import React, {
 const getSessionKey = (landing: string) => `baldecash-${landing}-wizard-session-uuid`;
 
 // API Base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
 interface SessionContextValue {
   /** The tracking session UUID */

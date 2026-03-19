@@ -14,7 +14,7 @@ export default function ProductDetailPage() {
 
 // Generar rutas estáticas desde la API con fallback para desarrollo local
 export async function generateStaticParams() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
   // Fallbacks para cuando la API no responde
   const fallbackLandings = ['home'];

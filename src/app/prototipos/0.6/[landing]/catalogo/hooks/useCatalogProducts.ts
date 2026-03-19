@@ -388,7 +388,7 @@ export function useCatalogFilters(
         }
 
         const queryString = params.toString();
-        const url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1'}/public/landing/${landingSlug}/filters${queryString ? `?${queryString}` : ''}`;
+        const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1'}/public/landing/${landingSlug}/filters${queryString ? `?${queryString}` : ''}`;
 
         const response = await fetch(url, {
           cache: 'no-store', // Don't cache - counts depend on filters

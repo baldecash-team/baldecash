@@ -13,7 +13,7 @@ export default function StepPage() {
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
   // Fallbacks para cuando la API no responde
   const fallbackLandings = ['home'];
