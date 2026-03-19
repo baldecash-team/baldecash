@@ -5,7 +5,7 @@
  * Provides shared layout data (navbar, footer, company) to all pages under [landing]
  */
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
 
@@ -13,7 +13,7 @@ import { LayoutProvider } from './context/LayoutContext';
  * Persists ?keepData=true from URL to sessionStorage.
  * Used for testing: prevents form/product cleanup after submit.
  */
-function useKeepDataFlag() {
+function KeepDataFlag() {
   const searchParams = useSearchParams();
   useEffect(() => {
     const value = searchParams.get('keepData');
@@ -23,6 +23,7 @@ function useKeepDataFlag() {
       sessionStorage.removeItem('keepData');
     }
   }, [searchParams]);
+  return null;
 }
 
 export default function LandingLayout({
@@ -30,10 +31,11 @@ export default function LandingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  useKeepDataFlag();
-
   return (
     <LayoutProvider>
+      <Suspense>
+        <KeepDataFlag />
+      </Suspense>
       {children}
     </LayoutProvider>
   );
