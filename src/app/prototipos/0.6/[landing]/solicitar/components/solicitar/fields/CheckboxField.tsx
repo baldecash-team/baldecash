@@ -130,18 +130,36 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
         </label>
       )}
 
-      {/* Modo simple: un solo checkbox con el label */}
+      {/* Modo simple: un solo checkbox con el label inline */}
       {isSimpleMode && (
-        <div className="flex items-start gap-3">
-          {renderCheckbox(isCheckedSimple, handleSimpleChange)}
-          <div className="flex-1">
-            <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700 cursor-pointer" onClick={handleSimpleChange}>
-              {label}
-              {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
-              {tooltip && <FieldTooltip tooltip={tooltip} />}
-            </label>
+        <button
+          type="button"
+          onClick={handleSimpleChange}
+          disabled={disabled}
+          className={`
+            flex items-start gap-3 w-full text-left
+            ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          `}
+        >
+          <div
+            className={`
+              w-5 h-5 rounded flex items-center justify-center border-2 transition-all flex-shrink-0 mt-0.5
+              ${isCheckedSimple
+                ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+                : error
+                  ? 'border-red-300 bg-white'
+                  : 'border-neutral-300 bg-white hover:border-neutral-400'
+              }
+            `}
+          >
+            {isCheckedSimple && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
           </div>
-        </div>
+          <span className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+            {label}
+            {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
+            {tooltip && <span onClick={(e) => e.stopPropagation()}><FieldTooltip tooltip={tooltip} /></span>}
+          </span>
+        </button>
       )}
 
       {/* Modo múltiple: lista de checkboxes */}

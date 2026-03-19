@@ -23,7 +23,7 @@ interface DocumentNumberFieldProps {
 
 // Mapping from backend field names to frontend field codes
 // This should match how fields are defined in the form builder
-const PREFILL_FIELD_MAP: Record<keyof PrefillData, string[]> = {
+const DEFAULT_PREFILL_MAP: Record<keyof PrefillData, string[]> = {
   first_name: ['first_name', 'nombres', 'primer_nombre'],
   paternal_surname: ['paternal_surname', 'apellido_paterno'],
   maternal_surname: ['maternal_surname', 'apellido_materno'],
@@ -44,8 +44,11 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
   const [prefilled, setPrefilled] = useState(false);
 
+  // Get prefill config from field configuration
+  const prefillConfig = field.prefill_config;
+
   // Get the document_type value (usually from another field)
-  const documentTypeField = 'document_type';
+  const documentTypeField = prefillConfig?.document_type_field || 'document_type';
   const documentType = (getFieldValue(documentTypeField) as string) || 'dni';
 
   // Get current value and error
@@ -54,53 +57,81 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
   // Handle prefill when data is received
   const handlePrefillReady = useCallback((data: PrefillData) => {
-    // Get all field codes from current form data
-    const formFieldCodes = Object.keys(formData);
+    // Set prefill status FIRST so visibility evaluates before cleanup runs
+    updateField('_prefill_status', 'found');
 
-    // For each prefill field, find matching form field and update
-    for (const [prefillKey, possibleCodes] of Object.entries(PREFILL_FIELD_MAP)) {
-      const prefillValue = data[prefillKey as keyof PrefillData];
+    if (prefillConfig?.prefill_fields) {
+      // Dynamic mode: use prefill_config from form builder
+      for (const [formFieldCode, apiSource] of Object.entries(prefillConfig.prefill_fields)) {
+        if (Array.isArray(apiSource)) {
+          // Concatenate multiple API fields (e.g., full_name from first_name + paternal_surname + maternal_surname)
+          const parts = apiSource.map(key => data[key as keyof PrefillData]).filter(Boolean);
+          updateField(formFieldCode, parts.join(' '));
+        } else {
+          // Direct 1:1 mapping
+          const value = data[apiSource as keyof PrefillData];
+          updateField(formFieldCode, value ? String(value) : '');
+        }
+      }
+    } else {
+      // Legacy mode: use DEFAULT_PREFILL_MAP for backward compatibility
+      const formFieldCodes = Object.keys(formData);
 
-      // Skip if it's the source field (internal use only)
-      if (prefillKey === 'source') continue;
+      for (const [prefillKey, possibleCodes] of Object.entries(DEFAULT_PREFILL_MAP)) {
+        const prefillValue = data[prefillKey as keyof PrefillData];
 
-      // Find a matching field code in the form
-      for (const code of possibleCodes) {
-        if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
-          // Always update with prefill data (even if field has value)
-          // This ensures changing DNI updates all fields correctly
-          if (prefillValue) {
-            updateField(code, String(prefillValue));
-          } else {
-            // Clear the field if new prefill has no value for it
-            updateField(code, '');
+        // Skip if it's the source field (internal use only)
+        if (prefillKey === 'source') continue;
+
+        // Find a matching field code in the form
+        for (const code of possibleCodes) {
+          if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
+            if (prefillValue) {
+              updateField(code, String(prefillValue));
+            } else {
+              updateField(code, '');
+            }
+            break;
           }
-          break;
         }
       }
     }
 
     setPrefilled(true);
-  }, [formData, updateField]);
+  }, [prefillConfig, formData, updateField]);
 
   // Handle clearing fields when no prefill data is available
+  // Only clear if fields were previously auto-filled (not manually entered)
   const handleNoPrefillData = useCallback(() => {
-    const formFieldCodes = Object.keys(formData);
+    // Mark as not found — this triggers visibility of personal fields
+    console.log('[DocumentNumberField] handleNoPrefillData called, setting _prefill_status=not_found');
+    updateField('_prefill_status', 'not_found');
 
-    // Clear all prefillable fields
-    for (const [prefillKey, possibleCodes] of Object.entries(PREFILL_FIELD_MAP)) {
-      if (prefillKey === 'source') continue;
+    if (!prefilled) return; // Don't clear manually entered data
 
-      for (const code of possibleCodes) {
-        if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
-          updateField(code, '');
-          break;
+    if (prefillConfig?.prefill_fields) {
+      // Dynamic mode: clear fields from config
+      for (const formFieldCode of Object.keys(prefillConfig.prefill_fields)) {
+        updateField(formFieldCode, '');
+      }
+    } else {
+      // Legacy mode
+      const formFieldCodes = Object.keys(formData);
+
+      for (const [prefillKey, possibleCodes] of Object.entries(DEFAULT_PREFILL_MAP)) {
+        if (prefillKey === 'source') continue;
+
+        for (const code of possibleCodes) {
+          if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
+            updateField(code, '');
+            break;
+          }
         }
       }
     }
 
     setPrefilled(false);
-  }, [formData, updateField]);
+  }, [prefilled, prefillConfig, formData, updateField]);
 
   // Initialize the check-person hook
   const { check, isChecking, response, reset: resetCheck } = useCheckPerson({
@@ -129,6 +160,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     // Reset prefilled state and check cache when user changes the value
     if (prefilled) {
       setPrefilled(false);
+      updateField('_prefill_status', '');
       resetCheck(); // Allow re-checking when DNI changes
     }
   }, [field.code, updateField, prefilled, resetCheck]);

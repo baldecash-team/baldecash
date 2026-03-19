@@ -171,6 +171,12 @@ function WizardPreviewContent() {
   }, []);
 
   const handleStart = () => {
+    // Validar que la cuota mensual no exceda el límite
+    if (isOverQuotaLimit) {
+      scrollToSection('product-section');
+      return;
+    }
+
     // Validar que los plazos estén estandarizados (para múltiples productos)
     if (needsTermUnification) {
       // Scroll al selector de plazos
@@ -599,12 +605,16 @@ function WizardPreviewContent() {
           )}
         </div>
 
-        {/* CTA Button - Always looks enabled, validates on click */}
+        {/* CTA Button */}
         <button
           onClick={handleStart}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
-                     font-semibold text-lg transition-colors shadow-lg cursor-pointer
-                     bg-[var(--color-primary)] text-white hover:brightness-90 shadow-[rgba(var(--color-primary-rgb),0.25)]"
+          disabled={isOverQuotaLimit}
+          className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
+                     font-semibold text-lg transition-colors shadow-lg
+                     ${isOverQuotaLimit
+                       ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                       : 'bg-[var(--color-primary)] text-white hover:brightness-90 cursor-pointer shadow-[rgba(var(--color-primary-rgb),0.25)]'
+                     }`}
         >
           <span>Comenzar Solicitud</span>
           <ArrowRight className="w-5 h-5" />

@@ -5,9 +5,10 @@
  * Uses grid layout based on field.grid_columns
  */
 
-import React from 'react';
-import { WizardStep } from '../../../../../services/wizardApi';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { WizardStep, evaluateFieldVisibility } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
+import { useWizard } from '../../../context/WizardContext';
 
 interface DynamicWizardStepProps {
   step: WizardStep;
@@ -53,10 +54,99 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   showErrors = false,
   stepOrder,
 }) => {
+  const { getFieldValue, updateField, formData } = useWizard();
+
+  // Initialize fields with default_value from API (only if field has no value yet)
+  useEffect(() => {
+    for (const field of step.fields) {
+      if (field.default_value && !getFieldValue(field.code)) {
+        updateField(field.code, field.default_value);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step.code]);
+
+  // Build form values for visibility evaluation (shared across all fields)
+  // formData structure: { [code]: { value: "...", error: "..." } }
+  const formValues = useMemo(() => {
+    const values: Record<string, string | string[]> = {};
+    for (const [key, state] of Object.entries(formData)) {
+      if (state?.value !== undefined) {
+        values[key] = state.value as string | string[];
+      }
+    }
+    return values;
+  }, [formData]);
+
+  // Identify prefill-dependent fields: hidden fields listed in a document_number's prefill_config.
+  // These fields are shown only when DNI lookup fails (_prefill_status = "not_found").
+  const prefillFieldCodes = useMemo(() => {
+    const codes = new Set<string>();
+    for (const field of step.fields) {
+      if (field.type === 'document_number' && field.prefill_config?.prefill_fields) {
+        for (const code of Object.keys(field.prefill_config.prefill_fields)) {
+          codes.add(code);
+        }
+      }
+    }
+    return codes;
+  }, [step.fields]);
+
+  // Compute visibility for all fields
+  const fieldVisibility = useMemo(() => {
+    const vis: Record<string, boolean> = {};
+    const prefillStatus = formValues['_prefill_status'] as string | undefined;
+
+    for (const field of step.fields) {
+      // Prefill-dependent fields: show only when DNI lookup returned no data
+      if (field.hidden && prefillFieldCodes.has(field.code)) {
+        vis[field.code] = prefillStatus === 'not_found';
+      } else {
+        vis[field.code] = evaluateFieldVisibility(field, formValues);
+      }
+    }
+    console.log('[DynamicWizardStep] prefillFieldCodes:', [...prefillFieldCodes], 'prefillStatus:', prefillStatus, 'visibility:', Object.entries(vis).filter(([k]) => prefillFieldCodes.has(k)).map(([k,v]) => `${k}=${v}`));
+    return vis;
+  }, [step.fields, formValues, prefillFieldCodes]);
+
+  // Clear field values when they become hidden
+  const prevVisibilityRef = useRef<Record<string, boolean>>({});
+  const prevValuesRef = useRef<Record<string, string | string[]>>({});
+  useEffect(() => {
+    const prevVis = prevVisibilityRef.current;
+    const prevVals = prevValuesRef.current;
+    for (const field of step.fields) {
+      const wasVisible = prevVis[field.code];
+      const isNowVisible = fieldVisibility[field.code];
+      // Only clear if transitioning from visible to hidden (not on first render)
+      if (wasVisible === true && isNowVisible === false) {
+        const currentValue = formData[field.code]?.value;
+        const prevValue = prevVals[field.code];
+        // Skip cleanup if the value was just set programmatically (prefill):
+        // if the value changed in the same render that visibility changed,
+        // it was likely set by prefill — don't clear it.
+        if (currentValue && currentValue === prevValue) {
+          updateField(field.code, '');
+        }
+      }
+    }
+    prevVisibilityRef.current = { ...fieldVisibility };
+    // Snapshot current values for next comparison
+    const vals: Record<string, string | string[]> = {};
+    for (const field of step.fields) {
+      const v = formData[field.code]?.value;
+      if (v !== undefined) vals[field.code] = v as string | string[];
+    }
+    prevValuesRef.current = vals;
+  }, [fieldVisibility, step.fields, formData, updateField]);
+
   // Fields come already ordered by display_order from the API
   return (
     <div className="grid grid-cols-12 gap-4">
       {step.fields.map((field) => {
+        // Hide wrapper for invisible fields so grid gap doesn't create empty space
+        if (!fieldVisibility[field.code]) return null;
+
         // Use grid_columns from API (default to 12 = full width)
         const cols = field.grid_columns || 12;
         const colsMobile = field.grid_columns_mobile || 12;

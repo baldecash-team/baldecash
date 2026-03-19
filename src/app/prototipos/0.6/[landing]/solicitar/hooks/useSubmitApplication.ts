@@ -150,6 +150,8 @@ export function useSubmitApplication(
     const files: UploadedFileData[] = [];
 
     for (const [key, fieldState] of Object.entries(formData)) {
+      // Skip internal fields (prefixed with _) — they control UI state only
+      if (key.startsWith('_')) continue;
       if (fieldState?.value !== undefined && fieldState.value !== '') {
         // Handle file arrays
         if (Array.isArray(fieldState.value)) {
@@ -203,6 +205,7 @@ export function useSubmitApplication(
         return false;
       }
 
+      let succeeded = false;
       setIsSubmitting(true);
       setSubmitStage('validating');
 
@@ -293,6 +296,7 @@ export function useSubmitApplication(
           onToast?.('Solicitud enviada correctamente', 'success');
 
           // Redirect to confirmation page with public token (UUID - secure)
+          succeeded = true;
           router.push(
             `/prototipos/0.6/${landing}/solicitar/confirmacion?code=${result.public_token}`
           );
@@ -319,9 +323,13 @@ export function useSubmitApplication(
           clearTimeout(slowTimeoutRef.current);
           slowTimeoutRef.current = null;
         }
-        setIsSubmitting(false);
-        // Reset stage after a short delay (para que el UI pueda mostrar el estado final)
-        setTimeout(() => setSubmitStage('idle'), 100);
+        // Solo resetear si NO fue exitoso — en éxito, el componente se
+        // desmonta con router.push() y no necesita limpieza. Esto evita
+        // una ventana donde el botón se re-habilita antes del redirect.
+        if (!succeeded) {
+          setIsSubmitting(false);
+          setTimeout(() => setSubmitStage('idle'), 100);
+        }
       }
     },
     [

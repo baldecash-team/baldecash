@@ -35,7 +35,7 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, appliedCoupon, hasUnifiedTerms, cartProducts } = useProduct();
+  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit } = useProduct();
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
@@ -72,6 +72,13 @@ function ComplementosContent() {
       router.push(`/prototipos/0.6/${landing}/solicitar`);
     }
   }, [cartProducts.length, hasUnifiedTerms, landing, router]);
+
+  // Redirect to /solicitar if monthly quota is exceeded
+  useEffect(() => {
+    if (isOverQuotaLimit) {
+      router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  }, [isOverQuotaLimit, landing, router]);
 
   // Get the last wizard step for back navigation
   // Secuencia correcta: pasos regulares primero, luego pasos de resumen

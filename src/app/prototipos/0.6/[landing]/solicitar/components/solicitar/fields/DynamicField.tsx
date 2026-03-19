@@ -6,7 +6,7 @@
  */
 
 import React, { useMemo, useCallback } from 'react';
-import { WizardField, WizardFieldOption, evaluateFieldVisibility, filterFieldOptions } from '../../../../../services/wizardApi';
+import { WizardField, WizardFieldOption, filterFieldOptions } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { TextInput } from './TextInput';
@@ -47,10 +47,6 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     return values;
   }, [formData]);
 
-  // Check if field should be visible
-  const isVisible = useMemo(() => {
-    return evaluateFieldVisibility(field, formValues);
-  }, [field, formValues]);
 
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
@@ -83,10 +79,6 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onFieldBlur(field.code, hasValue);
   }, [field.code, getFieldValue, onFieldBlur]);
 
-  // If field is not visible, don't render
-  if (!isVisible) {
-    return null;
-  }
 
   // Common props for all field types
   const commonProps = {
@@ -345,6 +337,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           success={!error && (Array.isArray(checkboxValue) ? checkboxValue.length > 0 : !!checkboxValue)}
         />
       );
+
+    case 'hidden':
+      // Hidden fields store values in formData but render nothing
+      return null;
 
     case 'file':
       // FileUpload expects different value type

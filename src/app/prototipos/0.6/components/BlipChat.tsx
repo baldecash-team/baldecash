@@ -230,7 +230,16 @@ export function BlipChat({
         } catch {
           // Ignorar errores de cleanup
         }
+        clientRef.current = null;
       }
+      isInitializedRef.current = false;
+
+      // Limpieza manual de elementos DOM residuales que destroy() no remueve
+      const blipButton = document.getElementById('blip-chat-open-iframe');
+      if (blipButton) blipButton.remove();
+
+      document.querySelectorAll('iframe[id^="blip-chat"]').forEach((el) => el.remove());
+      document.querySelectorAll('div[id^="blip-chat"]').forEach((el) => el.remove());
     };
   }, []);
 

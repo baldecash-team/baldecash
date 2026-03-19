@@ -49,7 +49,7 @@ export interface WizardField {
   id: number;
   code: string;
   label: string;
-  type: 'text' | 'email' | 'phone' | 'document_number' | 'date' | 'radio' | 'select' | 'autocomplete' | 'file' | 'textarea' | 'currency' | 'number' | 'checkbox' | 'address' | 'address_autocomplete';
+  type: 'text' | 'email' | 'phone' | 'document_number' | 'date' | 'radio' | 'select' | 'autocomplete' | 'file' | 'textarea' | 'currency' | 'number' | 'checkbox' | 'address' | 'address_autocomplete' | 'hidden';
   placeholder?: string | null;
   help_text?: WizardHelpText | null;
   required: boolean;
@@ -81,6 +81,8 @@ export interface WizardField {
   min_search_length?: number | null; // Minimum characters before searching
   // Dynamic validation from another field's option (e.g., document_number validated by document_type selection)
   validation_source_field?: string | null; // Field code whose selected option provides validation rules
+  // Default value for auto-selection (e.g., "dni" for document_type)
+  default_value?: string | null;
   // Address autocomplete configuration (Google Maps Places)
   address_config?: {
     country_restriction?: string;      // "pe" | "co" | "mx" etc.
@@ -93,6 +95,11 @@ export interface WizardField {
     };
     show_use_location?: boolean;       // Show "Use my location" button
     require_selection?: boolean;       // Must select from suggestions
+  } | null;
+  // Prefill configuration for document number lookup
+  prefill_config?: {
+    document_type_field: string;
+    prefill_fields: Record<string, string | string[]>;
   } | null;
 }
 
@@ -279,6 +286,9 @@ export function evaluateFieldVisibility(
   }
 
   // Evaluar cada dependencia con acción 'show' o 'hide'
+  let anyShowMet = false;
+  let hasShowDeps = false;
+
   for (const dep of field.dependencies) {
     const fieldValue = formValues[dep.depends_on_field];
     let conditionMet = false;
@@ -296,7 +306,6 @@ export function evaluateFieldVisibility(
         break;
       case 'in':
         if (Array.isArray(dep.value)) {
-          // Normalizar cada valor del array a string
           const normalizedArray = dep.value.map(v => String(v));
           conditionMet = normalizedArray.includes(normalizedFieldValue);
         }
@@ -317,14 +326,16 @@ export function evaluateFieldVisibility(
         conditionMet = false;
     }
 
-    // Aplicar acción
+    // Accumulate show dependencies as OR (any match = visible)
     if (dep.action === 'show') {
-      return conditionMet;
-    } else if (dep.action === 'hide') {
-      return !conditionMet;
+      hasShowDeps = true;
+      if (conditionMet) anyShowMet = true;
+    } else if (dep.action === 'hide' && conditionMet) {
+      return false;
     }
   }
 
+  if (hasShowDeps) return anyShowMet;
   return !field.hidden;
 }
 
@@ -530,6 +541,15 @@ export function validateField(
       case 'max_value':
         if (validation.value && Number(trimmedValue) > parseFloat(validation.value)) {
           hasError = true;
+        }
+        break;
+
+      case 'not_equals_field':
+        if (validation.value) {
+          const otherValue = String(formValues[validation.value] || '').trim();
+          if (otherValue && trimmedValue === otherValue) {
+            hasError = true;
+          }
         }
         break;
 

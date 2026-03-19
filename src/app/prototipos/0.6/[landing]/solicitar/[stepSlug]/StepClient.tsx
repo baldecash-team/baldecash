@@ -36,6 +36,7 @@ import { WizardStepId } from '../types/solicitar';
 import {
   WizardStep,
   WizardField,
+  WizardMotivational,
   getStepSlug,
   validateStep as validateStepFields,
   evaluateFieldVisibility,
@@ -110,7 +111,7 @@ function StepContent() {
   const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
 
   // Get applied coupon and term validation from product context
-  const { appliedCoupon, hasUnifiedTerms, cartProducts } = useProduct();
+  const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit } = useProduct();
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
@@ -125,6 +126,13 @@ function StepContent() {
       router.push(`/prototipos/0.6/${landing}/solicitar`);
     }
   }, [cartProducts.length, hasUnifiedTerms, landing, router]);
+
+  // Redirect to /solicitar if monthly quota is exceeded
+  useEffect(() => {
+    if (isOverQuotaLimit) {
+      router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  }, [isOverQuotaLimit, landing, router]);
 
   // Toast notifications for submit
   const { showToast } = useToast(4000);
@@ -164,6 +172,28 @@ function StepContent() {
     }
     return values;
   }, [formData]);
+
+  // Override motivational when check-person finds data (personalized greeting)
+  const stepMotivational = useMemo((): WizardMotivational | null => {
+    if (!step) return null;
+    const prefillStatus = formData['_prefill_status']?.value as string | undefined;
+    if (prefillStatus !== 'found') return step.motivational;
+
+    const hasMainDocumentNumber = step.fields.some(f => f.type === 'document_number' && f.code === 'document_number');
+    if (!hasMainDocumentNumber) return step.motivational;
+
+    const firstName = (formData['first_name']?.value as string) || '';
+    if (!firstName) return step.motivational;
+
+    const name = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+    return {
+      title: `Hola <span class="highlight">${name}</span>, qué bueno verte por aquí`,
+      highlight: step.motivational?.highlight || '',
+      title_end: step.motivational?.title_end || '',
+      subtitle: 'Ya casi terminamos este paso, sigue adelante.',
+      illustration: step.motivational?.illustration || '',
+    };
+  }, [step, formData]);
 
   // Track form_abandon on beforeunload (when user closes/reloads mid-form)
   useEffect(() => {
@@ -600,7 +630,7 @@ function StepContent() {
         isLastStep={isActuallyLastRegularStep}
         canProceed={true}
         navbarProps={navbarProps || undefined}
-        motivational={step.motivational}
+        motivational={stepMotivational}
       >
         <DynamicWizardStep
           step={step}

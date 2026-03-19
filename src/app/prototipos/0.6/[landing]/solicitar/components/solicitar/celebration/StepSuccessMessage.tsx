@@ -17,17 +17,35 @@ export interface StepSuccessMessageProps {
 }
 
 /**
- * Genera mensaje dinámico basado en la posición relativa del paso
- * - Último paso: "¡Solicitud enviada!"
+ * Genera mensaje dinámico basado en porcentaje de avance.
+ * Escala para cualquier cantidad de pasos (2, 4, 6, 10+).
+ *
+ * Puntos clave (no se repiten):
  * - Primer paso: "¡Excelente inicio!"
- * - Penúltimo paso: "¡Casi lo logras!"
- * - Cualquier otro: "¡Vas muy bien!"
+ * - ~25%: "¡Buen avance!"
+ * - ~50%: "¡Vas por la mitad!"
+ * - ~75%: "¡Ya casi terminamos!"
+ * - Penúltimo: "¡Un paso más!"
+ * - Último: "¡Información completa!"
+ * - Resto: pool rotativo para variedad
  */
+const ROTATING_MESSAGES = ['¡Vas muy bien!', '¡Sigue así!', '¡Buen trabajo!'];
+
 const getMessage = (stepNumber: number, totalSteps: number): string => {
-  if (stepNumber === totalSteps) return '¡Solicitud enviada!';
+  const progress = stepNumber / totalSteps;
+
+  // Fixed milestones
+  if (stepNumber === totalSteps) return '¡Información completa!';
   if (stepNumber === 1) return '¡Excelente inicio!';
-  if (stepNumber >= totalSteps - 1) return '¡Casi lo logras!';
-  return '¡Vas muy bien!';
+  if (stepNumber === totalSteps - 1) return '¡Un paso más!';
+
+  // Progress-based milestones (only trigger if there are enough steps)
+  if (totalSteps >= 4 && progress >= 0.7) return '¡Ya casi terminamos!';
+  if (totalSteps >= 4 && progress >= 0.45 && progress <= 0.55) return '¡Vas por la mitad!';
+  if (totalSteps >= 5 && progress >= 0.2 && progress <= 0.3) return '¡Buen avance!';
+
+  // Rotating pool for remaining steps
+  return ROTATING_MESSAGES[(stepNumber - 1) % ROTATING_MESSAGES.length];
 };
 
 // Confetti particle component
