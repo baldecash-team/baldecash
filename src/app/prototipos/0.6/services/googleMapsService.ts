@@ -13,10 +13,9 @@ let googleMapsLoadPromise: Promise<void> | null = null;
  * @see https://developers.google.com/maps/documentation/javascript/load-maps-js-api
  */
 async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
-  // Load the core script with loading=async
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&language=es&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=es`;
     script.async = true;
     script.defer = true;
 
@@ -28,9 +27,6 @@ async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
 
     document.head.appendChild(script);
   });
-
-  // With loading=async, libraries must be loaded via importLibrary
-  await google.maps.importLibrary('places');
 }
 
 /**

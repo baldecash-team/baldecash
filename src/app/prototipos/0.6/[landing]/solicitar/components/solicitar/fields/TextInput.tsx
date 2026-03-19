@@ -34,6 +34,8 @@ interface TextInputProps {
   inputMode?: 'text' | 'tel' | 'numeric' | 'email' | 'decimal' | 'search' | 'url' | 'none';
   /** Show loading spinner (e.g., while checking person data) */
   isLoading?: boolean;
+  /** Content rendered before the input (e.g., currency symbol, country code) */
+  startContent?: React.ReactNode;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -54,6 +56,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   maxLength,
   inputMode: inputModeProp,
   isLoading = false,
+  startContent,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showError = !!error;
@@ -105,6 +108,9 @@ export const TextInput: React.FC<TextInputProps> = ({
           ${disabled ? 'opacity-50 bg-neutral-50' : ''}
         `}
       >
+        {startContent && (
+          <span className="text-neutral-500 text-base flex-shrink-0 select-none">{startContent}</span>
+        )}
         <input
           name={id}
           type={type}

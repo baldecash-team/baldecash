@@ -149,49 +149,27 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
 
     case 'phone':
       return (
-        <div className="relative">
-          {field.prefix && (
-            <div className="absolute left-3 top-[38px] text-neutral-500 text-base z-10">
-              {field.prefix}
-            </div>
-          )}
-          <TextInput
-            {...commonProps}
-            type="tel"
-            placeholder={field.placeholder || undefined}
-            maxLength={field.max_length || undefined}
-            inputMode="tel"
-            success={!error && !!value}
-          />
-          <style jsx>{`
-            div :global(input) {
-              padding-left: ${field.prefix ? '3rem' : '0.75rem'};
-            }
-          `}</style>
-        </div>
+        <TextInput
+          {...commonProps}
+          type="tel"
+          placeholder={field.placeholder || undefined}
+          maxLength={field.max_length || undefined}
+          inputMode="tel"
+          success={!error && !!value}
+          startContent={field.prefix || undefined}
+        />
       );
 
     case 'currency':
       return (
-        <div className="relative">
-          {field.prefix && (
-            <div className="absolute left-3 top-[38px] text-neutral-500 text-base z-10">
-              {field.prefix}
-            </div>
-          )}
-          <TextInput
-            {...commonProps}
-            type="number"
-            placeholder={field.placeholder || undefined}
-            inputMode="numeric"
-            success={!error && !!value}
-          />
-          <style jsx>{`
-            div :global(input) {
-              padding-left: ${field.prefix ? '2.5rem' : '0.75rem'};
-            }
-          `}</style>
-        </div>
+        <TextInput
+          {...commonProps}
+          type="number"
+          placeholder={field.placeholder || undefined}
+          inputMode="numeric"
+          success={!error && !!value}
+          startContent={field.prefix || undefined}
+        />
       );
 
     case 'number':
