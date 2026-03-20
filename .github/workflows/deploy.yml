@@ -1,7 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  workflow_dispatch: # Solo ejecución manual, deshabilitado para deploy automático (ahora usa Vercel)
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
