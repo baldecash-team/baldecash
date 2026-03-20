@@ -145,7 +145,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
     // Enviar a la API
     setIsSubmitting(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
       const response = await fetch(`${apiUrl}/newsletter/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
