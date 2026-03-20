@@ -5,46 +5,13 @@
 
 import { ProductDetailClient } from './ProductDetailClient';
 
-// Con output: export, solo funcionan rutas pre-generadas en generateStaticParams
-export const dynamicParams = false;
-
 export default function ProductDetailPage() {
   return <ProductDetailClient />;
 }
 
-// Generar rutas estáticas desde la API con fallback para desarrollo local
-export async function generateStaticParams() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api/v1';
-
-  // Fallbacks para cuando la API no responde
-  const fallbackLandings = ['home'];
-  const fallbackProducts = ['laptop'];
-
-  let landings: string[] = fallbackLandings;
-  let productSlugs: string[] = fallbackProducts;
-
-  try {
-    const [landingsRes, productsRes] = await Promise.all([
-      fetch(`${apiUrl}/public/landing/list/slugs`, { cache: 'no-store' }),
-      fetch(`${apiUrl}/public/products/list/slugs`, { cache: 'no-store' }),
-    ]);
-
-    if (landingsRes.ok) {
-      const data = await landingsRes.json();
-      if (data.slugs?.length) landings = data.slugs;
-    }
-
-    if (productsRes.ok) {
-      const data = await productsRes.json();
-      if (data.slugs?.length) productSlugs = data.slugs;
-    }
-  } catch {
-    // API unavailable, using fallbacks
-  }
-
-  return landings.flatMap((landing) =>
-    productSlugs.map((s) => ({ landing, slug: [s] }))
-  );
+// Pre-generar solo home para build rápido; el resto se genera on-demand en Vercel
+export function generateStaticParams() {
+  return [{ landing: 'home', slug: ['laptop'] }];
 }
 
 // Metadata estática

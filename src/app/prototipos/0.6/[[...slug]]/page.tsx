@@ -36,31 +36,10 @@ export default async function LandingPage({ params }: PageProps) {
   return <LandingPageClient slug={slug} />;
 }
 
-// Generar rutas estáticas para output: export
-export async function generateStaticParams() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ws2-production-0f0e.up.railway.app/api/v1';
-
-  // Intentar obtener landings desde la API durante el build
-  let slugs = ['home']; // Fallback mínimo
-
-  try {
-    const response = await fetch(`${apiUrl}/public/landing/list/slugs`, {
-      cache: 'no-store',
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.slugs && Array.isArray(data.slugs)) {
-        slugs = data.slugs;
-      }
-    }
-  } catch {
-    // API unavailable, using fallback
-  }
-
+export function generateStaticParams() {
   return [
-    { slug: [] }, // Ruta raíz /prototipos/0.6/
-    ...slugs.map((s) => ({ slug: [s] })),
+    { slug: [] },
+    { slug: ['home'] },
   ];
 }
 

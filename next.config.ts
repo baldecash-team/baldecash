@@ -1,19 +1,11 @@
 import type { NextConfig } from "next";
 
-// Use NEXT_PUBLIC_BASE_PATH env var for GitHub Pages subdirectory deployment
-// Leave empty for custom domain (demo.baldecash.com)
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
-// Solo usar static export en producción (build), no en desarrollo
-// Esto permite que rutas dinámicas funcionen correctamente en dev
-const isProduction = process.env.NODE_ENV === "production";
-
 const nextConfig: NextConfig = {
-  ...(isProduction && { output: "export" }),
   basePath: basePath,
   trailingSlash: true,
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
