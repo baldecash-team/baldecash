@@ -127,8 +127,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const createCartItem = (): CartItem => ({
     productId: activeProductId,
     slug: selectedColor?.slug || product.slug,  // For API calls when fetching payment plans
-    name: product.name,
-    shortName: displayName,
+    name: displayName,
+    shortName: product.name,
     brand: product.brand,
     price: displayPrice,
     image: selectedImages[0] || product.thumbnail,
@@ -153,6 +153,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // ============================================
   const createWishlistItem = (): WishlistItem => ({
     productId: activeProductId,
+    slug: selectedColor?.slug || product.slug,
     name: displayName,           // Full name for display
     shortName: product.name,     // Short name
     brand: product.brand,
@@ -163,6 +164,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     variantId: selectedColor?.id,
     colorName: selectedColor?.name,
     colorHex: selectedColor?.hex,
+    months: selectedTerm,
+    initialPercent: selectedInitial,
+    initialAmount,
+    monthlyPayment: quota,
     addedAt: Date.now(),
   });
 

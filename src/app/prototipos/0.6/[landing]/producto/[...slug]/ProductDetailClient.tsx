@@ -24,7 +24,7 @@ import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
 import { SearchDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/SearchDrawer';
 import { WishlistDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/wishlist/WishlistDrawer';
-import type { CatalogProduct, CartItem } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import type { CatalogProduct, CartItem, WishlistItem } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -84,6 +84,16 @@ function ProductDetailContent() {
       catalogState.addToCart(cartItem);
       showToast('Producto añadido al carrito', 'success');
     }
+  }, [catalogState, showToast]);
+
+  // Toggle wishlist with toast feedback
+  const handleToggleWishlist = useCallback((wishlistItem: WishlistItem) => {
+    const wasInWishlist = catalogState.isInWishlist(wishlistItem.productId);
+    catalogState.toggleWishlist(wishlistItem);
+    showToast(
+      wasInWishlist ? 'Eliminado de favoritos' : 'Agregado a favoritos',
+      wasInWishlist ? 'info' : 'success'
+    );
   }, [catalogState, showToast]);
 
   // Drawer states for mobile
@@ -161,6 +171,17 @@ function ProductDetailContent() {
     }
     const queryString = urlParams.toString();
     return `/prototipos/0.6/${landing}/catalogo${queryString ? `?${queryString}` : ''}`;
+  };
+
+  // Build product detail URL with optional pricing params
+  const getDetailUrl = (productSlug: string, params?: { term?: number; initial?: number }) => {
+    const base = `/prototipos/0.6/${landing}/producto/${productSlug}`;
+    if (!params) return base;
+    const searchParams = new URLSearchParams();
+    if (params.term != null) searchParams.set('term', String(params.term));
+    if (params.initial != null) searchParams.set('initial', String(params.initial));
+    const qs = searchParams.toString();
+    return qs ? `${base}?${qs}` : base;
   };
 
   // Config state - read from URL params
@@ -287,15 +308,26 @@ function ProductDetailContent() {
         onWishlistRemove={catalogState.removeFromWishlist}
         onWishlistClear={catalogState.clearWishlist}
         onWishlistViewProduct={(productId) => {
-          const product = wishlistProducts.find((p) => p.id === productId);
-          if (product) {
-            router.push(`/prototipos/0.6/${landing}/producto/${product.slug}`);
+          const item = catalogState.wishlist.find((w) => w.productId === productId);
+          if (item?.slug) {
+            router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
+          } else {
+            const product = wishlistProducts.find((p) => p.id === productId);
+            if (product) {
+              router.push(getDetailUrl(product.slug));
+            }
           }
         }}
         cartItems={catalogState.cart}
         onCartRemove={catalogState.removeFromCart}
         onCartClear={catalogState.clearCart}
         onCartContinue={handleCartContinue}
+        onCartViewProduct={(productId) => {
+          const item = catalogState.cart.find((c) => c.productId === productId);
+          if (item?.slug) {
+            router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
+          }
+        }}
         onMobileSearchClick={() => setIsSearchDrawerOpen(true)}
         onMobileWishlistClick={() => setIsWishlistDrawerOpen(true)}
         onMobileCartClick={() => setIsCartDrawerOpen(true)}
@@ -321,6 +353,8 @@ function ProductDetailContent() {
           onUpdateCart={isAvailable ? catalogState.updateCartItem : undefined}
           cartItem={isAvailable ? catalogState.getCartItem(apiData.product.id) : undefined}
           isInCart={isAvailable ? catalogState.isInCart(apiData.product.id) : false}
+          onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
+          isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
           onSimilarAddToCart={isAvailable ? (similarProduct) => {
             // v0.6.2: Build CartItem from SimilarProduct with default pricing
             const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24 / 0.9);
@@ -374,9 +408,14 @@ function ProductDetailContent() {
         onClearAll={catalogState.clearWishlist}
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
-          const product = wishlistProducts.find((p) => p.id === productId);
-          if (product) {
-            router.push(`/prototipos/0.6/${landing}/producto/${product.slug}`);
+          const item = catalogState.wishlist.find((w) => w.productId === productId);
+          if (item?.slug) {
+            router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
+          } else {
+            const product = wishlistProducts.find((p) => p.id === productId);
+            if (product) {
+              router.push(getDetailUrl(product.slug));
+            }
           }
         }}
         unavailableIds={catalogState.unavailableWishlistIds}
@@ -394,6 +433,13 @@ function ProductDetailContent() {
         onContinue={() => {
           setIsCartDrawerOpen(false);
           handleCartContinue();
+        }}
+        onViewProduct={(productId) => {
+          setIsCartDrawerOpen(false);
+          const item = catalogState.cart.find((c) => c.productId === productId);
+          if (item?.slug) {
+            router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
+          }
         }}
         unavailableIds={catalogState.unavailableCartIds}
       />

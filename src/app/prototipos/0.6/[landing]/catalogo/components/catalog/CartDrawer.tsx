@@ -55,6 +55,7 @@ interface CartDrawerProps {
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onContinue: () => void;
+  onViewProduct?: (productId: string) => void;
   config?: CartConfig;
   /** IDs of products that are no longer available */
   unavailableIds?: string[];
@@ -67,6 +68,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   onClearAll,
   onContinue,
+  onViewProduct,
   config,
   unavailableIds = [],
 }) => {
@@ -79,7 +81,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         // New CartItem format
         return {
           id: item.productId,
-          name: item.shortName || item.name,
+          name: item.name || item.shortName,
           brand: item.brand,
           image: item.image,
           monthlyQuota: item.monthlyPayment,
@@ -257,7 +259,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       key={item.id}
                       className={`flex items-center gap-3 p-3 bg-white rounded-xl border ${isUnavailable ? 'border-amber-300 opacity-60' : 'border-neutral-200'}`}
                     >
-                      <div className="w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
+                      <div
+                        onClick={() => onViewProduct?.(item.id)}
+                        className={`w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0 ${onViewProduct ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+                      >
                         <img
                           src={item.image}
                           alt={item.name}
@@ -268,7 +273,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         <p className="text-xs text-neutral-500 uppercase">
                           {item.brand}
                         </p>
-                        <p className="text-sm font-medium text-neutral-800 line-clamp-2">
+                        <p
+                          onClick={() => onViewProduct?.(item.id)}
+                          className={`text-sm font-medium text-neutral-800 line-clamp-2 ${onViewProduct ? 'cursor-pointer hover:text-[var(--color-primary)] transition-colors' : ''}`}
+                        >
                           {item.name}
                         </p>
                         {/* v0.6.1: Show color if available */}

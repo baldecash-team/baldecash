@@ -37,6 +37,9 @@ interface NormalizedWishlistItem {
   brand: string;
   image: string;
   lowestQuota: number;
+  monthlyPayment: number;
+  months: number;
+  initialAmount: number;
   colorName?: string;
   colorHex?: string;
 }
@@ -96,10 +99,13 @@ const WishlistContentShared: React.FC<{
         // New WishlistItem format
         return {
           id: item.productId,
-          name: item.shortName || item.name,
+          name: item.name || item.shortName,
           brand: item.brand,
           image: item.image,
           lowestQuota: item.lowestQuota,
+          monthlyPayment: item.monthlyPayment,
+          months: item.months,
+          initialAmount: item.initialAmount,
           colorName: item.colorName,
           colorHex: item.colorHex,
         };
@@ -111,6 +117,9 @@ const WishlistContentShared: React.FC<{
           brand: item.brand,
           image: item.thumbnail,
           lowestQuota: item.quotaMonthly,
+          monthlyPayment: item.quotaMonthly,
+          months: 24,
+          initialAmount: 0,
         };
       }
     });
@@ -201,12 +210,22 @@ const WishlistContentShared: React.FC<{
                   No disponible
                 </span>
               ) : (
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-lg font-bold text-[var(--color-primary)]">
-                    S/{formatMoneyNoDecimals(Math.floor(item.lowestQuota))}
-                  </span>
-                  <span className="text-xs text-neutral-500">/mes</span>
-                </div>
+                <>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="text-lg font-bold text-[var(--color-primary)]">
+                      S/{formatMoneyNoDecimals(Math.floor(item.monthlyPayment))}
+                    </span>
+                    <span className="text-xs text-neutral-500">/mes</span>
+                    <span className="text-xs text-neutral-400 ml-1">
+                      x {item.months} meses
+                    </span>
+                  </div>
+                  {item.initialAmount > 0 && (
+                    <p className="text-xs text-neutral-500">
+                      + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
+                    </p>
+                  )}
+                </>
               )}
 
               {/* Actions */}

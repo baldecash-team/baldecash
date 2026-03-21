@@ -1430,15 +1430,23 @@ function CatalogoContent() {
         onWishlistRemove={handleToggleWishlist}
         onWishlistClear={() => clearWishlistItems()}
         onWishlistViewProduct={(productId) => {
+          const item = wishlistItems.find((w) => w.productId === productId);
           const product = findProductOrSibling(productId);
           if (product) {
-            router.push(getDetailUrl(landing, product.slug));
+            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
           }
         }}
         cartItems={cartItems}
         onCartRemove={handleRemoveFromCart}
         onCartClear={handleClearCart}
         onCartContinue={handleCartContinue}
+        onCartViewProduct={(productId) => {
+          const item = cartItems.find((c) => c.productId === productId);
+          const product = findProductOrSibling(productId);
+          if (product) {
+            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
+          }
+        }}
         isCartOverLimit={isOverLimit}
         isSearchActive={isSearchDrawerOpen || searchQuery.length > 0}
         onMobileSearchClick={() => {
@@ -1705,6 +1713,14 @@ function CatalogoContent() {
           handleCartContinue();
           setIsCartDrawerOpen(false);
         }}
+        onViewProduct={(productId) => {
+          setIsCartDrawerOpen(false);
+          const item = cartItems.find((c) => c.productId === productId);
+          const product = findProductOrSibling(productId);
+          if (product) {
+            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
+          }
+        }}
         config={catalogSecondaryNavbarConfig?.cart}
         unavailableIds={unavailableCartIds}
       />
@@ -1728,9 +1744,10 @@ function CatalogoContent() {
         onClearAll={() => clearWishlistItems()}
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
+          const item = wishlistItems.find((w) => w.productId === productId);
           const product = findProductOrSibling(productId);
           if (product) {
-            router.push(getDetailUrl(landing, product.slug));
+            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
           }
         }}
         onAddToCompare={handleToggleCompare}
@@ -1740,15 +1757,16 @@ function CatalogoContent() {
           if (wishlistItem) {
             handleAddToCart(productId, undefined, {
               productId: wishlistItem.productId,
+              slug: wishlistItem.slug,
               name: wishlistItem.name,
               shortName: wishlistItem.shortName,
               brand: wishlistItem.brand,
               image: wishlistItem.image,
               price: wishlistItem.price,
-              months: WIZARD_SELECTED_TERM,
-              initialPercent: WIZARD_SELECTED_INITIAL,
-              initialAmount: Math.round((wishlistItem.price * WIZARD_SELECTED_INITIAL) / 100),
-              monthlyPayment: wishlistItem.lowestQuota,
+              months: wishlistItem.months,
+              initialPercent: wishlistItem.initialPercent,
+              initialAmount: wishlistItem.initialAmount,
+              monthlyPayment: wishlistItem.monthlyPayment,
               variantId: wishlistItem.variantId,
               colorName: wishlistItem.colorName,
               colorHex: wishlistItem.colorHex,

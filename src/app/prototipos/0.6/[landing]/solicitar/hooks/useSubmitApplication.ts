@@ -290,6 +290,8 @@ export function useSubmitApplication(
             clearAccessories();
             clearInsurance();
             clearCoupon();
+            // Clear catalog cart (lives in separate layer)
+            try { localStorage.removeItem(`baldecash-${landing}-cart`); } catch {}
           }
 
           // Show success toast

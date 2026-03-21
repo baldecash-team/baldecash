@@ -496,9 +496,8 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
               <div className="max-h-[280px] overflow-y-auto">
                 <div className="p-3 space-y-2">
                   {items.map((item) => {
-                    // v0.6.2: Use lowestQuota from WishlistItem (default 24 months, 0% initial)
-                    const quota = item.lowestQuota;
                     const isUnavailable = unavailableSet.has(item.productId);
+                    const hasInitial = item.initialAmount > 0;
                     return (
                       <div
                         key={item.productId}
@@ -536,12 +535,19 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                               No disponible
                             </span>
                           ) : (
-                            <p className="text-sm font-bold text-[var(--color-primary)]">
-                              S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
-                              <span className="text-xs font-normal text-neutral-500 ml-1">
-                                x 24 meses
-                              </span>
-                            </p>
+                            <>
+                              <p className="text-sm font-bold text-[var(--color-primary)]">
+                                S/{formatMoneyNoDecimals(Math.floor(item.monthlyPayment))}/mes
+                                <span className="text-xs font-normal text-neutral-500 ml-1">
+                                  x {item.months} meses
+                                </span>
+                              </p>
+                              {hasInitial && (
+                                <p className="text-xs text-neutral-500">
+                                  + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
+                                </p>
+                              )}
+                            </>
                           )}
                         </div>
                         <button
@@ -578,6 +584,7 @@ interface NavbarCartProps {
   onRemoveItem: (productId: string) => void;
   onClearAll: () => void;
   onContinue: () => void;
+  onViewProduct?: (productId: string) => void;
   id?: string;
   config?: NavbarCartConfig;
   isOverLimit?: boolean;
@@ -589,6 +596,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   onRemoveItem,
   onClearAll,
   onContinue,
+  onViewProduct,
   id,
   config,
   isOverLimit = false,
@@ -714,7 +722,10 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                           key={item.productId}
                           className={`flex items-center gap-3 p-2 rounded-lg ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-neutral-50'}`}
                         >
-                          <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
+                          <div
+                            onClick={() => onViewProduct?.(item.productId)}
+                            className={`w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200 ${onViewProduct ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+                          >
                             <img
                               src={item.image}
                               alt={item.name}
@@ -725,7 +736,11 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                             <p className="text-xs text-neutral-500 uppercase">
                               {item.brand}
                             </p>
-                            <p className="text-sm font-medium text-neutral-800 truncate" title={item.name}>
+                            <p
+                              onClick={() => onViewProduct?.(item.productId)}
+                              className={`text-sm font-medium text-neutral-800 truncate ${onViewProduct ? 'cursor-pointer hover:text-[var(--color-primary)] transition-colors' : ''}`}
+                              title={item.name}
+                            >
                               {item.name}
                             </p>
                             {isUnavailable ? (

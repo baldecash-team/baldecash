@@ -915,6 +915,7 @@ export interface CartPaymentPlan {
 
 export interface WishlistItem {
   productId: string;
+  slug?: string;
 
   // Información básica (para mostrar sin refetch)
   name: string;
@@ -929,6 +930,12 @@ export interface WishlistItem {
   variantId?: string;
   colorName?: string;
   colorHex?: string;
+
+  // Configuración de financiamiento
+  months: TermMonths;
+  initialPercent: InitialPaymentPercent;
+  initialAmount: number;
+  monthlyPayment: number;
 
   // Metadata
   addedAt: number;
@@ -1006,6 +1013,10 @@ export function productToWishlistItem(
     variantId: config?.variantId,
     colorName: config?.colorName,
     colorHex: config?.colorHex,
+    months: 24 as TermMonths,
+    initialPercent: 0 as InitialPaymentPercent,
+    initialAmount: 0,
+    monthlyPayment: product.quotaMonthly,
     addedAt: Date.now(),
   };
 }

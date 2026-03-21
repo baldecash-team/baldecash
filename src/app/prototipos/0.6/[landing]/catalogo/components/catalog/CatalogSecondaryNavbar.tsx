@@ -39,6 +39,7 @@ interface CatalogSecondaryNavbarProps {
   onCartRemove: (productId: string) => void;
   onCartClear: () => void;
   onCartContinue: () => void;
+  onCartViewProduct?: (productId: string) => void;
   isCartOverLimit?: boolean;
 
   // Mobile callbacks (for opening drawers)
@@ -72,6 +73,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   onCartRemove,
   onCartClear,
   onCartContinue,
+  onCartViewProduct,
   isCartOverLimit = false,
   onMobileSearchClick,
   onMobileWishlistClick,
@@ -140,6 +142,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
                 onRemoveItem={onCartRemove}
                 onClearAll={onCartClear}
                 onContinue={onCartContinue}
+                onViewProduct={onCartViewProduct}
                 config={config?.cart}
                 isOverLimit={isCartOverLimit}
                 unavailableIds={unavailableCartIds}

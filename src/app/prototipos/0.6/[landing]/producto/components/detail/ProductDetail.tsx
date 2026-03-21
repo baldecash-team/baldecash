@@ -11,7 +11,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ShoppingCart, Check } from 'lucide-react';
+import { ShoppingCart, Check, Heart } from 'lucide-react';
 import {
   DeviceType,
   CronogramaVersion,
@@ -22,7 +22,7 @@ import {
   Certification,
 } from '../../types/detail';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
-import type { CartItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -58,6 +58,9 @@ interface ProductDetailProps {
   onUpdateCart?: (productId: string, updates: Partial<CartItem>) => void;
   cartItem?: CartItem;  // Current cart item for comparison
   isInCart?: boolean;
+  // Wishlist props
+  onToggleWishlist?: (wishlistItem: WishlistItem) => void;
+  isInWishlist?: boolean;
   // Cart props for similar products - v0.6.2: receives SimilarProduct
   onSimilarAddToCart?: (product: SimilarProduct) => void;
   cartItems?: string[];
@@ -83,6 +86,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   onUpdateCart,
   cartItem,
   isInCart = false,
+  // Wishlist props
+  onToggleWishlist,
+  isInWishlist = false,
   // Cart props for similar products
   onSimilarAddToCart,
   cartItems = [],
@@ -189,6 +195,35 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
     onAddToCart(cartItem);
   }, [onAddToCart, pricingSelection, displayColors, selectedColorId, product, cartPaymentPlans]);
+
+  // Build WishlistItem with pricing config and toggle wishlist
+  const handleToggleWishlist = useCallback(() => {
+    if (!onToggleWishlist || !pricingSelection) return;
+
+    const selectedColor = displayColors?.find(c => c.id === selectedColorId);
+
+    const wishlistItem: WishlistItem = {
+      productId: product.id,
+      slug: product.slug,
+      name: product.displayName,
+      shortName: product.name,
+      brand: product.brand,
+      price: product.price,
+      image: product.images[0]?.url || '',
+      lowestQuota: pricingSelection.monthlyQuota,
+      type: product.category as WishlistItem['type'],
+      months: pricingSelection.term as TermMonths,
+      initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
+      initialAmount: pricingSelection.initialAmount,
+      monthlyPayment: pricingSelection.monthlyQuota,
+      variantId: selectedColorId || undefined,
+      colorName: selectedColor?.name,
+      colorHex: selectedColor?.hex,
+      addedAt: Date.now(),
+    };
+
+    onToggleWishlist(wishlistItem);
+  }, [onToggleWishlist, pricingSelection, displayColors, selectedColorId, product]);
 
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
@@ -343,6 +378,19 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     </button>
                   );
                 })()}
+                {onToggleWishlist && (
+                  <button
+                    onClick={handleToggleWishlist}
+                    disabled={!pricingSelection}
+                    className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold transition-colors cursor-pointer border ${
+                      isInWishlist
+                        ? 'text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-red-50 hover:text-red-500 hover:border-red-200'
+                        : 'text-neutral-500 bg-neutral-50 border-neutral-200 hover:text-[var(--color-primary)] hover:border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[rgba(var(--color-primary-rgb),0.05)]'
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${isInWishlist ? 'fill-current' : ''}`} />
+                  </button>
+                )}
               </div>
               )}
             </div>
