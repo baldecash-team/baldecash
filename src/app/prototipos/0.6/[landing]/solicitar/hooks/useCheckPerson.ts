@@ -6,7 +6,7 @@
  * Handles:
  * - Calling check-person API when document number is complete
  * - Debouncing API calls
- * - Triggering callbacks for prefill and preapproved data
+ * - Triggering callbacks for prefill data
  */
 
 import { useState, useCallback, useRef } from 'react';
@@ -14,7 +14,6 @@ import {
   checkPerson,
   CheckPersonResponse,
   PrefillData,
-  PreapprovedData,
 } from '../../../services/applicationApi';
 
 interface UseCheckPersonOptions {
@@ -22,8 +21,6 @@ interface UseCheckPersonOptions {
   onPrefillReady?: (data: PrefillData) => void;
   /** Callback when no prefill data is available (to clear fields) */
   onNoPrefillData?: () => void;
-  /** Callback when customer is preapproved */
-  onPreapproved?: (data: PreapprovedData) => void;
   /** Callback on error */
   onError?: (error: string) => void;
   /** Debounce delay in ms (default: 300) */
@@ -53,9 +50,6 @@ interface UseCheckPersonResult {
  *     updateField('first_name', data.first_name || '');
  *     updateField('paternal_surname', data.paternal_surname || '');
  *   },
- *   onPreapproved: (data) => {
- *     showPreapprovedBanner(data);
- *   },
  * });
  *
  * // Call when document number changes
@@ -72,7 +66,6 @@ export function useCheckPerson(
   const {
     onPrefillReady,
     onNoPrefillData,
-    onPreapproved,
     onError,
     debounceMs = 300,
   } = options;
@@ -125,11 +118,6 @@ export function useCheckPerson(
             // No prefill data available - clear the fields
             onNoPrefillData();
           }
-
-          // Trigger preapproved callback
-          if (result.is_preapproved && result.preapproved_data && onPreapproved) {
-            onPreapproved(result.preapproved_data);
-          }
         } catch (err) {
           const errorMsg = 'Error al verificar datos';
           setError(errorMsg);
@@ -139,7 +127,7 @@ export function useCheckPerson(
         }
       }, debounceMs);
     },
-    [onPrefillReady, onNoPrefillData, onPreapproved, onError, debounceMs]
+    [onPrefillReady, onNoPrefillData, onError, debounceMs]
   );
 
   const reset = useCallback(() => {

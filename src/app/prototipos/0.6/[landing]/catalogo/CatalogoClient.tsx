@@ -127,8 +127,14 @@ const getWizardUrl = (landing: string) => {
   return `/prototipos/0.6/${landing}/solicitar/`;
 };
 
-const getDetailUrl = (landing: string, productSlug: string) => {
-  return `/prototipos/0.6/${landing}/producto/${productSlug}`;
+const getDetailUrl = (landing: string, productSlug: string, params?: { term?: number; initial?: number }) => {
+  const base = `/prototipos/0.6/${landing}/producto/${productSlug}`;
+  if (!params) return base;
+  const searchParams = new URLSearchParams();
+  if (params.term != null) searchParams.set('term', String(params.term));
+  if (params.initial != null) searchParams.set('initial', String(params.initial));
+  const qs = searchParams.toString();
+  return qs ? `${base}?${qs}` : base;
 };
 
 const getUpsellUrl = (landing: string) => {
@@ -732,6 +738,8 @@ function CatalogoContent() {
     isInWishlist,
     clearWishlist: clearWishlistItems,
     isHydrated: isCartWishlistHydrated,
+    unavailableCartIds,
+    unavailableWishlistIds,
   } = useCatalogSharedState(landing);
 
   const [viewMode, setViewMode] = useState<CatalogViewMode>('all');
@@ -1445,6 +1453,8 @@ function CatalogoContent() {
           closeAllDrawers();
           setIsCartDrawerOpen(true);
         }}
+        unavailableCartIds={unavailableCartIds}
+        unavailableWishlistIds={unavailableWishlistIds}
         config={catalogSecondaryNavbarConfig}
       />
 
@@ -1696,6 +1706,7 @@ function CatalogoContent() {
           setIsCartDrawerOpen(false);
         }}
         config={catalogSecondaryNavbarConfig?.cart}
+        unavailableIds={unavailableCartIds}
       />
 
       {/* Search Drawer - Mobile only */}
@@ -1748,6 +1759,7 @@ function CatalogoContent() {
         compareList={compareList}
         maxCompareProducts={maxCompareProducts}
         config={catalogSecondaryNavbarConfig?.wishlist}
+        unavailableIds={unavailableWishlistIds}
       />
 
       {/* Floating Comparison Bar - Desktop only */}

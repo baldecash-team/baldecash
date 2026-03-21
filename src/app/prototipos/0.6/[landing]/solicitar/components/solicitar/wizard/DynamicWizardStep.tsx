@@ -105,7 +105,6 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         vis[field.code] = evaluateFieldVisibility(field, formValues);
       }
     }
-    console.log('[DynamicWizardStep] prefillFieldCodes:', [...prefillFieldCodes], 'prefillStatus:', prefillStatus, 'visibility:', Object.entries(vis).filter(([k]) => prefillFieldCodes.has(k)).map(([k,v]) => `${k}=${v}`));
     return vis;
   }, [step.fields, formValues, prefillFieldCodes]);
 

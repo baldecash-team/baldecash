@@ -55,13 +55,14 @@ interface WizardProviderProps {
 const saveToStorage = (storageKey: string, formData: Record<string, FieldState>) => {
   if (typeof window === 'undefined') return;
   try {
-    // Filter out File objects (can't be serialized)
+    // Filter out File objects and internal state fields
     const serializableData: Record<string, FieldState> = {};
     for (const [key, value] of Object.entries(formData)) {
       if (Array.isArray(value.value) && value.value[0] instanceof File) {
-        // Skip file fields
         continue;
       }
+      // Skip internal prefill status — must re-evaluate on each session
+      if (key === '_prefill_status') continue;
       serializableData[key] = value;
     }
     localStorage.setItem(storageKey, JSON.stringify(serializableData));
@@ -91,7 +92,10 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
     try {
       const savedData = localStorage.getItem(storageKey);
       if (savedData) {
-        setFormData(JSON.parse(savedData));
+        const parsed = JSON.parse(savedData);
+        // Remove internal state that must re-evaluate each session
+        delete parsed['_prefill_status'];
+        setFormData(parsed);
       }
       // Note: completedSteps is now calculated dynamically in WizardProgress
     } catch {

@@ -305,7 +305,9 @@ export function useSubmitApplication(
         } else {
           // Show error
           setSubmitStage('error');
-          const msg = result.error || 'Error al enviar la solicitud. Por favor intenta nuevamente.';
+          const msg = result.error_code === 'PRODUCT_DISABLED'
+            ? 'Uno o más productos de tu solicitud ya no están disponibles. Por favor vuelve atrás y revisa tu selección.'
+            : (result.error || 'Error al enviar la solicitud. Por favor intenta nuevamente.');
           setError(msg);
           onToast?.(msg, 'error');
           return false;

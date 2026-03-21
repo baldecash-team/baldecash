@@ -71,7 +71,6 @@ export const TokenCounter: React.FC<TokenCounterProps> = ({ sectionId, version }
         }
       } catch {
         // Token usage file might not exist yet
-        console.log('Token usage data not available yet');
       } finally {
         setIsLoading(false);
       }

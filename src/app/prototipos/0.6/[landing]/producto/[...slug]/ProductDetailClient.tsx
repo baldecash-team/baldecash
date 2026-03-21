@@ -9,7 +9,6 @@ import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
-import { AlertCircle } from 'lucide-react';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -183,6 +182,21 @@ function ProductDetailContent() {
     return { deviceType, cronogramaVersion };
   });
 
+  // Read pricing defaults from URL params (passed from catalog card)
+  const defaultTerm = (() => {
+    const termParam = searchParams.get('term');
+    if (!termParam) return undefined;
+    const parsed = parseInt(termParam);
+    return isNaN(parsed) ? undefined : parsed;
+  })();
+
+  const defaultInitialPercent = (() => {
+    const initialParam = searchParams.get('initial');
+    if (!initialParam) return undefined;
+    const parsed = parseInt(initialParam);
+    return isNaN(parsed) ? undefined : parsed;
+  })();
+
   // Fetch product data from API (NO fallback to mock data)
   useEffect(() => {
     async function loadProductData() {
@@ -231,45 +245,17 @@ function ProductDetailContent() {
     return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
-  // Show error if product not found or API error (NO fallback to mock)
+  // Show 404 if product not found (NO fallback to mock)
   if (apiError || !apiData) {
     return (
-      <div className="min-h-screen bg-neutral-50">
-        <Navbar
-          landing={landing}
-          promoBannerData={navbarProps?.promoBannerData}
-          logoUrl={navbarProps?.logoUrl}
-          customerPortalUrl={navbarProps?.customerPortalUrl}
-          navbarItems={navbarProps?.navbarItems}
-          megamenuItems={navbarProps?.megamenuItems}
-          activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
-        />
-        <main className="pt-40">
-          <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
-              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-red-800 mb-2">
-                Producto no disponible
-              </h1>
-              <p className="text-red-600 mb-6">
-                {apiError || 'No se pudo cargar la información del producto'}
-              </p>
-              <p className="text-sm text-neutral-500 mb-6">
-                Slug: <code className="bg-neutral-100 px-2 py-1 rounded">{slug}</code>
-              </p>
-              <button
-                onClick={() => router.push(`/prototipos/0.6/${landing}/catalogo`)}
-                className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"
-              >
-                Ver catálogo de productos
-              </button>
-            </div>
-          </div>
-        </main>
-        <Footer data={footerData} />
-      </div>
+      <NotFoundContent
+        homeUrl={`/prototipos/0.6/${landing}/catalogo`}
+        homeLabel="Ir al catálogo"
+      />
     );
   }
+
+  const isAvailable = apiData.isAvailable;
 
   return (
     <div className="min-h-screen bg-neutral-50 overflow-x-hidden">
@@ -313,6 +299,8 @@ function ProductDetailContent() {
         onMobileSearchClick={() => setIsSearchDrawerOpen(true)}
         onMobileWishlistClick={() => setIsWishlistDrawerOpen(true)}
         onMobileCartClick={() => setIsCartDrawerOpen(true)}
+        unavailableCartIds={catalogState.unavailableCartIds}
+        unavailableWishlistIds={catalogState.unavailableWishlistIds}
       />
 
       {/* Main Content with padding for fixed navbars (promo + primary + secondary) */}
@@ -325,12 +313,15 @@ function ProductDetailContent() {
           certifications={apiData.certifications}
           deviceType={config.deviceType}
           cronogramaVersion={config.cronogramaVersion}
-          onAddToCart={handleAddToCart}
-          onRemoveFromCart={catalogState.removeFromCart}
-          onUpdateCart={catalogState.updateCartItem}
-          cartItem={catalogState.getCartItem(apiData.product.id)}
-          isInCart={catalogState.isInCart(apiData.product.id)}
-          onSimilarAddToCart={(similarProduct) => {
+          isAvailable={isAvailable}
+          defaultTerm={defaultTerm}
+          defaultInitialPercent={defaultInitialPercent}
+          onAddToCart={isAvailable ? handleAddToCart : undefined}
+          onRemoveFromCart={isAvailable ? catalogState.removeFromCart : undefined}
+          onUpdateCart={isAvailable ? catalogState.updateCartItem : undefined}
+          cartItem={isAvailable ? catalogState.getCartItem(apiData.product.id) : undefined}
+          isInCart={isAvailable ? catalogState.isInCart(apiData.product.id) : false}
+          onSimilarAddToCart={isAvailable ? (similarProduct) => {
             // v0.6.2: Build CartItem from SimilarProduct with default pricing
             const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24 / 0.9);
             const cartItem: CartItem = {
@@ -353,8 +344,8 @@ function ProductDetailContent() {
               } : undefined,
             };
             handleAddToCart(cartItem);
-          }}
-          cartItems={catalogState.cartIds}
+          } : undefined}
+          cartItems={isAvailable ? catalogState.cartIds : []}
         />
       </main>
 
@@ -388,6 +379,7 @@ function ProductDetailContent() {
             router.push(`/prototipos/0.6/${landing}/producto/${product.slug}`);
           }
         }}
+        unavailableIds={catalogState.unavailableWishlistIds}
       />
 
       <CartDrawer
@@ -403,6 +395,7 @@ function ProductDetailContent() {
           setIsCartDrawerOpen(false);
           handleCartContinue();
         }}
+        unavailableIds={catalogState.unavailableCartIds}
       />
 
       {/* Toast para feedback de carrito */}

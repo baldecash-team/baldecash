@@ -261,6 +261,7 @@ export interface SpecsProps {
 export interface PricingCalculatorProps {
   paymentPlans: PaymentPlan[];
   defaultTerm?: number;
+  defaultInitialPercent?: number;
   productPrice?: number;
 }
 

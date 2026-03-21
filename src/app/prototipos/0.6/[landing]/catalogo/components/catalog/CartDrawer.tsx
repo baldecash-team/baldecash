@@ -10,7 +10,7 @@
 
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Button } from '@nextui-org/react';
-import { ShoppingCart, Trash2, X, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Trash2, X, ArrowRight, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { CatalogProduct, CartItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
@@ -56,6 +56,8 @@ interface CartDrawerProps {
   onClearAll: () => void;
   onContinue: () => void;
   config?: CartConfig;
+  /** IDs of products that are no longer available */
+  unavailableIds?: string[];
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -66,6 +68,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onClearAll,
   onContinue,
   config,
+  unavailableIds = [],
 }) => {
   const dragControls = useDragControls();
 
@@ -105,7 +108,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     return sum + item.monthlyQuota;
   }, 0);
   const isOverQuotaLimit = totalMonthlyQuota > MAX_MONTHLY_QUOTA;
-  const isDisabled = normalizedItems.length === 0 || isOverQuotaLimit;
+  const hasUnavailable = unavailableIds.length > 0;
+  const unavailableSet = useMemo(() => new Set(unavailableIds), [unavailableIds]);
+  const isDisabled = normalizedItems.length === 0 || isOverQuotaLimit || hasUnavailable;
 
   // Block body scroll when drawer is open (iOS Safari fix)
   // Note: In catalog page, scroll lock is managed centrally - this is a fallback for standalone usage
@@ -233,10 +238,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </p>
                     </div>
                   )}
-                  {normalizedItems.map((item) => (
+                  {/* Warning for unavailable products */}
+                  {hasUnavailable && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                      <p className="text-sm text-amber-700">
+                        {unavailableIds.length === 1
+                          ? 'Un producto ya no está disponible. Quítalo para continuar.'
+                          : `${unavailableIds.length} productos ya no están disponibles. Quítalos para continuar.`
+                        }
+                      </p>
+                    </div>
+                  )}
+                  {normalizedItems.map((item) => {
+                    const isUnavailable = unavailableSet.has(item.id);
+                    return (
                     <div
                       key={item.id}
-                      className="flex items-center gap-3 p-3 bg-white rounded-xl border border-neutral-200"
+                      className={`flex items-center gap-3 p-3 bg-white rounded-xl border ${isUnavailable ? 'border-amber-300 opacity-60' : 'border-neutral-200'}`}
                     >
                       <div className="w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
                         <img
@@ -262,9 +281,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             <span className="text-xs text-neutral-400">{item.colorName}</span>
                           </div>
                         )}
-                        <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-                          S/{formatMoneyNoDecimals(Math.floor(item.monthlyQuota))}/mes
-                        </p>
+                        {isUnavailable ? (
+                          <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded mt-1">
+                            No disponible
+                          </span>
+                        ) : (
+                          <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
+                            S/{formatMoneyNoDecimals(Math.floor(item.monthlyQuota))}/mes
+                          </p>
+                        )}
                       </div>
                       <button
                         onClick={() => onRemoveItem(item.id)}
@@ -273,7 +298,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         <X className="w-5 h-5" />
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

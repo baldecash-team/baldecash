@@ -111,7 +111,7 @@ function StepContent() {
   const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
 
   // Get applied coupon and term validation from product context
-  const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit } = useProduct();
+  const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
@@ -133,6 +133,13 @@ function StepContent() {
       router.push(`/prototipos/0.6/${landing}/solicitar`);
     }
   }, [isOverQuotaLimit, landing, router]);
+
+  // Redirect to /solicitar if there are unavailable products
+  useEffect(() => {
+    if (unavailableProductIds.length > 0) {
+      router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  }, [unavailableProductIds, landing, router]);
 
   // Toast notifications for submit
   const { showToast } = useToast(4000);
@@ -447,8 +454,8 @@ function StepContent() {
     router.push(`/prototipos/0.6/${landing}/solicitar/${stepPath}`);
   };
 
-  // Loading state (include flow config loading)
-  if (isLayoutLoading || isConfigLoading || isFlowConfigLoading) {
+  // Loading state (include flow config loading and availability check)
+  if (isLayoutLoading || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {
     return <LoadingFallback />;
   }
 

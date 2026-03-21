@@ -189,6 +189,7 @@ interface ApiProductDetailResponse {
   similar_products: ApiSimilarProduct[];
   limitations: ApiLimitation[];
   certifications: ApiCertification[];
+  is_available: boolean;
 }
 
 // ============================================
@@ -382,6 +383,7 @@ export interface ProductDetailResult {
   similarProducts: SimilarProduct[];
   limitations: ProductLimitation[];
   certifications: Certification[];
+  isAvailable: boolean;
 }
 
 export interface FetchError {
@@ -429,6 +431,7 @@ export async function fetchProductDetail(landing: string, slug: string): Promise
       similarProducts: data.similar_products.map(transformSimilarProduct),
       limitations: data.limitations.map(transformLimitation),
       certifications: data.certifications.map(transformCertification),
+      isAvailable: data.is_available,
     };
   } catch (error) {
     console.error('Error fetching product detail:', error);
@@ -474,7 +477,7 @@ export async function fetchProductPaymentPlans(landing: string, productId: strin
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 410) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);

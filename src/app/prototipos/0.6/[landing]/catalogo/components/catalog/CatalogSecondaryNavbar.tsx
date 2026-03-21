@@ -49,6 +49,10 @@ interface CatalogSecondaryNavbarProps {
   // State for mobile buttons
   isSearchActive?: boolean;
 
+  // Unavailable product IDs
+  unavailableCartIds?: string[];
+  unavailableWishlistIds?: string[];
+
   // Config from API
   config?: CatalogSecondaryNavbarData | null;
 }
@@ -73,6 +77,8 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   onMobileWishlistClick,
   onMobileCartClick,
   isSearchActive = false,
+  unavailableCartIds = [],
+  unavailableWishlistIds = [],
   config,
 }) => {
   // Position below navbar: 64px navbar + promo banner height (dynamic)
@@ -126,6 +132,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
                 onClearAll={onWishlistClear}
                 onViewProduct={onWishlistViewProduct}
                 config={config?.wishlist}
+                unavailableIds={unavailableWishlistIds}
               />
               <NavbarCart
                 id="onboarding-cart"
@@ -135,6 +142,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
                 onContinue={onCartContinue}
                 config={config?.cart}
                 isOverLimit={isCartOverLimit}
+                unavailableIds={unavailableCartIds}
               />
             </div>
 

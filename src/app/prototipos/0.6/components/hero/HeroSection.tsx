@@ -138,7 +138,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   // Default pricing config
   const WIZARD_SELECTED_TERM = 24;
-  const WIZARD_SELECTED_INITIAL = 10;
+  const WIZARD_SELECTED_INITIAL = 0;
 
   // Add to cart with toast feedback
   // v0.6.2: Accept QuizProduct and build CartItem

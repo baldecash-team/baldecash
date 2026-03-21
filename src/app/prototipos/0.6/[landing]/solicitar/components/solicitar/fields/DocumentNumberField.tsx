@@ -29,11 +29,6 @@ const DEFAULT_PREFILL_MAP: Record<keyof PrefillData, string[]> = {
   maternal_surname: ['maternal_surname', 'apellido_materno'],
   birth_date: ['birth_date', 'fecha_nacimiento'],
   gender: ['gender', 'genero', 'sexo'],
-  email: ['email', 'correo', 'correo_electronico'],
-  phone: ['phone', 'phone_mobile', 'celular', 'telefono'],
-  department: ['department', 'departamento', 'address_department'],
-  province: ['province', 'provincia', 'address_province'],
-  district: ['district', 'distrito', 'address_district'],
   source: [], // Internal, don't prefill
 };
 
@@ -104,7 +99,6 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Only clear if fields were previously auto-filled (not manually entered)
   const handleNoPrefillData = useCallback(() => {
     // Mark as not found — this triggers visibility of personal fields
-    console.log('[DocumentNumberField] handleNoPrefillData called, setting _prefill_status=not_found');
     updateField('_prefill_status', 'not_found');
 
     if (!prefilled) return; // Don't clear manually entered data
@@ -157,12 +151,13 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Handle value change
   const handleChange = useCallback((newValue: string) => {
     updateField(field.code, newValue);
-    // Reset prefilled state and check cache when user changes the value
+    // Always reset prefill status when user modifies the document number
+    // so prefill-dependent fields hide until next lookup completes
+    updateField('_prefill_status', '');
     if (prefilled) {
       setPrefilled(false);
-      updateField('_prefill_status', '');
-      resetCheck(); // Allow re-checking when DNI changes
     }
+    resetCheck(); // Allow re-checking when DNI changes
   }, [field.code, updateField, prefilled, resetCheck]);
 
   // Build tooltip from API help_text

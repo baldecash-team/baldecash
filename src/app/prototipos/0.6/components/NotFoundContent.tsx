@@ -14,10 +14,19 @@ import { useRouter } from 'next/navigation';
 interface NotFoundContentProps {
   /** URL personalizada para el botón "Ir al inicio" */
   homeUrl?: string;
+  /** Texto personalizado para el botón principal */
+  homeLabel?: string;
+  /** Título personalizado */
+  title?: string;
+  /** Descripción personalizada */
+  description?: string;
 }
 
 export const NotFoundContent: React.FC<NotFoundContentProps> = ({
-  homeUrl = '/prototipos/0.6/home'
+  homeUrl = '/prototipos/0.6/home',
+  homeLabel = 'Ir al inicio',
+  title = 'Página no disponible',
+  description = 'La página que buscas no existe o ya no está activa. No te preocupes, te ayudamos a volver.',
 }) => {
   const router = useRouter();
 
@@ -165,7 +174,7 @@ export const NotFoundContent: React.FC<NotFoundContentProps> = ({
             className="text-2xl md:text-3xl font-bold text-neutral-800 mb-3 font-['Baloo_2']"
             variants={itemVariants}
           >
-            Página no disponible
+            {title}
           </motion.h1>
 
           {/* Description */}
@@ -173,8 +182,7 @@ export const NotFoundContent: React.FC<NotFoundContentProps> = ({
             className="text-neutral-500 text-base md:text-lg mb-8 max-w-md mx-auto"
             variants={itemVariants}
           >
-            La página que buscas no existe o ya no está activa.
-            No te preocupes, te ayudamos a volver.
+            {description}
           </motion.p>
 
           {/* Action Buttons */}
@@ -191,7 +199,7 @@ export const NotFoundContent: React.FC<NotFoundContentProps> = ({
               onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(0.9)'}
               onMouseLeave={(e) => e.currentTarget.style.filter = ''}
             >
-              Ir al inicio
+              {homeLabel}
             </Button>
             <Button
               size="lg"

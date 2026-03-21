@@ -35,7 +35,7 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit } = useProduct();
+  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
@@ -79,6 +79,13 @@ function ComplementosContent() {
       router.push(`/prototipos/0.6/${landing}/solicitar`);
     }
   }, [isOverQuotaLimit, landing, router]);
+
+  // Redirect to /solicitar if there are unavailable products
+  useEffect(() => {
+    if (unavailableProductIds.length > 0) {
+      router.push(`/prototipos/0.6/${landing}/solicitar`);
+    }
+  }, [unavailableProductIds, landing, router]);
 
   // Get the last wizard step for back navigation
   // Secuencia correcta: pasos regulares primero, luego pasos de resumen
@@ -239,7 +246,7 @@ function ComplementosContent() {
   );
 
   // Show loading while data is loading
-  if (isLayoutLoading || isFlowConfigLoading) {
+  if (isLayoutLoading || isFlowConfigLoading || isValidatingAvailability) {
     return <LoadingFallback />;
   }
 

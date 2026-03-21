@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
+import { TermSelect } from './TermSelect';
 import Image from 'next/image';
 
 interface SelectedProductBarProps {
@@ -288,19 +289,12 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     {/* Term Selector - Mobile */}
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-neutral-500">Plazo:</span>
-                      <select
-                        className="text-xs border border-neutral-200 rounded-lg px-2 py-1 bg-white text-neutral-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                      <TermSelect
                         value={mainProduct.months}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          const term = parseInt(e.target.value);
-                          if (term) updateAllProductsToTerm(term);
-                        }}
-                      >
-                        {availableTerms.map((term) => (
-                          <option key={term} value={term}>{term} meses</option>
-                        ))}
-                      </select>
+                        options={availableTerms}
+                        onChange={(term) => updateAllProductsToTerm(term)}
+                        size="sm"
+                      />
                     </div>
                     {hasInitialPayment && (
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
@@ -349,18 +343,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             {/* Term Selector - Desktop */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500">Plazo:</span>
-              <select
-                className="text-sm border border-neutral-300 rounded-lg px-3 py-1.5 bg-white text-neutral-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              <TermSelect
                 value={mainProduct.months}
-                onChange={(e) => {
-                  const term = parseInt(e.target.value);
-                  if (term) updateAllProductsToTerm(term);
-                }}
-              >
-                {availableTerms.map((term) => (
-                  <option key={term} value={term}>{term} meses</option>
-                ))}
-              </select>
+                options={availableTerms}
+                onChange={(term) => updateAllProductsToTerm(term)}
+              />
             </div>
           </div>
 

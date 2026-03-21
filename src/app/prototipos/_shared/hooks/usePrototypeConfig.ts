@@ -137,7 +137,6 @@ export function usePrototypeConfig(prototypeVersion: string): UsePrototypeConfig
       //   body: JSON.stringify(config)
       // });
 
-      console.log('Config saved successfully');
     } catch (err) {
       setError(`Error saving config: ${err}`);
       throw err;

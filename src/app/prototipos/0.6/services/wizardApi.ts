@@ -387,10 +387,12 @@ export function validateField(
   field: WizardField,
   value: string | string[] | undefined,
   formValues: Record<string, string | string[]>,
-  dynamicOptionsCache?: Record<string, CascadingOption[]>
+  dynamicOptionsCache?: Record<string, CascadingOption[]>,
+  skipVisibilityCheck?: boolean
 ): FieldValidationResult {
   // Si el campo no es visible, es válido (no validar campos ocultos)
-  if (!evaluateFieldVisibility(field, formValues)) {
+  // Skip when caller already handled visibility (e.g., validateStep with prefill logic)
+  if (!skipVisibilityCheck && !evaluateFieldVisibility(field, formValues)) {
     return { isValid: true, error: null };
   }
 
@@ -593,9 +595,34 @@ export function validateStep(
 ): string | null {
   let firstErrorField: string | null = null;
 
+  // Build prefill field codes (same logic as DynamicWizardStep)
+  const prefillFieldCodes = new Set<string>();
   for (const field of step.fields) {
+    if (field.type === 'document_number' && field.prefill_config?.prefill_fields) {
+      for (const code of Object.keys(field.prefill_config.prefill_fields)) {
+        prefillFieldCodes.add(code);
+      }
+    }
+  }
+
+  const prefillStatus = formValues['_prefill_status'] as string | undefined;
+
+  for (const field of step.fields) {
+    // Compute effective visibility matching DynamicWizardStep logic
+    let isVisible: boolean;
+    if (field.hidden && prefillFieldCodes.has(field.code)) {
+      isVisible = prefillStatus === 'not_found';
+    } else {
+      isVisible = evaluateFieldVisibility(field, formValues);
+    }
+
+    if (!isVisible) {
+      setFieldError(field.code, null);
+      continue;
+    }
+
     const value = formValues[field.code];
-    const result = validateField(field, value as string | string[] | undefined, formValues, dynamicOptionsCache);
+    const result = validateField(field, value as string | string[] | undefined, formValues, dynamicOptionsCache, true);
 
     // Siempre actualizar el error (limpiar si es válido, setear si hay error)
     setFieldError(field.code, result.error);

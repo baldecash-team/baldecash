@@ -61,6 +61,11 @@ interface ProductDetailProps {
   // Cart props for similar products - v0.6.2: receives SimilarProduct
   onSimilarAddToCart?: (product: SimilarProduct) => void;
   cartItems?: string[];
+  // Availability flag - when false, disables cart/solicitar actions
+  isAvailable?: boolean;
+  // Default pricing from catalog card
+  defaultTerm?: number;
+  defaultInitialPercent?: number;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -81,6 +86,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Cart props for similar products
   onSimilarAddToCart,
   cartItems = [],
+  isAvailable = true,
+  defaultTerm,
+  defaultInitialPercent,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -262,11 +270,17 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <div id="section-pricing" className="space-y-4">
               <PricingCalculator
                 paymentPlans={paymentPlans}
-                defaultTerm={36}
+                defaultTerm={defaultTerm}
+                defaultInitialPercent={defaultInitialPercent ?? 0}
                 productPrice={product.price}
                 onSelectionChange={handlePricingSelectionChange}
               />
-              {/* CTA Buttons */}
+              {/* CTA Buttons or Unavailable banner */}
+              {!isAvailable ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-center">
+                  <p className="text-amber-800 font-medium text-sm">Este producto no se encuentra disponible actualmente</p>
+                </div>
+              ) : (
               <div className="flex gap-3">
                 <button
                   onClick={handleSolicitar}
@@ -330,6 +344,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   );
                 })()}
               </div>
+              )}
             </div>
 
             {/* Certifications */}

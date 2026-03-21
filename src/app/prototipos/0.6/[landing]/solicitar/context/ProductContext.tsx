@@ -114,6 +114,10 @@ interface ProductContextValue {
   // Payment plans sync (fetch missing plans from API)
   syncMissingPaymentPlans: () => Promise<void>;
   isSyncingPaymentPlans: boolean;
+  // Unavailable (disabled) product detection
+  unavailableProductIds: string[];
+  removeUnavailableProducts: () => void;
+  isValidatingAvailability: boolean;
 }
 
 const ProductContext = createContext<ProductContextValue | undefined>(undefined);
@@ -148,6 +152,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   const [isHydrated, setIsHydrated] = useState(false);
   const [isProductBarExpanded, setIsProductBarExpanded] = useState(false);
   const [isSyncingPaymentPlans, setIsSyncingPaymentPlans] = useState(false);
+  const [unavailableProductIds, setUnavailableProductIds] = useState<string[]>([]);
+  const [isValidatingAvailability, setIsValidatingAvailability] = useState(true);
 
   // Memoize storage keys based on landing
   const storageKey = useMemo(() => getStorageKey(landingSlug), [landingSlug]);
@@ -627,6 +633,54 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   }, [getAllProducts, landingSlug, cartProducts, selectedProduct, setCartProducts, setSelectedProduct]);
 
   /**
+   * Validate product availability by comparing localStorage IDs vs API-returned IDs.
+   * Products missing from the API response are considered disabled/unavailable.
+   * Runs after hydration, sharing the same flow as syncMissingPaymentPlans.
+   */
+  const validateProductsAvailability = useCallback(async () => {
+    const products = getAllProducts();
+    if (products.length === 0) {
+      setIsValidatingAvailability(false);
+      return;
+    }
+
+    try {
+      const productIds = products.map(p => p.id);
+      const activeProducts = await fetchProductsByIds(landingSlug, productIds);
+      const activeIds = new Set(activeProducts.map(p => p.id));
+      const disabled = productIds.filter(id => !activeIds.has(id));
+      setUnavailableProductIds(disabled);
+    } catch {
+      // If API fails, don't block the user — backend (Phase 1) is the final barrier
+      setUnavailableProductIds([]);
+    } finally {
+      setIsValidatingAvailability(false);
+    }
+  }, [getAllProducts, landingSlug]);
+
+  /**
+   * Remove unavailable products from cart/selection
+   */
+  const removeUnavailableProducts = useCallback(() => {
+    if (unavailableProductIds.length === 0) return;
+
+    const disabledSet = new Set(unavailableProductIds);
+
+    // Remove from cart
+    if (cartProducts.length > 0) {
+      const filtered = cartProducts.filter(p => !disabledSet.has(p.id));
+      setCartProducts(filtered);
+    }
+
+    // Clear selected product if it's disabled
+    if (selectedProduct && disabledSet.has(selectedProduct.id)) {
+      setSelectedProduct(null);
+    }
+
+    setUnavailableProductIds([]);
+  }, [unavailableProductIds, cartProducts, selectedProduct, setCartProducts, setSelectedProduct]);
+
+  /**
    * Update initial payment for a specific product
    * Recalculates monthlyPayment based on paymentPlans or calculation fallback
    */
@@ -698,6 +752,20 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     }
   }, [isHydrated, getAllProducts, syncMissingPaymentPlans, isSyncingPaymentPlans]);
 
+  // Validate product availability after hydration
+  const hasValidatedRef = useRef(false);
+  useEffect(() => {
+    if (!isHydrated || hasValidatedRef.current) return;
+
+    const products = getAllProducts();
+    hasValidatedRef.current = true;
+    if (products.length > 0) {
+      validateProductsAvailability();
+    } else {
+      setIsValidatingAvailability(false);
+    }
+  }, [isHydrated, getAllProducts, validateProductsAvailability]);
+
   return (
     <ProductContext.Provider
       value={{
@@ -734,6 +802,9 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         getInitialOptionsForProduct,
         syncMissingPaymentPlans,
         isSyncingPaymentPlans,
+        unavailableProductIds,
+        removeUnavailableProducts,
+        isValidatingAvailability,
       }}
     >
       {children}

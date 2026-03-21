@@ -12,7 +12,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Button, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
-import { X, Heart, Trash2, GitCompare, ShoppingCart } from 'lucide-react';
+import { X, Heart, Trash2, GitCompare, ShoppingCart, AlertTriangle } from 'lucide-react';
 import { CatalogProduct, WishlistItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
@@ -60,6 +60,8 @@ interface WishlistDrawerProps {
   compareList?: string[];
   maxCompareProducts?: number;
   config?: WishlistConfig;
+  /** IDs of products that are no longer available */
+  unavailableIds?: string[];
 }
 
 // Contenido compartido entre mobile y desktop
@@ -73,6 +75,7 @@ const WishlistContentShared: React.FC<{
   maxCompareProducts: number;
   onClose: () => void;
   config?: WishlistConfig;
+  unavailableIds?: string[];
 }> = ({
   products,
   onRemoveProduct,
@@ -83,7 +86,9 @@ const WishlistContentShared: React.FC<{
   maxCompareProducts,
   onClose,
   config,
+  unavailableIds = [],
 }) => {
+  const unavailableSet = useMemo(() => new Set(unavailableIds), [unavailableIds]);
   // v0.6.1: Normalize items to unified format for display
   const normalizedItems = useMemo((): NormalizedWishlistItem[] => {
     return products.map((item) => {
@@ -136,9 +141,21 @@ const WishlistContentShared: React.FC<{
 
   return (
     <div className="space-y-3">
+      {unavailableIds.length > 0 && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 mb-1">
+          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-sm text-amber-700">
+            {unavailableIds.length === 1
+              ? 'Un favorito ya no está disponible.'
+              : `${unavailableIds.length} favoritos ya no están disponibles.`
+            }
+          </p>
+        </div>
+      )}
       {normalizedItems.map((item, index) => {
         const isInCompare = compareList.includes(item.id);
         const canAddToCompare = compareList.length < maxCompareProducts;
+        const isUnavailable = unavailableSet.has(item.id);
 
         return (
           <motion.div
@@ -146,7 +163,7 @@ const WishlistContentShared: React.FC<{
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="bg-neutral-50 rounded-xl p-3 flex gap-3 group"
+            className={`bg-neutral-50 rounded-xl p-3 flex gap-3 group ${isUnavailable ? 'opacity-60 border border-amber-300' : ''}`}
           >
             {/* Product Image */}
             <div
@@ -179,17 +196,23 @@ const WishlistContentShared: React.FC<{
                   <span className="text-xs text-neutral-400">{item.colorName}</span>
                 </div>
               )}
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-lg font-bold text-[var(--color-primary)]">
-                  S/{formatMoneyNoDecimals(Math.floor(item.lowestQuota))}
+              {isUnavailable ? (
+                <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded mt-1">
+                  No disponible
                 </span>
-                <span className="text-xs text-neutral-500">/mes</span>
-              </div>
+              ) : (
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-lg font-bold text-[var(--color-primary)]">
+                    S/{formatMoneyNoDecimals(Math.floor(item.lowestQuota))}
+                  </span>
+                  <span className="text-xs text-neutral-500">/mes</span>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {/* Add to Cart button - v0.6.1 */}
-                {onAddToCart && (
+                {/* Add to Cart button - v0.6.1 (hide if unavailable) */}
+                {onAddToCart && !isUnavailable && (
                   <Button
                     size="sm"
                     variant="solid"
@@ -200,7 +223,7 @@ const WishlistContentShared: React.FC<{
                     {config?.add_to_cart_button || 'Agregar'}
                   </Button>
                 )}
-                {onAddToCompare && (
+                {onAddToCompare && !isUnavailable && (
                   <Button
                     size="sm"
                     variant={isInCompare ? 'solid' : 'bordered'}
@@ -247,6 +270,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
   compareList = [],
   maxCompareProducts = 3,
   config,
+  unavailableIds = [],
 }) => (
   <Modal
     isOpen={isOpen}
@@ -285,6 +309,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
           maxCompareProducts={maxCompareProducts}
           onClose={onClose}
           config={config}
+          unavailableIds={unavailableIds}
         />
       </ModalBody>
 
@@ -318,6 +343,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
   compareList = [],
   maxCompareProducts = 3,
   config,
+  unavailableIds = [],
 }) => {
   const dragControls = useDragControls();
 
@@ -437,6 +463,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                 maxCompareProducts={maxCompareProducts}
                 onClose={onClose}
                 config={config}
+                unavailableIds={unavailableIds}
               />
             </div>
 

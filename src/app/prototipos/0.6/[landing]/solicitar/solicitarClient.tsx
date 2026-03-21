@@ -8,6 +8,7 @@
 import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart, AlertTriangle, X } from 'lucide-react';
+import { TermSelect } from './components/solicitar/product/TermSelect';
 import { useProduct } from './context/ProductContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -45,7 +46,7 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability } = useProduct();
 
   // Remove product from cart (or clear selectedProduct if single)
   const handleRemoveProduct = useCallback((productId: string) => {
@@ -170,7 +171,20 @@ function WizardPreviewContent() {
     }
   }, []);
 
+  // Only consider products that are both unavailable AND still in the cart/selection
+  const currentProductIds = new Set(
+    (cartProducts.length > 0 ? cartProducts : selectedProduct ? [selectedProduct] : []).map(p => p.id)
+  );
+  const activeUnavailableIds = unavailableProductIds.filter(id => currentProductIds.has(id));
+  const hasUnavailableProducts = activeUnavailableIds.length > 0;
+
   const handleStart = () => {
+    // Block if there are unavailable products
+    if (hasUnavailableProducts) {
+      scrollToSection('unavailable-products-banner');
+      return;
+    }
+
     // Validar que la cuota mensual no exceda el límite
     if (isOverQuotaLimit) {
       scrollToSection('product-section');
@@ -328,23 +342,13 @@ function WizardPreviewContent() {
                   {!needsTermUnification && (
                     <span className="text-xs text-neutral-500">Plazo:</span>
                   )}
-                  <select
-                    className={`text-sm border rounded-lg px-3 py-1.5 bg-white text-neutral-800 cursor-pointer focus:outline-none focus:ring-2 ${
-                      needsTermUnification
-                        ? 'border-amber-300 focus:ring-amber-400'
-                        : 'border-neutral-300 focus:ring-[var(--color-primary)]'
-                    }`}
-                    onChange={(e) => {
-                      const term = parseInt(e.target.value);
-                      if (term) updateAllProductsToTerm(term);
-                    }}
-                    value={needsTermUnification ? '' : productsToShow[0]?.months || ''}
-                  >
-                    {needsTermUnification && <option value="" disabled>Seleccionar</option>}
-                    {availableTerms.map((term) => (
-                      <option key={term} value={term}>{term} meses</option>
-                    ))}
-                  </select>
+                  <TermSelect
+                    value={needsTermUnification ? 0 : (productsToShow[0]?.months || 0)}
+                    options={availableTerms}
+                    onChange={(term) => updateAllProductsToTerm(term)}
+                    warning={needsTermUnification}
+                    placeholder="Seleccionar"
+                  />
                 </div>
               </div>
 
@@ -364,8 +368,10 @@ function WizardPreviewContent() {
 
               {/* Product List */}
               <div className="p-5 space-y-4">
-                {productsToShow.map((product, index) => (
-                  <div key={`${product.id}-${index}`} className={`flex items-start gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}>
+                {productsToShow.map((product, index) => {
+                  const isUnavailable = activeUnavailableIds.includes(product.id);
+                  return (
+                  <div key={`${product.id}-${index}`} className={`flex items-start gap-4 ${index > 0 ? 'pt-4 border-t border-neutral-100' : ''} ${isUnavailable ? 'opacity-50' : ''}`}>
                     <div className="w-20 h-20 sm:w-24 sm:h-24 bg-neutral-50 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-100">
                       <img
                         src={product.image}
@@ -426,16 +432,24 @@ function WizardPreviewContent() {
                         );
                       })()}
 
-                      <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
-                        S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}/mes
-                        <span className="text-xs text-neutral-500 font-normal ml-1">
-                          x {product.months} meses
+                      {isUnavailable ? (
+                        <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded mt-1.5">
+                          No disponible
                         </span>
-                      </p>
-                      {product.initialAmount > 0 && (
-                        <p className="text-xs text-neutral-500 mt-0.5">
-                          + S/{formatMoneyNoDecimals(Math.floor(product.initialAmount))} inicial
-                        </p>
+                      ) : (
+                        <>
+                          <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
+                            S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}/mes
+                            <span className="text-xs text-neutral-500 font-normal ml-1">
+                              x {product.months} meses
+                            </span>
+                          </p>
+                          {product.initialAmount > 0 && (
+                            <p className="text-xs text-neutral-500 mt-0.5">
+                              + S/{formatMoneyNoDecimals(Math.floor(product.initialAmount))} inicial
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
                     {/* Remove button */}
@@ -447,7 +461,8 @@ function WizardPreviewContent() {
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Total + Accessories + Quota Warning */}
@@ -605,13 +620,40 @@ function WizardPreviewContent() {
           )}
         </div>
 
+        {/* Unavailable products banner */}
+        {hasUnavailableProducts && (
+          <div id="unavailable-products-banner" className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-amber-800 font-medium text-sm">
+                  {activeUnavailableIds.length === 1
+                    ? 'Un producto de tu selección ya no está disponible'
+                    : `${activeUnavailableIds.length} productos de tu selección ya no están disponibles`
+                  }
+                </p>
+                <p className="text-amber-600 text-xs mt-1">
+                  Debes quitar los productos no disponibles para continuar con tu solicitud.
+                </p>
+                <button
+                  type="button"
+                  onClick={removeUnavailableProducts}
+                  className="mt-2 px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors cursor-pointer"
+                >
+                  Quitar productos no disponibles
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* CTA Button */}
         <button
           onClick={handleStart}
-          disabled={isOverQuotaLimit}
+          disabled={isOverQuotaLimit || hasUnavailableProducts}
           className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl
                      font-semibold text-lg transition-colors shadow-lg
-                     ${isOverQuotaLimit
+                     ${isOverQuotaLimit || hasUnavailableProducts
                        ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                        : 'bg-[var(--color-primary)] text-white hover:brightness-90 cursor-pointer shadow-[rgba(var(--color-primary-rgb),0.25)]'
                      }`}
@@ -632,8 +674,8 @@ function WizardPreviewContent() {
     </div>
   );
 
-  // Show loading while checking hydration, layout loading, config loading, or if no product selected (redirect will happen)
-  if (!isHydrated || !selectedProduct || isLayoutLoading || isConfigLoading || isFlowConfigLoading) {
+  // Show loading while checking hydration, layout loading, config loading, availability check, or if no product selected (redirect will happen)
+  if (!isHydrated || !selectedProduct || isLayoutLoading || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {
     return <LoadingFallback />;
   }
 

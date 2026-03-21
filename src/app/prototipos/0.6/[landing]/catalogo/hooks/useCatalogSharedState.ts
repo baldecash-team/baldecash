@@ -7,7 +7,8 @@
  * v0.6.1: Actualizado para usar CartItem[] y WishlistItem[] con datos completos
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 import type {
   CartItem,
   WishlistItem,
@@ -49,6 +50,10 @@ interface UseCatalogSharedStateReturn {
 
   // Hydration
   isHydrated: boolean;
+
+  // Unavailable product IDs (disabled after being added)
+  unavailableCartIds: string[];
+  unavailableWishlistIds: string[];
 
   // Legacy support: get product IDs only
   wishlistIds: string[];
@@ -249,6 +254,36 @@ export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStat
   );
 
   // ============================================
+  // Unavailable product detection
+  // ============================================
+
+  const [unavailableCartIds, setUnavailableCartIds] = useState<string[]>([]);
+  const [unavailableWishlistIds, setUnavailableWishlistIds] = useState<string[]>([]);
+  const hasValidatedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isHydrated || hasValidatedRef.current) return;
+
+    const allIds = [...cart.map(c => c.productId), ...wishlist.map(w => w.productId)];
+    if (allIds.length === 0) return;
+
+    hasValidatedRef.current = true;
+    const uniqueIds = [...new Set(allIds)];
+
+    fetchProductsByIds(landingSlug, uniqueIds)
+      .then(activeProducts => {
+        const activeIds = new Set(activeProducts.map(p => p.id));
+        setUnavailableCartIds(cart.map(c => c.productId).filter(id => !activeIds.has(id)));
+        setUnavailableWishlistIds(wishlist.map(w => w.productId).filter(id => !activeIds.has(id)));
+      })
+      .catch(() => {
+        // If API fails, don't block — backend is the final barrier
+        setUnavailableCartIds([]);
+        setUnavailableWishlistIds([]);
+      });
+  }, [isHydrated, cart, wishlist, landingSlug]);
+
+  // ============================================
   // Legacy support: product IDs only
   // ============================================
 
@@ -285,6 +320,10 @@ export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStat
 
     // Hydration
     isHydrated,
+
+    // Unavailable
+    unavailableCartIds,
+    unavailableWishlistIds,
 
     // Legacy
     wishlistIds,

@@ -115,7 +115,6 @@ export function useKeyboardShortcuts({
 
         if (componentId) {
           onVersionChange(componentId, numKey as ComponentVersion);
-          console.log(`[Shortcuts] ${componentId} → V${numKey}`);
         }
         return;
       }

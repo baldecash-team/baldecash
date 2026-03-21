@@ -65,6 +65,7 @@ export interface SubmitApplicationResponse {
   public_token?: string;  // UUID for secure public URLs
   status?: string;
   error?: string;
+  error_code?: string;
   person_id?: number;
   discount_amount?: number;
   /** Document upload results */
@@ -87,25 +88,11 @@ export interface PrefillData {
   maternal_surname: string | null;
   birth_date: string | null;
   gender: 'male' | 'female' | null;
-  email: string | null;
-  phone: string | null;
-  department: string | null;
-  province: string | null;
-  district: string | null;
   source: 'person' | 'equifax_cache' | 'equifax_api';
-}
-
-export interface PreapprovedData {
-  max_amount: number | null;
-  special_rate: number | null;
-  offer_code: string | null;
-  valid_until: string | null;
 }
 
 export interface CheckPersonResponse {
   exists: boolean;
-  is_preapproved: boolean;
-  preapproved_data: PreapprovedData | null;
   prefill_data: PrefillData | null;
 }
 
@@ -204,8 +191,6 @@ export async function checkPerson(
     if (!response.ok) {
       return {
         exists: false,
-        is_preapproved: false,
-        preapproved_data: null,
         prefill_data: null,
       };
     }
@@ -215,8 +200,6 @@ export async function checkPerson(
     console.error('Error checking person:', error);
     return {
       exists: false,
-      is_preapproved: false,
-      preapproved_data: null,
       prefill_data: null,
     };
   }

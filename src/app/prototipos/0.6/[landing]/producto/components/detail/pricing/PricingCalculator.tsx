@@ -20,12 +20,22 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   onSelectionChange?: (selection: PricingSelection) => void;
 }> = ({
   paymentPlans,
-  defaultTerm = 36,
+  defaultTerm,
+  defaultInitialPercent = 0,
   productPrice: productPriceProp,
   onSelectionChange,
 }) => {
-  const [selectedTerm, setSelectedTerm] = useState(paymentPlans[0]?.term ?? defaultTerm);
-  const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(0); // Default 0% (Sin inicial)
+  const [selectedTerm, setSelectedTerm] = useState(() => {
+    // If a specific defaultTerm is provided and exists in plans, use it
+    if (defaultTerm != null) {
+      const hasDefaultTerm = paymentPlans.some(p => p.term === defaultTerm);
+      if (hasDefaultTerm) return defaultTerm;
+    }
+    // Otherwise default to the longest available term
+    if (paymentPlans.length > 0) return Math.max(...paymentPlans.map(p => p.term));
+    return defaultTerm ?? 36;
+  });
+  const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(defaultInitialPercent as InitialPaymentPercentage);
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
 
   // Obtener opciones de pago inicial del primer plan (son iguales para todos los plazos)

@@ -49,18 +49,6 @@ export async function POST(request: NextRequest) {
     // Webhook (Slack, Discord, etc.):
     // await fetch(WEBHOOK_URL, { method: 'POST', body: JSON.stringify(body) });
 
-    // Por ahora, log en consola del servidor
-    console.log('═══════════════════════════════════════════');
-    console.log('📝 FEEDBACK RECIBIDO');
-    console.log('═══════════════════════════════════════════');
-    console.log('Sección:', body.sectionId);
-    console.log('URL:', body.pageUrl);
-    console.log('Texto:', body.feedbackText);
-    console.log('Config:', JSON.stringify(body.configSnapshot, null, 2));
-    console.log('Timestamp:', body.timestamp);
-    console.log('Screenshot size:', Math.round(body.screenshot.length / 1024), 'KB');
-    console.log('═══════════════════════════════════════════');
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error procesando feedback:', error);

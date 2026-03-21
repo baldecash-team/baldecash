@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "store.storeimages.cdn-apple.com",
       },
+      {
+        protocol: "https",
+        hostname: "baldecash.s3.us-east-1.amazonaws.com",
+      },
     ],
   },
   turbopack: {},

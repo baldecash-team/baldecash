@@ -5,9 +5,9 @@
  * Incluye: Buscador con sugerencias, Favoritos y Carrito
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Search, Heart, ShoppingCart, X, Trash2, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, Heart, ShoppingCart, X, Trash2, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CatalogProduct, CartItem, WishlistItem, calculateQuotaWithInitial } from '../../types/catalog';
@@ -406,6 +406,7 @@ interface NavbarWishlistProps {
   onViewProduct: (productId: string) => void;
   id?: string;
   config?: NavbarWishlistConfig;
+  unavailableIds?: string[];
 }
 
 export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
@@ -415,7 +416,9 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
   onViewProduct,
   id,
   config,
+  unavailableIds = [],
 }) => {
+  const unavailableSet = useMemo(() => new Set(unavailableIds), [unavailableIds]);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -495,10 +498,11 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                   {items.map((item) => {
                     // v0.6.2: Use lowestQuota from WishlistItem (default 24 months, 0% initial)
                     const quota = item.lowestQuota;
+                    const isUnavailable = unavailableSet.has(item.productId);
                     return (
                       <div
                         key={item.productId}
-                        className="flex items-center gap-3 p-2 bg-neutral-50 rounded-lg group"
+                        className={`flex items-center gap-3 p-2 rounded-lg group ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-neutral-50'}`}
                       >
                         <div
                           onClick={() => {
@@ -527,12 +531,18 @@ export const NavbarWishlist: React.FC<NavbarWishlistProps> = ({
                           >
                             {item.name}
                           </p>
-                          <p className="text-sm font-bold text-[var(--color-primary)]">
-                            S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
-                            <span className="text-xs font-normal text-neutral-500 ml-1">
-                              x 24 meses
+                          {isUnavailable ? (
+                            <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                              No disponible
                             </span>
-                          </p>
+                          ) : (
+                            <p className="text-sm font-bold text-[var(--color-primary)]">
+                              S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
+                              <span className="text-xs font-normal text-neutral-500 ml-1">
+                                x 24 meses
+                              </span>
+                            </p>
+                          )}
                         </div>
                         <button
                           onClick={() => onRemoveItem(item.productId)}
@@ -571,6 +581,7 @@ interface NavbarCartProps {
   id?: string;
   config?: NavbarCartConfig;
   isOverLimit?: boolean;
+  unavailableIds?: string[];
 }
 
 export const NavbarCart: React.FC<NavbarCartProps> = ({
@@ -581,7 +592,10 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   id,
   config,
   isOverLimit = false,
+  unavailableIds = [],
 }) => {
+  const unavailableSet = useMemo(() => new Set(unavailableIds), [unavailableIds]);
+  const hasUnavailable = unavailableIds.length > 0;
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -590,7 +604,7 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
     return sum + item.monthlyPayment;
   }, 0);
   const isOverQuotaLimit = totalMonthlyQuota > MAX_MONTHLY_QUOTA;
-  const isDisabled = items.length === 0 || isOverQuotaLimit || isOverLimit;
+  const isDisabled = items.length === 0 || isOverQuotaLimit || isOverLimit || hasUnavailable;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -676,16 +690,29 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                     </p>
                   </div>
                 )}
+                {/* Warning for unavailable products */}
+                {hasUnavailable && (
+                  <div className="mx-3 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+                    <p className="text-xs text-amber-700">
+                      {unavailableIds.length === 1
+                        ? 'Un producto ya no está disponible. Quítalo para continuar.'
+                        : `${unavailableIds.length} productos ya no están disponibles. Quítalos para continuar.`
+                      }
+                    </p>
+                  </div>
+                )}
                 <div className="max-h-[280px] overflow-y-auto">
                   <div className="p-3 space-y-2">
                     {items.map((item) => {
                       // v0.6.2: Use monthlyPayment from CartItem (user's selected config)
                       const quota = item.monthlyPayment;
                       const hasInitial = item.initialAmount > 0;
+                      const isUnavailable = unavailableSet.has(item.productId);
                       return (
                         <div
                           key={item.productId}
-                          className="flex items-center gap-3 p-2 bg-neutral-50 rounded-lg"
+                          className={`flex items-center gap-3 p-2 rounded-lg ${isUnavailable ? 'bg-amber-50 border border-amber-200 opacity-60' : 'bg-neutral-50'}`}
                         >
                           <div className="w-12 h-12 bg-white rounded-lg overflow-hidden flex-shrink-0 border border-neutral-200">
                             <img
@@ -701,16 +728,24 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
                             <p className="text-sm font-medium text-neutral-800 truncate" title={item.name}>
                               {item.name}
                             </p>
-                            <p className="text-sm font-bold text-[var(--color-primary)]">
-                              S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
-                              <span className="text-xs font-normal text-neutral-500 ml-1">
-                                x {item.months} meses
+                            {isUnavailable ? (
+                              <span className="inline-block text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                                No disponible
                               </span>
-                            </p>
-                            {hasInitial && (
-                              <p className="text-xs text-neutral-500">
-                                + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
-                              </p>
+                            ) : (
+                              <>
+                                <p className="text-sm font-bold text-[var(--color-primary)]">
+                                  S/{formatMoneyNoDecimals(Math.floor(quota))}/mes
+                                  <span className="text-xs font-normal text-neutral-500 ml-1">
+                                    x {item.months} meses
+                                  </span>
+                                </p>
+                                {hasInitial && (
+                                  <p className="text-xs text-neutral-500">
+                                    + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
+                                  </p>
+                                )}
+                              </>
                             )}
                           </div>
                           <button

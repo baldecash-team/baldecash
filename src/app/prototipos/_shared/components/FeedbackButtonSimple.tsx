@@ -138,12 +138,6 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Feedback enviado:', {
-      nombre,
-      feedback,
-      url: pageUrl,
-      screenshot,
-    });
     alert('Feedback enviado correctamente!');
     handleClose();
   };
