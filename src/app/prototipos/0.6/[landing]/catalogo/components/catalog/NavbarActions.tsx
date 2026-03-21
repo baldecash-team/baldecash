@@ -10,13 +10,12 @@ import { useRouter, useParams } from 'next/navigation';
 import { Search, Heart, ShoppingCart, X, Trash2, ArrowRight, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@nextui-org/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CatalogProduct, CartItem, WishlistItem, calculateQuotaWithInitial } from '../../types/catalog';
+import { CatalogProduct, CartItem, WishlistItem, TermMonths, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 
-// Configuración fija igual que ProductCard
-const SELECTED_TERM = 24;
-const SELECTED_INITIAL = 10;
+// Configuración fija para sugerencias: plazo más alto del producto, sin inicial
+const SELECTED_INITIAL = 0;
 const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
 
 /**
@@ -221,12 +220,26 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                     </p>
                   </div>
 
-                  {/* Monthly Quota */}
-                  {suggestion.price > 0 && (
-                    <span className="text-sm font-semibold text-[var(--color-primary)]">
-                      S/{formatMoney(calculateQuotaWithInitial(suggestion.price, SELECTED_TERM, SELECTED_INITIAL).quota)}/mes
-                    </span>
-                  )}
+                  {/* Monthly Quota with term & initial */}
+                  {suggestion.price > 0 && (() => {
+                    const term = (suggestion.maxTermMonths || 24) as TermMonths;
+                    const calc = calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL);
+                    return (
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-semibold text-[var(--color-primary)]">
+                          S/{formatMoney(calc.quota)}/mes
+                        </p>
+                        <p className="text-[10px] text-neutral-500">
+                          x {term} meses
+                        </p>
+                        {calc.initialAmount > 0 && (
+                          <p className="text-[10px] text-neutral-500">
+                            + S/{formatMoneyNoDecimals(Math.floor(calc.initialAmount))} inicial
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </button>
               ))}
             </div>

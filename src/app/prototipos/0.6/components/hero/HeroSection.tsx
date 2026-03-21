@@ -27,7 +27,7 @@ import type { QuizProduct } from '../../quiz/types/quiz';
 
 // Shared state for cart (same localStorage as catalog)
 import { useCatalogSharedState } from '../../[landing]/catalogo/hooks/useCatalogSharedState';
-import type { CartItem } from '../../[landing]/catalogo/types/catalog';
+import type { CartItem, TermMonths } from '../../[landing]/catalogo/types/catalog';
 
 // Toast for feedback
 import { Toast, useToast } from '@/app/prototipos/_shared';
@@ -137,7 +137,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Default pricing config
-  const WIZARD_SELECTED_TERM = 24;
   const WIZARD_SELECTED_INITIAL = 0;
 
   // Add to cart with toast feedback
@@ -151,9 +150,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         brand: quizProduct.brand,
         image: quizProduct.thumbnail || quizProduct.image,
         price: quizProduct.price,
-        months: WIZARD_SELECTED_TERM,
+        months: (quizProduct.termMonths || 24) as TermMonths,
         initialPercent: WIZARD_SELECTED_INITIAL,
-        initialAmount: Math.round((quizProduct.price * WIZARD_SELECTED_INITIAL) / 100),
+        initialAmount: 0,
         monthlyPayment: quizProduct.lowestQuota,
         addedAt: Date.now(),
         specs: {

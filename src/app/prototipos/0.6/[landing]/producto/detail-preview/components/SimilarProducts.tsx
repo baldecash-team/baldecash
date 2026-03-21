@@ -12,7 +12,6 @@ import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import type { CatalogProduct } from '../../../catalogo/types/catalog';
-import { calculateQuotaWithInitial } from '../../../catalogo/types/catalog';
 
 interface SimilarProductsProps {
   products: CatalogProduct[];
@@ -42,7 +41,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products }) =>
       <h2 className="text-lg font-bold text-neutral-800 mb-4">Productos similares</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {products.map((product) => {
-          const { quota } = calculateQuotaWithInitial(product.price, 24, 10);
+          const quota = product.quotaMonthly;
           return (
             <button
               key={product.id}

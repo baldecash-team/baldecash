@@ -19,6 +19,7 @@ import {
   ColorSelectorVersion,
   CartItem,
   WishlistItem,
+  TermMonths,
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 import { ImageGallery } from '../ImageGallery';
@@ -113,8 +114,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const selectedImages = getImagesForSelectedColor();
 
-  // Configuración fija de financiamiento (se puede expandir a selector en futuro)
-  const selectedTerm = 24 as const;
+  // Financiamiento: plazo más alto del producto, sin inicial
+  const selectedTerm = product.maxTermMonths as TermMonths;
   const selectedInitial = 0 as const;
   const quota = displayQuota;
   const { initialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, selectedInitial);

@@ -1253,6 +1253,7 @@ export interface ProductSuggestion {
   category: string;
   price: number;
   image: string | null;
+  maxTermMonths: number;
 }
 
 /**
@@ -1296,7 +1297,7 @@ export async function searchProductSuggestions(
       display_name?: string;
       slug: string;
       brand?: { name: string } | string | null;
-      pricing?: { final_price?: number; list_price?: number } | null;
+      pricing?: { final_price?: number; list_price?: number; available_terms?: number[] } | null;
       image_url?: string | null;
       colors?: { image_url?: string }[] | null;
     }) => ({
@@ -1307,6 +1308,9 @@ export async function searchProductSuggestions(
       category: '',
       price: item.pricing?.final_price || item.pricing?.list_price || 0,
       image: item.image_url || item.colors?.[0]?.image_url || null,
+      maxTermMonths: item.pricing?.available_terms?.length
+        ? Math.max(...item.pricing.available_terms)
+        : 24,
     }));
   } catch (error) {
     console.error('[Search API] Error searching products:', error);

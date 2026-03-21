@@ -138,6 +138,7 @@ export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStat
 
   const removeFromWishlist = useCallback((productId: string) => {
     setWishlist((prev) => prev.filter((w) => w.productId !== productId));
+    setUnavailableWishlistIds((prev) => prev.filter((id) => id !== productId));
   }, []);
 
   const toggleWishlist = useCallback((item: WishlistItem) => {
@@ -162,6 +163,7 @@ export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStat
 
   const clearWishlist = useCallback(() => {
     setWishlist([]);
+    setUnavailableWishlistIds([]);
   }, []);
 
   // ============================================
@@ -192,6 +194,7 @@ export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStat
 
   const removeFromCart = useCallback((productId: string) => {
     setCart((prev) => prev.filter((c) => c.productId !== productId));
+    setUnavailableCartIds((prev) => prev.filter((id) => id !== productId));
   }, []);
 
   const isInCart = useCallback(
@@ -206,6 +209,7 @@ export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStat
 
   const clearCart = useCallback(() => {
     setCart([]);
+    setUnavailableCartIds([]);
   }, []);
 
   // ============================================

@@ -15,9 +15,8 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { CatalogProduct, CartItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
-// Configuración fija igual que ProductCard
-const SELECTED_TERM = 24;
-const SELECTED_INITIAL = 10;
+// Configuración fija para legacy CatalogProduct path
+const SELECTED_INITIAL = 0;
 const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
 
 interface CartConfig {
@@ -98,7 +97,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           brand: item.brand,
           image: item.thumbnail,
           monthlyQuota: item.quotaMonthly,
-          months: SELECTED_TERM,
+          months: item.maxTermMonths || 24,
           initialPercent: SELECTED_INITIAL,
         };
       }

@@ -10,8 +10,7 @@ import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 
-// Configuración para wizard
-const WIZARD_SELECTED_TERM = 24;
+import type { TermMonths } from '../../types/catalog';
 
 /**
  * ComparatorV1 - Modal Fullscreen
@@ -50,7 +49,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       brand: product.brand,
       price: product.price,
       monthlyPayment: product.quotaMonthly,
-      months: WIZARD_SELECTED_TERM,
+      months: (product.maxTermMonths || 24) as TermMonths,
       initialPercent: 0,
       initialAmount: 0,
       image: product.thumbnail,

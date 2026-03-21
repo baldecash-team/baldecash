@@ -24,7 +24,7 @@ import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
 import { SearchDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/SearchDrawer';
 import { WishlistDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/wishlist/WishlistDrawer';
-import type { CatalogProduct, CartItem, WishlistItem } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import type { CatalogProduct, CartItem, WishlistItem, TermMonths } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -41,9 +41,6 @@ import {
   CronogramaVersion,
   defaultDetalleConfig,
 } from '../types/detail';
-
-// Fixed config for quota calculation (same as CatalogoClient)
-const WIZARD_SELECTED_TERM = 24;
 
 function ProductDetailContent() {
   const router = useRouter();
@@ -355,18 +352,18 @@ function ProductDetailContent() {
           isInCart={isAvailable ? catalogState.isInCart(apiData.product.id) : false}
           onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
           isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
-          onSimilarAddToCart={isAvailable ? (similarProduct) => {
-            // v0.6.2: Build CartItem from SimilarProduct with default pricing
-            const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24 / 0.9);
+          onSimilarAddToCart={(similarProduct) => {
+            // Similar products are independent — always allow add-to-cart
+            const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24);
             const cartItem: CartItem = {
               productId: similarProduct.id,
-              slug: similarProduct.slug,  // For API calls when fetching payment plans
+              slug: similarProduct.slug,
               name: similarProduct.displayName,
               shortName: similarProduct.name,
               brand: similarProduct.brand,
               image: similarProduct.thumbnail,
               price: estimatedPrice,
-              months: WIZARD_SELECTED_TERM,
+              months: 24 as TermMonths, // Fallback — SimilarProduct no trae maxTermMonths
               initialPercent: 0,
               initialAmount: 0,
               monthlyPayment: similarProduct.monthlyQuota,
@@ -378,8 +375,8 @@ function ProductDetailContent() {
               } : undefined,
             };
             handleAddToCart(cartItem);
-          } : undefined}
-          cartItems={isAvailable ? catalogState.cartIds : []}
+          }}
+          cartItems={catalogState.cartIds}
         />
       </main>
 

@@ -141,10 +141,8 @@ const getUpsellUrl = (landing: string) => {
   return `/prototipos/0.6/${landing}/solicitar/`;
 };
 
-// Configuración fija para cálculo de cuota (igual que CartSelectionModal)
 // v0.6.1: Use typed constants for CartItem compatibility
 import type { TermMonths, InitialPaymentPercent } from './types/catalog';
-const WIZARD_SELECTED_TERM: TermMonths = 24;
 const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
 
 // Dynamic storage keys based on landing slug
@@ -573,7 +571,7 @@ function CatalogoContent() {
       brand: product.brand,
       price: product.price,
       monthlyPayment: product.quotaMonthly,
-      months: WIZARD_SELECTED_TERM,
+      months: (product.maxTermMonths || 24) as TermMonths,
       initialPercent: 0,
       initialAmount: 0,
       image: product.thumbnail,
@@ -1009,9 +1007,9 @@ function CatalogoContent() {
           brand: product.brand,
           image: product.thumbnail,
           price: product.price,
-          months: WIZARD_SELECTED_TERM,
+          months: (product.maxTermMonths || 24) as TermMonths,
           initialPercent: WIZARD_SELECTED_INITIAL,
-          initialAmount: Math.round((product.price * WIZARD_SELECTED_INITIAL) / 100),
+          initialAmount: 0,
           monthlyPayment: product.quotaMonthly,
           addedAt: Date.now(),
           // No variant info in legacy path
@@ -1434,6 +1432,9 @@ function CatalogoContent() {
           const product = findProductOrSibling(productId);
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
+          } else if (item?.slug) {
+            // Product not in catalog (e.g., deactivated) — use slug from stored item
+            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
           }
         }}
         cartItems={cartItems}
@@ -1445,6 +1446,9 @@ function CatalogoContent() {
           const product = findProductOrSibling(productId);
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
+          } else if (item?.slug) {
+            // Product not in catalog (e.g., deactivated) — use slug from stored item
+            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
           }
         }}
         isCartOverLimit={isOverLimit}
@@ -1719,6 +1723,8 @@ function CatalogoContent() {
           const product = findProductOrSibling(productId);
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
+          } else if (item?.slug) {
+            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
           }
         }}
         config={catalogSecondaryNavbarConfig?.cart}
@@ -1748,6 +1754,8 @@ function CatalogoContent() {
           const product = findProductOrSibling(productId);
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
+          } else if (item?.slug) {
+            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
           }
         }}
         onAddToCompare={handleToggleCompare}
@@ -1999,9 +2007,9 @@ function CatalogoContent() {
               brand: quizProduct.brand,
               image: quizProduct.thumbnail || quizProduct.image,
               price: quizProduct.price,
-              months: WIZARD_SELECTED_TERM,
+              months: (quizProduct.termMonths || 24) as TermMonths,
               initialPercent: WIZARD_SELECTED_INITIAL,
-              initialAmount: Math.round((quizProduct.price * WIZARD_SELECTED_INITIAL) / 100),
+              initialAmount: 0,
               monthlyPayment: quizProduct.lowestQuota,
               addedAt: Date.now(),
               specs: {

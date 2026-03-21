@@ -132,8 +132,8 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
 
       // Build SelectedProduct from SimilarProduct
       // Note: SimilarProduct doesn't have price, so we estimate it from monthlyQuota
-      // Price ≈ monthlyQuota * months (assuming 24 months with 10% initial)
-      const estimatedPrice = Math.floor(product.monthlyQuota * 24 / 0.9);
+      // Price ≈ monthlyQuota * months (plazo más alto, sin inicial)
+      const estimatedPrice = Math.floor(product.monthlyQuota * 24);
 
       const selectedProduct: SelectedProduct = {
         id: product.id,
@@ -142,7 +142,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
         brand: product.brand,
         price: estimatedPrice,
         monthlyPayment: product.monthlyQuota,
-        months: 24, // Default term
+        months: 24, // Fallback — SimilarProduct no trae maxTermMonths
         initialPercent: 0,
         initialAmount: 0,
         image: product.thumbnail,

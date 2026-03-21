@@ -1,19 +1,14 @@
 // types/comparator.ts - BaldeCash Comparator Types v0.5
 // V1-V2 según convenciones v0.5, con excepción de designStyle (V1-V3)
 
-import { CatalogProduct, TermMonths, InitialPaymentPercent, calculateQuotaWithInitial } from '../../catalogo/types/catalog';
-
-// Configuración fija para cálculo de cuota (igual que ProductCard)
-const COMPARATOR_TERM = 24;
-const COMPARATOR_INITIAL = 10;
+import { CatalogProduct, TermMonths, InitialPaymentPercent } from '../../catalogo/types/catalog';
 
 /**
- * Calcula la cuota mensual real para mostrar en el comparador.
- * Usa la misma fórmula que ProductCard del catálogo.
+ * Cuota mensual para mostrar en el comparador.
+ * Usa quotaMonthly del backend (plazo más alto del producto, inicial 0%).
  */
 export const getDisplayQuota = (product: CatalogProduct): number => {
-  const { quota } = calculateQuotaWithInitial(product.price, COMPARATOR_TERM, COMPARATOR_INITIAL);
-  return quota;
+  return product.quotaMonthly;
 };
 
 // ============================================
@@ -48,7 +43,7 @@ export const defaultComparatorConfig: ComparatorConfig = {
   fieldsVersion: 1,
   priceDiffVersion: 1,
   defaultTerm: 24,
-  defaultInitial: 10,
+  defaultInitial: 0,
 };
 
 // ============================================

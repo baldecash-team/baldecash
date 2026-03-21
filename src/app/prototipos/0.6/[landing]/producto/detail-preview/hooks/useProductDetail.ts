@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { CatalogProduct } from '../../../catalogo/types/catalog';
-import { calculateQuotaForTerm } from '../../../catalogo/types/catalog';
+import { calculateQuotaForTerm, TermMonths } from '../../../catalogo/types/catalog';
 import { mockProducts } from '../../../catalogo/data/mockCatalogData';
 import {
   type ApiCatalogProduct,
@@ -66,7 +66,9 @@ function mapLandingDetailToCatalogProduct(data: Record<string, unknown>): Catalo
   const listPrice = (pricing?.list_price as number) || price;
   const discountPercent = (pricing?.discount_percent as number) || 0;
 
-  const quotaMonthly = price > 0 ? (hook?.monthly_price || calculateQuotaForTerm(price, 24)) : 0;
+  const availableTerms = (pricing?.available_terms as number[]) || [];
+  const maxTerm = availableTerms.length > 0 ? Math.max(...availableTerms) : 24;
+  const quotaMonthly = price > 0 ? (hook?.monthly_price || calculateQuotaForTerm(price, maxTerm as TermMonths)) : 0;
   const quotaBiweekly = Math.floor(quotaMonthly / 2);
   const quotaWeekly = Math.floor(quotaMonthly / 4);
 
@@ -91,7 +93,7 @@ function mapLandingDetailToCatalogProduct(data: Record<string, unknown>): Catalo
     quotaMonthly,
     quotaBiweekly,
     quotaWeekly,
-    maxTermMonths: 24,
+    maxTermMonths: maxTerm,
     gama: price < 1500 ? 'economica' : price < 2500 ? 'estudiante' : price < 4000 ? 'profesional' : price < 6000 ? 'creativa' : 'gamer',
     condition: ((data.condition as string) || 'nueva').includes('reacondicion') ? 'reacondicionado' : 'nuevo',
     stock: 'available',
