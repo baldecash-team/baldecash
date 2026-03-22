@@ -6,7 +6,7 @@
  */
 
 import React, { useCallback, useState, useRef } from 'react';
-import { Upload, X, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, X, FileText, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
 
 export interface FieldTooltipInfo {
@@ -34,6 +34,7 @@ interface FileUploadProps {
   maxFiles?: number;
   maxSize?: number; // in bytes
   error?: string;
+  warning?: string;
   helpText?: string;
   tooltip?: FieldTooltipInfo;
   disabled?: boolean;
@@ -51,6 +52,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   maxFiles = 1,
   maxSize = 5 * 1024 * 1024, // 5MB default
   error,
+  warning,
   helpText,
   tooltip,
   disabled = false,
@@ -60,8 +62,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   const [sizeError, setSizeError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showError = !!error || !!sizeError;
   const hasFiles = value.length > 0;
+  const showError = !!error || !!sizeError;
+  const showWarning = !!warning && !hasFiles && !showError;
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -160,6 +163,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         {tooltip && <FieldTooltip tooltip={tooltip} />}
       </label>
 
+      {/* Reupload Warning */}
+      {showWarning && (
+        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-700">{warning}</p>
+        </div>
+      )}
+
       {/* Drop Zone */}
       <div
         onClick={handleClick}
@@ -172,6 +183,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
             : showError
             ? 'border-red-300 bg-red-50 hover:border-red-400'
+            : showWarning
+            ? 'border-amber-300 bg-amber-50 hover:border-amber-400'
             : hasFiles
             ? 'border-green-300 bg-green-50 hover:border-green-400'
             : 'border-neutral-300 bg-neutral-50 hover:border-neutral-400 hover:bg-neutral-100'}

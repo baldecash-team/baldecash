@@ -21,7 +21,8 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
-import { getStepSlug } from '../../../services/wizardApi';
+import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
+import { getStepSlug, validateStep as validateStepFields } from '../../../services/wizardApi';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SectionRenderer } from '../components/solicitar/sections';
@@ -48,8 +49,9 @@ function ComplementosContent() {
   // Get layout data from context
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
-  // Get wizard config for back navigation
+  // Get wizard config for back navigation and cross-step validation
   const { steps } = useWizardConfig();
+  const { formData, setFieldError } = useWizard();
 
   // Get solicitar flow configuration
   const {
@@ -87,6 +89,26 @@ function ComplementosContent() {
     }
   }, [unavailableProductIds, landing, router]);
 
+  // Build form values for cross-step validation
+  const formValues = useMemo(() => {
+    const values: Record<string, string | string[]> = {};
+    for (const [key, state] of Object.entries(formData)) {
+      if (state?.value !== undefined) {
+        if (state.value === FILE_PENDING_REUPLOAD) {
+          values[key] = '';
+          continue;
+        }
+        values[key] = state.value as string | string[];
+      }
+    }
+    return values;
+  }, [formData]);
+
+  // Regular steps for validation
+  const regularSteps = useMemo(() => {
+    return steps.filter(s => !s.is_summary_step);
+  }, [steps]);
+
   // Get the last wizard step for back navigation
   // Secuencia correcta: pasos regulares primero, luego pasos de resumen
   const lastStep = useMemo(() => {
@@ -119,6 +141,22 @@ function ComplementosContent() {
   };
 
   const handleSubmit = async () => {
+    // Validate ALL wizard steps before submitting
+    for (const s of regularSteps) {
+      const firstError = validateStepFields(s, formValues, setFieldError);
+      if (firstError) {
+        showToast(
+          `Hay campos incompletos en "${s.title || s.name}". Por favor, revísalos.`,
+          'error'
+        );
+        const stepSlug = getStepSlug(s);
+        setTimeout(() => {
+          router.push(`/prototipos/0.6/${landing}/solicitar/${stepSlug}`);
+        }, 1500);
+        return;
+      }
+    }
+
     // Pass insurance ID from context (selectedInsurance is now the full plan object)
     await submitApplication({ insuranceId: selectedInsurance?.id || null });
   };

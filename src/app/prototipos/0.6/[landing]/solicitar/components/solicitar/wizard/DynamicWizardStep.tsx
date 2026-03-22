@@ -78,35 +78,36 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     return values;
   }, [formData]);
 
-  // Identify prefill-dependent fields: hidden fields listed in a document_number's prefill_config.
-  // These fields are shown only when DNI lookup fails (_prefill_status = "not_found").
-  const prefillFieldCodes = useMemo(() => {
-    const codes = new Set<string>();
+  // Map each prefill target field to its source document_number field code.
+  // e.g., { "supporter_full_name": "supporter_document_number", "first_name": "document_number" }
+  const prefillFieldToDocField = useMemo(() => {
+    const map: Record<string, string> = {};
     for (const field of step.fields) {
       if (field.type === 'document_number' && field.prefill_config?.prefill_fields) {
         for (const code of Object.keys(field.prefill_config.prefill_fields)) {
-          codes.add(code);
+          map[code] = field.code;
         }
       }
     }
-    return codes;
+    return map;
   }, [step.fields]);
 
   // Compute visibility for all fields
   const fieldVisibility = useMemo(() => {
     const vis: Record<string, boolean> = {};
-    const prefillStatus = formValues['_prefill_status'] as string | undefined;
 
     for (const field of step.fields) {
-      // Prefill-dependent fields: show only when DNI lookup returned no data
-      if (field.hidden && prefillFieldCodes.has(field.code)) {
+      // Prefill-dependent fields: show only when their specific DNI lookup returned no data
+      const docFieldCode = prefillFieldToDocField[field.code];
+      if (field.hidden && docFieldCode) {
+        const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
         vis[field.code] = prefillStatus === 'not_found';
       } else {
         vis[field.code] = evaluateFieldVisibility(field, formValues);
       }
     }
     return vis;
-  }, [step.fields, formValues, prefillFieldCodes]);
+  }, [step.fields, formValues, prefillFieldToDocField]);
 
   // Clear field values when they become hidden
   const prevVisibilityRef = useRef<Record<string, boolean>>({});

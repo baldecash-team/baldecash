@@ -7,7 +7,7 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { WizardField, WizardFieldOption, filterFieldOptions } from '../../../../../services/wizardApi';
-import { useWizard } from '../../../context/WizardContext';
+import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { TextInput } from './TextInput';
 import { SegmentedControl } from './SegmentedControl';
@@ -345,6 +345,9 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     case 'file':
       // FileUpload expects different value type
       const fileValue = formData[field.code]?.value;
+      // Detect reupload marker (file was uploaded but lost after page refresh)
+      const needsReupload = fileValue === FILE_PENDING_REUPLOAD;
+      const lostFileNames = needsReupload ? formData[field.code]?.label : undefined;
       const files = Array.isArray(fileValue) ? fileValue : [];
 
       return (
@@ -359,6 +362,9 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           maxFiles={field.max_files || 1}
           maxSize={(field.max_file_size_mb || 5) * 1024 * 1024}
           error={error}
+          warning={needsReupload
+            ? `Archivo previamente cargado (${lostFileNames || 'archivo'}). Por favor, vuelve a subirlo.`
+            : undefined}
           required={field.required}
           disabled={field.readonly}
           tooltip={tooltip}

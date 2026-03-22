@@ -19,7 +19,8 @@ export const metadata: Metadata = {
   title: "BaldeCash - Prototipos UI/UX",
   description: "Prototipos de diseño para financiamiento estudiantil",
   icons: {
-    icon: "https://cdn.prod.website-files.com/62141f21700a64ab3f816206/62141f21700a649ad7816257_favicon.png",
+    icon: "https://baldecash.s3.amazonaws.com/company/favicon-32x32.png",
+    apple: "https://baldecash.s3.amazonaws.com/company/apple-touch-icon.png",
   },
 };
 

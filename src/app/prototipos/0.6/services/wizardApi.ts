@@ -595,22 +595,22 @@ export function validateStep(
 ): string | null {
   let firstErrorField: string | null = null;
 
-  // Build prefill field codes (same logic as DynamicWizardStep)
-  const prefillFieldCodes = new Set<string>();
+  // Map prefill target fields to their source document_number field code
+  const prefillFieldToDocField: Record<string, string> = {};
   for (const field of step.fields) {
     if (field.type === 'document_number' && field.prefill_config?.prefill_fields) {
       for (const code of Object.keys(field.prefill_config.prefill_fields)) {
-        prefillFieldCodes.add(code);
+        prefillFieldToDocField[code] = field.code;
       }
     }
   }
 
-  const prefillStatus = formValues['_prefill_status'] as string | undefined;
-
   for (const field of step.fields) {
     // Compute effective visibility matching DynamicWizardStep logic
     let isVisible: boolean;
-    if (field.hidden && prefillFieldCodes.has(field.code)) {
+    const docFieldCode = prefillFieldToDocField[field.code];
+    if (field.hidden && docFieldCode) {
+      const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
       isVisible = prefillStatus === 'not_found';
     } else {
       isVisible = evaluateFieldVisibility(field, formValues);

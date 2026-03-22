@@ -54,18 +54,34 @@ interface WizardProviderProps {
   landingSlug: string;
 }
 
-// Helper to save to localStorage (excludes File objects)
+// Marker value stored in localStorage when a file field had uploads that can't be serialized.
+// On reload, this signals the UI to prompt the user to re-upload.
+export const FILE_PENDING_REUPLOAD = '_file_pending_reupload_';
+
+// Helper to save to localStorage (excludes File objects but keeps reupload markers)
 const saveToStorage = (storageKey: string, formData: Record<string, FieldState>) => {
   if (typeof window === 'undefined') return;
   try {
-    // Filter out File objects and internal state fields
     const serializableData: Record<string, FieldState> = {};
     for (const [key, value] of Object.entries(formData)) {
-      if (Array.isArray(value.value) && value.value[0] instanceof File) {
-        continue;
+      // Detect file fields: UploadedFile objects have a `file` property that is a File instance
+      if (Array.isArray(value.value) && value.value.length > 0) {
+        const firstItem = value.value[0] as unknown;
+        const isFileField = firstItem instanceof File ||
+          (firstItem && typeof firstItem === 'object' && 'file' in firstItem && (firstItem as { file: unknown }).file instanceof File);
+        if (isFileField) {
+          // Save a marker with file names so we can warn the user after refresh
+          const fileNames = (value.value as Array<{ name?: string; file?: { name?: string } }>).map(f => f.name || f.file?.name || 'archivo');
+          serializableData[key] = {
+            value: FILE_PENDING_REUPLOAD,
+            touched: true,
+            label: fileNames.join(', '),
+          };
+          continue;
+        }
       }
-      // Skip internal prefill status — must re-evaluate on each session
-      if (key === '_prefill_status') continue;
+      // Skip internal prefill status keys — must re-evaluate on each session
+      if (key.startsWith('_prefill_status_')) continue;
       serializableData[key] = value;
     }
     localStorage.setItem(storageKey, JSON.stringify(serializableData));
@@ -96,8 +112,12 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
       const savedData = localStorage.getItem(storageKey);
       if (savedData) {
         const parsed = JSON.parse(savedData);
-        // Remove internal state that must re-evaluate each session
-        delete parsed['_prefill_status'];
+        // Remove internal prefill status keys that must re-evaluate each session
+        for (const key of Object.keys(parsed)) {
+          if (key.startsWith('_prefill_status_')) {
+            delete parsed[key];
+          }
+        }
         setFormData(parsed);
       }
       // Note: completedSteps is now calculated dynamically in WizardProgress

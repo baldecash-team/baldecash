@@ -146,19 +146,20 @@ const SummaryStepSection: React.FC<{
   formValues: Record<string, string | string[]>;
   formData: Record<string, FieldState>;
   resolvedLabels: Record<string, string>;
+  prefillTargetFields: Set<string>;
   onEdit?: () => void;
   showEditButton?: boolean;
-}> = ({ step, formValues, formData, resolvedLabels, onEdit, showEditButton = true }) => {
+}> = ({ step, formValues, formData, resolvedLabels, prefillTargetFields, onEdit, showEditButton = true }) => {
   // Filter visible fields
   const visibleFields = useMemo(() => {
     return step.fields.filter((field) => {
-      // Skip hidden fields
-      if (field.hidden) return false;
+      // Prefill target fields (like supporter_full_name) are internal — never show in summary
+      if (field.hidden && prefillTargetFields.has(field.code)) return false;
 
       // Check visibility based on dependencies
       return evaluateFieldVisibility(field, formValues);
     });
-  }, [step.fields, formValues]);
+  }, [step.fields, formValues, prefillTargetFields]);
 
   // Don't render section if no visible fields
   if (visibleFields.length === 0) {
@@ -236,6 +237,22 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
   const regularSteps = useMemo(() => {
     return steps.filter((step) => !step.is_summary_step);
   }, [steps]);
+
+  // Identify prefill target fields (e.g., supporter_full_name filled by check-person API)
+  // These are internal fields that should never appear in the summary
+  const prefillTargetFields = useMemo(() => {
+    const targets = new Set<string>();
+    for (const s of regularSteps) {
+      for (const f of s.fields) {
+        if (f.type === 'document_number' && f.prefill_config?.prefill_fields) {
+          for (const code of Object.keys(f.prefill_config.prefill_fields)) {
+            targets.add(code);
+          }
+        }
+      }
+    }
+    return targets;
+  }, [regularSteps]);
 
   // Identify fields that need label resolution
   const fieldsNeedingResolution = useMemo(() => {
@@ -354,6 +371,7 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
           formValues={formValues}
           formData={formData}
           resolvedLabels={resolvedLabels}
+          prefillTargetFields={prefillTargetFields}
           showEditButton={showEditButtons}
           onEdit={
             onEditStep

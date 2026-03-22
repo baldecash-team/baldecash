@@ -21,7 +21,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Context
-import { useWizard } from '../context/WizardContext';
+import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useProduct } from '../context/ProductContext';
@@ -174,6 +174,11 @@ function StepContent() {
     const values: Record<string, string | string[]> = {};
     for (const [key, state] of Object.entries(formData)) {
       if (state?.value !== undefined) {
+        // Treat file reupload marker as empty (file was lost on refresh)
+        if (state.value === FILE_PENDING_REUPLOAD) {
+          values[key] = '';
+          continue;
+        }
         values[key] = state.value as string | string[];
       }
     }
@@ -183,7 +188,7 @@ function StepContent() {
   // Override motivational when check-person finds data (personalized greeting)
   const stepMotivational = useMemo((): WizardMotivational | null => {
     if (!step) return null;
-    const prefillStatus = formData['_prefill_status']?.value as string | undefined;
+    const prefillStatus = formData['_prefill_status_document_number']?.value as string | undefined;
     if (prefillStatus !== 'found') return step.motivational;
 
     const hasMainDocumentNumber = step.fields.some(f => f.type === 'document_number' && f.code === 'document_number');
@@ -336,8 +341,26 @@ function StepContent() {
     return Array.isArray(value) ? value.join(', ') : value;
   };
 
-  // Check if field should be displayed (evaluateFieldVisibility handles hidden + dependencies)
+  // Identify prefill target fields (e.g., supporter_full_name is a prefill target of supporter_document_number)
+  // These are hidden fields auto-filled by check-person API and should never appear in the summary
+  const prefillTargetFields = useMemo(() => {
+    const targets = new Set<string>();
+    for (const s of regularSteps) {
+      for (const f of s.fields) {
+        if (f.type === 'document_number' && f.prefill_config?.prefill_fields) {
+          for (const code of Object.keys(f.prefill_config.prefill_fields)) {
+            targets.add(code);
+          }
+        }
+      }
+    }
+    return targets;
+  }, [regularSteps]);
+
+  // Check if field should be displayed in summary
   const shouldDisplayField = (field: WizardField): boolean => {
+    // Prefill target fields (like supporter_full_name) are internal — never show in summary
+    if (field.hidden && prefillTargetFields.has(field.code)) return false;
     return evaluateFieldVisibility(field, formValues);
   };
 
@@ -387,6 +410,20 @@ function StepContent() {
     router.push(`/prototipos/0.6/${landing}/solicitar/${stepId}`);
   };
 
+  // Validate all regular steps (cross-step validation before submit)
+  const validateAllSteps = useCallback((): { stepTitle: string; stepSlug: string } | null => {
+    for (const s of regularSteps) {
+      const firstError = validateStepFields(s, formValues, setFieldError, getAllDynamicOptions());
+      if (firstError) {
+        return {
+          stepTitle: s.title || s.name,
+          stepSlug: getStepSlug(s),
+        };
+      }
+    }
+    return null;
+  }, [regularSteps, formValues, setFieldError, getAllDynamicOptions]);
+
   // Summary specific handlers
   const handleSummarySubmit = async () => {
     // Wait for flow config to be ready
@@ -397,6 +434,20 @@ function StepContent() {
     const firstErrorField = validateStep();
     if (firstErrorField) {
       document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Validate ALL regular steps before submitting
+    const invalidStep = validateAllSteps();
+    if (invalidStep) {
+      showToast(
+        `Hay campos incompletos en "${invalidStep.stepTitle}". Por favor, revísalos.`,
+        'warning'
+      );
+      // Navigate to the step with errors after a short delay so user can read the toast
+      setTimeout(() => {
+        navigateToStep(invalidStep.stepSlug);
+      }, 1500);
       return;
     }
 

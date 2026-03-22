@@ -8,7 +8,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useProduct } from '../context/ProductContext';
-import { useWizard } from '../context/WizardContext';
+import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
 import { useSession } from '../context/SessionContext';
 import {
   submitApplication,
@@ -152,6 +152,8 @@ export function useSubmitApplication(
     for (const [key, fieldState] of Object.entries(formData)) {
       // Skip internal fields (prefixed with _) — they control UI state only
       if (key.startsWith('_')) continue;
+      // Skip file reupload markers (file was lost on refresh, not a real value)
+      if (fieldState?.value === FILE_PENDING_REUPLOAD) continue;
       if (fieldState?.value !== undefined && fieldState.value !== '') {
         // Handle file arrays
         if (Array.isArray(fieldState.value)) {

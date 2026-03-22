@@ -53,7 +53,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Handle prefill when data is received
   const handlePrefillReady = useCallback((data: PrefillData) => {
     // Set prefill status FIRST so visibility evaluates before cleanup runs
-    updateField('_prefill_status', 'found');
+    updateField(`_prefill_status_${field.code}`, 'found');
 
     if (prefillConfig?.prefill_fields) {
       // Dynamic mode: use prefill_config from form builder
@@ -99,7 +99,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Only clear if fields were previously auto-filled (not manually entered)
   const handleNoPrefillData = useCallback(() => {
     // Mark as not found — this triggers visibility of personal fields
-    updateField('_prefill_status', 'not_found');
+    updateField(`_prefill_status_${field.code}`, 'not_found');
 
     if (!prefilledRef.current) return; // Don't clear manually entered data
 
@@ -153,7 +153,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     updateField(field.code, newValue);
     // Always reset prefill status when user modifies the document number
     // so prefill-dependent fields hide until next lookup completes
-    updateField('_prefill_status', '');
+    updateField(`_prefill_status_${field.code}`, '');
     resetCheck(); // Allow re-checking when DNI changes
   }, [field.code, updateField, resetCheck]);
 
