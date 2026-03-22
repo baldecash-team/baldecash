@@ -41,7 +41,7 @@ export const BrandFilterV3: React.FC<BrandFilterProps> = ({
           <button
             key={option.value}
             onClick={() => handleToggle(option.value)}
-            className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
+            className={`relative flex flex-col items-center justify-center px-1 py-2 pt-3 rounded-lg border-2 transition-all cursor-pointer ${
               isSelected
                 ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
                 : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
@@ -53,7 +53,7 @@ export const BrandFilterV3: React.FC<BrandFilterProps> = ({
               </div>
             )}
 
-            <div className="w-12 h-8 flex items-center justify-center mb-1">
+            <div className="w-full h-8 flex items-center justify-center mb-1">
               {option.logo && !hasError ? (
                 <BrandLogo
                   src={option.logo}

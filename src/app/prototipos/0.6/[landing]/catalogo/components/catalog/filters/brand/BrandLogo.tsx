@@ -78,11 +78,11 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         style={{
           backgroundColor: currentColor,
           maskImage: `url(${src})`,
-          maskSize: 'contain',
+          maskSize: '90% 90%',
           maskRepeat: 'no-repeat',
           maskPosition: 'center',
           WebkitMaskImage: `url(${src})`,
-          WebkitMaskSize: 'contain',
+          WebkitMaskSize: '90% 90%',
           WebkitMaskRepeat: 'no-repeat',
           WebkitMaskPosition: 'center',
         }}
