@@ -95,8 +95,18 @@ export function useCatalogProducts({
   const filtersKey = JSON.stringify(filters || {});
   const lastFiltersKeyRef = useRef<string>(filtersKey);
 
+  // AbortController to cancel in-flight requests when filters change
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   // Initial load (16 products)
   const loadProducts = useCallback(async () => {
+    // Cancel any in-flight request before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsLoading(true);
     setError(null);
     setSuggestions([]); // Clear previous suggestions
@@ -109,6 +119,9 @@ export function useCatalogProducts({
         limit: INITIAL_LOAD_LIMIT,
         offset: 0,
       });
+
+      // If this request was aborted, ignore its results
+      if (controller.signal.aborted) return;
 
       if (result && result.products.length > 0) {
         setProducts(result.products);
@@ -136,6 +149,8 @@ export function useCatalogProducts({
         }
       }
     } catch (err) {
+      // Ignore aborted requests - a newer request replaced this one
+      if (controller.signal.aborted) return;
       // API failed - NO fallback, show error
       console.error('[Catalog] API error:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar productos');
@@ -144,7 +159,9 @@ export function useCatalogProducts({
       setHasMore(false);
       setIsFromApi(false);
     } finally {
-      setIsLoading(false);
+      if (!controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [landingSlug, filters, sortBy]);
 

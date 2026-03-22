@@ -172,7 +172,6 @@ export function usePreviewListener() {
   const handleMessage = useCallback((event: MessageEvent) => {
     // Validar origen
     if (!isAllowedOrigin(event.origin)) {
-      console.warn('[PreviewListener] Message from unauthorized origin:', event.origin);
       return;
     }
 
@@ -184,7 +183,6 @@ export function usePreviewListener() {
 
     // Validar que hay payload
     if (!data.payload) {
-      console.warn('[PreviewListener] No payload in message');
       return;
     }
 

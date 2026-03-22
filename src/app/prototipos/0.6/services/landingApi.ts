@@ -825,7 +825,6 @@ export async function getLandingAccessories(
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.warn(`Landing accessories not found for slug: ${slug}`);
         return [];
       }
       throw new Error(`API error: ${response.status}`);
@@ -892,7 +891,6 @@ export async function getLandingInsurances(slug: string): Promise<ApiInsurancePl
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.warn(`Landing insurances not found for slug: ${slug}`);
         return [];
       }
       throw new Error(`API error: ${response.status}`);
@@ -935,7 +933,6 @@ export async function getComingSoonContent(slug?: string): Promise<ComingSoonSec
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.warn('[ComingSoon] No content found');
         return [];
       }
       throw new Error(`API error: ${response.status}`);
@@ -1013,7 +1010,6 @@ export async function getSolicitarConfig(
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.warn(`[SolicitarConfig] Landing not found: ${slug}`);
         return DEFAULT_SOLICITAR_FLOW;
       }
       throw new Error(`API error: ${response.status}`);

@@ -419,7 +419,6 @@ export async function getQuizRecommendations(
 
     // Validate we have at least one answer
     if (requestBody.answers.length === 0) {
-      console.warn('[Quiz API] No valid answers to send');
       return null;
     }
 

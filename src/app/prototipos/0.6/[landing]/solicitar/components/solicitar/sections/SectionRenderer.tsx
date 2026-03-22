@@ -38,7 +38,6 @@ export function SectionRenderer({
       return null;
 
     default:
-      console.warn(`Unknown section type: ${type}`);
       return null;
   }
 }

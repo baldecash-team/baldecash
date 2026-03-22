@@ -6,7 +6,7 @@
  * Único elemento iterable: ColorSelector (V1 Dots / V2 Swatches)
  */
 
-import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense, useRef, useDeferredValue } from 'react';
 import { Button, Popover, PopoverTrigger, PopoverContent } from '@nextui-org/react';
 import {
   Settings,
@@ -315,14 +315,16 @@ function CatalogoContent() {
 
   // Search query state - initialized from URL params
   const [searchQuery, setSearchQuery] = useState(() => initialUrlFilters.searchQuery || '');
+  // Debounced search query - waits until user stops typing to trigger API fetch
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   // Build API filters from frontend FilterState
   const apiFiltersForProducts = useMemo((): ApiCatalogFilters => {
     const apiFilters: ApiCatalogFilters = {};
 
-    // Text search
-    if (searchQuery.trim()) {
-      apiFilters.q = searchQuery.trim();
+    // Text search (uses deferred value to avoid race conditions)
+    if (deferredSearchQuery.trim()) {
+      apiFilters.q = deferredSearchQuery.trim();
     }
 
     // Device types
@@ -514,7 +516,7 @@ function CatalogoContent() {
     filters.minUSBPorts,
     filters.ramExpandable,
     brandMapping,
-    searchQuery,
+    deferredSearchQuery,
   ]);
 
   // Map frontend sort to API sort
