@@ -7,8 +7,9 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Check, AlertCircle, Loader2, MapPin, Navigation } from 'lucide-react';
+import { LocationModal } from './LocationModal';
 import { FieldTooltip } from './FieldTooltip';
-import { WizardField } from '../../../../../services/wizardApi';
+import { WizardField, resolveGeoUnits } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useGooglePlacesAutocomplete } from '../../../hooks/useGooglePlacesAutocomplete';
 import { ParsedAddress } from '../../../../../types/googleMaps';
@@ -22,9 +23,9 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   field,
   showError = false,
 }) => {
-  const { getFieldValue, getFieldError, updateField } = useWizard();
+  const { getFieldValue, getFieldError, updateField, updateFieldBatch } = useWizard();
   const [isFocused, setIsFocused] = useState(false);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -48,33 +49,65 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
 
   // Handle place selection
   const handlePlaceSelected = useCallback(
-    (place: ParsedAddress) => {
-      // Update the main address field
+    async (place: ParsedAddress) => {
+      // Update the main address field immediately
       updateField(field.code, place.formattedAddress);
 
-      // Auto-fill related fields if configured
-      if (autoFillFields) {
-        if (autoFillFields.department && place.department) {
-          updateField(autoFillFields.department, place.department);
-        }
-        if (autoFillFields.province && place.province) {
-          updateField(autoFillFields.province, place.province);
-        }
-        if (autoFillFields.district && place.district) {
-          updateField(autoFillFields.district, place.district);
-        }
-        if (autoFillFields.latitude) {
-          updateField(autoFillFields.latitude, String(place.latitude));
-        }
-        if (autoFillFields.longitude) {
-          updateField(autoFillFields.longitude, String(place.longitude));
+      // Auto-fill lat/lng immediately (no resolution needed)
+      if (autoFillFields?.latitude) {
+        updateField(autoFillFields.latitude, String(place.latitude));
+      }
+      if (autoFillFields?.longitude) {
+        updateField(autoFillFields.longitude, String(place.longitude));
+      }
+
+      // Resolve geo-unit text names to IDs via backend, then batch-update
+      if (autoFillFields && (place.department || place.province || place.district)) {
+        try {
+          const resolved = await resolveGeoUnits({
+            department: place.department || '',
+            province: place.province || undefined,
+            district: place.district || undefined,
+          });
+
+          if (resolved) {
+            const batchUpdates: Array<{ fieldId: string; value: string; label?: string }> = [];
+
+            if (autoFillFields.department && resolved.department) {
+              batchUpdates.push({
+                fieldId: autoFillFields.department,
+                value: String(resolved.department.id),
+                label: resolved.department.label,
+              });
+            }
+            if (autoFillFields.province && resolved.province) {
+              batchUpdates.push({
+                fieldId: autoFillFields.province,
+                value: String(resolved.province.id),
+                label: resolved.province.label,
+              });
+            }
+            if (autoFillFields.district && resolved.district) {
+              batchUpdates.push({
+                fieldId: autoFillFields.district,
+                value: String(resolved.district.id),
+                label: resolved.district.label,
+              });
+            }
+
+            if (batchUpdates.length > 0) {
+              updateFieldBatch(batchUpdates);
+            }
+          }
+        } catch (error) {
+          console.error('[AddressAutocomplete] Error resolving geo-units:', error);
         }
       }
 
       // Clear any location error
       setLocationError(null);
     },
-    [field.code, autoFillFields, updateField]
+    [field.code, autoFillFields, updateField, updateFieldBatch]
   );
 
   // Handle errors
@@ -84,30 +117,25 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   }, []);
 
   // Initialize Google Places Autocomplete
-  const { isLoaded, isLoading, error: googleError, getCurrentLocation } = useGooglePlacesAutocomplete({
+  const { isLoaded, isLoading, error: googleError } = useGooglePlacesAutocomplete({
     inputRef,
     countryRestriction,
     onPlaceSelected: handlePlaceSelected,
     onError: handleError,
   });
 
-  // Handle "Use my location" click
-  const handleUseLocation = async () => {
-    setIsGettingLocation(true);
-    setLocationError(null);
+  // Handle "Use my location" click — opens location modal
+  const handleUseLocation = () => {
+    setIsLocationModalOpen(true);
+  };
 
-    try {
-      const place = await getCurrentLocation();
-      if (place) {
-        handlePlaceSelected(place);
-        // Update input value
-        if (inputRef.current) {
-          inputRef.current.value = place.formattedAddress;
-        }
-      }
-    } finally {
-      setIsGettingLocation(false);
+  // Handle location confirmed from modal
+  const handleLocationConfirm = (place: ParsedAddress) => {
+    handlePlaceSelected(place);
+    if (inputRef.current) {
+      inputRef.current.value = place.formattedAddress;
     }
+    setIsLocationModalOpen(false);
   };
 
   // Handle manual input change
@@ -172,13 +200,13 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         />
 
         {/* Status icons */}
-        {(isLoading || isGettingLocation) && (
+        {isLoading && (
           <Loader2 className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 animate-spin" />
         )}
-        {!isLoading && !isGettingLocation && showSuccess && (
+        {!isLoading && showSuccess && (
           <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />
         )}
-        {!isLoading && !isGettingLocation && showDisplayError && (
+        {!isLoading && showDisplayError && (
           <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />
         )}
       </div>
@@ -188,14 +216,14 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         <button
           type="button"
           onClick={handleUseLocation}
-          disabled={isGettingLocation || field.readonly}
+          disabled={field.readonly}
           className={`
             flex items-center gap-1.5 text-sm text-[var(--color-primary)] cursor-pointer
             hover:underline disabled:opacity-50 disabled:cursor-not-allowed
           `}
         >
           <Navigation className="w-4 h-4" />
-          {isGettingLocation ? 'Obteniendo ubicación...' : 'Usar mi ubicación'}
+          Usar mi ubicación
         </button>
       )}
 
@@ -214,6 +242,13 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           Cargando Google Maps...
         </p>
       )}
+
+      {/* Location modal (permission + map with draggable pin) */}
+      <LocationModal
+        isOpen={isLocationModalOpen}
+        onClose={() => setIsLocationModalOpen(false)}
+        onConfirm={handleLocationConfirm}
+      />
     </div>
   );
 };

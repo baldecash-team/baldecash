@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState, useCallback, RefObject } from 'react';
 import { loadGoogleMapsScript, isGoogleMapsLoaded } from '../../../services/googleMapsService';
 import { ParsedAddress } from '../../../types/googleMaps';
+import { parseGooglePlace } from '../utils/parseGooglePlace';
 
 interface UseGooglePlacesOptions {
   /** Ref to the input element */
@@ -29,31 +30,6 @@ interface UseGooglePlacesResult {
   clearSelection: () => void;
   /** Get current location via GPS */
   getCurrentLocation: () => Promise<ParsedAddress | null>;
-}
-
-/**
- * Parse Google Place result into our address structure
- */
-function parseGooglePlace(place: google.maps.places.PlaceResult): ParsedAddress {
-  const components = place.address_components || [];
-
-  // Helper to get component by type
-  const getComponent = (type: string, useShort = false): string | null => {
-    const component = components.find((c: google.maps.GeocoderAddressComponent) => c.types.includes(type));
-    return component ? (useShort ? component.short_name : component.long_name) : null;
-  };
-
-  return {
-    formattedAddress: place.formatted_address || '',
-    street: getComponent('route'),
-    number: getComponent('street_number'),
-    department: getComponent('administrative_area_level_1'),
-    province: getComponent('administrative_area_level_2'),
-    district: getComponent('locality') || getComponent('sublocality_level_1') || getComponent('sublocality'),
-    postalCode: getComponent('postal_code'),
-    latitude: place.geometry?.location?.lat() || 0,
-    longitude: place.geometry?.location?.lng() || 0,
-  };
 }
 
 /**

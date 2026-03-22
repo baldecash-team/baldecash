@@ -15,7 +15,7 @@ let googleMapsLoadPromise: Promise<void> | null = null;
 async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=es`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&language=es`;
     script.async = true;
     script.defer = true;
 

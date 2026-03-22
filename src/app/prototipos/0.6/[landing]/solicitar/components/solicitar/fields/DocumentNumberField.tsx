@@ -9,7 +9,7 @@
  * 3. Shows loading indicator while checking
  */
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { WizardField } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useCheckPerson } from '../../../hooks/useCheckPerson';
@@ -37,7 +37,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   showError = false,
 }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
-  const [prefilled, setPrefilled] = useState(false);
+  const prefilledRef = useRef(false);
 
   // Get prefill config from field configuration
   const prefillConfig = field.prefill_config;
@@ -92,7 +92,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       }
     }
 
-    setPrefilled(true);
+    prefilledRef.current = true;
   }, [prefillConfig, formData, updateField]);
 
   // Handle clearing fields when no prefill data is available
@@ -101,7 +101,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     // Mark as not found — this triggers visibility of personal fields
     updateField('_prefill_status', 'not_found');
 
-    if (!prefilled) return; // Don't clear manually entered data
+    if (!prefilledRef.current) return; // Don't clear manually entered data
 
     if (prefillConfig?.prefill_fields) {
       // Dynamic mode: clear fields from config
@@ -124,8 +124,8 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       }
     }
 
-    setPrefilled(false);
-  }, [prefilled, prefillConfig, formData, updateField]);
+    prefilledRef.current = false;
+  }, [prefillConfig, formData, updateField]);
 
   // Initialize the check-person hook
   const { check, isChecking, response, reset: resetCheck } = useCheckPerson({
@@ -154,11 +154,8 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     // Always reset prefill status when user modifies the document number
     // so prefill-dependent fields hide until next lookup completes
     updateField('_prefill_status', '');
-    if (prefilled) {
-      setPrefilled(false);
-    }
     resetCheck(); // Allow re-checking when DNI changes
-  }, [field.code, updateField, prefilled, resetCheck]);
+  }, [field.code, updateField, resetCheck]);
 
   // Build tooltip from API help_text
   const tooltip = field.help_text ? {

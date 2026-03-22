@@ -31,6 +31,9 @@ interface WizardContextValue {
   setDynamicOptions: (fieldCode: string, options: CascadingOption[]) => void;
   getDynamicOptions: (fieldCode: string) => CascadingOption[];
   getAllDynamicOptions: () => Record<string, CascadingOption[]>;
+  // Batch update - sets multiple fields at once WITHOUT triggering cascade-clear
+  // Used by address autocomplete to set department + province + district atomically
+  updateFieldBatch: (updates: Array<{ fieldId: string; value: string; label?: string }>) => void;
   // Field dependencies - scalable system for clearing dependent fields
   registerDependency: (childField: string, parentField: string) => void;
   unregisterDependency: (childField: string, parentField: string) => void;
@@ -160,6 +163,24 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
         return clearDependents(fieldId, newData);
       }
 
+      return newData;
+    });
+  }, []);
+
+  // Batch update: sets multiple fields atomically WITHOUT triggering cascade-clear.
+  // Safe when the caller provides all dependent values together (e.g., department + province + district).
+  const updateFieldBatch = useCallback((updates: Array<{ fieldId: string; value: string; label?: string }>) => {
+    setFormData((prev) => {
+      let newData = { ...prev };
+      for (const { fieldId, value, label } of updates) {
+        const { error: _prevError, ...prevFieldWithoutError } = newData[fieldId] || {};
+        newData[fieldId] = {
+          ...prevFieldWithoutError,
+          value,
+          touched: true,
+          ...(label !== undefined ? { label } : {}),
+        };
+      }
       return newData;
     });
   }, []);
@@ -325,6 +346,7 @@ export const WizardProvider: React.FC<WizardProviderProps> = ({ children, landin
         formData,
         completedSteps,
         updateField,
+        updateFieldBatch,
         setFieldError,
         setFieldTouched,
         validateField,

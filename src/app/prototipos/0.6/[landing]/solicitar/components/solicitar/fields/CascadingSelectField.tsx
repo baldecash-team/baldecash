@@ -58,6 +58,8 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   const prevParentValue = useRef<string | undefined>(undefined);
   const initialLoadDone = useRef(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // When parent changes, defer clearing until options load (supports batch auto-fill)
+  const needsValueVerification = useRef(false);
 
   // Check field type:
   // - isLazySearch: has min_search_length > 0 (large datasets requiring lazy loading)
@@ -141,9 +143,15 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
     // Check if parent value actually changed
     const parentChanged = prevParentValue.current !== parentValue;
 
-    // If parent changed and we had a previous parent, clear this field's value
+    // If parent changed and we had a previous parent, defer clearing until options load.
+    // This supports batch auto-fill (e.g., address autocomplete sets all 3 geo fields at once).
+    // If the current value exists in the new options, we keep it; otherwise we clear.
     if (parentChanged && prevParentValue.current !== undefined && prevParentValue.current !== '') {
-      updateField(field.code, '');
+      if (value) {
+        needsValueVerification.current = true;
+      } else {
+        updateField(field.code, '');
+      }
     }
 
     prevParentValue.current = parentValue;
@@ -190,6 +198,20 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
       updateField(field.code, value, matchingOption.label);
     }
   }, [localDynamicOptions, value, savedLabel, field.code, updateField]);
+
+  // Verify value after options load (deferred clear for batch auto-fill support).
+  // If the current value exists in the newly loaded options, keep it; otherwise clear.
+  useEffect(() => {
+    if (!needsValueVerification.current || localDynamicOptions.length === 0) return;
+    needsValueVerification.current = false;
+
+    const currentInOptions = localDynamicOptions.some(
+      (opt) => String(opt.value) === value
+    );
+    if (!currentInOptions && value) {
+      updateField(field.code, '');
+    }
+  }, [localDynamicOptions, value, field.code, updateField]);
 
   // Ref to track if we already attempted label repair for lazy search fields
   const labelRepairAttempted = useRef(false);

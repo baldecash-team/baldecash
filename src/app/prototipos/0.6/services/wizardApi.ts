@@ -782,3 +782,42 @@ export async function fetchOptionById(
     return null;
   }
 }
+
+// ============================================================================
+// GEO RESOLUTION - Convert Google Maps text names to GeoUnit IDs
+// ============================================================================
+
+export interface GeoResolvedUnit {
+  id: number;
+  label: string;
+  code: string;
+}
+
+export interface GeoResolveResponse {
+  department: GeoResolvedUnit | null;
+  province: GeoResolvedUnit | null;
+  district: GeoResolvedUnit | null;
+}
+
+/**
+ * Resolve text geographic names (from Google Maps) to GeoUnit IDs.
+ *
+ * @param data - Text names from Google Places (department, province, district)
+ * @returns Resolved GeoUnit IDs or null if request fails
+ */
+export async function resolveGeoUnits(
+  data: { department: string; province?: string; district?: string }
+): Promise<GeoResolveResponse | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/options/geo-units/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
