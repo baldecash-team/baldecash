@@ -81,7 +81,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           value: b.slug,
           label: b.name,
           count: b.count || 0,
-          logo: b.logo_url || undefined,
+          logo: b.logo_url?.replace(/([^:]\/)\/+/g, '$1') || undefined,
           primaryColor: b.primary_color || undefined,
         }));
       }

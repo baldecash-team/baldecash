@@ -81,6 +81,10 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         if (isPreviewMode && previewLandingId && previewKey) {
           // Use preview API with ID and preview_key
           data = await getLandingLayoutById(previewLandingId, previewKey);
+          // Fallback to slug-based API if preview endpoint returns 404
+          if (!data) {
+            data = await getLandingLayout(landing);
+          }
         } else {
           // Use normal slug-based API
           data = await getLandingLayout(landing);

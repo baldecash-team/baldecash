@@ -485,7 +485,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     name: apiProduct.name,
     displayName: apiProduct.display_name || apiProduct.name,
     brand: apiProduct.brand.name.toLowerCase(),
-    brandLogo: apiProduct.brand.logo_url,
+    brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1'),
     thumbnail: apiProduct.image_url || '/images/products/placeholder.jpg',
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
@@ -929,7 +929,7 @@ export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct
     name: apiProduct.name,
     displayName: apiProduct.display_name || apiProduct.short_name || apiProduct.name,
     brand: (apiProduct.brand.name || 'Sin marca').toLowerCase(),
-    brandLogo: apiProduct.brand.logo_url || undefined,
+    brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1') || undefined,
     thumbnail: apiProduct.images[0] || '/images/products/placeholder.jpg',
     images: apiProduct.images.length > 0 ? apiProduct.images : ['/images/products/placeholder.jpg'],
     colors: colors.length > 0 ? colors : undefined,
