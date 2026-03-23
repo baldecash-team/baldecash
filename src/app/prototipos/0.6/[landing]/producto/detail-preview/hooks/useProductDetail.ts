@@ -82,7 +82,7 @@ function mapLandingDetailToCatalogProduct(data: Record<string, unknown>): Catalo
     name: (data.name as string) || '',
     displayName: (data.short_name as string) || (data.name as string) || '',
     brand: (brand?.name || 'Sin marca').toLowerCase(),
-    brandLogo: brand?.logo_url || undefined,
+    brandLogo: brand?.logo_url?.replace(/([^:]\/)\/+/g, '$1') || undefined,
     thumbnail: imageUrls[0] || '/images/products/placeholder.jpg',
     images: imageUrls.length > 0 ? imageUrls : ['/images/products/placeholder.jpg'],
     colors: colors.length > 0 ? colors : undefined,
