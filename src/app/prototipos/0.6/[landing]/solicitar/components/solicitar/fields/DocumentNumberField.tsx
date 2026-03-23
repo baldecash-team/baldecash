@@ -61,11 +61,16 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         if (Array.isArray(apiSource)) {
           // Concatenate multiple API fields (e.g., full_name from first_name + paternal_surname + maternal_surname)
           const parts = apiSource.map(key => data[key as keyof PrefillData]).filter(Boolean);
-          updateField(formFieldCode, parts.join(' '));
+          const joined = parts.join(' ');
+          updateField(formFieldCode, joined);
+          // Mark whether this field received a null/empty value from the API
+          updateField(`_prefill_empty_${formFieldCode}`, joined ? '' : 'true');
         } else {
           // Direct 1:1 mapping
           const value = data[apiSource as keyof PrefillData];
           updateField(formFieldCode, value ? String(value) : '');
+          // Mark whether this field received a null/empty value from the API
+          updateField(`_prefill_empty_${formFieldCode}`, value ? '' : 'true');
         }
       }
     } else {
@@ -86,6 +91,8 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
             } else {
               updateField(code, '');
             }
+            // Mark whether this field received a null/empty value from the API
+            updateField(`_prefill_empty_${code}`, prefillValue ? '' : 'true');
             break;
           }
         }
@@ -104,9 +111,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     if (!prefilledRef.current) return; // Don't clear manually entered data
 
     if (prefillConfig?.prefill_fields) {
-      // Dynamic mode: clear fields from config
+      // Dynamic mode: clear fields and their empty markers from config
       for (const formFieldCode of Object.keys(prefillConfig.prefill_fields)) {
         updateField(formFieldCode, '');
+        updateField(`_prefill_empty_${formFieldCode}`, '');
       }
     } else {
       // Legacy mode
@@ -118,6 +126,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         for (const code of possibleCodes) {
           if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
             updateField(code, '');
+            updateField(`_prefill_empty_${code}`, '');
             break;
           }
         }

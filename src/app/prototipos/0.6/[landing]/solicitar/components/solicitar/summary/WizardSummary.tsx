@@ -153,8 +153,13 @@ const SummaryStepSection: React.FC<{
   // Filter visible fields
   const visibleFields = useMemo(() => {
     return step.fields.filter((field) => {
-      // Prefill target fields (like supporter_full_name) are internal — never show in summary
-      if (field.hidden && prefillTargetFields.has(field.code)) return false;
+      // Prefill target fields that were auto-filled are internal — don't show in summary.
+      // But if the field was manually completed (API returned null), show it.
+      if (field.hidden && prefillTargetFields.has(field.code)) {
+        const wasEmpty = formValues[`_prefill_empty_${field.code}`] === 'true';
+        // Show in summary only if the user had to fill it manually (API returned null)
+        return wasEmpty && !!formValues[field.code];
+      }
 
       // Check visibility based on dependencies
       return evaluateFieldVisibility(field, formValues);

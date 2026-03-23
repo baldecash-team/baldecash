@@ -80,8 +80,8 @@ const saveToStorage = (storageKey: string, formData: Record<string, FieldState>)
           continue;
         }
       }
-      // Skip internal prefill status keys — must re-evaluate on each session
-      if (key.startsWith('_prefill_status_')) continue;
+      // Skip internal prefill keys — must re-evaluate on each session
+      if (key.startsWith('_prefill_status_') || key.startsWith('_prefill_empty_')) continue;
       serializableData[key] = value;
     }
     localStorage.setItem(storageKey, JSON.stringify(serializableData));
