@@ -145,7 +145,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                     isSelected ? 'text-white/80' : 'text-neutral-500'
                   }`}
                 >
-                  {plan.term} meses
+                  {plan.term}<br />meses
                 </p>
 
                 {option.originalQuota && (

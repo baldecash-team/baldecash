@@ -83,7 +83,7 @@ export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean }
   return (
     <>
       {/* Desktop: Compact Sticky Sidebar */}
-      <div className="hidden lg:block fixed left-4 top-1/2 -translate-y-1/2 z-40">
+      <div className="hidden xl:block fixed left-4 top-1/2 -translate-y-1/2 z-40">
         <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-neutral-200 p-2">
           <nav className="flex flex-col gap-1">
             {navItems.map((item) => {
@@ -116,7 +116,7 @@ export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean }
       </div>
 
       {/* Mobile: Horizontal Sticky Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-neutral-200 safe-area-inset-bottom">
+      <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-neutral-200 safe-area-inset-bottom">
         <div className="flex justify-around py-2 px-1">
           {navItems.map((item) => {
             const Icon = item.icon;

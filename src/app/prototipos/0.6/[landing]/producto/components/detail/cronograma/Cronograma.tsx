@@ -393,17 +393,6 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           </button>
         )}
 
-        {/* Total Summary */}
-        <div className="mt-4 pt-4 border-t border-neutral-200 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-neutral-600">
-            <Check className="w-5 h-5 text-green-500" />
-            <span className="text-sm font-medium">Total a pagar</span>
-          </div>
-          <p className="text-2xl font-bold text-neutral-900">
-            S/{formatMoneyNoDecimals(Math.floor(totalPayment))}
-          </p>
-        </div>
-
         {/* Action Buttons */}
         <div className="mt-4 flex gap-3">
           <Button

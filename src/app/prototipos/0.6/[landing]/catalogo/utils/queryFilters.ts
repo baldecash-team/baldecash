@@ -282,7 +282,8 @@ export const parseFiltersFromParams = (
 export const buildParamsFromFilters = (
   filters: FilterState,
   sort: SortOption,
-  searchQuery?: string
+  searchQuery?: string,
+  apiQuotaRange?: [number, number]
 ): URLSearchParams => {
   const params = new URLSearchParams();
 
@@ -306,11 +307,10 @@ export const buildParamsFromFilters = (
     params.set('usage', filters.usage.join(','));
   }
 
-  // Quota range (solo si difiere del default)
-  if (
-    filters.quotaRange[0] !== defaultFilterState.quotaRange[0] ||
-    filters.quotaRange[1] !== defaultFilterState.quotaRange[1]
-  ) {
+  // Quota range (solo si el usuario ajustó el slider vs el rango real de la API)
+  const refMin = apiQuotaRange ? apiQuotaRange[0] : defaultFilterState.quotaRange[0];
+  const refMax = apiQuotaRange ? apiQuotaRange[1] : defaultFilterState.quotaRange[1];
+  if (filters.quotaRange[0] !== refMin || filters.quotaRange[1] !== refMax) {
     params.set('quota', `${filters.quotaRange[0]},${filters.quotaRange[1]}`);
   }
 

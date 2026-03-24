@@ -1185,7 +1185,7 @@ function CatalogoContent() {
     if (!isFiltersInitialized.current) return;
 
     // Build filter params (include searchQuery)
-    const filterParams = buildParamsFromFilters(filters, sort, searchQuery);
+    const filterParams = buildParamsFromFilters(filters, sort, searchQuery, apiQuotaRangeRef.current);
 
     // Add colorSelectorVersion if not default
     if (config.colorSelectorVersion !== 1) {
