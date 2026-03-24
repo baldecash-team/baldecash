@@ -332,8 +332,8 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       {product.displayName}
                     </h3>
 
-                    {/* Differentiator Tags - Altura fija para consistencia */}
-                    <div className="flex flex-wrap justify-center gap-1.5 mb-3 min-h-[28px]">
+                    {/* Differentiator Tags - Altura fija para 2 filas de tags (26px each + 6px gap) */}
+                    <div className="flex flex-wrap justify-center gap-1.5 mb-3 h-[58px] overflow-hidden content-start">
                       {product.differentiators
                         .filter((diff) => diff.toLowerCase() !== product.brand.toLowerCase())
                         .map((diff, idx) => (

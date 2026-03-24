@@ -1,5 +1,5 @@
-// types/comparator.ts - BaldeCash Comparator Types v0.5
-// V1-V2 según convenciones v0.5, con excepción de designStyle (V1-V3)
+// types/comparator.ts - BaldeCash Comparator Types v0.6
+// Refactored: declarative spec definitions for scalable comparison
 
 import { CatalogProduct, TermMonths, InitialPaymentPercent } from '../../catalogo/types/catalog';
 
@@ -211,15 +211,157 @@ export function getMaxProducts(version: 1 | 2): number {
 }
 
 // ============================================
+// Spec Definition System (declarativo)
+// ============================================
+
+type SpecCategory = ComparableSpec['category'];
+
+interface SpecDefinition {
+  key: string;
+  label: string;
+  category: SpecCategory;
+  unit?: string;
+  higherIsBetter: boolean;
+  extract: (p: ComparisonProduct) => number;
+  format: (p: ComparisonProduct) => string;
+}
+
+// Ranking maps para specs con valores ordinales
+const PROCESSOR_TIERS: Record<string, number> = {
+  'm4': 11, 'm3 pro': 10, 'm3': 9,
+  'i9': 9, 'ryzen 9': 9,
+  'i7': 7, 'ryzen 7': 7,
+  'i5': 5, 'ryzen 5': 5,
+  'i3': 3, 'ryzen 3': 3,
+  'm2': 8, 'm1': 6,
+};
+
+const RESOLUTION_TIERS: Record<string, number> = {
+  '4k': 4, 'qhd': 3, 'fhd': 2, 'hd': 1,
+};
+
+function getProcessorScore(model: string): number {
+  const lower = model.toLowerCase();
+  for (const [key, score] of Object.entries(PROCESSOR_TIERS)) {
+    if (lower.includes(key)) return score;
+  }
+  return 1;
+}
+
+/**
+ * Definiciones declarativas de todos los specs comparables.
+ * Para agregar un nuevo spec: agregar un objeto a este array.
+ */
+const specDefinitions: SpecDefinition[] = [
+  // --- Performance ---
+  {
+    key: 'processor',
+    label: 'Procesador',
+    category: 'performance',
+    higherIsBetter: true,
+    extract: (p) => getProcessorScore(p.specs.processor?.model ?? ''),
+    format: (p) => p.specs.processor?.model ?? 'N/A',
+  },
+  {
+    key: 'ram',
+    label: 'Memoria RAM',
+    category: 'performance',
+    unit: 'GB',
+    higherIsBetter: true,
+    extract: (p) => p.specs.ram?.size ?? 0,
+    format: (p) => `${p.specs.ram?.size ?? 0}GB`,
+  },
+  {
+    key: 'gpu',
+    label: 'Gráficos',
+    category: 'performance',
+    higherIsBetter: true,
+    extract: (p) => {
+      const gpu = p.specs.gpu;
+      if (!gpu) return 0;
+      // dedicated con VRAM > dedicated sin VRAM > integrated
+      if (gpu.type === 'dedicated') return 2 + (gpu.vram ?? 0) / 100;
+      return 1;
+    },
+    format: (p) => {
+      const gpu = p.specs.gpu;
+      if (!gpu) return 'N/A';
+      const vram = gpu.vram ? ` ${gpu.vram}GB` : '';
+      return `${gpu.brand ?? 'N/A'} ${gpu.model ?? ''}${vram}`.trim();
+    },
+  },
+  // --- Storage ---
+  {
+    key: 'storage',
+    label: 'Almacenamiento',
+    category: 'storage',
+    unit: 'GB',
+    higherIsBetter: true,
+    extract: (p) => p.specs.storage?.size ?? 0,
+    format: (p) => `${p.specs.storage?.size ?? 0}GB ${(p.specs.storage?.type ?? 'N/A').toUpperCase()}`,
+  },
+  // --- Display ---
+  {
+    key: 'displaySize',
+    label: 'Tamaño de Pantalla',
+    category: 'display',
+    unit: '"',
+    higherIsBetter: true,
+    extract: (p) => p.specs.display?.size ?? 0,
+    format: (p) => `${p.specs.display?.size ?? 0}"`,
+  },
+  {
+    key: 'resolution',
+    label: 'Resolución',
+    category: 'display',
+    higherIsBetter: true,
+    extract: (p) => RESOLUTION_TIERS[p.specs.display?.resolution ?? ''] ?? 1,
+    format: (p) => p.specs.display?.resolutionPixels ?? 'N/A',
+  },
+  // --- Features ---
+  {
+    key: 'weight',
+    label: 'Peso',
+    category: 'features',
+    unit: 'kg',
+    higherIsBetter: false,
+    extract: (p) => p.specs.dimensions?.weight ?? 0,
+    format: (p) => `${p.specs.dimensions?.weight ?? 0}kg`,
+  },
+  {
+    key: 'battery',
+    label: 'Batería',
+    category: 'features',
+    higherIsBetter: true,
+    extract: (p) => parseInt(p.specs.battery?.life ?? '0') || 0,
+    format: (p) => {
+      const life = p.specs.battery?.life;
+      return life ? `${life} hrs` : 'N/A';
+    },
+  },
+  // --- Price (no cuentan para scoring técnico) ---
+  {
+    key: 'price',
+    label: 'Precio',
+    category: 'price',
+    higherIsBetter: false,
+    extract: (p) => p.price,
+    format: (p) => `S/${p.price.toLocaleString('en-US')}`,
+  },
+  {
+    key: 'quota',
+    label: 'Cuota Mensual',
+    category: 'price',
+    higherIsBetter: false,
+    extract: (p) => getDisplayQuota(p),
+    format: (p) => `S/${getDisplayQuota(p)}/mes`,
+  },
+];
+
+// ============================================
 // Helpers
 // ============================================
 
-/**
- * Helper: Encuentra el índice del ganador, o undefined si hay empate.
- * @param rawValues - Valores numéricos a comparar
- * @param higherIsBetter - true si mayor es mejor, false si menor es mejor
- * @returns índice del ganador o undefined si hay empate
- */
 function findWinner(rawValues: number[], higherIsBetter: boolean): number | undefined {
   if (rawValues.length === 0) return undefined;
 
@@ -227,197 +369,53 @@ function findWinner(rawValues: number[], higherIsBetter: boolean): number | unde
     ? Math.max(...rawValues)
     : Math.min(...rawValues);
 
-  // Contar cuántos productos tienen el mejor valor
   const winnersCount = rawValues.filter(v => v === bestValue).length;
-
-  // Si hay empate (más de uno con el mejor valor), no hay ganador
   if (winnersCount > 1) return undefined;
 
   return rawValues.indexOf(bestValue);
 }
 
-/**
- * Helper: Normaliza un string para comparación (quita espacios, lowercase)
- */
 function normalizeForComparison(value: string): string {
   return value.toLowerCase().replace(/\s+/g, '');
 }
 
+/**
+ * Construye un ComparableSpec a partir de una definición declarativa.
+ */
+function buildSpec(products: ComparisonProduct[], def: SpecDefinition): ComparableSpec {
+  const rawValues = products.map(def.extract);
+  const values = products.map(def.format);
+  const normalized = values.map(v => normalizeForComparison(String(v)));
+
+  return {
+    key: def.key,
+    label: def.label,
+    category: def.category,
+    values,
+    rawValues,
+    unit: def.unit,
+    higherIsBetter: def.higherIsBetter,
+    winner: findWinner(rawValues, def.higherIsBetter),
+    isDifferent: !normalized.every(v => v === normalized[0]),
+  };
+}
+
 export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   if (products.length < 2) return [];
-
-  const specs: ComparableSpec[] = [];
-
-  // Processor
-  const processorValues = products.map(p => p.specs.processor?.model ?? 'N/A');
-  const processorRaw: number[] = products.map(p => {
-    const model = (p.specs.processor?.model ?? '').toLowerCase();
-    if (model.includes('i9') || model.includes('ryzen 9')) return 9;
-    if (model.includes('i7') || model.includes('ryzen 7')) return 7;
-    if (model.includes('i5') || model.includes('ryzen 5')) return 5;
-    if (model.includes('i3') || model.includes('ryzen 3')) return 3;
-    return 1;
-  });
-  const processorNormalized = processorValues.map(normalizeForComparison);
-  specs.push({
-    key: 'processor',
-    label: 'Procesador',
-    category: 'performance',
-    values: processorValues,
-    rawValues: processorRaw,
-    higherIsBetter: true,
-    winner: findWinner(processorRaw, true),
-    isDifferent: !processorNormalized.every(v => v === processorNormalized[0]),
-  });
-
-  // RAM
-  const ramValues = products.map(p => `${p.specs.ram?.size ?? 0}GB`);
-  const ramRaw = products.map(p => p.specs.ram?.size ?? 0);
-  specs.push({
-    key: 'ram',
-    label: 'Memoria RAM',
-    category: 'performance',
-    values: ramValues,
-    rawValues: ramRaw,
-    unit: 'GB',
-    higherIsBetter: true,
-    winner: findWinner(ramRaw, true),
-    isDifferent: !ramRaw.every(v => v === ramRaw[0]),
-  });
-
-  // Storage
-  const storageValues = products.map(p => `${p.specs.storage?.size ?? 0}GB ${(p.specs.storage?.type ?? 'N/A').toUpperCase()}`);
-  const storageRaw = products.map(p => p.specs.storage?.size ?? 0);
-  specs.push({
-    key: 'storage',
-    label: 'Almacenamiento',
-    category: 'storage',
-    values: storageValues,
-    rawValues: storageRaw,
-    unit: 'GB',
-    higherIsBetter: true,
-    winner: findWinner(storageRaw, true),
-    isDifferent: !storageRaw.every(v => v === storageRaw[0]),
-  });
-
-  // Display Size
-  const displayValues = products.map(p => `${p.specs.display?.size ?? 0}"`);
-  const displayRaw = products.map(p => p.specs.display?.size ?? 0);
-  specs.push({
-    key: 'displaySize',
-    label: 'Tamaño de Pantalla',
-    category: 'display',
-    values: displayValues,
-    rawValues: displayRaw,
-    unit: '"',
-    higherIsBetter: true,
-    winner: findWinner(displayRaw, true),
-    isDifferent: !displayRaw.every(v => v === displayRaw[0]),
-  });
-
-  // Resolution
-  const resValues = products.map(p => p.specs.display?.resolutionPixels ?? 'N/A');
-  const resNormalized = resValues.map(normalizeForComparison);
-  const resRaw: number[] = products.map(p => {
-    const res = p.specs.display?.resolution;
-    if (res === '4k') return 4;
-    if (res === 'qhd') return 3;
-    if (res === 'fhd') return 2;
-    return 1;
-  });
-  specs.push({
-    key: 'resolution',
-    label: 'Resolución',
-    category: 'display',
-    values: resValues,
-    rawValues: resRaw,
-    higherIsBetter: true,
-    winner: findWinner(resRaw, true),
-    isDifferent: !resNormalized.every(v => v === resNormalized[0]),
-  });
-
-  // GPU
-  const gpuValues = products.map(p => `${p.specs.gpu?.brand ?? 'N/A'} ${p.specs.gpu?.model ?? ''}`);
-  const gpuNormalized = gpuValues.map(normalizeForComparison);
-  const gpuRaw: number[] = products.map(p => p.specs.gpu?.type === 'dedicated' ? 2 : 1);
-  specs.push({
-    key: 'gpu',
-    label: 'Gráficos',
-    category: 'performance',
-    values: gpuValues,
-    rawValues: gpuRaw,
-    higherIsBetter: true,
-    winner: findWinner(gpuRaw, true),
-    isDifferent: !gpuNormalized.every(v => v === gpuNormalized[0]),
-  });
-
-  // Weight
-  const weightValues = products.map(p => `${p.specs.dimensions?.weight ?? 0}kg`);
-  const weightRaw = products.map(p => p.specs.dimensions?.weight ?? 0);
-  specs.push({
-    key: 'weight',
-    label: 'Peso',
-    category: 'features',
-    values: weightValues,
-    rawValues: weightRaw,
-    unit: 'kg',
-    higherIsBetter: false,
-    winner: findWinner(weightRaw, false),
-    isDifferent: !weightRaw.every(v => v === weightRaw[0]),
-  });
-
-  // Battery
-  const batteryValues = products.map(p => p.specs.battery?.life ?? 'N/A');
-  const batteryNormalized = batteryValues.map(normalizeForComparison);
-  const batteryRaw = products.map(p => parseInt(p.specs.battery?.life ?? '0') || 0);
-  specs.push({
-    key: 'battery',
-    label: 'Batería',
-    category: 'features',
-    values: batteryValues,
-    rawValues: batteryRaw,
-    higherIsBetter: true,
-    winner: findWinner(batteryRaw, true),
-    isDifferent: !batteryNormalized.every(v => v === batteryNormalized[0]),
-  });
-
-  // Price
-  const priceValues = products.map(p => `S/${p.price.toLocaleString('en-US')}`);
-  const priceRaw = products.map(p => p.price);
-  specs.push({
-    key: 'price',
-    label: 'Precio',
-    category: 'price',
-    values: priceValues,
-    rawValues: priceRaw,
-    higherIsBetter: false,
-    winner: findWinner(priceRaw, false),
-    isDifferent: !priceRaw.every(v => v === priceRaw[0]),
-  });
-
-  // Quota (calculada con la misma fórmula que ProductCard)
-  const quotaRaw = products.map(p => getDisplayQuota(p));
-  const quotaValues = quotaRaw.map(q => `S/${q}/mes`);
-  specs.push({
-    key: 'quota',
-    label: 'Cuota Mensual',
-    category: 'price',
-    values: quotaValues,
-    rawValues: quotaRaw,
-    higherIsBetter: false,
-    winner: findWinner(quotaRaw, false),
-    isDifferent: !quotaRaw.every(v => v === quotaRaw[0]),
-  });
-
-  return specs;
+  return specDefinitions.map(def => buildSpec(products, def));
 }
 
 /**
- * Cuenta las victorias de un producto en todas las specs comparables.
+ * Cuenta las victorias TÉCNICAS de un producto (excluye precio y cuota).
  * Solo cuenta specs donde hay diferencia (isDifferent) y hay un ganador claro.
+ * "Mejor opción" = mejor equipo técnicamente. Precio solo entra como desempate.
  */
 export function countProductWins(specs: ComparableSpec[], productIndex: number): number {
-  return specs.filter(spec => spec.isDifferent && spec.winner === productIndex).length;
+  return specs.filter(spec =>
+    spec.isDifferent &&
+    spec.winner === productIndex &&
+    spec.category !== 'price'
+  ).length;
 }
 
 export function calculatePriceDifference(products: ComparisonProduct[]): { absolute: number[]; quota: number[]; annualSaving: number } {

@@ -8,7 +8,6 @@ import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
 import { FilterSection } from '../filters/FilterSection';
 import { QuotaRangeFilter } from '../filters/QuotaRangeFilter';
-import { CommercialFilters } from '../filters/CommercialFilters';
 import { TechnicalFiltersStyled } from '../filters/TechnicalFiltersStyled';
 import { FilterChips } from '../filters/FilterChips';
 import { TagsFilter } from '../filters/TagsFilter';
@@ -28,7 +27,6 @@ import {
   ramOptions,
   storageOptions,
   displaySizeOptions,
-  gamaOptions,
   conditionOptions,
   tagOptions,
   resolutionOptions,
@@ -72,6 +70,17 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     onFilterDrawerChange?.(false);
   };
 
+  // Dynamic quota range from API (min/max of real products)
+  const dynamicQuotaRange = React.useMemo(() => {
+    if (apiFilters?.quota_range) {
+      return {
+        min: apiFilters.quota_range.min,
+        max: apiFilters.quota_range.max,
+      };
+    }
+    return { min: 25, max: 500 };
+  }, [apiFilters?.quota_range]);
+
   // Apply dynamic counts to options - use API data when available
   const dynamicBrandOptions = React.useMemo(() => {
     // If API has responded, use its data (even if empty)
@@ -104,19 +113,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       return [];
     }
     return filterCounts ? applyDynamicCounts(usageOptions, filterCounts.usage) : usageOptions;
-  }, [apiFilters, filterCounts]);
-  const dynamicGamaOptions = React.useMemo(() => {
-    if (apiFilters) {
-      if (apiFilters.gamas && apiFilters.gamas.length > 0) {
-        return apiFilters.gamas.map(g => ({
-          value: g.value,
-          label: g.label,
-          count: g.count || 0,
-        }));
-      }
-      return [];
-    }
-    return filterCounts ? applyDynamicCounts(gamaOptions, filterCounts.gama) : gamaOptions;
   }, [apiFilters, filterCounts]);
   const dynamicConditionOptions = React.useMemo(() => {
     if (apiFilters) {
@@ -268,11 +264,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       applied.push({ id: `usage-${usage}`, category: 'Uso', label: opt?.label || usage, value: usage });
     });
 
-    filters.gama.forEach((gama) => {
-      const opt = gamaOptions.find((o) => o.value === gama);
-      applied.push({ id: `gama-${gama}`, category: 'Gama', label: opt?.label || gama, value: gama });
-    });
-
     filters.condition.forEach((condition) => {
       const opt = conditionOptions.find((o) => o.value === condition);
       applied.push({ id: `condition-${condition}`, category: 'Condición', label: opt?.label || condition, value: condition });
@@ -350,8 +341,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       applied.push({ id: 'ramExpandable-true', category: 'RAM', label: 'Expandible', value: true });
     }
 
-    // Quota range (si difiere del default)
-    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500) {
+    // Quota range (si difiere del rango dinámico del API)
+    if (filters.quotaRange[0] > dynamicQuotaRange.min || filters.quotaRange[1] < dynamicQuotaRange.max) {
       applied.push({ id: 'quota-range', category: 'Cuota', label: `S/${filters.quotaRange[0]} - S/${filters.quotaRange[1]}/mes`, value: `${filters.quotaRange[0]}-${filters.quotaRange[1]}` });
     }
 
@@ -364,7 +355,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       filters.brands.length +
       filters.usage.length +
       filters.ram.length +
-      filters.gama.length +
       filters.condition.length +
       filters.tags.length +
       filters.storage.length +
@@ -381,7 +371,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       (filters.hasThunderbolt ? 1 : 0) +
       (filters.hasEthernet ? 1 : 0) +
       (filters.ramExpandable ? 1 : 0) +
-      (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500 ? 1 : 0)
+      (filters.quotaRange[0] > dynamicQuotaRange.min || filters.quotaRange[1] < dynamicQuotaRange.max ? 1 : 0)
     );
   }, [filters]);
 
@@ -399,9 +389,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         break;
       case 'usage':
         updateFilter('usage', filters.usage.filter((u) => u !== value));
-        break;
-      case 'gama':
-        updateFilter('gama', filters.gama.filter((g) => g !== value));
         break;
       case 'condition':
         updateFilter('condition', filters.condition.filter((c) => c !== value));
@@ -455,7 +442,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         updateFilter('ramExpandable', false);
         break;
       case 'quota':
-        updateFilter('quotaRange', [25, 500]);
+        updateFilter('quotaRange', [dynamicQuotaRange.min, dynamicQuotaRange.max]);
         break;
     }
   };
@@ -466,7 +453,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       deviceTypes: [],
       brands: [],
       usage: [],
-      gama: [],
       condition: [],
       tags: [],
       stock: [],
@@ -491,7 +477,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       hasHDMI: null,
       minUSBPorts: null,
       ramExpandable: null,
-      quotaRange: [25, 500],
+      quotaRange: [dynamicQuotaRange.min, dynamicQuotaRange.max],
     });
     // También limpiar búsqueda
     onSearchClear?.();
@@ -663,16 +649,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   <QuotaRangeFilter
                     value={filters.quotaRange}
                     onChange={(val) => updateFilter('quotaRange', val)}
+                    min={dynamicQuotaRange.min}
+                    max={dynamicQuotaRange.max}
                   />
                 </FilterSection>
-
-                {/* Commercial Filters - Solo Gama */}
-                <CommercialFilters
-                  gamaOptions={dynamicGamaOptions}
-                  selectedGama={filters.gama}
-                  onGamaChange={(gama) => updateFilter('gama', gama)}
-                  showCounts={config.showFilterCounts}
-                />
 
                 {/* Main Filters (Uso recomendado, Condición) - styled based on version */}
                 <TechnicalFiltersStyled
@@ -860,16 +840,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               <QuotaRangeFilter
                 value={filters.quotaRange}
                 onChange={(val) => updateFilter('quotaRange', val)}
+                min={dynamicQuotaRange.min}
+                max={dynamicQuotaRange.max}
               />
             </FilterSection>
-
-            {/* Commercial Filters - Solo Gama */}
-            <CommercialFilters
-              gamaOptions={dynamicGamaOptions}
-              selectedGama={filters.gama}
-              onGamaChange={(gama) => updateFilter('gama', gama)}
-              showCounts={config.showFilterCounts}
-            />
 
             {/* Main Filters (Uso recomendado, Condición) */}
             <TechnicalFiltersStyled

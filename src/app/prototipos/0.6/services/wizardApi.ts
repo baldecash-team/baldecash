@@ -63,6 +63,7 @@ export interface WizardField {
   max_length?: number | null;
   min_value?: number | null;
   max_value?: number | null;
+  step?: number | null;
   pattern?: string | null;
   mask?: string | null;
   input_mode?: string | null;
@@ -402,6 +403,10 @@ export function validateField(
   const isEmpty = !trimmedValue || (Array.isArray(value) && value.length === 0);
 
   // 1. Validación de requerido
+  // Para checkbox simple, "false" cuenta como no marcado → requerido debe fallar
+  if (field.required && field.type === 'checkbox' && !Array.isArray(value) && trimmedValue === 'false') {
+    return { isValid: false, error: 'Debes marcar esta casilla para continuar' };
+  }
   if (field.required && isEmpty) {
     return { isValid: false, error: 'Este campo es requerido' };
   }

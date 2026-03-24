@@ -36,6 +36,14 @@ interface TextInputProps {
   isLoading?: boolean;
   /** Content rendered before the input (e.g., currency symbol, country code) */
   startContent?: React.ReactNode;
+  /** Content rendered after the input (e.g., unit suffix like "kg", "cm") */
+  endContent?: React.ReactNode;
+  /** Minimum value for number inputs */
+  min?: number;
+  /** Maximum value for number inputs */
+  max?: number;
+  /** Step increment for number inputs */
+  step?: number;
 }
 
 export const TextInput: React.FC<TextInputProps> = ({
@@ -57,6 +65,10 @@ export const TextInput: React.FC<TextInputProps> = ({
   inputMode: inputModeProp,
   isLoading = false,
   startContent,
+  endContent,
+  min,
+  max,
+  step,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const showError = !!error;
@@ -128,6 +140,9 @@ export const TextInput: React.FC<TextInputProps> = ({
           placeholder={placeholder}
           disabled={disabled}
           maxLength={maxLength}
+          min={min}
+          max={max}
+          step={step}
           className={`
             flex-1 bg-transparent outline-none text-base text-neutral-800
             placeholder:text-neutral-400
@@ -139,6 +154,9 @@ export const TextInput: React.FC<TextInputProps> = ({
             WebkitTextFillColor: '#262626',
           }}
         />
+        {endContent && (
+          <span className="text-neutral-500 text-base flex-shrink-0 select-none">{endContent}</span>
+        )}
 
         {/* Status icons */}
         {isLoading && <Loader2 className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 animate-spin" />}

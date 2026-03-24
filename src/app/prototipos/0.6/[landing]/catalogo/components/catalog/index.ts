@@ -24,4 +24,3 @@ export { PriceRangeFilter } from './filters/PriceRangeFilter';
 export { QuotaRangeFilter } from './filters/QuotaRangeFilter';
 export { UsageFilter } from './filters/UsageFilter';
 export { FilterChips } from './filters/FilterChips';
-export { CommercialFilters } from './filters/CommercialFilters';

@@ -236,7 +236,7 @@ export interface FilterState {
 export const defaultFilterState: FilterState = {
   deviceTypes: [],
   brands: [],
-  quotaRange: [25, 500],
+  quotaRange: [0, 99999],  // Sentinel: "no filter" — synced to API range on load
   quotaFrequency: 'monthly',
   usage: [],
   ram: [],

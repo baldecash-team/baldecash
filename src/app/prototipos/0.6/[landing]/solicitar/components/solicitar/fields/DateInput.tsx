@@ -8,7 +8,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
-import { Check, AlertCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Check, AlertCircle, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
 import type { FieldTooltipInfo } from './TextInput';
 
@@ -415,6 +415,22 @@ export const DateInput: React.FC<DateInputProps> = ({
             <span className={`flex-1 text-base ${value ? 'text-neutral-800' : 'text-neutral-400'}`}>
               {value ? formatDisplayDate(value) : placeholder}
             </span>
+
+            {/* Clear button for optional fields */}
+            {value && !required && !disabled && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange('');
+                  onBlur?.();
+                }}
+                className="p-0.5 rounded-full hover:bg-neutral-100 transition-colors text-neutral-400 hover:text-neutral-600 cursor-pointer"
+                aria-label="Limpiar fecha"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
 
             {/* Status icons */}
             {showSuccess && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}

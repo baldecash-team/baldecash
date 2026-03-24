@@ -18,6 +18,7 @@ import {
   HelpCircle,
   Download,
   Check,
+  Loader2,
   Network,
   Zap,
   Cable,
@@ -50,8 +51,11 @@ export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
   productUrl,
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleDownloadPDF = async () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
     try {
       await generateSpecSheetPDF({
         productName: productName || 'Producto',
@@ -68,6 +72,8 @@ export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
       setTimeout(() => setDownloadSuccess(false), 3000);
     } catch (error) {
       console.error('Error generando PDF:', error);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -89,10 +95,17 @@ export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
               ? 'bg-green-500 text-white'
               : 'bg-[var(--color-primary)] text-white hover:opacity-90'
           }`}
-          startContent={downloadSuccess ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+          startContent={
+            isGenerating
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : downloadSuccess
+              ? <Check className="w-4 h-4" />
+              : <Download className="w-4 h-4" />
+          }
           onPress={handleDownloadPDF}
+          isDisabled={isGenerating}
         >
-          {downloadSuccess ? 'Descargado' : 'Descargar PDF'}
+          {isGenerating ? 'Generando...' : downloadSuccess ? 'Descargado' : 'Descargar PDF'}
         </Button>
       </div>
     </div>

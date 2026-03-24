@@ -59,11 +59,23 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   required = false,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [sizeError, setSizeError] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Parse accepted extensions from the accept prop (e.g., ".pdf,.jpg" → [".pdf", ".jpg"])
+  const allowedExtensions = accept
+    .split(',')
+    .map((ext) => ext.trim().toLowerCase())
+    .filter((ext) => ext.startsWith('.'));
+
+  const isFileTypeAllowed = (fileName: string): boolean => {
+    if (allowedExtensions.length === 0) return true;
+    const ext = '.' + fileName.split('.').pop()?.toLowerCase();
+    return allowedExtensions.includes(ext);
+  };
+
   const hasFiles = value.length > 0;
-  const showError = !!error || !!sizeError;
+  const showError = !!error || !!fileError;
   const showWarning = !!warning && !hasFiles && !showError;
 
   const formatSize = (bytes: number) => {
@@ -76,16 +88,23 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     (fileList: FileList | null) => {
       if (!fileList || disabled) return;
 
-      setSizeError(null);
+      setFileError(null);
       const newFiles: UploadedFile[] = [];
-      const rejectedFiles: string[] = [];
+      const rejectedByType: string[] = [];
+      const rejectedBySize: string[] = [];
 
       for (let i = 0; i < fileList.length && newFiles.length < maxFiles; i++) {
         const file = fileList[i];
 
+        // Check file type
+        if (!isFileTypeAllowed(file.name)) {
+          rejectedByType.push(file.name);
+          continue;
+        }
+
         // Check size
         if (file.size > maxSize) {
-          rejectedFiles.push(file.name);
+          rejectedBySize.push(file.name);
           continue;
         }
 
@@ -100,12 +119,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         newFiles.push(uploadedFile);
       }
 
-      if (rejectedFiles.length > 0) {
-        setSizeError(`El archivo excede el tamaño máximo de ${formatSize(maxSize)}`);
+      if (rejectedByType.length > 0) {
+        const allowed = allowedExtensions.map((e) => e.replace('.', '').toUpperCase()).join(', ');
+        setFileError(`Formato no permitido. Solo se aceptan: ${allowed}`);
+      } else if (rejectedBySize.length > 0) {
+        setFileError(`El archivo excede el tamaño máximo de ${formatSize(maxSize)}`);
       }
 
       if (newFiles.length > 0) {
-        setSizeError(null);
         // When maxFiles is 1, replace existing file; otherwise append
         if (maxFiles === 1) {
           onChange(newFiles);
@@ -116,7 +137,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         }
       }
     },
-    [value, onChange, maxFiles, maxSize, disabled]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [value, onChange, maxFiles, maxSize, disabled, accept]
   );
 
   const handleDrop = useCallback(
@@ -147,7 +169,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
   const handleRemove = (fileId: string) => {
     onChange(value.filter((f) => f.id !== fileId));
-    setSizeError(null);
+    setFileError(null);
   };
 
   const getFileIcon = () => {
@@ -218,7 +240,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
               : 'Arrastra y suelta o haz clic para seleccionar'}
           </p>
           <p className="text-xs text-neutral-400">
-            {accept.replace(/\./g, '').toUpperCase().replace(/,/g, ', ')} • Máx {formatSize(maxSize)}
+            {accept.replace(/\./g, '').toUpperCase().replace(/,/g, ', ')} · Máx {formatSize(maxSize)}{maxFiles > 1 ? ` · Máx ${maxFiles} archivos` : ''}
           </p>
         </div>
       </div>
@@ -257,13 +279,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       )}
 
       {/* Help Text or Error */}
-      {(helpText || error || sizeError) && (
+      {(helpText || error || fileError) && (
         <p
           className={`text-xs ${
             showError ? 'text-red-500' : 'text-neutral-500'
           }`}
         >
-          {error || sizeError || helpText}
+          {error || fileError || helpText}
         </p>
       )}
     </div>

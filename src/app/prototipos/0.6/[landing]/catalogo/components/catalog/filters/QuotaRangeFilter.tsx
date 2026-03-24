@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Slider } from '@nextui-org/react';
 import { formatMoney } from '../../../utils/formatMoney';
 
@@ -17,13 +17,19 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
   min = 40,
   max = 500,
 }) => {
-  // Local state for smooth dragging (visual feedback)
-  const [localValue, setLocalValue] = useState<[number, number]>(value);
+  // Clamp value to [min, max] range (handles sentinel values like [0, 99999])
+  const clampedValue = useMemo((): [number, number] => [
+    Math.max(min, Math.min(max, value[0])),
+    Math.min(max, Math.max(min, value[1])),
+  ], [value, min, max]);
 
-  // Sync local state when prop changes (e.g., from URL or reset)
+  // Local state for smooth dragging (visual feedback)
+  const [localValue, setLocalValue] = useState<[number, number]>(clampedValue);
+
+  // Sync local state when prop or range changes
   useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+    setLocalValue(clampedValue);
+  }, [clampedValue]);
 
   return (
     <div className="space-y-4">

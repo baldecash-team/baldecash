@@ -313,8 +313,12 @@ export interface AppliedFiltersForCounts {
   conditions?: string[];
   gamas?: string[];
   labels?: string[];
+  usages?: string[];
   min_price?: number;
   max_price?: number;
+  min_quota?: number;
+  max_quota?: number;
+  specs?: Record<string, (string | number | boolean)[]>;
 }
 
 /**
@@ -348,11 +352,23 @@ export async function getCatalogFilters(
       if (appliedFilters.labels?.length) {
         params.set('labels', appliedFilters.labels.join(','));
       }
+      if (appliedFilters.usages?.length) {
+        params.set('usages', appliedFilters.usages.join(','));
+      }
       if (appliedFilters.min_price !== undefined) {
         params.set('min_price', String(appliedFilters.min_price));
       }
       if (appliedFilters.max_price !== undefined) {
         params.set('max_price', String(appliedFilters.max_price));
+      }
+      if (appliedFilters.min_quota !== undefined) {
+        params.set('min_quota', String(appliedFilters.min_quota));
+      }
+      if (appliedFilters.max_quota !== undefined) {
+        params.set('max_quota', String(appliedFilters.max_quota));
+      }
+      if (appliedFilters.specs && Object.keys(appliedFilters.specs).length > 0) {
+        params.set('specs', JSON.stringify(appliedFilters.specs));
       }
     }
 

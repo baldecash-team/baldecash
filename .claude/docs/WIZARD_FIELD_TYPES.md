@@ -41,8 +41,20 @@
 
 | field_type | Descripción | Cuándo Usar | Ejemplo |
 |------------|-------------|-------------|---------|
-| `number` | Número entero/decimal | Cantidades, edades | Años de experiencia |
-| `currency` | Monto con prefijo S/ | Ingresos, montos | Ingreso Mensual |
+| `number` | Número entero/decimal | Cantidades, pesos, medidas | Peso, Años de experiencia |
+| `currency` | Monto monetario | Ingresos, montos, precios | Ingreso Mensual, Pensión |
+
+**Configuración numérica** (aplica a `number` y `currency`):
+
+| Propiedad | Descripción | Ejemplo |
+|-----------|-------------|---------|
+| `prefix` | Texto antes del valor (ej: símbolo de moneda) | `S/`, `$`, `+51` |
+| `suffix` | Texto después del valor (ej: unidad de medida) | `kg`, `cm`, `años` |
+| `min_value` | Valor mínimo permitido | `0`, `18` |
+| `max_value` | Valor máximo permitido | `100000`, `150` |
+| `step` | Incremento al usar flechas del input | `1`, `0.5`, `100` |
+
+> **Nota:** En el resumen del wizard, los campos `currency` se formatean con separador de miles y 2 decimales (ej: `S/ 2,550.15`). Los campos `number` muestran el valor con prefix/suffix si están configurados (ej: `58.65 kg`).
 
 ### Fecha
 
@@ -115,7 +127,15 @@ El tipo `radio` se renderiza diferente según la cantidad de opciones:
 | `max_length` | text, textarea | Máximo de caracteres |
 | `min_value` | number, currency | Valor mínimo |
 | `max_value` | number, currency | Valor máximo |
+| `step` | number, currency | Incremento (flechas del input) |
 | `pattern` | text | Regex de validación |
+
+### Propiedades de Presentación
+
+| Propiedad | Aplica a | Descripción |
+|-----------|----------|-------------|
+| `prefix` | number, currency, phone | Texto antes del valor (`S/`, `+51`) |
+| `suffix` | number, currency | Texto después del valor (`kg`, `cm`) |
 
 ### Propiedades de Opciones
 
@@ -150,6 +170,38 @@ El tipo `radio` se renderiza diferente según la cantidad de opciones:
   "max_length": 100,
   "maps_to_table": "person",
   "maps_to_column": "first_name"
+}
+```
+
+### Campo Numérico con Suffix
+
+```json
+{
+  "code": "weight",
+  "label": "¿Cuál es tu peso?",
+  "field_type": "number",
+  "is_required": true,
+  "placeholder": "Ingresa tu peso",
+  "suffix": "kg",
+  "min_value": 30,
+  "max_value": 200,
+  "step": 1
+}
+```
+
+### Campo Currency con Prefix
+
+```json
+{
+  "code": "monthly_income",
+  "label": "Ingreso Mensual",
+  "field_type": "currency",
+  "is_required": true,
+  "prefix": "S/",
+  "min_value": 0,
+  "max_value": 100000,
+  "maps_to_table": "person_employment_history",
+  "maps_to_column": "monthly_income"
 }
 ```
 
@@ -255,6 +307,29 @@ El tipo `radio` se renderiza diferente según la cantidad de opciones:
 
 ---
 
+## Estado de Gestión desde Admin
+
+| field_type | Crear/Editar desde Admin | Configuración disponible |
+|------------|:---:|---|
+| `text` | Si | label, placeholder, grid, required |
+| `email` | Si | label, placeholder, grid, required |
+| `phone` | Si | label, placeholder, grid, required, prefix |
+| `date` | Si | label, placeholder, grid, required |
+| `textarea` | Si | label, placeholder, grid, required |
+| `number` | Si | label, placeholder, grid, required, prefix, suffix, min/max, step |
+| `currency` | Si | label, placeholder, grid, required, prefix, suffix, min/max, step |
+| `file` | Si | label, grid, required, document_type, accepted_file_types, max_size, max_files |
+| `select` | **Pendiente** | Requiere CRUD de opciones |
+| `autocomplete` | **Pendiente** | Requiere options_source, min_search_length |
+| `checkbox` | **Pendiente** | Modo simple + múltiple |
+| `radio` | **Pendiente** | Comparte config de opciones con select |
+| `document_number` | **Pendiente** | Requiere prefill_config, validation_source |
+| `address` | **Pendiente** | Requiere address_config JSON |
+
+> Los tipos marcados como "Pendiente" ya funcionan en webpage3.0 pero solo pueden configurarse directamente en la base de datos o via seeders. La gestión desde Admin está en desarrollo.
+
+---
+
 ## Preguntas Frecuentes
 
 ### ¿Puedo crear un tipo de campo nuevo?
@@ -294,4 +369,4 @@ Usa la tabla `form_field_dependency`:
 
 ---
 
-*Última actualización: Marzo 2026*
+*Última actualización: 23 Marzo 2026 — Agregado soporte de number (prefix, suffix, step, min/max) en Admin y webpage3.0*

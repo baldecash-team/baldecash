@@ -319,7 +319,11 @@ function StepContent() {
 
     if (field.type === 'currency' && typeof value === 'string') {
       const prefix = field.prefix || 'S/';
-      return `${prefix} ${value}`;
+      const num = parseFloat(value);
+      const formatted = !isNaN(num)
+        ? num.toLocaleString('es-PE', { minimumFractionDigits: 2 })
+        : value;
+      return field.suffix ? `${prefix} ${formatted} ${field.suffix}` : `${prefix} ${formatted}`;
     }
 
     // Check static options first
@@ -338,7 +342,17 @@ function StepContent() {
       return `${field.prefix} ${value}`;
     }
 
-    return Array.isArray(value) ? value.join(', ') : value;
+    // Generic prefix/suffix for other types (number, etc.)
+    const displayValue = Array.isArray(value) ? value.join(', ') : value;
+    if (displayValue && (field.prefix || field.suffix)) {
+      const parts: string[] = [];
+      if (field.prefix) parts.push(field.prefix);
+      parts.push(String(displayValue));
+      if (field.suffix) parts.push(field.suffix);
+      return parts.join(' ');
+    }
+
+    return displayValue;
   };
 
   // Identify prefill target fields (e.g., supporter_full_name is a prefill target of supporter_document_number)
@@ -567,7 +581,7 @@ function StepContent() {
   );
 
   // Summary item component
-  const SummaryItem = ({ label, value }: { label: string; value: string }) => (
+  const SummaryItem = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex justify-between gap-4 text-sm">
       <span className="text-neutral-500 flex-shrink-0">{label}</span>
       <span className="text-neutral-800 font-medium text-right break-words min-w-0">{value || '-'}</span>
@@ -623,6 +637,57 @@ function StepContent() {
                 {visibleFields.map((field) => {
                   const value = getFieldValue(field.code);
                   const savedLabel = getFieldLabel(field.code);
+
+                  // File fields: show filename with link to view
+                  if (field.type === 'file') {
+                    const fileData = formData[field.code];
+                    const files = Array.isArray(value) ? value : [];
+                    const lostFileNames = fileData?.label;
+
+                    let fileContent: React.ReactNode;
+                    if (files.length > 0 && files[0] && typeof files[0] === 'object' && 'file' in files[0]) {
+                      // Files in memory — show clickable links
+                      fileContent = (
+                        <span className="flex flex-col items-end gap-1">
+                          {files.map((f: { id?: string; file?: File; name?: string }, i: number) => (
+                            <button
+                              key={f.id || i}
+                              type="button"
+                              onClick={() => {
+                                if (f.file) {
+                                  const url = URL.createObjectURL(f.file);
+                                  window.open(url, '_blank');
+                                }
+                              }}
+                              className="text-[var(--color-primary)] hover:underline cursor-pointer flex items-center gap-1"
+                            >
+                              <LucideIcons.Paperclip className="w-3.5 h-3.5" />
+                              {f.name || 'Archivo adjunto'}
+                            </button>
+                          ))}
+                        </span>
+                      );
+                    } else if (lostFileNames) {
+                      // Files lost after refresh — show names without link
+                      fileContent = (
+                        <span className="flex items-center gap-1 text-neutral-500">
+                          <LucideIcons.Paperclip className="w-3.5 h-3.5" />
+                          {lostFileNames}
+                        </span>
+                      );
+                    } else {
+                      fileContent = 'No adjunto';
+                    }
+
+                    return (
+                      <SummaryItem
+                        key={field.id}
+                        label={field.label}
+                        value={fileContent}
+                      />
+                    );
+                  }
+
                   const displayValue = getFieldDisplayValue(field, value as string | string[] | undefined, savedLabel);
 
                   return (

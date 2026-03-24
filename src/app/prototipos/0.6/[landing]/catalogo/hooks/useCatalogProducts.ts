@@ -311,8 +311,12 @@ export interface AppliedFiltersForCounts {
   conditions?: string[];
   gamas?: string[];
   labels?: string[];
+  usages?: string[];
   min_price?: number;
   max_price?: number;
+  min_quota?: number;
+  max_quota?: number;
+  specs?: Record<string, (string | number | boolean)[]>;
 }
 
 export interface UseCatalogFiltersResult {
@@ -354,6 +358,8 @@ const DEFAULT_FILTERS: UseCatalogFiltersResult = {
   apiFilters: null,
 };
 
+const FILTERS_DEBOUNCE_MS = 300;
+
 export function useCatalogFilters(
   landingSlug: string,
   appliedFilters?: AppliedFiltersForCounts
@@ -365,10 +371,13 @@ export function useCatalogFilters(
 
   // Track last applied filters to trigger re-fetch
   const lastFiltersKey = useRef<string>('');
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appliedFiltersKey = JSON.stringify(appliedFilters || {});
+  const isInitialFetch = useRef(true);
 
   useEffect(() => {
-    // Re-fetch when landing or applied filters change
+    // Skip if nothing changed and we already have API data
     const shouldFetch = lastFiltersKey.current !== appliedFiltersKey;
     if (!shouldFetch && filters.isFromApi) {
       return;
@@ -376,7 +385,7 @@ export function useCatalogFilters(
 
     lastFiltersKey.current = appliedFiltersKey;
 
-    const loadFilters = async () => {
+    const loadFilters = async (signal: AbortSignal) => {
       try {
         // Build query params for contextual counts
         const params = new URLSearchParams();
@@ -396,11 +405,23 @@ export function useCatalogFilters(
           if (appliedFilters.labels?.length) {
             params.set('labels', appliedFilters.labels.join(','));
           }
+          if (appliedFilters.usages?.length) {
+            params.set('usages', appliedFilters.usages.join(','));
+          }
           if (appliedFilters.min_price !== undefined) {
             params.set('min_price', String(appliedFilters.min_price));
           }
           if (appliedFilters.max_price !== undefined) {
             params.set('max_price', String(appliedFilters.max_price));
+          }
+          if (appliedFilters.min_quota !== undefined) {
+            params.set('min_quota', String(appliedFilters.min_quota));
+          }
+          if (appliedFilters.max_quota !== undefined) {
+            params.set('max_quota', String(appliedFilters.max_quota));
+          }
+          if (appliedFilters.specs && Object.keys(appliedFilters.specs).length > 0) {
+            params.set('specs', JSON.stringify(appliedFilters.specs));
           }
         }
 
@@ -408,7 +429,8 @@ export function useCatalogFilters(
         const url = `${process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1'}/public/landing/${landingSlug}/filters${queryString ? `?${queryString}` : ''}`;
 
         const response = await fetch(url, {
-          cache: 'no-store', // Don't cache - counts depend on filters
+          cache: 'no-store',
+          signal,
         });
 
         if (!response.ok) {
@@ -432,17 +454,53 @@ export function useCatalogFilters(
           apiFilters: data,
         });
       } catch (err) {
-        console.error('[Catalog Filters] Error loading, using defaults:', err);
-        setFilters({
-          ...DEFAULT_FILTERS,
+        // Silently ignore aborted requests (from debounce/unmount)
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
+        // Network errors (API down) — also ignore silently, keep previous data or defaults
+        if (err instanceof TypeError && (err.message === 'Failed to fetch' || err.message === 'Load failed')) {
+          setFilters((prev) => prev.isFromApi ? prev : { ...DEFAULT_FILTERS, isLoading: false });
+          return;
+        }
+        console.warn('[Catalog Filters] Error loading filters:', err);
+        // Stale-while-revalidate: keep previous data if available, only fallback to defaults on first load
+        setFilters((prev) => ({
+          ...(prev.isFromApi ? prev : DEFAULT_FILTERS),
           isLoading: false,
-          isFromApi: false,
           error: err instanceof Error ? err.message : 'Error loading filters',
-        });
+        }));
       }
     };
 
-    loadFilters();
+    // Cancel any in-flight request
+    abortControllerRef.current?.abort();
+
+    // Clear any pending debounce
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    const executeRequest = () => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      loadFilters(controller.signal);
+    };
+
+    // First fetch: immediate. Subsequent fetches: debounced.
+    if (isInitialFetch.current) {
+      isInitialFetch.current = false;
+      executeRequest();
+    } else {
+      debounceTimerRef.current = setTimeout(executeRequest, FILTERS_DEBOUNCE_MS);
+    }
+
+    return () => {
+      abortControllerRef.current?.abort();
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [landingSlug, appliedFiltersKey]);
 
   return filters;

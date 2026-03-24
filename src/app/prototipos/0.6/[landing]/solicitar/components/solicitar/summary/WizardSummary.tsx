@@ -104,13 +104,24 @@ function resolveFieldValue(
   if (field.type === 'currency' && value) {
     const num = parseFloat(value);
     if (!isNaN(num)) {
-      return `S/ ${num.toLocaleString('es-PE', { minimumFractionDigits: 2 })}`;
+      const prefix = field.prefix || 'S/';
+      const formatted = num.toLocaleString('es-PE', { minimumFractionDigits: 2 });
+      return field.suffix ? `${prefix} ${formatted} ${field.suffix}` : `${prefix} ${formatted}`;
     }
   }
 
   // Phone with prefix
   if (field.type === 'phone' && field.prefix && value) {
     return `${field.prefix} ${value}`;
+  }
+
+  // Generic prefix/suffix for other types (number, etc.)
+  if (value && (field.prefix || field.suffix)) {
+    const parts: string[] = [];
+    if (field.prefix) parts.push(field.prefix);
+    parts.push(String(value));
+    if (field.suffix) parts.push(field.suffix);
+    return parts.join(' ');
   }
 
   return String(value);

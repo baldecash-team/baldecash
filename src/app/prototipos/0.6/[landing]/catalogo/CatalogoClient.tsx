@@ -97,7 +97,7 @@ import {
 } from './data/mockCatalogData';
 
 // API Hooks for loading products and filters
-import { useCatalogProducts, useProductsByIds, useCatalogFilters } from './hooks/useCatalogProducts';
+import { useCatalogProducts, useProductsByIds, useCatalogFilters, type AppliedFiltersForCounts } from './hooks/useCatalogProducts';
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../services/catalogApi';
 
 // Query params utilities
@@ -318,6 +318,10 @@ function CatalogoContent() {
   // Debounced search query - waits until user stops typing to trigger API fetch
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
+  // API quota range ref — stores the real min/max from API for slider bounds.
+  // Declared early because apiFiltersForProducts memo needs it.
+  const apiQuotaRangeRef = useRef<[number, number]>([defaultFilterState.quotaRange[0], defaultFilterState.quotaRange[1]]);
+
   // Build API filters from frontend FilterState
   const apiFiltersForProducts = useMemo((): ApiCatalogFilters => {
     const apiFilters: ApiCatalogFilters = {};
@@ -363,9 +367,10 @@ function CatalogoContent() {
       apiFilters.usages = filters.usage;
     }
 
-    // Quota range (convert to min/max quota)
-    // Default quotaRange is [25, 500] - only send if different
-    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500) {
+    // Quota range: only send if user moved slider away from full range
+    // Check inline since apiQuotaRangeRef is available but isQuotaAtFullRange is defined later
+    const [fullMin, fullMax] = apiQuotaRangeRef.current;
+    if (filters.quotaRange[0] > fullMin || filters.quotaRange[1] < fullMax) {
       apiFilters.min_quota = filters.quotaRange[0];
       apiFilters.max_quota = filters.quotaRange[1];
     }
@@ -617,13 +622,53 @@ function CatalogoContent() {
     };
   });
 
-  // Load filter options from API (without filters - always show total counts)
+  // Derive applied filters for contextual counts from apiFiltersForProducts (no duplication)
+  const appliedFiltersForCounts = useMemo((): AppliedFiltersForCounts => {
+    const {
+      q: _q, product_ids: _pids, is_featured: _feat,
+      brand_id: _bid, type: _type, specs: rawSpecs,
+      ...countFilters
+    } = apiFiltersForProducts;
+    return {
+      ...countFilters,
+      ...(rawSpecs && Object.keys(rawSpecs).length > 0 && {
+        specs: rawSpecs as Record<string, (string | number | boolean)[]>,
+      }),
+    };
+  }, [apiFiltersForProducts]);
+
+  // Load filter options from API with contextual counts based on applied filters
   const {
     quotaRange: dynamicQuotaRange,
     isFromApi: isFiltersFromApi,
     apiFilters,
     isLoading: isApiFiltersLoading,
-  } = useCatalogFilters(landing);
+  } = useCatalogFilters(landing, appliedFiltersForCounts);
+
+  // apiQuotaRangeRef declared earlier (before apiFiltersForProducts memo)
+  const quotaRangeSynced = useRef(false);
+  const hasUrlQuotaParam = useMemo(() => searchParams.has('quota'), []);
+
+  // Sync slider to API range on first load (only if no URL quota param)
+  useEffect(() => {
+    if (dynamicQuotaRange && isFiltersFromApi && !quotaRangeSynced.current) {
+      apiQuotaRangeRef.current = [dynamicQuotaRange.min, dynamicQuotaRange.max];
+      quotaRangeSynced.current = true;
+      if (!hasUrlQuotaParam) {
+        setFilters(prev => ({
+          ...prev,
+          quotaRange: [dynamicQuotaRange.min, dynamicQuotaRange.max],
+        }));
+      }
+    }
+  }, [dynamicQuotaRange, isFiltersFromApi, hasUrlQuotaParam]);
+
+  // Helper: check if quota range is at "full range" (no filter active)
+  // Covers both sentinel [0, 99999] and the actual API range
+  const isQuotaAtFullRange = useCallback((range: [number, number]) => {
+    const [fullMin, fullMax] = apiQuotaRangeRef.current;
+    return range[0] <= fullMin && range[1] >= fullMax;
+  }, []);
 
   // Update brand mapping when apiFilters loads (only once)
   useEffect(() => {
@@ -1195,7 +1240,7 @@ function CatalogoContent() {
         result.push({ key: 'brand', label: brand.charAt(0).toUpperCase() + brand.slice(1), value: brand });
       });
     }
-    if (filters.quotaRange[0] !== 25 || filters.quotaRange[1] !== 500) {
+    if (!isQuotaAtFullRange(filters.quotaRange)) {
       result.push({ key: 'quota', label: `S/${filters.quotaRange[0]} - S/${filters.quotaRange[1]}/mes`, value: filters.quotaRange });
     }
     if (filters.ram.length > 0) {
@@ -1216,7 +1261,7 @@ function CatalogoContent() {
     setFilters((prev) => {
       const newFilters = { ...prev };
       if (key === 'brand') newFilters.brands = [];
-      if (key === 'quota') newFilters.quotaRange = [25, 500];
+      if (key === 'quota') newFilters.quotaRange = [...apiQuotaRangeRef.current];
       if (key === 'ram') newFilters.ram = [];
       if (key === 'gama') newFilters.gama = [];
       return newFilters;
@@ -1333,8 +1378,7 @@ function CatalogoContent() {
     filters.condition.length > 0 ||
     filters.gama.length > 0 ||
     filters.tags.length > 0 ||
-    filters.quotaRange[0] !== 25 ||
-    filters.quotaRange[1] !== 500 ||
+    !isQuotaAtFullRange(filters.quotaRange) ||
     // Specs filters
     filters.ram.length > 0 ||
     filters.storage.length > 0 ||

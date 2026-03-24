@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale, X } from 'lucide-react';
+import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale, X, Loader2 } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useIsMobile, Toast } from '@/app/prototipos/_shared';
@@ -151,35 +151,45 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   // Total = cuotas mensuales + cuota inicial (si aplica)
   const totalPayment = (adjustedQuota * selectedTerm) + initialAmount;
 
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
   const handleDownloadPDF = async () => {
-    // Generar datos para el PDF
-    const pdfSchedule = amortizationSchedule.map((row, index) => ({
-      month: row.month,
-      date: getMonthDate(index),
-      capital: row.capital,
-      interest: row.interest,
-      quota: adjustedQuota,
-      balance: row.balance,
-    }));
+    if (isGeneratingPDF) return;
+    setIsGeneratingPDF(true);
+    try {
+      // Generar datos para el PDF
+      const pdfSchedule = amortizationSchedule.map((row, index) => ({
+        month: row.month,
+        date: getMonthDate(index),
+        capital: row.capital,
+        interest: row.interest,
+        quota: adjustedQuota,
+        balance: row.balance,
+      }));
 
-    await generateCronogramaPDF({
-      productName,
-      productBrand,
-      productPrice,
-      productUrl: productUrl || (typeof window !== 'undefined' ? window.location.href : undefined),
-      term: selectedTerm,
-      monthlyQuota: adjustedQuota,
-      totalPayment,
-      amortizationSchedule: pdfSchedule,
-      financialData: FINANCIAL_DATA,
-      generatedDate: new Date(),
-      // Cuota inicial (si aplica)
-      initialAmount: selectedInitialPercent > 0 ? initialAmount : undefined,
-      initialPercent: selectedInitialPercent > 0 ? selectedInitialPercent : undefined,
-    });
+      await generateCronogramaPDF({
+        productName,
+        productBrand,
+        productPrice,
+        productUrl: productUrl || (typeof window !== 'undefined' ? window.location.href : undefined),
+        term: selectedTerm,
+        monthlyQuota: adjustedQuota,
+        totalPayment,
+        amortizationSchedule: pdfSchedule,
+        financialData: FINANCIAL_DATA,
+        generatedDate: new Date(),
+        // Cuota inicial (si aplica)
+        initialAmount: selectedInitialPercent > 0 ? initialAmount : undefined,
+        initialPercent: selectedInitialPercent > 0 ? selectedInitialPercent : undefined,
+      });
 
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+    } finally {
+      setIsGeneratingPDF(false);
+    }
   };
 
   return (
@@ -407,10 +417,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           <Button
             variant="bordered"
             className="flex-1 border-neutral-300 text-neutral-700 cursor-pointer"
-            startContent={<Download className="w-4 h-4" />}
+            startContent={isGeneratingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             onPress={handleDownloadPDF}
+            isDisabled={isGeneratingPDF}
           >
-            Descargar PDF
+            {isGeneratingPDF ? 'Generando...' : 'Descargar PDF'}
           </Button>
         </div>
       </div>
@@ -600,10 +611,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   </Button>
                   <Button
                     className="flex-1 bg-[var(--color-primary)] text-white cursor-pointer"
-                    startContent={<Download className="w-4 h-4" />}
+                    startContent={isGeneratingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                     onPress={handleDownloadPDF}
+                    isDisabled={isGeneratingPDF}
                   >
-                    Descargar PDF
+                    {isGeneratingPDF ? 'Generando...' : 'Descargar PDF'}
                   </Button>
                 </div>
               </motion.div>
@@ -743,10 +755,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
               </Button>
               <Button
                 className="bg-[var(--color-primary)] text-white cursor-pointer"
-                startContent={<Download className="w-4 h-4" />}
+                startContent={isGeneratingPDF ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                 onPress={handleDownloadPDF}
+                isDisabled={isGeneratingPDF}
               >
-                Descargar PDF
+                {isGeneratingPDF ? 'Generando...' : 'Descargar PDF'}
               </Button>
             </ModalFooter>
           </ModalContent>

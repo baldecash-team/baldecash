@@ -161,6 +161,10 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           inputMode="numeric"
           success={!error && !!value}
           startContent={field.prefix || undefined}
+          endContent={field.suffix || undefined}
+          min={field.min_value ?? undefined}
+          max={field.max_value ?? undefined}
+          step={field.step ?? undefined}
         />
       );
 
@@ -172,6 +176,11 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
           placeholder={field.placeholder || undefined}
           inputMode="numeric"
           success={!error && !!value}
+          startContent={field.prefix || undefined}
+          endContent={field.suffix || undefined}
+          min={field.min_value ?? undefined}
+          max={field.max_value ?? undefined}
+          step={field.step ?? undefined}
         />
       );
 
