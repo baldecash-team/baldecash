@@ -327,6 +327,8 @@ function CatalogoContent() {
       ? [initialQuotaRange[0], initialQuotaRange[1]]
       : [defaultFilterState.quotaRange[0], defaultFilterState.quotaRange[1]]
   );
+  // State mirror of apiQuotaRangeRef for reactive dependencies (memos, chips)
+  const [apiQuotaRangeState, setApiQuotaRangeState] = useState<[number, number]>(apiQuotaRangeRef.current);
 
   // Build API filters from frontend FilterState
   const apiFiltersForProducts = useMemo((): ApiCatalogFilters => {
@@ -658,7 +660,9 @@ function CatalogoContent() {
   // Sync slider to API range on first load (only if no URL quota param)
   useEffect(() => {
     if (dynamicQuotaRange && isFiltersFromApi && !quotaRangeSynced.current) {
-      apiQuotaRangeRef.current = [dynamicQuotaRange.min, dynamicQuotaRange.max];
+      const newRange: [number, number] = [dynamicQuotaRange.min, dynamicQuotaRange.max];
+      apiQuotaRangeRef.current = newRange;
+      setApiQuotaRangeState(newRange);
       quotaRangeSynced.current = true;
       if (!hasUrlQuotaParam) {
         setFilters(prev => ({
@@ -1246,7 +1250,9 @@ function CatalogoContent() {
         result.push({ key: 'brand', label: brand.charAt(0).toUpperCase() + brand.slice(1), value: brand });
       });
     }
-    if (!isQuotaAtFullRange(filters.quotaRange)) {
+    // Compare against API range state (reactive) to avoid stale ref reads
+    const quotaIsFullRange = filters.quotaRange[0] <= apiQuotaRangeState[0] && filters.quotaRange[1] >= apiQuotaRangeState[1];
+    if (!quotaIsFullRange) {
       result.push({ key: 'quota', label: `S/${filters.quotaRange[0]} - S/${filters.quotaRange[1]}/mes`, value: filters.quotaRange });
     }
     if (filters.ram.length > 0) {
@@ -1261,7 +1267,7 @@ function CatalogoContent() {
       });
     }
     return result;
-  }, [filters]);
+  }, [filters, apiQuotaRangeState]);
 
   const handleRemoveFilter = useCallback((key: string) => {
     setFilters((prev) => {
