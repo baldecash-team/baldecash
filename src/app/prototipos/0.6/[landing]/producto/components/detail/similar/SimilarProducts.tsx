@@ -185,6 +185,14 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
     }
   };
 
+  // Calculate max differentiators count (excluding brand, capped at 3) for consistent card height
+  const MAX_DIFF_TAGS = 3;
+  const maxDiffCount = Math.min(MAX_DIFF_TAGS, Math.max(1, ...products.map(p =>
+    p.differentiators.filter(d => d.toLowerCase() !== p.brand.toLowerCase()).length
+  )));
+  // Each tag ~26px tall + 6px gap between them
+  const diffMinHeight = maxDiffCount * 26 + Math.max(0, maxDiffCount - 1) * 6;
+
   return (
     <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
       {/* Header */}
@@ -332,10 +340,11 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       {product.displayName}
                     </h3>
 
-                    {/* Differentiator Tags - Altura fija para 2 filas de tags (26px each + 6px gap) */}
-                    <div className="flex flex-wrap justify-center gap-1.5 mb-3 h-[58px] overflow-hidden content-start">
+                    {/* Differentiator Tags - Vertical list, height based on max across all cards */}
+                    <div className="flex flex-col items-center gap-1.5 mb-3" style={{ minHeight: diffMinHeight }}>
                       {product.differentiators
                         .filter((diff) => diff.toLowerCase() !== product.brand.toLowerCase())
+                        .slice(0, MAX_DIFF_TAGS)
                         .map((diff, idx) => (
                         <span
                           key={idx}
