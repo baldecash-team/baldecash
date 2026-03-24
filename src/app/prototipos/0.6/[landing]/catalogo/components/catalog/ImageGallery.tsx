@@ -10,11 +10,13 @@ import React, { useState } from 'react';
 interface ImageGalleryProps {
   images: string[];
   alt: string;
+  /** When true, disables lazy loading and sets fetchpriority="high" (use for above-the-fold images) */
+  priority?: boolean;
 }
 
 // Galería V2 con thumbnails (configuración fija de v0.6)
 // Layout unificado para consistencia de altura entre cards
-export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
+export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt, priority = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const displayImages = images.slice(0, 4);
   const hasMultipleImages = displayImages.length > 1;
@@ -26,7 +28,8 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
         src={displayImages[currentIndex] || '/placeholder-laptop.png'}
         alt={alt}
         className="w-full h-36 object-contain transition-opacity duration-200"
-        loading="lazy"
+        loading={priority ? "eager" : "lazy"}
+        {...(priority ? { fetchPriority: "high" as const } : {})}
       />
 
       {/* Texto referencial - siempre presente para mantener altura */}

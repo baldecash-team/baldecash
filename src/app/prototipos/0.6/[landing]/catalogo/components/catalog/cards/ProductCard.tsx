@@ -51,6 +51,8 @@ interface ProductCardProps {
   compareButtonId?: string;
   detailButtonId?: string;
   addToCartButtonId?: string;
+  /** When true, loads images eagerly with high priority (use for above-the-fold cards) */
+  priority?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -72,6 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   compareButtonId,
   detailButtonId,
   addToCartButtonId,
+  priority = false,
 }) => {
   // Color selector state — default to current product's ID if it's in the siblings
   const currentProductColor = product.colors?.find(c => c.productId === product.id);
@@ -188,6 +191,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <ImageGallery
               images={selectedImages}
               alt={displayName}
+              priority={priority}
             />
 
             {/* Action buttons - top right */}
