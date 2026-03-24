@@ -47,7 +47,7 @@ export const SUBMIT_STAGE_MESSAGES: Record<SubmitStage, string> = {
   validating: 'Validando datos...',
   uploading: 'Subiendo archivos...',
   processing: 'Procesando solicitud...',
-  slow: 'Esto está tardando más de lo esperado. Por favor espera...',
+  slow: 'Un momento, por favor...',
   success: 'Solicitud enviada correctamente',
   error: 'Error al enviar la solicitud',
 };
