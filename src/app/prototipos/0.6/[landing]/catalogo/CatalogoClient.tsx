@@ -319,7 +319,14 @@ function CatalogoContent() {
 
   // API quota range ref — stores the real min/max from API for slider bounds.
   // Declared early because apiFiltersForProducts memo needs it.
-  const apiQuotaRangeRef = useRef<[number, number]>([defaultFilterState.quotaRange[0], defaultFilterState.quotaRange[1]]);
+  // If URL has quota params, initialize with those values to avoid a redundant
+  // re-fetch when the filters API responds with the same range.
+  const initialQuotaRange = initialUrlFilters.quotaRange;
+  const apiQuotaRangeRef = useRef<[number, number]>(
+    initialQuotaRange
+      ? [initialQuotaRange[0], initialQuotaRange[1]]
+      : [defaultFilterState.quotaRange[0], defaultFilterState.quotaRange[1]]
+  );
 
   // Build API filters from frontend FilterState
   const apiFiltersForProducts = useMemo((): ApiCatalogFilters => {
