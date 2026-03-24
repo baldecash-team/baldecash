@@ -58,7 +58,6 @@ export const BrandFilterV3: React.FC<BrandFilterProps> = ({
                 <BrandLogo
                   src={option.logo}
                   alt={option.label}
-                  primaryColor={option.primaryColor}
                   isSelected={isSelected}
                   showColorOnHover={true}
                   className="w-full h-full"
