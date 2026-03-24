@@ -27,7 +27,7 @@ import { calculateQuotaForTerm, DEFAULT_TEA } from '../[landing]/catalogo/types/
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
 // Pagination constants
-export const INITIAL_LOAD_LIMIT = 16;
+export const INITIAL_LOAD_LIMIT = 15;
 export const LOAD_MORE_LIMIT = 8;
 
 // ============================================
