@@ -13,7 +13,6 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { PreviewBanner } from '@/app/prototipos/0.6/components/PreviewBanner';
 
 // Secondary Navbar with search, wishlist, cart
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CatalogSecondaryNavbar';
@@ -277,9 +276,6 @@ function ProductDetailContent() {
 
   return (
     <div className="min-h-screen bg-neutral-50 overflow-x-hidden">
-      {/* Preview Banner - shows when navigating from /preview with preview_key */}
-      <PreviewBanner landingSlug={landing} pageName="Detalle del Producto" />
-
       {/* Navbar from Hero */}
       <Navbar
         landing={landing}

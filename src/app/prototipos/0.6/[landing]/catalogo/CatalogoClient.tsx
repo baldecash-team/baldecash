@@ -57,7 +57,6 @@ import { useOnboarding } from './hooks/useOnboarding';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { PreviewBanner } from '@/app/prototipos/0.6/components/PreviewBanner';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -1447,9 +1446,6 @@ function CatalogoContent() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Preview Banner - shows when navigating from /preview with preview_key */}
-      <PreviewBanner landingSlug={landing} pageName="Catálogo" />
-
       {/* Navbar from Hero */}
       <Navbar
         hidePromoBanner={shouldHidePromoBanner}

@@ -16,7 +16,6 @@ import { MotivationalCard } from './MotivationalCard';
 import { SelectedProductBar, SelectedProductSpacer } from '../product';
 import { WizardStepId } from '../../../types/solicitar';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
-import { PreviewBanner } from '@/app/prototipos/0.6/components/PreviewBanner';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 import type { WizardMotivational } from '../../../../../services/wizardApi';
 
@@ -71,9 +70,6 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Preview Banner - shows when navigating from /preview with preview_key */}
-      <PreviewBanner landingSlug={landing} pageName="Solicitar" />
-
       {/* Navbar del Hero */}
       <Navbar {...navbarProps} />
 
