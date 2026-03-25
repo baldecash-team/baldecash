@@ -79,7 +79,7 @@ export interface ProductPort {
   name: string;
   icon: string;
   count: number;
-  position: 'left' | 'right' | 'back';
+  position: 'left' | 'right' | 'back' | 'bottom';
 }
 
 export interface ProductSoftware {
