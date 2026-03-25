@@ -121,7 +121,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         src={imageSrc}
         alt="Estudiantes trabajando"
         className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
+        loading="eager"
+        fetchPriority="high"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
           target.style.opacity = '0';
