@@ -417,7 +417,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   }}
                   startContent={<User className="w-4 h-4" />}
                 >
-                  Zona Estudiantes
+                  {normalizedLanding === 'liderman-baldecash' ? 'Zona Clientes' : 'Zona Estudiantes'}
                 </Button>
               </div>
             )}
@@ -609,7 +609,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     }}
                     startContent={<User className="w-4 h-4" />}
                   >
-                    Zona Estudiantes
+                    {normalizedLanding === 'liderman-baldecash' ? 'Zona Clientes' : 'Zona Estudiantes'}
                   </Button>
                 </div>
               </div>
