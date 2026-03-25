@@ -37,7 +37,7 @@ interface SpecCategory {
 interface ProductPort {
   name: string;
   count: number;
-  position: 'left' | 'right' | 'back';
+  position: 'left' | 'right' | 'back' | 'bottom';
   icon: string;
 }
 
@@ -347,13 +347,15 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     const leftPorts = data.ports.filter(p => p.position === 'left');
     const rightPorts = data.ports.filter(p => p.position === 'right');
     const backPorts = data.ports.filter(p => p.position === 'back');
+    const bottomPorts = data.ports.filter(p => p.position === 'bottom');
 
     // Calcular altura de la card (header + contenido + badges)
     const headerHeight = 20; // Espacio para header con ícono
     const contentHeight = Math.max(leftPorts.length, rightPorts.length) * portRowHeight + 10;
-    const backPortsHeight = backPorts.length > 0 ? 35 : 0; // Más espacio para puertos traseros
+    const backPortsHeight = backPorts.length > 0 ? 35 : 0;
+    const bottomPortsHeight = bottomPorts.length > 0 ? 35 : 0;
     const badgesHeight = 28; // Más espacio para badges de resumen
-    const portsCardHeight = headerHeight + contentHeight + backPortsHeight + badgesHeight;
+    const portsCardHeight = headerHeight + contentHeight + backPortsHeight + bottomPortsHeight + badgesHeight;
 
     drawCard(doc, margin, y, contentWidth, portsCardHeight);
 

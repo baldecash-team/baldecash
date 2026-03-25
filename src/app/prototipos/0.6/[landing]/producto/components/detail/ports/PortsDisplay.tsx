@@ -118,6 +118,7 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({
   const leftPorts = ports.filter(p => p.position === 'left');
   const rightPorts = ports.filter(p => p.position === 'right');
   const backPorts = ports.filter(p => p.position === 'back');
+  const bottomPorts = ports.filter(p => p.position === 'bottom');
 
   const renderPort = (port: ProductPort, index: number) => {
     const IconComponent = iconMap[port.icon] || HelpCircle;
@@ -183,6 +184,16 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({
         </div>
       )}
 
+      {/* Bottom Ports (if any) */}
+      {bottomPorts.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-neutral-200">
+          <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Parte inferior</span>
+          <div className="flex flex-wrap gap-2 mt-2 justify-center">
+            {bottomPorts.map((port, idx) => renderPort(port, idx))}
+          </div>
+        </div>
+      )}
+
       {/* Summary */}
       <div className="mt-6 pt-4 border-t border-neutral-200">
         <div className="flex flex-wrap gap-2 justify-center">
@@ -190,7 +201,7 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({
             {ports.reduce((acc, p) => acc + p.count, 0)} puertos totales
           </span>
           <span className="px-3 py-1 bg-neutral-100 text-neutral-600 rounded-full text-xs font-medium">
-            {leftPorts.reduce((acc, p) => acc + p.count, 0)} izquierda • {rightPorts.reduce((acc, p) => acc + p.count, 0)} derecha
+            {leftPorts.reduce((acc, p) => acc + p.count, 0)} izquierda • {rightPorts.reduce((acc, p) => acc + p.count, 0)} derecha{bottomPorts.length > 0 ? ` • ${bottomPorts.reduce((acc, p) => acc + p.count, 0)} inferior` : ''}
           </span>
         </div>
       </div>
