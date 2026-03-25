@@ -22,37 +22,6 @@ import {
   type SearchCorrected,
 } from '../../../services/catalogApi';
 
-// Session cache key and helpers for restoring products on back-navigation
-const CATALOG_CACHE_KEY = 'catalog_products_cache';
-
-interface CatalogCache {
-  filtersKey: string;
-  products: CatalogProduct[];
-  total: number;
-  offset: number;
-  hasMore: boolean;
-  timestamp: number;
-}
-
-function getCatalogCache(filtersKey: string): CatalogCache | null {
-  try {
-    const raw = sessionStorage.getItem(CATALOG_CACHE_KEY);
-    if (!raw) return null;
-    const cache: CatalogCache = JSON.parse(raw);
-    // Only use cache if filters match and it's less than 5 minutes old
-    if (cache.filtersKey === filtersKey && Date.now() - cache.timestamp < 5 * 60 * 1000) {
-      return cache;
-    }
-  } catch { /* ignore */ }
-  return null;
-}
-
-function setCatalogCache(data: Omit<CatalogCache, 'timestamp'>) {
-  try {
-    sessionStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({ ...data, timestamp: Date.now() }));
-  } catch { /* ignore if storage is full */ }
-}
-
 export interface UseCatalogProductsOptions {
   landingSlug: string;
   /** Filters to apply when fetching products */
@@ -106,23 +75,19 @@ export function useCatalogProducts({
   sortBy,
   enabled = true,
 }: UseCatalogProductsOptions): UseCatalogProductsResult {
-  // Try to restore from session cache on mount (for back-navigation)
-  const initialFiltersKey = JSON.stringify(filters || {});
-  const cached = useRef(getCatalogCache(initialFiltersKey)).current;
-
-  const [products, setProducts] = useState<CatalogProduct[]>(cached?.products || []);
-  const [total, setTotal] = useState(cached?.total || 0);
-  const [offset, setOffset] = useState(cached?.offset || 0);
-  const [hasMore, setHasMore] = useState(cached?.hasMore || false);
-  const [isLoading, setIsLoading] = useState(!cached);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isFromApi, setIsFromApi] = useState(!!cached);
+  const [isFromApi, setIsFromApi] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchCorrected, setSearchCorrected] = useState<SearchCorrected | null>(null);
 
-  // Track if we've already attempted to load (skip initial fetch if cache hit)
-  const hasLoadedRef = useRef(!!cached);
+  // Track if we've already attempted to load
+  const hasLoadedRef = useRef(false);
   // Track if enabled changed from false to true
   const wasEnabledRef = useRef(enabled);
 
@@ -165,14 +130,6 @@ export function useCatalogProducts({
         setHasMore(result.hasMore);
         setIsFromApi(true);
         setSuggestions([]); // Clear suggestions when there are results
-        // Cache for back-navigation
-        setCatalogCache({
-          filtersKey: JSON.stringify(filters || {}),
-          products: result.products,
-          total: result.total,
-          offset: result.products.length,
-          hasMore: result.hasMore,
-        });
         // Store search correction info if fuzzy search was applied
         if (result.searchCorrected) {
           setSearchCorrected(result.searchCorrected);
@@ -223,19 +180,7 @@ export function useCatalogProducts({
       });
 
       if (result && result.products.length > 0) {
-        setProducts(prev => {
-          const updated = [...prev, ...result.products];
-          const newOffset = offset + result.products.length;
-          // Update cache with all loaded products
-          setCatalogCache({
-            filtersKey: JSON.stringify(filters || {}),
-            products: updated,
-            total,
-            offset: newOffset,
-            hasMore: result.hasMore,
-          });
-          return updated;
-        });
+        setProducts(prev => [...prev, ...result.products]);
         setOffset(prev => prev + result.products.length);
         setHasMore(result.hasMore);
       } else {

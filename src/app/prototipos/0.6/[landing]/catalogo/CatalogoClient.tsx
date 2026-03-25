@@ -1590,8 +1590,6 @@ function CatalogoContent() {
                 onCompare={(activeId) => handleToggleCompare(activeId)}
                 isCompareCheck={(id) => compareList.includes(id)}
                 compareDisabled={compareList.length >= maxCompareProducts}
-                // Load first 4 images eagerly for better LCP
-                priority={index < 4}
                 // Onboarding IDs only for first card
                 {...(index === 0 && {
                   favoriteButtonId: 'onboarding-card-favorite',
