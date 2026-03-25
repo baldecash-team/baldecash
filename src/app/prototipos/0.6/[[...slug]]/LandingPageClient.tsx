@@ -7,14 +7,18 @@
  * Soporta preview mode via postMessage desde el admin
  */
 
-import { useEffect, useState, useMemo, Suspense, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
+import { DniModal, hasSavedDni } from '../components/hero/DniModal';
 import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
 import { NotFoundContent } from '../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
+
+// Slugs que activan el modal de DNI al cargar la landing
+const DNI_MODAL_SLUGS = ['liderman-baldecash'];
 
 // Preloader con branding BaldeCash (igual que el catálogo)
 function LoadingFallback() {
@@ -259,6 +263,23 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
     }
   }, [isLoading, isPageLoading, heroData]);
 
+  // DNI modal state - solo para slugs configurados y si no hay DNI guardado
+  const showDniFeature = DNI_MODAL_SLUGS.includes(slug);
+  const [isDniModalOpen, setIsDniModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (showDniFeature && !isLoading && !isPageLoading && heroData) {
+      // Verificar si ya tiene DNI guardado (solo en cliente)
+      if (!hasSavedDni(slug)) {
+        setIsDniModalOpen(true);
+      }
+    }
+  }, [showDniFeature, slug, isLoading, isPageLoading, heroData]);
+
+  const handleDniModalClose = useCallback(() => {
+    setIsDniModalOpen(false);
+  }, []);
+
   // Set CSS variables on :root so they're available to portals (modals, drawers)
   useEffect(() => {
     if (heroData) {
@@ -322,6 +343,15 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
         landing={slug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
       />
+
+      {/* Modal DNI - Feature personalizado para landings configuradas */}
+      {showDniFeature && (
+        <DniModal
+          landingSlug={slug}
+          isOpen={isDniModalOpen}
+          onClose={handleDniModalClose}
+        />
+      )}
     </div>
   );
 }
