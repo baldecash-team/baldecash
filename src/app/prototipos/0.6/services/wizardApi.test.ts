@@ -118,10 +118,10 @@ describe('evaluateFieldVisibility', () => {
       expect(result).toBe(true);
     });
 
-    it('returns false for hidden field without dependencies', () => {
+    it('returns true for hidden field without dependencies (visibility controlled by caller)', () => {
       const field = createField({ hidden: true, dependencies: [] });
       const result = evaluateFieldVisibility(field, {});
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
   });
 
@@ -288,14 +288,15 @@ describe('validateField', () => {
   });
 
   describe('hidden field validation', () => {
-    it('skips validation for hidden fields', () => {
+    it('validates hidden fields without dependencies (they are now visible)', () => {
       const field = createField({
         required: true,
         hidden: true,
         dependencies: [],
       });
       const result = validateField(field, '', {});
-      expect(result.isValid).toBe(true);
+      // hidden=true sin dependencias ahora es visible, así que se valida
+      expect(result.isValid).toBe(false);
     });
 
     it('skips validation when field is conditionally hidden', () => {

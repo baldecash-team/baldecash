@@ -281,9 +281,9 @@ export function evaluateFieldVisibility(
   field: WizardField,
   formValues: Record<string, string | string[]>
 ): boolean {
-  // Si no tiene dependencias, siempre visible (excepto si hidden=true)
+  // Sin dependencias = siempre visible (visibilidad la controlan las dependencias del admin)
   if (field.dependencies.length === 0) {
-    return !field.hidden;
+    return true;
   }
 
   // Evaluar cada dependencia con acción 'show' o 'hide'
@@ -337,7 +337,7 @@ export function evaluateFieldVisibility(
   }
 
   if (hasShowDeps) return anyShowMet;
-  return !field.hidden;
+  return true;  // Solo deps "hide" existen y ninguna se cumplió = visible
 }
 
 /**
