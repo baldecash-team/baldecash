@@ -12,6 +12,18 @@ import { ArrowRight, Shield, Users, Building, Clock, CreditCard, Truck, CheckCir
 import { HeroBannerProps } from '../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 
+// Optimize external image URLs (Unsplash: request webp + smaller size)
+function optimizeImageUrl(url: string): string {
+  if (url.includes('unsplash.com')) {
+    const u = new URL(url);
+    u.searchParams.set('w', '1280');
+    u.searchParams.set('q', '75');
+    u.searchParams.set('fm', 'webp');
+    return u.toString();
+  }
+  return url;
+}
+
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   headline,
   subheadline,
@@ -118,7 +130,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
     <section className="relative min-h-[600px] h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden">
       {/* Background Image */}
       <img
-        src={imageSrc}
+        src={imageSrc ? optimizeImageUrl(imageSrc) : undefined}
         alt="Estudiantes trabajando"
         className="absolute inset-0 w-full h-full object-cover"
         loading="eager"
