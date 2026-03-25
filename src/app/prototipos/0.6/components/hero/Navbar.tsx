@@ -251,8 +251,6 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
             src={logoUrl}
             alt="BaldeCash"
             className="h-12 object-contain brightness-0 invert"
-            width={171}
-            height={48}
           />
         </div>
       </nav>
@@ -309,9 +307,6 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                 src={logoUrl}
                 alt="BaldeCash"
                 className="h-8 object-contain"
-                width={114}
-                height={32}
-                fetchPriority="high"
               />
             </a>
 

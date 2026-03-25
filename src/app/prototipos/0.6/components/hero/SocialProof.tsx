@@ -160,8 +160,6 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                   alt={logo.name}
                   className="max-h-8 md:max-h-10 max-w-20 md:max-w-28 object-contain"
                   loading="lazy"
-                  width={112}
-                  height={40}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
@@ -187,8 +185,6 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                   alt={logo.name}
                   className="max-h-8 md:max-h-10 max-w-20 md:max-w-28 object-contain"
                   loading="lazy"
-                  width={112}
-                  height={40}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
