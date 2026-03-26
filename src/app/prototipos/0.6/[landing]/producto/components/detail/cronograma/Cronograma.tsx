@@ -82,11 +82,13 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     ...(externalFinancialData || {}),
   };
 
-  // Override TEA from current payment plan if available (from backend 3-level pricing system)
-  const currentPlanTea = paymentPlans.find(p => p.term === selectedTerm)?.tea
-    ?? paymentPlans[0]?.tea;
-  if (currentPlanTea != null) {
-    FINANCIAL_DATA.tea = currentPlanTea;
+  // Override TEA/TCEA from current payment plan if available (from backend 3-level pricing system)
+  const planForRates = paymentPlans.find(p => p.term === selectedTerm) ?? paymentPlans[0];
+  if (planForRates?.tea != null) {
+    FINANCIAL_DATA.tea = planForRates.tea;
+  }
+  if (planForRates?.tcea != null) {
+    FINANCIAL_DATA.tcea = planForRates.tcea;
   }
 
   const [showAll, setShowAll] = useState(false);

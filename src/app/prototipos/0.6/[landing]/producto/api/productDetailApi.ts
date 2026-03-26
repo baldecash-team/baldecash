@@ -137,6 +137,7 @@ interface ApiInitialPaymentOption {
 interface ApiPaymentPlan {
   term: number;
   tea?: number | null;
+  tcea?: number | null;
   options: ApiInitialPaymentOption[];
 }
 
@@ -271,6 +272,7 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
   return {
     term: apiPlan.term,
     tea: apiPlan.tea ?? null,
+    tcea: apiPlan.tcea ?? null,
     options: apiPlan.options.map((opt): InitialPaymentOption => ({
       initialPercent: opt.initial_percent as InitialPaymentPercentage,
       initialAmount: parseFloat(opt.initial_amount),
