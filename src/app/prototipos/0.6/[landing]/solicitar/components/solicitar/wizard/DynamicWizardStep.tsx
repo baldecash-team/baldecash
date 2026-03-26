@@ -100,18 +100,19 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
       // Prefill-dependent fields: show only when their specific DNI lookup returned no data
       const docFieldCode = prefillFieldToDocField[field.code];
       if (field.hidden && docFieldCode) {
+        // Prefill-dependent fields: show only when DNI lookup returned no data
         const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
         if (prefillStatus === 'not_found') {
-          // Person not found — show all prefill fields for manual entry
           vis[field.code] = true;
         } else if (prefillStatus === 'found') {
-          // Person found — show field only if the API returned null for this specific field
           const isEmpty = formValues[`_prefill_empty_${field.code}`] === 'true';
           vis[field.code] = isEmpty;
         } else {
-          // No prefill status yet (initial state or DNI being edited) — keep hidden
           vis[field.code] = false;
         }
+      } else if (field.hidden && field.dependencies.length === 0) {
+        // hidden=true with no dependencies = always hidden (no condition can activate it)
+        vis[field.code] = false;
       } else {
         vis[field.code] = evaluateFieldVisibility(field, formValues);
       }

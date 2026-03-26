@@ -71,6 +71,7 @@ export interface WizardField {
   options_filter?: Record<string, string> | null;
   options: WizardFieldOption[];
   validations: WizardFieldValidation[];
+  dependency_logic?: 'and' | 'or';
   dependencies: WizardFieldDependency[];
   accepted_file_types?: string | null;
   max_file_size_mb?: number | null;
@@ -286,17 +287,20 @@ export function evaluateFieldVisibility(
     return true;
   }
 
-  // Evaluar cada dependencia con acción 'show' o 'hide'
+  // dependency_logic from admin: "or" (default) = any show dep met, "and" = all show deps must be met
+  // hide deps always use OR logic (any match hides)
+  const useAnd = field.dependency_logic === 'and';
   let anyShowMet = false;
+  let allShowMet = true;
   let hasShowDeps = false;
 
   for (const dep of field.dependencies) {
     const fieldValue = formValues[dep.depends_on_field];
     let conditionMet = false;
 
-    // Normalizar a string para comparación (API puede devolver int o string)
-    const normalizedFieldValue = fieldValue != null ? String(fieldValue) : '';
-    const normalizedDepValue = dep.value != null ? String(dep.value) : '';
+    // Normalizar a string lowercase para comparación case-insensitive
+    const normalizedFieldValue = fieldValue != null ? String(fieldValue).toLowerCase() : '';
+    const normalizedDepValue = dep.value != null ? String(dep.value).toLowerCase() : '';
 
     switch (dep.operator) {
       case 'equals':
@@ -307,13 +311,13 @@ export function evaluateFieldVisibility(
         break;
       case 'in':
         if (Array.isArray(dep.value)) {
-          const normalizedArray = dep.value.map(v => String(v));
+          const normalizedArray = dep.value.map(v => String(v).toLowerCase());
           conditionMet = normalizedArray.includes(normalizedFieldValue);
         }
         break;
       case 'not_in':
         if (Array.isArray(dep.value)) {
-          const normalizedArray = dep.value.map(v => String(v));
+          const normalizedArray = dep.value.map(v => String(v).toLowerCase());
           conditionMet = !normalizedArray.includes(normalizedFieldValue);
         }
         break;
@@ -327,16 +331,16 @@ export function evaluateFieldVisibility(
         conditionMet = false;
     }
 
-    // Accumulate show dependencies as OR (any match = visible)
     if (dep.action === 'show') {
       hasShowDeps = true;
       if (conditionMet) anyShowMet = true;
+      if (!conditionMet) allShowMet = false;
     } else if (dep.action === 'hide' && conditionMet) {
       return false;
     }
   }
 
-  if (hasShowDeps) return anyShowMet;
+  if (hasShowDeps) return useAnd ? allShowMet : anyShowMet;
   return true;  // Solo deps "hide" existen y ninguna se cumplió = visible
 }
 
