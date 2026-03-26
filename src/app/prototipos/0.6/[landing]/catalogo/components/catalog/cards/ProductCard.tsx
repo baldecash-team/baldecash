@@ -51,6 +51,8 @@ interface ProductCardProps {
   compareButtonId?: string;
   detailButtonId?: string;
   addToCartButtonId?: string;
+  /** Ocultar selector de colores (ej: landing sin variantes de color) */
+  hideColors?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -72,6 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   compareButtonId,
   detailButtonId,
   addToCartButtonId,
+  hideColors = false,
 }) => {
   // Color selector state — default to current product's ID if it's in the siblings
   const currentProductColor = product.colors?.find(c => c.productId === product.id);
@@ -269,16 +272,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </h3>
 
             {/* Color Selector - Altura fija reservada */}
-            <div className="flex justify-center mb-4 min-h-[32px]">
-              {product.colors && product.colors.length > 0 ? (
-                <ColorSelector
-                  colors={product.colors}
-                  selectedColorId={selectedColorId}
-                  onColorSelect={setSelectedColorId}
-                  version={colorSelectorVersion}
-                />
-              ) : null}
-            </div>
+            {!hideColors && (
+              <div className="flex justify-center mb-4 min-h-[32px]">
+                {product.colors && product.colors.length > 0 ? (
+                  <ColorSelector
+                    colors={product.colors}
+                    selectedColorId={selectedColorId}
+                    onColorSelect={setSelectedColorId}
+                    version={colorSelectorVersion}
+                  />
+                ) : null}
+              </div>
+            )}
 
             {/* Specs técnicas con iconos - altura fija (siempre 4 specs) */}
             <div className="space-y-2 min-h-[100px]">

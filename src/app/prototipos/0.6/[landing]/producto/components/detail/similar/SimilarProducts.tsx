@@ -187,11 +187,11 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
 
   // Calculate max differentiators count (excluding brand, capped at 3) for consistent card height
   const MAX_DIFF_TAGS = 3;
-  const maxDiffCount = Math.min(MAX_DIFF_TAGS, Math.max(1, ...products.map(p =>
+  const maxDiffCount = Math.min(MAX_DIFF_TAGS, Math.max(0, ...products.map(p =>
     p.differentiators.filter(d => d.toLowerCase() !== p.brand.toLowerCase()).length
   )));
   // Each tag ~26px tall + 6px gap between them
-  const diffMinHeight = maxDiffCount * 26 + Math.max(0, maxDiffCount - 1) * 6;
+  const diffMinHeight = maxDiffCount > 0 ? maxDiffCount * 26 + Math.max(0, maxDiffCount - 1) * 6 : 0;
 
   return (
     <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
@@ -341,19 +341,21 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                     </h3>
 
                     {/* Differentiator Tags - Vertical list, height based on max across all cards */}
-                    <div className="flex flex-col items-center gap-1.5 mb-3" style={{ minHeight: diffMinHeight }}>
-                      {product.differentiators
-                        .filter((diff) => diff.toLowerCase() !== product.brand.toLowerCase())
-                        .slice(0, MAX_DIFF_TAGS)
-                        .map((diff, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2.5 py-1 bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)] text-xs font-medium rounded-full"
-                        >
-                          {diff}
-                        </span>
-                      ))}
-                    </div>
+                    {maxDiffCount > 0 && (
+                      <div className="flex flex-col items-center gap-1.5 mb-3" style={{ minHeight: diffMinHeight }}>
+                        {product.differentiators
+                          .filter((diff) => diff.toLowerCase() !== product.brand.toLowerCase())
+                          .slice(0, MAX_DIFF_TAGS)
+                          .map((diff, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2.5 py-1 bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)] text-xs font-medium rounded-full"
+                          >
+                            {diff}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Giant Price - Estilo catálogo */}
                     <div className={`rounded-2xl py-4 px-6 mb-3 ${
