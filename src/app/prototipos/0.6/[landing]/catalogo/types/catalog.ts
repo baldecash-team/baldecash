@@ -125,7 +125,7 @@ export function calculateQuotaWithInitial(
 // Product Tags
 // ============================================
 
-export type ProductTagType = 'mas_vendido' | 'recomendado' | 'cuota_baja' | 'oferta';
+export type ProductTagType = 'nuevo' | 'premium' | 'destacado' | 'economico' | 'mas_vendido' | 'recomendado' | 'cuota_baja' | 'oferta';
 
 export interface ProductTagConfig {
   type: ProductTagType;
@@ -135,6 +135,30 @@ export interface ProductTagConfig {
 }
 
 export const productTagsConfig: Record<ProductTagType, ProductTagConfig> = {
+  nuevo: {
+    type: 'nuevo',
+    label: 'Nuevo',
+    color: '#ffffff',
+    bgColor: '#22c55e', // Green-500
+  },
+  premium: {
+    type: 'premium',
+    label: 'Premium',
+    color: '#ffffff',
+    bgColor: '#d97706', // Amber-600
+  },
+  destacado: {
+    type: 'destacado',
+    label: 'Destacado',
+    color: '#ffffff',
+    bgColor: '#6366f1', // Indigo-500
+  },
+  economico: {
+    type: 'economico',
+    label: 'Económico',
+    color: '#ffffff',
+    bgColor: '#10b981', // Emerald-500
+  },
   mas_vendido: {
     type: 'mas_vendido',
     label: 'Más vendido',

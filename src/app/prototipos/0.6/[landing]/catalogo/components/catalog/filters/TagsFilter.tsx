@@ -13,17 +13,14 @@ interface TagsFilterProps {
 }
 
 const tagColors: Record<string, { bg: string; text: string; border: string }> = {
-  oferta: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-300' },
+  nuevo: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-300' },
+  premium: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
+  destacado: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-300' },
+  economico: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300' },
   mas_vendido: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
   recomendado: { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-300' },
   cuota_baja: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-300' },
-  // Additional labels from API
-  nuevo: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300' },
-  destacado: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-300' },
-  promocion: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-300' },
-  exclusivo: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-300' },
-  limitado: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-300' },
-  popular: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-300' },
+  oferta: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-300' },
 };
 
 // Default colors for unknown tags

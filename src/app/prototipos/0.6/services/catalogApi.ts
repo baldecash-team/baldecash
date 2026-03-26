@@ -485,13 +485,14 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   const quotaBiweekly = Math.floor(quotaMonthly / 2);
   const quotaWeekly = Math.floor(quotaMonthly / 4);
 
-  // Determine tags based on API data + labels from BD
+  // Determine tags from BD labels + automatic derivations
   const labels = apiProduct.labels || [];
-  const tags: ProductTagType[] = [];
-  if (apiProduct.is_featured) tags.push('recomendado');
-  if (pricing.discount_percent > 0) tags.push('oferta');
-  if (labels.includes('mas_vendido') || apiProduct.badge_text?.toLowerCase().includes('vendido')) tags.push('mas_vendido');
-  if (labels.includes('cuota_baja')) tags.push('cuota_baja');
+  const validTagTypes: Set<string> = new Set(['nuevo', 'premium', 'destacado', 'economico', 'mas_vendido', 'recomendado', 'cuota_baja', 'oferta']);
+  const tags: ProductTagType[] = labels.filter(l => validTagTypes.has(l)) as ProductTagType[];
+  // Automatic: is_featured → recomendado (if not already from labels)
+  if (apiProduct.is_featured && !tags.includes('recomendado')) tags.push('recomendado');
+  // Automatic: discount → oferta (if not already from labels)
+  if (pricing.discount_percent > 0 && !tags.includes('oferta')) tags.push('oferta');
 
   // Use real EAV specs when available, fallback to parsing from name
   const specs = apiProduct.specs && Object.keys(apiProduct.specs).length > 0
@@ -926,11 +927,10 @@ export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct
   const quotaBiweekly = Math.floor(quotaMonthly / 2);
   const quotaWeekly = Math.floor(quotaMonthly / 4);
 
-  // Determine tags from labels and features
-  const tags: ProductTagType[] = [];
-  if (apiProduct.is_featured) tags.push('recomendado');
-  if (apiProduct.labels.includes('destacado')) tags.push('mas_vendido');
-  if (quotaMonthly > 0 && quotaMonthly < 150) tags.push('cuota_baja');
+  // Determine tags from BD labels + automatic derivations
+  const validTagTypes: Set<string> = new Set(['nuevo', 'premium', 'destacado', 'economico', 'mas_vendido', 'recomendado', 'cuota_baja', 'oferta']);
+  const tags: ProductTagType[] = apiProduct.labels.filter(l => validTagTypes.has(l)) as ProductTagType[];
+  if (apiProduct.is_featured && !tags.includes('recomendado')) tags.push('recomendado');
 
   // Map real specs from EAV to ProductSpecs structure
   const productSpecs = createSpecsFromEav(specs, apiProduct.type || 'laptop');
