@@ -108,6 +108,7 @@ interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
   logoUrl?: string;
   customerPortalUrl?: string;
+  portalButtonText?: string;
   navbarItems?: NavbarItemData[];
   megamenuItems?: MegaMenuItemData[];
   /** Landing slug for dynamic URL building (e.g., 'home', 'laptops-estudiantes') */
@@ -143,7 +144,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp }) => {
   // Auto-detect preview banner offset based on whether THIS landing is being previewed
   const { isPreviewingLanding } = usePreview();
   const isThisLandingPreviewed = isPreviewingLanding(landing);
@@ -426,7 +427,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   }}
                   startContent={<User className="w-4 h-4" />}
                 >
-                  {normalizedLanding === 'liderman-baldecash' ? 'Zona Clientes' : 'Zona Estudiantes'}
+                  {portalButtonText || 'Zona Estudiantes'}
                 </Button>
               </div>
             )}
@@ -618,7 +619,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     }}
                     startContent={<User className="w-4 h-4" />}
                   >
-                    {normalizedLanding === 'liderman-baldecash' ? 'Zona Clientes' : 'Zona Estudiantes'}
+                    {portalButtonText || 'Zona Estudiantes'}
                   </Button>
                 </div>
               </div>

@@ -49,6 +49,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         promoBannerData={navbarProps.promoBannerData}
         logoUrl={navbarProps.logoUrl}
         customerPortalUrl={navbarProps.customerPortalUrl}
+        portalButtonText={navbarProps.portalButtonText}
         navbarItems={navbarProps.navbarItems}
         megamenuItems={navbarProps.megamenuItems}
         activeSections={navbarProps.activeSections}

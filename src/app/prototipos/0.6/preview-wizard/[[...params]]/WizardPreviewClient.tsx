@@ -98,6 +98,7 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
     promoBannerData?: PromoBannerData | null;
     logoUrl?: string;
     customerPortalUrl?: string;
+    portalButtonText?: string;
     navbarItems?: { label: string; href: string; section: string | null }[];
     activeSections?: string[];
   } | null>(null);
@@ -142,9 +143,11 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
           // Find navbar component
           const navbarComponent = components.find(c => c.component_code === 'navbar');
 
+          const navbarConfig = navbarComponent?.content_config as Record<string, unknown> | undefined;
           setNavbarProps({
             logoUrl: landing.logo_url,
-            navbarItems: navbarComponent?.content_config?.items as { label: string; href: string; section: string | null }[] || [],
+            portalButtonText: (navbarConfig?.portal_button_text as string) || undefined,
+            navbarItems: navbarConfig?.items as { label: string; href: string; section: string | null }[] || [],
             activeSections: ['hero'],
           });
 

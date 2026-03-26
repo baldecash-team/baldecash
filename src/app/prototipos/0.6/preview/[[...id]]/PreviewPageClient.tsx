@@ -42,6 +42,7 @@ interface HeroData {
   hasCta: boolean;
   logoUrl?: string;
   customerPortalUrl?: string;
+  portalButtonText?: string;
   footerData: FooterData | null;
   primaryColor?: string;
   secondaryColor?: string;
@@ -328,6 +329,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         hasCta={heroData.hasCta}
         logoUrl={heroData.logoUrl}
         customerPortalUrl={heroData.customerPortalUrl}
+        portalButtonText={heroData.portalButtonText}
         footerData={mergedFooterData}
         landing={landingSlug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}

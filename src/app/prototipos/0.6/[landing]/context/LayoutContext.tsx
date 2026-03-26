@@ -19,6 +19,7 @@ interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
   logoUrl?: string;
   customerPortalUrl?: string;
+  portalButtonText?: string;
   navbarItems?: { label: string; href: string; section: string | null; has_megamenu?: boolean }[];
   megamenuItems?: { label: string; href: string; icon: string; description: string }[];
   activeSections?: string[];
@@ -138,6 +139,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       promoBannerData,
       logoUrl: layoutData.company?.logo_url,
       customerPortalUrl: layoutData.company?.customer_portal_url,
+      portalButtonText: (navbarConfig?.portal_button_text as string) || undefined,
       navbarItems: navbarItems || [],
       megamenuItems: megamenuItems || [],
       activeSections: ['convenios', 'como-funciona', 'faq', 'testimonios'],

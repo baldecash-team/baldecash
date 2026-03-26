@@ -60,6 +60,7 @@ interface HeroSectionProps {
   hasCta?: boolean;
   logoUrl?: string;
   customerPortalUrl?: string;
+  portalButtonText?: string;
   footerData?: FooterData | null;
   /** Landing slug for dynamic URL building */
   landing?: string;
@@ -84,6 +85,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   hasCta = true,
   logoUrl,
   customerPortalUrl,
+  portalButtonText,
   footerData,
   landing = 'home',
   previewBannerOffset = 0,
@@ -182,7 +184,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className="min-h-screen flex flex-col">
       {/* Navbar */}
       <div id="navbar">
-        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} />
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} />
       </div>
 
       {/* Main Content */}

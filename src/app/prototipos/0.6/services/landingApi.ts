@@ -343,6 +343,7 @@ export function transformLandingData(data: LandingHeroResponse): {
   hasCta: boolean;
   logoUrl?: string;
   customerPortalUrl?: string;
+  portalButtonText?: string;
   footerData: FooterData | null;
   primaryColor: string;
   secondaryColor: string;
@@ -735,6 +736,7 @@ export function transformLandingData(data: LandingHeroResponse): {
     hasCta,
     logoUrl: data.landing.logo_url || undefined,
     customerPortalUrl: data.company?.customer_portal_url || undefined,
+    portalButtonText: (navbarConfig.portal_button_text as string) || undefined,
     footerData,
     primaryColor: data.landing.primary_color || '#4654CD',
     secondaryColor: data.landing.secondary_color || '#03DBD0',
@@ -762,6 +764,7 @@ export async function fetchHeroData(slug: string, preview: boolean = false, prev
   hasCta: boolean;
   logoUrl?: string;
   customerPortalUrl?: string;
+  portalButtonText?: string;
   footerData: FooterData | null;
   primaryColor: string;
   secondaryColor: string;
