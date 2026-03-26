@@ -248,8 +248,8 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                 <div className="space-y-1">
                   {suggestions.map((suggestion) => {
                     const term = (suggestion.maxTermMonths || 24) as TermMonths;
-                    const calc = suggestion.price > 0
-                      ? calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL)
+                    const quota = suggestion.price > 0
+                      ? (suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL).quota)
                       : null;
                     return (
                       <button
@@ -281,19 +281,14 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                         </div>
 
                         {/* Monthly Quota with term & initial */}
-                        {calc && (
+                        {quota != null && (
                           <div className="text-right flex-shrink-0">
                             <p className="text-sm font-semibold text-[var(--color-primary)]">
-                              S/{formatMoney(calc.quota)}/mes
+                              S/{formatMoney(quota)}/mes
                             </p>
                             <p className="text-[10px] text-neutral-500">
                               x {term} meses
                             </p>
-                            {calc.initialAmount > 0 && (
-                              <p className="text-[10px] text-neutral-500">
-                                + S/{formatMoneyNoDecimals(Math.floor(calc.initialAmount))} inicial
-                              </p>
-                            )}
                           </div>
                         )}
                       </button>

@@ -76,11 +76,18 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const selectedTerm = isSynced ? externalSelectedTerm : internalSelectedTerm;
   const selectedInitialPercent = externalInitialPercent ?? internalInitialPercent;
 
-  // Combinar datos financieros externos con valores por defecto
+  // Combinar datos financieros: prioridad API plan tea > external > default
   const FINANCIAL_DATA = {
     ...DEFAULT_FINANCIAL_DATA,
     ...(externalFinancialData || {}),
   };
+
+  // Override TEA from current payment plan if available (from backend 3-level pricing system)
+  const currentPlanTea = paymentPlans.find(p => p.term === selectedTerm)?.tea
+    ?? paymentPlans[0]?.tea;
+  if (currentPlanTea != null) {
+    FINANCIAL_DATA.tea = currentPlanTea;
+  }
 
   const [showAll, setShowAll] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);

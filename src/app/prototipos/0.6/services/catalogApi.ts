@@ -1279,6 +1279,7 @@ export interface ProductSuggestion {
   price: number;
   image: string | null;
   maxTermMonths: number;
+  quotaMonthly: number | null;
 }
 
 /**
@@ -1326,7 +1327,7 @@ export async function searchProductSuggestions(
       display_name?: string;
       slug: string;
       brand?: { name: string } | string | null;
-      pricing?: { final_price?: number; list_price?: number; available_terms?: number[] } | null;
+      pricing?: { final_price?: number; list_price?: number; available_terms?: number[]; hook?: { monthly_price?: number } } | null;
       image_url?: string | null;
       colors?: { image_url?: string }[] | null;
     }) => ({
@@ -1340,6 +1341,7 @@ export async function searchProductSuggestions(
       maxTermMonths: item.pricing?.available_terms?.length
         ? Math.max(...item.pricing.available_terms)
         : 24,
+      quotaMonthly: item.pricing?.hook?.monthly_price ?? null,
     }));
   } catch (error) {
     console.error('[Search API] Error searching products:', error);

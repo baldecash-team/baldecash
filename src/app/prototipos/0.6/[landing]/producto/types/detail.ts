@@ -167,6 +167,7 @@ export interface InitialPaymentOption {
 /** Plan de pago con opciones precalculadas para cada % de inicial */
 export interface PaymentPlan {
   term: number;
+  tea?: number | null;  // TEA applied for this term (from backend 3-level pricing system)
   options: InitialPaymentOption[];
 }
 

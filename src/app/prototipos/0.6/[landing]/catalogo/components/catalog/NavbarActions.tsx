@@ -226,20 +226,15 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                   {/* Monthly Quota with term & initial */}
                   {suggestion.price > 0 && (() => {
                     const term = (suggestion.maxTermMonths || 24) as TermMonths;
-                    const calc = calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL);
+                    const quota = suggestion.quotaMonthly ?? calculateQuotaWithInitial(suggestion.price, term, SELECTED_INITIAL).quota;
                     return (
                       <div className="text-right flex-shrink-0">
                         <p className="text-sm font-semibold text-[var(--color-primary)]">
-                          S/{formatMoney(calc.quota)}/mes
+                          S/{formatMoney(quota)}/mes
                         </p>
                         <p className="text-[10px] text-neutral-500">
                           x {term} meses
                         </p>
-                        {calc.initialAmount > 0 && (
-                          <p className="text-[10px] text-neutral-500">
-                            + S/{formatMoneyNoDecimals(Math.floor(calc.initialAmount))} inicial
-                          </p>
-                        )}
                       </div>
                     );
                   })()}
