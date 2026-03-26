@@ -8,6 +8,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button, Chip } from '@nextui-org/react';
+import { PreviewBanner } from '../PreviewBanner';
+import { usePreview } from '../../context/PreviewContext';
 import {
   Menu,
   X,
@@ -141,7 +143,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset = 0 }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp }) => {
+  // Auto-detect preview banner offset based on whether THIS landing is being previewed
+  const { isPreviewingLanding } = usePreview();
+  const isThisLandingPreviewed = isPreviewingLanding(landing);
+  const previewBannerOffset = previewBannerOffsetProp ?? (isThisLandingPreviewed ? 24 : 0);
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = `/prototipos/0.6/${normalizedLanding}`;
@@ -262,6 +268,9 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
 
   return (
     <>
+      {/* Preview Banner - rendered with Navbar so they always appear together */}
+      <PreviewBanner landingSlug={landing} showCloseButton={true} />
+
       {/* Promo Banner */}
       {showPromo && !hidePromoBanner && hasPromoBannerContent && (
         <div

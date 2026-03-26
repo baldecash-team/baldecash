@@ -28,6 +28,7 @@ import { useProduct } from '../context/ProductContext';
 
 // Hooks
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useToast } from '@/app/prototipos/_shared';
 
@@ -107,8 +108,12 @@ function StepContent() {
   // Event tracker
   const tracker = useEventTrackerOptional();
 
+  // Preview mode
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing });
+  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
   const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
@@ -719,7 +724,7 @@ function StepContent() {
     return (
       <>
         {pageContent}
-        <Footer data={footerData} />
+        <Footer data={footerData} landing={landing} />
       </>
     );
   }
@@ -767,7 +772,7 @@ function StepContent() {
   return (
     <>
       {pageContent}
-      <Footer data={footerData} />
+      <Footer data={footerData} landing={landing} />
     </>
   );
 }

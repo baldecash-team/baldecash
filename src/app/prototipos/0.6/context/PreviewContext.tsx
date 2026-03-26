@@ -26,6 +26,8 @@ interface PreviewState {
 interface PreviewContextValue {
   /** Whether preview mode is active */
   isPreviewMode: boolean;
+  /** Whether sessionStorage has been read */
+  isHydrated: boolean;
   /** Landing ID being previewed */
   landingId: number | null;
   /** Preview key for API authentication */
@@ -106,13 +108,14 @@ export function PreviewProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo((): PreviewContextValue => ({
     isPreviewMode: !!previewState,
+    isHydrated,
     landingId: previewState?.landingId ?? null,
     previewKey: previewState?.previewKey ?? null,
     slug: previewState?.slug ?? null,
     setPreviewMode,
     clearPreviewMode,
     isPreviewingLanding,
-  }), [previewState, setPreviewMode, clearPreviewMode, isPreviewingLanding]);
+  }), [previewState, isHydrated, setPreviewMode, clearPreviewMode, isPreviewingLanding]);
 
   return (
     <PreviewContext.Provider value={value}>

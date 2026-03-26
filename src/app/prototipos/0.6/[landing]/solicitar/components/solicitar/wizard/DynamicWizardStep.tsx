@@ -110,8 +110,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         } else {
           vis[field.code] = false;
         }
-      } else if (field.hidden && field.dependencies.length === 0) {
-        // hidden=true with no dependencies = always hidden (no condition can activate it)
+      } else if (field.hidden && field.dependency_groups.length === 0) {
+        // hidden=true with no dependency groups = always hidden (no condition can activate it)
         vis[field.code] = false;
       } else {
         vis[field.code] = evaluateFieldVisibility(field, formValues);

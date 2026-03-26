@@ -10,6 +10,7 @@ import {
   type SolicitarSection,
   type SolicitarSectionType,
 } from '../services/landingApi';
+import { usePreview } from '../context/PreviewContext';
 
 interface UseSolicitarFlowOptions {
   /**
@@ -93,11 +94,15 @@ export function useSolicitarFlow({
   slug,
   previewKey,
 }: UseSolicitarFlowOptions): UseSolicitarFlowResult {
+  const { isHydrated } = usePreview();
   const [config, setConfig] = useState<SolicitarFlowConfig>(DEFAULT_SOLICITAR_FLOW);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Wait for preview context to hydrate before fetching
+    if (!isHydrated) return;
+
     let cancelled = false;
 
     async function loadConfig() {
@@ -126,7 +131,7 @@ export function useSolicitarFlow({
     return () => {
       cancelled = true;
     };
-  }, [slug, previewKey]);
+  }, [slug, previewKey, isHydrated]);
 
   const enabledSections = useMemo(() => getEnabledSections(config), [config]);
 

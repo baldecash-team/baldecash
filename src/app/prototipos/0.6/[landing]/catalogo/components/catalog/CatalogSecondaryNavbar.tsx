@@ -6,8 +6,10 @@
  */
 
 import React from 'react';
+import { useParams } from 'next/navigation';
 import { CatalogProduct, CartItem, WishlistItem } from '../../types/catalog';
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import {
   NavbarSearch,
   NavbarWishlist,
@@ -56,6 +58,9 @@ interface CatalogSecondaryNavbarProps {
 
   // Config from API
   config?: CatalogSecondaryNavbarData | null;
+
+  // Preview banner offset (pixels to shift down when preview banner is visible)
+  previewBannerOffset?: number;
 }
 
 export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
@@ -82,12 +87,19 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   unavailableCartIds = [],
   unavailableWishlistIds = [],
   config,
+  previewBannerOffset: previewBannerOffsetProp,
 }) => {
-  // Position below navbar: 64px navbar + promo banner height (dynamic)
+  // Auto-detect preview banner offset based on whether THIS landing is being previewed
+  const params = useParams();
+  const currentLanding = (params.landing as string) || 'home';
+  const { isPreviewingLanding } = usePreview();
+  const previewBannerOffset = previewBannerOffsetProp ?? (isPreviewingLanding(currentLanding) ? 24 : 0);
+
+  // Position below navbar: 64px navbar + promo banner height (dynamic) + preview banner offset
   // Uses CSS variable set by Navbar component
   const topPosition = hidePromoBanner
-    ? '64px'
-    : 'calc(64px + var(--promo-banner-height, 40px))';
+    ? `calc(64px + ${previewBannerOffset}px)`
+    : `calc(64px + var(--promo-banner-height, 40px) + ${previewBannerOffset}px)`;
 
   return (
     <div

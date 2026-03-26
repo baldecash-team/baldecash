@@ -11,7 +11,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { getLandingLayout, getLandingLayoutById, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
+import { getLandingLayout, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData } from '@/app/prototipos/0.6/types/hero';
 
@@ -61,7 +61,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const landing = (params.landing as string) || 'home';
 
   // Check if we're in preview mode for this landing
+  // Wait for preview context to hydrate from sessionStorage before fetching
   const preview = usePreview();
+  const isPreviewHydrated = preview.isHydrated;
   const isPreviewMode = preview.isPreviewingLanding(landing);
   const previewLandingId = isPreviewMode ? preview.landingId : null;
   const previewKey = isPreviewMode ? preview.previewKey : null;
@@ -70,25 +72,17 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Fetch layout data once on mount
+  // Fetch layout data once on mount (wait for preview context to hydrate first)
   useEffect(() => {
+    // Don't fetch until we know if we're in preview mode
+    if (!isPreviewHydrated) return;
+
     let isMounted = true;
 
     const fetchLayoutData = async () => {
       try {
-        let data: LandingLayoutResponse | null;
-
-        if (isPreviewMode && previewLandingId && previewKey) {
-          // Use preview API with ID and preview_key
-          data = await getLandingLayoutById(previewLandingId, previewKey);
-          // Fallback to slug-based API if preview endpoint returns 404
-          if (!data) {
-            data = await getLandingLayout(landing);
-          }
-        } else {
-          // Use normal slug-based API
-          data = await getLandingLayout(landing);
-        }
+        // Use slug-based API, with preview_key if in preview mode
+        const data = await getLandingLayout(landing, previewKey);
 
         if (isMounted) {
           setLayoutData(data);
@@ -114,7 +108,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [landing, isPreviewMode, previewLandingId, previewKey]);
+  }, [landing, isPreviewHydrated, isPreviewMode, previewKey]);
 
   // Transform layout data for Navbar props
   const navbarProps = useMemo((): NavbarProps | null => {

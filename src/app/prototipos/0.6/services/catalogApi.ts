@@ -232,10 +232,16 @@ export async function getCatalogProducts(
     // Offset-based pagination (preferred for "load more")
     limit?: number;
     offset?: number;
+    // Preview support
+    previewKey?: string | null;
   } = {}
 ): Promise<ApiCatalogResponse | null> {
   try {
     const params = new URLSearchParams();
+
+    if (options.previewKey) {
+      params.set('preview_key', options.previewKey);
+    }
 
     if (options.filters) {
       // Text search (API requires at least 2 characters)
@@ -278,7 +284,7 @@ export async function getCatalogProducts(
     const url = `${API_BASE_URL}/public/landing/${landingSlug}/products${queryString ? `?${queryString}` : ''}`;
 
     const response = await fetch(url, {
-      next: { revalidate: 60 }, // Cache for 60 seconds
+      ...(options.previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
@@ -1179,6 +1185,7 @@ export async function fetchCatalogData(
     page_size?: number;
     limit?: number;
     offset?: number;
+    previewKey?: string | null;
   } = {}
 ): Promise<{
   products: CatalogProduct[];
@@ -1227,7 +1234,8 @@ export async function fetchDirectCatalogData(): Promise<{
  */
 export async function fetchProductsByIds(
   landingSlug: string,
-  productIds: string[]
+  productIds: string[],
+  previewKey?: string | null
 ): Promise<CatalogProduct[]> {
   if (!productIds || productIds.length === 0) {
     return [];
@@ -1244,6 +1252,7 @@ export async function fetchProductsByIds(
     const response = await getCatalogProducts(landingSlug, {
       filters: { product_ids: numericIds },
       limit: numericIds.length,
+      previewKey,
     });
 
     if (!response || !response.items) {
@@ -1280,7 +1289,8 @@ export interface ProductSuggestion {
 export async function searchProductSuggestions(
   landingSlug: string,
   query: string,
-  limit: number = 6
+  limit: number = 6,
+  previewKey?: string | null
 ): Promise<ProductSuggestion[]> {
   if (!query || query.length < 2) {
     return [];
@@ -1291,6 +1301,9 @@ export async function searchProductSuggestions(
       q: query,
       limit: String(limit),
     });
+    if (previewKey) {
+      params.set('preview_key', previewKey);
+    }
 
     // Use landing-specific endpoint to only search products for this landing
     const url = `${API_BASE_URL}/public/landing/${landingSlug}/products?${params.toString()}`;

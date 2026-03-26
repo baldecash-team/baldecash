@@ -19,7 +19,7 @@ import {
   WizardFieldOption,
   WizardConfig,
   WizardStep,
-  WizardFieldDependency,
+  DependencyGroup,
 } from './wizardApi';
 
 // ============================================================================
@@ -52,22 +52,10 @@ function createField(overrides: Partial<WizardField> = {}): WizardField {
     options_filter: null,
     options: [],
     validations: [],
-    dependencies: [],
+    dependency_groups: [],
     accepted_file_types: null,
     max_file_size_mb: null,
     max_files: 1,
-    ...overrides,
-  };
-}
-
-function createDependency(
-  overrides: Partial<WizardFieldDependency> = {}
-): WizardFieldDependency {
-  return {
-    depends_on_field: 'other_field',
-    operator: 'equals',
-    value: 'some_value',
-    action: 'show',
     ...overrides,
   };
 }
@@ -111,15 +99,15 @@ function createConfig(overrides: Partial<WizardConfig> = {}): WizardConfig {
 // ============================================================================
 
 describe('evaluateFieldVisibility', () => {
-  describe('fields without dependencies', () => {
-    it('returns true for visible field without dependencies', () => {
-      const field = createField({ hidden: false, dependencies: [] });
+  describe('fields without dependency groups', () => {
+    it('returns true for field with empty dependency_groups', () => {
+      const field = createField({ hidden: false, dependency_groups: [] });
       const result = evaluateFieldVisibility(field, {});
       expect(result).toBe(true);
     });
 
-    it('returns true for hidden field without dependencies (visibility controlled by caller)', () => {
-      const field = createField({ hidden: true, dependencies: [] });
+    it('returns true for hidden field without groups (visibility controlled by caller)', () => {
+      const field = createField({ hidden: true, dependency_groups: [] });
       const result = evaluateFieldVisibility(field, {});
       expect(result).toBe(true);
     });
@@ -128,14 +116,10 @@ describe('evaluateFieldVisibility', () => {
   describe('equals operator', () => {
     it('shows field when condition is met (equals)', () => {
       const field = createField({
-        dependencies: [
-          createDependency({
-            depends_on_field: 'document_type',
-            operator: 'equals',
-            value: 'dni',
-            action: 'show',
-          }),
-        ],
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [{ depends_on_field: 'document_type', operator: 'equals', value: 'dni' }],
+        }],
       });
 
       expect(evaluateFieldVisibility(field, { document_type: 'dni' })).toBe(true);
@@ -144,14 +128,10 @@ describe('evaluateFieldVisibility', () => {
 
     it('hides field when condition is met (equals + hide)', () => {
       const field = createField({
-        dependencies: [
-          createDependency({
-            depends_on_field: 'is_foreigner',
-            operator: 'equals',
-            value: 'yes',
-            action: 'hide',
-          }),
-        ],
+        dependency_groups: [{
+          action: 'hide', logic: 'and',
+          conditions: [{ depends_on_field: 'is_foreigner', operator: 'equals', value: 'yes' }],
+        }],
       });
 
       expect(evaluateFieldVisibility(field, { is_foreigner: 'yes' })).toBe(false);
@@ -162,14 +142,10 @@ describe('evaluateFieldVisibility', () => {
   describe('not_equals operator', () => {
     it('shows field when value does NOT match', () => {
       const field = createField({
-        dependencies: [
-          createDependency({
-            depends_on_field: 'employment_type',
-            operator: 'not_equals',
-            value: 'unemployed',
-            action: 'show',
-          }),
-        ],
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [{ depends_on_field: 'employment_type', operator: 'not_equals', value: 'unemployed' }],
+        }],
       });
 
       expect(evaluateFieldVisibility(field, { employment_type: 'employed' })).toBe(true);
@@ -180,14 +156,10 @@ describe('evaluateFieldVisibility', () => {
   describe('in operator', () => {
     it('shows field when value is in array', () => {
       const field = createField({
-        dependencies: [
-          createDependency({
-            depends_on_field: 'income_range',
-            operator: 'in',
-            value: ['1000-2000', '2000-3000', '3000-5000'],
-            action: 'show',
-          }),
-        ],
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [{ depends_on_field: 'income_range', operator: 'in', value: ['1000-2000', '2000-3000', '3000-5000'] }],
+        }],
       });
 
       expect(evaluateFieldVisibility(field, { income_range: '2000-3000' })).toBe(true);
@@ -198,14 +170,10 @@ describe('evaluateFieldVisibility', () => {
   describe('not_in operator', () => {
     it('shows field when value is NOT in array', () => {
       const field = createField({
-        dependencies: [
-          createDependency({
-            depends_on_field: 'region',
-            operator: 'not_in',
-            value: ['excluded_region_1', 'excluded_region_2'],
-            action: 'show',
-          }),
-        ],
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [{ depends_on_field: 'region', operator: 'not_in', value: ['excluded_region_1', 'excluded_region_2'] }],
+        }],
       });
 
       expect(evaluateFieldVisibility(field, { region: 'lima' })).toBe(true);
@@ -216,14 +184,10 @@ describe('evaluateFieldVisibility', () => {
   describe('is_empty operator', () => {
     it('shows field when dependent field is empty', () => {
       const field = createField({
-        dependencies: [
-          createDependency({
-            depends_on_field: 'referral_code',
-            operator: 'is_empty',
-            value: null,
-            action: 'show',
-          }),
-        ],
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [{ depends_on_field: 'referral_code', operator: 'is_empty', value: null }],
+        }],
       });
 
       expect(evaluateFieldVisibility(field, { referral_code: '' })).toBe(true);
@@ -235,19 +199,155 @@ describe('evaluateFieldVisibility', () => {
   describe('is_not_empty operator', () => {
     it('shows field when dependent field has value', () => {
       const field = createField({
-        dependencies: [
-          createDependency({
-            depends_on_field: 'company_name',
-            operator: 'is_not_empty',
-            value: null,
-            action: 'show',
-          }),
-        ],
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [{ depends_on_field: 'company_name', operator: 'is_not_empty', value: null }],
+        }],
       });
 
       expect(evaluateFieldVisibility(field, { company_name: 'ACME Corp' })).toBe(true);
       expect(evaluateFieldVisibility(field, { company_name: '' })).toBe(false);
       expect(evaluateFieldVisibility(field, {})).toBe(false);
+    });
+  });
+
+  // ============================================================================
+  // Group logic (AND/OR within groups, OR between groups)
+  // ============================================================================
+
+  describe('group logic', () => {
+    it('returns true when no groups', () => {
+      const field = createField({ dependency_groups: [] });
+      expect(evaluateFieldVisibility(field, {})).toBe(true);
+    });
+
+    it('single group AND: all conditions must match', () => {
+      const field = createField({
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [
+            { depends_on_field: 'a', operator: 'equals', value: '1' },
+            { depends_on_field: 'b', operator: 'equals', value: '2' },
+          ]
+        }]
+      });
+      expect(evaluateFieldVisibility(field, { a: '1', b: '2' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { a: '1', b: '9' })).toBe(false);
+      expect(evaluateFieldVisibility(field, { a: '9', b: '2' })).toBe(false);
+    });
+
+    it('single group OR: any condition matches', () => {
+      const field = createField({
+        dependency_groups: [{
+          action: 'show', logic: 'or',
+          conditions: [
+            { depends_on_field: 'a', operator: 'equals', value: '1' },
+            { depends_on_field: 'b', operator: 'equals', value: '2' },
+          ]
+        }]
+      });
+      expect(evaluateFieldVisibility(field, { a: '1', b: '9' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { a: '9', b: '2' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { a: '9', b: '9' })).toBe(false);
+    });
+
+    it('multiple show groups: OR between groups (any group met = visible)', () => {
+      const field = createField({
+        dependency_groups: [
+          { action: 'show', logic: 'and', conditions: [
+            { depends_on_field: 'source', operator: 'equals', value: 'empleado' },
+            { depends_on_field: 'proof', operator: 'equals', value: 'recibo' },
+          ]},
+          { action: 'show', logic: 'and', conditions: [
+            { depends_on_field: 'source', operator: 'equals', value: 'negocio' },
+            { depends_on_field: 'proof', operator: 'equals', value: 'ninguno' },
+          ]},
+        ]
+      });
+      expect(evaluateFieldVisibility(field, { source: 'empleado', proof: 'recibo' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { source: 'negocio', proof: 'ninguno' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { source: 'empleado', proof: 'ninguno' })).toBe(false);
+      expect(evaluateFieldVisibility(field, { source: 'negocio', proof: 'recibo' })).toBe(false);
+    });
+
+    it('hide group takes priority over show groups', () => {
+      const field = createField({
+        dependency_groups: [
+          { action: 'show', logic: 'and', conditions: [
+            { depends_on_field: 'a', operator: 'equals', value: '1' },
+          ]},
+          { action: 'hide', logic: 'and', conditions: [
+            { depends_on_field: 'b', operator: 'equals', value: 'blocked' },
+          ]},
+        ]
+      });
+      expect(evaluateFieldVisibility(field, { a: '1', b: 'ok' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { a: '1', b: 'blocked' })).toBe(false);
+    });
+
+    it('case-insensitive comparison within groups', () => {
+      const field = createField({
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [
+            { depends_on_field: 'role', operator: 'equals', value: 'Developer' },
+          ]
+        }]
+      });
+      expect(evaluateFieldVisibility(field, { role: 'developer' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { role: 'DEVELOPER' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { role: 'Designer' })).toBe(false);
+    });
+
+    it('in/not_in operators work within groups', () => {
+      const field = createField({
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [
+            { depends_on_field: 'country', operator: 'in', value: ['pe', 'co', 'mx'] },
+          ]
+        }]
+      });
+      expect(evaluateFieldVisibility(field, { country: 'PE' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { country: 'co' })).toBe(true);
+      expect(evaluateFieldVisibility(field, { country: 'us' })).toBe(false);
+    });
+
+    it('empty group evaluates to false (never shows)', () => {
+      const field = createField({
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: []
+        }]
+      });
+      expect(evaluateFieldVisibility(field, {})).toBe(false);
+    });
+
+    it('real scenario: Datos Economicos with OR between AND groups', () => {
+      const field = createField({
+        dependency_groups: [
+          { action: 'show', logic: 'and', conditions: [
+            { depends_on_field: 'income_source', operator: 'equals', value: 'empleado' },
+            { depends_on_field: 'income_proof_type', operator: 'equals', value: 'recibo_nomina' },
+          ]},
+          { action: 'show', logic: 'and', conditions: [
+            { depends_on_field: 'income_source', operator: 'equals', value: 'negocio_personal' },
+            { depends_on_field: 'income_proof_type', operator: 'not_equals', value: 'ninguno' },
+          ]},
+        ]
+      });
+      expect(evaluateFieldVisibility(field, {
+        income_source: 'empleado', income_proof_type: 'recibo_nomina'
+      })).toBe(true);
+      expect(evaluateFieldVisibility(field, {
+        income_source: 'negocio_personal', income_proof_type: 'boletas'
+      })).toBe(true);
+      expect(evaluateFieldVisibility(field, {
+        income_source: 'negocio_personal', income_proof_type: 'ninguno'
+      })).toBe(false);
+      expect(evaluateFieldVisibility(field, {
+        income_source: 'jubilado', income_proof_type: 'recibo_nomina'
+      })).toBe(false);
     });
   });
 });
@@ -288,28 +388,24 @@ describe('validateField', () => {
   });
 
   describe('hidden field validation', () => {
-    it('validates hidden fields without dependencies (they are now visible)', () => {
+    it('validates hidden fields without dependency groups (they are now visible)', () => {
       const field = createField({
         required: true,
         hidden: true,
-        dependencies: [],
+        dependency_groups: [],
       });
       const result = validateField(field, '', {});
-      // hidden=true sin dependencias ahora es visible, así que se valida
+      // hidden=true sin dependency_groups ahora es visible, así que se valida
       expect(result.isValid).toBe(false);
     });
 
     it('skips validation when field is conditionally hidden', () => {
       const field = createField({
         required: true,
-        dependencies: [
-          createDependency({
-            depends_on_field: 'show_extra',
-            operator: 'equals',
-            value: 'yes',
-            action: 'show',
-          }),
-        ],
+        dependency_groups: [{
+          action: 'show', logic: 'and',
+          conditions: [{ depends_on_field: 'show_extra', operator: 'equals', value: 'yes' }],
+        }],
       });
       // Field is hidden because show_extra !== 'yes'
       const result = validateField(field, '', { show_extra: 'no' });

@@ -15,6 +15,7 @@ import { useParams } from 'next/navigation';
 import { useProduct } from '../../../context/ProductContext';
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from '../../upsell';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { Accessory, AccessoryCategory } from '../../../types/upsell';
 
 interface AccessoriesSectionProps {
@@ -35,6 +36,9 @@ export function AccessoriesSection({
 }: AccessoriesSectionProps) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts } = useProduct();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
@@ -98,7 +102,7 @@ export function AccessoriesSection({
       try {
         // Pass product types and term to calculate correct monthly quota
         const typesArray = productTypesKey ? productTypesKey.split(',').filter(Boolean) : [];
-        const apiAccessories = await getLandingAccessories(landing, typesArray, currentTerm);
+        const apiAccessories = await getLandingAccessories(landing, typesArray, currentTerm, previewKey);
         if (apiAccessories && apiAccessories.length > 0) {
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,

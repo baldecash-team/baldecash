@@ -112,7 +112,7 @@ function ProductDetailContent() {
             Volver al catalogo
           </button>
         </div>
-        <Footer data={footerData} />
+        <Footer data={footerData} landing={landing} />
       </div>
     );
   }
@@ -186,7 +186,7 @@ function ProductDetailContent() {
       />
 
       {/* Footer */}
-      <Footer data={footerData} />
+      <Footer data={footerData} landing={landing} />
     </div>
   );
 }

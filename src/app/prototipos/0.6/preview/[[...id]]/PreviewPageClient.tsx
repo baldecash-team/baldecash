@@ -313,11 +313,6 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         '--color-secondary': heroData.secondaryColor || '#03DBD0',
       } as React.CSSProperties}
     >
-      {showPreviewBanner && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white text-xs text-center py-1 font-medium">
-          Modo Preview (ID: {landingId}) - Los cambios se muestran en tiempo real
-        </div>
-      )}
       <HeroSection
         heroContent={mergedHeroContent}
         socialProof={mergedSocialProof}
@@ -336,6 +331,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         footerData={mergedFooterData}
         landing={landingSlug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
+        previewKey={previewKey}
       />
     </div>
   );

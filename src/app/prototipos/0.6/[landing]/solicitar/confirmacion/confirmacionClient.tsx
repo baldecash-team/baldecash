@@ -17,6 +17,7 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { ReceivedScreen } from './components/received';
 import type { ReceivedData } from './types/received';
@@ -297,6 +298,10 @@ function ConfirmacionContent() {
   const searchParams = useSearchParams();
   const landing = (params.landing as string) || 'home';
 
+  // Preview mode offset
+  const { isPreviewingLanding } = usePreview();
+  const previewBannerOffset = isPreviewingLanding(landing) ? 24 : 0;
+
   // Get application code from URL
   const applicationCode = searchParams.get('code');
 
@@ -352,8 +357,8 @@ function ConfirmacionContent() {
   return (
     <>
       <div className="min-h-screen bg-neutral-50 relative">
-        <Navbar {...navbarProps} />
-        <div className="h-[68px]" />
+        <Navbar {...navbarProps} landing={landing} />
+        <div style={{ height: 68 + previewBannerOffset }} />
 
         {applicationCode ? (
           <RealConfirmationContent
@@ -367,7 +372,7 @@ function ConfirmacionContent() {
           <DemoContent onSelectResult={handleSelectResult} />
         )}
       </div>
-      <Footer data={footerData} />
+      <Footer data={footerData} landing={landing} />
     </>
   );
 }

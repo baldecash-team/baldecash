@@ -11,6 +11,7 @@ import type { Accessory, InsurancePlan } from '../types/upsell';
 import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/producto/api/productDetailApi';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 
 // Dynamic storage keys based on landing slug
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -144,6 +145,9 @@ interface ProductProviderProps {
 }
 
 export const ProductProvider: React.FC<ProductProviderProps> = ({ children, landingSlug }) => {
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landingSlug) ? preview.previewKey : null;
+
   const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
   const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);
   const [selectedAccessories, setSelectedAccessoriesState] = useState<Accessory[]>([]);
@@ -562,7 +566,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       if (productsWithoutSlug.length > 0) {
         // Fetch product data from catalog API to get slugs
         const productIds = productsWithoutSlug.map(p => p.id);
-        const catalogProducts = await fetchProductsByIds(landingSlug, productIds);
+        const catalogProducts = await fetchProductsByIds(landingSlug, productIds, previewKey);
 
         // Build slug map
         catalogProducts.forEach(cp => {
@@ -646,7 +650,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
 
     try {
       const productIds = products.map(p => p.id);
-      const activeProducts = await fetchProductsByIds(landingSlug, productIds);
+      const activeProducts = await fetchProductsByIds(landingSlug, productIds, previewKey);
       const activeIds = new Set(activeProducts.map(p => p.id));
       const disabled = productIds.filter(id => !activeIds.has(id));
       setUnavailableProductIds(disabled);
@@ -656,7 +660,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     } finally {
       setIsValidatingAvailability(false);
     }
-  }, [getAllProducts, landingSlug]);
+  }, [getAllProducts, landingSlug, previewKey]);
 
   /**
    * Remove unavailable products from cart/selection

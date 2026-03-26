@@ -30,6 +30,8 @@ export interface UseCatalogProductsOptions {
   sortBy?: SortBy;
   /** Whether the hook should start fetching (default: true). Use to delay fetch until dependencies are ready. */
   enabled?: boolean;
+  /** Preview key for accessing unpublished landings */
+  previewKey?: string | null;
 }
 
 export interface UseCatalogProductsResult {
@@ -74,6 +76,7 @@ export function useCatalogProducts({
   filters,
   sortBy,
   enabled = true,
+  previewKey,
 }: UseCatalogProductsOptions): UseCatalogProductsResult {
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [total, setTotal] = useState(0);
@@ -118,6 +121,7 @@ export function useCatalogProducts({
         sort_by: sortBy,
         limit: INITIAL_LOAD_LIMIT,
         offset: 0,
+        previewKey,
       });
 
       // If this request was aborted, ignore its results
@@ -163,7 +167,7 @@ export function useCatalogProducts({
         setIsLoading(false);
       }
     }
-  }, [landingSlug, filters, sortBy]);
+  }, [landingSlug, filters, sortBy, previewKey]);
 
   // Load more products (8 at a time)
   const loadMore = useCallback(async () => {
@@ -177,6 +181,7 @@ export function useCatalogProducts({
         sort_by: sortBy,
         limit: LOAD_MORE_LIMIT,
         offset: offset,
+        previewKey,
       });
 
       if (result && result.products.length > 0) {

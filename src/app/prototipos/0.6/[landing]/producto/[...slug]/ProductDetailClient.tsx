@@ -16,6 +16,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Secondary Navbar with search, wishlist, cart
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CatalogSecondaryNavbar';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 
@@ -52,6 +53,9 @@ function ProductDetailContent() {
 
   // Get layout data from context (fetched once at [landing] level)
   const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+  const previewBannerOffset = previewKey ? 24 : 0;
 
   // Product context for solicitar flow
   const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
@@ -67,7 +71,7 @@ function ProductDetailContent() {
   const [isApiLoading, setIsApiLoading] = useState(true);
 
   // Shared state for catalog (wishlist, cart)
-  const catalogState = useCatalogSharedState(landing);
+  const catalogState = useCatalogSharedState(landing, previewKey);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Toast for feedback
@@ -105,21 +109,21 @@ function ProductDetailContent() {
   // v0.6.1: Use wishlistIds (string[]) for API fetch
   useEffect(() => {
     if (catalogState.isHydrated && catalogState.wishlistIds.length > 0) {
-      fetchProductsByIds(landing, catalogState.wishlistIds).then(setWishlistProducts);
+      fetchProductsByIds(landing, catalogState.wishlistIds, previewKey).then(setWishlistProducts);
     } else {
       setWishlistProducts([]);
     }
-  }, [catalogState.wishlistIds, catalogState.isHydrated, landing]);
+  }, [catalogState.wishlistIds, catalogState.isHydrated, landing, previewKey]);
 
   // Fetch cart products from API
   // v0.6.1: Use cartIds (string[]) for API fetch
   useEffect(() => {
     if (catalogState.isHydrated && catalogState.cartIds.length > 0) {
-      fetchProductsByIds(landing, catalogState.cartIds).then(setCartProducts);
+      fetchProductsByIds(landing, catalogState.cartIds, previewKey).then(setCartProducts);
     } else {
       setCartProducts([]);
     }
-  }, [catalogState.cartIds, catalogState.isHydrated, landing]);
+  }, [catalogState.cartIds, catalogState.isHydrated, landing, previewKey]);
 
   // Handle cart continue - save products to context before navigating
   // v0.6.2: Use catalogState.cart (CartItem[]) to preserve user's pricing config
@@ -328,8 +332,8 @@ function ProductDetailContent() {
         unavailableWishlistIds={catalogState.unavailableWishlistIds}
       />
 
-      {/* Main Content with padding for fixed navbars (promo + primary + secondary) */}
-      <main className="pt-40">
+      {/* Main Content with padding for fixed navbars (promo + primary + secondary + preview banner) */}
+      <main style={{ paddingTop: 160 + previewBannerOffset }}>
         <ProductDetail
           product={apiData.product}
           paymentPlans={apiData.paymentPlans}
@@ -377,7 +381,7 @@ function ProductDetailContent() {
       </main>
 
       {/* Footer from Hero */}
-      <Footer data={footerData} />
+      <Footer data={footerData} landing={landing} />
 
       {/* Mobile Drawers */}
       <SearchDrawer

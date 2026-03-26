@@ -23,7 +23,7 @@ interface PreviewBannerProps {
 }
 
 export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName, stepName, showCloseButton = true }: PreviewBannerProps) {
-  const { isPreviewMode, landingId: contextLandingId, clearPreviewMode, isPreviewingLanding } = usePreview();
+  const { isPreviewMode, landingId: contextLandingId, slug: contextSlug, clearPreviewMode, isPreviewingLanding } = usePreview();
 
   // For admin preview pages that pass landingId directly, always show the banner
   // For regular pages with landingSlug, only show if that specific landing is being previewed
@@ -33,9 +33,9 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
       ? isPreviewingLanding(landingSlug)  // Regular page - check if this landing is being previewed
       : isPreviewMode;  // Fallback - show if any preview is active (legacy behavior)
 
-  // Use prop landingId for admin pages, context landingId for regular pages
-  const displayLandingId = propLandingId ?? contextLandingId;
-  const displayText = stepName || pageName;
+  // Display landing name: use prop slug, context slug, or fallback to ID
+  const displayLandingName = landingSlug || contextSlug;
+  const displayText = stepName || pageName || 'Los cambios se muestran en tiempo real';
 
   if (!shouldShow) return null;
 
@@ -43,13 +43,16 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
     <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white text-xs text-center py-1 font-medium flex items-center justify-center gap-2">
       <Eye className="w-3.5 h-3.5" />
       <span>
-        Modo Preview (ID: {displayLandingId})
+        Modo Preview (Landing: {displayLandingName})
         {displayText && <span className="ml-1">- {displayText}</span>}
       </span>
       {showCloseButton && (
         <button
-          onClick={clearPreviewMode}
-          className="ml-2 p-0.5 hover:bg-amber-600 rounded transition-colors"
+          onClick={() => {
+            clearPreviewMode();
+            window.location.reload();
+          }}
+          className="ml-2 p-0.5 hover:bg-amber-600 rounded transition-colors cursor-pointer"
           title="Salir del modo preview"
         >
           <X className="w-3.5 h-3.5" />

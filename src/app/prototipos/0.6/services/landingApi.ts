@@ -175,15 +175,19 @@ export async function getLandingBySlug(slug: string): Promise<LandingResponse | 
  * @param slug - Landing slug
  * @param preview - Si true, devuelve datos aunque la landing esté en draft (para admin preview)
  */
-export async function getLandingHeroData(slug: string, preview: boolean = false): Promise<LandingHeroResponse | null> {
+export async function getLandingHeroData(slug: string, preview: boolean = false, previewKey?: string | null): Promise<LandingHeroResponse | null> {
   try {
-    const url = preview
-      ? `${API_BASE_URL}/public/landing/${slug}/hero?preview=true`
-      : `${API_BASE_URL}/public/landing/${slug}/hero`;
+    const isPreview = preview || !!previewKey;
+    let url = `${API_BASE_URL}/public/landing/${slug}/hero`;
+    if (previewKey) {
+      url += `?preview_key=${encodeURIComponent(previewKey)}`;
+    } else if (preview) {
+      url += '?preview=true';
+    }
 
     const response = await fetch(url, {
-      cache: preview ? 'no-store' : undefined, // No cache en preview para ver cambios inmediatos
-      next: preview ? undefined : { revalidate: 60 },
+      cache: isPreview ? 'no-store' : undefined, // No cache en preview para ver cambios inmediatos
+      next: isPreview ? undefined : { revalidate: 60 },
     });
 
     if (!response.ok) {
@@ -268,10 +272,13 @@ export interface LandingLayoutResponse {
  * Obtiene solo los datos de layout (navbar + footer + company)
  * Endpoint ligero para páginas secundarias (legal, about, etc.)
  */
-export async function getLandingLayout(slug: string): Promise<LandingLayoutResponse | null> {
+export async function getLandingLayout(slug: string, previewKey?: string | null): Promise<LandingLayoutResponse | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/layout`, {
-      next: { revalidate: 60 },
+    const url = previewKey
+      ? `${API_BASE_URL}/public/landing/${slug}/layout?preview_key=${encodeURIComponent(previewKey)}`
+      : `${API_BASE_URL}/public/landing/${slug}/layout`;
+    const response = await fetch(url, {
+      ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
@@ -740,7 +747,7 @@ export function transformLandingData(data: LandingHeroResponse): {
  * @param slug - Landing slug
  * @param preview - Si true, devuelve datos aunque la landing esté en draft (para admin preview)
  */
-export async function fetchHeroData(slug: string, preview: boolean = false): Promise<{
+export async function fetchHeroData(slug: string, preview: boolean = false, previewKey?: string | null): Promise<{
   heroContent: HeroContent | null;
   socialProof: SocialProofData | null;
   howItWorksData: HowItWorksData | null;
@@ -759,7 +766,7 @@ export async function fetchHeroData(slug: string, preview: boolean = false): Pro
   primaryColor: string;
   secondaryColor: string;
 } | null> {
-  const data = await getLandingHeroData(slug, preview);
+  const data = await getLandingHeroData(slug, preview, previewKey);
 
   if (!data) {
     return null;
@@ -806,7 +813,8 @@ interface ApiAccessory {
 export async function getLandingAccessories(
   slug: string,
   productTypes?: string[],
-  term?: number
+  term?: number,
+  previewKey?: string | null
 ): Promise<ApiAccessory[]> {
   try {
     // Build query params for product type filtering and term
@@ -817,10 +825,13 @@ export async function getLandingAccessories(
     if (term && term > 0) {
       queryParams.set('term', term.toString());
     }
+    if (previewKey) {
+      queryParams.set('preview_key', previewKey);
+    }
     const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
     const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/accessories${params}`, {
-      next: { revalidate: 60 },
+      ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
@@ -883,10 +894,13 @@ interface ApiInsurancePlan {
 /**
  * Obtiene los planes de seguro disponibles para una landing
  */
-export async function getLandingInsurances(slug: string): Promise<ApiInsurancePlan[]> {
+export async function getLandingInsurances(slug: string, previewKey?: string | null): Promise<ApiInsurancePlan[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/insurances`, {
-      next: { revalidate: 60 },
+    const url = previewKey
+      ? `${API_BASE_URL}/public/landing/${slug}/insurances?preview_key=${encodeURIComponent(previewKey)}`
+      : `${API_BASE_URL}/public/landing/${slug}/insurances`;
+    const response = await fetch(url, {
+      ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {

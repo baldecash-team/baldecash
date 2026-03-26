@@ -11,11 +11,13 @@ import {
   WizardStep,
   WizardField,
   getWizardConfig,
+  getWizardConfigById,
   getStepByCode,
   getStepBySlug,
   getStepNavigation,
   getStepSlug,
 } from '../../../services/wizardApi';
+import { usePreview } from '../../../context/PreviewContext';
 
 interface WizardConfigContextValue {
   config: WizardConfig | null;
@@ -51,15 +53,36 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch wizard config on mount
+  // Check if we're in preview mode for this landing
+  const preview = usePreview();
+  const isPreviewHydrated = preview.isHydrated;
+  const isPreviewMode = preview.isPreviewingLanding(slug);
+  const previewLandingId = isPreviewMode ? preview.landingId : null;
+  const previewKey = isPreviewMode ? preview.previewKey : null;
+
+  // Fetch wizard config on mount (wait for preview hydration)
   useEffect(() => {
+    if (!isPreviewHydrated) return;
+
     let isMounted = true;
 
     const fetchConfig = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const data = await getWizardConfig(slug);
+
+        let data: WizardConfig | null = null;
+
+        if (isPreviewMode && previewLandingId && previewKey) {
+          // Use preview API with ID and preview_key
+          data = await getWizardConfigById(previewLandingId, previewKey);
+          // Fallback to slug-based API with preview_key
+          if (!data) {
+            data = await getWizardConfig(slug, previewKey);
+          }
+        } else {
+          data = await getWizardConfig(slug);
+        }
 
         if (!isMounted) return;
 
@@ -84,7 +107,7 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
     return () => {
       isMounted = false;
     };
-  }, [slug]);
+  }, [slug, isPreviewHydrated, isPreviewMode, previewLandingId, previewKey]);
 
   // Memoized helper functions
   const getStep = useMemo(() => {

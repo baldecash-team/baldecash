@@ -26,6 +26,9 @@ import { useWizardConfig } from './context/WizardConfigContext';
 // Solicitar flow configuration
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 
+// Preview context
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+
 // Dynamic section renderer
 import { SectionRenderer } from './components/solicitar/sections';
 
@@ -81,8 +84,12 @@ function WizardPreviewContent() {
   // Get wizard config for dynamic first step
   const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
 
+  // Preview mode support
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+
   // Get solicitar flow configuration (accessories, wizard_steps, insurance order & enabled state)
-  const { isEnabled: isSectionEnabled, sectionsBeforeWizard, isLoading: isFlowConfigLoading, isCouponRequired } = useSolicitarFlow({ slug: landing });
+  const { isEnabled: isSectionEnabled, sectionsBeforeWizard, isLoading: isFlowConfigLoading, isCouponRequired } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Clear accessories if section is disabled (prevents orphaned selections from previous sessions)
   useEffect(() => {
@@ -689,7 +696,7 @@ function WizardPreviewContent() {
       {pageContent}
       <SelectedProductBar mobileOnly />
       <SelectedProductSpacer />
-      <Footer data={footerData} />
+      <Footer data={footerData} landing={landing} />
     </div>
   );
 }

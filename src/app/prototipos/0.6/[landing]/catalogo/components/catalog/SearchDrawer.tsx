@@ -11,6 +11,7 @@ import { Button } from '@nextui-org/react';
 import { Search, X, Trash2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { TermMonths, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 
@@ -39,6 +40,8 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Suggestions state
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
@@ -53,14 +56,14 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
     }
     setIsLoadingSuggestions(true);
     try {
-      const results = await searchProductSuggestions(landing, query, 6);
+      const results = await searchProductSuggestions(landing, query, 6, previewKey);
       setSuggestions(results);
     } catch {
       setSuggestions([]);
     } finally {
       setIsLoadingSuggestions(false);
     }
-  }, [landing]);
+  }, [landing, previewKey]);
 
   const handleInputChange = (newValue: string) => {
     onChange(newValue);

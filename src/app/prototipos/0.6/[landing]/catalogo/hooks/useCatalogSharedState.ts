@@ -60,7 +60,7 @@ interface UseCatalogSharedStateReturn {
   cartIds: string[];
 }
 
-export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStateReturn {
+export function useCatalogSharedState(landingSlug: string, previewKey?: string | null): UseCatalogSharedStateReturn {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -274,7 +274,7 @@ export function useCatalogSharedState(landingSlug: string): UseCatalogSharedStat
     hasValidatedRef.current = true;
     const uniqueIds = [...new Set(allIds)];
 
-    fetchProductsByIds(landingSlug, uniqueIds)
+    fetchProductsByIds(landingSlug, uniqueIds, previewKey)
       .then(activeProducts => {
         const activeIds = new Set(activeProducts.map(p => p.id));
         setUnavailableCartIds(cart.map(c => c.productId).filter(id => !activeIds.has(id)));

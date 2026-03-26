@@ -60,6 +60,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 
@@ -294,6 +295,11 @@ function CatalogoContent() {
 
   // Get layout data from context (fetched once at [landing] level)
   const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor } = useLayout();
+
+  // Preview mode support
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+  const previewBannerOffset = previewKey ? 24 : 0;
 
   // Blip Chat control
   const blipChat = useBlipChat();
@@ -567,6 +573,7 @@ function CatalogoContent() {
     filters: apiFiltersForProducts,
     sortBy: apiSortBy,
     enabled: isReadyToFetchProducts,
+    previewKey,
   });
 
 
@@ -795,7 +802,7 @@ function CatalogoContent() {
     isHydrated: isCartWishlistHydrated,
     unavailableCartIds,
     unavailableWishlistIds,
-  } = useCatalogSharedState(landing);
+  } = useCatalogSharedState(landing, previewKey);
 
   const [viewMode, setViewMode] = useState<CatalogViewMode>('all');
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -955,20 +962,20 @@ function CatalogoContent() {
   // Fetch wishlist products from API (independent of catalog filters)
   useEffect(() => {
     if (isCartWishlistHydrated && wishlist.length > 0) {
-      fetchProductsByIds(landing, wishlist).then(setWishlistProducts);
+      fetchProductsByIds(landing, wishlist, previewKey).then(setWishlistProducts);
     } else {
       setWishlistProducts([]);
     }
-  }, [wishlist, isCartWishlistHydrated, landing]);
+  }, [wishlist, isCartWishlistHydrated, landing, previewKey]);
 
   // Fetch cart products from API (independent of catalog filters)
   useEffect(() => {
     if (isCartWishlistHydrated && cart.length > 0) {
-      fetchProductsByIds(landing, cart).then(setCartProducts);
+      fetchProductsByIds(landing, cart, previewKey).then(setCartProducts);
     } else {
       setCartProducts([]);
     }
-  }, [cart, isCartWishlistHydrated, landing]);
+  }, [cart, isCartWishlistHydrated, landing, previewKey]);
 
   // Calculate total monthly quota and check if over limit (S/600/mes max)
   // v0.6.1: Use cartItems (CartItem[]) which has monthlyPayment from user selection
@@ -1002,7 +1009,7 @@ function CatalogoContent() {
   // Fetch compare products from API (independent of catalog filters)
   useEffect(() => {
     if (isCompareListLoaded && compareList.length > 0) {
-      fetchProductsByIds(landing, compareList).then((products) => {
+      fetchProductsByIds(landing, compareList, previewKey).then((products) => {
         setCompareProducts(products as ComparisonProduct[]);
       });
     } else {
@@ -1427,8 +1434,9 @@ function CatalogoContent() {
           navbarItems={navbarProps?.navbarItems}
           megamenuItems={navbarProps?.megamenuItems}
           activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
+          previewBannerOffset={previewBannerOffset}
         />
-        <main className={navbarProps?.promoBannerData ? 'pt-40' : 'pt-[120px]'}>
+        <main style={{ paddingTop: (navbarProps?.promoBannerData ? 160 : 120) + previewBannerOffset }}>
           <div className="max-w-2xl mx-auto px-4 py-16 text-center">
             <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -1447,7 +1455,7 @@ function CatalogoContent() {
             </div>
           </div>
         </main>
-        <Footer data={footerData} />
+        <Footer data={footerData} landing={landing} />
       </div>
     );
   }
@@ -1470,12 +1478,14 @@ function CatalogoContent() {
         navbarItems={navbarProps?.navbarItems}
         megamenuItems={navbarProps?.megamenuItems}
         activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
+        previewBannerOffset={previewBannerOffset}
       />
 
       {/* Secondary Navbar with Search, Wishlist, Cart */}
       <CatalogSecondaryNavbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
+        previewBannerOffset={previewBannerOffset}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onSearchClear={handleSearchClear}
@@ -1525,8 +1535,8 @@ function CatalogoContent() {
         config={catalogSecondaryNavbarConfig}
       />
 
-      {/* Main Content with padding for fixed navbars (promo + primary + secondary) */}
-      <main className={navbarProps?.promoBannerData ? 'pt-40' : 'pt-[120px]'}>
+      {/* Main Content with padding for fixed navbars (promo + primary + secondary + preview banner) */}
+      <main style={{ paddingTop: (navbarProps?.promoBannerData ? 160 : 120) + previewBannerOffset }}>
         {/* Catalog Layout with Products */}
         <CatalogLayout
         products={displayedProducts}
@@ -1725,7 +1735,7 @@ function CatalogoContent() {
       </main>
 
       {/* Footer from Hero */}
-      <Footer data={footerData} />
+      <Footer data={footerData} landing={landing} />
 
       {/* Cart Selection Modal */}
       <CartSelectionModal

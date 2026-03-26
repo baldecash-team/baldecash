@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CatalogProduct, CartItem, WishlistItem, TermMonths, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 
 // Configuración fija para sugerencias: plazo más alto del producto, sin inicial
 const SELECTED_INITIAL = 0;
@@ -39,6 +40,8 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   const [isFocused, setIsFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
@@ -58,7 +61,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
 
     setIsLoading(true);
     try {
-      const results = await searchProductSuggestions(landing, query, 6);
+      const results = await searchProductSuggestions(landing, query, 6, previewKey);
       setSuggestions(results);
       setShowSuggestions(results.length > 0);
     } catch (error) {
@@ -67,7 +70,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [landing]);
+  }, [landing, previewKey]);
 
   // Handle input change with debounce
   const handleInputChange = (newValue: string) => {

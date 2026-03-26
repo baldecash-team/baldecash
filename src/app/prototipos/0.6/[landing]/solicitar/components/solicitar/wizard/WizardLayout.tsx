@@ -71,7 +71,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   return (
     <div className="min-h-screen bg-neutral-50 relative">
       {/* Navbar del Hero */}
-      <Navbar {...navbarProps} />
+      <Navbar {...navbarProps} landing={landing} />
 
       {/* Spacer for fixed navbar + promo banner */}
       <div className="h-[104px]" />

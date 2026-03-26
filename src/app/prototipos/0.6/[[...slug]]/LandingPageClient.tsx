@@ -13,6 +13,7 @@ import { HeroSection } from '../components/hero/HeroSection';
 import { DniModal, hasSavedDni } from '../components/hero/DniModal';
 import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
+import { usePreview } from '../context/PreviewContext';
 import { NotFoundContent } from '../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
@@ -67,6 +68,11 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
   // Preview mode listener - receives live updates from admin
   const { previewData, isPreviewMode } = usePreviewListener();
 
+  // SessionStorage preview mode (from /preview/:id page navigation)
+  const preview = usePreview();
+  const isPreviewHydrated = preview.isHydrated;
+  const previewKey = preview.isPreviewingLanding(slug) ? preview.previewKey : null;
+
   // Preloading: dar tiempo a la página para cargar recursos (igual que catálogo)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -76,13 +82,16 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
   }, []);
 
   useEffect(() => {
+    // Wait for preview context to hydrate from sessionStorage before fetching
+    if (!isPreviewHydrated) return;
+
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        // Pass preview=true to API if in preview mode (iframe from admin)
-        const data = await fetchHeroData(slug, isPreviewParam || isPreviewMode);
+        // Pass preview flags to API: postMessage preview OR sessionStorage preview
+        const data = await fetchHeroData(slug, isPreviewParam || isPreviewMode, previewKey);
 
         if (!data) {
           setError('Landing no encontrada');
@@ -99,7 +108,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
     };
 
     loadData();
-  }, [slug, isPreviewParam, isPreviewMode]);
+  }, [slug, isPreviewParam, isPreviewMode, isPreviewHydrated, previewKey]);
 
   // Merge API data with preview data (preview takes priority)
   const mergedHeroContent = useMemo((): HeroContent | null => {
@@ -306,8 +315,8 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
     return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
   }
 
-  // Show preview banner if in preview mode (postMessage) or preview param
-  const showPreviewBanner = isPreviewMode || isPreviewParam;
+  // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)
+  const showPreviewBanner = isPreviewMode || isPreviewParam || !!previewKey;
   // Preview banner height in pixels (py-1 = 4px top + 4px bottom + ~16px text = ~24px)
   const previewBannerHeight = 24;
 
@@ -318,12 +327,6 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
         '--color-secondary': heroData.secondaryColor || '#03DBD0',
       } as React.CSSProperties}
     >
-      {/* Preview mode indicator */}
-      {showPreviewBanner && (
-        <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white text-xs text-center py-1 font-medium">
-          Modo Preview - Los cambios se muestran en tiempo real
-        </div>
-      )}
       <HeroSection
         heroContent={mergedHeroContent}
         socialProof={mergedSocialProof}
@@ -342,6 +345,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
         footerData={mergedFooterData}
         landing={slug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
+        previewKey={previewKey}
       />
 
       {/* Modal DNI - Feature personalizado para landings configuradas */}

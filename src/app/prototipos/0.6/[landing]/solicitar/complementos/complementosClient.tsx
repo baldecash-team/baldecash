@@ -24,6 +24,7 @@ import { useWizardConfig } from '../context/WizardConfigContext';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
 import { getStepSlug, validateStep as validateStepFields } from '../../../services/wizardApi';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SectionRenderer } from '../components/solicitar/sections';
 
@@ -53,13 +54,17 @@ function ComplementosContent() {
   const { steps } = useWizardConfig();
   const { formData, setFieldError } = useWizard();
 
+  // Preview mode
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+
   // Get solicitar flow configuration
   const {
     sectionsAfterWizard,
     isEnabled,
     isCouponRequired,
     isLoading: isFlowConfigLoading,
-  } = useSolicitarFlow({ slug: landing });
+  } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
@@ -175,7 +180,7 @@ function ComplementosContent() {
   const pageContent = (
     <div className="min-h-screen bg-neutral-50 relative">
       {/* Navbar */}
-      <Navbar {...navbarProps} />
+      <Navbar {...navbarProps} landing={landing} />
 
       {/* Spacer for fixed navbar + promo banner */}
       <div className="h-[104px]" />
@@ -297,7 +302,7 @@ function ComplementosContent() {
     <>
       {pageContent}
       <SelectedProductSpacer />
-      <Footer data={footerData} />
+      <Footer data={footerData} landing={landing} />
 
       {/* Toast notifications */}
       {toast && (

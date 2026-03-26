@@ -65,6 +65,8 @@ interface HeroSectionProps {
   landing?: string;
   /** Offset from top when preview banner is shown (in pixels) */
   previewBannerOffset?: number;
+  /** Preview key for API authentication (sessionStorage preview) */
+  previewKey?: string | null;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -85,6 +87,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   footerData,
   landing = 'home',
   previewBannerOffset = 0,
+  previewKey,
 }) => {
   const heroUrl = `/prototipos/0.6/${landing}`;
 
@@ -131,7 +134,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   // Cart state - shares localStorage with catalog
   // v0.6.1: Use isInCart and addToCart with CartItem
-  const { isInCart, addToCart, cartIds } = useCatalogSharedState(landing);
+  const { isInCart, addToCart, cartIds } = useCatalogSharedState(landing, previewKey);
 
   // Toast for cart feedback
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);

@@ -24,11 +24,17 @@ export interface WizardFieldValidation {
   message: string;
 }
 
-export interface WizardFieldDependency {
+export interface DependencyGroupCondition {
   depends_on_field: string;
-  operator: 'equals' | 'not_equals' | 'in' | 'not_in' | 'is_empty' | 'is_not_empty' | 'greater_than' | 'less_than';
+  operator: 'equals' | 'not_equals' | 'in' | 'not_in' | 'is_empty' | 'is_not_empty'
+    | 'greater_than' | 'less_than' | 'contains' | 'not_contains';
   value: string | string[] | null;
-  action: 'show' | 'hide' | 'enable' | 'disable' | 'require' | 'unrequire';
+}
+
+export interface DependencyGroup {
+  action: 'show' | 'hide';
+  logic: 'and' | 'or';
+  conditions: DependencyGroupCondition[];
 }
 
 export interface WizardMotivational {
@@ -71,8 +77,7 @@ export interface WizardField {
   options_filter?: Record<string, string> | null;
   options: WizardFieldOption[];
   validations: WizardFieldValidation[];
-  dependency_logic?: 'and' | 'or';
-  dependencies: WizardFieldDependency[];
+  dependency_groups: DependencyGroup[];
   accepted_file_types?: string | null;
   max_file_size_mb?: number | null;
   max_files: number;
@@ -139,10 +144,13 @@ export interface WizardConfig {
 /**
  * Obtiene la configuración del wizard para una landing
  */
-export async function getWizardConfig(slug: string): Promise<WizardConfig | null> {
+export async function getWizardConfig(slug: string, previewKey?: string | null): Promise<WizardConfig | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/wizard`, {
-      next: { revalidate: 60 }, // Cache for 60 seconds
+    const url = previewKey
+      ? `${API_BASE_URL}/public/landing/${slug}/wizard?preview_key=${encodeURIComponent(previewKey)}`
+      : `${API_BASE_URL}/public/landing/${slug}/wizard`;
+    const response = await fetch(url, {
+      ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
@@ -276,72 +284,85 @@ export function getStepNavigation(config: WizardConfig, currentStepCode: string)
 }
 
 /**
- * Evalúa si un campo debe mostrarse basado en sus dependencias
+ * Evalúa si un campo debe mostrarse basado en sus dependency_groups.
+ * Grupos con action=hide se evalúan primero (cualquier match = oculto).
+ * Grupos con action=show: al menos un grupo debe cumplirse (OR entre grupos).
  */
 export function evaluateFieldVisibility(
   field: WizardField,
   formValues: Record<string, string | string[]>
 ): boolean {
-  // Sin dependencias = siempre visible (visibilidad la controlan las dependencias del admin)
-  if (field.dependencies.length === 0) {
+  if (!field.dependency_groups || field.dependency_groups.length === 0) {
     return true;
   }
+  return evaluateGroupedVisibility(field.dependency_groups, formValues);
+}
 
-  // dependency_logic from admin: "or" (default) = any show dep met, "and" = all show deps must be met
-  // hide deps always use OR logic (any match hides)
-  const useAnd = field.dependency_logic === 'and';
-  let anyShowMet = false;
-  let allShowMet = true;
-  let hasShowDeps = false;
+function evaluateGroupedVisibility(
+  groups: DependencyGroup[],
+  formValues: Record<string, string | string[]>
+): boolean {
+  const hideGroups = groups.filter(g => g.action === 'hide');
+  const showGroups = groups.filter(g => g.action === 'show');
 
-  for (const dep of field.dependencies) {
-    const fieldValue = formValues[dep.depends_on_field];
-    let conditionMet = false;
-
-    // Normalizar a string lowercase para comparación case-insensitive
-    const normalizedFieldValue = fieldValue != null ? String(fieldValue).toLowerCase() : '';
-    const normalizedDepValue = dep.value != null ? String(dep.value).toLowerCase() : '';
-
-    switch (dep.operator) {
-      case 'equals':
-        conditionMet = normalizedFieldValue === normalizedDepValue;
-        break;
-      case 'not_equals':
-        conditionMet = normalizedFieldValue !== normalizedDepValue;
-        break;
-      case 'in':
-        if (Array.isArray(dep.value)) {
-          const normalizedArray = dep.value.map(v => String(v).toLowerCase());
-          conditionMet = normalizedArray.includes(normalizedFieldValue);
-        }
-        break;
-      case 'not_in':
-        if (Array.isArray(dep.value)) {
-          const normalizedArray = dep.value.map(v => String(v).toLowerCase());
-          conditionMet = !normalizedArray.includes(normalizedFieldValue);
-        }
-        break;
-      case 'is_empty':
-        conditionMet = !fieldValue || fieldValue === '';
-        break;
-      case 'is_not_empty':
-        conditionMet = !!fieldValue && fieldValue !== '';
-        break;
-      default:
-        conditionMet = false;
-    }
-
-    if (dep.action === 'show') {
-      hasShowDeps = true;
-      if (conditionMet) anyShowMet = true;
-      if (!conditionMet) allShowMet = false;
-    } else if (dep.action === 'hide' && conditionMet) {
-      return false;
-    }
+  // HIDE priority: any hide group fully met → hidden
+  for (const group of hideGroups) {
+    if (evaluateGroup(group, formValues)) return false;
   }
 
-  if (hasShowDeps) return useAnd ? allShowMet : anyShowMet;
-  return true;  // Solo deps "hide" existen y ninguna se cumplió = visible
+  // SHOW: at least one group must be fully met
+  if (showGroups.length > 0) {
+    return showGroups.some(g => evaluateGroup(g, formValues));
+  }
+
+  return true; // no show groups = visible by default
+}
+
+function evaluateGroup(
+  group: DependencyGroup,
+  formValues: Record<string, string | string[]>
+): boolean {
+  if (group.conditions.length === 0) return false;
+
+  return group.logic === 'and'
+    ? group.conditions.every(c => evaluateCondition(c, formValues))
+    : group.conditions.some(c => evaluateCondition(c, formValues));
+}
+
+function evaluateCondition(
+  cond: DependencyGroupCondition,
+  formValues: Record<string, string | string[]>
+): boolean {
+  const raw = formValues[cond.depends_on_field];
+  const fieldValue = raw != null ? String(raw).toLowerCase() : '';
+  const depValue = cond.value != null ? String(cond.value).toLowerCase() : '';
+
+  switch (cond.operator) {
+    case 'equals':
+      return fieldValue === depValue;
+    case 'not_equals':
+      return fieldValue !== depValue;
+    case 'in':
+      return Array.isArray(cond.value)
+        && cond.value.map(v => String(v).toLowerCase()).includes(fieldValue);
+    case 'not_in':
+      return Array.isArray(cond.value)
+        && !cond.value.map(v => String(v).toLowerCase()).includes(fieldValue);
+    case 'is_empty':
+      return !fieldValue;
+    case 'is_not_empty':
+      return !!fieldValue;
+    case 'contains':
+      return fieldValue.includes(depValue);
+    case 'not_contains':
+      return !fieldValue.includes(depValue);
+    case 'greater_than':
+      return parseFloat(fieldValue) > parseFloat(depValue);
+    case 'less_than':
+      return parseFloat(fieldValue) < parseFloat(depValue);
+    default:
+      return false;
+  }
 }
 
 /**

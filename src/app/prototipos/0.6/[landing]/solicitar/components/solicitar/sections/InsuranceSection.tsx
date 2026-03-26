@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 import { InsuranceIntro, PlanComparison } from '../../upsell';
 import { useProduct } from '../../../context/ProductContext';
 import { getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
+import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { InsurancePlan } from '../../../types/upsell';
 
 interface InsuranceSectionProps {
@@ -33,6 +34,9 @@ export function InsuranceSection({
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
+  const preview = usePreview();
+  const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+
   // Use ProductContext for insurance state (persists to localStorage)
   const { selectedInsurance, setSelectedInsurance } = useProduct();
 
@@ -44,7 +48,7 @@ export function InsuranceSection({
     async function fetchInsurancePlans() {
       setIsLoading(true);
       try {
-        const plans = await getLandingInsurances(landing);
+        const plans = await getLandingInsurances(landing, previewKey);
         const mappedPlans: InsurancePlan[] = plans.map((plan) => ({
           id: plan.id,
           name: plan.name,
