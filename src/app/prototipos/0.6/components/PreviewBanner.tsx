@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { Eye, X } from 'lucide-react';
 import { usePreview } from '../context/PreviewContext';
 
@@ -24,6 +25,7 @@ interface PreviewBannerProps {
 
 export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName, stepName, showCloseButton = true }: PreviewBannerProps) {
   const { isPreviewMode, landingId: contextLandingId, slug: contextSlug, clearPreviewMode, isPreviewingLanding } = usePreview();
+  const pathname = usePathname();
 
   // For admin preview pages that pass landingId directly, always show the banner
   // For regular pages with landingSlug, only show if that specific landing is being previewed
@@ -50,7 +52,15 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
         <button
           onClick={() => {
             clearPreviewMode();
-            window.location.reload();
+            // On /preview/ pages, redirect to the landing slug instead of reload
+            // (reload would re-activate preview from the ?preview_key= query param)
+            const isPreviewPage = pathname.includes('/preview/');
+            const targetSlug = contextSlug || landingSlug;
+            if (isPreviewPage && targetSlug) {
+              window.location.href = `/prototipos/0.6/${targetSlug}/`;
+            } else {
+              window.location.reload();
+            }
           }}
           className="ml-2 p-0.5 hover:bg-amber-600 rounded transition-colors cursor-pointer"
           title="Salir del modo preview"
