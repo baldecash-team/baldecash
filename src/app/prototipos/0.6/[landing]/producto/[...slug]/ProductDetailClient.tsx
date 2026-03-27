@@ -9,6 +9,7 @@ import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -160,7 +161,7 @@ function ProductDetailContent() {
     setSelectedProduct(productsForContext[0]);
 
     // Navigate to solicitar
-    router.push(`/prototipos/0.6/${landing}/solicitar`);
+    router.push(routes.solicitar(landing));
   }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
 
   // Build catalog URL helper
@@ -170,12 +171,12 @@ function ProductDetailContent() {
       Object.entries(queryParams).forEach(([key, value]) => urlParams.set(key, value));
     }
     const queryString = urlParams.toString();
-    return `/prototipos/0.6/${landing}/catalogo${queryString ? `?${queryString}` : ''}`;
+    return routes.catalogo(landing, queryString || undefined);
   };
 
   // Build product detail URL with optional pricing params
   const getDetailUrl = (productSlug: string, params?: { term?: number; initial?: number }) => {
-    const base = `/prototipos/0.6/${landing}/producto/${productSlug}`;
+    const base = routes.producto(landing, productSlug);
     if (!params) return base;
     const searchParams = new URLSearchParams();
     if (params.term != null) searchParams.set('term', String(params.term));
@@ -263,14 +264,14 @@ function ProductDetailContent() {
 
   // Show 404 if landing not found (paused, archived, or doesn't exist)
   if (hasLayoutError || !navbarProps) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   // Show 404 if product not found (NO fallback to mock)
   if (apiError || !apiData) {
     return (
       <NotFoundContent
-        homeUrl={`/prototipos/0.6/${landing}/catalogo`}
+        homeUrl={routes.catalogo(landing)}
         homeLabel="Ir al catálogo"
       />
     );

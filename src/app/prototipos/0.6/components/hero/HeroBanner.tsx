@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Users, Building, Clock, CreditCard, Truck, CheckCircle, Star, Heart, Zap, Headphones, Award } from 'lucide-react';
 import { HeroBannerProps } from '../../types/hero';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
@@ -27,7 +28,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
-  const heroUrl = `/prototipos/0.6/${normalizedLanding}`;
+  const heroUrl = routes.landingHome(normalizedLanding);
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string): string => {

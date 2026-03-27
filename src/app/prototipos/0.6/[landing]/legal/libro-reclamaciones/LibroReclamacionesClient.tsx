@@ -13,6 +13,7 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop, Toast } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useLayout } from '../../context/LayoutContext';
 
 interface FormData {
@@ -117,7 +118,7 @@ export function LibroReclamacionesClient() {
 
   // Show 404 if landing not found (paused, archived, or doesn't exist)
   if (hasError || !navbarProps) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   return (

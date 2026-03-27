@@ -19,6 +19,7 @@ import { UnderlinedText } from './common/UnderlinedText';
 
 // Types
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Quiz
 import { HelpQuiz } from '../../quiz';
@@ -91,7 +92,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   previewBannerOffset = 0,
   previewKey,
 }) => {
-  const heroUrl = `/prototipos/0.6/${landing}`;
+  const heroUrl = routes.landingHome(landing || 'home');
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string): string => {

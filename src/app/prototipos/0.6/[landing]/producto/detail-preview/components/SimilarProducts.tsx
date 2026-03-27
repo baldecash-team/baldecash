@@ -11,6 +11,7 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { CatalogProduct } from '../../../catalogo/types/catalog';
 
 interface SimilarProductsProps {
@@ -32,7 +33,7 @@ export const SimilarProducts: React.FC<SimilarProductsProps> = ({ products }) =>
   };
 
   const handleViewProduct = (productId: string) => {
-    const url = `/prototipos/0.6/${landing}/producto/detail-preview?id=${productId}`;
+    const url = routes.productoPreview(landing, productId);
     router.push(url);
   };
 

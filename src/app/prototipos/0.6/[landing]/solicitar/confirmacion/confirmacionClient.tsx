@@ -14,6 +14,7 @@ import { CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -341,7 +342,7 @@ function ConfirmacionContent() {
   };
 
   const handleGoHome = () => {
-    router.push(`/prototipos/0.6/${landing}`);
+    router.push(routes.landingHome(landing));
   };
 
   // Show loading while layout data is loading
@@ -351,7 +352,7 @@ function ConfirmacionContent() {
 
   // Show 404 if landing not found
   if (hasLayoutError || !navbarProps) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   return (

@@ -15,6 +15,7 @@ import { Button, Spinner } from '@nextui-org/react';
 import { ArrowLeft, Code, Sparkles, ArrowRight } from 'lucide-react';
 import { TokenCounter } from '@/components/ui/TokenCounter';
 import { useScrollToTop } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Empty state component
 import { EmptyState } from '../components/empty';
@@ -89,7 +90,7 @@ function EmptyStatePreviewContent() {
   const [appliedFilters, setAppliedFilters] = useState<AppliedFilter[]>(mockAppliedFilters);
   const [showConfigBadge, setShowConfigBadge] = useState(false);
 
-  const detailUrl = `/prototipos/0.6/${landing}/producto/detail-preview`;
+  const detailUrl = routes.productoPreview(landing);
 
   // Handlers
   const handleClearFilters = () => {
@@ -219,7 +220,7 @@ function EmptyStatePreviewContent() {
           isIconOnly
           radius="md"
           className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
-          onPress={() => router.push(`/prototipos/0.6/${landing}`)}
+          onPress={() => router.push(routes.landingHome(landing))}
         >
           <ArrowLeft className="w-5 h-5 text-neutral-600" />
         </Button>

@@ -23,6 +23,7 @@ import {
 } from '../../types/detail';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -135,7 +136,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     if (hasSiblings) {
       const sibling = product.colorSiblings.find(sib => String(sib.productId) === colorId);
       if (sibling && sibling.slug !== product.slug) {
-        router.push(`/prototipos/0.6/${landing}/producto/${sibling.slug}`);
+        router.push(routes.producto(landing, sibling.slug));
         return;
       }
     }
@@ -276,7 +277,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     }
 
     // Navigate to solicitar flow in 0.6
-    router.push(`/prototipos/0.6/${landing}/solicitar`);
+    router.push(routes.solicitar(landing));
   };
 
   return (

@@ -33,6 +33,7 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useLayout } from '../context/LayoutContext';
 import { getComingSoonContent, ComingSoonSection } from '@/app/prototipos/0.6/services/landingApi';
 
@@ -133,7 +134,7 @@ function ProximamenteContent() {
 
   // Show 404 if landing not found (paused, archived, or doesn't exist)
   if (hasError || !navbarProps) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   return (
@@ -183,7 +184,7 @@ function ProximamenteContent() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button
               as="a"
-              href={`/prototipos/0.6/${landing}`}
+              href={routes.landingHome(landing)}
               size="lg"
               radius="lg"
               className="text-white font-semibold px-6"

@@ -14,6 +14,7 @@ import { CatalogProduct, CartItem, WishlistItem, TermMonths, calculateQuotaWithI
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Configuración fija para sugerencias: plazo más alto del producto, sin inicial
 const SELECTED_INITIAL = 0;
@@ -90,7 +91,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   const handleSelectSuggestion = (suggestion: ProductSuggestion) => {
     setShowSuggestions(false);
     onChange('');
-    router.push(`/prototipos/0.6/${landing}/producto/${suggestion.slug}`);
+    router.push(routes.producto(landing, suggestion.slug));
   };
 
   // Keyboard navigation

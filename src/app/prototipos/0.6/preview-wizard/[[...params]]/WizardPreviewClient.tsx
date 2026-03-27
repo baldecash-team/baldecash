@@ -29,6 +29,7 @@ import { Navbar } from '../../components/hero/Navbar';
 import { Footer } from '../../components/hero/Footer';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Types
 import type { PromoBannerData, FooterData, CompanyData } from '../../types/hero';
@@ -188,18 +189,12 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
   // Navigate to specific step
   const handleStepClick = (step: WizardStep) => {
     const slug = getStepSlug(step);
-    const url = previewKey
-      ? `/prototipos/0.6/preview-wizard/${landingId}/${slug}?preview_key=${previewKey}`
-      : `/prototipos/0.6/preview-wizard/${landingId}/${slug}`;
-    router.push(url);
+    router.push(routes.previewWizard(landingId!, slug, previewKey || undefined));
   };
 
   // Back to overview
   const handleBackToOverview = () => {
-    const url = previewKey
-      ? `/prototipos/0.6/preview-wizard/${landingId}?preview_key=${previewKey}`
-      : `/prototipos/0.6/preview-wizard/${landingId}`;
-    router.push(url);
+    router.push(routes.previewWizard(landingId!, undefined, previewKey || undefined));
   };
 
   // Loading state
@@ -213,7 +208,7 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
 
   // Error state
   if (error || !wizardConfig) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   // Render step detail view

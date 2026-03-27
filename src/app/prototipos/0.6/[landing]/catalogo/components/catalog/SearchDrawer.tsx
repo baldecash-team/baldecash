@@ -12,6 +12,7 @@ import { Search, X, Trash2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { TermMonths, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 
@@ -75,7 +76,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
     onClose();
     onChange('');
     setSuggestions([]);
-    router.push(`/prototipos/0.6/${landing}/producto/${suggestion.slug}`);
+    router.push(routes.producto(landing, suggestion.slug));
   };
 
   // Clear suggestions when drawer closes

@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
 import { Home, ArrowLeft, Search, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 
 interface NotFoundContentProps {
   /** URL personalizada para el botón "Ir al inicio" */
@@ -23,7 +24,7 @@ interface NotFoundContentProps {
 }
 
 export const NotFoundContent: React.FC<NotFoundContentProps> = ({
-  homeUrl = '/prototipos/0.6/home',
+  homeUrl = `${BASE_PATH}/home`,
   homeLabel = 'Ir al inicio',
   title = 'Página no disponible',
   description = 'La página que buscas no existe o ya no está activa. No te preocupes, te ayudamos a volver.',

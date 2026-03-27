@@ -37,6 +37,7 @@ import {
   Clock,
 } from 'lucide-react';
 import type { PromoBannerData } from '../../types/hero';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Helper function to build internal URLs with optional query params
 const buildInternalUrl = (basePath: string, params?: Record<string, string>) => {
@@ -151,7 +152,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
   const previewBannerOffset = previewBannerOffsetProp ?? (isThisLandingPreviewed ? 24 : 0);
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
-  const heroUrl = `/prototipos/0.6/${normalizedLanding}`;
+  const heroUrl = routes.landingHome(normalizedLanding);
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string): string => {

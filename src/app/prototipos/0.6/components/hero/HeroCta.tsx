@@ -10,6 +10,7 @@ import { Button } from '@nextui-org/react';
 import { Laptop, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { HeroCtaProps } from '../../types/hero';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 const WhatsAppIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -22,7 +23,7 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
 
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
-  const heroUrl = `/prototipos/0.6/${normalizedLanding}`;
+  const heroUrl = routes.landingHome(normalizedLanding);
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string | undefined, fallback: string): string => {

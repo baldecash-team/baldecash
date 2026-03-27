@@ -12,6 +12,7 @@ import { TermSelect } from './components/solicitar/product/TermSelect';
 import { useProduct } from './context/ProductContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -63,11 +64,11 @@ function WizardPreviewContent() {
       // Last cart product - clear and go to catalog
       setCartProducts([]);
       setSelectedProduct(null);
-      router.replace(`/prototipos/0.6/${landing}/catalogo`);
+      router.replace(routes.catalogo(landing));
     } else if (selectedProduct?.id === productId) {
       // Single product mode - clear and go to catalog
       setSelectedProduct(null);
-      router.replace(`/prototipos/0.6/${landing}/catalogo`);
+      router.replace(routes.catalogo(landing));
     }
   }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct, router, landing]);
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -155,7 +156,7 @@ function WizardPreviewContent() {
 
     // If no product was selected, redirect to catalog
     if (!selectedProduct) {
-      router.replace(`/prototipos/0.6/${landing}/catalogo`);
+      router.replace(routes.catalogo(landing));
     }
   }, [isHydrated, selectedProduct, router, landing]);
 
@@ -243,7 +244,7 @@ function WizardPreviewContent() {
     setTermsError(null);
     setPrivacyError(null);
     setCouponError(null);
-    router.push(`/prototipos/0.6/${landing}/solicitar/${firstStepSlug}`);
+    router.push(routes.solicitarStep(landing, firstStepSlug));
   };
 
   // Checkbox component
@@ -672,7 +673,7 @@ function WizardPreviewContent() {
 
         {/* Back to catalog link */}
         <button
-          onClick={() => router.push(`/prototipos/0.6/${landing}/catalogo`)}
+          onClick={() => router.push(routes.catalogo(landing))}
           className="w-full flex items-center justify-center gap-2 mt-4 py-2 text-neutral-500 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -689,7 +690,7 @@ function WizardPreviewContent() {
 
   // Show 404 if landing not found (paused, archived, or doesn't exist)
   if (hasLayoutError || !navbarProps) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   return (

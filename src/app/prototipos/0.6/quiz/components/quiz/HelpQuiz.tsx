@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, ArrowLeft, Loader2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useProductOptional, type SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useIsMobile } from '@/app/prototipos/_shared/hooks/useIsMobile';
 
 // Dynamic storage key based on landing slug (fallback when no ProductProvider)
@@ -53,7 +54,7 @@ import { submitQuizResponse, getQuizRecommendations, mapApiToQuizResults } from 
 // URL helpers - updated for 0.6 dynamic routes
 const getWizardUrl = (landing?: string) => {
   const landingSlug = landing || 'home';
-  return `/prototipos/0.6/${landingSlug}/solicitar`;
+  return routes.solicitar(landingSlug);
 };
 
 // Configuración para cálculo de cuota
@@ -65,7 +66,7 @@ const getCatalogUrlWithFilters = (
   questionsSource: QuizQuestion[]
 ) => {
   const landingSlug = landing || 'home';
-  const baseUrl = `/prototipos/0.6/${landingSlug}/catalogo`;
+  const baseUrl = routes.catalogo(landingSlug);
   const params = new URLSearchParams();
 
   // Mapear respuestas a parámetros de filtro

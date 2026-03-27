@@ -46,6 +46,9 @@ import {
 // Event tracking
 import { useEventTrackerOptional } from '../context/EventTrackerContext';
 
+// Route builder
+import { routes } from '@/app/prototipos/0.6/utils/routes';
+
 
 // Helper function to get Lucide icon by name
 function getIconComponent(iconName: string): React.ElementType {
@@ -121,28 +124,28 @@ function StepContent() {
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
     if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
   useEffect(() => {
     if (cartProducts.length > 1 && !hasUnifiedTerms()) {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   }, [cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
   useEffect(() => {
     if (isOverQuotaLimit) {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   }, [isOverQuotaLimit, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
   useEffect(() => {
     if (unavailableProductIds.length > 0) {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   }, [unavailableProductIds, landing, router]);
 
@@ -405,10 +408,10 @@ function StepContent() {
   const handleCelebrationComplete = () => {
     if (navigation.nextStep) {
       const nextSlug = navigation.nextStep.url_slug || navigation.nextStep.code;
-      router.push(`/prototipos/0.6/${landing}/solicitar/${nextSlug}`);
+      router.push(routes.solicitarStep(landing, nextSlug));
     } else if (shouldShowComplementos) {
       // No more wizard steps - go to complementos (dynamic sections after wizard)
-      router.push(`/prototipos/0.6/${landing}/solicitar/complementos`);
+      router.push(routes.solicitarComplementos(landing));
     } else {
       // No more steps and no complementos - submit directly
       submitApplication({ insuranceId: null });
@@ -418,15 +421,15 @@ function StepContent() {
   const handleBack = () => {
     if (navigation.prevStep) {
       const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
-      router.push(`/prototipos/0.6/${landing}/solicitar/${prevSlug}`);
+      router.push(routes.solicitarStep(landing, prevSlug));
     } else {
       // First step - go back to preview
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   };
 
   const handleStepClick = (stepId: WizardStepId) => {
-    router.push(`/prototipos/0.6/${landing}/solicitar/${stepId}`);
+    router.push(routes.solicitarStep(landing, stepId));
   };
 
   // Validate all regular steps (cross-step validation before submit)
@@ -480,7 +483,7 @@ function StepContent() {
       // Navigate to complementos page for insurance/accessories sections
       setIsSubmitting(true);
       await new Promise((resolve) => setTimeout(resolve, 500));
-      router.push(`/prototipos/0.6/${landing}/solicitar/complementos`);
+      router.push(routes.solicitarComplementos(landing));
     } else {
       // No sections after wizard - submit application directly
       await submitApplication({ insuranceId: null });
@@ -492,9 +495,9 @@ function StepContent() {
     // Usar navigation.prevStep para navegación dinámica
     if (navigation.prevStep) {
       const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
-      router.push(`/prototipos/0.6/${landing}/solicitar/${prevSlug}`);
+      router.push(routes.solicitarStep(landing, prevSlug));
     } else {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   };
 
@@ -516,12 +519,12 @@ function StepContent() {
     // Navegar al siguiente paso
     if (navigation.nextStep) {
       const nextSlug = navigation.nextStep.url_slug || navigation.nextStep.code;
-      router.push(`/prototipos/0.6/${landing}/solicitar/${nextSlug}`);
+      router.push(routes.solicitarStep(landing, nextSlug));
     }
   };
 
   const navigateToStep = (stepPath: string) => {
-    router.push(`/prototipos/0.6/${landing}/solicitar/${stepPath}`);
+    router.push(routes.solicitarStep(landing, stepPath));
   };
 
   // Loading state (include flow config loading and availability check)
@@ -531,7 +534,7 @@ function StepContent() {
 
   // Show 404 if landing not found
   if (hasLayoutError || !navbarProps) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   // Error state - step not found
@@ -545,7 +548,7 @@ function StepContent() {
             No se encontro el paso: {stepSlug}
           </p>
           <button
-            onClick={() => router.push(`/prototipos/0.6/${landing}/solicitar`)}
+            onClick={() => router.push(routes.solicitar(landing))}
             className="text-[var(--color-primary)] underline"
           >
             Volver al inicio

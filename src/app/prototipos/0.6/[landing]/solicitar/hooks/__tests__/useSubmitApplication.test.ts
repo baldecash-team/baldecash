@@ -5,6 +5,7 @@
 
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSubmitApplication } from '../useSubmitApplication';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Mock next/navigation
 const mockPush = jest.fn();
@@ -152,7 +153,7 @@ describe('useSubmitApplication', () => {
 
       // Should redirect to confirmation page with code only (no product data in URL)
       expect(mockPush).toHaveBeenCalledWith(
-        '/prototipos/0.6/test-landing/solicitar/confirmacion?code=APP-123'
+        routes.solicitarConfirmacion('test-landing', 'APP-123')
       );
     });
 

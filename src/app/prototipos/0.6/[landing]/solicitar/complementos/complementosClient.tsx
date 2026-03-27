@@ -24,6 +24,7 @@ import { useWizardConfig } from '../context/WizardConfigContext';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
 import { getStepSlug, validateStep as validateStepFields } from '../../../services/wizardApi';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SectionRenderer } from '../components/solicitar/sections';
@@ -69,28 +70,28 @@ function ComplementosContent() {
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
     if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
   useEffect(() => {
     if (cartProducts.length > 1 && !hasUnifiedTerms()) {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   }, [cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
   useEffect(() => {
     if (isOverQuotaLimit) {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   }, [isOverQuotaLimit, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
   useEffect(() => {
     if (unavailableProductIds.length > 0) {
-      router.push(`/prototipos/0.6/${landing}/solicitar`);
+      router.push(routes.solicitar(landing));
     }
   }, [unavailableProductIds, landing, router]);
 
@@ -142,7 +143,7 @@ function ComplementosContent() {
 
   const handleBack = () => {
     const lastStepSlug = lastStep ? getStepSlug(lastStep) : 'resumen';
-    router.push(`/prototipos/0.6/${landing}/solicitar/${lastStepSlug}`);
+    router.push(routes.solicitarStep(landing, lastStepSlug));
   };
 
   const handleSubmit = async () => {
@@ -156,7 +157,7 @@ function ComplementosContent() {
         );
         const stepSlug = getStepSlug(s);
         setTimeout(() => {
-          router.push(`/prototipos/0.6/${landing}/solicitar/${stepSlug}`);
+          router.push(routes.solicitarStep(landing, stepSlug));
         }, 1500);
         return;
       }
@@ -173,7 +174,7 @@ function ComplementosContent() {
   useEffect(() => {
     if (!isFlowConfigLoading && sectionsAfterWizard.length === 0) {
       // No sections to show, submit should have happened in wizard
-      router.replace(`/prototipos/0.6/${landing}/solicitar/confirmacion`);
+      router.replace(routes.solicitarConfirmacion(landing));
     }
   }, [isFlowConfigLoading, sectionsAfterWizard.length, router, landing]);
 
@@ -295,7 +296,7 @@ function ComplementosContent() {
 
   // Show 404 if landing not found
   if (hasLayoutError || !navbarProps) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   return (

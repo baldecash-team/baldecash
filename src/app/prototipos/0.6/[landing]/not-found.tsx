@@ -7,10 +7,11 @@
 
 import { useParams } from 'next/navigation';
 import { NotFoundContent } from '../components/NotFoundContent';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 export default function NotFound() {
   const params = useParams();
   const landing = (params?.landing as string) || 'home';
 
-  return <NotFoundContent homeUrl={`/prototipos/0.6/${landing}`} />;
+  return <NotFoundContent homeUrl={routes.landingHome(landing)} />;
 }

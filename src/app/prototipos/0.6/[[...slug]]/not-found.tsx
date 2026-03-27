@@ -4,7 +4,8 @@
  */
 
 import { NotFoundContent } from '../components/NotFoundContent';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 export default function NotFound() {
-  return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+  return <NotFoundContent homeUrl={routes.home()} />;
 }

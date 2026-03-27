@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useProduct } from '../context/ProductContext';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
 import { useSession } from '../context/SessionContext';
@@ -302,7 +303,7 @@ export function useSubmitApplication(
           // Redirect to confirmation page with public token (UUID - secure)
           succeeded = true;
           router.push(
-            `/prototipos/0.6/${landing}/solicitar/confirmacion?code=${result.public_token}`
+            routes.solicitarConfirmacion(landing, result.public_token)
           );
 
           return true;

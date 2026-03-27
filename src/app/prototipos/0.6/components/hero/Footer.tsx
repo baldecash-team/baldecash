@@ -10,6 +10,7 @@ import { Button } from '@nextui-org/react';
 import { Facebook, Instagram, Linkedin, Phone, Send, AlertCircle, Check, Twitter, Youtube } from 'lucide-react';
 import { Toast } from '@/app/prototipos/_shared';
 import type { FooterData } from '../../types/hero';
+import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 
 
 // TikTok icon component (not available in lucide-react)
@@ -35,7 +36,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
-  const heroUrl = `/prototipos/0.6/${landing}`;
+  const heroUrl = routes.landingHome(landing || 'home');
 
   // Transform links: handle relative paths and build full URLs
   const transformLink = (href: string): string => {
@@ -46,14 +47,16 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
       return href;
     }
 
-    // If it's an absolute path starting with /prototipos, transform legacy format
-    if (href.startsWith('/prototipos/0.6/')) {
-      // Transform old legal/proximamente paths to new dynamic paths
-      if (href.includes('/prototipos/0.6/legal/')) {
-        return href.replace('/prototipos/0.6/legal/', `/prototipos/0.6/${landing}/legal/`);
+    // If it's an absolute path starting with BASE_PATH, transform legacy format
+    if (href.startsWith(`${BASE_PATH}/`)) {
+      // Transform old legal paths to new dynamic paths with landing
+      const legalMatch = href.match(new RegExp(`^${BASE_PATH.replace(/\//g, '\\/')}/legal/(.+)$`));
+      if (legalMatch) {
+        return routes.legal(landing, legalMatch[1]);
       }
-      if (href.includes('/prototipos/0.6/proximamente')) {
-        return href.replace('/prototipos/0.6/proximamente', `/prototipos/0.6/${landing}/proximamente`);
+      // Transform old proximamente path to new dynamic path with landing
+      if (href === `${BASE_PATH}/proximamente` || href.startsWith(`${BASE_PATH}/proximamente`)) {
+        return routes.proximamente(landing);
       }
       return href;
     }

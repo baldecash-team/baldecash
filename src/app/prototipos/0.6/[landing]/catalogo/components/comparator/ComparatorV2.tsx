@@ -9,6 +9,7 @@ import { DesignStyleA } from './DesignStyleA';
 import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 import type { TermMonths } from '../../types/catalog';
 
@@ -116,7 +117,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       selectProductForWizard(bestProduct);
     }
     cleanupBodyStyles();
-    router.push(`/prototipos/0.6/${landing}/solicitar`);
+    router.push(routes.solicitar(landing));
   };
 
   // Filter specs based on fieldsVersion
@@ -140,7 +141,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       selectProductForWizard(product);
     }
     cleanupBodyStyles();
-    router.push(`/prototipos/0.6/${landing}/solicitar`);
+    router.push(routes.solicitar(landing));
   };
 
   // Render the appropriate design style

@@ -16,6 +16,7 @@ import { usePreviewListener } from '../hooks/usePreviewListener';
 import { usePreview } from '../context/PreviewContext';
 import { NotFoundContent } from '../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
 
 // Slugs que activan el modal de DNI al cargar la landing
@@ -313,7 +314,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
 
   // Error state - usar componente 404 con branding
   if (error || !heroData) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)

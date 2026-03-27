@@ -121,14 +121,15 @@ import { QuizAnswer, QuizQuestion } from '@/app/prototipos/0.6/quiz/types/quiz';
 import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // URLs - now with landing context
 const getWizardUrl = (landing: string) => {
-  return `/prototipos/0.6/${landing}/solicitar/`;
+  return routes.solicitar(landing);
 };
 
 const getDetailUrl = (landing: string, productSlug: string, params?: { term?: number; initial?: number }) => {
-  const base = `/prototipos/0.6/${landing}/producto/${productSlug}`;
+  const base = routes.producto(landing, productSlug);
   if (!params) return base;
   const searchParams = new URLSearchParams();
   if (params.term != null) searchParams.set('term', String(params.term));
@@ -138,7 +139,7 @@ const getDetailUrl = (landing: string, productSlug: string, params?: { term?: nu
 };
 
 const getUpsellUrl = (landing: string) => {
-  return `/prototipos/0.6/${landing}/solicitar/`;
+  return routes.solicitar(landing);
 };
 
 // v0.6.1: Use typed constants for CartItem compatibility
@@ -1388,7 +1389,7 @@ function CatalogoContent() {
 
   // Show 404 if landing not found (paused, archived, or doesn't exist)
   if (hasLayoutError || !navbarProps) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   // Check if any filters are applied (to distinguish between "no results" vs "error")
@@ -1448,7 +1449,7 @@ function CatalogoContent() {
                 {productsError || 'No se pudieron cargar los productos del catálogo'}
               </p>
               <button
-                onClick={() => router.push(`/prototipos/0.6/${landing}`)}
+                onClick={() => router.push(routes.landingHome(landing))}
                 className="bg-[var(--color-primary)] text-white px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"
               >
                 Volver al inicio

@@ -13,6 +13,7 @@ import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Hero components
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -68,13 +69,13 @@ function ProductDetailContent() {
 
   // Handle solicitar (navigate to request flow)
   const handleSolicitar = () => {
-    const solicitarUrl = `/prototipos/0.6/${landing}/solicitar/`;
+    const solicitarUrl = routes.solicitar(landing);
     router.push(solicitarUrl);
   };
 
   // Handle back navigation
   const handleBack = () => {
-    const catalogUrl = `/prototipos/0.6/${landing}/catalogo`;
+    const catalogUrl = routes.catalogo(landing);
     router.push(catalogUrl);
   };
 

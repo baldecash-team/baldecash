@@ -9,6 +9,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { Eye, X } from 'lucide-react';
 import { usePreview } from '../context/PreviewContext';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 interface PreviewBannerProps {
   /** Current landing slug - only show banner if this matches the previewed landing */
@@ -57,7 +58,7 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
             const isPreviewPage = pathname.includes('/preview/');
             const targetSlug = contextSlug || landingSlug;
             if (isPreviewPage && targetSlug) {
-              window.location.href = `/prototipos/0.6/${targetSlug}/`;
+              window.location.href = routes.landingHome(targetSlug);
             } else {
               window.location.reload();
             }

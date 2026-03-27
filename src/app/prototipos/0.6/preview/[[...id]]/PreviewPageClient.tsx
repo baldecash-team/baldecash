@@ -13,6 +13,7 @@ import { usePreviewListener } from '../../hooks/usePreviewListener';
 import { usePreview } from '../../context/PreviewContext';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
 
 function LoadingFallback() {
@@ -301,7 +302,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   }
 
   if (error || !heroData || !isValidId) {
-    return <NotFoundContent homeUrl="/prototipos/0.6/home" />;
+    return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   const showPreviewBanner = isPreviewMode || hasPreviewKey;

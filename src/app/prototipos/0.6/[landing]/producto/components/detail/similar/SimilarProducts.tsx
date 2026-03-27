@@ -17,6 +17,7 @@ import { SimilarProductsProps, SimilarProduct, SimilarProductImage } from '../..
 import { formatMoney, formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { useIsMobile } from '@/app/prototipos/_shared';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -119,7 +120,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
       const currentPath = window.location.pathname;
       const landingMatch = currentPath.match(/\/prototipos\/0\.6\/([^/]+)/);
       const landing = landingMatch ? landingMatch[1] : 'home';
-      window.location.href = `/prototipos/0.6/${landing}/producto/${slug}`;
+      window.location.href = routes.producto(landing, slug);
     }
   };
 
@@ -162,7 +163,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
         // localStorage not available
       }
 
-      window.location.href = `/prototipos/0.6/${landing}/solicitar/`;
+      window.location.href = routes.solicitar(landing);
     }
   };
 
