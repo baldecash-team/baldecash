@@ -151,6 +151,29 @@ export interface ProductDetail {
 }
 
 // ============================================
+// Combo Types
+// ============================================
+
+export interface ComboAccessory {
+  productId: number;
+  productName: string;
+  productSku: string;
+  unitPrice: number;
+  isIncludedFree: boolean;
+  imageUrl?: string;
+}
+
+export interface ComboInfo {
+  id: number;
+  code: string;
+  name: string;
+  displayName: string;
+  description: string;
+  imageUrl?: string;
+  accessories: ComboAccessory[];
+}
+
+// ============================================
 // Payment Types
 // ============================================
 

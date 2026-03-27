@@ -338,6 +338,7 @@ function ProductDetailContent() {
       <main style={{ paddingTop: 160 + previewBannerOffset }}>
         <ProductDetail
           product={apiData.product}
+          combo={apiData.combo}
           paymentPlans={apiData.paymentPlans}
           similarProducts={apiData.similarProducts}
           limitations={apiData.limitations}

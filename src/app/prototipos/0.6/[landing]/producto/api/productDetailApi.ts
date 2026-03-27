@@ -22,6 +22,8 @@ import {
   ProductBadge,
   SimilarProductColor,
   InitialPaymentPercentage,
+  ComboInfo,
+  ComboAccessory,
 } from '../types/detail';
 
 // API base URL - uses environment variable or falls back to localhost
@@ -185,8 +187,28 @@ interface ApiCertification {
   learn_more_url: string | null;
 }
 
+interface ApiComboAccessory {
+  product_id: number;
+  product_name: string;
+  product_sku: string;
+  unit_price: number;
+  is_included_free: boolean;
+  image_url?: string;
+}
+
+interface ApiCombo {
+  id: number;
+  code: string;
+  name: string;
+  display_name: string;
+  description: string;
+  image_url?: string;
+  accessories: ApiComboAccessory[];
+}
+
 interface ApiProductDetailResponse {
   product: ApiProductData;
+  combo?: ApiCombo;
   payment_plans: ApiPaymentPlan[];
   similar_products: ApiSimilarProduct[];
   limitations: ApiLimitation[];
@@ -335,6 +357,25 @@ function transformCertification(apiCert: ApiCertification): Certification {
   };
 }
 
+function transformCombo(apiCombo: ApiCombo): ComboInfo {
+  return {
+    id: apiCombo.id,
+    code: apiCombo.code,
+    name: apiCombo.name,
+    displayName: apiCombo.display_name,
+    description: apiCombo.description,
+    imageUrl: apiCombo.image_url,
+    accessories: apiCombo.accessories.map((acc): ComboAccessory => ({
+      productId: acc.product_id,
+      productName: acc.product_name,
+      productSku: acc.product_sku,
+      unitPrice: acc.unit_price,
+      isIncludedFree: acc.is_included_free,
+      imageUrl: acc.image_url,
+    })),
+  };
+}
+
 function transformProductData(apiProduct: ApiProductData): ProductDetail {
   return {
     id: apiProduct.id,
@@ -383,6 +424,7 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
 
 export interface ProductDetailResult {
   product: ProductDetail;
+  combo?: ComboInfo;
   paymentPlans: PaymentPlan[];
   similarProducts: SimilarProduct[];
   limitations: ProductLimitation[];
@@ -431,6 +473,7 @@ export async function fetchProductDetail(landing: string, slug: string): Promise
 
     return {
       product: transformProductData(data.product),
+      combo: data.combo ? transformCombo(data.combo) : undefined,
       paymentPlans: data.payment_plans.map(transformPaymentPlan),
       similarProducts: data.similar_products.map(transformSimilarProduct),
       limitations: data.limitations.map(transformLimitation),

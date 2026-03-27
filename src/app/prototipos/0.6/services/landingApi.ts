@@ -896,13 +896,25 @@ interface ApiInsurancePlan {
 
 /**
  * Obtiene los planes de seguro disponibles para una landing
+ * @param slug - Landing slug
+ * @param deviceType - Tipo de dispositivo (e.g. "Laptop", "Celular", "Tablet")
+ * @param productPrice - Precio del producto
  */
-export async function getLandingInsurances(slug: string, previewKey?: string | null): Promise<ApiInsurancePlan[]> {
+export async function getLandingInsurances(
+  slug: string,
+  deviceType: string,
+  productPrice: number,
+  previewKey?: string | null,
+): Promise<ApiInsurancePlan[]> {
   try {
-    const url = previewKey
-      ? `${API_BASE_URL}/public/landing/${slug}/insurances?preview_key=${encodeURIComponent(previewKey)}`
-      : `${API_BASE_URL}/public/landing/${slug}/insurances`;
-    const response = await fetch(url, {
+    const params = new URLSearchParams({
+      device_type: deviceType,
+      product_price: String(productPrice),
+    });
+    if (previewKey) {
+      params.set('preview_key', previewKey);
+    }
+    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/insurances?${params}`, {
       ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
