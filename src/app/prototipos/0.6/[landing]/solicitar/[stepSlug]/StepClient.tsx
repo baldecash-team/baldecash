@@ -30,6 +30,7 @@ import { useProduct } from '../context/ProductContext';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
+import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { useToast } from '@/app/prototipos/_shared';
 
 // Types and utils
@@ -153,7 +154,7 @@ function StepContent() {
   const { showToast } = useToast(4000);
 
   // Submit application hook (used when insurance is disabled)
-  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage } = useSubmitApplication({
     onToast: showToast,
   });
 
@@ -776,6 +777,7 @@ function StepContent() {
     <>
       {pageContent}
       <Footer data={footerData} landing={landing} />
+      <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
     </>
   );
 }

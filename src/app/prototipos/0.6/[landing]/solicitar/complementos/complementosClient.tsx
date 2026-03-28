@@ -28,6 +28,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SectionRenderer } from '../components/solicitar/sections';
+import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -44,7 +45,7 @@ function ComplementosContent() {
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Submit application hook
-  const { submit: submitApplication, isSubmitting, submitMessage } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting, submitMessage, submitStage } = useSubmitApplication({
     onToast: showToast,
   });
 
@@ -318,6 +319,9 @@ function ComplementosContent() {
       {pageContent}
       <SelectedProductSpacer />
       <Footer data={footerData} landing={landing} />
+
+      {/* Submit progress overlay */}
+      <SubmitOverlay isOpen={isSubmitting} stage={submitStage} />
 
       {/* Toast notifications */}
       {toast && (
