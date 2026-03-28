@@ -183,7 +183,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       brand: product.brand,
       price: product.price,
       image: product.images[0]?.url || '',
-      type: product.category as CartItem['type'],  // Product type for accessory compatibility
+      type: product.deviceType as CartItem['type'],  // Product type for accessory/insurance compatibility
       months: pricingSelection.term as TermMonths,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
@@ -215,7 +215,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       price: product.price,
       image: product.images[0]?.url || '',
       lowestQuota: pricingSelection.monthlyQuota,
-      type: product.category as WishlistItem['type'],
+      type: product.deviceType as WishlistItem['type'],
       months: pricingSelection.term as TermMonths,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,

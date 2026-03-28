@@ -220,6 +220,16 @@ interface ApiProductDetailResponse {
 // Transform Functions
 // ============================================
 
+function mapCategoryToDeviceType(category: string): string {
+  const map: Record<string, string> = {
+    laptop: 'laptop',
+    celular: 'celular',
+    tablet: 'tablet',
+    accesorio: 'accesorio',
+  };
+  return map[category.toLowerCase()] || category.toLowerCase();
+}
+
 function transformImage(apiImage: ApiProductImage): ProductImage {
   return {
     id: String(apiImage.id),
@@ -384,6 +394,7 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     displayName: apiProduct.display_name,
     brand: apiProduct.brand,
     category: apiProduct.category,
+    deviceType: mapCategoryToDeviceType(apiProduct.category),
     price: parseFloat(apiProduct.price),
     originalPrice: apiProduct.original_price ? parseFloat(apiProduct.original_price) : undefined,
     discount: apiProduct.discount ? parseFloat(apiProduct.discount) : undefined,
