@@ -271,7 +271,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {displayName}
             </h3>
 
-            {/* Color Selector - Altura fija reservada */}
+            {/* Color Selector - Temporalmente deshabilitado
             {!hideColors && (
               <div className="flex justify-center mb-4 min-h-[32px]">
                 {product.colors && product.colors.length > 0 ? (
@@ -284,6 +284,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 ) : null}
               </div>
             )}
+            */}
 
             {/* Specs técnicas con iconos - altura fija (siempre 4 specs) */}
             <div className="space-y-2 min-h-[100px]">
