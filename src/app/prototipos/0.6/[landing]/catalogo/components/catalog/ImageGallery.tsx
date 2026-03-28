@@ -34,36 +34,32 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
         Imagen referencial
       </p>
 
-      {/* Thumbnails row - altura fija siempre */}
-      <div className="flex gap-1 mt-2 justify-center min-h-[40px]">
-        {displayImages.map((img, index) => (
-          <button
-            key={index}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (hasMultipleImages) {
+      {/* Thumbnails row - only show when multiple images */}
+      {hasMultipleImages && (
+        <div className="flex gap-1 mt-2 justify-center">
+          {displayImages.map((img, index) => (
+            <button
+              key={index}
+              onClick={(e) => {
+                e.stopPropagation();
                 setCurrentIndex(index);
-              }
-            }}
-            className={`w-10 h-10 rounded border-2 overflow-hidden transition-all ${
-              hasMultipleImages ? 'cursor-pointer' : 'cursor-default'
-            } ${
-              index === currentIndex
-                ? 'border-[var(--color-primary)]'
-                : hasMultipleImages
-                  ? 'border-transparent hover:border-neutral-300'
-                  : 'border-transparent'
-            }`}
-          >
-            <img
-              src={img}
-              alt={`${alt} - ${index + 1}`}
-              className="w-full h-full object-contain"
-              loading="lazy"
-            />
-          </button>
-        ))}
-      </div>
+              }}
+              className={`w-10 h-10 rounded border-2 overflow-hidden transition-all cursor-pointer ${
+                index === currentIndex
+                  ? 'border-[var(--color-primary)]'
+                  : 'border-transparent hover:border-neutral-300'
+              }`}
+            >
+              <img
+                src={img}
+                alt={`${alt} - ${index + 1}`}
+                className="w-full h-full object-contain"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
