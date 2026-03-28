@@ -791,15 +791,19 @@ interface ApiAccessoryResponse {
 
 interface ApiAccessory {
   id: string;
+  legacyId?: number;
   name: string;
   description: string;
   price: number;
   monthlyQuota: number;
+  term?: number;
   image: string;
+  thumbnail_url?: string;
+  micro_url?: string;
   category: string;
   isRecommended: boolean;
   compatibleWith: string[];
-  specs: { label: string; value: string }[];
+  specs?: { label: string; value: string }[];
   brand?: {
     name: string;
     slug: string;
@@ -809,21 +813,19 @@ interface ApiAccessory {
 /**
  * Obtiene los accesorios disponibles para una landing
  * @param slug - Landing slug
- * @param productTypes - Optional array of product types to filter compatible accessories (e.g., ['celular', 'laptop'])
- *                       If empty or not provided, returns all accessories for the landing
+ * @param deviceType - Device type to filter accessories (e.g., 'laptop', 'celular', 'tablet')
  * @param term - Optional financing term in months to calculate monthly quota (default: 24)
  */
 export async function getLandingAccessories(
   slug: string,
-  productTypes?: string[],
+  deviceType?: string,
   term?: number,
   previewKey?: string | null
 ): Promise<ApiAccessory[]> {
   try {
-    // Build query params for product type filtering and term
     const queryParams = new URLSearchParams();
-    if (productTypes && productTypes.length > 0) {
-      queryParams.set('product_types', productTypes.join(','));
+    if (deviceType) {
+      queryParams.set('device_type', deviceType);
     }
     if (term && term > 0) {
       queryParams.set('term', term.toString());

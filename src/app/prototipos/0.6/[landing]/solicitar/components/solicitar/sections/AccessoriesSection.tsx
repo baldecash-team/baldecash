@@ -45,46 +45,9 @@ export function AccessoriesSection({
   const [isLoading, setIsLoading] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
-  // Helper function to infer product type from name
-  const inferProductType = (name: string): string | null => {
-    const nameLower = name.toLowerCase();
-
-    // Celular patterns
-    if (nameLower.includes('galaxy') || nameLower.includes('iphone') || nameLower.includes('redmi') || nameLower.includes('xiaomi') || nameLower.includes('motorola') || nameLower.includes('poco') || nameLower.includes('samsung') || nameLower.includes('cel ') || nameLower.includes('cel-')) {
-      return 'celular';
-    }
-    // Tablet patterns
-    if (nameLower.includes('ipad') || nameLower.includes('tab ') || nameLower.includes('tablet')) {
-      return 'tablet';
-    }
-    // Laptop patterns
-    if (nameLower.includes('macbook') || nameLower.includes('laptop') || nameLower.includes('ideapad') || nameLower.includes('thinkpad') || nameLower.includes('pavilion') || nameLower.includes('vivobook') || nameLower.includes('notebook')) {
-      return 'laptop';
-    }
-    return null;
-  };
-
-  // Create STABLE product types key using refs to track changes
-  // This avoids infinite loops caused by unstable array references
-  const prevProductIdsRef = useRef<string>('');
-  const productTypesKeyRef = useRef<string>('');
-
-  // Calculate current product IDs as a string (computed on every render but cheap)
-  const currentProductIds = cartProducts.length > 0
-    ? cartProducts.map(p => p.id).sort().join(',')
-    : (selectedProduct?.id || '');
-
-  // Only recalculate types if product IDs actually changed
-  if (currentProductIds !== prevProductIdsRef.current) {
-    prevProductIdsRef.current = currentProductIds;
-    const products = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
-    const types = products
-      .map((p) => inferProductType(p.name || '') || p.type || null)
-      .filter((t): t is string => !!t);
-    productTypesKeyRef.current = [...new Set(types)].sort().join(',');
-  }
-
-  const productTypesKey = productTypesKeyRef.current;
+  // Get device type from selected product(s)
+  const activeProduct = cartProducts?.[0] || selectedProduct;
+  const deviceType = (activeProduct?.type || 'laptop').toLowerCase();
 
   // Get current term from cart (use first product's term or default 24)
   const currentTerm = useMemo(() => {
@@ -95,14 +58,12 @@ export function AccessoriesSection({
     return 24; // Default term
   }, [getAllProducts]);
 
-  // Load accessories from API - filtered by product types in cart
+  // Load accessories from API - filtered by device type
   useEffect(() => {
     async function fetchAccessories() {
       setIsLoading(true);
       try {
-        // Pass product types and term to calculate correct monthly quota
-        const typesArray = productTypesKey ? productTypesKey.split(',').filter(Boolean) : [];
-        const apiAccessories = await getLandingAccessories(landing, typesArray, currentTerm, previewKey);
+        const apiAccessories = await getLandingAccessories(landing, deviceType, currentTerm, previewKey);
         if (apiAccessories && apiAccessories.length > 0) {
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
@@ -110,11 +71,13 @@ export function AccessoriesSection({
             description: acc.description || '',
             price: acc.price,
             monthlyQuota: acc.monthlyQuota,
-            image: acc.image || 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop',
-            category: (acc.category || 'protección') as AccessoryCategory,
+            image: acc.image,
+            thumbnailUrl: acc.thumbnail_url,
+            category: (acc.category || 'accesorios') as AccessoryCategory,
             isRecommended: acc.isRecommended || false,
             compatibleWith: acc.compatibleWith || ['all'],
             specs: acc.specs || [],
+            brand: acc.brand,
           }));
           setAccessories(transformedAccessories);
         } else {
@@ -129,7 +92,7 @@ export function AccessoriesSection({
     }
 
     fetchAccessories();
-  }, [landing, productTypesKey, currentTerm]);
+  }, [landing, deviceType, currentTerm]);
 
   // Update selected accessories when term changes or accessories list changes
   // This handles:

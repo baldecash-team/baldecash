@@ -1,6 +1,6 @@
 // types/upsell.ts - BaldeCash v0.6 Upsell Types
 
-export type AccessoryCategory = 'protección' | 'audio' | 'almacenamiento' | 'conectividad';
+export type AccessoryCategory = 'protección' | 'audio' | 'almacenamiento' | 'conectividad' | 'accesorios';
 
 export interface AccessorySpec {
   label: string;
@@ -14,10 +14,12 @@ export interface Accessory {
   price: number;
   monthlyQuota: number;
   image: string;
+  thumbnailUrl?: string;
   category: AccessoryCategory;
   isRecommended: boolean;
   compatibleWith: string[];
   specs?: AccessorySpec[];
+  brand?: { name: string; slug: string } | null;
 }
 
 export type InsuranceTier = 'basic' | 'standard' | 'premium';
