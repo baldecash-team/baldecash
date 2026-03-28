@@ -11,7 +11,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ShoppingCart, Check, Heart } from 'lucide-react';
+import { ShoppingCart, Check, Heart, Package, Gift } from 'lucide-react';
 import {
   DeviceType,
   CronogramaVersion,
@@ -20,6 +20,7 @@ import {
   SimilarProduct,
   ProductLimitation,
   Certification,
+  ComboInfo,
 } from '../../types/detail';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
@@ -46,6 +47,7 @@ import type { PricingSelection } from './pricing/PricingCalculator';
 interface ProductDetailProps {
   // Data props (from API - required, no fallback to mock)
   product: ProductDetailType;
+  combo?: ComboInfo;
   paymentPlans: PaymentPlan[];
   similarProducts?: SimilarProduct[];
   limitations?: ProductLimitation[];
@@ -75,6 +77,7 @@ interface ProductDetailProps {
 export const ProductDetail: React.FC<ProductDetailProps> = ({
   // API data props (required)
   product,
+  combo,
   paymentPlans,
   similarProducts = [],
   limitations = [],
@@ -302,6 +305,54 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
           {/* Right Column - Pricing (Sticky) */}
           <div className="order-2 lg:order-2 lg:sticky lg:top-[168px] space-y-6">
+            {/* Combo Banner */}
+            {combo && combo.accessories.length > 0 && (
+              <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.02)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="w-5 h-5 text-[var(--color-primary)]" />
+                  <span className="font-semibold text-neutral-800">Combo incluye</span>
+                </div>
+                <div className="space-y-3">
+                  {combo.accessories.map((accessory) => (
+                    <div
+                      key={accessory.productId}
+                      className="flex items-center gap-3 bg-white rounded-lg p-3 border border-neutral-100"
+                    >
+                      {accessory.imageUrl && (
+                        <img
+                          src={accessory.imageUrl}
+                          alt={accessory.productName}
+                          className="w-12 h-12 object-contain rounded-md flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-neutral-800 truncate">
+                          {accessory.productName}
+                        </p>
+                        {accessory.isIncludedFree ? (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Gift className="w-3.5 h-3.5 text-green-600" />
+                            <span className="text-xs font-semibold text-green-600">
+                              ¡Gratis!
+                            </span>
+                            {accessory.unitPrice > 0 && (
+                              <span className="text-xs text-neutral-400 line-through ml-1">
+                                S/ {accessory.unitPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-neutral-500 mt-0.5">
+                            S/ {accessory.unitPrice.toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Pricing Calculator + CTA */}
             <div id="section-pricing" className="space-y-4">
               <PricingCalculator

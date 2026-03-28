@@ -38,17 +38,29 @@ export function InsuranceSection({
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Use ProductContext for insurance state (persists to localStorage)
-  const { selectedInsurance, setSelectedInsurance } = useProduct();
+  const { selectedInsurance, setSelectedInsurance, selectedProduct, cartProducts } = useProduct();
+
+  // Get device type and price from the selected product(s)
+  const activeProduct = cartProducts?.[0] || selectedProduct;
+  const deviceType = activeProduct?.type || 'Laptop';
+  const productPrice = activeProduct?.price || 0;
 
   const [insurancePlans, setInsurancePlans] = useState<InsurancePlan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Load insurance plans from API
   useEffect(() => {
+    if (!productPrice) {
+      setIsLoading(false);
+      return;
+    }
+
     async function fetchInsurancePlans() {
       setIsLoading(true);
       try {
-        const plans = await getLandingInsurances(landing, previewKey);
+        // Capitalize device type for the API (e.g. "laptop" → "Laptop")
+        const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
+        const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, previewKey);
         const mappedPlans: InsurancePlan[] = plans.map((plan) => ({
           id: plan.id,
           name: plan.name,
@@ -69,7 +81,7 @@ export function InsuranceSection({
     }
 
     fetchInsurancePlans();
-  }, [landing]);
+  }, [landing, deviceType, productPrice, previewKey]);
 
   // Si no hay planes de seguro disponibles, no mostrar la sección
   if (!isLoading && insurancePlans.length === 0) {
