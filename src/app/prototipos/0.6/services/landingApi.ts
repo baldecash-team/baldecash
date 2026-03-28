@@ -865,10 +865,13 @@ interface ApiInsuranceResponse {
 
 interface ApiInsurancePlan {
   id: string;
+  code: string;
   name: string;
   description: string;
   monthlyPrice: number;
-  yearlyPrice: number;
+  totalPrice: number;
+  paymentMonths: number;
+  insuranceType: string;
   tier: 'basic' | 'standard' | 'premium';
   isRecommended: boolean;
   isMandatory: boolean;
@@ -887,11 +890,11 @@ interface ApiInsurancePlan {
   category?: {
     name: string;
     code: string;
-    icon: string;
+    icon: string | null;
   } | null;
   durationMonths: number;
   waitingPeriodDays: number;
-  termsUrl: string;
+  termsUrl: string | null;
 }
 
 /**
@@ -904,6 +907,7 @@ export async function getLandingInsurances(
   slug: string,
   deviceType: string,
   productPrice: number,
+  termMonths?: number,
   previewKey?: string | null,
 ): Promise<ApiInsurancePlan[]> {
   try {
@@ -911,6 +915,9 @@ export async function getLandingInsurances(
       device_type: deviceType,
       product_price: String(productPrice),
     });
+    if (termMonths) {
+      params.set('term_months', String(termMonths));
+    }
     if (previewKey) {
       params.set('preview_key', previewKey);
     }

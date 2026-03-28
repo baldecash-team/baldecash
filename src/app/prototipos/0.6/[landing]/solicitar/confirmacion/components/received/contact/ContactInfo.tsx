@@ -6,9 +6,8 @@
  */
 
 import React from 'react';
-import { Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
-import { MessageCircle, HelpCircle, Home } from 'lucide-react';
+import { MessageCircle, HelpCircle, Home, ArrowRight } from 'lucide-react';
 
 interface ContactInfoProps {
   onGoToHome?: () => void;
@@ -23,30 +22,30 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
       className="space-y-4"
     >
       {/* Help section */}
-      <div className="bg-neutral-50 rounded-xl p-4 flex items-start gap-3">
-        <div className="w-10 h-10 bg-neutral-200 rounded-lg flex items-center justify-center flex-shrink-0">
-          <HelpCircle className="w-5 h-5 text-neutral-600" />
+      <div className="bg-white rounded-2xl border border-neutral-200 p-5 flex items-start gap-4">
+        <div className="w-11 h-11 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-xl flex items-center justify-center flex-shrink-0">
+          <HelpCircle className="w-5 h-5 text-[var(--color-primary)]" />
         </div>
         <div className="flex-1">
-          <p className="font-medium text-neutral-800 mb-1">¿Tienes alguna duda?</p>
-          <p className="text-sm text-neutral-600 mb-3">
+          <p className="font-semibold text-neutral-800 mb-0.5">¿Tienes alguna duda?</p>
+          <p className="text-sm text-neutral-500 mb-3">
             Nuestro equipo está disponible para ayudarte con cualquier consulta sobre tu solicitud.
           </p>
-          <Button
-            size="sm"
-            className="bg-[#25D366] text-white font-semibold cursor-pointer"
-            startContent={<MessageCircle className="w-4 h-4" />}
-            onPress={() => window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer')}
+          <button
+            onClick={() => window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer')}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-semibold rounded-xl cursor-pointer transition-colors"
           >
+            <MessageCircle className="w-4 h-4" />
             Escríbenos por WhatsApp
-          </Button>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
       {/* Home CTA */}
       <button
         onClick={onGoToHome}
-        className="w-full flex items-center justify-center gap-2 py-3 text-sm text-neutral-500 hover:text-neutral-700 cursor-pointer transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-3 text-sm text-neutral-400 hover:text-neutral-600 cursor-pointer transition-colors"
       >
         <Home className="w-4 h-4" />
         <span>Volver al inicio</span>

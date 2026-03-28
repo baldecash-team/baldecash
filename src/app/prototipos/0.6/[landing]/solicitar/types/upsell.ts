@@ -31,13 +31,19 @@ export interface CoverageItem {
 
 export interface InsurancePlan {
   id: string;
+  code: string;
   name: string;
+  description: string;
   monthlyPrice: number;
-  yearlyPrice: number;
+  totalPrice: number;
+  paymentMonths: number;
+  insuranceType: string;
   coverage: CoverageItem[];
   exclusions: string[];
   isRecommended: boolean;
   tier: InsuranceTier;
+  durationMonths: number;
+  provider?: { name: string; code: string } | null;
 }
 
 export interface UpsellState {

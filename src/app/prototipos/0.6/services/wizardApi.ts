@@ -641,7 +641,16 @@ export function validateStep(
     const docFieldCode = prefillFieldToDocField[field.code];
     if (field.hidden && docFieldCode) {
       const prefillStatus = formValues[`_prefill_status_${docFieldCode}`] as string | undefined;
-      isVisible = prefillStatus === 'not_found';
+      if (prefillStatus === 'not_found') {
+        isVisible = true;
+      } else if (prefillStatus === 'found') {
+        isVisible = formValues[`_prefill_empty_${field.code}`] === 'true';
+      } else {
+        isVisible = false;
+      }
+    } else if (field.hidden && (!field.dependency_groups || field.dependency_groups.length === 0)) {
+      // hidden=true with no dependency groups = always hidden
+      isVisible = false;
     } else {
       isVisible = evaluateFieldVisibility(field, formValues);
     }

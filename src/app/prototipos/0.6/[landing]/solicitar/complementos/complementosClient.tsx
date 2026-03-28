@@ -11,7 +11,7 @@ import React, { Suspense, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
-import { Loader2, Shield, AlertTriangle, Package } from 'lucide-react';
+import { Loader2, Shield, Package } from 'lucide-react';
 import { useProduct } from '../context/ProductContext';
 import { SelectedProductBar, SelectedProductSpacer } from '../components/solicitar/product/SelectedProductBar';
 import { formatMoneyNoDecimals } from '../utils/formatMoney';
@@ -38,7 +38,7 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
@@ -163,8 +163,9 @@ function ComplementosContent() {
       }
     }
 
-    // Pass insurance ID from context (selectedInsurance is now the full plan object)
-    await submitApplication({ insuranceId: selectedInsurance?.id || null });
+    // Pass insurance IDs from context (multi-select)
+    const insuranceIds = selectedInsurances.map(i => i.id);
+    await submitApplication({ insuranceId: insuranceIds.length > 0 ? insuranceIds[0] : null, insuranceIds });
   };
 
   // Total monthly is now calculated in ProductContext (includes insurance + accessories)
@@ -187,26 +188,19 @@ function ComplementosContent() {
       <div className="h-[104px]" />
 
       <div className="max-w-3xl mx-auto px-4 pt-14 pb-32 lg:pb-6">
-        {/* Alert Banner - Show if insurance or accessories sections are included */}
+        {/* Section Header */}
         {(hasInsuranceSection || hasAccessoriesSection) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6"
+            className="mb-6"
           >
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-neutral-800">
-                  Personaliza tu solicitud
-                </h2>
-                <p className="text-sm text-neutral-600 mt-1">
-                  Selecciona las opciones que mejor se adapten a tus necesidades
-                </p>
-              </div>
-            </div>
+            <h1 className="text-2xl font-bold text-neutral-800">
+              Personaliza tu solicitud
+            </h1>
+            <p className="text-sm text-neutral-500 mt-1">
+              Estas opciones son opcionales. Puedes continuar sin seleccionar ninguna.
+            </p>
           </motion.div>
         )}
 
@@ -232,23 +226,43 @@ function ComplementosContent() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 * (sectionsAfterWizard.length + 1) }}
-          className="mt-6 bg-white rounded-xl border border-neutral-200 p-4"
+          className="mt-6 bg-white rounded-xl border border-neutral-200 overflow-hidden"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-neutral-500">Cuota mensual total</p>
-              {(selectedInsurance || selectedAccessories.length > 0) && (
-                <p className="text-xs text-[var(--color-secondary)] flex items-center gap-1 mt-0.5">
-                  {selectedInsurance && <Shield className="w-3 h-3" />}
-                  {selectedAccessories.length > 0 && <Package className="w-3 h-3" />}
-                  {selectedInsurance && selectedAccessories.length > 0
-                    ? 'Incluye seguro y accesorios'
-                    : selectedInsurance
-                      ? 'Incluye seguro'
-                      : 'Incluye accesorios'}
-                </p>
-              )}
+          {/* Breakdown items */}
+          {(selectedInsurances.length > 0 || selectedAccessories.length > 0) && (
+            <div className="px-4 pt-4 pb-3 space-y-2">
+              {selectedInsurances.map((ins) => (
+                <div key={ins.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Shield className="w-3.5 h-3.5 text-[var(--color-secondary)] flex-shrink-0" />
+                    <span className="text-sm text-neutral-600 truncate">{ins.name}</span>
+                  </div>
+                  <span className="text-sm text-[var(--color-secondary)] font-medium flex-shrink-0 ml-3">
+                    +S/{formatMoneyNoDecimals(Math.floor(ins.monthlyPrice))}/mes
+                  </span>
+                </div>
+              ))}
+              {selectedAccessories.map((acc) => (
+                <div key={acc.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Package className="w-3.5 h-3.5 text-[var(--color-primary)] flex-shrink-0" />
+                    <span className="text-sm text-neutral-600 truncate">{acc.name}</span>
+                  </div>
+                  <span className="text-sm text-[var(--color-primary)] font-medium flex-shrink-0 ml-3">
+                    +S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}/mes
+                  </span>
+                </div>
+              ))}
             </div>
+          )}
+
+          {/* Total row */}
+          <div className={`px-4 py-4 flex items-center justify-between ${
+            selectedInsurances.length > 0 || selectedAccessories.length > 0
+              ? 'bg-[rgba(var(--color-primary-rgb),0.04)] border-t border-neutral-100'
+              : ''
+          }`}>
+            <p className="text-sm font-semibold text-neutral-800">Cuota mensual total</p>
             <p className="text-2xl font-bold text-[var(--color-primary)]">
               S/{formatMoneyNoDecimals(Math.floor(totalMonthly))}/mes
             </p>
