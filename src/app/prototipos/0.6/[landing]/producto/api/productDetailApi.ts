@@ -204,6 +204,8 @@ interface ApiCombo {
   display_name: string;
   description: string;
   image_url?: string;
+  thumbnail_url?: string;
+  micro_url?: string;
   accessories: ApiComboAccessory[];
 }
 
@@ -376,6 +378,8 @@ function transformCombo(apiCombo: ApiCombo): ComboInfo {
     displayName: apiCombo.display_name,
     description: apiCombo.description,
     imageUrl: apiCombo.image_url,
+    thumbnailUrl: apiCombo.thumbnail_url,
+    microUrl: apiCombo.micro_url,
     accessories: apiCombo.accessories.map((acc): ComboAccessory => ({
       productId: acc.product_id,
       productName: acc.product_name,

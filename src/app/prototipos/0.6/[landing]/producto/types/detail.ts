@@ -171,6 +171,8 @@ export interface ComboInfo {
   displayName: string;
   description: string;
   imageUrl?: string;
+  thumbnailUrl?: string;
+  microUrl?: string;
   accessories: ComboAccessory[];
 }
 
