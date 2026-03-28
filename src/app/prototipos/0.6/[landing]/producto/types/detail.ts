@@ -125,6 +125,7 @@ export interface ProductDetail {
   displayName: string;
   brand: string;
   category: string;
+  deviceType: string;
   price: number;
   originalPrice?: number;
   discount?: number;

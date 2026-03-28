@@ -183,7 +183,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       brand: product.brand,
       price: product.price,
       image: product.images[0]?.url || '',
-      type: product.category as CartItem['type'],  // Product type for accessory compatibility
+      type: product.deviceType as CartItem['type'],  // Product type for accessory/insurance compatibility
       months: pricingSelection.term as TermMonths,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
@@ -215,7 +215,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       price: product.price,
       image: product.images[0]?.url || '',
       lowestQuota: pricingSelection.monthlyQuota,
-      type: product.category as WishlistItem['type'],
+      type: product.deviceType as WishlistItem['type'],
       months: pricingSelection.term as TermMonths,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
@@ -373,7 +373,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   onClick={handleSolicitar}
                   className="flex-1 bg-[var(--color-primary)] text-white py-4 rounded-xl font-semibold text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
                 >
-                  ¡Lo quiero! Solicitar ahora
+                  ¡Lo quiero!
                 </button>
                 {onAddToCart && (() => {
                   // Determine cart button state
