@@ -373,7 +373,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   onClick={handleSolicitar}
                   className="flex-1 bg-[var(--color-primary)] text-white py-4 rounded-xl font-semibold text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
                 >
-                  ¡Lo quiero! Solicitar ahora
+                  ¡Lo quiero!
                 </button>
                 {onAddToCart && (() => {
                   // Determine cart button state
