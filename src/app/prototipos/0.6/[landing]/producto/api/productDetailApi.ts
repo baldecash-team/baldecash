@@ -104,6 +104,7 @@ interface ApiProductData {
   display_name: string;
   brand: string;
   category: string;
+  type?: string;
   price: string;
   original_price: string | null;
   discount: string | null;
@@ -394,7 +395,7 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     displayName: apiProduct.display_name,
     brand: apiProduct.brand,
     category: apiProduct.category,
-    deviceType: mapCategoryToDeviceType(apiProduct.category),
+    deviceType: mapCategoryToDeviceType(apiProduct.type || apiProduct.category),
     price: parseFloat(apiProduct.price),
     originalPrice: apiProduct.original_price ? parseFloat(apiProduct.original_price) : undefined,
     discount: apiProduct.discount ? parseFloat(apiProduct.discount) : undefined,
