@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
@@ -32,4 +33,12 @@ const nextConfig: NextConfig = {
   turbopack: {},
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "baldecash-gy",
+  project: "baldecash3",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+  disableLogger: true,
+  automaticVercelMonitors: true,
+});
