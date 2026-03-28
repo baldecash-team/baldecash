@@ -60,7 +60,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
         </div>
 
         {/* Image */}
-        <div className="w-full h-24 mb-3 flex items-center justify-center bg-neutral-50 rounded-lg">
+        <div className="w-full h-24 mb-3 flex items-center justify-center rounded-lg">
           <img
             src={accessory.thumbnailUrl || accessory.image}
             alt={accessory.name}
