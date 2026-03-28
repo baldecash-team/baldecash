@@ -12,7 +12,8 @@
  */
 
 // ─── Single source of truth ──────────────────────────────────────────────────
-// Set NEXT_PUBLIC_APP_BASE_PATH='' in env to remove the prefix for production.
+// When rewrites are active, set NEXT_PUBLIC_APP_BASE_PATH='' so links are clean.
+// Defaults to '/prototipos/0.6' for local dev without rewrites.
 export const BASE_PATH = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '/prototipos/0.6';
 
 // ─── Route builders ──────────────────────────────────────────────────────────

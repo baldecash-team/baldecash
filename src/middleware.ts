@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except static files and Next.js internals
-    '/((?!_next/static|_next/image|favicon.ico|monitoring).*)',
+    // Match all paths except static files, Next.js internals, and Sentry tunnel
+    '/((?!_next/static|_next/image|favicon.ico|monitoring|robots.txt|sitemap.xml).*)',
   ],
 };

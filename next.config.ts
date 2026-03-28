@@ -31,6 +31,14 @@ const nextConfig: NextConfig = {
     ],
   },
   turbopack: {},
+  async rewrites() {
+    return [
+      // Root → home landing
+      { source: '/', destination: '/prototipos/0.6/home/' },
+      // Clean URLs → internal prototipos/0.6 paths
+      { source: '/:path*', destination: '/prototipos/0.6/:path*' },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {
