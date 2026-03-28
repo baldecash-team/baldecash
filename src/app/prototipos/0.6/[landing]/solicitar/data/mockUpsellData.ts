@@ -117,95 +117,36 @@ export const mockAccessories: Accessory[] = [
 
 export const mockInsurancePlans: InsurancePlan[] = [
   {
-    id: 'basic',
-    name: 'Protección Básica',
-    monthlyPrice: 15,
-    yearlyPrice: 180,
+    id: '14',
+    code: 'INS-LAPTOP-GE-24',
+    name: 'Garantía Extendida Laptop 24M',
+    description: 'Garantía Extendida Laptop',
+    monthlyPrice: 16,
+    totalPrice: 384,
+    paymentMonths: 24,
+    insuranceType: 'garantia_extendida',
     tier: 'basic',
     isRecommended: false,
-    coverage: [
-      {
-        name: 'Robo con violencia',
-        description: 'Cobertura si te roban el equipo con amenaza o agresión',
-        icon: 'Shield',
-        maxAmount: 3000,
-      },
-    ],
-    exclusions: [
-      'Daños por líquidos',
-      'Daños accidentales (caídas, golpes)',
-      'Pérdida o extravío',
-      'Daños por mal uso',
-    ],
+    coverage: [],
+    exclusions: [],
+    durationMonths: 36,
+    provider: { name: 'Insurama', code: 'INSURAMA' },
   },
   {
-    id: 'standard',
-    name: 'Protección Total',
-    monthlyPrice: 29,
-    yearlyPrice: 348,
-    tier: 'standard',
-    isRecommended: true,
-    coverage: [
-      {
-        name: 'Robo',
-        description: 'Cobertura completa por robo',
-        icon: 'Shield',
-        maxAmount: 4000,
-      },
-      {
-        name: 'Daños accidentales',
-        description: 'Caídas, golpes, pantalla rota',
-        icon: 'AlertTriangle',
-        maxAmount: 3500,
-      },
-      {
-        name: 'Daños por líquidos',
-        description: 'Derrames de agua, café, etc.',
-        icon: 'Droplet',
-        maxAmount: 3500,
-      },
-    ],
-    exclusions: [
-      'Pérdida o extravío',
-      'Daño intencional',
-      'Desgaste normal',
-    ],
-  },
-  {
-    id: 'premium',
-    name: 'Protección Premium',
-    monthlyPrice: 45,
-    yearlyPrice: 540,
-    tier: 'premium',
+    id: '16',
+    code: 'INS-LAPTOP-SR-24',
+    name: 'Seguro Contra Robo Laptop 24M',
+    description: 'Seguro Contra Robo Laptop',
+    monthlyPrice: 11,
+    totalPrice: 264,
+    paymentMonths: 24,
+    insuranceType: 'seguro_robo',
+    tier: 'basic',
     isRecommended: false,
-    coverage: [
-      {
-        name: 'Todo lo de Total',
-        description: 'Robo, daños accidentales, líquidos',
-        icon: 'Shield',
-        maxAmount: 5000,
-      },
-      {
-        name: 'Pérdida',
-        description: 'Extravío del equipo',
-        icon: 'Search',
-        maxAmount: 4000,
-      },
-      {
-        name: 'Extensión de garantía',
-        description: '+12 meses de garantía del fabricante',
-        icon: 'Clock',
-      },
-      {
-        name: 'Soporte técnico prioritario',
-        description: 'Atención preferencial 24/7',
-        icon: 'Headphones',
-      },
-    ],
-    exclusions: [
-      'Daño intencional',
-      'Uso comercial no declarado',
-    ],
+    coverage: [],
+    exclusions: [],
+    durationMonths: 24,
+    provider: { name: 'Insurama', code: 'INSURAMA' },
   },
 ];
 
@@ -261,7 +202,7 @@ export const calculateTotalWithUpsells = (
     if (insurance) {
       breakdown.push({
         item: insurance.name,
-        price: insurance.monthlyPrice * 24,
+        price: insurance.totalPrice,
         quota: insurance.monthlyPrice,
       });
     }

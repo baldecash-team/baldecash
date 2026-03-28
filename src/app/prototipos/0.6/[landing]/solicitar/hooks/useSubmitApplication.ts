@@ -27,8 +27,13 @@ interface UseSubmitApplicationOptions {
 interface SubmitOptions {
   /**
    * Selected insurance ID (null if no insurance selected or insurance disabled)
+   * @deprecated Use insuranceIds for multi-select
    */
   insuranceId?: string | null;
+  /**
+   * Selected insurance IDs (multi-select support)
+   */
+  insuranceIds?: string[];
 }
 
 /**
@@ -185,7 +190,7 @@ export function useSubmitApplication(
    */
   const submit = useCallback(
     async (submitOptions: SubmitOptions = {}): Promise<boolean> => {
-      const { insuranceId = null } = submitOptions;
+      const { insuranceId = null, insuranceIds } = submitOptions;
 
       setError(null);
 
@@ -257,10 +262,13 @@ export function useSubmitApplication(
           accessories: selectedAccessories.map((acc) => ({
             accessory_id: parseInt(acc.id, 10),
           })),
-          // Add insurance if selected
-          ...(insuranceId && {
-            insurance_id: parseInt(insuranceId, 10),
-          }),
+          // Add insurance(s) if selected
+          ...(insuranceIds && insuranceIds.length > 0
+            ? { insurance_ids: insuranceIds.map(id => parseInt(id, 10)) }
+            : insuranceId
+              ? { insurance_id: parseInt(insuranceId, 10) }
+              : {}
+          ),
         };
 
         // Cambiar a "processing" antes de enviar (si estábamos en uploading)

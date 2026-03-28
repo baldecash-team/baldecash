@@ -20,8 +20,8 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
-  const { selectedProduct, selectedAccessories, selectedInsurance, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
-  const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
+  const { selectedProduct, selectedAccessories, selectedInsurance, selectedInsurances, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
+
 
   // Usar el estado del contexto para la expansión
   const isExpanded = isProductBarExpanded;
@@ -43,7 +43,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const totalMonthlyPayment = getTotalMonthlyPayment();
   const discountedMonthlyPayment = getDiscountedMonthlyPayment();
   const hasAccessories = selectedAccessories.length > 0;
-  const hasInsurance = !!selectedInsurance;
+  const hasInsurance = selectedInsurances.length > 0;
   const hasCoupon = !!appliedCoupon;
   const availableTerms = getAvailableTerms();
 
@@ -103,7 +103,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   <span className="text-xs text-neutral-500 ml-1">
                     {hasAccessories && `+${selectedAccessories.length} acc.`}
                     {hasAccessories && hasInsurance && ' '}
-                    {hasInsurance && '+seguro'}
+                    {hasInsurance && `+${selectedInsurances.length} seguro${selectedInsurances.length > 1 ? 's' : ''}`}
                   </span>
                 )}
               </p>
@@ -241,11 +241,15 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   )}
 
                   {/* Insurance Selected */}
-                  {hasInsurance && selectedInsurance && (
-                    <div className="mt-3 flex items-center gap-2 text-xs text-neutral-600 bg-[var(--color-secondary)]/10 px-3 py-2 rounded-lg">
-                      <Shield className="w-3 h-3 text-[var(--color-secondary)]" />
-                      <span className="flex-1 truncate">{selectedInsurance.name}</span>
-                      <span className="text-[var(--color-secondary)] font-medium">+{formatPrice(selectedInsurance.monthlyPrice)}/mes</span>
+                  {hasInsurance && (
+                    <div className="mt-3 space-y-1.5">
+                      {selectedInsurances.map((ins) => (
+                        <div key={ins.id} className="flex items-center gap-2 text-xs text-neutral-600 bg-[var(--color-secondary)]/10 px-3 py-2 rounded-lg">
+                          <Shield className="w-3 h-3 text-[var(--color-secondary)]" />
+                          <span className="flex-1 truncate">{ins.name}</span>
+                          <span className="text-[var(--color-secondary)] font-medium">+{formatPrice(ins.monthlyPrice)}/mes</span>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -433,23 +437,15 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             ))}
           </div>
 
-          {/* Total - only show if multiple products, accessories or insurance */}
-          {(allProducts.length > 1 || hasAccessories || hasInsurance) && (
+          {/* Initial payment total - only show if applicable */}
+          {hasInitialPayment && (
             <div className="mt-4 pt-4 border-t border-neutral-200">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-neutral-800">Cuota total productos</span>
-                <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
-                  {hasCoupon ? formatPrice(discountedMonthlyPayment) : formatPrice(totalMonthlyPayment)}/mes
+                <span className="text-xs text-neutral-500">Inicial total</span>
+                <span className="text-sm font-medium text-neutral-600">
+                  {formatPrice(totalInitialPayment)}
                 </span>
               </div>
-              {hasInitialPayment && (
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs text-neutral-500">Inicial total</span>
-                  <span className="text-sm font-medium text-neutral-600">
-                    {formatPrice(totalInitialPayment)}
-                  </span>
-                </div>
-              )}
             </div>
           )}
 
@@ -469,110 +465,6 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
           )}
         </div>
 
-        {/* Insurance Card - Only visible when insurance is selected */}
-        {hasInsurance && selectedInsurance && (
-          <div className="bg-[var(--color-secondary)]/5 rounded-xl border border-[var(--color-secondary)]/10 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[var(--color-secondary)]" />
-                <p className="text-sm font-semibold text-neutral-800">
-                  Seguro
-                </p>
-              </div>
-              <span className="text-sm font-medium text-[var(--color-secondary)]">
-                +{formatPrice(selectedInsurance.monthlyPrice)}/mes
-              </span>
-            </div>
-            <p className="text-xs text-neutral-600 mt-1 ml-6">
-              {selectedInsurance.name}
-            </p>
-          </div>
-        )}
-
-        {/* Accessories Card with Accordion - Only visible when accessories are selected */}
-        {hasAccessories && (
-          <div className="bg-[var(--color-primary)]/5 rounded-xl border border-[var(--color-primary)]/10 overflow-hidden">
-            {/* Accordion Header - Clickable */}
-            <button
-              onClick={() => setIsAccessoriesExpanded(!isAccessoriesExpanded)}
-              className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--color-primary)]/10 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4 text-[var(--color-primary)]" />
-                <p className="text-sm font-semibold text-neutral-800">
-                  Accesorios ({selectedAccessories.length})
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                {!isAccessoriesExpanded && (
-                  <span className="text-sm font-medium text-[var(--color-primary)]">
-                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}/mes
-                  </span>
-                )}
-                {isAccessoriesExpanded ? (
-                  <ChevronUp className="w-5 h-5 text-neutral-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-neutral-400" />
-                )}
-              </div>
-            </button>
-
-            {/* Accordion Content */}
-            <AnimatePresence>
-              {isAccessoriesExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-4 pt-2 pb-4 border-t border-[var(--color-primary)]/10">
-                    {/* Accessories List */}
-                    <div className="space-y-2">
-                      {selectedAccessories.map((acc) => (
-                        <div key={acc.id} className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
-                            <span className="text-neutral-700 truncate">{acc.name}</span>
-                          </div>
-                          <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
-                            +{formatPrice(acc.monthlyQuota)}/mes
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Total Summary */}
-                    <div className="mt-3 pt-3 border-t border-[var(--color-primary)]/10">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
-                        <div className="text-right">
-                          {hasCoupon && (
-                            <span className="text-sm text-neutral-400 line-through block">
-                              {formatPrice(totalMonthlyPayment)}/mes
-                            </span>
-                          )}
-                          <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
-                            {formatPrice(discountedMonthlyPayment)}/mes
-                          </span>
-                        </div>
-                      </div>
-                      {hasInitialPayment && (
-                        <div className="flex justify-between items-center mt-1">
-                          <span className="text-xs text-neutral-500">Inicial total</span>
-                          <span className="text-sm font-medium text-neutral-600">
-                            {formatPrice(totalInitialPayment)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
       </div>
       )}
 
