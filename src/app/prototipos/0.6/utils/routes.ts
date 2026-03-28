@@ -12,8 +12,8 @@
  */
 
 // ─── Single source of truth ──────────────────────────────────────────────────
-// Set NEXT_PUBLIC_BASE_PATH='' in env to remove the prefix for production.
-export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '/prototipos/0.6';
+// Set NEXT_PUBLIC_APP_BASE_PATH='' in env to remove the prefix for production.
+export const BASE_PATH = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '/prototipos/0.6';
 
 // ─── Route builders ──────────────────────────────────────────────────────────
 
