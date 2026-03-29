@@ -5,7 +5,7 @@ Sentry.init({
   integrations: [
     Sentry.replayIntegration(),
   ],
-  tracesSampleRate: 1,
+  tracesSampleRate: 0,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
   debug: false,
