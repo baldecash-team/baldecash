@@ -44,7 +44,7 @@ const DEFAULT_FINANCIAL_DATA = {
   tea: 49.36,
   tcea: 52.18,
   comisionDesembolso: 0,
-  seguroDesgravamen: 1.5,
+  seguroDesgravamen: 0,
   seguroMultiriesgo: 0,
   gastoNotarial: 0,
   itiConvenio: 0,
@@ -551,10 +551,6 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         <span className="text-sm font-medium text-neutral-900">
                           {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
                         </span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-neutral-100">
-                        <span className="text-sm text-neutral-600">Seguro de desgravamen</span>
-                        <span className="text-sm font-medium text-neutral-900">{FINANCIAL_DATA.seguroDesgravamen}% mensual</span>
                       </div>
                       <div className="flex justify-between py-2 border-b border-neutral-100">
                         <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
