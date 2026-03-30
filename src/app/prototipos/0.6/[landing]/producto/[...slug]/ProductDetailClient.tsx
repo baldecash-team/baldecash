@@ -403,7 +403,7 @@ function ProductDetailContent() {
       <WishlistDrawer
         isOpen={isWishlistDrawerOpen}
         onClose={() => setIsWishlistDrawerOpen(false)}
-        products={wishlistProducts}
+        products={catalogState.wishlist}
         onRemoveProduct={catalogState.removeFromWishlist}
         onClearAll={catalogState.clearWishlist}
         onViewProduct={(productId) => {

@@ -37,6 +37,7 @@ interface NormalizedCartItem {
   monthlyQuota: number;
   months: number;
   initialPercent: number;
+  initialAmount: number;
   colorName?: string;
   colorHex?: string;
 }
@@ -86,6 +87,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           monthlyQuota: item.monthlyPayment,
           months: item.months,
           initialPercent: item.initialPercent,
+          initialAmount: item.initialAmount,
           colorName: item.colorName,
           colorHex: item.colorHex,
         };
@@ -99,6 +101,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           monthlyQuota: item.quotaMonthly,
           months: item.maxTermMonths || 24,
           initialPercent: SELECTED_INITIAL,
+          initialAmount: 0,
         };
       }
     });
@@ -293,9 +296,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             No disponible
                           </span>
                         ) : (
-                          <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-                            S/{formatMoneyNoDecimals(Math.floor(item.monthlyQuota))}/mes
-                          </p>
+                          <>
+                            <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
+                              S/{formatMoneyNoDecimals(Math.floor(item.monthlyQuota))}/mes
+                              <span className="text-xs font-normal text-neutral-500 ml-1">
+                                x {item.months} meses
+                              </span>
+                            </p>
+                            {item.initialAmount > 0 && (
+                              <p className="text-xs text-neutral-500">
+                                + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                       <button
