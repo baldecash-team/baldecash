@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale, X, Loader2 } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -66,6 +67,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const dragControls = useDragControls();
+  const params = useParams();
+  const landing = (params.landing as string) || '';
+  const hideSeguroDesgravamen = landing === 'liderman-baldecash';
 
   // Usar valores externos si están disponibles, sino usar estado interno
   const [internalSelectedTerm, setInternalSelectedTerm] = useState(paymentPlans[0]?.term ?? term);
@@ -694,10 +698,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
                     </span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-neutral-100">
-                    <span className="text-sm text-neutral-600">Seguro de desgravamen</span>
-                    <span className="text-sm font-medium text-neutral-900">{FINANCIAL_DATA.seguroDesgravamen}% mensual</span>
-                  </div>
+                  {!hideSeguroDesgravamen && (
+                    <div className="flex justify-between py-2 border-b border-neutral-100">
+                      <span className="text-sm text-neutral-600">Seguro de desgravamen</span>
+                      <span className="text-sm font-medium text-neutral-900">{FINANCIAL_DATA.seguroDesgravamen}% mensual</span>
+                    </div>
+                  )}
                   <div className="flex justify-between py-2 border-b border-neutral-100">
                     <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
                     <span className="text-sm font-medium text-neutral-900">
