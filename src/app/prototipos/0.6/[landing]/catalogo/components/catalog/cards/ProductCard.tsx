@@ -104,7 +104,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Obtener imágenes según color seleccionado (para carousel)
   const getImagesForSelectedColor = (): string[] => {
     if (!selectedColorId || !product.colors) {
-      return [...new Set([product.thumbnail, ...product.images])];
+      // Use images array if it has items, otherwise fallback to thumbnail
+      const imgs = product.images.length > 0 ? product.images : [product.thumbnail];
+      return [...new Set(imgs)];
     }
     if (selectedColor?.images && selectedColor.images.length > 0) {
       return [...new Set(selectedColor.images)];

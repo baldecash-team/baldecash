@@ -111,6 +111,8 @@ export interface ApiCatalogProduct {
   specs?: Record<string, string | number | boolean>;
   labels?: string[];
   image_url?: string;
+  thumbnail_url?: string;
+  micro_url?: string;
   images?: string[];
   colors?: ApiProductColor[];
   color_siblings?: ApiColorSibling[];
@@ -509,7 +511,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     displayName: apiProduct.display_name || apiProduct.name,
     brand: apiProduct.brand.name.toLowerCase(),
     brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1'),
-    thumbnail: apiProduct.image_url || '/images/products/placeholder.jpg',
+    thumbnail: apiProduct.thumbnail_url || apiProduct.image_url || '/images/products/placeholder.jpg',
     images: apiProduct.images && apiProduct.images.length > 0
       ? apiProduct.images
       : apiProduct.image_url ? [apiProduct.image_url] : ['/images/products/placeholder.jpg'],
@@ -875,6 +877,8 @@ export interface DirectApiProduct {
   specs: Record<string, string | number | boolean>;
   colors: { id: string; name: string; hex: string }[];
   images: string[];
+  thumbnail_url?: string;
+  micro_url?: string;
   labels: string[];
 }
 
@@ -952,7 +956,7 @@ export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct
     displayName: apiProduct.display_name || apiProduct.short_name || apiProduct.name,
     brand: (apiProduct.brand.name || 'Sin marca').toLowerCase(),
     brandLogo: apiProduct.brand.logo_url?.replace(/([^:]\/)\/+/g, '$1') || undefined,
-    thumbnail: apiProduct.images[0] || '/images/products/placeholder.jpg',
+    thumbnail: apiProduct.thumbnail_url || apiProduct.images[0] || '/images/products/placeholder.jpg',
     images: apiProduct.images.length > 0 ? apiProduct.images : ['/images/products/placeholder.jpg'],
     colors: colors.length > 0 ? colors : undefined,
     deviceType: mapDeviceType(apiProduct.type || 'laptop'),
