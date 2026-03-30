@@ -135,6 +135,7 @@ interface ApiInitialPaymentOption {
   initial_amount: string;
   monthly_quota: string;
   original_quota: string | null;
+  commission_amount: string | null;
 }
 
 interface ApiPaymentPlan {
@@ -313,6 +314,7 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       initialAmount: parseFloat(opt.initial_amount),
       monthlyQuota: parseFloat(opt.monthly_quota),
       originalQuota: opt.original_quota ? parseFloat(opt.original_quota) : undefined,
+      commissionAmount: opt.commission_amount ? parseFloat(opt.commission_amount) : null,
     })),
   };
 }

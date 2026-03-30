@@ -188,6 +188,7 @@ export interface InitialPaymentOption {
   initialAmount: number;
   monthlyQuota: number;
   originalQuota?: number;
+  commissionAmount?: number | null;
 }
 
 /** Plan de pago con opciones precalculadas para cada % de inicial */
