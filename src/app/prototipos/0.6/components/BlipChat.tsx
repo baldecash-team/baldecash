@@ -207,16 +207,23 @@ export function BlipChat({
       instance = instance.withEventHandler(window.BlipChat.CREATE_ACCOUNT_EVENT, props.onCreateAccount);
     }
 
-    clientRef.current = instance.build();
-    isInitializedRef.current = true;
+    try {
+      clientRef.current = instance.build();
+      isInitializedRef.current = true;
+    } catch (error) {
+      console.warn('[BlipChat] Error al inicializar el widget:', error);
+      isInitializedRef.current = false;
+    }
   }, []);
 
   useEffect(() => {
     if (isScriptLoaded) {
-      // Pequeño delay para asegurar que las props estén actualizadas
+      // Esperar a que el DOM esté listo y el script completamente cargado
       const timer = setTimeout(() => {
-        initializeBlipChat();
-      }, 100);
+        if (typeof window !== 'undefined' && window.BlipChat) {
+          initializeBlipChat();
+        }
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [isScriptLoaded, initializeBlipChat]);
@@ -234,12 +241,18 @@ export function BlipChat({
       }
       isInitializedRef.current = false;
 
-      // Limpieza manual de elementos DOM residuales que destroy() no remueve
-      const blipButton = document.getElementById('blip-chat-open-iframe');
-      if (blipButton) blipButton.remove();
+      // Limpieza manual de elementos DOM residuales (con delay para evitar race conditions)
+      setTimeout(() => {
+        try {
+          const blipButton = document.getElementById('blip-chat-open-iframe');
+          if (blipButton) blipButton.remove();
 
-      document.querySelectorAll('iframe[id^="blip-chat"]').forEach((el) => el.remove());
-      document.querySelectorAll('div[id^="blip-chat"]').forEach((el) => el.remove());
+          document.querySelectorAll('iframe[id^="blip-chat"]').forEach((el) => el.remove());
+          document.querySelectorAll('div[id^="blip-chat"]').forEach((el) => el.remove());
+        } catch {
+          // Ignorar errores de cleanup del DOM
+        }
+      }, 0);
     };
   }, []);
 
