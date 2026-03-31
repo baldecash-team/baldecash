@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import type {
   CartItem,
   WishlistItem,
@@ -64,6 +65,7 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
+  const tracker = useEventTrackerOptional();
 
   // Memoize storage keys based on landing
   const wishlistKey = useMemo(() => getWishlistKey(landingSlug), [landingSlug]);
@@ -127,29 +129,40 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
     setWishlist((prev) => {
       const exists = prev.find((w) => w.productId === item.productId);
       if (exists) {
-        // Update existing item (e.g., if color changed)
         return prev.map((w) =>
           w.productId === item.productId ? { ...w, ...item, addedAt: w.addedAt } : w
         );
       }
       return [...prev, item];
     });
-  }, []);
+    tracker?.track('wishlist_add', {
+      product_id: item.productId,
+      product_name: item.name,
+      brand: item.brand,
+    });
+  }, [tracker]);
 
   const removeFromWishlist = useCallback((productId: string) => {
     setWishlist((prev) => prev.filter((w) => w.productId !== productId));
     setUnavailableWishlistIds((prev) => prev.filter((id) => id !== productId));
-  }, []);
+    tracker?.track('wishlist_remove', { product_id: productId });
+  }, [tracker]);
 
   const toggleWishlist = useCallback((item: WishlistItem) => {
     setWishlist((prev) => {
       const exists = prev.find((w) => w.productId === item.productId);
       if (exists) {
+        tracker?.track('wishlist_remove', { product_id: item.productId });
         return prev.filter((w) => w.productId !== item.productId);
       }
+      tracker?.track('wishlist_add', {
+        product_id: item.productId,
+        product_name: item.name,
+        brand: item.brand,
+      });
       return [...prev, item];
     });
-  }, []);
+  }, [tracker]);
 
   const isInWishlist = useCallback(
     (productId: string) => wishlist.some((w) => w.productId === productId),
@@ -164,7 +177,8 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
   const clearWishlist = useCallback(() => {
     setWishlist([]);
     setUnavailableWishlistIds([]);
-  }, []);
+    tracker?.track('wishlist_clear');
+  }, [tracker]);
 
   // ============================================
   // Cart actions
@@ -174,14 +188,21 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
     setCart((prev) => {
       const exists = prev.find((c) => c.productId === item.productId);
       if (exists) {
-        // Update existing item with new configuration
         return prev.map((c) =>
           c.productId === item.productId ? { ...item, addedAt: c.addedAt } : c
         );
       }
       return [...prev, item];
     });
-  }, []);
+    tracker?.track('cart_add', {
+      product_id: item.productId,
+      product_name: item.name,
+      brand: item.brand,
+      months: item.months,
+      monthly_payment: item.monthlyPayment,
+      initial_percent: item.initialPercent,
+    });
+  }, [tracker]);
 
   const updateCartItem = useCallback(
     (productId: string, updates: Partial<CartItem>) => {
@@ -195,7 +216,8 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
   const removeFromCart = useCallback((productId: string) => {
     setCart((prev) => prev.filter((c) => c.productId !== productId));
     setUnavailableCartIds((prev) => prev.filter((id) => id !== productId));
-  }, []);
+    tracker?.track('cart_remove', { product_id: productId });
+  }, [tracker]);
 
   const isInCart = useCallback(
     (productId: string) => cart.some((c) => c.productId === productId),
@@ -210,7 +232,8 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
   const clearCart = useCallback(() => {
     setCart([]);
     setUnavailableCartIds([]);
-  }, []);
+    tracker?.track('cart_clear');
+  }, [tracker]);
 
   // ============================================
   // Move from wishlist to cart
@@ -253,8 +276,18 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
       });
 
       setWishlist((prev) => prev.filter((w) => w.productId !== productId));
+
+      tracker?.track('cart_add', {
+        product_id: wishlistItem.productId,
+        product_name: wishlistItem.name,
+        brand: wishlistItem.brand,
+        months: config.months,
+        monthly_payment: config.monthlyPayment,
+        initial_percent: config.initialPercent,
+        source: 'wishlist',
+      });
     },
-    [wishlist]
+    [wishlist, tracker]
   );
 
   // ============================================

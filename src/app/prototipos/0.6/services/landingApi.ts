@@ -128,7 +128,7 @@ export async function getLandingMeta(slug: string): Promise<{
 } | null> {
   try {
     const response = await fetch(`${API_BASE_URL}/public/landing/${slug}`, {
-      cache: 'no-store', // Sin cache para ver cambios inmediatos desde el admin
+      next: { revalidate: 60 }, // Cache 60s - misma política que getLandingBySlug
     });
 
     if (!response.ok) {

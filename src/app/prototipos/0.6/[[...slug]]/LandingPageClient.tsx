@@ -15,21 +15,12 @@ import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
 import { usePreview } from '../context/PreviewContext';
 import { NotFoundContent } from '../components/NotFoundContent';
-import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { HomeSkeleton } from './HomeSkeleton';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
 
 // Slugs que activan el modal de DNI al cargar la landing
 const DNI_MODAL_SLUGS = ['liderman-baldecash'];
-
-// Preloader con branding BaldeCash (igual que el catálogo)
-function LoadingFallback() {
-  return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-      <CubeGridSpinner />
-    </div>
-  );
-}
 
 interface LandingPageClientProps {
   slug: string;
@@ -309,7 +300,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
 
   // Loading state - mostrar preloader mientras carga página o datos
   if (isPageLoading || isLoading) {
-    return <LoadingFallback />;
+    return <HomeSkeleton />;
   }
 
   // Error state - usar componente 404 con branding
@@ -366,7 +357,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
 // Main export with Suspense wrapper for useSearchParams
 export function LandingPageClient({ slug }: LandingPageClientProps) {
   return (
-    <Suspense fallback={<LoadingFallback />}>
+    <Suspense fallback={<HomeSkeleton />}>
       <LandingPageClientInner slug={slug} />
     </Suspense>
   );

@@ -164,24 +164,22 @@ export const TextInput: React.FC<TextInputProps> = ({
         {!isLoading && showError && <AlertCircle className="w-5 h-5 text-[#ef4444] flex-shrink-0" />}
       </div>
 
-      {/* Error message & Character counter - same line */}
-      {(error || maxLength) && (
-        <div className="flex items-center justify-between gap-2">
-          {error ? (
-            <p className="text-sm text-[#ef4444] flex items-center gap-1">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
-            </p>
-          ) : (
-            <span />
-          )}
-          {maxLength && (
-            <p className="text-xs text-neutral-400 flex-shrink-0">
-              {value.length}/{maxLength}
-            </p>
-          )}
-        </div>
-      )}
+      {/* Error message & Character counter - always reserve space for alignment */}
+      <div className="flex items-center justify-between gap-2 min-h-[20px]">
+        {error ? (
+          <p className="text-sm text-[#ef4444] flex items-center gap-1">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </p>
+        ) : (
+          <span />
+        )}
+        {maxLength && (
+          <p className="text-xs text-neutral-400 flex-shrink-0">
+            {value.length}/{maxLength}
+          </p>
+        )}
+      </div>
     </div>
   );
 };

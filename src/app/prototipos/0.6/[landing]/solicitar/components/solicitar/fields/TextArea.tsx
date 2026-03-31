@@ -119,20 +119,22 @@ export const TextArea: React.FC<TextAreaProps> = ({
         </div>
       </div>
 
-      {/* Character counter */}
-      {maxLength && (
-        <p className="text-xs text-neutral-400 text-right">
-          {value.length}/{maxLength}
-        </p>
-      )}
-
-      {/* Error message */}
-      {error && (
-        <p className="text-sm text-[#ef4444] flex items-center gap-1">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </p>
-      )}
+      {/* Character counter & Error message - always reserve space for alignment */}
+      <div className="flex items-center justify-between gap-2 min-h-[20px]">
+        {error ? (
+          <p className="text-sm text-[#ef4444] flex items-center gap-1">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </p>
+        ) : (
+          <span />
+        )}
+        {maxLength && (
+          <p className="text-xs text-neutral-400 flex-shrink-0">
+            {value.length}/{maxLength}
+          </p>
+        )}
+      </div>
     </div>
   );
 };
