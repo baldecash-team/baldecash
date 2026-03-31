@@ -50,7 +50,12 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
 
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
-    return filterFieldOptions(field, formValues);
+    let options = filterFieldOptions(field, formValues);
+    // Remove "otros" option from institution_type field
+    if (field.code === 'institution_type') {
+      options = options.filter(opt => opt.value !== 'other');
+    }
+    return options;
   }, [field, formValues]);
 
   // Build tooltip from API help_text (100% from BD)
