@@ -323,6 +323,44 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
   }, [sessionUuid, enqueue, flushNow]);
 
   // ------------------------------------------------------------------
+  // Auto: outbound_click tracking (links to external domains)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    if (!sessionUuid) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a');
+      if (!anchor) return;
+
+      const href = anchor.href;
+      if (!href) return;
+
+      try {
+        const url = new URL(href);
+        // Only track links to external domains
+        if (url.hostname !== window.location.hostname) {
+          enqueue({
+            event_type: 'outbound_click',
+            client_ts: Date.now(),
+            page_url: getPageUrl(),
+            element_id: anchor.id || null,
+            properties: {
+              url: href,
+              domain: url.hostname,
+              text: anchor.textContent?.trim().slice(0, 100),
+            },
+          });
+        }
+      } catch {
+        // Invalid URL, ignore
+      }
+    };
+
+    document.addEventListener('click', handleClick, { capture: true });
+    return () => document.removeEventListener('click', handleClick, { capture: true });
+  }, [sessionUuid, enqueue]);
+
+  // ------------------------------------------------------------------
   // Periodic flush timer
   // ------------------------------------------------------------------
   useEffect(() => {

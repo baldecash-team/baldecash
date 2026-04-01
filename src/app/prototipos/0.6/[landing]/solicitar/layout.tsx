@@ -2,19 +2,19 @@
 
 /**
  * Wizard Preview Layout
- * Wraps all wizard pages with providers:
+ * Wraps wizard pages with providers:
  * - ProductProvider: manages selected product state
  * - WizardConfigProvider: fetches form config from API
  * - WizardProvider: manages form state and persistence
- * - SessionProvider: manages tracking session for analytics and submission
+ *
+ * Note: SessionProvider and EventTrackerProvider are now in the parent
+ * [landing] layout so tracking starts from the first page visited.
  */
 
 import { useParams } from 'next/navigation';
 import { WizardProvider } from './context/WizardContext';
 import { WizardConfigProvider } from './context/WizardConfigContext';
 import { ProductProvider } from './context/ProductContext';
-import { SessionProvider } from './context/SessionContext';
-import { EventTrackerProvider } from './context/EventTrackerContext';
 
 export default function WizardPreviewLayout({
   children,
@@ -26,13 +26,9 @@ export default function WizardPreviewLayout({
 
   return (
     <ProductProvider landingSlug={landing}>
-      <SessionProvider landingSlug={landing}>
-        <EventTrackerProvider>
-          <WizardConfigProvider slug={landing}>
-            <WizardProvider landingSlug={landing}>{children}</WizardProvider>
-          </WizardConfigProvider>
-        </EventTrackerProvider>
-      </SessionProvider>
+      <WizardConfigProvider slug={landing}>
+        <WizardProvider landingSlug={landing}>{children}</WizardProvider>
+      </WizardConfigProvider>
     </ProductProvider>
   );
 }

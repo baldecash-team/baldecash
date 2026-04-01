@@ -23,7 +23,22 @@ export type EventType =
   | 'input_blur'
   | 'scroll_depth'
   | 'tab_hidden'
-  | 'tab_visible';
+  | 'tab_visible'
+  // Phase 2: E-commerce & interaction events
+  | 'cta_click'
+  | 'outbound_click'
+  | 'product_view'
+  | 'product_click'
+  | 'cart_add'
+  | 'cart_remove'
+  | 'cart_clear'
+  | 'wishlist_add'
+  | 'wishlist_remove'
+  | 'wishlist_clear'
+  | 'compare_add'
+  | 'compare_remove'
+  | 'compare_open'
+  | 'error';
 
 /** Properties that are BLOCKED for privacy reasons */
 const BLOCKED_PROPERTIES = new Set([

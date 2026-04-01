@@ -3,11 +3,15 @@
 /**
  * Landing Layout
  * Provides shared layout data (navbar, footer, company) to all pages under [landing]
+ * Also wraps with SessionProvider + EventTrackerProvider so behavioral tracking
+ * starts from the first page the user visits (home, catálogo, producto, etc.)
  */
 
 import { Suspense, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
+import { SessionProvider } from './solicitar/context/SessionContext';
+import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
 
 /**
  * Persists ?keepData=true from URL to sessionStorage.
@@ -31,12 +35,19 @@ export default function LandingLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+
   return (
     <LayoutProvider>
-      <Suspense>
-        <KeepDataFlag />
-      </Suspense>
-      {children}
+      <SessionProvider landingSlug={landing}>
+        <EventTrackerProvider>
+          <Suspense>
+            <KeepDataFlag />
+          </Suspense>
+          {children}
+        </EventTrackerProvider>
+      </SessionProvider>
     </LayoutProvider>
   );
 }

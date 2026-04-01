@@ -90,6 +90,7 @@ import {
 
 // Import the shared state hook for cart/wishlist
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 // Data
 import {
@@ -293,6 +294,7 @@ function CatalogoContent() {
   const landing = (params.landing as string) || 'home';
   const isMobile = useIsMobile();
   const { setSelectedProduct, setCartProducts: setContextCartProducts, clearCartProducts, clearAccessories } = useProduct();
+  const tracker = useEventTrackerOptional();
 
   // Get layout data from context (fetched once at [landing] level)
   const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor } = useLayout();
@@ -1167,8 +1169,12 @@ function CatalogoContent() {
       // Also set the first product as selectedProduct for backwards compatibility
       setSelectedProduct(productsForContext[0]);
     }
+    tracker?.track('cta_click', {
+      cta_name: 'cart_continue',
+      cart_count: cartItems.length,
+    });
     router.push(getWizardUrl(landing));
-  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, setContextCartProducts, setSelectedProduct, landing]);
+  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, setContextCartProducts, setSelectedProduct, landing, tracker]);
 
   // wishlistProducts is now a state loaded from API via useEffect (see above)
 
@@ -1327,6 +1333,7 @@ function CatalogoContent() {
     // Si ya está en la lista, quitarlo
     if (compareList.includes(productId)) {
       setCompareList((prev) => prev.filter((id) => id !== productId));
+      tracker?.track('compare_remove', { product_id: productId });
       return;
     }
 
@@ -1367,16 +1374,23 @@ function CatalogoContent() {
 
     // Agregar a la lista
     setCompareList((prev) => [...prev, productId]);
-  }, [compareList, maxCompareProducts, showToast, findProductOrSibling]);
+    tracker?.track('compare_add', { product_id: productId });
+  }, [compareList, maxCompareProducts, showToast, findProductOrSibling, tracker]);
 
   const handleRemoveFromCompare = useCallback((productId: string) => {
     setCompareList((prev) => prev.filter((id) => id !== productId));
-  }, []);
+    tracker?.track('compare_remove', { product_id: productId });
+  }, [tracker]);
 
   const handleClearCompare = useCallback(() => {
     setCompareList([]);
     setIsComparatorOpen(false);
   }, []);
+
+  const handleOpenComparator = useCallback(() => {
+    setIsComparatorOpen(true);
+    tracker?.track('compare_open', { product_count: compareList.length });
+  }, [compareList.length, tracker]);
 
   // compareProducts is now a state loaded from API via useEffect (see above)
 
@@ -1602,7 +1616,15 @@ function CatalogoContent() {
                 }}
                 isFavoriteCheck={(id) => wishlist.includes(id)}
                 isInCartCheck={(id) => cart.includes(id)}
-                onViewDetail={(siblingSlug) => router.push(getDetailUrl(landing, siblingSlug || product.slug))}
+                onViewDetail={(siblingSlug) => {
+                  tracker?.track('product_click', {
+                    product_id: product.id,
+                    product_name: product.name,
+                    brand: product.brand,
+                    slug: siblingSlug || product.slug,
+                  });
+                  router.push(getDetailUrl(landing, siblingSlug || product.slug));
+                }}
                 onCompare={(activeId) => handleToggleCompare(activeId)}
                 isCompareCheck={(id) => compareList.includes(id)}
                 compareDisabled={compareList.length >= maxCompareProducts}
@@ -1906,7 +1928,7 @@ function CatalogoContent() {
               style={{ borderRadius: '14px' }}
               onPress={() => {
                 closeAllDrawers();
-                setIsComparatorOpen(true);
+                handleOpenComparator();
               }}
               isDisabled={compareList.length < 2}
               endContent={<ArrowRight className="w-5 h-5" />}
@@ -1954,7 +1976,7 @@ function CatalogoContent() {
               onPress={() => {
                 if (compareList.length >= 2) {
                   closeAllDrawers();
-                  setIsComparatorOpen(true);
+                  handleOpenComparator();
                 }
               }}
               isDisabled={compareList.length < 2}
