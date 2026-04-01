@@ -136,9 +136,9 @@ export const usageOptions: FilterOption[] = [
 // Device type options for filtering
 // Counts se actualizan dinámicamente via applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType)
 export const deviceTypeOptions: FilterOption[] = [
-  { value: 'laptop', label: 'Laptop', count: 10, icon: 'Laptop' },
-  { value: 'celular', label: 'Celular', count: 8, icon: 'Smartphone' },
-  { value: 'accesorio', label: 'Accesorio', count: 2, icon: 'Monitor' },
+  { value: 'laptop', label: 'Laptop', count: 0, icon: 'Laptop' },
+  { value: 'tablet', label: 'Tablet', count: 0, icon: 'Tablet' },
+  { value: 'celular', label: 'Celular', count: 0, icon: 'Smartphone' },
 ];
 
 // NOTE: brandOptions and brandsByDeviceType were removed.

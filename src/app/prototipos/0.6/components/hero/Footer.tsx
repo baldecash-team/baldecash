@@ -308,7 +308,20 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
           <p className="text-sm text-neutral-500">
             {copyrightText}
           </p>
-          <p className="text-xs text-neutral-600">{sbsText}</p>
+          <div className="flex items-center gap-4">
+            <p className="text-xs text-neutral-600">{sbsText}</p>
+            <a
+              href={transformLink('legal/libro-reclamaciones')}
+              className="flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+              title="Libro de reclamaciones"
+            >
+              <img
+                src="https://baldecash.s3.amazonaws.com/company/libro-reclamaciones.png"
+                alt="Libro de reclamaciones"
+                className="h-18 w-auto"
+              />
+            </a>
+          </div>
         </div>
       </div>
 

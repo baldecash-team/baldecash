@@ -6,7 +6,7 @@ import { FilterSection } from './FilterSection';
 import { FilterOption, ProductTagType } from '../../../types/catalog';
 
 interface TagsFilterProps {
-  tagOptions: FilterOption[];
+  tagOptions: FilterOption[] | null;
   selectedTags: ProductTagType[];
   onTagsChange: (tags: ProductTagType[]) => void;
   showCounts?: boolean;
@@ -43,31 +43,39 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
   return (
     <FilterSection title="Destacados" defaultExpanded={true}>
       <div className="flex flex-wrap gap-2">
-        {tagOptions.map((opt) => {
-          const isSelected = selectedTags.includes(opt.value as ProductTagType);
-          const colors = tagColors[opt.value] || defaultTagColors;
+        {tagOptions === null ? (
+          <>
+            {[0, 1, 2, 3].map(i => (
+              <div key={`skel-tag-${i}`} className="h-7 rounded-md bg-neutral-100 animate-pulse" style={{ width: `${60 + i * 15}px` }} />
+            ))}
+          </>
+        ) : (
+          tagOptions.map((opt) => {
+            const isSelected = selectedTags.includes(opt.value as ProductTagType);
+            const colors = tagColors[opt.value] || defaultTagColors;
 
-          return (
-            <Chip
-              key={opt.value}
-              size="sm"
-              radius="sm"
-              variant={isSelected ? 'solid' : 'bordered'}
-              className={`cursor-pointer transition-all ${
-                isSelected
-                  ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
-                  : `${colors.bg} ${colors.text} ${colors.border} hover:border-[var(--color-primary)]`
-              }`}
-              classNames={{
-                base: 'px-3 py-1 h-auto',
-                content: 'text-xs font-medium',
-              }}
-              onClick={() => toggleTag(opt.value as ProductTagType)}
-            >
-              {opt.label}{showCounts && ` (${opt.count})`}
-            </Chip>
-          );
-        })}
+            return (
+              <Chip
+                key={opt.value}
+                size="sm"
+                radius="sm"
+                variant={isSelected ? 'solid' : 'bordered'}
+                className={`cursor-pointer transition-all ${
+                  isSelected
+                    ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)]'
+                    : `${colors.bg} ${colors.text} ${colors.border} hover:border-[var(--color-primary)]`
+                }`}
+                classNames={{
+                  base: 'px-3 py-1 h-auto',
+                  content: 'text-xs font-medium',
+                }}
+                onClick={() => toggleTag(opt.value as ProductTagType)}
+              >
+                {opt.label}{showCounts && ` (${opt.count})`}
+              </Chip>
+            );
+          })
+        )}
       </div>
     </FilterSection>
   );

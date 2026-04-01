@@ -115,6 +115,19 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({
           {/* Divider */}
           <div className="w-full max-w-xs h-px bg-neutral-800 mb-6" />
 
+          {/* Libro de reclamaciones */}
+          <a
+            href={transformLink('legal/libro-reclamaciones')}
+            className="mb-4 opacity-80 hover:opacity-100 transition-opacity"
+            title="Libro de reclamaciones"
+          >
+            <img
+              src="https://baldecash.s3.amazonaws.com/company/libro-reclamaciones.png"
+              alt="Libro de reclamaciones"
+              className="h-18 w-auto"
+            />
+          </a>
+
           {/* SBS + Copyright */}
           {data?.sbs_text && (
             <p className="text-neutral-600 text-xs mb-2">{data.sbs_text}</p>

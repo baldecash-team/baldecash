@@ -96,8 +96,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       }
       return []; // API returned empty - no fallback to mock
     }
-    // API not called yet - return empty while loading (no mock fallback)
-    return [];
+    // API not called yet - show skeleton (null signals loading)
+    return null;
   }, [apiFilters]);
   const dynamicUsageOptions = React.useMemo(() => {
     // If API has responded, use its data (even if empty)
@@ -204,9 +204,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       }
       return []; // API returned empty - no fallback to mock
     }
-    // API not called yet - use mock as placeholder while loading
-    return filterCounts ? applyDynamicCounts(deviceTypeOptions, filterCounts.deviceType) : deviceTypeOptions;
-  }, [apiFilters, filterCounts]);
+    // API not called yet - show skeleton (null signals loading)
+    return null;
+  }, [apiFilters]);
   const dynamicTagOptions = React.useMemo(() => {
     // If API has responded, use its data (even if empty)
     if (apiFilters) {
@@ -220,9 +220,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       }
       return []; // API returned empty - no fallback to mock
     }
-    // API not called yet - use mock as placeholder while loading
-    return filterCounts ? applyDynamicCounts(tagOptions, filterCounts.tags) : tagOptions;
-  }, [apiFilters, filterCounts]);
+    // API not called yet - show skeleton (null signals loading)
+    return null;
+  }, [apiFilters]);
   const dynamicProcessorOptions = React.useMemo(() => {
     if (apiFilters) {
       if (apiFilters.specs?.processor?.values && apiFilters.specs.processor.values.length > 0) {
@@ -255,7 +255,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     });
 
     filters.brands.forEach((brand) => {
-      const opt = dynamicBrandOptions.find((o) => o.value === brand);
+      const opt = dynamicBrandOptions?.find((o) => o.value === brand);
       applied.push({ id: `brand-${brand}`, category: 'Marca', label: opt?.label || brand, value: brand });
     });
 
@@ -498,6 +498,21 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
   const renderBrandFilter = () => {
     const filteredBrands = getFilteredBrandOptions();
+
+    // Skeleton while API loads
+    if (filteredBrands === null) {
+      return (
+        <div className="grid grid-cols-2 gap-2">
+          {[0, 1, 2, 3].map(i => (
+            <div key={`skel-brand-${i}`} className="flex items-center gap-2 p-2 rounded-lg border border-neutral-100 animate-pulse">
+              <div className="w-8 h-8 bg-neutral-200 rounded" />
+              <div className="w-16 h-3 bg-neutral-200 rounded" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     const props = {
       options: filteredBrands,
       selected: filters.brands,
@@ -588,46 +603,58 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 {/* Device Type Filter */}
                 <FilterSection title="Tipo de equipo" defaultExpanded={true}>
                   <div className="grid grid-cols-3 gap-2">
-                    {dynamicDeviceTypeOptions.map((opt, idx) => {
-                      const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
-                      const Icon = deviceTypeIcons[opt.value];
-                      return (
-                        <button
-                          key={`device-${opt.value || idx}`}
-                          onClick={() => {
-                            const deviceType = opt.value as CatalogDeviceType;
-                            if (filters.deviceTypes.includes(deviceType)) {
-                              updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== deviceType));
-                            } else {
-                              updateFilter('deviceTypes', [...filters.deviceTypes, deviceType]);
-                            }
-                          }}
-                          className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                            isSelected
-                              ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                              : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
-                              <Check className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                          <div className="w-12 h-8 flex items-center justify-center mb-1">
-                            {Icon && (
-                              <Icon className={`w-6 h-6 transition-all ${
-                                isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'
-                              }`} />
-                            )}
+                    {dynamicDeviceTypeOptions === null ? (
+                      // Skeleton while API loads
+                      <>
+                        {[0, 1, 2].map(i => (
+                          <div key={`skel-device-${i}`} className="flex flex-col items-center justify-center p-3 rounded-lg border-2 border-neutral-100 animate-pulse">
+                            <div className="w-6 h-6 bg-neutral-200 rounded mb-2" />
+                            <div className="w-12 h-3 bg-neutral-200 rounded" />
                           </div>
-                          <span className={`text-xs font-medium ${
-                            isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600'
-                          }`}>
-                            {opt.label} ({opt.count})
-                          </span>
-                        </button>
-                      );
-                    })}
+                        ))}
+                      </>
+                    ) : (
+                      dynamicDeviceTypeOptions.map((opt, idx) => {
+                        const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
+                        const Icon = deviceTypeIcons[opt.value];
+                        return (
+                          <button
+                            key={`device-${opt.value || idx}`}
+                            onClick={() => {
+                              const deviceType = opt.value as CatalogDeviceType;
+                              if (filters.deviceTypes.includes(deviceType)) {
+                                updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== deviceType));
+                              } else {
+                                updateFilter('deviceTypes', [...filters.deviceTypes, deviceType]);
+                              }
+                            }}
+                            className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                                : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            )}
+                            <div className="w-12 h-8 flex items-center justify-center mb-1">
+                              {Icon && (
+                                <Icon className={`w-6 h-6 transition-all ${
+                                  isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'
+                                }`} />
+                              )}
+                            </div>
+                            <span className={`text-xs font-medium ${
+                              isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600'
+                            }`}>
+                              {opt.label} ({opt.count})
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
                   </div>
                 </FilterSection>
 
@@ -779,46 +806,57 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             {/* Device Type Filter */}
             <FilterSection title="Tipo de equipo" defaultExpanded={true}>
               <div className="grid grid-cols-3 gap-2">
-                {dynamicDeviceTypeOptions.map((opt, idx) => {
-                  const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
-                  const Icon = deviceTypeIcons[opt.value];
-                  return (
-                    <button
-                      key={`mobile-device-${opt.value || idx}`}
-                      onClick={() => {
-                        const deviceType = opt.value as CatalogDeviceType;
-                        if (filters.deviceTypes.includes(deviceType)) {
-                          updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== deviceType));
-                        } else {
-                          updateFilter('deviceTypes', [...filters.deviceTypes, deviceType]);
-                        }
-                      }}
-                      className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                          : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
-                      }`}
-                    >
-                      {isSelected && (
-                        <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                      <div className="w-12 h-8 flex items-center justify-center mb-1">
-                        {Icon && (
-                          <Icon className={`w-6 h-6 transition-all ${
-                            isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'
-                          }`} />
-                        )}
+                {dynamicDeviceTypeOptions === null ? (
+                  <>
+                    {[0, 1, 2].map(i => (
+                      <div key={`skel-mobile-device-${i}`} className="flex flex-col items-center justify-center p-3 rounded-lg border-2 border-neutral-100 animate-pulse">
+                        <div className="w-6 h-6 bg-neutral-200 rounded mb-2" />
+                        <div className="w-12 h-3 bg-neutral-200 rounded" />
                       </div>
-                      <span className={`text-xs font-medium ${
-                        isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600'
-                      }`}>
-                        {opt.label} ({opt.count})
-                      </span>
-                    </button>
-                  );
-                })}
+                    ))}
+                  </>
+                ) : (
+                  dynamicDeviceTypeOptions.map((opt, idx) => {
+                    const isSelected = filters.deviceTypes.includes(opt.value as CatalogDeviceType);
+                    const Icon = deviceTypeIcons[opt.value];
+                    return (
+                      <button
+                        key={`mobile-device-${opt.value || idx}`}
+                        onClick={() => {
+                          const deviceType = opt.value as CatalogDeviceType;
+                          if (filters.deviceTypes.includes(deviceType)) {
+                            updateFilter('deviceTypes', filters.deviceTypes.filter((d) => d !== deviceType));
+                          } else {
+                            updateFilter('deviceTypes', [...filters.deviceTypes, deviceType]);
+                          }
+                        }}
+                        className={`relative flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
+                            : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="absolute top-1 right-1 w-4 h-4 bg-[var(--color-primary)] rounded-full flex items-center justify-center">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                        <div className="w-12 h-8 flex items-center justify-center mb-1">
+                          {Icon && (
+                            <Icon className={`w-6 h-6 transition-all ${
+                              isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'
+                            }`} />
+                          )}
+                        </div>
+                        <span className={`text-xs font-medium ${
+                          isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600'
+                        }`}>
+                          {opt.label} ({opt.count})
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
               </div>
             </FilterSection>
 
