@@ -116,6 +116,10 @@ interface NavbarProps {
   landing?: string;
   /** Offset from top when preview banner is shown (in pixels) */
   previewBannerOffset?: number;
+  /** Institution logo for co-branding (convenio landings) */
+  institutionLogo?: string;
+  /** Institution name for co-branding alt text */
+  institutionName?: string;
 }
 
 // Map de iconos para megamenu (sincronizado con admin MEGAMENU_ICONS)
@@ -145,7 +149,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName }) => {
   // Auto-detect preview banner offset based on whether THIS landing is being previewed
   const { isPreviewingLanding } = usePreview();
   const isThisLandingPreviewed = isPreviewingLanding(landing);
@@ -232,6 +236,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
         setPromoBannerHeight(height);
         document.documentElement.style.setProperty('--promo-banner-height', `${height}px`);
       } else {
+        setPromoBannerHeight(0);
         document.documentElement.style.setProperty('--promo-banner-height', '0px');
       }
     };
@@ -243,6 +248,16 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
       document.documentElement.style.removeProperty('--promo-banner-height');
     };
   }, [showPromo, promoBannerData]);
+
+  // Exponer altura total de elementos fixed (preview + promo + navbar)
+  useEffect(() => {
+    const navH = 64; // h-16 = 4rem = 64px
+    const total = previewBannerOffset + promoBannerHeight + navH;
+    document.documentElement.style.setProperty('--header-total-height', `${total}px`);
+    return () => {
+      document.documentElement.style.removeProperty('--header-total-height');
+    };
+  }, [previewBannerOffset, promoBannerHeight]);
 
   // Logo Only mode: blue background with centered white logo
   if (logoOnly) {
@@ -313,12 +328,22 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
         <div className={fullWidth ? "px-4 lg:px-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <a href={heroUrl} className="flex items-center">
+            <a href={heroUrl} className="flex items-center gap-3">
               <img
                 src={logoUrl}
                 alt="BaldeCash"
                 className="h-8 object-contain"
               />
+              {institutionLogo && (
+                <>
+                  <span className="text-neutral-300 text-lg font-light">×</span>
+                  <img
+                    src={institutionLogo}
+                    alt={institutionName || 'Institución'}
+                    className="h-7 object-contain"
+                  />
+                </>
+              )}
             </a>
 
             {/* Desktop Navigation */}

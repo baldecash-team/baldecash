@@ -13,7 +13,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { useParams } from 'next/navigation';
 import { getLandingLayout, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
-import type { PromoBannerData, FooterData } from '@/app/prototipos/0.6/types/hero';
+import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
@@ -23,12 +23,15 @@ interface NavbarProps {
   navbarItems?: { label: string; href: string; section: string | null; has_megamenu?: boolean }[];
   megamenuItems?: { label: string; href: string; icon: string; description: string }[];
   activeSections?: string[];
+  institutionLogo?: string;
+  institutionName?: string;
 }
 
 interface LayoutContextValue {
   layoutData: LandingLayoutResponse | null;
   navbarProps: NavbarProps | null;
   footerData: FooterData | null;
+  agreementData: AgreementData | null;
   isLoading: boolean;
   hasError: boolean; // true when landing not found or API error (for 404 display)
   landing: string;
@@ -135,6 +138,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       dismissible: (promoConfig.dismissible as boolean) ?? true,
     } : null;
 
+    // Agreement data for co-branding (convenio landings)
+    const agreement = (layoutData as Record<string, unknown>).agreement as { institution_logo?: string; institution_name?: string } | undefined;
+
     return {
       promoBannerData,
       logoUrl: layoutData.company?.logo_url,
@@ -143,6 +149,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       navbarItems: navbarItems || [],
       megamenuItems: megamenuItems || [],
       activeSections: ['convenios', 'como-funciona', 'faq', 'testimonios'],
+      institutionLogo: agreement?.institution_logo || undefined,
+      institutionName: agreement?.institution_name || undefined,
     };
   }, [layoutData]);
 
@@ -218,10 +226,18 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     };
   }, [primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb]);
 
+  // Extract agreement data for convenio pages
+  const agreementData = useMemo((): AgreementData | null => {
+    if (!layoutData) return null;
+    const agreement = (layoutData as Record<string, unknown>).agreement as AgreementData | undefined;
+    return agreement || null;
+  }, [layoutData]);
+
   const value = useMemo(() => ({
     layoutData,
     navbarProps,
     footerData,
+    agreementData,
     isLoading,
     hasError,
     landing,
@@ -231,7 +247,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     secondaryColorRgb,
     isPreviewMode,
     previewLandingId,
-  }), [layoutData, navbarProps, footerData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId]);
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId]);
 
   return (
     <LayoutContext.Provider value={value}>

@@ -18,6 +18,9 @@ import type {
   FooterData,
   CompanyData,
   CompanySocialLinks,
+  BenefitsData,
+  BenefitItem,
+  AgreementData,
 } from '../types/hero';
 
 // API Base URL
@@ -266,6 +269,16 @@ export interface LandingLayoutResponse {
   } | null;
   primary_color?: string | null;
   secondary_color?: string | null;
+  agreement?: {
+    id: number;
+    code?: string;
+    name?: string;
+    type?: string;
+    discount_percentage?: string;
+    institution_name?: string;
+    institution_short_name?: string;
+    institution_logo?: string;
+  } | null;
 }
 
 /**
@@ -345,6 +358,8 @@ export function transformLandingData(data: LandingHeroResponse): {
   customerPortalUrl?: string;
   portalButtonText?: string;
   footerData: FooterData | null;
+  benefitsData: BenefitsData | null;
+  agreementData: AgreementData | null;
   primaryColor: string;
   secondaryColor: string;
 } {
@@ -374,6 +389,7 @@ export function transformLandingData(data: LandingHeroResponse): {
   const promoBannerComponent = components.find(c => c.component_code === 'promo_banner');
   const navbarComponent = components.find(c => c.component_code === 'navbar');
   const footerComponent = components.find(c => c.component_code === 'footer');
+  const benefitsComponent = components.find(c => c.component_code === 'benefits');
 
   // Extraer items del navbar
   const navbarConfig = (navbarComponent?.content_config || {}) as Record<string, unknown>;
@@ -419,6 +435,9 @@ export function transformLandingData(data: LandingHeroResponse): {
   }
   if (testimonialsComponent && visibleNavbarSections.includes('testimonios')) {
     activeSections.push('testimonios');
+  }
+  if (benefitsComponent && visibleNavbarSections.includes('beneficios')) {
+    activeSections.push('beneficios');
   }
 
   // Flag para CTA
@@ -527,28 +546,33 @@ export function transformLandingData(data: LandingHeroResponse): {
     const stepsTitle = (howConfig.steps_title as string) || undefined;
     const requirementsTitle = (howConfig.requirements_title as string) || undefined;
 
-    howItWorksData = {
-      title: howTitle,
-      subtitle: howSubtitle,
-      stepLabel,
-      stepsTitle,
-      requirementsTitle,
-      steps: ((howConfig.steps as { id: number; title: string; description: string; icon: string; color?: string; is_visible?: boolean }[]) || []).map((step, index) => ({
+    const steps = ((howConfig.steps as { id: number; title: string; description: string; icon: string; color?: string; is_visible?: boolean }[]) || []).map((step, index) => ({
         id: step.id || index + 1,
         title: step.title || '',
         description: step.description || '',
         icon: step.icon || '',
         color: step.color,
         is_visible: step.is_visible,
-      })),
-      requirements: ((howConfig.requirements as { id: number; text: string; icon?: string; is_visible?: boolean }[]) || []).map((req, index) => ({
-        id: req.id || index + 1,
-        text: req.text || '',
-        icon: req.icon,
-        is_visible: req.is_visible,
-      })),
-      availableTerms: (howConfig.available_terms as number[]) || [],
-    };
+      }));
+
+    // Only create howItWorksData if there are actual steps to show
+    if (steps.length > 0) {
+      howItWorksData = {
+        title: howTitle,
+        subtitle: howSubtitle,
+        stepLabel,
+        stepsTitle,
+        requirementsTitle,
+        steps,
+        requirements: ((howConfig.requirements as { id: number; text: string; icon?: string; is_visible?: boolean }[]) || []).map((req, index) => ({
+          id: req.id || index + 1,
+          text: req.text || '',
+          icon: req.icon,
+          is_visible: req.is_visible,
+        })),
+        availableTerms: (howConfig.available_terms as number[]) || [],
+      };
+    }
   }
 
   // Extraer datos de FAQ (null si el componente no existe)
@@ -721,6 +745,31 @@ export function transformLandingData(data: LandingHeroResponse): {
     };
   }
 
+  // Extract benefits data
+  let benefitsData: BenefitsData | null = null;
+  if (benefitsComponent) {
+    const benefitsConfig = (benefitsComponent.content_config || {}) as Record<string, unknown>;
+    benefitsData = {
+      title: (benefitsConfig.title as string) || 'Beneficios',
+      subtitle: (benefitsConfig.subtitle as string) || undefined,
+      benefits: (benefitsConfig.benefits as BenefitItem[]) || [],
+    };
+  }
+
+  // Extract agreement data (for convenio landings)
+  const landingData = data.landing as unknown as Record<string, unknown>;
+  const agreementRaw = landingData.agreement as Record<string, unknown> | null | undefined;
+  const agreementData: AgreementData | null = agreementRaw ? {
+    id: agreementRaw.id as number,
+    code: (agreementRaw.code as string) || '',
+    name: (agreementRaw.name as string) || '',
+    type: (agreementRaw.type as string) || undefined,
+    discount_percentage: (agreementRaw.discount_percentage as string) || undefined,
+    institution_name: (agreementRaw.institution_name as string) || undefined,
+    institution_short_name: (agreementRaw.institution_short_name as string) || undefined,
+    institution_logo: (agreementRaw.institution_logo as string) || undefined,
+  } : null;
+
   return {
     heroContent,
     socialProof,
@@ -738,6 +787,8 @@ export function transformLandingData(data: LandingHeroResponse): {
     customerPortalUrl: data.company?.customer_portal_url || undefined,
     portalButtonText: (navbarConfig.portal_button_text as string) || undefined,
     footerData,
+    benefitsData,
+    agreementData,
     primaryColor: data.landing.primary_color || '#4654CD',
     secondaryColor: data.landing.secondary_color || '#03DBD0',
   };
@@ -766,6 +817,8 @@ export async function fetchHeroData(slug: string, preview: boolean = false, prev
   customerPortalUrl?: string;
   portalButtonText?: string;
   footerData: FooterData | null;
+  benefitsData: BenefitsData | null;
+  agreementData: AgreementData | null;
   primaryColor: string;
   secondaryColor: string;
 } | null> {

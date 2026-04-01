@@ -9,6 +9,7 @@
 import React from 'react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -29,7 +30,8 @@ function LoadingFallback() {
 }
 
 export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayoutProps) {
-  const { navbarProps, footerData, isLoading, hasError, landing } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading, hasError, landing } = useLayout();
+  const isConvenio = !!agreementData;
 
   useScrollToTop();
 
@@ -55,6 +57,8 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         megamenuItems={navbarProps.megamenuItems}
         activeSections={navbarProps.activeSections}
         landing={landing}
+        institutionLogo={navbarProps.institutionLogo}
+        institutionName={navbarProps.institutionName}
       />
 
       {/* Main Content - pt-40 to account for navbar (64px) + promo banner (40px) + spacing */}
@@ -79,8 +83,12 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         </div>
       </main>
 
-      {/* Footer */}
-      <Footer data={footerData} landing={landing} />
+      {/* Footer - Convenio uses minimalist co-branded footer */}
+      {isConvenio ? (
+        <ConvenioFooter data={footerData} agreementData={agreementData!} landing={landing} />
+      ) : (
+        <Footer data={footerData} landing={landing} />
+      )}
     </div>
   );
 }

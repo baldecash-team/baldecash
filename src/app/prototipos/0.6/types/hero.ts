@@ -384,3 +384,34 @@ export interface NavbarItemData {
   megamenu_items?: MegaMenuItemData[];
   is_visible?: boolean;
 }
+
+// ============================================
+// Benefits Types (for convenio landings)
+// ============================================
+
+export interface BenefitItem {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface BenefitsData {
+  title: string;
+  subtitle?: string;
+  benefits: BenefitItem[];
+}
+
+// ============================================
+// Agreement Types (for convenio landings)
+// ============================================
+
+export interface AgreementData {
+  id: number;
+  code: string;
+  name: string;
+  type?: string;
+  discount_percentage?: string;
+  institution_name?: string;
+  institution_short_name?: string;
+  institution_logo?: string;
+}

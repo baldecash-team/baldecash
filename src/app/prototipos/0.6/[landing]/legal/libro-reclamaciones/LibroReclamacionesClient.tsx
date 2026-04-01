@@ -11,6 +11,7 @@ import { Button, Card, CardBody, Radio, RadioGroup } from '@nextui-org/react';
 import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop, Toast } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -66,7 +67,8 @@ function LoadingFallback() {
 }
 
 export function LibroReclamacionesClient() {
-  const { navbarProps, footerData, isLoading, hasError, landing } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading, hasError, landing } = useLayout();
+  const isConvenio = !!agreementData;
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,6 +142,8 @@ export function LibroReclamacionesClient() {
         megamenuItems={navbarProps.megamenuItems}
         activeSections={navbarProps.activeSections}
         landing={landing}
+        institutionLogo={navbarProps.institutionLogo}
+        institutionName={navbarProps.institutionName}
       />
 
       {/* Main Content */}
@@ -470,7 +474,11 @@ export function LibroReclamacionesClient() {
       </main>
 
       {/* Footer */}
-      <Footer data={footerData} landing={landing} />
+      {isConvenio ? (
+        <ConvenioFooter data={footerData} agreementData={agreementData!} landing={landing} />
+      ) : (
+        <Footer data={footerData} landing={landing} />
+      )}
 
       {/* Success Toast */}
       <Toast

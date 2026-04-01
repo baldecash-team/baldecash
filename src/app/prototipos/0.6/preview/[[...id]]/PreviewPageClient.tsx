@@ -14,7 +14,7 @@ import { usePreview } from '../../context/PreviewContext';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../../types/hero';
+import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../../types/hero';
 
 function LoadingFallback() {
   return (
@@ -45,6 +45,8 @@ interface HeroData {
   customerPortalUrl?: string;
   portalButtonText?: string;
   footerData: FooterData | null;
+  benefitsData: BenefitsData | null;
+  agreementData: AgreementData | null;
   primaryColor?: string;
   secondaryColor?: string;
   slug?: string;
@@ -332,6 +334,8 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         customerPortalUrl={heroData.customerPortalUrl}
         portalButtonText={heroData.portalButtonText}
         footerData={mergedFooterData}
+        benefitsData={heroData.benefitsData}
+        agreementData={heroData.agreementData}
         landing={landingSlug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
         previewKey={previewKey}

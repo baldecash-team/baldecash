@@ -17,7 +17,7 @@ import { usePreview } from '../context/PreviewContext';
 import { NotFoundContent } from '../components/NotFoundContent';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData } from '../types/hero';
+import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
 
 // Slugs que activan el modal de DNI al cargar la landing
 const DNI_MODAL_SLUGS = ['liderman-baldecash'];
@@ -52,6 +52,8 @@ interface HeroData {
   customerPortalUrl?: string;
   portalButtonText?: string;
   footerData: FooterData | null;
+  benefitsData: BenefitsData | null;
+  agreementData: AgreementData | null;
   primaryColor?: string;
   secondaryColor?: string;
 }
@@ -124,14 +126,15 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
     return {
       ...heroData.heroContent,
       // Override with preview data if present (using correct property names)
-      headline: preview.title ?? heroData.heroContent.headline,
-      subheadline: preview.subtitle ?? heroData.heroContent.subheadline,
+      // Use || instead of ?? so empty strings fall through to API/fallback values
+      headline: preview.title || heroData.heroContent.headline,
+      subheadline: preview.subtitle || heroData.heroContent.subheadline,
       primaryCta: preview.ctaText
-        ? { ...heroData.heroContent.primaryCta, text: preview.ctaText, href: preview.ctaUrl ?? heroData.heroContent.primaryCta.href }
+        ? { ...heroData.heroContent.primaryCta, text: preview.ctaText, href: preview.ctaUrl || heroData.heroContent.primaryCta.href }
         : heroData.heroContent.primaryCta,
-      backgroundImage: preview.backgroundUrl ?? heroData.heroContent.backgroundImage,
+      backgroundImage: preview.backgroundUrl || heroData.heroContent.backgroundImage,
       minQuota: preview.minQuota ?? heroData.heroContent.minQuota,
-      badgeText: preview.badgeText ?? heroData.heroContent.badgeText,
+      badgeText: preview.badgeText || heroData.heroContent.badgeText,
       trustSignals: preview.trustSignals
         ? preview.trustSignals
             .filter((s) => s.isVisible !== false)
@@ -346,6 +349,8 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
         customerPortalUrl={heroData.customerPortalUrl}
         portalButtonText={heroData.portalButtonText}
         footerData={mergedFooterData}
+        benefitsData={heroData.benefitsData}
+        agreementData={heroData.agreementData}
         landing={slug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
         previewKey={previewKey}
