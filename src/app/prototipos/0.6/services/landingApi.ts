@@ -21,6 +21,7 @@ import type {
   BenefitsData,
   BenefitItem,
   AgreementData,
+  CtaQuickLink,
 } from '../types/hero';
 
 // API Base URL
@@ -671,6 +672,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       legalLinks,
       sectionTitle: (ctaConfig.section_title as string) || undefined,
       sectionSubtitle: (ctaConfig.section_subtitle as string) || undefined,
+      quickLinks: (ctaConfig.quick_links as CtaQuickLink[]) || undefined,
     };
   }
 

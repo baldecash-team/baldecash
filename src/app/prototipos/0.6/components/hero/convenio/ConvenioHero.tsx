@@ -71,16 +71,18 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
       style={{ height: 'calc(100svh - var(--header-total-height, 4rem))' }}
     >
       {/* Background image */}
-      <img
-        src={heroContent.backgroundImage || ''}
-        alt="Campus universitario"
-        className="absolute inset-0 w-full h-full object-cover"
-        loading="lazy"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.style.opacity = '0';
-        }}
-      />
+      {heroContent.backgroundImage && (
+        <img
+          src={heroContent.backgroundImage}
+          alt="Campus universitario"
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.style.opacity = '0';
+          }}
+        />
+      )}
 
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-transparent" />
@@ -96,15 +98,15 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
             }}
             style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
           >
-            {heroContent.badgeText || `Convenio ${institutionShortName}`}
+            {heroContent.badgeText}
           </Chip>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 font-['Baloo_2']">
-            {heroContent.headline || `Financia tu equipo con beneficios ${institutionShortName || 'exclusivos'}`}
+            {heroContent.headline}
           </h1>
 
           <p className="text-lg text-white/80 mb-6">
-            {heroContent.subheadline || `Como estudiante de ${agreementData.institution_name || agreementData.name || 'tu institución'}, tienes acceso a condiciones especiales de financiamiento.`}
+            {heroContent.subheadline}
           </p>
 
           {/* Price highlight */}
@@ -137,7 +139,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
             className="inline-flex items-center gap-2 px-8 py-3 text-white font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity text-lg"
             style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
           >
-            {heroContent.primaryCta?.text || 'Ver equipos disponibles'}
+            {heroContent.primaryCta?.text}
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>

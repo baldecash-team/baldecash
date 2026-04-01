@@ -18,6 +18,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 // Hero components
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 
 // Hooks
 import { useProductDetail } from './hooks/useProductDetail';
@@ -42,7 +43,7 @@ function ProductDetailContent() {
   useScrollToTop();
 
   // Layout context (navbar, footer)
-  const { navbarProps, footerData, isLoading: isLayoutLoading } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading } = useLayout();
 
   // Product data
   const {
@@ -101,7 +102,9 @@ function ProductDetailContent() {
           portalButtonText={navbarProps?.portalButtonText}
           navbarItems={navbarProps?.navbarItems}
           megamenuItems={navbarProps?.megamenuItems}
-          activeSections={['convenios', 'como-funciona', 'faq']}
+          activeSections={navbarProps?.activeSections || []}
+          institutionLogo={navbarProps?.institutionLogo}
+          institutionName={navbarProps?.institutionName}
         />
         <div className="max-w-7xl mx-auto px-4 py-20 text-center">
           <h1 className="text-2xl font-bold text-neutral-800 mb-4">Producto no encontrado</h1>
@@ -114,7 +117,7 @@ function ProductDetailContent() {
             Volver al catalogo
           </button>
         </div>
-        <Footer data={footerData} landing={landing} />
+        {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
       </div>
     );
   }
@@ -130,7 +133,9 @@ function ProductDetailContent() {
         customerPortalUrl={navbarProps?.customerPortalUrl}
         navbarItems={navbarProps?.navbarItems}
         megamenuItems={navbarProps?.megamenuItems}
-        activeSections={['convenios', 'como-funciona', 'faq']}
+        activeSections={navbarProps?.activeSections || []}
+        institutionLogo={navbarProps?.institutionLogo}
+        institutionName={navbarProps?.institutionName}
       />
 
       {/* Breadcrumb / Back */}

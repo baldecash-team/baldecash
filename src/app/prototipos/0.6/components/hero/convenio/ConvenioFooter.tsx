@@ -96,7 +96,7 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({
 
           {/* Description */}
           <p className="text-neutral-400 text-sm max-w-md mb-6">
-            {data?.tagline || `Financiamiento exclusivo para estudiantes de ${agreementData.institution_name || agreementData.name}. Sin historial crediticio. Aprobación en 24 horas.`}
+            {data?.tagline}
           </p>
 
           {/* Legal Links */}
@@ -120,7 +120,7 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({
             <p className="text-neutral-600 text-xs mb-2">{data.sbs_text}</p>
           )}
           <p className="text-neutral-500 text-xs">
-            {data?.copyright_text || `© ${currentYear} BaldeCash. Todos los derechos reservados.`}
+            {data?.copyright_text}
           </p>
         </div>
       </div>

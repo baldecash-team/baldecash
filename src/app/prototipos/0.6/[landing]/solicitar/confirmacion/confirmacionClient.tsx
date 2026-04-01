@@ -17,6 +17,7 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { getApplicationStatus } from '../../../services/applicationApi';
@@ -314,7 +315,7 @@ function ConfirmacionContent() {
   useScrollToTop();
 
   // Get layout data from context
-  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Fetch application status when code is present
   useEffect(() => {
@@ -373,7 +374,7 @@ function ConfirmacionContent() {
           <DemoContent onSelectResult={handleSelectResult} />
         )}
       </div>
-      <Footer data={footerData} landing={landing} />
+      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
     </>
   );
 }

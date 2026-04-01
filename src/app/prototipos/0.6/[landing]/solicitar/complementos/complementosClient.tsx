@@ -19,6 +19,7 @@ import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototip
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
@@ -50,7 +51,7 @@ function ComplementosContent() {
   });
 
   // Get layout data from context
-  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config for back navigation and cross-step validation
   const { steps } = useWizardConfig();
@@ -318,7 +319,7 @@ function ComplementosContent() {
     <>
       {pageContent}
       <SelectedProductSpacer />
-      <Footer data={footerData} landing={landing} />
+      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
 
       {/* Submit progress overlay */}
       <SubmitOverlay isOpen={isSubmitting} stage={submitStage} />

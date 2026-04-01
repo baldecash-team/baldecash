@@ -14,6 +14,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 
 // Secondary Navbar with search, wishlist, cart
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CatalogSecondaryNavbar';
@@ -54,7 +55,7 @@ function ProductDetailContent() {
   const landing = (params.landing as string) || 'home';
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const previewBannerOffset = previewKey ? 24 : 0;
@@ -298,7 +299,9 @@ function ProductDetailContent() {
         portalButtonText={navbarProps?.portalButtonText}
         navbarItems={navbarProps?.navbarItems}
         megamenuItems={navbarProps?.megamenuItems}
-        activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
+        activeSections={navbarProps?.activeSections || []}
+        institutionLogo={navbarProps?.institutionLogo}
+        institutionName={navbarProps?.institutionName}
       />
 
       {/* Secondary Navbar with Search, Wishlist, Cart */}
@@ -392,7 +395,7 @@ function ProductDetailContent() {
       </main>
 
       {/* Footer from Hero */}
-      <Footer data={footerData} landing={landing} />
+      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
 
       {/* Mobile Drawers */}
       <SearchDrawer

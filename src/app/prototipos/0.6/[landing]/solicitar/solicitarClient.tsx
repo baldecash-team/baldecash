@@ -17,6 +17,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -80,7 +81,7 @@ function WizardPreviewContent() {
   const [couponError, setCouponError] = useState<string | null>(null);
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config for dynamic first step
   const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes } = useWizardConfig();
@@ -306,7 +307,9 @@ function WizardPreviewContent() {
         portalButtonText={navbarProps?.portalButtonText}
         navbarItems={navbarProps?.navbarItems}
         megamenuItems={navbarProps?.megamenuItems}
-        activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
+        activeSections={navbarProps?.activeSections || []}
+        institutionLogo={navbarProps?.institutionLogo}
+        institutionName={navbarProps?.institutionName}
       />
 
       {/* Spacer for fixed navbar + promo banner */}
@@ -698,7 +701,7 @@ function WizardPreviewContent() {
       {pageContent}
       <SelectedProductBar mobileOnly />
       <SelectedProductSpacer />
-      <Footer data={footerData} landing={landing} />
+      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
     </div>
   );
 }

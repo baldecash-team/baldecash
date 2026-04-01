@@ -291,6 +291,13 @@ export interface LegalLinks {
   privacy: LegalLink;
 }
 
+export interface CtaQuickLink {
+  text: string;
+  action: 'link' | 'scroll';
+  url?: string;
+  target?: string;
+}
+
 export interface CtaData {
   buttons: {
     catalog: CtaButton;
@@ -303,6 +310,7 @@ export interface CtaData {
   legalLinks?: LegalLinks;
   sectionTitle?: string;
   sectionSubtitle?: string;
+  quickLinks?: CtaQuickLink[];
 }
 
 export interface HeroCtaProps {

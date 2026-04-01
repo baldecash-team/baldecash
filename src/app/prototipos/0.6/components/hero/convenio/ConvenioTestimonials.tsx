@@ -39,7 +39,7 @@ export const ConvenioTestimonials: React.FC<ConvenioTestimonialsProps> = ({
             className="text-3xl md:text-4xl font-bold mb-4 font-['Baloo_2']"
             style={{ color: 'var(--color-primary, #4654CD)' }}
           >
-            {title || 'Lo que dicen nuestros estudiantes'}
+            {title}
           </h2>
           <p className="text-neutral-600 max-w-2xl mx-auto">
             Estudiantes de {institutionShortName} ya financiaron su equipo con nosotros.

@@ -18,6 +18,7 @@ import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardS
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Context
@@ -88,7 +89,7 @@ function StepContent() {
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config from API
   const {
@@ -728,7 +729,7 @@ function StepContent() {
     return (
       <>
         {pageContent}
-        <Footer data={footerData} landing={landing} />
+        {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
       </>
     );
   }
@@ -776,7 +777,7 @@ function StepContent() {
   return (
     <>
       {pageContent}
-      <Footer data={footerData} landing={landing} />
+      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
     </>
   );

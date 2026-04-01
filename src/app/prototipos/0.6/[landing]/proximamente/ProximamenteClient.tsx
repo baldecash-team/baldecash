@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -69,7 +70,7 @@ function LoadingFallback() {
 function ProximamenteContent() {
   const searchParams = useSearchParams();
   const seccion = searchParams.get('seccion') || '';
-  const { navbarProps, footerData, isLoading, hasError, landing } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading, hasError, landing } = useLayout();
 
   const [sections, setSections] = useState<ComingSoonSection[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState(true);
@@ -149,6 +150,8 @@ function ProximamenteContent() {
         megamenuItems={navbarProps.megamenuItems}
         activeSections={navbarProps.activeSections}
         landing={landing}
+        institutionLogo={navbarProps.institutionLogo}
+        institutionName={navbarProps.institutionName}
       />
 
       {/* Main Content */}
@@ -238,7 +241,7 @@ function ProximamenteContent() {
       </main>
 
       {/* Footer */}
-      <Footer data={footerData} landing={landing} />
+      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
     </div>
   );
 }

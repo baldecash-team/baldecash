@@ -80,10 +80,10 @@ export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ data, agreementData })
             className="text-3xl md:text-4xl font-bold mb-4 font-['Baloo_2']"
             style={{ color: 'var(--color-primary, #4654CD)' }}
           >
-            {data.title || 'Preguntas frecuentes'}
+            {data.title}
           </h2>
           <p className="text-neutral-600">
-            {data.subtitle || `Resolvemos tus dudas sobre el convenio ${institutionShortName}`}
+            {data.subtitle}
           </p>
         </div>
 

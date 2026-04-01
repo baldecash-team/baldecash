@@ -148,7 +148,10 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       portalButtonText: (navbarConfig?.portal_button_text as string) || undefined,
       navbarItems: navbarItems || [],
       megamenuItems: megamenuItems || [],
-      activeSections: ['convenios', 'como-funciona', 'faq', 'testimonios'],
+      // Derive active sections from navbar items (if an item has a section, it's active)
+      activeSections: (navbarItems || [])
+        .filter((item) => item.section)
+        .map((item) => item.section as string),
       institutionLogo: agreement?.institution_logo || undefined,
       institutionName: agreement?.institution_name || undefined,
     };

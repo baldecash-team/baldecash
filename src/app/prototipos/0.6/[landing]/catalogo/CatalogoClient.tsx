@@ -57,6 +57,7 @@ import { useOnboarding } from './hooks/useOnboarding';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -297,7 +298,7 @@ function CatalogoContent() {
   const tracker = useEventTrackerOptional();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor } = useLayout();
 
   // Preview mode support
   const preview = usePreview();
@@ -1449,7 +1450,9 @@ function CatalogoContent() {
           portalButtonText={navbarProps?.portalButtonText}
           navbarItems={navbarProps?.navbarItems}
           megamenuItems={navbarProps?.megamenuItems}
-          activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
+          activeSections={navbarProps?.activeSections || []}
+          institutionLogo={navbarProps?.institutionLogo}
+          institutionName={navbarProps?.institutionName}
           previewBannerOffset={previewBannerOffset}
         />
         <main style={{ paddingTop: (navbarProps?.promoBannerData ? 160 : 120) + previewBannerOffset }}>
@@ -1471,7 +1474,7 @@ function CatalogoContent() {
             </div>
           </div>
         </main>
-        <Footer data={footerData} landing={landing} />
+        {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
       </div>
     );
   }
@@ -1494,7 +1497,9 @@ function CatalogoContent() {
         portalButtonText={navbarProps?.portalButtonText}
         navbarItems={navbarProps?.navbarItems}
         megamenuItems={navbarProps?.megamenuItems}
-        activeSections={['convenios', 'como-funciona', 'faq', 'testimonios']}
+        activeSections={navbarProps?.activeSections || []}
+        institutionLogo={navbarProps?.institutionLogo}
+        institutionName={navbarProps?.institutionName}
         previewBannerOffset={previewBannerOffset}
       />
 
@@ -1763,7 +1768,7 @@ function CatalogoContent() {
       </main>
 
       {/* Footer from Hero */}
-      <Footer data={footerData} landing={landing} />
+      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
 
       {/* Cart Selection Modal */}
       <CartSelectionModal
