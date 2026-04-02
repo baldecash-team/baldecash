@@ -601,6 +601,7 @@ function CatalogoContent() {
       initialPercent: 0,
       initialAmount: 0,
       image: product.thumbnail,
+      type: product.deviceType,
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
