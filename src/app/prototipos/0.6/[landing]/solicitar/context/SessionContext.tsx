@@ -281,12 +281,17 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
           return result.uuid;
         }
 
-        // If API fails completely, clear localStorage and report error
+        // API failed — use local UUID as fallback so event tracking still works.
+        // Events will be sent with this UUID; the backend batch endpoint may
+        // accept them or they'll simply be lost, but the client-side tracking
+        // (scroll, page_enter, etc.) will still fire.
+        console.warn('[Session] API unavailable — using local UUID for tracking');
         if (typeof window !== 'undefined') {
-          localStorage.removeItem(sessionKey);
+          localStorage.setItem(sessionKey, uuid);
         }
-        console.error('Failed to initialize tracking session');
-        return null;
+        setSessionUuid(uuid);
+        setIsInitialized(true);
+        return uuid;
       } finally {
         setIsCreating(false);
       }

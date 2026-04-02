@@ -29,6 +29,7 @@ export type EventType =
   | 'outbound_click'
   | 'product_view'
   | 'product_click'
+  | 'product_hover'
   | 'cart_add'
   | 'cart_remove'
   | 'cart_clear'
