@@ -40,7 +40,7 @@ interface LandingResponse {
   hero_cta_text?: string;
   hero_cta_url?: string;
   hero_cta_url_params?: string;
-  banner_images?: { url: string; alt?: string }[];
+  banner_images?: { url: string; alt?: string; position_x?: number; position_y?: number; zoom?: number }[];
   logo_url: string;
   primary_color: string;
   secondary_color: string;
@@ -452,7 +452,11 @@ export function transformLandingData(data: LandingHeroResponse): {
 
     // Background image desde landing.banner_images (primer imagen)
     const bannerImages = data.landing.banner_images || [];
-    const backgroundImage = bannerImages.length > 0 ? bannerImages[0].url : undefined;
+    const firstBanner = bannerImages.length > 0 ? bannerImages[0] : null;
+    const backgroundImage = firstBanner?.url;
+    const backgroundPositionX = firstBanner?.position_x ?? 50;
+    const backgroundPositionY = firstBanner?.position_y ?? 50;
+    const backgroundZoom = firstBanner?.zoom ?? 1.0;
 
     // Combinar hero_cta_url + hero_cta_url_params si existen
     const heroBaseUrl = data.landing.hero_cta_url || ctaPrimary?.href || '#';
@@ -475,6 +479,9 @@ export function transformLandingData(data: LandingHeroResponse): {
         is_visible: signal.is_visible,
       })),
       backgroundImage,
+      backgroundPositionX,
+      backgroundPositionY,
+      backgroundZoom,
       badgeText: (heroConfig.badge_text as string) || undefined,
     };
   }

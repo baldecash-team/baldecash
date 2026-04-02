@@ -18,6 +18,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   subheadline,
   minQuota,
   imageSrc,
+  imagePositionX = 50,
+  imagePositionY = 50,
+  imageZoom = 1.0,
   primaryCta,
   trustSignals = [],
   badgeText,
@@ -122,6 +125,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         src={imageSrc}
         alt="Estudiantes trabajando"
         className="absolute inset-0 w-full h-full object-cover"
+        style={{
+          objectPosition: `${imagePositionX}% ${imagePositionY}%`,
+          transform: imageZoom !== 1 ? `scale(${imageZoom})` : undefined,
+        }}
         loading="lazy"
         onError={(e) => {
           const target = e.target as HTMLImageElement;

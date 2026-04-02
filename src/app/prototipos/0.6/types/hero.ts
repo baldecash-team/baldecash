@@ -82,6 +82,9 @@ export interface HeroContent {
   minQuota: number;
   trustSignals: TrustSignal[];
   backgroundImage?: string;
+  backgroundPositionX?: number;
+  backgroundPositionY?: number;
+  backgroundZoom?: number;
   badgeText?: string;
 }
 
@@ -100,6 +103,9 @@ export interface HeroBannerProps {
   subheadline: string;
   minQuota: number;
   imageSrc?: string;
+  imagePositionX?: number;
+  imagePositionY?: number;
+  imageZoom?: number;
   primaryCta?: CtaConfig;
   secondaryCta?: CtaConfig;
   trustSignals?: TrustSignal[];

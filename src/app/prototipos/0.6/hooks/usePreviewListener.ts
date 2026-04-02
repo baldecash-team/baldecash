@@ -24,6 +24,9 @@ export interface PreviewPayload {
     ctaText?: string;
     ctaUrl?: string;
     backgroundUrl?: string;
+    backgroundPositionX?: number;
+    backgroundPositionY?: number;
+    backgroundZoom?: number;
     minQuota?: number;
     badgeText?: string;
     trustSignals?: Array<{

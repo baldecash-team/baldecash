@@ -141,6 +141,9 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         ? { ...heroData.heroContent.primaryCta, text: preview.ctaText, href: preview.ctaUrl ?? heroData.heroContent.primaryCta.href }
         : heroData.heroContent.primaryCta,
       backgroundImage: preview.backgroundUrl ?? heroData.heroContent.backgroundImage,
+      backgroundPositionX: preview.backgroundPositionX ?? heroData.heroContent.backgroundPositionX,
+      backgroundPositionY: preview.backgroundPositionY ?? heroData.heroContent.backgroundPositionY,
+      backgroundZoom: preview.backgroundZoom ?? heroData.heroContent.backgroundZoom,
       minQuota: preview.minQuota ?? heroData.heroContent.minQuota,
       badgeText: preview.badgeText ?? heroData.heroContent.badgeText,
       trustSignals: preview.trustSignals
