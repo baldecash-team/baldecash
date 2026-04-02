@@ -19,8 +19,7 @@ export const AccessoryIntro: React.FC = () => {
             Los estudiantes también llevan...
           </h2>
           <p className="text-sm text-neutral-600">
-            7 de cada 10 estudiantes agregan al menos un accesorio a su compra.{' '}
-            <span className="text-neutral-400">Todos son opcionales.</span>
+            7 de cada 10 estudiantes agregan al menos un accesorio a su compra.
           </p>
         </div>
       </div>
