@@ -9,12 +9,12 @@ import { ReactNode } from 'react';
 export type UnderlineStyle = 1 | 2 | 3 | 4 | 5 | 6;
 
 // ============================================
-// Institution Types
+// Study Center Types
 // ============================================
 
 export type AgreementType = 'convenio_marco' | 'convenio_especifico' | 'alianza';
 
-export interface Institution {
+export interface StudyCenter {
   id: string;
   code: string;
   name: string;
@@ -46,7 +46,7 @@ export interface SocialProofData {
   studentCount: number;
   institutionCount: number;
   yearsInMarket: number;
-  institutions: Institution[];
+  studyCenters: StudyCenter[];
   mediaLogos: MediaLogo[];
 }
 

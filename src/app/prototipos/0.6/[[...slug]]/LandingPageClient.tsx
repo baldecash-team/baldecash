@@ -150,7 +150,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
       chipText: preview.badgeText ?? heroData.socialProof.chipText,
       subtitle: preview.subtext ?? heroData.socialProof.subtitle,
       studentCount: preview.studentCount ?? heroData.socialProof.studentCount,
-      institutions: preview.institutions
+      studyCenters: preview.institutions
         ? preview.institutions
             .filter((i) => i.isVisible !== false)
             .map((i, index) => ({
@@ -161,7 +161,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
               logo: i.logo || '',
               hasAgreement: true,
             }))
-        : heroData.socialProof.institutions,
+        : heroData.socialProof.studyCenters,
     };
   }, [heroData?.socialProof, previewData?.socialProof]);
 

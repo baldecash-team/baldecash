@@ -9,7 +9,7 @@ import type {
   HowItWorksData,
   FaqData,
   Testimonial,
-  Institution,
+  StudyCenter,
   TrustSignal,
   CtaData,
   PromoBannerData,
@@ -80,7 +80,7 @@ interface ApiFaqItem {
   display_order?: number;
 }
 
-interface ApiInstitution {
+interface ApiStudyCenter {
   id: string;
   code: string;
   name: string;
@@ -117,7 +117,7 @@ interface LandingHeroResponse {
   landing: LandingResponse;
   components: HomeComponentResponse[];
   faqs?: ApiFaqItem[];
-  institutions?: ApiInstitution[];
+  study_centers?: ApiStudyCenter[];
   company?: ApiCompanyInfo;
 }
 
@@ -489,8 +489,8 @@ export function transformLandingData(data: LandingHeroResponse): {
     const socialTitle = (socialConfig.title as string) || undefined;
     const socialSubtitle = (socialConfig.subtitle as string) || undefined;
 
-    // Instituciones desde API (backend filtra por institution_ids si existe en content_config)
-    const institutions: Institution[] = (data.institutions || []).map((inst) => ({
+    // Study centers desde API (backend filtra por institution_ids si existe en content_config)
+    const studyCenters: StudyCenter[] = (data.study_centers || []).map((inst) => ({
       id: inst.id,
       code: inst.code || '',
       name: inst.name || '',
@@ -516,7 +516,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       : typeof rawInstitutionCount === 'string'
         ? parseInt(rawInstitutionCount.replace(/[^0-9]/g, ''), 10) || 0
         : 0;
-    const institutionCount = parsedInstitutionCount > 0 ? parsedInstitutionCount : institutions.length;
+    const institutionCount = parsedInstitutionCount > 0 ? parsedInstitutionCount : studyCenters.length;
 
     socialProof = {
       title: socialTitle,
@@ -528,7 +528,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       studentCount,
       institutionCount,
       yearsInMarket: stats.years_in_market || 0,
-      institutions,
+      studyCenters,
       mediaLogos: (socialConfig.media_logos as { name: string; logo: string; url?: string }[]) || [],
     };
   }

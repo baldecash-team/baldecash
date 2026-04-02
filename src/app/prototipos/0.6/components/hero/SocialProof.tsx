@@ -24,13 +24,13 @@ interface ExtendedSocialProofProps extends SocialProofProps {
 }
 
 export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimonials = [], testimonialsTitle, underlineStyle = 4 }) => {
-  // Filtrar instituciones activas y testimonios visibles
-  const activeInstitutions = data.institutions.filter((inst) => inst.is_active !== false);
+  // Filtrar study centers activos y testimonios visibles
+  const activeStudyCenters = data.studyCenters.filter((sc) => sc.is_active !== false);
   const visibleTestimonials = testimonials.filter((t) => t.is_visible !== false);
 
-  // Usar instituciones desde API (data.institutions tiene logo_url)
-  // Filtrar instituciones sin logo para evitar src=""
-  const logos = activeInstitutions
+  // Usar study centers desde API (data.studyCenters tiene logo_url)
+  // Filtrar study centers sin logo para evitar src=""
+  const logos = activeStudyCenters
     .filter((inst) => inst.logo)
     .map((inst, idx) => ({
       id: idx + 1,
@@ -90,15 +90,28 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
   const nextPage = () => setPage((prev) => (prev + 1) % totalPages);
   const prevPage = () => setPage((prev) => (prev - 1 + totalPages) % totalPages);
 
-  const getInstitutionLogo = (institutionName: string) => {
-    if (!institutionName) return '';
+  const findStudyCenter = (institutionName: string) => {
+    if (!institutionName) return null;
     const search = institutionName.toLowerCase();
-    const institution = data.institutions.find((inst) =>
-      inst.code?.toLowerCase() === search ||
-      inst.shortName?.toLowerCase() === search ||
-      inst.name?.toLowerCase().includes(search)
-    );
-    return institution?.logo || '';
+    return data.studyCenters.find((sc) =>
+      sc.code?.toLowerCase() === search ||
+      sc.shortName?.toLowerCase() === search ||
+      sc.name?.toLowerCase().includes(search)
+    ) || null;
+  };
+
+  const getInstitutionLogo = (institutionName: string) => {
+    return findStudyCenter(institutionName)?.logo || '';
+  };
+
+  const getInstitutionDisplayName = (institutionName: string) => {
+    if (!institutionName) return '';
+    const sc = findStudyCenter(institutionName);
+    if (!sc) return institutionName;
+    // shortName from API = short_name || name (see landingApi.ts)
+    // If shortName differs from name, it's the actual sigla — uppercase it
+    if (sc.shortName && sc.shortName !== sc.name) return sc.shortName.toUpperCase();
+    return sc.name || institutionName;
   };
 
   return (
@@ -296,7 +309,7 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                           {testimonial.name}
                         </p>
                         <p className="text-xs font-medium truncate" style={{ color: 'var(--color-primary, #4654CD)' }}>
-                          {testimonial.institution}
+                          {getInstitutionDisplayName(testimonial.institution)}
                         </p>
                       </div>
                       <div className="flex gap-0.5">
