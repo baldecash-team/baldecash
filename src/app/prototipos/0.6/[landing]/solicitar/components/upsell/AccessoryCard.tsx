@@ -23,8 +23,6 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
   onToggle,
   onViewDetails,
 }) => {
-  const hasSpecs = accessory.specs && accessory.specs.length > 0;
-
   return (
     <Card
       isPressable
@@ -81,8 +79,8 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
           {accessory.description}
         </p>
 
-        {/* Ver características button */}
-        {onViewDetails && hasSpecs && (
+        {/* Ver detalles button */}
+        {onViewDetails && (
           <div
             role="button"
             tabIndex={0}
@@ -100,15 +98,20 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
             className="w-full flex items-center justify-center gap-1.5 text-xs text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] hover:bg-[rgba(var(--color-primary-rgb),0.2)] font-medium py-2 px-3 rounded-lg mb-3 cursor-pointer transition-colors"
           >
             <Info className="w-3.5 h-3.5" />
-            Ver características
+            Ver detalles
           </div>
         )}
 
         {/* Price */}
         <div className="mt-auto flex items-center justify-between">
-          <span className="text-[var(--color-primary)] font-bold">
-            +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}/mes
-          </span>
+          <div>
+            <span className="text-[var(--color-primary)] font-bold">
+              +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}/mes
+            </span>
+            {accessory.term && (
+              <p className="text-[10px] text-neutral-400">en {accessory.term} meses</p>
+            )}
+          </div>
           <Plus
             className={`w-5 h-5 text-neutral-400 transition-all duration-200 ${
               isSelected ? 'opacity-0 scale-0' : 'opacity-100 scale-100'

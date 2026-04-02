@@ -14,6 +14,7 @@ interface InsuranceDetailModalProps {
   onClose: () => void;
   isSelected: boolean;
   onToggle: () => void;
+  badgeText?: string | null;
 }
 
 const MODAL_CONFIG: Record<string, {
@@ -66,7 +67,8 @@ const ModalContentShared: React.FC<{
   isSelected: boolean;
   onToggle: () => void;
   onClose: () => void;
-}> = ({ plan, isSelected, onToggle, onClose }) => {
+  badgeText?: string | null;
+}> = ({ plan, isSelected, onToggle, onClose, badgeText }) => {
   const config = getModalConfig(plan.insuranceType);
   const Icon = config.icon;
 
@@ -168,10 +170,12 @@ const ModalContentShared: React.FC<{
           )}
         </button>
 
-        <p className="flex items-center justify-center gap-1 text-[10px] text-neutral-400 mt-3">
-          <Users className="w-3 h-3" />
-          Más de 10,000 estudiantes confían en BaldeCash
-        </p>
+        {badgeText && (
+          <p className="flex items-center justify-center gap-1 text-[10px] text-neutral-400 mt-3">
+            <Users className="w-3 h-3" />
+            {badgeText}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -179,7 +183,7 @@ const ModalContentShared: React.FC<{
 
 // Desktop Modal
 const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan }> = ({
-  plan, isOpen, onClose, isSelected, onToggle,
+  plan, isOpen, onClose, isSelected, onToggle, badgeText,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -196,7 +200,7 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan }
   >
     <ModalContent>
       <ModalBody>
-        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} />
+        <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} />
       </ModalBody>
     </ModalContent>
   </Modal>
@@ -204,7 +208,7 @@ const DesktopModal: React.FC<InsuranceDetailModalProps & { plan: InsurancePlan }
 
 // Mobile Bottom Sheet
 const MobileBottomSheet: React.FC<InsuranceDetailModalProps> = ({
-  plan, isOpen, onClose, isSelected, onToggle,
+  plan, isOpen, onClose, isSelected, onToggle, badgeText,
 }) => {
   const dragControls = useDragControls();
   const shouldShow = isOpen && plan;
@@ -278,7 +282,7 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps> = ({
               className="flex-1 overflow-y-auto"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
-              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} />
+              <ModalContentShared plan={plan} isSelected={isSelected} onToggle={onToggle} onClose={onClose} badgeText={badgeText} />
             </div>
           </motion.div>
         </>

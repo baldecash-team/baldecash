@@ -14,6 +14,7 @@ import { InsuranceCards } from '../../upsell';
 import { useProduct } from '../../../context/ProductContext';
 import { getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { useWizardConfig } from '../../../context/WizardConfigContext';
 import type { InsurancePlan } from '../../../types/upsell';
 
 interface InsuranceSectionProps {
@@ -31,6 +32,7 @@ export function InsuranceSection({
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
+  const { badgeText } = useWizardConfig();
   const { selectedInsurances, toggleInsurance, selectedProduct, cartProducts } = useProduct();
 
   const activeProduct = cartProducts?.[0] || selectedProduct;
@@ -99,6 +101,7 @@ export function InsuranceSection({
             if (plan) toggleInsurance(plan);
           }}
           showIntro={showIntro}
+          badgeText={badgeText}
         />
       )}
     </div>

@@ -31,6 +31,7 @@ interface WizardConfigContextValue {
   // Display values for intro page (from admin config)
   displayStepsCount: number;
   displayEstimatedMinutes: number;
+  badgeText: string | null;
 }
 
 const WizardConfigContext = createContext<WizardConfigContextValue | undefined>(undefined);
@@ -169,6 +170,8 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
     return steps.reduce((sum, s) => sum + (s.estimated_time_minutes || 0), 0);
   }, [config, steps]);
 
+  const badgeText = config?.badge_text || null;
+
   const value = useMemo(
     () => ({
       config,
@@ -181,8 +184,9 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
       steps,
       displayStepsCount,
       displayEstimatedMinutes,
+      badgeText,
     }),
-    [config, isLoading, error, getStep, getStepByUrlSlug, getNavigation, getUrlSlugForStep, steps, displayStepsCount, displayEstimatedMinutes]
+    [config, isLoading, error, getStep, getStepByUrlSlug, getNavigation, getUrlSlugForStep, steps, displayStepsCount, displayEstimatedMinutes, badgeText]
   );
 
   return (

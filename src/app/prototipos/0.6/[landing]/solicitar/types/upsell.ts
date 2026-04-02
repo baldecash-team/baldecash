@@ -16,6 +16,7 @@ export interface Accessory {
   image: string;
   thumbnailUrl?: string;
   category: AccessoryCategory;
+  term?: number;
   isRecommended: boolean;
   compatibleWith: string[];
   specs?: AccessorySpec[];

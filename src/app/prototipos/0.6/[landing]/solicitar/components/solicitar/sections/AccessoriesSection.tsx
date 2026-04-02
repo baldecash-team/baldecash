@@ -16,6 +16,7 @@ import { useProduct } from '../../../context/ProductContext';
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from '../../upsell';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { useWizardConfig } from '../../../context/WizardConfigContext';
 import type { Accessory, AccessoryCategory } from '../../../types/upsell';
 
 interface AccessoriesSectionProps {
@@ -40,6 +41,7 @@ export function AccessoriesSection({
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
+  const { badgeText } = useWizardConfig();
   const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts } = useProduct();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,6 +78,7 @@ export function AccessoriesSection({
             description: acc.description || '',
             price: acc.price,
             monthlyQuota: acc.monthlyQuota,
+            term: acc.term,
             image: acc.image,
             thumbnailUrl: acc.thumbnail_url,
             category: (acc.category || 'accesorios') as AccessoryCategory,
@@ -178,6 +181,7 @@ export function AccessoriesSection({
             toggleAccessory(detailAccessory);
           }
         }}
+        badgeText={badgeText}
       />
     </div>
   );

@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Modal,
   ModalContent,
   ModalBody,
   Button,
-  Chip,
 } from '@nextui-org/react';
-import { X, Check, Plus, Tag, Sparkles, Package } from 'lucide-react';
+import { X, Check, Plus, Package, Users } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import type { Accessory } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
@@ -20,14 +20,28 @@ interface AccessoryDetailModalProps {
   onClose: () => void;
   isSelected: boolean;
   onToggle: () => void;
+  badgeText?: string | null;
 }
 
-const categoryLabels: Record<string, string> = {
-  protección: 'Protección',
-  audio: 'Audio',
-  almacenamiento: 'Almacenamiento',
-  conectividad: 'Conectividad',
-};
+/**
+ * Parse description into bullet points.
+ * Splits on newlines, \r\n, or sentence-ending periods followed by uppercase.
+ * Returns up to 6 meaningful lines.
+ */
+function parseDescriptionBullets(description: string): string[] {
+  const lines = description
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 10);
+  // If we got multiple lines, use them
+  if (lines.length >= 2) return lines.slice(0, 6);
+  // Otherwise try splitting on sentences
+  const sentences = description
+    .split(/\.(?=\s+[A-Z])/)
+    .map((s) => s.trim().replace(/\.$/, ''))
+    .filter((s) => s.length > 10);
+  return sentences.slice(0, 6);
+}
 
 // Contenido compartido entre mobile y desktop
 const ModalContentShared: React.FC<{
@@ -35,22 +49,51 @@ const ModalContentShared: React.FC<{
   isSelected: boolean;
   onToggle: () => void;
   onClose: () => void;
-}> = ({ accessory, isSelected, onToggle, onClose }) => {
+  badgeText?: string | null;
+  hideHeader?: boolean;
+}> = ({ accessory, isSelected, onToggle, onClose, badgeText, hideHeader }) => {
   const handleToggleAndClose = () => {
     onToggle();
     onClose();
   };
 
+  const bullets = parseDescriptionBullets(accessory.description);
+  const hasBullets = bullets.length >= 2;
+  const term = accessory.term || 24;
+
   return (
     <>
-      {/* Header con imagen */}
-      <div className="relative">
-        {/* Imagen de fondo */}
-        <div className="bg-neutral-50 p-8 flex items-center justify-center min-h-[180px] rounded-t-2xl">
+      {/* Header compacto con icono - estilo referencia (hidden on mobile, which has its own header) */}
+      {!hideHeader && (
+        <div className="bg-[var(--color-primary)] rounded-t-2xl px-5 py-4 flex items-center gap-3 relative">
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <Package className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-bold text-white truncate">
+              {accessory.name}
+            </h2>
+            <p className="text-xs text-white/70 truncate">
+              {accessory.brand?.name || accessory.category}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
+        </div>
+      )}
+
+      {/* Contenido */}
+      <div className="p-5 space-y-4">
+        {/* Imagen del producto */}
+        <div className="flex justify-center py-2">
           <img
-            src={accessory.image}
+            src={accessory.thumbnailUrl || accessory.image}
             alt={accessory.name}
-            className="max-h-32 max-w-full object-contain drop-shadow-lg"
+            className="max-h-28 max-w-full object-contain"
             loading="lazy"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -59,117 +102,73 @@ const ModalContentShared: React.FC<{
           />
         </div>
 
-        {/* Badges */}
-        <div className="absolute top-4 left-4 flex gap-2">
-          {accessory.isRecommended && (
-            <Chip
-              size="sm"
-              startContent={<Sparkles className="w-3 h-3 text-white" />}
-              classNames={{
-                base: 'bg-[var(--color-primary)] shadow-lg',
-                content: 'text-white text-xs font-semibold',
-              }}
-            >
-              Popular
-            </Chip>
-          )}
-          <Chip
-            size="sm"
-            startContent={<Tag className="w-3 h-3" />}
-            classNames={{
-              base: 'bg-white/90 backdrop-blur shadow-lg',
-              content: 'text-neutral-700 text-xs font-medium',
-            }}
-          >
-            {categoryLabels[accessory.category] || accessory.category}
-          </Chip>
-        </div>
-
-        {/* Indicador de selección */}
-        {isSelected && (
-          <div className="absolute top-4 right-4 bg-[#22c55e] text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
-            <Check className="w-3 h-3" />
-            Agregado
+        {/* Descripción o bullets */}
+        {hasBullets ? (
+          <div className="grid grid-cols-1 gap-y-2">
+            {bullets.map((bullet, idx) => (
+              <div key={idx} className="flex items-start gap-2">
+                <Check className="w-3.5 h-3.5 text-[var(--color-secondary)] flex-shrink-0 mt-0.5" />
+                <span className="text-xs text-neutral-600">{bullet}</span>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-
-      {/* Contenido */}
-      <div className="p-5 space-y-4">
-        {/* Título y descripción */}
-        <div>
-          <h2 className="text-lg font-bold text-neutral-800 mb-1">
-            {accessory.name}
-          </h2>
-          <p className="text-neutral-600 text-sm leading-relaxed">
+        ) : (
+          <p className="text-sm text-neutral-600 leading-relaxed">
             {accessory.description}
           </p>
-        </div>
+        )}
 
-        {/* Precio destacado */}
-        <div className="bg-neutral-50 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-neutral-500 uppercase tracking-wide">Precio total</p>
-            <p className="text-xl font-bold text-neutral-800">
-              S/{formatMoneyNoDecimals(Math.floor(accessory.price))}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-neutral-500 uppercase tracking-wide">Cuota mensual</p>
-            <p className="text-xl font-bold text-[var(--color-primary)]">
-              +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}
-              <span className="text-sm font-normal text-neutral-500">/mes</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Características técnicas */}
+        {/* Specs si existen */}
         {accessory.specs && accessory.specs.length > 0 && (
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-800 mb-2 uppercase tracking-wide">
-              Especificaciones
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              {accessory.specs.map((spec) => (
-                <div
-                  key={spec.label}
-                  className="bg-neutral-50 rounded-lg p-2.5"
-                >
-                  <p className="text-xs text-neutral-500 mb-0.5">{spec.label}</p>
-                  <p className="text-sm font-semibold text-neutral-800">{spec.value}</p>
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 gap-2">
+            {accessory.specs.map((spec) => (
+              <div key={spec.label} className="bg-neutral-50 rounded-lg p-2.5">
+                <p className="text-xs text-neutral-500 mb-0.5">{spec.label}</p>
+                <p className="text-sm font-semibold text-neutral-800">{spec.value}</p>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Botones de acción */}
-        <div className="flex gap-3 pt-2">
-          <Button
-            variant="flat"
-            onPress={onClose}
-            className="flex-1 bg-neutral-100 text-neutral-700 font-medium hover:bg-neutral-200 cursor-pointer"
-          >
-            Cerrar
-          </Button>
-          <Button
-            onPress={handleToggleAndClose}
-            className={`flex-1 font-medium cursor-pointer ${
-              isSelected
-                ? 'bg-red-500 text-white hover:bg-red-600'
-                : 'bg-[var(--color-primary)] text-white hover:brightness-90'
-            }`}
-            startContent={
-              isSelected ? (
-                <X className="w-4 h-4" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )
-            }
-          >
-            {isSelected ? 'Quitar' : 'Agregar'}
-          </Button>
+        {/* Precio - estilo referencia */}
+        <div className="bg-[rgba(var(--color-primary-rgb),0.06)] rounded-xl px-4 py-3 flex items-baseline justify-between">
+          <div className="flex items-baseline">
+            <span className="text-lg font-bold text-[var(--color-primary)]">
+              S/ {formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}
+            </span>
+            <span className="text-sm text-neutral-500 ml-1 font-normal">/mes</span>
+          </div>
+          <span className="text-xs text-neutral-400 font-normal">
+            S/ {formatMoneyNoDecimals(Math.floor(accessory.price))} · {term} cuotas
+          </span>
         </div>
+
+        {/* Botón de acción - full width */}
+        <Button
+          onPress={handleToggleAndClose}
+          className={`w-full font-medium cursor-pointer h-11 text-base ${
+            isSelected
+              ? 'bg-[var(--color-secondary)] text-white hover:brightness-90'
+              : 'bg-[var(--color-primary)] text-white hover:brightness-90'
+          }`}
+          startContent={
+            isSelected ? (
+              <X className="w-4 h-4" />
+            ) : (
+              <Plus className="w-4 h-4" />
+            )
+          }
+        >
+          {isSelected ? 'Quitar accesorio' : 'Agregar accesorio'}
+        </Button>
+
+        {/* Social proof */}
+        {badgeText && (
+          <p className="text-xs text-neutral-400 text-center flex items-center justify-center gap-1.5">
+            <Users className="w-3.5 h-3.5" />
+            {badgeText}
+          </p>
+        )}
       </div>
     </>
   );
@@ -182,6 +181,7 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
   onClose,
   isSelected,
   onToggle,
+  badgeText,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -193,7 +193,7 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
       backdrop: 'bg-black/60 backdrop-blur-sm z-[99]',
       base: 'bg-white rounded-2xl',
       body: 'p-0',
-      closeButton: 'top-4 right-4 z-10 bg-white/80 backdrop-blur hover:bg-white cursor-pointer',
+      closeButton: 'hidden',
     }}
   >
     <ModalContent>
@@ -203,6 +203,7 @@ const DesktopModal: React.FC<AccessoryDetailModalProps & { accessory: Accessory 
           isSelected={isSelected}
           onToggle={onToggle}
           onClose={onClose}
+          badgeText={badgeText}
         />
       </ModalBody>
     </ModalContent>
@@ -216,6 +217,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
   onClose,
   isSelected,
   onToggle,
+  badgeText,
 }) => {
   const dragControls = useDragControls();
   const shouldShow = isOpen && accessory;
@@ -253,7 +255,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
     };
   }, [isOpen]);
 
-  return (
+  return createPortal(
     <AnimatePresence mode="wait">
       {shouldShow && (
         <>
@@ -266,7 +268,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
             transition={{ duration: 0.2 }}
             onClick={onClose}
             onTouchMove={(e) => e.preventDefault()}
-            className="fixed inset-0 bg-black/50 z-[9998]"
+            className="fixed inset-0 bg-black/50 z-[10000]"
             style={{ touchAction: 'none' }}
           />
 
@@ -286,7 +288,7 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col min-h-[50vh] max-h-[70vh]"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[10001] flex flex-col min-h-[50vh] max-h-[70vh]"
             style={{ overscrollBehavior: 'contain' }}
           >
             {/* Drag Handle */}
@@ -333,12 +335,15 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
                 isSelected={isSelected}
                 onToggle={onToggle}
                 onClose={onClose}
+                badgeText={badgeText}
+                hideHeader
               />
             </div>
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
 

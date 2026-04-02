@@ -12,6 +12,7 @@ interface InsuranceCardsProps {
   selectedPlanIds: string[];
   onToggle: (planId: string) => void;
   showIntro?: boolean;
+  badgeText?: string | null;
 }
 
 function getInsuranceIcon(type: string) {
@@ -55,6 +56,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
   selectedPlanIds,
   onToggle,
   showIntro = true,
+  badgeText,
 }) => {
   const [detailPlan, setDetailPlan] = useState<InsurancePlan | null>(null);
 
@@ -212,10 +214,12 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
       </div>
 
       {/* Social proof */}
-      <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-neutral-400">
-        <Users className="w-3 h-3" />
-        <span>Más de 10,000 estudiantes confían en BaldeCash</span>
-      </div>
+      {badgeText && (
+        <div className="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-neutral-400">
+          <Users className="w-3 h-3" />
+          <span>{badgeText}</span>
+        </div>
+      )}
 
       {/* Detail Modal */}
       <InsuranceDetailModal
@@ -226,6 +230,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
         onToggle={() => {
           if (detailPlan) onToggle(detailPlan.id);
         }}
+        badgeText={badgeText}
       />
     </>
   );
