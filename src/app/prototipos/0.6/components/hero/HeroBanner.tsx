@@ -11,6 +11,7 @@ import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Users, Building, Clock, CreditCard, Truck, CheckCircle, Star, Heart, Zap, Headphones, Award } from 'lucide-react';
 import { HeroBannerProps } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
@@ -28,6 +29,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   landing = 'home',
 }) => {
   const router = useRouter();
+  const tracker = useEventTrackerOptional();
 
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
@@ -71,6 +73,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
   // Handle CTA click - external links in new tab, anchors with smooth scroll
   const handleCtaClick = () => {
+    tracker?.track('cta_click', { cta_name: 'hero_primary', text: primaryCta?.text, href: ctaUrl, location: 'hero_banner' });
     if (isExternalLink(ctaUrl)) {
       window.open(ctaUrl, '_blank', 'noopener,noreferrer');
     } else if (isAnchorLink(ctaUrl)) {

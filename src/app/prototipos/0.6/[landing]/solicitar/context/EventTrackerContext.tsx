@@ -231,11 +231,17 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
     prevPathnameRef.current = pathname;
     pageEnterTsRef.current = now;
     reportedScrollDepthsRef.current = new Set();
+    lastDocHeightRef.current = 0;
   }, [pathname, sessionUuid, enqueue]);
 
   // ------------------------------------------------------------------
   // Auto: scroll_depth tracking
   // ------------------------------------------------------------------
+  // Track the last known document height so we can detect when async content
+  // loads and the page grows significantly. Without this, a short skeleton
+  // page produces a premature 100% scroll_depth that blocks all later reports.
+  const lastDocHeightRef = useRef<number>(0);
+
   useEffect(() => {
     if (!sessionUuid) return;
 
@@ -243,6 +249,13 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
       const scrollTop = window.scrollY;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
       if (docHeight <= 0) return;
+
+      // If the document grew significantly (async content loaded), reset
+      // thresholds so scroll depth is re-evaluated against the real page.
+      if (lastDocHeightRef.current > 0 && docHeight > lastDocHeightRef.current * 1.3) {
+        reportedScrollDepthsRef.current = new Set();
+      }
+      lastDocHeightRef.current = docHeight;
 
       const pct = Math.round((scrollTop / docHeight) * 100);
 
@@ -257,14 +270,25 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
             properties: {
               depth_pct: threshold,
               time_to_reach_ms: Date.now() - pageEnterTsRef.current,
+              viewport_w: window.innerWidth,
+              doc_height: Math.round(document.documentElement.scrollHeight),
             },
           });
         }
       }
     };
 
+    // Also re-evaluate scroll when the document body resizes (async content).
+    const resizeObserver = new ResizeObserver(() => {
+      handleScroll();
+    });
+    resizeObserver.observe(document.documentElement);
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      resizeObserver.disconnect();
+    };
   }, [sessionUuid, enqueue]);
 
   // ------------------------------------------------------------------

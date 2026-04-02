@@ -39,6 +39,8 @@ export type EventType =
   | 'compare_add'
   | 'compare_remove'
   | 'compare_open'
+  | 'nav_click'
+  | 'nav_hover'
   | 'error';
 
 /** Properties that are BLOCKED for privacy reasons */
