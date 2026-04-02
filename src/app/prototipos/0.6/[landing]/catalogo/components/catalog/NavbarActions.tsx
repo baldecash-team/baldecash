@@ -87,10 +87,15 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
     }, 300);
   };
 
+  // Track if we're navigating to prevent parent's useEffect from overriding
+  const isNavigatingRef = useRef(false);
+
   // Navigate to product detail
   const handleSelectSuggestion = (suggestion: ProductSuggestion) => {
+    if (isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
     setShowSuggestions(false);
-    onChange('');
+    setSuggestions([]);
     router.push(routes.producto(landing, suggestion.slug));
   };
 
@@ -195,7 +200,10 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
               {suggestions.map((suggestion, index) => (
                 <button
                   key={suggestion.id}
-                  onClick={() => handleSelectSuggestion(suggestion)}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent input blur
+                    handleSelectSuggestion(suggestion);
+                  }}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors cursor-pointer ${
                     index === selectedIndex ? 'bg-[rgba(var(--color-primary-rgb),0.05)]' : 'hover:bg-neutral-50'
@@ -247,7 +255,8 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
             {value.trim() && (
               <div className="border-t border-neutral-100 px-4 py-2">
                 <button
-                  onClick={() => {
+                  onMouseDown={(e) => {
+                    e.preventDefault();
                     setShowSuggestions(false);
                     onSubmit?.();
                   }}

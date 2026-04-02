@@ -1333,6 +1333,7 @@ export async function searchProductSuggestions(
       brand?: { name: string } | string | null;
       pricing?: { final_price?: number; list_price?: number; available_terms?: number[]; hook?: { monthly_price?: number } } | null;
       image_url?: string | null;
+      images?: string[] | null;
       colors?: { image_url?: string }[] | null;
     }) => ({
       id: String(item.id),
@@ -1341,7 +1342,7 @@ export async function searchProductSuggestions(
       brand: typeof item.brand === 'object' ? item.brand?.name || '' : item.brand || '',
       category: '',
       price: item.pricing?.final_price || item.pricing?.list_price || 0,
-      image: item.image_url || item.colors?.[0]?.image_url || null,
+      image: item.image_url || item.images?.[0] || item.colors?.[0]?.image_url || null,
       maxTermMonths: item.pricing?.available_terms?.length
         ? Math.max(...item.pricing.available_terms)
         : 24,

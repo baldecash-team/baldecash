@@ -74,7 +74,6 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
 
   const handleSelectSuggestion = (suggestion: ProductSuggestion) => {
     onClose();
-    onChange('');
     setSuggestions([]);
     router.push(routes.producto(landing, suggestion.slug));
   };
