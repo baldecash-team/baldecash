@@ -873,14 +873,20 @@ interface ApiAccessory {
  */
 export async function getLandingAccessories(
   slug: string,
-  deviceType?: string,
+  deviceType?: string | string[],
   term?: number,
   previewKey?: string | null
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
     if (deviceType) {
-      queryParams.set('device_type', deviceType);
+      const types = Array.isArray(deviceType) ? deviceType : [deviceType];
+      const filtered = types.filter(Boolean).map(t => t.toLowerCase());
+      if (filtered.length === 1) {
+        queryParams.set('device_type', filtered[0]);
+      } else if (filtered.length > 1) {
+        queryParams.set('product_types', filtered.join(','));
+      }
     }
     if (term && term > 0) {
       queryParams.set('term', term.toString());

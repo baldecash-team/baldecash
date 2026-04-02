@@ -45,9 +45,14 @@ export function AccessoriesSection({
   const [isLoading, setIsLoading] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
-  // Get device type from selected product(s)
-  const activeProduct = cartProducts?.[0] || selectedProduct;
-  const deviceType = (activeProduct?.type || 'laptop').toLowerCase();
+  // Collect all unique device types from cart (union for multi-product carts)
+  const deviceTypes = useMemo(() => {
+    const products = cartProducts?.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
+    const types = [...new Set(
+      products.map(p => p.type?.toLowerCase()).filter(Boolean) as string[]
+    )];
+    return types.length > 0 ? types : ['laptop'];
+  }, [cartProducts, selectedProduct]);
 
   // Get current term from cart (use first product's term or default 24)
   const currentTerm = useMemo(() => {
@@ -58,12 +63,12 @@ export function AccessoriesSection({
     return 24; // Default term
   }, [getAllProducts]);
 
-  // Load accessories from API - filtered by device type
+  // Load accessories from API - filtered by all device types in cart
   useEffect(() => {
     async function fetchAccessories() {
       setIsLoading(true);
       try {
-        const apiAccessories = await getLandingAccessories(landing, deviceType, currentTerm, previewKey);
+        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey);
         if (apiAccessories && apiAccessories.length > 0) {
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
@@ -92,7 +97,8 @@ export function AccessoriesSection({
     }
 
     fetchAccessories();
-  }, [landing, deviceType, currentTerm]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landing, currentTerm, deviceTypes.join(',')]);
 
   // Update selected accessories when term changes or accessories list changes
   // This handles:

@@ -227,9 +227,13 @@ interface ApiProductDetailResponse {
 function mapCategoryToDeviceType(category: string): string {
   const map: Record<string, string> = {
     laptop: 'laptop',
+    laptops: 'laptop',
     celular: 'celular',
+    celulares: 'celular',
     tablet: 'tablet',
+    tablets: 'tablet',
     accesorio: 'accesorio',
+    accesorios: 'accesorio',
   };
   return map[category.toLowerCase()] || category.toLowerCase();
 }
