@@ -286,7 +286,7 @@ export async function getCatalogProducts(
     const url = `${API_BASE_URL}/public/landing/${landingSlug}/products${queryString ? `?${queryString}` : ''}`;
 
     const response = await fetch(url, {
-      ...(options.previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
+      cache: 'no-store' as const,
     });
 
     if (!response.ok) {
@@ -896,7 +896,7 @@ export async function getDirectCatalogProducts(): Promise<DirectCatalogResponse 
     const url = `${API_BASE_URL}/public/catalog/products`;
 
     const response = await fetch(url, {
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
 
     if (!response.ok) {
