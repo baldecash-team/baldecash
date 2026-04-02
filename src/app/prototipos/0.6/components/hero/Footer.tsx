@@ -276,6 +276,15 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
                 </a>
               ))}
             </div>
+            {data?.company?.main_phone && (
+              <a
+                href={`tel:${data.company.main_phone.replace(/\s/g, '')}`}
+                className="flex items-center gap-2 mt-4 text-sm text-neutral-400 hover:text-white transition-colors"
+              >
+                <Phone className="w-4 h-4" />
+                <span>{data.company.main_phone}</span>
+              </a>
+            )}
           </div>
 
           {/* Link Columns - Only render if columns exist */}
