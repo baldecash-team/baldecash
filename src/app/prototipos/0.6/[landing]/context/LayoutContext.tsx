@@ -139,7 +139,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     } : null;
 
     // Agreement data for co-branding (convenio landings)
-    const agreement = (layoutData as Record<string, unknown>).agreement as { institution_logo?: string; institution_name?: string } | undefined;
+    const agreement = (layoutData as unknown as Record<string, unknown>).agreement as { institution_logo?: string; institution_name?: string } | undefined;
 
     return {
       promoBannerData,
@@ -232,7 +232,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   // Extract agreement data for convenio pages
   const agreementData = useMemo((): AgreementData | null => {
     if (!layoutData) return null;
-    const agreement = (layoutData as Record<string, unknown>).agreement as AgreementData | undefined;
+    const agreement = (layoutData as unknown as Record<string, unknown>).agreement as AgreementData | undefined;
     return agreement || null;
   }, [layoutData]);
 

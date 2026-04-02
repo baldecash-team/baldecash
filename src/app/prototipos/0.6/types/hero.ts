@@ -415,8 +415,8 @@ export interface BenefitsData {
 
 export interface AgreementData {
   id: number;
-  code: string;
-  name: string;
+  code?: string;
+  name?: string;
   type?: string;
   discount_percentage?: string;
   institution_name?: string;
