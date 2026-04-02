@@ -124,7 +124,7 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({
             <img
               src="https://baldecash.s3.amazonaws.com/company/libro-reclamaciones.png"
               alt="Libro de reclamaciones"
-              className="h-18 w-auto"
+              className="h-12 w-auto"
             />
           </a>
 
