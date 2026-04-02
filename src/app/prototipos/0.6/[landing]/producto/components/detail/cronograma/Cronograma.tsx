@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale, X, Loader2 } from 'lucide-react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Divider } from '@nextui-org/react';
@@ -432,6 +433,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
       {/* Payment Details - Mobile: Bottom Sheet */}
       {isMobile ? (
+        createPortal(
         <AnimatePresence>
           {isModalOpen && (
             <>
@@ -443,7 +445,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 transition={{ duration: 0.2 }}
                 onClick={() => setIsModalOpen(false)}
                 onTouchMove={(e) => e.preventDefault()}
-                className="fixed inset-0 bg-black/50 z-[9998]"
+                className="fixed inset-0 bg-black/50 z-[10000]"
                 style={{ touchAction: 'none' }}
               />
 
@@ -462,7 +464,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     setIsModalOpen(false);
                   }
                 }}
-                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] max-h-[calc(100vh-12rem)] flex flex-col"
+                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[10001] max-h-[calc(100vh-12rem)] flex flex-col"
                 style={{ overscrollBehavior: 'contain' }}
               >
                 {/* Drag Handle */}
@@ -474,29 +476,20 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 </div>
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 pb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.10)] flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-[var(--color-primary)]" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold text-neutral-800">
-                        Detalle del Financiamiento
-                      </p>
-                      <p className="text-xs text-neutral-500 font-normal">
-                        Información completa de tu crédito
-                      </p>
-                    </div>
+                <div className="bg-[var(--color-primary)] mx-4 rounded-xl px-4 py-3 flex items-center gap-3 mb-3">
+                  <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4 h-4 text-white" />
                   </div>
-                  <Button
-                    isIconOnly
-                    size="sm"
-                    variant="light"
-                    onPress={() => setIsModalOpen(false)}
-                    className="cursor-pointer"
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base font-bold text-white">Detalle del Financiamiento</h2>
+                    <p className="text-xs text-white/60">Información completa de tu crédito</p>
+                  </div>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
                   >
-                    <X className="w-5 h-5" />
-                  </Button>
+                    <X className="w-4 h-4 text-white" />
+                  </button>
                 </div>
 
                 {/* Body - scrollable */}
@@ -627,7 +620,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
               </motion.div>
             </>
           )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+        )
       ) : (
         /* Payment Details - Desktop: Modal */
         <Modal
@@ -637,21 +632,28 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           classNames={{
             wrapper: "z-[9999]",
             backdrop: "bg-black/50 backdrop-blur-sm z-[9998]",
-            base: "bg-white",
-            closeButton: "right-4 top-4 hover:bg-neutral-100 rounded-lg cursor-pointer",
+            base: "bg-white rounded-2xl overflow-hidden",
+            body: "p-0",
+            closeButton: "hidden",
           }}
         >
-          <ModalContent className="bg-white">
-            <ModalHeader className="flex items-center gap-3 border-b border-neutral-100">
-              <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.10)] flex items-center justify-center">
-                <FileText className="w-5 h-5 text-[var(--color-primary)]" />
+          <ModalContent className="bg-white overflow-hidden">
+            <ModalHeader className="bg-[var(--color-primary)] flex items-center gap-3 p-0 px-5 py-4">
+              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-neutral-900">Detalle del Financiamiento</h3>
-                <p className="text-sm font-normal text-neutral-500">Información completa de tu crédito</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-white">Detalle del Financiamiento</h3>
+                <p className="text-xs font-normal text-white/60">Información completa de tu crédito</p>
               </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
             </ModalHeader>
-            <ModalBody className="py-6">
+            <ModalBody className="p-5 pt-6">
               {/* Summary */}
               <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-6">
                 {productPrice > 0 && (
