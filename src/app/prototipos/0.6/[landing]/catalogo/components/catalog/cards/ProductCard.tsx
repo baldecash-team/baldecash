@@ -189,7 +189,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white">
         <CardBody className="p-0 flex flex-col">
           {/* Image - Altura fija para consistencia */}
-          <div className="relative bg-gradient-to-b from-neutral-50 to-white p-6 h-[220px] flex items-center justify-center">
+          <div className="relative bg-white p-6 h-[220px] flex items-center justify-center">
             <ImageGallery
               images={selectedImages}
               alt={displayName}

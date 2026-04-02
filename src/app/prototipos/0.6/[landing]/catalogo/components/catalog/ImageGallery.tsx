@@ -17,7 +17,6 @@ interface ImageGalleryProps {
 export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const displayImages = images.slice(0, 4);
-  const hasMultipleImages = displayImages.length > 1;
 
   return (
     <div>
@@ -34,8 +33,8 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
         Imagen referencial
       </p>
 
-      {/* Thumbnails row - only show when multiple images */}
-      {hasMultipleImages && (
+      {/* Thumbnails row - always show */}
+      {displayImages.length > 0 && (
         <div className="flex gap-1 mt-2 justify-center">
           {displayImages.map((img, index) => (
             <button

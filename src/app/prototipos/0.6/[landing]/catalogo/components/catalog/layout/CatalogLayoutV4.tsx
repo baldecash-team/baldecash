@@ -673,12 +673,29 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
                 {/* Quota Filter */}
                 <FilterSection title="Cuota mensual" defaultExpanded={true}>
-                  <QuotaRangeFilter
-                    value={filters.quotaRange}
-                    onChange={(val) => updateFilter('quotaRange', val)}
-                    min={dynamicQuotaRange.min}
-                    max={dynamicQuotaRange.max}
-                  />
+                  {!apiFilters ? (
+                    <div className="space-y-4 animate-pulse">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 bg-neutral-100 rounded-lg px-3 py-2 h-12" />
+                        <div className="text-neutral-200 text-xs">—</div>
+                        <div className="flex-1 bg-neutral-100 rounded-lg px-3 py-2 h-12" />
+                      </div>
+                      <div className="px-1">
+                        <div className="h-2 bg-neutral-200 rounded-full" />
+                      </div>
+                      <div className="flex justify-between px-1">
+                        <div className="w-10 h-3 bg-neutral-200 rounded" />
+                        <div className="w-10 h-3 bg-neutral-200 rounded" />
+                      </div>
+                    </div>
+                  ) : (
+                    <QuotaRangeFilter
+                      value={filters.quotaRange}
+                      onChange={(val) => updateFilter('quotaRange', val)}
+                      min={dynamicQuotaRange.min}
+                      max={dynamicQuotaRange.max}
+                    />
+                  )}
                 </FilterSection>
 
                 {/* Main Filters (Uso recomendado, Condición) - styled based on version */}
@@ -875,12 +892,29 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
             {/* Quota Filter */}
             <FilterSection title="Cuota mensual" defaultExpanded={true}>
-              <QuotaRangeFilter
-                value={filters.quotaRange}
-                onChange={(val) => updateFilter('quotaRange', val)}
-                min={dynamicQuotaRange.min}
-                max={dynamicQuotaRange.max}
-              />
+              {!apiFilters ? (
+                <div className="space-y-4 animate-pulse">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 bg-neutral-100 rounded-lg px-3 py-2 h-12" />
+                    <div className="text-neutral-200 text-xs">—</div>
+                    <div className="flex-1 bg-neutral-100 rounded-lg px-3 py-2 h-12" />
+                  </div>
+                  <div className="px-1">
+                    <div className="h-2 bg-neutral-200 rounded-full" />
+                  </div>
+                  <div className="flex justify-between px-1">
+                    <div className="w-10 h-3 bg-neutral-200 rounded" />
+                    <div className="w-10 h-3 bg-neutral-200 rounded" />
+                  </div>
+                </div>
+              ) : (
+                <QuotaRangeFilter
+                  value={filters.quotaRange}
+                  onChange={(val) => updateFilter('quotaRange', val)}
+                  min={dynamicQuotaRange.min}
+                  max={dynamicQuotaRange.max}
+                />
+              )}
             </FilterSection>
 
             {/* Main Filters (Uso recomendado, Condición) */}
