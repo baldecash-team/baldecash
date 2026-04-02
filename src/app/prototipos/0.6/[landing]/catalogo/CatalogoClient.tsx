@@ -124,6 +124,7 @@ import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // URLs - now with landing context
 const getWizardUrl = (landing: string) => {
@@ -298,7 +299,8 @@ function CatalogoContent() {
   const tracker = useEventTrackerOptional();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings } = useLayout();
+  const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
   // Preview mode support
   const preview = usePreview();
@@ -1556,6 +1558,7 @@ function CatalogoContent() {
         unavailableCartIds={unavailableCartIds}
         unavailableWishlistIds={unavailableWishlistIds}
         config={catalogSecondaryNavbarConfig}
+        showCart={ALLOW_MULTI_PRODUCT}
       />
 
       {/* Main Content with padding for fixed navbars (promo + primary + secondary + preview banner) */}
@@ -1611,7 +1614,14 @@ function CatalogoContent() {
                 // Hoy los productos de Liderman tienen color solo en specs, no en product_variant.
                 hideColors={landing === 'liderman-baldecash'}
                 onAddToCart={(cartItem: CartItem) => {
-                  // v0.6.1: Store CartItem with variant info for modal
+                  if (!ALLOW_MULTI_PRODUCT) {
+                    // Single-product mode: go directly to solicitar
+                    const target = findProductOrSibling(cartItem.productId) || product;
+                    selectProductForWizard(target);
+                    router.push(getWizardUrl(landing));
+                    return;
+                  }
+                  // Multi-product mode: open cart selection modal
                   setSelectedVariantForCart(cartItem);
                   const target = findProductOrSibling(cartItem.productId) || product;
                   handleOpenCartModal(target);
@@ -1621,7 +1631,7 @@ function CatalogoContent() {
                   handleToggleWishlist(wishlistItem.productId, wishlistItem);
                 }}
                 isFavoriteCheck={(id) => wishlist.includes(id)}
-                isInCartCheck={(id) => cart.includes(id)}
+                isInCartCheck={ALLOW_MULTI_PRODUCT ? (id) => cart.includes(id) : () => false}
                 onViewDetail={(siblingSlug) => {
                   tracker?.track('product_click', {
                     product_id: product.id,
@@ -1771,64 +1781,67 @@ function CatalogoContent() {
       {/* Footer from Hero */}
       {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
 
-      {/* Cart Selection Modal */}
-      <CartSelectionModal
-        isOpen={isCartModalOpen}
-        onClose={() => {
-          setIsCartModalOpen(false);
-          setSelectedVariantForCart(null);  // Clean up variant state
-        }}
-        product={selectedProductForCart}
-        onRequestEquipment={() => {
-          if (selectedProductForCart) {
-            selectProductForWizard(selectedProductForCart);
-          }
-          setSelectedVariantForCart(null);
-          router.push(getWizardUrl(landing));
-        }}
-        onAddToCart={() => {
-          if (selectedProductForCart) {
-            // v0.6.1: Use CartItem with variant info if available
-            handleAddToCart(
-              selectedProductForCart.id,
-              selectedProductForCart,
-              selectedVariantForCart || undefined
-            );
-          }
-          setSelectedVariantForCart(null);
-        }}
-      />
+      {/* Cart Selection Modal — only in multi-product mode */}
+      {ALLOW_MULTI_PRODUCT && (
+        <CartSelectionModal
+          isOpen={isCartModalOpen}
+          onClose={() => {
+            setIsCartModalOpen(false);
+            setSelectedVariantForCart(null);  // Clean up variant state
+          }}
+          product={selectedProductForCart}
+          onRequestEquipment={() => {
+            if (selectedProductForCart) {
+              selectProductForWizard(selectedProductForCart);
+            }
+            setSelectedVariantForCart(null);
+            router.push(getWizardUrl(landing));
+          }}
+          onAddToCart={() => {
+            if (selectedProductForCart) {
+              // v0.6.1: Use CartItem with variant info if available
+              handleAddToCart(
+                selectedProductForCart.id,
+                selectedProductForCart,
+                selectedVariantForCart || undefined
+              );
+            }
+            setSelectedVariantForCart(null);
+          }}
+        />
+      )}
 
       {/* Cart Bar - Removed from here, now in Navbar for desktop */}
 
-      {/* Cart Drawer - Mobile only */}
-      {/* v0.6.1: Pass cartItems (CartItem[]) to show variant/color info */}
-      <CartDrawer
-        isOpen={isCartDrawerOpen}
-        onClose={() => setIsCartDrawerOpen(false)}
-        items={cartItems}
-        onRemoveItem={handleRemoveFromCart}
-        onClearAll={() => {
-          handleClearCart();
-          setIsCartDrawerOpen(false);
-        }}
-        onContinue={() => {
-          handleCartContinue();
-          setIsCartDrawerOpen(false);
-        }}
-        onViewProduct={(productId) => {
-          setIsCartDrawerOpen(false);
-          const item = cartItems.find((c) => c.productId === productId);
-          const product = findProductOrSibling(productId);
-          if (product) {
-            router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
-          } else if (item?.slug) {
-            router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
-          }
-        }}
-        config={catalogSecondaryNavbarConfig?.cart}
-        unavailableIds={unavailableCartIds}
-      />
+      {/* Cart Drawer - Mobile only — only in multi-product mode */}
+      {ALLOW_MULTI_PRODUCT && (
+        <CartDrawer
+          isOpen={isCartDrawerOpen}
+          onClose={() => setIsCartDrawerOpen(false)}
+          items={cartItems}
+          onRemoveItem={handleRemoveFromCart}
+          onClearAll={() => {
+            handleClearCart();
+            setIsCartDrawerOpen(false);
+          }}
+          onContinue={() => {
+            handleCartContinue();
+            setIsCartDrawerOpen(false);
+          }}
+          onViewProduct={(productId) => {
+            setIsCartDrawerOpen(false);
+            const item = cartItems.find((c) => c.productId === productId);
+            const product = findProductOrSibling(productId);
+            if (product) {
+              router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
+            } else if (item?.slug) {
+              router.push(getDetailUrl(landing, item.slug, { term: item.months, initial: item.initialPercent }));
+            }
+          }}
+          config={catalogSecondaryNavbarConfig?.cart}
+          unavailableIds={unavailableCartIds}
+        />
+      )}
 
       {/* Search Drawer - Mobile only */}
       <SearchDrawer
@@ -1858,7 +1871,7 @@ function CatalogoContent() {
           }
         }}
         onAddToCompare={handleToggleCompare}
-        onAddToCart={(productId) => {
+        onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
           // Find the WishlistItem and convert to CartItem for cart
           const wishlistItem = wishlistItems.find((w) => w.productId === productId);
           if (wishlistItem) {
@@ -1880,7 +1893,7 @@ function CatalogoContent() {
               addedAt: Date.now(),
             });
           }
-        }}
+        } : undefined}
         compareList={compareList}
         maxCompareProducts={maxCompareProducts}
         config={catalogSecondaryNavbarConfig?.wishlist}
@@ -2097,7 +2110,7 @@ function CatalogoContent() {
               }));
             }
           }}
-          onAddToCart={(quizProduct) => {
+          onAddToCart={ALLOW_MULTI_PRODUCT ? (quizProduct) => {
             // v0.6.2: Build CartItem from QuizProduct with default pricing
             const cartItem: CartItem = {
               productId: quizProduct.id,
@@ -2118,8 +2131,8 @@ function CatalogoContent() {
               },
             };
             handleAddToCart(quizProduct.id, undefined, cartItem);
-          }}
-          cartItems={cart}
+          } : undefined}
+          cartItems={ALLOW_MULTI_PRODUCT ? cart : []}
         />
       )}
 
@@ -2169,18 +2182,20 @@ function CatalogoContent() {
         onContinue={() => router.push(getWizardUrl(landing))}
       />
 
-      {/* Cart Limit Modal */}
-      <CartLimitModal
-        isOpen={isCartLimitModalOpen}
-        onClose={() => {
-          setIsCartLimitModalOpen(false);
-          setAttemptedCartProduct(null);
-        }}
-        cartItems={cartItems}
-        onRemoveItem={handleRemoveFromCart}
-        attemptedProduct={attemptedCartProduct}
-        totalMonthlyQuota={totalMonthlyQuota}
-      />
+      {/* Cart Limit Modal — only in multi-product mode */}
+      {ALLOW_MULTI_PRODUCT && (
+        <CartLimitModal
+          isOpen={isCartLimitModalOpen}
+          onClose={() => {
+            setIsCartLimitModalOpen(false);
+            setAttemptedCartProduct(null);
+          }}
+          cartItems={cartItems}
+          onRemoveItem={handleRemoveFromCart}
+          attemptedProduct={attemptedCartProduct}
+          totalMonthlyQuota={totalMonthlyQuota}
+        />
+      )}
 
       {/* Toast para alertas de comparación */}
       {toast && (

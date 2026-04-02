@@ -14,10 +14,11 @@ import { ShoppingCart, Trash2, X, ArrowRight, AlertTriangle } from 'lucide-react
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { CatalogProduct, CartItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // Configuración fija para legacy CatalogProduct path
 const SELECTED_INITIAL = 0;
-const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
 
 interface CartConfig {
   title?: string;
@@ -72,6 +73,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   config,
   unavailableIds = [],
 }) => {
+  const { settings } = useLayout();
+  const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
   const dragControls = useDragControls();
 
   // v0.6.1: Normalize items to unified format for display

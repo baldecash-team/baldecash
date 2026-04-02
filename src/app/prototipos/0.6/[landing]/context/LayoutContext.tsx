@@ -43,6 +43,8 @@ interface LayoutContextValue {
   isPreviewMode: boolean;
   /** Landing ID when in preview mode */
   previewLandingId: number | null;
+  /** Public system configuration flags from backend */
+  settings: Record<string, string>;
 }
 
 /**
@@ -229,6 +231,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     };
   }, [primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb]);
 
+  // Extract public settings from layout data
+  const settings = useMemo<Record<string, string>>(() => layoutData?.settings ?? {}, [layoutData]);
+
   // Extract agreement data for convenio pages
   const agreementData = useMemo((): AgreementData | null => {
     if (!layoutData) return null;
@@ -250,7 +255,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     secondaryColorRgb,
     isPreviewMode,
     previewLandingId,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId]);
+    settings,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings]);
 
   return (
     <LayoutContext.Provider value={value}>

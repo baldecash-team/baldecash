@@ -280,6 +280,7 @@ export interface LandingLayoutResponse {
     institution_short_name?: string;
     institution_logo?: string;
   } | null;
+  settings?: Record<string, string> | null;
 }
 
 /**

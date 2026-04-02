@@ -61,6 +61,9 @@ interface CatalogSecondaryNavbarProps {
 
   // Preview banner offset (pixels to shift down when preview banner is visible)
   previewBannerOffset?: number;
+
+  // Hide cart UI (icon, button). Defaults to true.
+  showCart?: boolean;
 }
 
 export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
@@ -88,6 +91,7 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   unavailableWishlistIds = [],
   config,
   previewBannerOffset: previewBannerOffsetProp,
+  showCart = true,
 }) => {
   // Auto-detect preview banner offset based on whether THIS landing is being previewed
   const params = useParams();
@@ -148,17 +152,19 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
                 config={config?.wishlist}
                 unavailableIds={unavailableWishlistIds}
               />
-              <NavbarCart
-                id="onboarding-cart"
-                items={cartItems}
-                onRemoveItem={onCartRemove}
-                onClearAll={onCartClear}
-                onContinue={onCartContinue}
-                onViewProduct={onCartViewProduct}
-                config={config?.cart}
-                isOverLimit={isCartOverLimit}
-                unavailableIds={unavailableCartIds}
-              />
+              {showCart && (
+                <NavbarCart
+                  id="onboarding-cart"
+                  items={cartItems}
+                  onRemoveItem={onCartRemove}
+                  onClearAll={onCartClear}
+                  onContinue={onCartContinue}
+                  onViewProduct={onCartViewProduct}
+                  config={config?.cart}
+                  isOverLimit={isCartOverLimit}
+                  unavailableIds={unavailableCartIds}
+                />
+              )}
             </div>
 
             {/* Mobile: Buttons */}
@@ -168,12 +174,14 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
                 count={wishlistItems.length}
                 onClick={onMobileWishlistClick || (() => {})}
               />
-              <NavbarCartButton
-                id="onboarding-cart-mobile"
-                count={cartItems.length}
-                onClick={onMobileCartClick || (() => {})}
-                isOverLimit={isCartOverLimit}
-              />
+              {showCart && (
+                <NavbarCartButton
+                  id="onboarding-cart-mobile"
+                  count={cartItems.length}
+                  onClick={onMobileCartClick || (() => {})}
+                  isOverLimit={isCartOverLimit}
+                />
+              )}
             </div>
           </div>
         </div>

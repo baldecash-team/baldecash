@@ -14,11 +14,12 @@ import { CatalogProduct, CartItem, WishlistItem, TermMonths, calculateQuotaWithI
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 // Configuración fija para sugerencias: plazo más alto del producto, sin inicial
 const SELECTED_INITIAL = 0;
-const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
 
 /**
  * NavbarSearch - Buscador en el navbar con sugerencias
@@ -623,6 +624,8 @@ export const NavbarCart: React.FC<NavbarCartProps> = ({
   isOverLimit = false,
   unavailableIds = [],
 }) => {
+  const { settings } = useLayout();
+  const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
   const unavailableSet = useMemo(() => new Set(unavailableIds), [unavailableIds]);
   const hasUnavailable = unavailableIds.length > 0;
   const [isOpen, setIsOpen] = useState(false);

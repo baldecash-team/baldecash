@@ -10,6 +10,7 @@ import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import { CubeGridSpinner, useScrollToTop, Toast, useToast } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -55,7 +56,8 @@ function ProductDetailContent() {
   const landing = (params.landing as string) || 'home';
 
   // Get layout data from context (fetched once at [landing] level)
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings } = useLayout();
+  const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const previewBannerOffset = previewKey ? 24 : 0;
@@ -343,6 +345,7 @@ function ProductDetailContent() {
         onMobileCartClick={() => setIsCartDrawerOpen(true)}
         unavailableCartIds={catalogState.unavailableCartIds}
         unavailableWishlistIds={catalogState.unavailableWishlistIds}
+        showCart={ALLOW_MULTI_PRODUCT}
       />
 
       {/* Main Content with padding for fixed navbars (promo + primary + secondary + preview banner) */}
@@ -359,14 +362,14 @@ function ProductDetailContent() {
           isAvailable={isAvailable}
           defaultTerm={defaultTerm}
           defaultInitialPercent={defaultInitialPercent}
-          onAddToCart={isAvailable ? handleAddToCart : undefined}
-          onRemoveFromCart={isAvailable ? catalogState.removeFromCart : undefined}
-          onUpdateCart={isAvailable ? catalogState.updateCartItem : undefined}
-          cartItem={isAvailable ? catalogState.getCartItem(apiData.product.id) : undefined}
-          isInCart={isAvailable ? catalogState.isInCart(apiData.product.id) : false}
+          onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}
+          onRemoveFromCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.removeFromCart : undefined}
+          onUpdateCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.updateCartItem : undefined}
+          cartItem={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.getCartItem(apiData.product.id) : undefined}
+          isInCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.isInCart(apiData.product.id) : false}
           onToggleWishlist={isAvailable ? handleToggleWishlist : undefined}
           isInWishlist={isAvailable ? catalogState.isInWishlist(apiData.product.id) : false}
-          onSimilarAddToCart={(similarProduct) => {
+          onSimilarAddToCart={ALLOW_MULTI_PRODUCT ? (similarProduct) => {
             // Similar products are independent — always allow add-to-cart
             const estimatedPrice = Math.floor(similarProduct.monthlyQuota * 24);
             const cartItem: CartItem = {
@@ -389,8 +392,8 @@ function ProductDetailContent() {
               } : undefined,
             };
             handleAddToCart(cartItem);
-          }}
-          cartItems={catalogState.cartIds}
+          } : undefined}
+          cartItems={ALLOW_MULTI_PRODUCT ? catalogState.cartIds : []}
         />
       </main>
 
@@ -432,28 +435,30 @@ function ProductDetailContent() {
         unavailableIds={catalogState.unavailableWishlistIds}
       />
 
-      <CartDrawer
-        isOpen={isCartDrawerOpen}
-        onClose={() => setIsCartDrawerOpen(false)}
-        items={catalogState.cart}
-        onRemoveItem={catalogState.removeFromCart}
-        onClearAll={() => {
-          catalogState.clearCart();
-          setIsCartDrawerOpen(false);
-        }}
-        onContinue={() => {
-          setIsCartDrawerOpen(false);
-          handleCartContinue();
-        }}
-        onViewProduct={(productId) => {
-          setIsCartDrawerOpen(false);
-          const item = catalogState.cart.find((c) => c.productId === productId);
-          if (item?.slug) {
-            router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
-          }
-        }}
-        unavailableIds={catalogState.unavailableCartIds}
-      />
+      {ALLOW_MULTI_PRODUCT && (
+        <CartDrawer
+          isOpen={isCartDrawerOpen}
+          onClose={() => setIsCartDrawerOpen(false)}
+          items={catalogState.cart}
+          onRemoveItem={catalogState.removeFromCart}
+          onClearAll={() => {
+            catalogState.clearCart();
+            setIsCartDrawerOpen(false);
+          }}
+          onContinue={() => {
+            setIsCartDrawerOpen(false);
+            handleCartContinue();
+          }}
+          onViewProduct={(productId) => {
+            setIsCartDrawerOpen(false);
+            const item = catalogState.cart.find((c) => c.productId === productId);
+            if (item?.slug) {
+              router.push(getDetailUrl(item.slug, { term: item.months, initial: item.initialPercent }));
+            }
+          }}
+          unavailableIds={catalogState.unavailableCartIds}
+        />
+      )}
 
       {/* Toast para feedback de carrito */}
       {toast && (

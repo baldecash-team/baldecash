@@ -12,6 +12,8 @@ import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent 
 import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/producto/api/productDetailApi';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // Dynamic storage keys based on landing slug
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -20,8 +22,6 @@ const getAccessoriesKey = (landing: string) => `baldecash-${landing}-solicitar-s
 const getInsuranceKey = (landing: string) => `baldecash-${landing}-solicitar-selected-insurance`;
 const getCouponKey = (landing: string) => `baldecash-${landing}-solicitar-applied-coupon`;
 
-// Maximum monthly quota limit from env
-const MAX_MONTHLY_QUOTA = Number(process.env.NEXT_PUBLIC_MAX_MONTHLY_QUOTA) || 600;
 
 // Payment plan option for a specific initial percentage
 export interface PaymentPlanOption {
@@ -149,6 +149,8 @@ interface ProductProviderProps {
 export const ProductProvider: React.FC<ProductProviderProps> = ({ children, landingSlug }) => {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landingSlug) ? preview.previewKey : null;
+  const { settings } = useLayout();
+  const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
   const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
   const [cartProducts, setCartProductsState] = useState<SelectedProduct[]>([]);

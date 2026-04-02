@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { QuizResultsProps, QuizResult, QuizProduct } from '../../../types/quiz';
 import { useIsMobile } from '@/app/prototipos/_shared';
+import { ALLOW_MULTI_PRODUCT } from '@/app/prototipos/0.6/utils/featureFlags';
 
 export const QuizResultsV1: React.FC<QuizResultsProps> = ({
   results,
@@ -211,20 +212,32 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
 
               {/* Actions */}
               <div className="flex gap-3">
-                <Button
-                  className={`flex-1 font-semibold cursor-pointer ${
-                    cartItems.includes(topResult.product.id)
-                      ? 'bg-emerald-500 text-white cursor-default'
-                      : 'text-white'
-                  }`}
-                  style={cartItems.includes(topResult.product.id) ? {} : { backgroundColor: 'var(--color-primary)' }}
-                  size="lg"
-                  endContent={cartItems.includes(topResult.product.id) ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-                  onPress={() => !cartItems.includes(topResult.product.id) && handleOpenModal(topResult.product)}
-                  isDisabled={cartItems.includes(topResult.product.id)}
-                >
-                  {cartItems.includes(topResult.product.id) ? 'En el carrito' : 'Lo quiero'}
-                </Button>
+                {(() => {
+                  const isInCart = ALLOW_MULTI_PRODUCT && cartItems.includes(topResult.product.id);
+                  return (
+                    <Button
+                      className={`flex-1 font-semibold cursor-pointer ${
+                        isInCart
+                          ? 'bg-emerald-500 text-white cursor-default'
+                          : 'text-white'
+                      }`}
+                      style={isInCart ? {} : { backgroundColor: 'var(--color-primary)' }}
+                      size="lg"
+                      endContent={isInCart ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                      onPress={() => {
+                        if (isInCart) return;
+                        if (ALLOW_MULTI_PRODUCT && onAddToCart) {
+                          handleOpenModal(topResult.product);
+                        } else {
+                          onViewProduct(topResult.product.id);
+                        }
+                      }}
+                      isDisabled={isInCart}
+                    >
+                      {isInCart ? 'En el carrito' : 'Lo quiero'}
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           </CardBody>
@@ -247,8 +260,9 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               <SecondaryProductCard
                 key={result.product.id}
                 result={result}
-                onOpenModal={handleOpenModal}
-                isInCart={cartItems.includes(result.product.id)}
+                onOpenModal={ALLOW_MULTI_PRODUCT && onAddToCart ? handleOpenModal : undefined}
+                onDirectSelect={!ALLOW_MULTI_PRODUCT || !onAddToCart ? onViewProduct : undefined}
+                isInCart={ALLOW_MULTI_PRODUCT && cartItems.includes(result.product.id)}
                 delay={0.5 + index * 0.1}
               />
             ))}
@@ -274,8 +288,8 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
         </button>
       </motion.div>
 
-      {/* Cart Selection Modal */}
-      {selectedProductForModal && (
+      {/* Cart Selection Modal — only when multi-product is enabled */}
+      {ALLOW_MULTI_PRODUCT && onAddToCart && selectedProductForModal && (
         isMobile ? (
           <QuizProductMobileModal
             isOpen={isModalOpen}
@@ -286,7 +300,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               handleCloseModal();
             }}
             onAddToCart={() => {
-              onAddToCart?.(selectedProductForModal);
+              onAddToCart(selectedProductForModal);
               handleCloseModal();
             }}
           />
@@ -300,7 +314,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               handleCloseModal();
             }}
             onAddToCart={() => {
-              onAddToCart?.(selectedProductForModal);
+              onAddToCart(selectedProductForModal);
               handleCloseModal();
             }}
           />
@@ -315,10 +329,11 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
  */
 const SecondaryProductCard: React.FC<{
   result: QuizResult;
-  onOpenModal: (product: QuizProduct) => void;
+  onOpenModal?: (product: QuizProduct) => void;
+  onDirectSelect?: (productId: string) => void;
   isInCart: boolean;
   delay: number;
-}> = ({ result, onOpenModal, isInCart, delay }) => {
+}> = ({ result, onOpenModal, onDirectSelect, isInCart, delay }) => {
   const { product, matchScore } = result;
 
   return (
@@ -331,7 +346,14 @@ const SecondaryProductCard: React.FC<{
       <Card
         isPressable
         isDisabled={isInCart}
-        onPress={() => !isInCart && onOpenModal(product)}
+        onPress={() => {
+          if (isInCart) return;
+          if (onOpenModal) {
+            onOpenModal(product);
+          } else if (onDirectSelect) {
+            onDirectSelect(product.id);
+          }
+        }}
         className={`border transition-colors w-full ${
           isInCart
             ? 'border-emerald-300 bg-emerald-50/50 cursor-default'

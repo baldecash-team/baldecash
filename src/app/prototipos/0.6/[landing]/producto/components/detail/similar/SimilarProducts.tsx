@@ -403,16 +403,23 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       <Button
                         size="lg"
                         className={`flex-1 font-bold cursor-pointer rounded-xl ${
-                          cartItems.includes(product.id)
+                          onAddToCart && cartItems.includes(product.id)
                             ? 'bg-emerald-500 text-white cursor-default'
                             : isCheaper
                               ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                               : 'bg-[var(--color-primary)] text-white hover:brightness-90'
                         }`}
-                        onPress={() => !cartItems.includes(product.id) && handleOpenModal(product)}
-                        isDisabled={cartItems.includes(product.id)}
+                        onPress={() => {
+                          if (onAddToCart && cartItems.includes(product.id)) return;
+                          if (onAddToCart) {
+                            handleOpenModal(product);
+                          } else {
+                            handleAddToCart(product);
+                          }
+                        }}
+                        isDisabled={onAddToCart && cartItems.includes(product.id)}
                       >
-                        {cartItems.includes(product.id) ? 'En el carrito' : isCheaper ? 'Ahorrar' : 'Lo quiero'}
+                        {onAddToCart && cartItems.includes(product.id) ? 'En el carrito' : isCheaper ? 'Ahorrar' : 'Lo quiero'}
                       </Button>
                     </div>
                   </div>
@@ -428,8 +435,8 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
         Desliza para ver más →
       </p>
 
-      {/* Cart Selection Modal */}
-      {selectedProductForModal && (
+      {/* Cart Selection Modal — only when multi-product is enabled */}
+      {onAddToCart && selectedProductForModal && (
         isMobile ? (
           <SimilarProductMobileModal
             isOpen={isModalOpen}
@@ -437,7 +444,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
             product={selectedProductForModal}
             onRequestEquipment={() => handleAddToCart(selectedProductForModal)}
             onAddToCart={() => {
-              onAddToCart?.(selectedProductForModal);
+              onAddToCart(selectedProductForModal);
               handleCloseModal();
             }}
           />
@@ -448,7 +455,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
             product={selectedProductForModal}
             onRequestEquipment={() => handleAddToCart(selectedProductForModal)}
             onAddToCart={() => {
-              onAddToCart?.(selectedProductForModal);
+              onAddToCart(selectedProductForModal);
               handleCloseModal();
             }}
           />

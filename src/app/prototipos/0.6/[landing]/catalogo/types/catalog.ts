@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import type { CatalogFiltersResponse } from '../../../types/filters';
+import { ALLOW_MULTI_PRODUCT } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // ============================================
 // Enums y tipos base
@@ -537,15 +538,15 @@ export const getOnboardingStepsMinimal = (questionCount: number = 7, hasQuiz: bo
     position: 'bottom',
     positionMobile: 'bottom',
   },
-  {
+  ...(ALLOW_MULTI_PRODUCT ? [{
     id: 'cart',
     targetId: 'onboarding-cart',
     targetIdMobile: 'onboarding-cart-mobile',
     title: 'Tu carrito',
     description: 'Aquí verás los productos que quieres solicitar.',
-    position: 'bottom',
-    positionMobile: 'bottom',
-  },
+    position: 'bottom' as const,
+    positionMobile: 'bottom' as const,
+  }] : []),
 ];
 
 export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: boolean = true): OnboardingStep[] => [
@@ -611,7 +612,9 @@ export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: b
     id: 'card-add-to-cart',
     targetId: 'onboarding-card-add-to-cart',
     title: '¡Lo quiero!',
-    description: 'Agrega el equipo a tu carrito para iniciar tu solicitud de financiamiento.',
+    description: ALLOW_MULTI_PRODUCT
+      ? 'Agrega el equipo a tu carrito para iniciar tu solicitud de financiamiento.'
+      : 'Solicita este equipo directamente para iniciar tu financiamiento.',
     position: 'top',
     positionMobile: 'top',
   },
@@ -624,15 +627,15 @@ export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: b
     position: 'bottom',
     positionMobile: 'bottom',
   },
-  {
+  ...(ALLOW_MULTI_PRODUCT ? [{
     id: 'cart',
     targetId: 'onboarding-cart',
     targetIdMobile: 'onboarding-cart-mobile',
     title: 'Tu carrito',
     description: 'Aquí verás los productos que quieres solicitar.',
-    position: 'bottom',
-    positionMobile: 'bottom',
-  },
+    position: 'bottom' as const,
+    positionMobile: 'bottom' as const,
+  }] : []),
 ];
 
 // ============================================
