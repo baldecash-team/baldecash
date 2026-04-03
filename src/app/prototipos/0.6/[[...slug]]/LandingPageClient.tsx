@@ -17,6 +17,8 @@ import { usePreview } from '../context/PreviewContext';
 import { NotFoundContent } from '../components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { HomeSkeleton } from './HomeSkeleton';
+import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
+import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
 
 // Slugs que activan el modal de DNI al cargar la landing
@@ -359,12 +361,16 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
   );
 }
 
-// Main export with Suspense wrapper for useSearchParams
+// Main export with Suspense wrapper + tracking providers
 export function LandingPageClient({ slug }: LandingPageClientProps) {
   return (
-    <Suspense fallback={<HomeSkeleton />}>
-      <LandingPageClientInner slug={slug} />
-    </Suspense>
+    <SessionProvider landingSlug={slug}>
+      <EventTrackerProvider>
+        <Suspense fallback={<HomeSkeleton />}>
+          <LandingPageClientInner slug={slug} />
+        </Suspense>
+      </EventTrackerProvider>
+    </SessionProvider>
   );
 }
 

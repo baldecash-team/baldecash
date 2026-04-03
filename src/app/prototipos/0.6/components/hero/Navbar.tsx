@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import type { PromoBannerData } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 // Helper function to build internal URLs with optional query params
 const buildInternalUrl = (basePath: string, params?: Record<string, string>) => {
@@ -221,6 +222,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
     item.is_visible !== false &&
     (!item.section || activeSections.includes(item.section))
   );
+  const tracker = useEventTrackerOptional();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showPromo, setShowPromo] = useState(true);
   const [activeMegaMenu, setActiveMegaMenu] = useState<'equipos' | 'convenios' | null>(null);
@@ -353,12 +355,18 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   <div
                     key={item.label}
                     className="relative"
-                    onMouseEnter={() => item.megaMenuType && setActiveMegaMenu(item.megaMenuType)}
+                    onMouseEnter={() => {
+                      if (item.megaMenuType) setActiveMegaMenu(item.megaMenuType);
+                      tracker?.track('nav_hover', { label: item.label, href: item.href, has_megamenu: !!item.megaMenuType });
+                    }}
                     onMouseLeave={() => item.megaMenuType && setActiveMegaMenu(null)}
                   >
                     <a
                       href={item.href}
-                      onClick={(e) => handleAnchorClick(e, item.href)}
+                      onClick={(e) => {
+                        tracker?.track('nav_click', { label: item.label, href: item.href, location: 'desktop' });
+                        handleAnchorClick(e, item.href);
+                      }}
                       className="flex items-center gap-1 text-neutral-600 text-sm font-medium transition-colors hover:[color:var(--color-primary,#4654CD)]"
                       {...(isExternalLink(item.href) && { target: '_blank', rel: 'noopener noreferrer' })}
                     >
@@ -397,6 +405,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                                   href={menuItem.href}
                                   className="flex items-start gap-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors group"
                                   onClick={(e) => {
+                                    tracker?.track('nav_click', { label: menuItem.label, href: menuItem.href, location: 'megamenu' });
                                     handleAnchorClick(e, menuItem.href);
                                     setActiveMegaMenu(null);
                                   }}
@@ -442,6 +451,9 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   style={{
                     borderColor: 'var(--color-primary, #4654CD)',
                     color: 'var(--color-primary, #4654CD)',
+                  }}
+                  onPress={() => {
+                    tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_desktop' });
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
@@ -506,7 +518,10 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                       <>
                         <button
                           className="flex items-center justify-between w-full py-3 text-neutral-600 font-medium cursor-pointer hover:[color:var(--color-primary,#4654CD)]"
-                          onClick={() => setMobileExpanded(mobileExpanded === item.megaMenuType ? null : item.megaMenuType!)}
+                          onClick={() => {
+                            tracker?.track('nav_click', { label: item.label, location: 'mobile_megamenu_toggle' });
+                            setMobileExpanded(mobileExpanded === item.megaMenuType ? null : item.megaMenuType!);
+                          }}
                         >
                           <span className="flex items-center gap-2">
                             {item.label}
@@ -541,6 +556,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                                     href={subItem.href}
                                     className="block py-2 text-sm text-neutral-500 hover:[color:var(--color-primary,#4654CD)]"
                                     onClick={(e) => {
+                                      tracker?.track('nav_click', { label: subItem.label, href: subItem.href, location: 'mobile_megamenu' });
                                       // External links don't need special handling
                                       if (isExternalLink(subItem.href)) {
                                         setIsMenuOpen(false);
@@ -588,6 +604,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                         className="block py-3 text-neutral-600 font-medium hover:[color:var(--color-primary,#4654CD)]"
                         {...(isExternalLink(item.href) && { target: '_blank', rel: 'noopener noreferrer' })}
                         onClick={(e) => {
+                          tracker?.track('nav_click', { label: item.label, href: item.href, location: 'mobile' });
                           // External links don't need special handling
                           if (isExternalLink(item.href)) {
                             setIsMenuOpen(false);
@@ -634,6 +651,9 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     style={{
                       borderColor: 'var(--color-primary, #4654CD)',
                       color: 'var(--color-primary, #4654CD)',
+                    }}
+                    onPress={() => {
+                      tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_mobile' });
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';

@@ -1641,6 +1641,13 @@ function CatalogoContent() {
                   });
                   router.push(getDetailUrl(landing, siblingSlug || product.slug));
                 }}
+                onMouseEnter={() => {
+                  tracker?.track('product_hover', {
+                    product_id: product.id,
+                    product_name: product.name,
+                    brand: product.brand,
+                  });
+                }}
                 onCompare={(activeId) => handleToggleCompare(activeId)}
                 isCompareCheck={(id) => compareList.includes(id)}
                 compareDisabled={compareList.length >= maxCompareProducts}

@@ -11,6 +11,7 @@ import { Facebook, Instagram, Linkedin, Phone, Send, AlertCircle, Check, Twitter
 import { Toast } from '@/app/prototipos/_shared';
 import type { FooterData } from '../../types/hero';
 import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 
 // TikTok icon component (not available in lucide-react)
@@ -36,6 +37,7 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
+  const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
 
   // Transform links: handle relative paths and build full URLs
@@ -161,6 +163,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
       const result = await response.json();
 
       if (response.ok && result.success) {
+        tracker?.track('cta_click', { cta_name: 'newsletter_subscribe', location: 'footer' });
         setIsSuccess(true);
         setWhatsapp('');
         setTouched(false);
@@ -269,6 +272,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
                   className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center transition-colors social-link-hover"
                   style={{ '--hover-bg': 'var(--color-primary, #4654CD)' } as React.CSSProperties}
                   aria-label={social.label}
+                  onClick={() => tracker?.track('cta_click', { cta_name: `social_${social.label.toLowerCase()}`, href: social.href, location: 'footer' })}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)'}
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = ''}
                 >
@@ -300,6 +304,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
                       <a
                         href={href}
                         className="text-sm text-neutral-400 hover:text-white transition-colors"
+                        onClick={() => tracker?.track('nav_click', { label: link.label, href, location: 'footer' })}
                         {...(!isInternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                       >
                         {link.label}
@@ -322,6 +327,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
             <a
               href={transformLink('legal/libro-reclamaciones')}
               className="flex-shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+              onClick={() => tracker?.track('nav_click', { label: 'libro_reclamaciones', location: 'footer' })}
               title="Libro de reclamaciones"
             >
               <img

@@ -6,7 +6,7 @@
  * con imagen de fondo en blur y placeholders animados
  */
 
-const HERO_BG_URL = 'https://baldecash.s3.amazonaws.com/landings/home/hero/hero-bg.jpg';
+const HERO_BG_URL = 'https://baldecash.s3.amazonaws.com/landings/1/hero-0979679d.webp';
 
 function ShimmerBlock({ className }: { className: string }) {
   return (

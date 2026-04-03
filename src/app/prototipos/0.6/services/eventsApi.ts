@@ -29,6 +29,7 @@ export type EventType =
   | 'outbound_click'
   | 'product_view'
   | 'product_click'
+  | 'product_hover'
   | 'cart_add'
   | 'cart_remove'
   | 'cart_clear'
@@ -38,6 +39,8 @@ export type EventType =
   | 'compare_add'
   | 'compare_remove'
   | 'compare_open'
+  | 'nav_click'
+  | 'nav_hover'
   | 'error';
 
 /** Properties that are BLOCKED for privacy reasons */
