@@ -66,14 +66,14 @@ export interface QuizProduct {
   termMonths: number;       // Plazo en meses (e.g., 24)
   initialPercent: number;   // Porcentaje de inicial (e.g., 0)
   specs: {
-    ram: number;
+    ram: number | null;
     ramType?: string;
     ramExpandable?: boolean;
-    storage: number;
+    storage: number | null;
     storageType: string;
-    processor: string;
-    displaySize: number;
-    resolution: string;
+    processor: string | null;
+    displaySize: number | null;
+    resolution: string | null;
     gpu?: string;
     gpuType?: 'integrated' | 'dedicated';
     weight?: number; // kg - para scoring de portabilidad

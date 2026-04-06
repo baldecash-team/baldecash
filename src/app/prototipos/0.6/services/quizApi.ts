@@ -359,13 +359,13 @@ export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[
       termMonths: product.term_months || apiResponse.term_months || 24,
       initialPercent: 0, // Quiz siempre muestra el precio gancho (0% inicial)
       specs: {
-        ram: product.specs.ram ?? 8,
+        ram: product.specs.ram,
         ramType: product.specs.ram_type ?? undefined,
-        storage: product.specs.storage ?? 256,
+        storage: product.specs.storage,
         storageType: formatStorageType(product.specs.storage_type),
-        processor: product.specs.processor ?? 'N/A',
-        displaySize: product.specs.screen_size ?? 15.6,
-        resolution: product.specs.screen_resolution ?? '1920x1080',
+        processor: product.specs.processor,
+        displaySize: product.specs.screen_size,
+        resolution: product.specs.screen_resolution,
         gpu: product.specs.gpu ?? undefined,
       },
       tags: product.match_reasons.map(r => r.toLowerCase().replace(/\s+/g, '-')),
