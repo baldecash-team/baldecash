@@ -288,33 +288,37 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
             */}
 
-            {/* Specs técnicas con iconos - altura fija (siempre 4 specs) */}
+            {/* Specs técnicas con iconos - solo muestra specs con dato real */}
             <div className="space-y-2 min-h-[100px]">
-              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                <span>{displaySpecs?.processor?.model || 'Procesador'}</span>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <MemoryStick className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                <span>
-                  {displaySpecs?.ram?.size || 8}GB {displaySpecs?.ram?.type || 'DDR4'}
-                  {displaySpecs?.ram?.expandable && (
-                    <span className="text-[#22c55e] ml-1">(expandible)</span>
-                  )}
-                </span>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <HardDrive className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                <span>
-                  {displaySpecs?.storage?.size || 256}GB {(displaySpecs?.storage?.type || 'ssd').toUpperCase()}
-                </span>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
-                <Monitor className="w-3.5 h-3.5 text-[var(--color-primary)]" />
-                <span>
-                  {displaySpecs?.display?.size || 15.6}&quot; {(displaySpecs?.display?.resolution || 'fhd').toUpperCase()}
-                </span>
-              </div>
+              {displaySpecs?.processor?.model && (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                  <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                  <span>{displaySpecs.processor.model}</span>
+                </div>
+              )}
+              {displaySpecs?.ram && (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                  <MemoryStick className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                  <span>
+                    {displaySpecs.ram.size}GB {displaySpecs.ram.type}
+                    {displaySpecs.ram.expandable && (
+                      <span className="text-[#22c55e] ml-1">(expandible)</span>
+                    )}
+                  </span>
+                </div>
+              )}
+              {displaySpecs?.storage && (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                  <HardDrive className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                  <span>{displaySpecs.storage.size}GB {displaySpecs.storage.type.toUpperCase()}</span>
+                </div>
+              )}
+              {displaySpecs?.display && (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                  <Monitor className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+                  <span>{displaySpecs.display.size}&quot; {displaySpecs.display.resolution.toUpperCase()}</span>
+                </div>
+              )}
             </div>
 
             {/* Spacer - empuja pricing y CTAs al fondo */}

@@ -299,13 +299,13 @@ const calculateMatchScore = (
         break;
       case 'pantalla':
         // Pantalla ≥ 16" = +30, ≥ 15" = +20
-        const displaySize = product.specs.displaySize;
+        const displaySize = product.specs.displaySize ?? 0;
         if (displaySize >= 16) score += 30;
         else if (displaySize >= 15) score += 20;
         break;
       case 'rendimiento':
         // RAM ≥ 16 = +15, GPU dedicada = +15
-        if (product.specs.ram >= 16) score += 15;
+        if ((product.specs.ram ?? 0) >= 16) score += 15;
         if (product.specs.gpuType === 'dedicated') score += 15;
         break;
     }
@@ -313,7 +313,7 @@ const calculateMatchScore = (
 
   // Scoring por screen_size (hasta +20 puntos)
   if (screenSizeAnswer) {
-    const displaySize = product.specs.displaySize;
+    const displaySize = product.specs.displaySize ?? 0;
     switch (screenSizeAnswer) {
       case 'small': // 13-14"
         if (displaySize >= 13 && displaySize <= 14.1) score += 20;
@@ -476,25 +476,25 @@ const getMatchReasons = (
   if (priority === 'bateria' && (product.specs.batteryLife || 6) >= 8) {
     reasons.push(`Batería de larga duración: ${product.specs.batteryLife}h`);
   }
-  if (priority === 'pantalla' && product.specs.displaySize >= 15.6) {
+  if (priority === 'pantalla' && (product.specs.displaySize ?? 0) >= 15.6) {
     reasons.push(`Pantalla amplia de ${product.specs.displaySize}"`);
   }
-  if (priority === 'rendimiento' && (product.specs.ram >= 16 || product.specs.gpuType === 'dedicated')) {
+  if (priority === 'rendimiento' && ((product.specs.ram ?? 0) >= 16 || product.specs.gpuType === 'dedicated')) {
     reasons.push('Alto rendimiento garantizado');
   }
 
   // Razones basadas en screen_size
-  if (screenSize === 'small' && product.specs.displaySize <= 14.1) {
+  if (screenSize === 'small' && (product.specs.displaySize ?? 0) <= 14.1) {
     reasons.push('Tamaño compacto ideal para movilidad');
   }
-  if (screenSize === 'large' && product.specs.displaySize >= 16) {
+  if (screenSize === 'large' && (product.specs.displaySize ?? 0) >= 16) {
     reasons.push('Pantalla grande para mayor comodidad');
   }
 
   // Razones basadas en specs (solo si no hay suficientes razones aún)
-  if (reasons.length < 3 && product.specs.ram >= 16) {
+  if (reasons.length < 3 && (product.specs.ram ?? 0) >= 16) {
     reasons.push('16GB RAM para multitarea fluida');
-  } else if (reasons.length < 3 && product.specs.ram >= 8) {
+  } else if (reasons.length < 3 && (product.specs.ram ?? 0) >= 8) {
     reasons.push('8GB RAM suficiente para tus tareas');
   }
 
@@ -502,7 +502,7 @@ const getMatchReasons = (
     reasons.push('Gráfica dedicada para alto rendimiento');
   }
 
-  if (reasons.length < 3 && product.specs.storage >= 512) {
+  if (reasons.length < 3 && (product.specs.storage ?? 0) >= 512) {
     reasons.push('Amplio almacenamiento SSD');
   }
 
