@@ -21,6 +21,7 @@ import {
   type SearchSuggestion,
   type SearchCorrected,
 } from '../../../services/catalogApi';
+import { roundToColumns } from './useGridColumns';
 
 export interface UseCatalogProductsOptions {
   landingSlug: string;
@@ -32,6 +33,8 @@ export interface UseCatalogProductsOptions {
   enabled?: boolean;
   /** Preview key for accessing unpublished landings */
   previewKey?: string | null;
+  /** Number of grid columns - used to round limits so rows are always complete */
+  gridColumns?: number;
 }
 
 export interface UseCatalogProductsResult {
@@ -77,7 +80,11 @@ export function useCatalogProducts({
   sortBy,
   enabled = true,
   previewKey,
+  gridColumns,
 }: UseCatalogProductsOptions): UseCatalogProductsResult {
+  // Round limits to fill complete rows
+  const initialLimit = gridColumns ? roundToColumns(INITIAL_LOAD_LIMIT, gridColumns) : INITIAL_LOAD_LIMIT;
+  const loadMoreLimit = gridColumns ? roundToColumns(LOAD_MORE_LIMIT, gridColumns) : LOAD_MORE_LIMIT;
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -119,7 +126,7 @@ export function useCatalogProducts({
       const result = await fetchCatalogData(landingSlug, {
         filters,
         sort_by: sortBy,
-        limit: INITIAL_LOAD_LIMIT,
+        limit: initialLimit,
         offset: 0,
         previewKey,
       });
@@ -167,9 +174,9 @@ export function useCatalogProducts({
         setIsLoading(false);
       }
     }
-  }, [landingSlug, filters, sortBy, previewKey]);
+  }, [landingSlug, filters, sortBy, previewKey, initialLimit]);
 
-  // Load more products (8 at a time)
+  // Load more products
   const loadMore = useCallback(async () => {
     if (!hasMore || isLoadingMore || !isFromApi) return;
 
@@ -179,7 +186,7 @@ export function useCatalogProducts({
       const result = await fetchCatalogData(landingSlug, {
         filters,
         sort_by: sortBy,
-        limit: LOAD_MORE_LIMIT,
+        limit: loadMoreLimit,
         offset: offset,
         previewKey,
       });
@@ -197,7 +204,7 @@ export function useCatalogProducts({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [landingSlug, filters, sortBy, offset, hasMore, isLoadingMore, isFromApi]);
+  }, [landingSlug, filters, sortBy, offset, hasMore, isLoadingMore, isFromApi, loadMoreLimit]);
 
   // Load products on mount (only if enabled)
   useEffect(() => {

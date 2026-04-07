@@ -100,6 +100,7 @@ import {
 
 // API Hooks for loading products and filters
 import { useCatalogProducts, useProductsByIds, useCatalogFilters, type AppliedFiltersForCounts } from './hooks/useCatalogProducts';
+import { useGridColumns, roundToColumns } from './hooks/useGridColumns';
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../services/catalogApi';
 
 // Query params utilities
@@ -561,6 +562,9 @@ function CatalogoContent() {
   // If there are brand filters, wait until brandMapping is loaded
   const isReadyToFetchProducts = filters.brands.length === 0 || brandMapping.size > 0;
 
+  // Detect grid columns for complete row filling
+  const { gridRef, columns: gridColumns } = useGridColumns();
+
   // Load products from API only (NO mock fallback)
   const {
     products: catalogProducts,
@@ -580,6 +584,7 @@ function CatalogoContent() {
     sortBy: apiSortBy,
     enabled: isReadyToFetchProducts,
     previewKey,
+    gridColumns,
   });
 
 
@@ -1583,6 +1588,7 @@ function CatalogoContent() {
         }}
         searchQuery={searchQuery}
         onSearchClear={handleSearchClear}
+        gridRef={gridRef}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
         {searchCorrected && !isProductsLoading && (
@@ -1600,7 +1606,7 @@ function CatalogoContent() {
 
         {isProductsLoading ? (
           // Show skeletons while products are loading (initial or filter change)
-          Array.from({ length: 16 }).map((_, index) => (
+          Array.from({ length: roundToColumns(15, gridColumns) }).map((_, index) => (
             <ProductCardSkeleton key={`skeleton-${index}`} version={config.skeletonVersion} index={index} />
           ))
         ) : (
@@ -1661,7 +1667,7 @@ function CatalogoContent() {
               />
             ))}
             {isLoadingMoreFromApi &&
-              Array.from({ length: 8 }).map((_, index) => (
+              Array.from({ length: roundToColumns(8, gridColumns) }).map((_, index) => (
                 <ProductCardSkeleton key={`loading-more-${index}`} version={config.skeletonVersion} index={index} />
               ))}
           </>

@@ -55,6 +55,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   apiFilters,
   isApiFiltersLoading,
   totalProducts,
+  gridRef,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -600,7 +601,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   )}
                 </div>
 
-                {/* Device Type Filter */}
+                {/* Device Type Filter - hide if empty */}
+                {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length === 0) && (
                 <FilterSection title="Tipo de equipo" defaultExpanded={true}>
                   <div className="grid grid-cols-3 gap-2">
                     {dynamicDeviceTypeOptions === null ? (
@@ -657,6 +659,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     )}
                   </div>
                 </FilterSection>
+                )}
 
                 {/* Tags Filter */}
                 <TagsFilter
@@ -666,12 +669,15 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   showCounts={config.showFilterCounts}
                 />
 
-                {/* Brand Filter */}
+                {/* Brand Filter - hide if empty */}
+                {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length === 0) && (
                 <FilterSection title="Marca" defaultExpanded={true}>
                   {renderBrandFilter()}
                 </FilterSection>
+                )}
 
-                {/* Quota Filter */}
+                {/* Quota Filter - hide if no quota range */}
+                {(!apiFilters || (dynamicQuotaRange.min !== dynamicQuotaRange.max)) && (
                 <FilterSection title="Cuota mensual" defaultExpanded={true}>
                   {!apiFilters ? (
                     <div className="space-y-4 animate-pulse">
@@ -697,6 +703,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                     />
                   )}
                 </FilterSection>
+                )}
 
                 {/* Main Filters (Uso recomendado, Condición) - styled based on version */}
                 <TechnicalFiltersStyled
@@ -770,6 +777,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
+              ref={gridRef}
               className="w-full grid gap-6 pb-20 lg:pb-0 grid-cols-[repeat(auto-fill,minmax(min(305px,100%),1fr))] justify-items-center"
             >
               {children}
@@ -820,7 +828,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </ModalHeader>
 
           <ModalBody className="px-4 py-6 overflow-y-auto">
-            {/* Device Type Filter */}
+            {/* Device Type Filter - hide if empty */}
+            {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length === 0) && (
             <FilterSection title="Tipo de equipo" defaultExpanded={true}>
               <div className="grid grid-cols-3 gap-2">
                 {dynamicDeviceTypeOptions === null ? (
@@ -876,6 +885,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 )}
               </div>
             </FilterSection>
+            )}
 
             {/* Tags Filter */}
             <TagsFilter
@@ -885,12 +895,15 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               showCounts={config.showFilterCounts}
             />
 
-            {/* Brand Filter */}
+            {/* Brand Filter - hide if empty */}
+            {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length === 0) && (
             <FilterSection title="Marca" defaultExpanded={true}>
               {renderBrandFilter()}
             </FilterSection>
+            )}
 
-            {/* Quota Filter */}
+            {/* Quota Filter - hide if no quota range */}
+            {(!apiFilters || (dynamicQuotaRange.min !== dynamicQuotaRange.max)) && (
             <FilterSection title="Cuota mensual" defaultExpanded={true}>
               {!apiFilters ? (
                 <div className="space-y-4 animate-pulse">
@@ -916,6 +929,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 />
               )}
             </FilterSection>
+            )}
 
             {/* Main Filters (Uso recomendado, Condición) */}
             <TechnicalFiltersStyled

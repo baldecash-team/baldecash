@@ -269,7 +269,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </p>
 
             {/* Title - Altura fija para 2 líneas */}
-            <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3 min-h-[3.5rem]">
+            <h3
+              className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3 min-h-[3.5rem] cursor-pointer hover:text-[var(--color-primary)] transition-colors"
+              onClick={() => onViewDetail?.(selectedColor?.slug)}
+            >
               {displayName}
             </h3>
 

@@ -40,6 +40,9 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
     }
   };
 
+  // Don't render if no tag options available
+  if (Array.isArray(tagOptions) && tagOptions.length === 0) return null;
+
   return (
     <FilterSection title="Destacados" defaultExpanded={true}>
       <div className="flex flex-wrap gap-2">

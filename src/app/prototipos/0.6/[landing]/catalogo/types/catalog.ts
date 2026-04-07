@@ -813,6 +813,8 @@ export interface CatalogLayoutProps {
   isApiFiltersLoading?: boolean;
   // Total products from API (for displaying count, not just loaded products)
   totalProducts: number;
+  // Ref for grid container to detect column count
+  gridRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export interface BrandFilterProps {
