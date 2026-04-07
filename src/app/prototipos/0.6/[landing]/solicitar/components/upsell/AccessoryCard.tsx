@@ -72,10 +72,10 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
         </div>
 
         {/* Content */}
-        <h4 className="font-semibold text-sm text-neutral-800 mb-1 line-clamp-2">
+        <h4 className="font-semibold text-sm text-neutral-800 mb-1 line-clamp-2 min-h-[2.5rem]">
           {accessory.name}
         </h4>
-        <p className="text-xs text-neutral-500 mb-2 line-clamp-2">
+        <p className="text-xs text-neutral-500 mb-2 line-clamp-2 min-h-[2rem]">
           {accessory.description}
         </p>
 
