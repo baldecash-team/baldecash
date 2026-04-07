@@ -681,6 +681,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       sectionTitle: (ctaConfig.section_title as string) || undefined,
       sectionSubtitle: (ctaConfig.section_subtitle as string) || undefined,
       quickLinks: (ctaConfig.quick_links as CtaQuickLink[]) || undefined,
+      phoneNumber: (ctaConfig.phone_number as string) || undefined,
     };
   }
 
@@ -700,7 +701,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       ctaText: (promoConfig.cta_text as string) || undefined,
       ctaUrl: fullCtaUrl,
       icon: (promoConfig.icon as string) || undefined,
-      dismissible: (promoConfig.dismissible as boolean) ?? false,
+      dismissible: (promoConfig.is_dismissible as boolean) ?? (promoConfig.dismissible as boolean) ?? true,
     };
   }
 
@@ -779,6 +780,16 @@ export function transformLandingData(data: LandingHeroResponse): {
     institution_short_name: (agreementRaw.institution_short_name as string) || undefined,
     institution_logo: (agreementRaw.institution_logo as string) || undefined,
   } : null;
+
+  // Replace {convenioName} template variable with institution short name
+  const convenioName = agreementData?.institution_short_name || agreementData?.institution_name || '';
+  if (convenioName) {
+    if (benefitsData?.title) benefitsData.title = benefitsData.title.replace('{convenioName}', convenioName);
+    if (benefitsData?.subtitle) benefitsData.subtitle = benefitsData.subtitle.replace('{convenioName}', convenioName);
+    if (faqData?.subtitle) faqData.subtitle = faqData.subtitle.replace('{convenioName}', convenioName);
+    if (promoBannerData?.text) promoBannerData.text = promoBannerData.text.replace('{convenioName}', convenioName);
+    if (promoBannerData?.highlight) promoBannerData.highlight = promoBannerData.highlight.replace('{convenioName}', convenioName);
+  }
 
   return {
     heroContent,

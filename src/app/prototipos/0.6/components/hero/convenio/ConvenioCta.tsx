@@ -106,10 +106,12 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
               {ctaData?.buttons.whatsapp.text}
             </button>
 
-            <p className="text-white/60 text-sm mt-4 flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              También puedes llamarnos
-            </p>
+            {ctaData?.phoneNumber && (
+              <p className="text-white/60 text-sm mt-4 flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                También puedes llamar: {ctaData.phoneNumber}
+              </p>
+            )}
           </div>
 
           {/* Right: Quick links + Price */}

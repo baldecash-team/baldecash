@@ -317,6 +317,7 @@ export interface CtaData {
   sectionTitle?: string;
   sectionSubtitle?: string;
   quickLinks?: CtaQuickLink[];
+  phoneNumber?: string;
 }
 
 export interface HeroCtaProps {
