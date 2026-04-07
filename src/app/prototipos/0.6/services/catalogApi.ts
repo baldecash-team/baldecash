@@ -95,6 +95,7 @@ export interface ApiColorSibling {
 
 export interface ApiCatalogProduct {
   id: number;
+  landing_product_id?: number;
   sku: string;
   name: string;
   display_name?: string;
