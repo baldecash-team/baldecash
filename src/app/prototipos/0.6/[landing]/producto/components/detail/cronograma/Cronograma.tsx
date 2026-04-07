@@ -151,10 +151,16 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
   // Calcular amortización para versión detallada
   const amortizationSchedule = useMemo(() => {
-    // Estimación del principal basado en la cuota y plazo
-    const estimatedPrincipal = adjustedQuota * selectedTerm * 0.7; // Aproximación
-    return calculateAmortization(estimatedPrincipal, FINANCIAL_DATA.tea, selectedTerm);
-  }, [adjustedQuota, selectedTerm]);
+    // Derivar principal real desde la cuota usando fórmula inversa de amortización francesa
+    // principal = cuota × [(1+r)^n - 1] / [r × (1+r)^n]
+    const monthlyRate = FINANCIAL_DATA.tea / 100 / 12;
+    const n = selectedTerm;
+    const quota = commissionAmount != null ? adjustedQuota - commissionAmount : adjustedQuota;
+    const principal = monthlyRate > 0
+      ? quota * (Math.pow(1 + monthlyRate, n) - 1) / (monthlyRate * Math.pow(1 + monthlyRate, n))
+      : quota * n;
+    return calculateAmortization(principal, FINANCIAL_DATA.tea, n);
+  }, [adjustedQuota, selectedTerm, commissionAmount, FINANCIAL_DATA.tea]);
 
   const getMonthDate = (monthIndex: number) => {
     const date = new Date(startDate);
@@ -296,6 +302,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   <th className="text-left py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Fecha</th>
                   <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Capital</th>
                   <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Interés</th>
+                  {commissionAmount != null && commissionAmount > 0 && (
+                    <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Comisión</th>
+                  )}
                   <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Monto</th>
                   <th className="text-right py-3 px-3 text-xs font-semibold text-neutral-500 uppercase">Saldo</th>
                 </tr>
@@ -320,17 +329,33 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       <td className="py-3 px-3 text-sm text-neutral-600 capitalize">
                         {getMonthDate(i)}
                       </td>
-                      <td className="py-3 px-3 text-right text-sm text-neutral-700">
-                        S/{formatMoneyNoDecimals(Math.floor(amort?.capital || 0))}
-                      </td>
-                      <td className="py-3 px-3 text-right text-sm text-neutral-500">
-                        S/{formatMoneyNoDecimals(Math.floor(amort?.interest || 0))}
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        <span className="text-sm font-semibold text-neutral-900">
-                          S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
-                        </span>
-                      </td>
+                      {(() => {
+                        const monto = Math.floor(adjustedQuota);
+                        const commission = commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
+                        const interest = Math.floor(amort?.interest || 0);
+                        // Capital = Monto - Interés - Comisión (así siempre cuadra)
+                        const capital = monto - interest - commission;
+                        return (
+                          <>
+                            <td className="py-3 px-3 text-right text-sm text-neutral-700">
+                              S/{formatMoneyNoDecimals(capital)}
+                            </td>
+                            <td className="py-3 px-3 text-right text-sm text-neutral-500">
+                              S/{formatMoneyNoDecimals(interest)}
+                            </td>
+                            {commissionAmount != null && commissionAmount > 0 && (
+                              <td className="py-3 px-3 text-right text-sm text-neutral-500">
+                                S/{formatMoneyNoDecimals(commission)}
+                              </td>
+                            )}
+                            <td className="py-3 px-3 text-right">
+                              <span className="text-sm font-semibold text-neutral-900">
+                                S/{formatMoneyNoDecimals(monto)}
+                              </span>
+                            </td>
+                          </>
+                        );
+                      })()}
                       <td className="py-3 px-3 text-right text-sm text-neutral-600">
                         S/{formatMoneyNoDecimals(Math.floor(amort?.balance || 0))}
                       </td>
