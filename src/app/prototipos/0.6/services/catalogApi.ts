@@ -506,6 +506,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
 
   return {
     id: String(apiProduct.id),
+    landingProductId: apiProduct.landing_product_id,
     slug: apiProduct.slug,
     name: apiProduct.name,
     displayName: apiProduct.display_name || apiProduct.name,

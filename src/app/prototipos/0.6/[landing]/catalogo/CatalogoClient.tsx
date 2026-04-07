@@ -1613,7 +1613,7 @@ function CatalogoContent() {
           <>
             {visibleProducts.map((product, index) => (
               <ProductCard
-                key={product.id}
+                key={product.landingProductId ?? product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
                 // TODO: Quitar este hardcode cuando el migrador llene variant.color en la BD.
