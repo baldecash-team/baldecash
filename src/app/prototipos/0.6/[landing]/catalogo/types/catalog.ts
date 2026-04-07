@@ -647,6 +647,7 @@ export type CatalogDeviceType = 'laptop' | 'tablet' | 'celular' | 'accesorio';
 
 export interface CatalogProduct {
   id: string;
+  landingProductId?: number;
   slug: string;
   name: string;
   displayName: string;
