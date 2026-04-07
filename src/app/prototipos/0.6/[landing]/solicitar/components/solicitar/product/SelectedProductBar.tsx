@@ -17,15 +17,19 @@ import Image from 'next/image';
 
 interface SelectedProductBarProps {
   mobileOnly?: boolean;
+  /** Hide insurance and accessories cards in desktop view (e.g., on complementos page where they're shown separately) */
+  hideAddons?: boolean;
 }
 
-export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false }) => {
+export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
   const { selectedProduct, selectedAccessories, selectedInsurance, selectedInsurances, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
 
 
   // Usar el estado del contexto para la expansión
   const isExpanded = isProductBarExpanded;
   const setIsExpanded = setIsProductBarExpanded;
+  const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
+  const [isInsuranceExpanded, setIsInsuranceExpanded] = useState(true);
 
   // Get all products (cart or single)
   const allProducts = getAllProducts();
@@ -464,6 +468,142 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             </div>
           )}
         </div>
+
+        {/* Insurance Card with Accordion - Desktop - Only visible when insurance is selected */}
+        {hasInsurance && !hideAddons && (
+          <div className="bg-[var(--color-secondary)]/5 rounded-xl border border-[var(--color-secondary)]/10 overflow-hidden">
+            <button
+              onClick={() => setIsInsuranceExpanded(!isInsuranceExpanded)}
+              className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--color-secondary)]/10 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[var(--color-secondary)]" />
+                <p className="text-sm font-semibold text-neutral-800">
+                  {selectedInsurances.length === 1 ? 'Seguro' : `Seguros (${selectedInsurances.length})`}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {!isInsuranceExpanded && (
+                  <span className="text-sm font-medium text-[var(--color-secondary)]">
+                    +{formatPrice(selectedInsurances.reduce((sum, ins) => sum + ins.monthlyPrice, 0))}/mes
+                  </span>
+                )}
+                {isInsuranceExpanded ? (
+                  <ChevronUp className="w-5 h-5 text-neutral-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-neutral-400" />
+                )}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {isInsuranceExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pt-2 pb-4 border-t border-[var(--color-secondary)]/10">
+                    <div className="space-y-2">
+                      {selectedInsurances.map((ins) => (
+                        <div key={ins.id} className="flex items-center justify-between text-sm">
+                          <span className="text-neutral-700 truncate">{ins.name}</span>
+                          <span className="text-[var(--color-secondary)] font-medium flex-shrink-0 ml-4">
+                            +{formatPrice(ins.monthlyPrice)}/mes
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-[var(--color-secondary)]/10">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-neutral-700">Total seguros</span>
+                        <span className="text-sm font-bold text-[var(--color-secondary)]">
+                          +{formatPrice(selectedInsurances.reduce((sum, ins) => sum + ins.monthlyPrice, 0))}/mes
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Accessories Card with Accordion - Desktop - Only visible when accessories are selected */}
+        {hasAccessories && !hideAddons && (
+          <div className="bg-[var(--color-primary)]/5 rounded-xl border border-[var(--color-primary)]/10 overflow-hidden">
+            <button
+              onClick={() => setIsAccessoriesExpanded(!isAccessoriesExpanded)}
+              className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--color-primary)]/10 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4 text-[var(--color-primary)]" />
+                <p className="text-sm font-semibold text-neutral-800">
+                  Accesorios ({selectedAccessories.length})
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {!isAccessoriesExpanded && (
+                  <span className="text-sm font-medium text-[var(--color-primary)]">
+                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}/mes
+                  </span>
+                )}
+                {isAccessoriesExpanded ? (
+                  <ChevronUp className="w-5 h-5 text-neutral-400" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-neutral-400" />
+                )}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {isAccessoriesExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pt-2 pb-4 border-t border-[var(--color-primary)]/10">
+                    <div className="space-y-2">
+                      {selectedAccessories.map((acc) => (
+                        <div key={acc.id} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
+                            <span className="text-neutral-700 truncate">{acc.name}</span>
+                          </div>
+                          <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
+                            +{formatPrice(acc.monthlyQuota)}/mes
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-[var(--color-primary)]/10">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
+                        <div className="text-right">
+                          {hasCoupon && (
+                            <span className="text-sm text-neutral-400 line-through block">
+                              {formatPrice(totalMonthlyPayment)}/mes
+                            </span>
+                          )}
+                          <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
+                            {formatPrice(discountedMonthlyPayment)}/mes
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
       </div>
       )}

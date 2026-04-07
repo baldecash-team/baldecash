@@ -51,7 +51,7 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability } = useProduct();
 
   // Remove product from cart (or clear selectedProduct if single)
   const handleRemoveProduct = useCallback((productId: string) => {
@@ -480,6 +480,23 @@ function WizardPreviewContent() {
               {/* Total + Accessories + Quota Warning */}
               {(productsToShow.length >= 1) && (
                 <div className="px-5 pb-5 space-y-3">
+                  {/* Insurance */}
+                  {selectedInsurances.length > 0 && (
+                    <div className="pt-3 border-t border-neutral-100">
+                      <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                        Seguros seleccionados
+                      </p>
+                      <div className="space-y-1.5">
+                        {selectedInsurances.map((ins) => (
+                          <div key={ins.id} className="flex items-center justify-between text-sm">
+                            <span className="text-neutral-700">{ins.name}</span>
+                            <span className="text-[var(--color-secondary)] font-medium">+S/{formatMoneyNoDecimals(Math.floor(ins.monthlyPrice))}/mes</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Accessories */}
                   {selectedAccessories.length > 0 && (
                     <div className="pt-3 border-t border-neutral-100">
@@ -501,7 +518,7 @@ function WizardPreviewContent() {
                   <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
                     <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
                     <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
-                      S/{formatMoneyNoDecimals(Math.floor(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0)))}/mes
+                      S/{formatMoneyNoDecimals(Math.floor(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}/mes
                     </span>
                   </div>
 

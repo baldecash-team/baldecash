@@ -11,6 +11,7 @@ import type { Accessory, InsurancePlan } from '../types/upsell';
 import { calculateQuotaWithInitial, type TermMonths, type InitialPaymentPercent } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/producto/api/productDetailApi';
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
+import { getLandingAccessories, getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
@@ -538,7 +539,54 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     if (selectedProduct) {
       setSelectedProduct(updatedProducts[0]);
     }
-  }, [getAllProducts, cartProducts, selectedProduct, setCartProducts, setSelectedProduct]);
+
+    // Re-fetch accessories with new term to update their monthly quotas
+    const deviceTypes = [...new Set(
+      products.map(p => p.type?.toLowerCase()).filter(Boolean) as string[]
+    )];
+    if (selectedAccessories.length > 0) {
+      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], term, previewKey)
+        .then((apiAccessories) => {
+          if (!apiAccessories || apiAccessories.length === 0) return;
+          const accessoriesMap = new Map(apiAccessories.map(a => [a.id, a]));
+          const updatedAccessories: Accessory[] = [];
+          for (const acc of selectedAccessories) {
+            const fresh = accessoriesMap.get(acc.id);
+            if (fresh) {
+              updatedAccessories.push({ ...acc, monthlyQuota: fresh.monthlyQuota, term: fresh.term, price: fresh.price });
+            }
+          }
+          setSelectedAccessories(updatedAccessories);
+        })
+        .catch(err => console.error('[ProductContext] Error refreshing accessories for new term:', err));
+    }
+
+    // Re-fetch insurances with new term to update their monthly prices
+    if (selectedInsurances.length > 0) {
+      const activeProduct = products[0];
+      const deviceType = (activeProduct?.type || 'laptop').charAt(0).toUpperCase() + (activeProduct?.type || 'laptop').slice(1).toLowerCase();
+      const productPrice = activeProduct?.price || 0;
+      if (productPrice > 0) {
+        getLandingInsurances(landingSlug, deviceType, productPrice, term, previewKey)
+          .then((apiPlans) => {
+            if (!apiPlans || apiPlans.length === 0) return;
+            const plansMap = new Map(apiPlans.map(p => [p.id, p]));
+            const updatedInsurances: InsurancePlan[] = [];
+            for (const ins of selectedInsurances) {
+              const fresh = plansMap.get(ins.id);
+              if (fresh) {
+                updatedInsurances.push({ ...ins, monthlyPrice: fresh.monthlyPrice, totalPrice: fresh.totalPrice, paymentMonths: fresh.paymentMonths });
+              }
+            }
+            setSelectedInsurancesState(updatedInsurances);
+            try {
+              localStorage.setItem(insuranceKey, JSON.stringify(updatedInsurances));
+            } catch {}
+          })
+          .catch(err => console.error('[ProductContext] Error refreshing insurances for new term:', err));
+      }
+    }
+  }, [getAllProducts, cartProducts, selectedProduct, setCartProducts, setSelectedProduct, selectedAccessories, setSelectedAccessories, selectedInsurances, landingSlug, previewKey, insuranceKey]);
 
   /**
    * Get available initial payment options for a specific product

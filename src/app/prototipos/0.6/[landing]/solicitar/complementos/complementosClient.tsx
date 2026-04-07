@@ -207,7 +207,7 @@ function ComplementosContent() {
         )}
 
         {/* Product Summary - Desktop only */}
-        <SelectedProductBar />
+        <SelectedProductBar hideAddons />
 
         {/* Dynamic Sections */}
         <div className="space-y-6">
