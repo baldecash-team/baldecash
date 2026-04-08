@@ -161,15 +161,12 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
 
           {/* Coupon Badge - Inside products card */}
           {hasCoupon && data.coupon && (
-            <div className="mt-3 flex items-center justify-between px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
+            <div className="mt-3 flex items-center px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-green-700">
                 <Tag className="w-4 h-4" />
-                <span className="font-medium">PROMO</span>
-                <span className="text-green-600">Descuento de {formatPrice(data.coupon.discountAmount)}</span>
+                <span className="font-medium">{data.coupon.code}</span>
+                <span className="text-green-600">Cupón aplicado</span>
               </div>
-              <span className="font-bold text-green-600">
-                -{formatPrice(data.coupon.discountAmount)}/mes
-              </span>
             </div>
           )}
         </CardBody>
@@ -256,17 +253,12 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
       )}
 
       {/* Total Card */}
-      <div className={`p-4 rounded-xl ${hasCoupon ? 'bg-green-50' : 'bg-[var(--color-primary)]/5'}`}>
+      <div className="p-4 rounded-xl bg-[var(--color-primary)]/5">
         <div className="flex justify-between items-center">
           <span className="text-sm font-semibold text-neutral-800">Cuota mensual total</span>
           <div className="text-right">
-            {hasCoupon && (
-              <span className="text-sm text-neutral-400 line-through block">
-                {formatPrice(totalWithoutDiscount)}/mes
-              </span>
-            )}
-            <span className={`text-xl font-bold ${hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
-              {formatPrice(data.totalMonthlyQuota)}/mes
+            <span className="text-xl font-bold text-[var(--color-primary)]">
+              {formatPrice(totalWithoutDiscount)}/mes
             </span>
           </div>
         </div>
