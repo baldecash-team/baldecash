@@ -738,12 +738,9 @@ function CatalogoContent() {
 
   const onboarding = useOnboarding(onboardingInitialConfig, questionCount || 7, hasQuiz, landing);
 
-  // Preloading: dar tiempo a la página para cargar recursos
+  // No artificial delay — render as soon as data is ready
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    setIsPageLoading(false);
   }, []);
 
   // Transform layout data for Catalog Secondary Navbar config

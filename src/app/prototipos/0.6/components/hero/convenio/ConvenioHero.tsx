@@ -76,7 +76,8 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
           src={heroContent.backgroundImage}
           alt="Campus universitario"
           className="absolute inset-0 w-full h-full object-cover"
-          loading="lazy"
+          loading="eager"
+          fetchPriority="high"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.style.opacity = '0';

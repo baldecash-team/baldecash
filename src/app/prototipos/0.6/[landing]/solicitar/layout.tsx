@@ -7,14 +7,29 @@
  * - WizardConfigProvider: fetches form config from API
  * - WizardProvider: manages form state and persistence
  *
- * Note: SessionProvider and EventTrackerProvider are now in the parent
- * [landing] layout so tracking starts from the first page visited.
+ * Note: SessionProvider and EventTrackerProvider are in the parent
+ * [landing] layout. Session is lazy — initialized here when user
+ * enters the form flow (not on landing page load).
  */
 
+import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { WizardProvider } from './context/WizardContext';
 import { WizardConfigProvider } from './context/WizardConfigContext';
 import { ProductProvider } from './context/ProductContext';
+import { useSession } from './context/SessionContext';
+
+function SessionInitializer({ landing }: { landing: string }) {
+  const { initSession, isInitialized, isCreating } = useSession();
+
+  useEffect(() => {
+    if (!isInitialized && !isCreating) {
+      initSession(landing);
+    }
+  }, [landing, isInitialized, isCreating, initSession]);
+
+  return null;
+}
 
 export default function WizardPreviewLayout({
   children,
@@ -27,6 +42,7 @@ export default function WizardPreviewLayout({
   return (
     <ProductProvider landingSlug={landing}>
       <WizardConfigProvider slug={landing}>
+        <SessionInitializer landing={landing} />
         <WizardProvider landingSlug={landing}>{children}</WizardProvider>
       </WizardConfigProvider>
     </ProductProvider>

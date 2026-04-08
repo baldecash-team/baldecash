@@ -132,7 +132,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           objectPosition: `${imagePositionX}% ${imagePositionY}%`,
           transform: imageZoom !== 1 ? `scale(${imageZoom})` : undefined,
         }}
-        loading="lazy"
+        loading="eager"
+        fetchPriority="high"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
           target.style.opacity = '0';

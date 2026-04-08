@@ -70,12 +70,9 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
   const isPreviewHydrated = preview.isHydrated;
   const previewKey = preview.isPreviewingLanding(slug) ? preview.previewKey : null;
 
-  // Preloading: dar tiempo a la página para cargar recursos (igual que catálogo)
+  // No artificial delay — render as soon as data is ready
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    setIsPageLoading(false);
   }, []);
 
   useEffect(() => {
