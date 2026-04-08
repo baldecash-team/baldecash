@@ -1935,7 +1935,7 @@ function CatalogoContent() {
                 className="w-10 h-10 rounded-lg bg-white border-2 border-white shadow-sm overflow-hidden"
                 style={{ zIndex: 4 - index }}
               >
-                <img src={product.thumbnail} alt={product.displayName} className="w-full h-full object-cover" />
+                <img src={product.images[0] || product.thumbnail} alt={product.displayName} className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
