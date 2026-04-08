@@ -1354,16 +1354,16 @@ function CatalogoContent() {
     if (!productToAdd) return;
 
     // Verificar tipo de dispositivo si ya hay productos en la lista
-    if (compareList.length > 0 && compareProducts.length > 0) {
-      // Use compareProducts from state (loaded from API) instead of catalogProducts (filtered)
-      const firstProductInList = compareProducts[0];
+    // Usa findProductOrSibling (síncrono, ya en memoria) en vez de compareProducts (async)
+    // para evitar race condition cuando el fetch aún no terminó
+    if (compareList.length > 0) {
+      const firstProductInList = findProductOrSibling(compareList[0]);
 
       if (firstProductInList) {
         const currentDeviceType = getDeviceType(firstProductInList);
         const newDeviceType = getDeviceType(productToAdd);
 
         if (currentDeviceType !== newDeviceType) {
-          // Mostrar toast de warning
           const deviceTypeLabels: Record<string, string> = {
             laptop: 'laptops',
             tablet: 'tablets',
