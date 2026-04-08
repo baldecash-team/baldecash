@@ -22,7 +22,7 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
-  const { selectedProduct, selectedAccessories, selectedInsurance, selectedInsurances, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, getDiscountAmount, getDiscountedMonthlyPayment, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
+  const { selectedProduct, selectedAccessories, selectedInsurance, selectedInsurances, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
 
 
   // Usar el estado del contexto para la expansión
@@ -45,7 +45,6 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
   const totalPrice = getTotalPrice();
   const totalMonthlyPayment = getTotalMonthlyPayment();
-  const discountedMonthlyPayment = getDiscountedMonthlyPayment();
   const hasAccessories = selectedAccessories.length > 0;
   const hasInsurance = selectedInsurances.length > 0;
   const hasCoupon = !!appliedCoupon;
@@ -119,13 +118,8 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             {/* Price & Expand Icon */}
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="text-right">
-                {hasCoupon && (
-                  <span className="text-xs text-neutral-400 line-through block">
-                    {formatPrice(totalMonthlyPayment)}/mes
-                  </span>
-                )}
-                <span className={`text-sm font-semibold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
-                  {formatPrice(discountedMonthlyPayment)}/mes
+                <span className={`text-sm font-semibold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
+                  {formatPrice(totalMonthlyPayment)}/mes
                 </span>
               </div>
               {isExpanded ? (
@@ -262,10 +256,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     <div className="mt-3 flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-2 rounded-lg">
                       <Tag className="w-3 h-3" />
                       <span className="font-medium">{appliedCoupon.code}</span>
-                      <span className="text-green-500">
-                        -{formatPrice(getDiscountAmount())}
-                        {appliedCoupon.quotasAffected ? ` en ${appliedCoupon.quotasAffected} cuotas` : '/mes'}
-                      </span>
+                      <span className="text-green-500">{appliedCoupon.label}</span>
                     </div>
                   )}
 
@@ -280,17 +271,12 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   )}
 
                   {/* Monthly Payment Summary */}
-                  <div className={`mt-4 p-3 rounded-lg ${isOverQuotaLimit ? 'bg-red-50' : hasCoupon ? 'bg-green-50' : 'bg-[var(--color-primary)]/5'}`}>
+                  <div className={`mt-4 p-3 rounded-lg ${isOverQuotaLimit ? 'bg-red-50' : 'bg-[var(--color-primary)]/5'}`}>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
                       <div className="text-right">
-                        {hasCoupon && (
-                          <span className="text-sm text-neutral-400 line-through block">
-                            {formatPrice(totalMonthlyPayment)}/mes
-                          </span>
-                        )}
-                        <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
-                          {formatPrice(discountedMonthlyPayment)}/mes
+                        <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
+                          {formatPrice(totalMonthlyPayment)}/mes
                         </span>
                       </div>
                     </div>
@@ -455,16 +441,12 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 
           {/* Coupon Badge - Desktop */}
           {hasCoupon && appliedCoupon && (
-            <div className="mt-3 flex items-center justify-between px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
+            <div className="mt-3 flex items-center px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-green-700">
                 <Tag className="w-4 h-4" />
                 <span className="font-medium">{appliedCoupon.code}</span>
                 <span className="text-green-600">{appliedCoupon.label}</span>
               </div>
-              <span className="font-bold text-green-600">
-                -{formatPrice(getDiscountAmount())}
-                {appliedCoupon.quotasAffected ? ` en ${appliedCoupon.quotasAffected} cuotas` : '/mes'}
-              </span>
             </div>
           )}
         </div>
@@ -587,13 +569,8 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-neutral-700">Cuota mensual total</span>
                         <div className="text-right">
-                          {hasCoupon && (
-                            <span className="text-sm text-neutral-400 line-through block">
-                              {formatPrice(totalMonthlyPayment)}/mes
-                            </span>
-                          )}
-                          <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : hasCoupon ? 'text-green-600' : 'text-[var(--color-primary)]'}`}>
-                            {formatPrice(discountedMonthlyPayment)}/mes
+                          <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
+                            {formatPrice(totalMonthlyPayment)}/mes
                           </span>
                         </div>
                       </div>

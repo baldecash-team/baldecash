@@ -40,7 +40,7 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { getDiscountedMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+  const { getTotalMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
@@ -171,7 +171,7 @@ function ComplementosContent() {
   };
 
   // Total monthly is now calculated in ProductContext (includes insurance + accessories)
-  const totalMonthly = getDiscountedMonthlyPayment();
+  const totalMonthly = getTotalMonthlyPayment();
 
   // If no sections after wizard, redirect to confirmation (shouldn't happen normally)
   useEffect(() => {
