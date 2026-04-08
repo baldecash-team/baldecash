@@ -121,7 +121,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
           )}
 
           {/* Benefits list */}
-          <ul className="space-y-2 mb-8">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-8">
             {beneficios.map((signal, index) => {
               const IconComponent = getIconComponent(signal.icon);
               return (

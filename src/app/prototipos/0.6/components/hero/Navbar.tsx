@@ -294,7 +294,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
       {showPromo && !hidePromoBanner && hasPromoBannerContent && (
         <div
           ref={promoBannerRef}
-          className="fixed left-0 right-0 z-[60] text-white text-center py-2 sm:py-2.5 px-4 text-sm"
+          className="fixed left-0 right-0 z-[60] text-white text-center py-1.5 sm:py-2.5 px-4 text-xs sm:text-sm"
           style={{
             top: previewBannerOffset,
             background: `linear-gradient(to right, var(--color-primary, #4654CD), color-mix(in srgb, var(--color-primary, #4654CD) 85%, white))`,
