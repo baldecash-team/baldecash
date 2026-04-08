@@ -54,7 +54,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       months: (product.maxTermMonths || 24) as TermMonths,
       initialPercent: 0,
       initialAmount: 0,
-      image: product.thumbnail,
+      image: product.images[0] || product.thumbnail,
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
@@ -215,7 +215,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                 style={{ zIndex: products.length - index }}
               >
                 <img
-                  src={product.thumbnail}
+                  src={product.images[0] || product.thumbnail}
                   alt={product.displayName}
                   className="w-full h-full object-contain"
                 />

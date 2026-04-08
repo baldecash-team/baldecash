@@ -121,7 +121,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         className="mt-8 md:mt-12 w-28 h-28 md:w-40 md:h-40 rounded-2xl bg-white shadow-md flex items-center justify-center p-3 md:p-4"
                       >
                         <img
-                          src={bestProduct.thumbnail}
+                          src={bestProduct.images[0] || bestProduct.thumbnail}
                           alt={bestProduct.displayName}
                           className="w-full h-full object-contain"
                         />
@@ -284,7 +284,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                             </button>
                             <div className="w-20 h-20 rounded-xl bg-neutral-50 flex items-center justify-center p-2">
                               <img
-                                src={product.thumbnail}
+                                src={product.images[0] || product.thumbnail}
                                 alt={product.displayName}
                                 className="w-full h-full object-contain"
                               />
@@ -428,7 +428,7 @@ export const DesignStyleC: React.FC<DesignStyleCProps> = ({
                         {/* Product image */}
                         <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-neutral-50 flex items-center justify-center p-0.5 md:p-1">
                           <img
-                            src={product.thumbnail}
+                            src={product.images[0] || product.thumbnail}
                             alt={product.displayName}
                             className="w-full h-full object-contain"
                           />

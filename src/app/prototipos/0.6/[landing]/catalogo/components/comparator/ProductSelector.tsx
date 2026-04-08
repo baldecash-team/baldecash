@@ -70,7 +70,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
               {/* Product info */}
               <div className="pt-6 text-center">
                 <img
-                  src={product.thumbnail}
+                  src={product.images[0] || product.thumbnail}
                   alt={product.displayName}
                   className="w-full h-24 object-contain mb-2"
                 />
@@ -119,7 +119,7 @@ export const CompareFloatingBar: React.FC<CompareFloatingBarProps> = ({
             className="w-10 h-10 rounded-lg border-2 border-white bg-neutral-100 overflow-hidden shadow-sm"
           >
             <img
-              src={product.thumbnail}
+              src={product.images[0] || product.thumbnail}
               alt={product.displayName}
               className="w-full h-full object-contain"
             />

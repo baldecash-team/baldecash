@@ -607,7 +607,7 @@ function CatalogoContent() {
       months: (product.maxTermMonths || 24) as TermMonths,
       initialPercent: 0,
       initialAmount: 0,
-      image: product.thumbnail,
+      image: product.images[0] || product.thumbnail,
       type: product.deviceType,
       specs: {
         processor: product.specs?.processor?.model || '',
@@ -1081,7 +1081,7 @@ function CatalogoContent() {
           name: product.displayName,
           shortName: product.name,
           brand: product.brand,
-          image: product.thumbnail,
+          image: product.images[0] || product.thumbnail,
           price: product.price,
           months: (product.maxTermMonths || 24) as TermMonths,
           initialPercent: WIZARD_SELECTED_INITIAL,
