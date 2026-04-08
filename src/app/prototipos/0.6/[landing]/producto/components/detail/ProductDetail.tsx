@@ -455,7 +455,41 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         </div>
 
         {/* Section Navigation (Sidebar desktop / Bottom bar mobile) */}
-        <DetailTabs product={product} hasLimitations={limitations.length > 0} />
+        {(() => {
+          const GENERIC_TIERS = new Set(['Básica', 'Intermedia', 'Potente', 'medio']);
+          const displayShortDesc = product.shortDescription && !GENERIC_TIERS.has(product.shortDescription.trim())
+            ? product.shortDescription
+            : null;
+          const hasDescription = !!(product.description || displayShortDesc);
+          return (
+            <>
+              <DetailTabs product={product} hasLimitations={limitations.length > 0} hasDescription={hasDescription} />
+
+              {/* Description Section - Full Width */}
+              {hasDescription && (
+                <div id="section-description" className="mt-12">
+                  <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+                    <div className="px-6 py-5 border-b border-neutral-100">
+                      <h2 className="text-lg font-bold text-neutral-900">Descripción</h2>
+                    </div>
+                    <div className="px-6 py-5 space-y-3">
+                      {displayShortDesc && (
+                        <p className="text-base font-semibold text-[var(--color-primary)]">
+                          {displayShortDesc}
+                        </p>
+                      )}
+                      {product.description && (
+                        <p className="text-neutral-600 leading-relaxed text-sm">
+                          {product.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
 
         {/* Specs Section - Full Width */}
         <div id="section-specs" className="mt-12">

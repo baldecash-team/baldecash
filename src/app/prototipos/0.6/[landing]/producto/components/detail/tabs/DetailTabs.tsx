@@ -13,6 +13,7 @@ import {
   Calendar,
   Package,
   AlertTriangle,
+  FileText,
 } from 'lucide-react';
 import { DetailTabsProps } from '../../../types/detail';
 
@@ -23,7 +24,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean }> = ({ hasLimitations = true }) => {
+export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean; hasDescription?: boolean }> = ({ hasLimitations = true, hasDescription = false }) => {
   const [activeSection, setActiveSection] = useState('section-gallery');
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -31,6 +32,7 @@ export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean }
   const navItems: NavItem[] = [
     { id: 'section-gallery', label: 'Galería', icon: Image },
     { id: 'section-pricing', label: 'Cuotas', icon: Calculator },
+    ...(hasDescription ? [{ id: 'section-description', label: 'Descripción', mobileLabel: 'Desc', icon: FileText }] : []),
     { id: 'section-specs', label: 'Specs', icon: Cpu },
     { id: 'section-cronograma', label: 'Cronograma', mobileLabel: 'Pagos', icon: Calendar },
     { id: 'section-similar', label: 'Similares', icon: Package },
