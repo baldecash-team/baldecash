@@ -39,7 +39,7 @@ import {
 import type { PromoBannerData } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
-import { getReadableColorOnWhite } from '@/app/prototipos/0.6/utils/colorContrast';
+import { getReadableColorOnWhite, getContrastTextColor } from '@/app/prototipos/0.6/utils/colorContrast';
 
 // Helper function to build internal URLs with optional query params
 const buildInternalUrl = (basePath: string, params?: Record<string, string>) => {
@@ -160,6 +160,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
   const previewBannerOffset = previewBannerOffsetProp ?? (isThisLandingPreviewed ? 24 : 0);
   // Readable color for text/borders on white background (auto-darkens light colors like yellow)
   const readablePrimary = getReadableColorOnWhite(primaryColor || '#4654CD');
+  const hoverTextColor = getContrastTextColor(primaryColor || '#4654CD');
 
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
@@ -453,7 +454,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   target="_blank"
                   variant="bordered"
                   radius="lg"
-                  className="font-medium cursor-pointer transition-colors hover:text-white"
+                  className="font-medium cursor-pointer transition-colors"
                   style={{
                     borderColor: readablePrimary,
                     color: readablePrimary,
@@ -463,7 +464,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
-                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.color = hoverTextColor;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '';
@@ -663,7 +664,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
-                      e.currentTarget.style.color = 'white';
+                      e.currentTarget.style.color = hoverTextColor;
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '';
