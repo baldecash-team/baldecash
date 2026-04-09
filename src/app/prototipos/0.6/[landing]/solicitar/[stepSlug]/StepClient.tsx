@@ -16,6 +16,7 @@ import * as LucideIcons from 'lucide-react';
 import { WizardLayout } from '../components/solicitar/wizard';
 import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardStep';
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
+import { GamerStepSuccess } from '../components/solicitar/celebration/GamerStepSuccess';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
@@ -633,8 +634,12 @@ function StepContent() {
         isSubmitting={isSubmitting || isAppSubmitting}
         submitMessage={submitMessage}
         canProceed={true}
+        hideNavbar={landing === 'zona-gamer'}
         navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
-        motivational={step.motivational}
+        motivational={landing === 'zona-gamer' && step.motivational ? {
+          ...step.motivational,
+          illustration: '/images/zona-gamer/baldi gamer - solicitud/baldi gaming setup.png',
+        } : step.motivational}
       >
         <div className="space-y-4">
           {/* Dynamic sections from regular API steps */}
@@ -734,6 +739,16 @@ function StepContent() {
       </WizardLayout>
     );
 
+    // Zona Gamer: wrap summary with dark theme, gamer navbar and footer
+    if (landing === 'zona-gamer') {
+      return (
+        <GamerWizardWrapper>
+          {pageContent}
+          <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+        </GamerWizardWrapper>
+      );
+    }
+
     return (
       <>
         {pageContent}
@@ -751,12 +766,21 @@ function StepContent() {
     <>
       <AnimatePresence>
         {showCelebration && (
-          <StepSuccessMessage
-            stepName={step.title}
-            stepNumber={step.order + 1}
-            totalSteps={steps.length}
-            onComplete={handleCelebrationComplete}
-          />
+          landing === 'zona-gamer' ? (
+            <GamerStepSuccess
+              stepName={step.title}
+              stepNumber={step.order + 1}
+              totalSteps={steps.length}
+              onComplete={handleCelebrationComplete}
+            />
+          ) : (
+            <StepSuccessMessage
+              stepName={step.title}
+              stepNumber={step.order + 1}
+              totalSteps={steps.length}
+              onComplete={handleCelebrationComplete}
+            />
+          )
         )}
       </AnimatePresence>
 
@@ -770,8 +794,20 @@ function StepContent() {
         isFirstStep={navigation.isFirst}
         isLastStep={isActuallyLastRegularStep}
         canProceed={true}
+        hideNavbar={landing === 'zona-gamer'}
         navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
-        motivational={stepMotivational}
+        motivational={landing === 'zona-gamer' && stepMotivational ? {
+          ...stepMotivational,
+          illustration: (() => {
+            const gamerImages: Record<string, string> = {
+              'datos-personales': '/images/zona-gamer/baldi gamer - solicitud/baldi gamer.png',
+              'datos-academicos': '/images/zona-gamer/baldi gamer - solicitud/baldi con laptop.png',
+              'datos-economicos': '/images/zona-gamer/baldi gamer - solicitud/baldi gamer con control.png',
+              'preferencias': '/images/zona-gamer/baldi gamer - solicitud/baldi gaming setup.png',
+            };
+            return gamerImages[stepSlug] || '/images/zona-gamer/baldi gamer - solicitud/baldi gamer.png';
+          })(),
+        } : stepMotivational}
       >
         <DynamicWizardStep
           step={step}
@@ -802,6 +838,31 @@ function StepContent() {
 }
 
 function LoadingFallback() {
+  const params = useParams();
+  const isGamer = (params?.landing as string) === 'zona-gamer';
+
+  if (isGamer) {
+    const savedTheme = typeof window !== 'undefined' ? sessionStorage.getItem('gamer-theme') : null;
+    const isDark = savedTheme !== 'light';
+
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f5f5f5' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-12 h-12">
+            <div
+              className="absolute inset-0 rounded-full animate-spin"
+              style={{
+                border: `3px solid ${isDark ? '#2a2a2a' : '#e0e0e0'}`,
+                borderTopColor: '#00ffd5',
+              }}
+            />
+          </div>
+          <p style={{ color: isDark ? '#555' : '#999', fontFamily: 'Rajdhani, sans-serif', fontSize: 14 }}>Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
       <CubeGridSpinner />
@@ -812,18 +873,51 @@ function LoadingFallback() {
 // Gamer theme wrapper for zona-gamer wizard steps
 function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
+
+  // Hydrate theme from sessionStorage after mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem('gamer-theme') as 'dark' | 'light' | null;
+    if (saved) setTheme(saved);
+    setHydrated(true);
+  }, []);
+
   const isDark = theme === 'dark';
+
+  const handleToggleTheme = useCallback(() => {
+    const next = isDark ? 'light' : 'dark';
+    setTheme(next);
+    sessionStorage.setItem('gamer-theme', next);
+  }, [isDark]);
 
   return (
     <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
-        .gamer-wizard-dark {
-          --color-primary: #00ffd5;
-          --color-primary-rgb: 0,255,213;
-          --color-secondary: #00ffd5;
+        /* Gamer cyan overrides - both dark and light modes */
+        .gamer-wizard-dark,
+        .gamer-wizard-dark *,
+        .gamer-wizard-light,
+        .gamer-wizard-light * {
+          --color-primary: #00ffd5 !important;
+          --color-primary-rgb: 0,255,213 !important;
+          --color-secondary: #00ffd5 !important;
+          --color-secondary-rgb: 0,255,213 !important;
+        }
+        /* Inline color overrides - both modes */
+        .gamer-wizard-dark [style*="color: #4654cd"],
+        .gamer-wizard-dark [style*="color:#4654cd"],
+        .gamer-wizard-dark [style*="color: #4654CD"],
+        .gamer-wizard-dark [style*="color:#4654CD"],
+        .gamer-wizard-dark [style*="color: rgb(70, 84, 205)"],
+        .gamer-wizard-light [style*="color: #4654cd"],
+        .gamer-wizard-light [style*="color:#4654cd"],
+        .gamer-wizard-light [style*="color: #4654CD"],
+        .gamer-wizard-light [style*="color:#4654CD"],
+        .gamer-wizard-light [style*="color: rgb(70, 84, 205)"] {
+          color: #00ffd5 !important;
         }
         /* Backgrounds */
         .gamer-wizard-dark .min-h-screen { background: #0e0e0e !important; }
@@ -861,12 +955,22 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
         }
         /* Segmented controls */
         .gamer-wizard-dark .bg-neutral-100.border { background: #1e1e1e !important; }
+        /* Step progress: inactive circles + lines */
+        .gamer-wizard-dark .bg-neutral-200 {
+          background: #2a2a2a !important;
+        }
+        .gamer-wizard-dark .bg-neutral-200.text-neutral-500 {
+          background: #2a2a2a !important;
+          color: #555 !important;
+        }
         /* Shadows */
         .gamer-wizard-dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; }
         .gamer-wizard-dark .shadow-lg { box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important; }
         /* Primary color overrides */
         .gamer-wizard-dark .bg-\\[\\#4654CD\\] { background: #00ffd5 !important; color: #0a0a0a !important; }
-        .gamer-wizard-dark .text-\\[\\#4654CD\\] { color: #00ffd5 !important; }
+        .gamer-wizard-dark .text-\\[\\#4654CD\\],
+        .gamer-wizard-dark span.text-\\[\\#4654CD\\],
+        .gamer-wizard-dark [class*="text-[#4654CD]"] { color: #00ffd5 !important; }
         .gamer-wizard-dark .border-\\[\\#4654CD\\] { border-color: #00ffd5 !important; }
         .gamer-wizard-dark .ring-\\[\\#4654CD\\]\\/20 { --tw-ring-color: rgba(0,255,213,0.2) !important; }
         .gamer-wizard-dark .ring-\\[\\#4654CD\\]\\/30 { --tw-ring-color: rgba(0,255,213,0.3) !important; }
@@ -886,7 +990,7 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
         }
         /* Navigation button */
         .gamer-wizard-dark .bg-\\[\\#4654CD\\].text-white.rounded-xl {
-          background: linear-gradient(135deg, #6366f1 0%, #82e2d2 100%) !important;
+          background: #00ffd5 !important; color: #0a0a0a !important;
           color: #fff !important;
         }
         /* Product bar mobile */
@@ -899,18 +1003,358 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
           background: #1a1a1a !important;
           border-color: #2a2a2a !important;
         }
+        /* Geolocation detected-address card */
+        .gamer-wizard-dark .bg-neutral-50.rounded-xl {
+          background: #1e1e1e !important;
+          border: 1px solid #2a2a2a !important;
+        }
+        .gamer-wizard-dark .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\] {
+          background: rgba(0,255,213,0.1) !important;
+        }
+        /* Green → Cyan overrides (check icons, success states, completed fields) */
+        .gamer-wizard-dark .bg-green-500,
+        .gamer-wizard-dark .bg-green-600,
+        .gamer-wizard-dark .bg-\\[\\#22c55e\\] { background: #00ffd5 !important; }
+        .gamer-wizard-dark .text-green-500,
+        .gamer-wizard-dark .text-green-600,
+        .gamer-wizard-dark .text-\\[\\#22c55e\\] { color: #00ffd5 !important; }
+        .gamer-wizard-dark .border-green-400,
+        .gamer-wizard-dark .border-green-500,
+        .gamer-wizard-dark .border-\\[\\#22c55e\\] { border-color: #00ffd5 !important; }
+        .gamer-wizard-dark .ring-green-500\\/20 { --tw-ring-color: rgba(0,255,213,0.2) !important; }
+        /* Also catch any inline green via attribute selector */
+        .gamer-wizard-dark [style*="border-color: rgb(34, 197, 94)"],
+        .gamer-wizard-dark [style*="#22c55e"] { border-color: #00ffd5 !important; }
+        .gamer-wizard-dark [class*="border-[#22c55e]"] { border-color: #00ffd5 !important; }
+        .gamer-wizard-dark [class*="text-[#22c55e]"] { color: #00ffd5 !important; }
+        /* Labels: muted gray, not white */
+        .gamer-wizard-dark label,
+        .gamer-wizard-dark .text-sm.font-medium.text-neutral-700 {
+          color: #707070 !important;
+        }
+        /* Input text should be white when filled */
+        .gamer-wizard-dark input,
+        .gamer-wizard-dark select,
+        .gamer-wizard-dark textarea {
+          color: #f0f0f0 !important;
+        }
+        /* Placeholder very subtle */
+        .gamer-wizard-dark input::placeholder,
+        .gamer-wizard-dark textarea::placeholder {
+          color: #3a3a3a !important;
+        }
+        /* Override browser autofill white background */
+        .gamer-wizard-dark input,
+        .gamer-wizard-dark textarea,
+        .gamer-wizard-dark select {
+          box-shadow: #1e1e1e 0 0 0 1000px inset !important;
+          -webkit-text-fill-color: #f0f0f0 !important;
+        }
+        .gamer-wizard-dark input:-webkit-autofill,
+        .gamer-wizard-dark input:-webkit-autofill:hover,
+        .gamer-wizard-dark input:-webkit-autofill:focus,
+        .gamer-wizard-dark textarea:-webkit-autofill,
+        .gamer-wizard-dark select:-webkit-autofill {
+          box-shadow: #1e1e1e 0 0 0 1000px inset !important;
+          -webkit-text-fill-color: #f0f0f0 !important;
+          caret-color: #f0f0f0 !important;
+        }
+        /* Input wrapper bg override */
+        .gamer-wizard-dark .bg-white.border-2,
+        .gamer-wizard-dark .bg-white.rounded-lg,
+        .gamer-wizard-dark div[class*="bg-white"][class*="border-2"] {
+          background: #1e1e1e !important;
+        }
+        /* Input border: default very subtle, cyan only on focus */
+        .gamer-wizard-dark input,
+        .gamer-wizard-dark select,
+        .gamer-wizard-dark textarea {
+          border-color: #2a2a2a !important;
+        }
+        .gamer-wizard-dark input:focus,
+        .gamer-wizard-dark select:focus,
+        .gamer-wizard-dark textarea:focus {
+          border-color: #00ffd5 !important;
+          box-shadow: 0 0 0 1px rgba(0,255,213,0.3) !important;
+        }
+        /* Filled input wrapper gets subtle cyan border */
+        .gamer-wizard-dark .border-2.border-\\[\\#4654CD\\] {
+          border-color: #00ffd5 !important;
+        }
+        /* Step completed check → cyan */
+        .gamer-wizard-dark [data-completed="true"],
+        .gamer-wizard-dark .bg-green-100 { background: rgba(0,255,213,0.1) !important; }
+        .gamer-wizard-dark .text-green-700 { color: #00ffd5 !important; }
+        /* Modal/overlay backgrounds */
+        .gamer-wizard-dark [role="dialog"],
+        .gamer-wizard-dark section[role="dialog"] {
+          background: #1a1a1a !important;
+          border: 1px solid #2a2a2a !important;
+        }
+        .gamer-wizard-dark [data-overlay="true"],
+        .gamer-wizard-dark [data-slot="backdrop"] {
+          background: rgba(0,0,0,0.6) !important;
+          backdrop-filter: blur(8px) !important;
+        }
+        /* Geolocation modal button */
+        .gamer-wizard-dark .bg-\\[var\\(--color-primary\\)\\].text-white {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        /* Motivational image sizing for gamer */
+        .gamer-wizard-dark .sticky img {
+          max-width: 460px !important;
+        }
+        /* Red error → softer red for dark theme */
+        .gamer-wizard-dark .text-red-500,
+        .gamer-wizard-dark .text-red-600,
+        .gamer-wizard-dark .text-danger { color: #ff6b6b !important; }
+        .gamer-wizard-dark .border-red-500,
+        .gamer-wizard-dark .border-red-400,
+        .gamer-wizard-dark .border-danger { border-color: #ff6b6b !important; }
+        .gamer-wizard-dark .bg-red-50,
+        .gamer-wizard-dark .bg-red-100 { background: rgba(255,107,107,0.1) !important; }
+        /* NextUI dropdown portal */
+        .gamer-wizard-dark [data-slot="listbox"],
+        .gamer-wizard-dark [data-slot="popover"],
+        .gamer-wizard-dark [role="listbox"] {
+          background: #1e1e1e !important;
+          border: 1px solid #2a2a2a !important;
+        }
+        .gamer-wizard-dark [data-slot="listbox"] [role="option"],
+        .gamer-wizard-dark [role="listbox"] [role="option"] {
+          color: #f0f0f0 !important;
+        }
+        .gamer-wizard-dark [data-slot="listbox"] [role="option"]:hover,
+        .gamer-wizard-dark [data-slot="listbox"] [data-hover="true"],
+        .gamer-wizard-dark [role="listbox"] [role="option"]:hover {
+          background: rgba(0,255,213,0.1) !important;
+        }
+        .gamer-wizard-dark [data-slot="listbox"] [data-selected="true"],
+        .gamer-wizard-dark [role="listbox"] [aria-selected="true"] {
+          background: rgba(0,255,213,0.15) !important;
+          color: #00ffd5 !important;
+        }
+        /* Segmented control / radio group active */
+        .gamer-wizard-dark .bg-\\[\\#4654CD\\]\\/10,
+        .gamer-wizard-dark .bg-\\[var\\(--color-primary\\)\\]\\/10 {
+          background: rgba(0,255,213,0.1) !important;
+        }
+        .gamer-wizard-dark .bg-\\[\\#4654CD\\]\\/5 {
+          background: rgba(0,255,213,0.05) !important;
+        }
+        /* Radio/checkbox indicators */
+        .gamer-wizard-dark [data-slot="wrapper"][data-selected="true"],
+        .gamer-wizard-dark .border-\\[\\#4654CD\\].bg-\\[\\#4654CD\\] {
+          background: #00ffd5 !important;
+          border-color: #00ffd5 !important;
+        }
+        /* Tooltip and popover backgrounds */
+        .gamer-wizard-dark [data-slot="content"][role="tooltip"],
+        .gamer-wizard-dark [data-slot="content"] {
+          background: #252525 !important;
+          color: #f0f0f0 !important;
+        }
+        /* File upload drop zone */
+        .gamer-wizard-dark .border-dashed {
+          border-color: #2a2a2a !important;
+          background: #1a1a1a !important;
+        }
+        .gamer-wizard-dark .border-dashed:hover {
+          border-color: #00ffd5 !important;
+          background: rgba(0,255,213,0.05) !important;
+        }
+        /* bg-gray variants */
+        .gamer-wizard-dark .bg-gray-50,
+        .gamer-wizard-dark .bg-gray-100 { background: #1e1e1e !important; }
+        .gamer-wizard-dark .bg-gray-200 { background: #252525 !important; }
+        .gamer-wizard-dark .text-gray-500,
+        .gamer-wizard-dark .text-gray-600 { color: #707070 !important; }
+        .gamer-wizard-dark .text-gray-700,
+        .gamer-wizard-dark .text-gray-800 { color: #a0a0a0 !important; }
+        .gamer-wizard-dark .text-gray-900 { color: #f0f0f0 !important; }
+        /* Inline style background overrides */
+        .gamer-wizard-dark [style*="background: white"],
+        .gamer-wizard-dark [style*="background-color: white"],
+        .gamer-wizard-dark [style*="background: rgb(255, 255, 255)"],
+        .gamer-wizard-dark [style*="background-color: rgb(255, 255, 255)"] {
+          background: #1a1a1a !important;
+        }
+        /* === Step success celebration screen === */
+        .gamer-wizard-dark .fixed.inset-0.z-50.bg-white {
+          background: #0e0e0e !important;
+        }
+        .gamer-wizard-dark .fixed.inset-0.z-50 .bg-\\[\\#22c55e\\] {
+          background: #00ffd5 !important;
+        }
+        .gamer-wizard-dark .fixed.inset-0.z-50 .border-\\[\\#22c55e\\] {
+          border-color: #00ffd5 !important;
+        }
+        .gamer-wizard-dark .fixed.inset-0.z-50 .bg-neutral-300 {
+          background: #2a2a2a !important;
+        }
+        /* === Submit overlay === */
+        .gamer-wizard-dark .fixed.inset-0.bg-white\/95 {
+          background: rgba(14,14,14,0.95) !important;
+        }
+        .gamer-wizard-dark .fixed.inset-0 .bg-white.border.border-neutral-200.rounded-xl {
+          background: #1a1a1a !important;
+          border: 1px solid #00ffd5 !important;
+        }
+        .gamer-wizard-dark .fixed.inset-0 .bg-green-500.text-white {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        .gamer-wizard-dark .fixed.inset-0 .bg-\\[var\\(--color-primary\\)\\].text-white {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        .gamer-wizard-dark .fixed.inset-0 .bg-neutral-200.text-neutral-400 {
+          background: #2a2a2a !important;
+          color: #555 !important;
+        }
+        .gamer-wizard-dark .fixed.inset-0 .bg-green-500:not(.text-white) {
+          background: #00ffd5 !important;
+        }
         /* Scrollbar */
         .gamer-wizard-dark ::-webkit-scrollbar { width: 6px; }
         .gamer-wizard-dark ::-webkit-scrollbar-track { background: #0e0e0e; }
         .gamer-wizard-dark ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+        /* === Portal-level overrides (modals, dropdowns - both dark AND light modes) === */
+        body:has(.gamer-wizard-dark) [data-overlay="true"],
+        body:has(.gamer-wizard-dark) [data-slot="backdrop"],
+        body:has(.gamer-wizard-light) [data-overlay="true"],
+        body:has(.gamer-wizard-light) [data-slot="backdrop"] {
+          background: rgba(0,0,0,0.5) !important;
+          backdrop-filter: blur(8px) !important;
+          z-index: 9999 !important;
+          position: fixed !important;
+          inset: 0 !important;
+        }
+        /* Dialog: light style with cyan accents (both modes) */
+        body:has(.gamer-wizard-dark) [role="dialog"],
+        body:has(.gamer-wizard-dark) section[role="dialog"],
+        body:has(.gamer-wizard-light) [role="dialog"],
+        body:has(.gamer-wizard-light) section[role="dialog"] {
+          background: #ffffff !important;
+          border: 1px solid #e5e5e5 !important;
+          color: #1a1a1a !important;
+          border-radius: 16px !important;
+          z-index: 10000 !important;
+          position: relative !important;
+        }
+        /* Modal wrapper container */
+        body:has(.gamer-wizard-dark) [data-slot="wrapper"][class*="z-"],
+        body:has(.gamer-wizard-light) [data-slot="wrapper"][class*="z-"] {
+          z-index: 9999 !important;
+        }
+        /* Hide navbar & promo bar when modal is open */
+        body:has([data-overlay="true"]) .gamer-wizard-dark header.sticky,
+        body:has([data-overlay="true"]) .gamer-wizard-dark .fixed.top-0,
+        body:has([data-overlay="true"]) .gamer-wizard-light header.sticky,
+        body:has([data-overlay="true"]) .gamer-wizard-light .fixed.top-0,
+        body:has([role="dialog"]) .gamer-wizard-dark header.sticky,
+        body:has([role="dialog"]) .gamer-wizard-dark .fixed.top-0,
+        body:has([role="dialog"]) .gamer-wizard-light header.sticky,
+        body:has([role="dialog"]) .gamer-wizard-light .fixed.top-0,
+        body:has(section[role="dialog"]) .gamer-wizard-dark header.sticky,
+        body:has(section[role="dialog"]) .gamer-wizard-dark .fixed.top-0,
+        body:has(section[role="dialog"]) .gamer-wizard-light header.sticky,
+        body:has(section[role="dialog"]) .gamer-wizard-light .fixed.top-0 {
+          z-index: 0 !important;
+          pointer-events: none !important;
+        }
+        /* Icon circle - cyan tint */
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\],
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\] {
+          background: rgba(0,255,213,0.1) !important;
+        }
+        /* Icon color - cyan */
+        body:has(.gamer-wizard-dark) [role="dialog"] .text-\\[var\\(--color-primary\\)\\],
+        body:has(.gamer-wizard-light) [role="dialog"] .text-\\[var\\(--color-primary\\)\\] {
+          color: #00d4b0 !important;
+        }
+        body:has(.gamer-wizard-dark) [role="dialog"] .text-\\[\\#4654CD\\],
+        body:has(.gamer-wizard-light) [role="dialog"] .text-\\[\\#4654CD\\] {
+          color: #00d4b0 !important;
+        }
+        /* Button - cyan */
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\],
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[\\#4654CD\\],
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\],
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[\\#4654CD\\] {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\].text-white,
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\].text-white {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        /* Detected address card inside dialog - light */
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-neutral-50,
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-neutral-50 {
+          background: #f5f5f5 !important;
+        }
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-neutral-50.rounded-xl,
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-neutral-50.rounded-xl {
+          background: #f5f5f5 !important;
+          border: 1px solid #e5e5e5 !important;
+        }
+        /* Inputs inside dialog - light */
+        body:has(.gamer-wizard-dark) [role="dialog"] input,
+        body:has(.gamer-wizard-dark) [role="dialog"] select,
+        body:has(.gamer-wizard-light) [role="dialog"] input,
+        body:has(.gamer-wizard-light) [role="dialog"] select {
+          background: #ffffff !important;
+          color: #1a1a1a !important;
+          border-color: #e5e5e5 !important;
+        }
+        body:has(.gamer-wizard-dark) [role="dialog"] input:focus,
+        body:has(.gamer-wizard-dark) [role="dialog"] select:focus,
+        body:has(.gamer-wizard-light) [role="dialog"] input:focus,
+        body:has(.gamer-wizard-light) [role="dialog"] select:focus {
+          border-color: #00ffd5 !important;
+          box-shadow: 0 0 0 1px rgba(0,255,213,0.3) !important;
+        }
+        /* Dropdowns - dark mode */
+        body:has(.gamer-wizard-dark) [role="listbox"],
+        body:has(.gamer-wizard-dark) [data-slot="listbox"] {
+          background: #1e1e1e !important;
+          border: 1px solid #2a2a2a !important;
+        }
+        body:has(.gamer-wizard-dark) [role="listbox"] [role="option"] {
+          color: #f0f0f0 !important;
+        }
+        body:has(.gamer-wizard-dark) [role="listbox"] [role="option"]:hover,
+        body:has(.gamer-wizard-dark) [data-slot="listbox"] [data-hover="true"] {
+          background: rgba(0,255,213,0.1) !important;
+        }
+        /* Dropdowns - light mode */
+        body:has(.gamer-wizard-light) [role="listbox"],
+        body:has(.gamer-wizard-light) [data-slot="listbox"] {
+          background: #ffffff !important;
+          border: 1px solid #e5e5e5 !important;
+        }
+        body:has(.gamer-wizard-light) [role="listbox"] [role="option"]:hover,
+        body:has(.gamer-wizard-light) [data-slot="listbox"] [data-hover="true"] {
+          background: rgba(0,255,213,0.1) !important;
+        }
+        body:has(.gamer-wizard-light) [role="listbox"] [aria-selected="true"],
+        body:has(.gamer-wizard-light) [data-slot="listbox"] [data-selected="true"] {
+          background: rgba(0,255,213,0.15) !important;
+          color: #0a8a76 !important;
+        }
       `}</style>
-      <div className={isDark ? 'gamer-wizard-dark' : ''}>
+      <div className={isDark ? 'gamer-wizard-dark' : 'gamer-wizard-light'}>
         <GamerNavbar
           theme={theme}
-          onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
         />
+        {/* Spacer for fixed GamerNavbar */}
+        <div style={{ height: 80 }} />
         {children}
         <GamerFooter theme={theme} />
       </div>

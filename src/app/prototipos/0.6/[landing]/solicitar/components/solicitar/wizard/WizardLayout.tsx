@@ -44,6 +44,8 @@ interface WizardLayoutProps {
   /** Mensaje dinámico de progreso durante el envío */
   submitMessage?: string;
   navbarProps?: NavbarProps;
+  /** Hide navbar entirely (used when parent wrapper provides its own navbar) */
+  hideNavbar?: boolean;
   /** Contenido motivacional desde API */
   motivational?: WizardMotivational | null;
 }
@@ -63,6 +65,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   canProceed = true,
   submitMessage,
   navbarProps,
+  hideNavbar = false,
   motivational,
 }) => {
   const params = useParams();
@@ -71,10 +74,10 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   return (
     <div className="min-h-screen bg-neutral-50 relative">
       {/* Navbar del Hero */}
-      <Navbar {...navbarProps} landing={landing} />
+      {!hideNavbar && <Navbar {...navbarProps} landing={landing} />}
 
       {/* Spacer for fixed navbar + promo banner */}
-      <div className="h-[104px]" />
+      {!hideNavbar && <div className="h-[104px]" />}
 
       {/* Content Container */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 pt-14 pb-24 lg:pb-8">

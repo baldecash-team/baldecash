@@ -28,6 +28,8 @@ export function InsuranceSection({
 }: InsuranceSectionProps) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+  // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
+  const apiSlug = landing === 'zona-gamer' ? 'home' : landing;
 
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
@@ -53,7 +55,7 @@ export function InsuranceSection({
       setIsLoading(true);
       try {
         const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
-        const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, termMonths, previewKey);
+        const plans = await getLandingInsurances(apiSlug, formattedDeviceType, productPrice, termMonths, previewKey);
         const mappedPlans: InsurancePlan[] = plans.map((plan) => ({
           id: plan.id,
           code: plan.code,
@@ -80,7 +82,7 @@ export function InsuranceSection({
     }
 
     fetchInsurancePlans();
-  }, [landing, deviceType, productPrice, termMonths, previewKey]);
+  }, [apiSlug, deviceType, productPrice, termMonths, previewKey]);
 
   if (!isLoading && insurancePlans.length === 0) {
     return null;

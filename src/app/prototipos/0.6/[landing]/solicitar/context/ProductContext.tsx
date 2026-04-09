@@ -457,8 +457,11 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    * Returns intersection of terms from all products' paymentPlans
    */
   const getAvailableTerms = useCallback((): number[] => {
+    // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
+    const defaultTerms = landingSlug === 'zona-gamer' ? [6, 12, 18, 24] : [12, 18, 24, 36];
+
     const products = getAllProducts();
-    if (products.length === 0) return [12, 18, 24, 36]; // Default terms
+    if (products.length === 0) return defaultTerms;
 
     // Get terms for each product
     const termsPerProduct = products.map(p => {
@@ -466,7 +469,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         return p.paymentPlans.map(plan => plan.term);
       }
       // Fallback: if no plans, assume all standard terms are available
-      return [12, 18, 24, 36];
+      return defaultTerms;
     });
 
     // Find intersection of all terms
@@ -613,9 +616,20 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       }
     }
 
+    // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
+    // Fallback: generate mock initial options based on product price (for gamer mock products)
+    if (landingSlug === 'zona-gamer' && product.price > 0) {
+      const price = product.price;
+      return [
+        { percent: 0, amount: 0, label: 'Sin inicial' },
+        { percent: 10, amount: Math.round(price * 0.10), label: `S/${Math.round(price * 0.10).toLocaleString()}` },
+        { percent: 20, amount: Math.round(price * 0.20), label: `S/${Math.round(price * 0.20).toLocaleString()}` },
+      ];
+    }
+
     // No paymentPlans - return empty (sync should fetch them)
     return [];
-  }, [getAllProducts]);
+  }, [getAllProducts, landingSlug]);
 
   /**
    * Sync missing payment plans from API

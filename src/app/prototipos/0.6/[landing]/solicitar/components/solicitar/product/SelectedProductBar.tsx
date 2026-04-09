@@ -9,6 +9,7 @@
  */
 
 import React, { useState } from 'react';
+import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
@@ -24,6 +25,10 @@ interface SelectedProductBarProps {
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
   const { selectedProduct, selectedAccessories, selectedInsurance, selectedInsurances, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
 
+
+  const params = useParams();
+  // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
+  const isGamer = (params?.landing as string) === 'zona-gamer';
 
   // Usar el estado del contexto para la expansión
   const isExpanded = isProductBarExpanded;
@@ -290,7 +295,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         size="sm"
                       />
                     </div>
-                    {hasInitialPayment && (
+                    {hasInitialPayment && !isGamer && (
                       <div className="flex justify-between items-center mt-2 pt-2 border-t border-neutral-100">
                         <span className="text-xs text-neutral-500">Inicial total</span>
                         <span className="text-sm font-medium text-neutral-600">
@@ -427,8 +432,8 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             ))}
           </div>
 
-          {/* Initial payment total - only show if applicable */}
-          {hasInitialPayment && (
+          {/* Initial payment total - only show if applicable (hidden for zona-gamer) */}
+          {hasInitialPayment && !isGamer && (
             <div className="mt-4 pt-4 border-t border-neutral-200">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-neutral-500">Inicial total</span>

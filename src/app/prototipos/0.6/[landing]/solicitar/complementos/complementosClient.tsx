@@ -7,7 +7,7 @@
  * Insurance and Accessories state is managed via ProductContext
  */
 
-import React, { Suspense, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
@@ -20,6 +20,8 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
+import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
@@ -61,41 +63,45 @@ function ComplementosContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
+  // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
+  const flowSlug = landing === 'zona-gamer' ? 'home' : landing;
+  const isGamer = landing === 'zona-gamer';
+
   // Get solicitar flow configuration
   const {
     sectionsAfterWizard,
     isEnabled,
     isCouponRequired,
     isLoading: isFlowConfigLoading,
-  } = useSolicitarFlow({ slug: landing, previewKey });
+  } = useSolicitarFlow({ slug: flowSlug, previewKey });
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
-    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
+    if (!isGamer && !isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
       router.push(routes.solicitar(landing));
     }
-  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
+  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router, isGamer]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
   useEffect(() => {
-    if (cartProducts.length > 1 && !hasUnifiedTerms()) {
+    if (!isGamer && cartProducts.length > 1 && !hasUnifiedTerms()) {
       router.push(routes.solicitar(landing));
     }
-  }, [cartProducts.length, hasUnifiedTerms, landing, router]);
+  }, [cartProducts.length, hasUnifiedTerms, landing, router, isGamer]);
 
   // Redirect to /solicitar if monthly quota is exceeded
   useEffect(() => {
-    if (isOverQuotaLimit) {
+    if (!isGamer && isOverQuotaLimit) {
       router.push(routes.solicitar(landing));
     }
-  }, [isOverQuotaLimit, landing, router]);
+  }, [isOverQuotaLimit, landing, router, isGamer]);
 
   // Redirect to /solicitar if there are unavailable products
   useEffect(() => {
-    if (unavailableProductIds.length > 0) {
+    if (!isGamer && unavailableProductIds.length > 0) {
       router.push(routes.solicitar(landing));
     }
-  }, [unavailableProductIds, landing, router]);
+  }, [unavailableProductIds, landing, router, isGamer]);
 
   // Build form values for cross-step validation
   const formValues = useMemo(() => {
@@ -182,12 +188,12 @@ function ComplementosContent() {
   }, [isFlowConfigLoading, sectionsAfterWizard.length, router, landing]);
 
   const pageContent = (
-    <div className="min-h-screen bg-neutral-50 relative">
+    <div className={`min-h-screen relative ${isGamer ? '' : 'bg-neutral-50'}`} style={isGamer ? { background: '#0e0e0e' } : undefined}>
       {/* Navbar */}
-      <Navbar {...navbarProps} landing={landing} />
+      {!isGamer && <Navbar {...navbarProps} landing={landing} />}
 
       {/* Spacer for fixed navbar + promo banner */}
-      <div className="h-[104px]" />
+      {!isGamer && <div className="h-[104px]" />}
 
       <div className="max-w-3xl mx-auto px-4 pt-14 pb-32 lg:pb-6">
         {/* Section Header */}
@@ -305,6 +311,23 @@ function ComplementosContent() {
     </div>
   );
 
+  // Zona Gamer: wrap BEFORE loading/error checks to ensure dark theme always shows
+  if (isGamer) {
+    if (isLayoutLoading || isFlowConfigLoading || isValidatingAvailability) {
+      return <LoadingFallback />;
+    }
+    return (
+      <GamerComplementosWrapper>
+        {pageContent}
+        <SelectedProductSpacer />
+        <SubmitOverlay isOpen={isSubmitting} stage={submitStage} />
+        {toast && (
+          <Toast message={toast.message} type={toast.type} isVisible={isToastVisible} onClose={hideToast} duration={4000} />
+        )}
+      </GamerComplementosWrapper>
+    );
+  }
+
   // Show loading while data is loading
   if (isLayoutLoading || isFlowConfigLoading || isValidatingAvailability) {
     return <LoadingFallback />;
@@ -339,9 +362,208 @@ function ComplementosContent() {
 }
 
 function LoadingFallback() {
+  const params = useParams();
+  const isGamer = (params?.landing as string) === 'zona-gamer';
+
+  if (isGamer) {
+    const savedTheme = typeof window !== 'undefined' ? sessionStorage.getItem('gamer-theme') : null;
+    const isDark = savedTheme !== 'light';
+
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f5f5f5' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 rounded-full animate-spin" style={{ border: `3px solid ${isDark ? '#2a2a2a' : '#e0e0e0'}`, borderTopColor: '#00ffd5' }} />
+          </div>
+          <p style={{ color: isDark ? '#555' : '#999', fontFamily: 'Rajdhani, sans-serif', fontSize: 14 }}>Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
       <CubeGridSpinner />
+    </div>
+  );
+}
+
+function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (sessionStorage.getItem('gamer-theme') as 'dark' | 'light') || 'dark';
+    }
+    return 'dark';
+  });
+  const params = useParams();
+  const landing = (params.landing as string) || 'zona-gamer';
+
+  const handleToggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    sessionStorage.setItem('gamer-theme', next);
+  };
+  const isDark = theme === 'dark';
+
+  return (
+    <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
+        /* Gamer cyan overrides - both dark and light modes */
+        .gamer-complementos-dark,
+        .gamer-complementos-dark *,
+        .gamer-complementos-light,
+        .gamer-complementos-light * {
+          --color-primary: #00ffd5 !important;
+          --color-primary-rgb: 0,255,213 !important;
+          --color-secondary: #00ffd5 !important;
+          --color-secondary-rgb: 0,255,213 !important;
+        }
+        .gamer-complementos-dark {
+          --color-primary: #00ffd5;
+          --color-primary-rgb: 0,255,213;
+          --color-secondary: #00ffd5;
+        }
+        .gamer-complementos-dark .min-h-screen { background: #0e0e0e !important; }
+        .gamer-complementos-dark .bg-white { background: #1a1a1a !important; }
+        .gamer-complementos-dark .bg-neutral-50 { background: #0e0e0e !important; }
+        .gamer-complementos-dark .bg-neutral-100 { background: #252525 !important; }
+        .gamer-complementos-dark .border-neutral-200,
+        .gamer-complementos-dark .border-neutral-100,
+        .gamer-complementos-dark .border-neutral-300 { border-color: #2a2a2a !important; }
+        .gamer-complementos-dark .text-neutral-900,
+        .gamer-complementos-dark .text-neutral-800 { color: #f0f0f0 !important; }
+        .gamer-complementos-dark .text-neutral-700 { color: #d4d4d4 !important; }
+        .gamer-complementos-dark .text-neutral-600 { color: #a0a0a0 !important; }
+        .gamer-complementos-dark .text-neutral-500 { color: #707070 !important; }
+        .gamer-complementos-dark .text-neutral-400 { color: #555 !important; }
+        .gamer-complementos-dark .text-foreground { color: #f0f0f0 !important; }
+        .gamer-complementos-dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; }
+        .gamer-complementos-dark .shadow-lg { box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important; }
+        /* Primary color overrides */
+        .gamer-complementos-dark .bg-\\[var\\(--color-primary\\)\\] { background: #00ffd5 !important; color: #0a0a0a !important; }
+        .gamer-complementos-dark .text-\\[var\\(--color-primary\\)\\] { color: #00ffd5 !important; }
+        .gamer-complementos-dark .text-\\[var\\(--color-secondary\\)\\] { color: #00ffd5 !important; }
+        .gamer-complementos-dark .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.04\\)\\] { background: rgba(0,255,213,0.04) !important; }
+        /* Buttons */
+        .gamer-complementos-dark .bg-\\[var\\(--color-primary\\)\\].text-white {
+          background: #00ffd5 !important; color: #0a0a0a !important;
+          color: #fff !important;
+        }
+        .gamer-complementos-dark .border-neutral-300.text-neutral-700 {
+          border-color: #2a2a2a !important;
+          color: #a0a0a0 !important;
+        }
+        /* Insurance/Accessories cards */
+        .gamer-complementos-dark .bg-white.rounded-xl { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+        .gamer-complementos-dark .bg-white.rounded-2xl { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+        /* Selected state borders */
+        .gamer-complementos-dark .border-\\[var\\(--color-primary\\)\\] { border-color: #00ffd5 !important; }
+        .gamer-complementos-dark .ring-\\[var\\(--color-primary\\)\\] { --tw-ring-color: #00ffd5 !important; }
+        /* Mobile product bar */
+        .gamer-complementos-dark .fixed.bottom-0 .bg-white {
+          background: #1a1a1a !important;
+          border-color: #2a2a2a !important;
+        }
+        /* Green → cyan */
+        .gamer-complementos-dark .bg-green-500,
+        .gamer-complementos-dark .bg-green-600 { background: #00ffd5 !important; }
+        .gamer-complementos-dark .text-green-500,
+        .gamer-complementos-dark .text-green-600 { color: #00ffd5 !important; }
+        /* Insurance card price bg */
+        .gamer-complementos-dark .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.06\\)\\] {
+          background: rgba(0,255,213,0.08) !important;
+        }
+        /* Insurance card border on hover */
+        .gamer-complementos-dark .rounded-2xl.border-2 {
+          border-color: #2a2a2a !important;
+        }
+        .gamer-complementos-dark .rounded-2xl.border-2:hover {
+          border-color: rgba(0,255,213,0.3) !important;
+        }
+        /* Insurance card selected state */
+        .gamer-complementos-dark .rounded-2xl.border-2.border-\\[var\\(--color-primary\\)\\] {
+          border-color: #00ffd5 !important;
+        }
+        /* Insurance add button */
+        .gamer-complementos-dark button.bg-\\[var\\(--color-primary\\)\\] {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        .gamer-complementos-dark button.bg-\\[var\\(--color-primary\\)\\]:hover {
+          background: #00e6c0 !important;
+        }
+        /* Product bar plazo button */
+        .gamer-complementos-dark .rounded-lg.border-2.bg-white {
+          background: #1e1e1e !important;
+          border-color: #2a2a2a !important;
+        }
+        /* Inicial pills */
+        .gamer-complementos-dark .bg-neutral-100.text-neutral-600 {
+          background: #252525 !important;
+          color: #a0a0a0 !important;
+        }
+        .gamer-complementos-dark .bg-neutral-100.text-neutral-600:hover {
+          background: #333 !important;
+        }
+        /* Section icon bg */
+        .gamer-complementos-dark .w-10.h-10.bg-\\[var\\(--color-primary\\)\\] {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        .gamer-complementos-dark .w-10.h-10.bg-\\[var\\(--color-primary\\)\\] svg {
+          color: #0a0a0a !important;
+        }
+        /* Insurance icon inside card */
+        .gamer-complementos-dark .w-10.h-10.bg-\\[var\\(--color-primary\\)\\].rounded-xl {
+          background: rgba(0,255,213,0.15) !important;
+        }
+        .gamer-complementos-dark .w-10.h-10.bg-\\[var\\(--color-primary\\)\\].rounded-xl svg {
+          color: #00ffd5 !important;
+        }
+        /* Terms button */
+        .gamer-complementos-dark button.text-neutral-400:hover {
+          color: #00ffd5 !important;
+        }
+        /* === Submit overlay === */
+        .gamer-complementos-dark .fixed.inset-0.bg-white\/95 {
+          background: rgba(14,14,14,0.95) !important;
+        }
+        .gamer-complementos-dark .fixed.inset-0 .bg-white.border.border-neutral-200.rounded-xl {
+          background: #1a1a1a !important;
+          border: 1px solid #00ffd5 !important;
+        }
+        .gamer-complementos-dark .fixed.inset-0 .bg-green-500.text-white {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        .gamer-complementos-dark .fixed.inset-0 .bg-\\[var\\(--color-primary\\)\\].text-white {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        .gamer-complementos-dark .fixed.inset-0 .bg-neutral-200.text-neutral-400 {
+          background: #2a2a2a !important;
+          color: #555 !important;
+        }
+        .gamer-complementos-dark .fixed.inset-0 .bg-green-500:not(.text-white) {
+          background: #00ffd5 !important;
+        }
+        /* Scrollbar */
+        .gamer-complementos-dark ::-webkit-scrollbar { width: 6px; }
+        .gamer-complementos-dark ::-webkit-scrollbar-track { background: #0e0e0e; }
+        .gamer-complementos-dark ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+      `}</style>
+      <div className={isDark ? 'gamer-complementos-dark' : 'gamer-complementos-light'}>
+        <GamerNavbar
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          catalogUrl={routes.catalogo(landing)}
+          hideSecondaryBar
+        />
+        <div style={{ height: 80 }} />
+        {children}
+        <GamerFooter theme={theme} />
+      </div>
     </div>
   );
 }
