@@ -19,6 +19,8 @@ import { StepSuccessMessage } from '../components/solicitar/celebration/StepSucc
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
+import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Context
@@ -126,29 +128,33 @@ function StepContent() {
   const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
 
   // Redirect to /solicitar if coupon is required but not applied
+  // TODO: Quitar override cuando zona-gamer tenga backend propio
   useEffect(() => {
-    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
+    if (landing !== 'zona-gamer' && !isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
       router.push(routes.solicitar(landing));
     }
   }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
+  // TODO: Quitar override cuando zona-gamer tenga backend propio
   useEffect(() => {
-    if (cartProducts.length > 1 && !hasUnifiedTerms()) {
+    if (landing !== 'zona-gamer' && cartProducts.length > 1 && !hasUnifiedTerms()) {
       router.push(routes.solicitar(landing));
     }
   }, [cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
+  // TODO: Quitar override cuando zona-gamer tenga backend propio
   useEffect(() => {
-    if (isOverQuotaLimit) {
+    if (landing !== 'zona-gamer' && isOverQuotaLimit) {
       router.push(routes.solicitar(landing));
     }
   }, [isOverQuotaLimit, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
+  // TODO: Quitar override cuando zona-gamer tenga backend propio
   useEffect(() => {
-    if (unavailableProductIds.length > 0) {
+    if (landing !== 'zona-gamer' && unavailableProductIds.length > 0) {
       router.push(routes.solicitar(landing));
     }
   }, [unavailableProductIds, landing, router]);
@@ -627,7 +633,7 @@ function StepContent() {
         isSubmitting={isSubmitting || isAppSubmitting}
         submitMessage={submitMessage}
         canProceed={true}
-        navbarProps={navbarProps || undefined}
+        navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
         motivational={step.motivational}
       >
         <div className="space-y-4">
@@ -764,7 +770,7 @@ function StepContent() {
         isFirstStep={navigation.isFirst}
         isLastStep={isActuallyLastRegularStep}
         canProceed={true}
-        navbarProps={navbarProps || undefined}
+        navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
         motivational={stepMotivational}
       >
         <DynamicWizardStep
@@ -775,6 +781,16 @@ function StepContent() {
       </WizardLayout>
     </>
   );
+
+  // Zona Gamer: wrap with dark theme, gamer navbar and footer
+  if (landing === 'zona-gamer') {
+    return (
+      <GamerWizardWrapper>
+        {pageContent}
+        <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
+      </GamerWizardWrapper>
+    );
+  }
 
   return (
     <>
@@ -789,6 +805,115 @@ function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
       <CubeGridSpinner />
+    </div>
+  );
+}
+
+// Gamer theme wrapper for zona-gamer wizard steps
+function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const params = useParams();
+  const landing = (params.landing as string) || 'zona-gamer';
+  const isDark = theme === 'dark';
+
+  return (
+    <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
+        .gamer-wizard-dark {
+          --color-primary: #00ffd5;
+          --color-primary-rgb: 0,255,213;
+          --color-secondary: #00ffd5;
+        }
+        /* Backgrounds */
+        .gamer-wizard-dark .min-h-screen { background: #0e0e0e !important; }
+        .gamer-wizard-dark .bg-white { background: #1a1a1a !important; }
+        .gamer-wizard-dark .bg-neutral-50 { background: #0e0e0e !important; }
+        .gamer-wizard-dark .bg-neutral-100 { background: #252525 !important; }
+        .gamer-wizard-dark .bg-content1 { background: #1a1a1a !important; }
+        /* Borders */
+        .gamer-wizard-dark .border-neutral-200,
+        .gamer-wizard-dark .border-neutral-100,
+        .gamer-wizard-dark .border-neutral-300 { border-color: #2a2a2a !important; }
+        /* Text colors */
+        .gamer-wizard-dark .text-neutral-900 { color: #f5f5f5 !important; }
+        .gamer-wizard-dark .text-neutral-800 { color: #f0f0f0 !important; }
+        .gamer-wizard-dark .text-neutral-700 { color: #d4d4d4 !important; }
+        .gamer-wizard-dark .text-neutral-600 { color: #a0a0a0 !important; }
+        .gamer-wizard-dark .text-neutral-500 { color: #707070 !important; }
+        .gamer-wizard-dark .text-neutral-400 { color: #555 !important; }
+        .gamer-wizard-dark .text-foreground { color: #f0f0f0 !important; }
+        /* Forms */
+        .gamer-wizard-dark input,
+        .gamer-wizard-dark select,
+        .gamer-wizard-dark textarea {
+          background: #1e1e1e !important;
+          color: #f0f0f0 !important;
+          border-color: #2a2a2a !important;
+        }
+        .gamer-wizard-dark input::placeholder,
+        .gamer-wizard-dark textarea::placeholder { color: #555 !important; }
+        .gamer-wizard-dark input:focus,
+        .gamer-wizard-dark select:focus,
+        .gamer-wizard-dark textarea:focus {
+          border-color: #00ffd5 !important;
+          box-shadow: 0 0 0 1px rgba(0,255,213,0.3) !important;
+        }
+        /* Segmented controls */
+        .gamer-wizard-dark .bg-neutral-100.border { background: #1e1e1e !important; }
+        /* Shadows */
+        .gamer-wizard-dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; }
+        .gamer-wizard-dark .shadow-lg { box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important; }
+        /* Primary color overrides */
+        .gamer-wizard-dark .bg-\\[\\#4654CD\\] { background: #00ffd5 !important; color: #0a0a0a !important; }
+        .gamer-wizard-dark .text-\\[\\#4654CD\\] { color: #00ffd5 !important; }
+        .gamer-wizard-dark .border-\\[\\#4654CD\\] { border-color: #00ffd5 !important; }
+        .gamer-wizard-dark .ring-\\[\\#4654CD\\]\\/20 { --tw-ring-color: rgba(0,255,213,0.2) !important; }
+        .gamer-wizard-dark .ring-\\[\\#4654CD\\]\\/30 { --tw-ring-color: rgba(0,255,213,0.3) !important; }
+        .gamer-wizard-dark .shadow-\\[\\#4654CD\\]\\/25 { --tw-shadow-color: rgba(0,255,213,0.25) !important; }
+        .gamer-wizard-dark .bg-\\[var\\(--color-primary\\)\\] { background: #00ffd5 !important; color: #0a0a0a !important; }
+        .gamer-wizard-dark .text-\\[var\\(--color-primary\\)\\] { color: #00ffd5 !important; }
+        /* Hover states */
+        .gamer-wizard-dark .hover\\:bg-\\[\\#3a47b3\\]:hover { background: #00b396 !important; }
+        .gamer-wizard-dark .hover\\:text-neutral-800:hover { color: #f0f0f0 !important; }
+        /* Step progress - active step */
+        .gamer-wizard-dark .bg-\\[\\#4654CD\\].text-white {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+        }
+        .gamer-wizard-dark .ring-4.ring-\\[\\#4654CD\\]\\/20 {
+          --tw-ring-color: rgba(0,255,213,0.2) !important;
+        }
+        /* Navigation button */
+        .gamer-wizard-dark .bg-\\[\\#4654CD\\].text-white.rounded-xl {
+          background: linear-gradient(135deg, #6366f1 0%, #82e2d2 100%) !important;
+          color: #fff !important;
+        }
+        /* Product bar mobile */
+        .gamer-wizard-dark .fixed.bottom-0 .bg-white {
+          background: #1a1a1a !important;
+          border-color: #2a2a2a !important;
+        }
+        /* Motivational card */
+        .gamer-wizard-dark .sticky .bg-white {
+          background: #1a1a1a !important;
+          border-color: #2a2a2a !important;
+        }
+        /* Scrollbar */
+        .gamer-wizard-dark ::-webkit-scrollbar { width: 6px; }
+        .gamer-wizard-dark ::-webkit-scrollbar-track { background: #0e0e0e; }
+        .gamer-wizard-dark ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+      `}</style>
+      <div className={isDark ? 'gamer-wizard-dark' : ''}>
+        <GamerNavbar
+          theme={theme}
+          onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          catalogUrl={routes.catalogo(landing)}
+          hideSecondaryBar
+        />
+        {children}
+        <GamerFooter theme={theme} />
+      </div>
     </div>
   );
 }
