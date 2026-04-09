@@ -8,7 +8,8 @@
  * - Datos desde API (no mock data)
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ArrowRight, CheckCircle, Shield, Users, Building, Clock, CreditCard, Truck, Star, Heart, Zap, Headphones, Award, Percent } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Chip } from '@nextui-org/react';
@@ -30,6 +31,21 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   const router = useRouter();
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
+
+  // Use mobile position/zoom on small screens if configured
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const hasMobileOverride = heroContent.mobilePositionX != null || heroContent.mobilePositionY != null || heroContent.mobileZoom != null;
+  const posX = isMobile && hasMobileOverride ? (heroContent.mobilePositionX ?? 50) : (heroContent.backgroundPositionX ?? 50);
+  const posY = isMobile && hasMobileOverride ? (heroContent.mobilePositionY ?? 50) : (heroContent.backgroundPositionY ?? 50);
+  const zoomVal = isMobile && hasMobileOverride ? (heroContent.mobileZoom ?? 1.0) : (heroContent.backgroundZoom ?? 1);
 
   const transformLink = (href: string): string => {
     if (!href) return '#';
@@ -70,18 +86,19 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
       className="relative overflow-hidden"
       style={{ height: 'calc(100svh - var(--header-total-height, 4rem))' }}
     >
-      {/* Background image */}
+      {/* Background image - next/image with priority for LCP optimization */}
       {heroContent.backgroundImage && (
-        <img
+        <Image
           src={heroContent.backgroundImage}
           alt="Campus universitario"
-          className="absolute inset-0 w-full h-full object-cover"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
           style={{
-            objectPosition: `${heroContent.backgroundPositionX ?? 50}% ${heroContent.backgroundPositionY ?? 50}%`,
-            transform: (heroContent.backgroundZoom ?? 1) !== 1 ? `scale(${heroContent.backgroundZoom})` : undefined,
+            objectPosition: `${posX}% ${posY}%`,
+            transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
           }}
-          loading="eager"
-          fetchPriority="high"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.style.opacity = '0';

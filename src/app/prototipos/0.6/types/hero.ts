@@ -85,6 +85,9 @@ export interface HeroContent {
   backgroundPositionX?: number;
   backgroundPositionY?: number;
   backgroundZoom?: number;
+  mobilePositionX?: number;
+  mobilePositionY?: number;
+  mobileZoom?: number;
   badgeText?: string;
 }
 
@@ -106,6 +109,9 @@ export interface HeroBannerProps {
   imagePositionX?: number;
   imagePositionY?: number;
   imageZoom?: number;
+  mobilePositionX?: number;
+  mobilePositionY?: number;
+  mobileZoom?: number;
   primaryCta?: CtaConfig;
   secondaryCta?: CtaConfig;
   trustSignals?: TrustSignal[];

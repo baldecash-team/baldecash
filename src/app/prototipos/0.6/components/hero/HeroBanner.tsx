@@ -5,7 +5,8 @@
  * Layout: Imagen fullwidth con overlay oscuro + texto izquierda
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Users, Building, Clock, CreditCard, Truck, CheckCircle, Star, Heart, Zap, Headphones, Award } from 'lucide-react';
@@ -22,6 +23,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   imagePositionX = 50,
   imagePositionY = 50,
   imageZoom = 1.0,
+  mobilePositionX,
+  mobilePositionY,
+  mobileZoom,
   primaryCta,
   trustSignals = [],
   badgeText,
@@ -30,6 +34,21 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
+
+  // Use mobile position/zoom on small screens if configured
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const hasMobileOverride = mobilePositionX != null || mobilePositionY != null || mobileZoom != null;
+  const posX = isMobile && hasMobileOverride ? (mobilePositionX ?? 50) : imagePositionX;
+  const posY = isMobile && hasMobileOverride ? (mobilePositionY ?? 50) : imagePositionY;
+  const zoomVal = isMobile && hasMobileOverride ? (mobileZoom ?? 1.0) : imageZoom;
 
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
@@ -123,17 +142,18 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
   return (
     <section className="relative min-h-[600px] h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Background Image */}
-      <img
+      {/* Background Image - next/image with priority for LCP optimization */}
+      <Image
         src={imageSrc}
         alt="Estudiantes trabajando"
-        className="absolute inset-0 w-full h-full object-cover"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
         style={{
-          objectPosition: `${imagePositionX}% ${imagePositionY}%`,
-          transform: imageZoom !== 1 ? `scale(${imageZoom})` : undefined,
+          objectPosition: `${posX}% ${posY}%`,
+          transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
         }}
-        loading="eager"
-        fetchPriority="high"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
           target.style.opacity = '0';
