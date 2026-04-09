@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
 import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Info, Package, Plus, Search, ShoppingCart, Tag, Users, X, Zap } from 'lucide-react';
 import { useProduct } from './context/ProductContext';
+import { useWizardConfig } from './context/WizardConfigContext';
 import { useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
@@ -73,6 +74,14 @@ function SolicitarContent() {
 
   const { selectedProduct } = useProduct();
   const product = selectedProduct;
+  const { steps } = useWizardConfig();
+
+  const firstStepSlug = (() => {
+    const regularSteps = steps.filter((s: { is_summary_step?: boolean }) => !s.is_summary_step);
+    const first = regularSteps[0];
+    if (first) return (first as { url_slug?: string; code?: string }).url_slug || (first as { code?: string }).code || null;
+    return null;
+  })();
 
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
@@ -103,14 +112,21 @@ function SolicitarContent() {
   }, []);
 
   const handleStart = useCallback(() => {
+    console.log('[GamerSolicitar] handleStart called', { acceptTerms, firstStepSlug, steps: steps?.length, landing });
     if (!acceptTerms) {
       setTermsError(true);
       termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     setTermsError(false);
-    router.push(routes.solicitarStep(landing, 'datos-personales'));
-  }, [router, landing, acceptTerms]);
+    if (firstStepSlug) {
+      const url = routes.solicitarStep(landing, firstStepSlug);
+      console.log('[GamerSolicitar] Navigating to:', url);
+      router.push(url);
+    } else {
+      console.error('[GamerSolicitar] No hay pasos configurados. steps:', steps);
+    }
+  }, [router, landing, acceptTerms, firstStepSlug, steps]);
 
   const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,179,150,${a})`;
 

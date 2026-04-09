@@ -24,9 +24,12 @@ export default function WizardPreviewLayout({
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
+  // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
+  const wizardSlug = landing === 'zona-gamer' ? 'home' : landing;
+
   return (
     <ProductProvider landingSlug={landing}>
-      <WizardConfigProvider slug={landing}>
+      <WizardConfigProvider slug={wizardSlug}>
         <WizardProvider landingSlug={landing}>{children}</WizardProvider>
       </WizardConfigProvider>
     </ProductProvider>

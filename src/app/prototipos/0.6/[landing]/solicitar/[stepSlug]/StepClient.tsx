@@ -118,7 +118,9 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  // TODO: Quitar override cuando zona-gamer tenga su propia config en el backend
+  const flowSlug = landing === 'zona-gamer' ? 'home' : landing;
+  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: flowSlug, previewKey });
 
   // Get applied coupon and term validation from product context
   const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();

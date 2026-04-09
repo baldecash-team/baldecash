@@ -66,6 +66,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
+  // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
+  const layoutSlug = landing === 'zona-gamer' ? 'home' : landing;
+
   // Check if we're in preview mode for this landing
   // Wait for preview context to hydrate from sessionStorage before fetching
   const preview = usePreview();
@@ -88,7 +91,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     const fetchLayoutData = async () => {
       try {
         // Use slug-based API, with preview_key if in preview mode
-        const data = await getLandingLayout(landing, previewKey);
+        const data = await getLandingLayout(layoutSlug, previewKey);
 
         if (isMounted) {
           setLayoutData(data);
