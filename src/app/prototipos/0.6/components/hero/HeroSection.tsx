@@ -199,7 +199,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className="min-h-screen flex flex-col">
       {/* Navbar - shared between normal and convenio */}
       <div id="navbar">
-        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} />
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} primaryColor={primaryColor} />
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}

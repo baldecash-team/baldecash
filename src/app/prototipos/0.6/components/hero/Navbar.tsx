@@ -39,6 +39,7 @@ import {
 import type { PromoBannerData } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { getReadableColorOnWhite } from '@/app/prototipos/0.6/utils/colorContrast';
 
 // Helper function to build internal URLs with optional query params
 const buildInternalUrl = (basePath: string, params?: Record<string, string>) => {
@@ -121,6 +122,8 @@ interface NavbarProps {
   institutionLogo?: string;
   /** Institution name for co-branding alt text */
   institutionName?: string;
+  /** Primary brand color hex for contrast calculations */
+  primaryColor?: string;
 }
 
 // Map de iconos para megamenu (sincronizado con admin MEGAMENU_ICONS)
@@ -150,11 +153,14 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor }) => {
   // Auto-detect preview banner offset based on whether THIS landing is being previewed
   const { isPreviewingLanding } = usePreview();
   const isThisLandingPreviewed = isPreviewingLanding(landing);
   const previewBannerOffset = previewBannerOffsetProp ?? (isThisLandingPreviewed ? 24 : 0);
+  // Readable color for text/borders on white background (auto-darkens light colors like yellow)
+  const readablePrimary = getReadableColorOnWhite(primaryColor || '#4654CD');
+
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
@@ -449,8 +455,8 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   radius="lg"
                   className="font-medium cursor-pointer transition-colors hover:text-white"
                   style={{
-                    borderColor: 'var(--color-primary, #4654CD)',
-                    color: 'var(--color-primary, #4654CD)',
+                    borderColor: readablePrimary,
+                    color: readablePrimary,
                   }}
                   onPress={() => {
                     tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_desktop' });
@@ -461,7 +467,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '';
-                    e.currentTarget.style.color = 'var(--color-primary, #4654CD)';
+                    e.currentTarget.style.color = readablePrimary;
                   }}
                   startContent={<User className="w-4 h-4" />}
                 >
@@ -649,8 +655,8 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     radius="lg"
                     className="w-full font-medium cursor-pointer transition-colors"
                     style={{
-                      borderColor: 'var(--color-primary, #4654CD)',
-                      color: 'var(--color-primary, #4654CD)',
+                      borderColor: readablePrimary,
+                      color: readablePrimary,
                     }}
                     onPress={() => {
                       tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_mobile' });
@@ -661,7 +667,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '';
-                      e.currentTarget.style.color = 'var(--color-primary, #4654CD)';
+                      e.currentTarget.style.color = readablePrimary;
                     }}
                     startContent={<User className="w-4 h-4" />}
                   >

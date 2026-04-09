@@ -16,18 +16,7 @@ import { Chip } from '@nextui-org/react';
 import type { HeroContent, AgreementData } from '../../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-
-/** Returns '#FFFFFF' or '#1a1a1a' depending on bg luminance (WCAG). */
-function getContrastTextColor(hex: string): string {
-  const c = hex.replace('#', '');
-  if (c.length < 6) return '#FFFFFF';
-  const r = parseInt(c.substring(0, 2), 16) / 255;
-  const g = parseInt(c.substring(2, 4), 16) / 255;
-  const b = parseInt(c.substring(4, 6), 16) / 255;
-  const toLinear = (v: number) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
-  const L = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-  return L > 0.4 ? '#1a1a1a' : '#FFFFFF';
-}
+import { getContrastTextColor } from '@/app/prototipos/0.6/utils/colorContrast';
 
 interface ConvenioHeroProps {
   heroContent: HeroContent;
