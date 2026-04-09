@@ -153,7 +153,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
               const IconComponent = getIconComponent(signal.icon);
               return (
                 <li key={index} className="flex items-center gap-2 text-white/90">
-                  <IconComponent className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
+                  <IconComponent className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--color-primary, #4654CD)' }} />
                   <span>{signal.text}</span>
                 </li>
               );
