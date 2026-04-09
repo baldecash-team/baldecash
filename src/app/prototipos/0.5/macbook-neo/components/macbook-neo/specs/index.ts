@@ -1,0 +1,1 @@
+export { SpecsSection } from './SpecsSection';

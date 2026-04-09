@@ -26,6 +26,7 @@
     "lucide-react": "^0.556.0",
     "modern-screenshot": "^4.6.7",
     "next": "16.0.7",
+    "pusher-js": "^8.5.0",
     "react": "19.2.0",
     "react-confetti": "^6.4.0",
     "react-dom": "19.2.0",
