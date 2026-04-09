@@ -75,6 +75,8 @@ interface HeroSectionProps {
   previewBannerOffset?: number;
   /** Preview key for API authentication (sessionStorage preview) */
   previewKey?: string | null;
+  /** Primary brand color hex for contrast calculations */
+  primaryColor?: string;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -99,6 +101,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   landing = 'home',
   previewBannerOffset = 0,
   previewKey,
+  primaryColor,
 }) => {
   const heroUrl = routes.landingHome(landing || 'home');
 
@@ -207,7 +210,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Convenio Hero - Campus image, badge, checklist, price */}
             {heroContent && (
               <section id="hero">
-                <ConvenioHero heroContent={heroContent} agreementData={agreementData} landing={landing} />
+                <ConvenioHero heroContent={heroContent} agreementData={agreementData} landing={landing} primaryColor={primaryColor} />
               </section>
             )}
 

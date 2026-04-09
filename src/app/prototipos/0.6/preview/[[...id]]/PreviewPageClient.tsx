@@ -342,6 +342,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         landing={landingSlug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
         previewKey={previewKey}
+        primaryColor={heroData.primaryColor}
       />
     </div>
   );

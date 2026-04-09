@@ -352,6 +352,7 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
         landing={slug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
         previewKey={previewKey}
+        primaryColor={heroData.primaryColor}
       />
 
       {/* Modal DNI - Feature personalizado para landings configuradas */}
