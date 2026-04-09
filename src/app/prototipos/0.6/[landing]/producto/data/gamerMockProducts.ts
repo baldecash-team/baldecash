@@ -55,7 +55,7 @@ const base = {
 
 function wrap(product: Record<string, unknown>, price: number): ProductDetailResult {
   return {
-    product: { ...base, ...product } as ProductDetailResult['product'],
+    product: { ...base, ...product } as unknown as ProductDetailResult['product'],
     paymentPlans: makePlans(price),
     similarProducts: [],
     limitations: [],

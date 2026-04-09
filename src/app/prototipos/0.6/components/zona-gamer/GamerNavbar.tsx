@@ -8,9 +8,10 @@ interface GamerNavbarProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   catalogUrl: string;
+  hideSecondaryBar?: boolean;
 }
 
-export function GamerNavbar({ theme, onToggleTheme, catalogUrl }: GamerNavbarProps) {
+export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar }: GamerNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(true);
 
@@ -181,7 +182,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl }: GamerNavbarPro
       </header>
 
       {/* Secondary Navbar */}
-      <div
+      {!hideSecondaryBar && <div
         className="sticky z-[99] border-b backdrop-blur-[20px]"
         style={{
           top: bannerVisible ? 104 : 64,
@@ -238,7 +239,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl }: GamerNavbarPro
             </button>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Mobile Menu */}
       {mobileOpen && (
