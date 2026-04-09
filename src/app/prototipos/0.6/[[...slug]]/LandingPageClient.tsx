@@ -11,6 +11,7 @@ import { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'rea
 import { useSearchParams } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
 import { DniModal, hasSavedDni } from '../components/hero/DniModal';
+import { ZonaGamerLanding } from '../components/zona-gamer/ZonaGamerLanding';
 import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
 import { usePreview } from '../context/PreviewContext';
@@ -53,6 +54,11 @@ interface HeroData {
 
 // Wrapper component to handle Suspense for useSearchParams
 function LandingPageClientInner({ slug }: LandingPageClientProps) {
+  // Zona Gamer: landing 100% estática, sin fetch a la API
+  if (slug === 'zona-gamer') {
+    return <ZonaGamerLanding />;
+  }
+
   const searchParams = useSearchParams();
   const [heroData, setHeroData] = useState<HeroData | null>(null);
   const [isLoading, setIsLoading] = useState(true);

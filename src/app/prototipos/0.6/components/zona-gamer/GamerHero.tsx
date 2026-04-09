@@ -1,0 +1,177 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { Zap, ArrowRight, ChevronDown } from 'lucide-react';
+
+interface GamerHeroProps {
+  theme: 'dark' | 'light';
+  catalogUrl: string;
+}
+
+export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
+  const isDark = theme === 'dark';
+
+  const scrollTo = (id: string, offset = 120) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <>
+      {/* hero-banner */}
+      <section className="relative overflow-hidden" style={{ padding: '80px 0', minHeight: 520 }}>
+        {/* hero-banner-bg */}
+        <div className="absolute inset-0" />
+
+        {/* hero-banner::after overlay */}
+        <div
+          className="absolute inset-0 z-[1]"
+          style={{
+            background: isDark
+              ? 'linear-gradient(90deg, rgba(5,5,10,0.85) 0%, rgba(5,5,10,0.6) 45%, transparent 75%)'
+              : 'linear-gradient(90deg, rgba(240,240,240,0.85) 0%, rgba(240,240,240,0.5) 40%, transparent 65%)',
+          }}
+        />
+
+        {/* container */}
+        <div className="relative z-[3] max-w-[1280px] mx-auto px-6">
+          {/* hero-banner-content */}
+          <div style={{ maxWidth: 680 }}>
+            {/* hb-tag */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="inline-flex items-center gap-2 mb-6"
+              style={{
+                fontFamily: "'Share Tech Mono', monospace",
+                fontSize: 12,
+                letterSpacing: 3,
+                textTransform: 'uppercase',
+                color: isDark ? '#00ffd5' : '#00b396',
+                background: isDark ? 'rgba(0,255,213,0.06)' : 'rgba(14,148,133,0.06)',
+                border: `1px solid ${isDark ? 'rgba(0,255,213,0.15)' : 'rgba(14,148,133,0.15)'}`,
+                padding: '6px 16px',
+                borderRadius: 4,
+              }}
+            >
+              <Zap className="w-4 h-4" />
+              ZONA GAMER 2025
+            </motion.div>
+
+            {/* hb-title */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              style={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontSize: 'clamp(48px, 7vw, 96px)',
+                lineHeight: 0.95,
+                letterSpacing: -1,
+                marginBottom: 20,
+              }}
+            >
+              TU SETUP GAMING,
+              <br />
+              <span
+                className="accent"
+                style={{
+                  backgroundImage: isDark
+                    ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
+                    : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)',
+                }}
+              >
+                AL ALCANCE
+              </span>
+              <br />
+              DE TODOS
+            </motion.h1>
+
+            {/* hb-desc */}
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              style={{
+                fontSize: 18,
+                color: isDark ? '#ffffff' : '#333',
+                lineHeight: 1.7,
+                maxWidth: 520,
+                marginBottom: 32,
+              }}
+            >
+              Laptops gaming de las mejores marcas con planes de financiamiento accesibles.
+              Legion, OMEN, ROG, TUF Gaming — encuentra tu equipo ideal.
+            </motion.p>
+
+            {/* hb-actions */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="flex items-center"
+              style={{ gap: 16 }}
+            >
+              {/* btn-primary */}
+              <button
+                onClick={() => scrollTo('catalogo', 120)}
+                className="inline-flex items-center border-none cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(99,102,241,0.35)]"
+                style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  padding: '12px 28px',
+                  borderRadius: 8,
+                  background: isDark ? '#6366f1' : '#4f46e5',
+                  color: '#fff',
+                  gap: 8,
+                }}
+              >
+                Explorar Equipos
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              {/* btn-ghost */}
+              <button
+                onClick={() => scrollTo('linea-combate', 160)}
+                className="inline-flex items-center cursor-pointer transition-all"
+                style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  padding: '12px 28px',
+                  borderRadius: 8,
+                  background: 'none',
+                  color: isDark ? '#a0a0a0' : '#555',
+                  border: `1px solid ${isDark ? '#2a2a2a' : '#e0e0e0'}`,
+                  gap: 8,
+                }}
+              >
+                Ver Series
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* hero-fade */}
+      <div
+        className="relative z-10 pointer-events-none"
+        style={{
+          height: 120,
+          marginTop: -120,
+          background: `linear-gradient(180deg, transparent, ${isDark ? '#0e0e0e' : '#f2f2f2'} 80%)`,
+        }}
+      />
+    </>
+  );
+}

@@ -4,9 +4,21 @@
  */
 
 import { CatalogoClient } from './CatalogoClient';
+import { GamerCatalogoClient } from './GamerCatalogoClient';
 import { getLandingMeta } from '../../services/landingApi';
 
-export default function CatalogoPage() {
+export default async function CatalogoPage({
+  params,
+}: {
+  params: Promise<{ landing: string }>;
+}) {
+  const resolvedParams = await params;
+  const landing = resolvedParams.landing || 'home';
+
+  if (landing === 'zona-gamer') {
+    return <GamerCatalogoClient />;
+  }
+
   return <CatalogoClient />;
 }
 

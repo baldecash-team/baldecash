@@ -4,8 +4,20 @@
  */
 
 import { ProductDetailClient } from './ProductDetailClient';
+import { GamerProductDetailClient } from '../GamerProductDetailClient';
 
-export default function ProductDetailPage() {
+export default async function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{ landing: string; slug: string[] }>;
+}) {
+  const resolvedParams = await params;
+  const landing = resolvedParams.landing || 'home';
+
+  if (landing === 'zona-gamer') {
+    return <GamerProductDetailClient />;
+  }
+
   return <ProductDetailClient />;
 }
 
