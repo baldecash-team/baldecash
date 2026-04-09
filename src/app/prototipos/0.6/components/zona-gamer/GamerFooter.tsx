@@ -87,10 +87,10 @@ export function GamerFooter({ theme }: GamerFooterProps) {
           {/* Brand column */}
           <div className="col-span-full lg:col-span-1">
             <Image
-              src={isDark ? '/images/zona-gamer/logo-dark.png' : '/images/zona-gamer/logo-light.png'}
+              src="/images/zona-gamer/logo baldecash/LOGO OFI.png"
               alt="BaldeCash"
-              width={120}
-              height={32}
+              width={130}
+              height={28}
               className="object-contain mb-4"
               style={{ height: 32 }}
             />

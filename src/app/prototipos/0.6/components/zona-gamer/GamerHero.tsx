@@ -24,7 +24,17 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
       {/* hero-banner */}
       <section className="relative overflow-hidden" style={{ padding: '80px 0', minHeight: 520 }}>
         {/* hero-banner-bg */}
-        <div className="absolute inset-0" />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: isDark
+              ? 'url(/images/zona-gamer/FONDO%20LANDING%20DARK.png)'
+              : 'url(/images/zona-gamer/FONDO%20LANDING%20LIGHT.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
 
         {/* hero-banner::after overlay */}
         <div
@@ -117,9 +127,9 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
               style={{ gap: 16 }}
             >
               {/* btn-primary */}
-              <button
-                onClick={() => scrollTo('catalogo', 120)}
-                className="inline-flex items-center border-none cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(99,102,241,0.35)]"
+              <a
+                href={catalogUrl}
+                className="inline-flex items-center border-none cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(99,102,241,0.35)] no-underline"
                 style={{
                   fontFamily: "'Barlow Condensed', sans-serif",
                   fontSize: 14,
@@ -135,7 +145,7 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
               >
                 Explorar Equipos
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </a>
 
               {/* btn-ghost */}
               <button

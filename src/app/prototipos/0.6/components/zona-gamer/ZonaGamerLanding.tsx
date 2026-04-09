@@ -92,7 +92,7 @@ export function ZonaGamerLanding() {
           }}
         />
 
-        <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={catalogUrl} />
+        <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={catalogUrl} hideSecondaryBar />
         <GamerHero theme={theme} catalogUrl={catalogUrl} />
         <GamerPacks theme={theme} catalogUrl={catalogUrl} />
         <GamerAccessories theme={theme} />

@@ -58,23 +58,13 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         {/* header-left */}
         <div className="flex items-center">
           <a href="#" className="flex items-center gap-2 no-underline">
-            {/* Dark logo */}
             <Image
-              src="/images/zona-gamer/logo-dark.png"
+              src="/images/zona-gamer/logo baldecash/LOGO OFI.png"
               alt="BaldeCash"
-              width={120}
-              height={48}
+              width={140}
+              height={32}
               className="object-contain"
-              style={{ height: 48, display: isDark ? 'block' : 'none' }}
-            />
-            {/* Light logo */}
-            <Image
-              src="/images/zona-gamer/logo-light.png"
-              alt="BaldeCash"
-              width={120}
-              height={48}
-              className="object-contain"
-              style={{ height: 48, display: isDark ? 'none' : 'block' }}
+              style={{ height: 30 }}
             />
             <span
               style={{
