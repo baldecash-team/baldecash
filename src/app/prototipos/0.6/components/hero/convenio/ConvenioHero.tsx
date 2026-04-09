@@ -76,6 +76,10 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
           src={heroContent.backgroundImage}
           alt="Campus universitario"
           className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            objectPosition: `${heroContent.backgroundPositionX ?? 50}% ${heroContent.backgroundPositionY ?? 50}%`,
+            transform: (heroContent.backgroundZoom ?? 1) !== 1 ? `scale(${heroContent.backgroundZoom})` : undefined,
+          }}
           loading="eager"
           fetchPriority="high"
           onError={(e) => {
