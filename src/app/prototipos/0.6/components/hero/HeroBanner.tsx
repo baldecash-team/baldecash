@@ -143,7 +143,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   return (
     <section className="relative min-h-[600px] h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden">
       {/* Background Image - next/image with priority for LCP optimization */}
-      <Image
+      {imageSrc && <Image
         src={imageSrc}
         alt="Estudiantes trabajando"
         fill
@@ -158,7 +158,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           const target = e.target as HTMLImageElement;
           target.style.opacity = '0';
         }}
-      />
+      />}
 
       {/* Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
