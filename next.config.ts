@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "databalde-cashsys.s3.amazonaws.com",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.prod.website-files.com",
+      },
     ],
   },
   turbopack: {},

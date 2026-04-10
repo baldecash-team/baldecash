@@ -27,6 +27,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WizardField, fetchCascadingOptions, fetchOptionsFromSource, fetchOptionsWithSearch, fetchOptionById, CascadingOption } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
+import { useLayout } from '../../../../context/LayoutContext';
 import { SelectInput } from './SelectInput';
 
 interface CascadingSelectFieldProps {
@@ -45,6 +46,15 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
   searchable = false,
 }) => {
   const { getFieldValue, getFieldLabel, getFieldError, updateField, setDynamicOptions, registerDependency, unregisterDependency } = useWizard();
+  const { agreementData } = useLayout();
+  const agreementId = agreementData?.id;
+
+  // If the field depends on a landing agreement (e.g. "sede") but the current
+  // landing has no agreement, hide it silently so it doesn't render as an
+  // empty dropdown on non-convenio landings.
+  if (field.options_source === 'agreement-branches' && !agreementId) {
+    return null;
+  }
 
   // Current field value, saved label, and error
   const value = getFieldValue(field.code) as string;
@@ -118,7 +128,9 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
     const loadInitialOptions = async () => {
       setIsLoading(true);
       try {
-        const options = await fetchOptionsFromSource(field.options_source!);
+        const options = await fetchOptionsFromSource(field.options_source!, {
+          agreement_id: agreementId,
+        });
         setLocalDynamicOptions(options);
         // Store in WizardContext for validation rules lookup
         setDynamicOptions(field.code, options);
@@ -132,7 +144,7 @@ export const CascadingSelectField: React.FC<CascadingSelectFieldProps> = ({
     };
 
     loadInitialOptions();
-  }, [hasOptionsSource, field.options_source, field.code, setDynamicOptions]);
+  }, [hasOptionsSource, field.options_source, field.code, setDynamicOptions, agreementId]);
 
   // Handle parent value changes for cascading fields - fetch new options
   useEffect(() => {

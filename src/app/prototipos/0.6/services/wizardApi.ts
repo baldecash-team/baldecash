@@ -740,10 +740,20 @@ export async function fetchCascadingOptions(
  * @param optionsSource - API path (e.g., "geo-units/departments")
  */
 export async function fetchOptionsFromSource(
-  optionsSource: string
+  optionsSource: string,
+  extraParams?: Record<string, string | number | undefined>
 ): Promise<CascadingOption[]> {
   try {
-    const url = `${API_BASE_URL}/public/options/${optionsSource}`;
+    const params = new URLSearchParams();
+    if (extraParams) {
+      for (const [key, value] of Object.entries(extraParams)) {
+        if (value !== undefined && value !== null && value !== '') {
+          params.append(key, String(value));
+        }
+      }
+    }
+    const query = params.toString();
+    const url = `${API_BASE_URL}/public/options/${optionsSource}${query ? `?${query}` : ''}`;
     const response = await fetch(url, { cache: 'no-store' });
 
     if (!response.ok) {
