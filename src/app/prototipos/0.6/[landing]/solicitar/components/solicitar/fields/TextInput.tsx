@@ -151,7 +151,7 @@ export const TextInput: React.FC<TextInputProps> = ({
           style={{
             // Override browser autofill background
             WebkitBoxShadow: '0 0 0 1000px white inset',
-            WebkitTextFillColor: '#262626',
+            ...(value ? { WebkitTextFillColor: '#262626' } : {}),
           }}
         />
         {endContent && (
