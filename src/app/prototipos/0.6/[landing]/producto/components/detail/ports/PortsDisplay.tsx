@@ -49,6 +49,8 @@ export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
   productBrand,
   productImage,
   productUrl,
+  description,
+  shortDescription,
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -64,6 +66,8 @@ export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
         productUrl: productUrl || (typeof window !== 'undefined' ? window.location.href : undefined),
         specs,
         ports,
+        description,
+        shortDescription,
         generatedDate: new Date(),
       });
 

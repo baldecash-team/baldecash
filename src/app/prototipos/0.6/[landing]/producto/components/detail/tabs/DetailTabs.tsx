@@ -24,7 +24,7 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean; hasDescription?: boolean }> = ({ hasLimitations = true, hasDescription = false }) => {
+export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean; hasDescription?: boolean; hasSimilar?: boolean }> = ({ hasLimitations = true, hasDescription = false, hasSimilar = true }) => {
   const [activeSection, setActiveSection] = useState('section-gallery');
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -35,7 +35,7 @@ export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean; 
     ...(hasDescription ? [{ id: 'section-description', label: 'Descripción', mobileLabel: 'Desc', icon: FileText }] : []),
     { id: 'section-specs', label: 'Specs', icon: Cpu },
     { id: 'section-cronograma', label: 'Cronograma', mobileLabel: 'Pagos', icon: Calendar },
-    { id: 'section-similar', label: 'Similares', icon: Package },
+    ...(hasSimilar ? [{ id: 'section-similar', label: 'Similares', icon: Package }] : []),
     ...(hasLimitations ? [{ id: 'section-limitations', label: 'Consideraciones', mobileLabel: 'Notas', icon: AlertTriangle }] : []),
   ];
 

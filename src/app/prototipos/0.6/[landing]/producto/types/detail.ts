@@ -338,4 +338,6 @@ export interface SpecSheetDownloadProps {
   productBrand?: string;
   productImage?: string;
   productUrl?: string;
+  description?: string;
+  shortDescription?: string;
 }

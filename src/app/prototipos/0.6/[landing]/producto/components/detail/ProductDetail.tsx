@@ -463,7 +463,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           const hasDescription = !!(product.description || displayShortDesc);
           return (
             <>
-              <DetailTabs product={product} hasLimitations={limitations.length > 0} hasDescription={hasDescription} />
+              <DetailTabs product={product} hasLimitations={limitations.length > 0} hasDescription={hasDescription} hasSimilar={similarProducts.length > 0} />
 
               {/* Description Section - Full Width */}
               {hasDescription && (
@@ -505,13 +505,23 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
         {/* Spec Sheet Download - All products */}
         <div id="section-spec-sheet" className="mt-6">
-          <SpecSheetDownload
-            specs={product.specs}
-            ports={product.ports}
-            productName={product.displayName}
-            productBrand={product.brand}
-            productImage={product.images[0]?.url}
-          />
+          {(() => {
+            const GENERIC_TIERS = new Set(['Básica', 'Intermedia', 'Potente', 'medio']);
+            const displayShortDesc = product.shortDescription && !GENERIC_TIERS.has(product.shortDescription.trim())
+              ? product.shortDescription
+              : undefined;
+            return (
+              <SpecSheetDownload
+                specs={product.specs}
+                ports={product.ports}
+                productName={product.displayName}
+                productBrand={product.brand}
+                productImage={product.images[0]?.url}
+                description={product.description || undefined}
+                shortDescription={displayShortDesc}
+              />
+            );
+          })()}
         </div>
 
         {/* Cronograma Section - Full Width */}
