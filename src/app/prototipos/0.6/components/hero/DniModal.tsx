@@ -174,7 +174,7 @@ export const DniModal: React.FC<DniModalProps> = ({
                             className="flex-1 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400 text-center"
                             style={{
                               WebkitBoxShadow: '0 0 0 1000px white inset',
-                              WebkitTextFillColor: '#262626',
+                              ...(dni ? { WebkitTextFillColor: '#262626' } : {}),
                             }}
                           />
                           {isValid && <Check className="w-5 h-5 text-[#22c55e] flex-shrink-0" />}
