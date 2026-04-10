@@ -232,6 +232,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
 
+  // Derived section flags (single source of truth for nav + DOM sections)
+  const GENERIC_TIERS = new Set(['Básica', 'Intermedia', 'Potente', 'medio']);
+  const displayShortDesc = product.shortDescription && !GENERIC_TIERS.has(product.shortDescription.trim())
+    ? product.shortDescription
+    : null;
+  const hasDescription = !!(product.description || displayShortDesc);
+  const hasSimilar = similarProducts.length > 0;
+  const hasLimitations = limitations.length > 0;
+
   // Helper to extract spec value
   const getSpecValue = (category: string, label: string): string | undefined => {
     const specCategory = product.specs.find((s) => s.category.toLowerCase() === category.toLowerCase());
@@ -455,41 +464,35 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         </div>
 
         {/* Section Navigation (Sidebar desktop / Bottom bar mobile) */}
-        {(() => {
-          const GENERIC_TIERS = new Set(['Básica', 'Intermedia', 'Potente', 'medio']);
-          const displayShortDesc = product.shortDescription && !GENERIC_TIERS.has(product.shortDescription.trim())
-            ? product.shortDescription
-            : null;
-          const hasDescription = !!(product.description || displayShortDesc);
-          return (
-            <>
-              <DetailTabs product={product} hasLimitations={limitations.length > 0} hasDescription={hasDescription} hasSimilar={similarProducts.length > 0} />
+        <DetailTabs
+          product={product}
+          hasLimitations={hasLimitations}
+          hasDescription={hasDescription}
+          hasSimilar={hasSimilar}
+        />
 
-              {/* Description Section - Full Width */}
-              {hasDescription && (
-                <div id="section-description" className="mt-12">
-                  <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
-                    <div className="px-6 py-5 border-b border-neutral-100">
-                      <h2 className="text-lg font-bold text-neutral-900">Descripción</h2>
-                    </div>
-                    <div className="px-6 py-5 space-y-3">
-                      {displayShortDesc && (
-                        <p className="text-base font-semibold text-[var(--color-primary)]">
-                          {displayShortDesc}
-                        </p>
-                      )}
-                      {product.description && (
-                        <p className="text-neutral-600 leading-relaxed text-sm">
-                          {product.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          );
-        })()}
+        {/* Description Section - Full Width */}
+        {hasDescription && (
+          <div id="section-description" className="mt-12">
+            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-neutral-100">
+                <h2 className="text-lg font-bold text-neutral-900">Descripción</h2>
+              </div>
+              <div className="px-6 py-5 space-y-3">
+                {displayShortDesc && (
+                  <p className="text-base font-semibold text-[var(--color-primary)]">
+                    {displayShortDesc}
+                  </p>
+                )}
+                {product.description && (
+                  <p className="text-neutral-600 leading-relaxed text-sm">
+                    {product.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Specs Section - Full Width */}
         <div id="section-specs" className="mt-12">
@@ -505,23 +508,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
         {/* Spec Sheet Download - All products */}
         <div id="section-spec-sheet" className="mt-6">
-          {(() => {
-            const GENERIC_TIERS = new Set(['Básica', 'Intermedia', 'Potente', 'medio']);
-            const displayShortDesc = product.shortDescription && !GENERIC_TIERS.has(product.shortDescription.trim())
-              ? product.shortDescription
-              : undefined;
-            return (
-              <SpecSheetDownload
-                specs={product.specs}
-                ports={product.ports}
-                productName={product.displayName}
-                productBrand={product.brand}
-                productImage={product.images[0]?.url}
-                description={product.description || undefined}
-                shortDescription={displayShortDesc}
-              />
-            );
-          })()}
+          <SpecSheetDownload
+            specs={product.specs}
+            ports={product.ports}
+            productName={product.displayName}
+            productBrand={product.brand}
+            productImage={product.images[0]?.url}
+            description={product.description || undefined}
+            shortDescription={displayShortDesc || undefined}
+          />
         </div>
 
         {/* Cronograma Section - Full Width */}
@@ -541,19 +536,23 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         </div>
 
         {/* Similar Products - Full Width */}
-        <div id="section-similar" className="mt-12">
-          <SimilarProducts
-            products={similarProducts}
-            currentQuota={product.lowestQuota}
-            onAddToCart={onSimilarAddToCart}
-            cartItems={cartItems}
-          />
-        </div>
+        {hasSimilar && (
+          <div id="section-similar" className="mt-12">
+            <SimilarProducts
+              products={similarProducts}
+              currentQuota={product.lowestQuota}
+              onAddToCart={onSimilarAddToCart}
+              cartItems={cartItems}
+            />
+          </div>
+        )}
 
         {/* Limitations */}
-        <div id="section-limitations" className="mt-8">
-          <ProductLimitations limitations={limitations} />
-        </div>
+        {hasLimitations && (
+          <div id="section-limitations" className="mt-8">
+            <ProductLimitations limitations={limitations} />
+          </div>
+        )}
       </div>
     </div>
   );

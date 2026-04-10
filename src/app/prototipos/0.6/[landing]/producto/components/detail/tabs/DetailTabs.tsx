@@ -5,7 +5,7 @@
  * Pure navigation component with compact sticky sidebar.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Image,
   Calculator,
@@ -24,20 +24,20 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean; hasDescription?: boolean; hasSimilar?: boolean }> = ({ hasLimitations = true, hasDescription = false, hasSimilar = true }) => {
+export const DetailTabs: React.FC<DetailTabsProps> = ({ hasLimitations = false, hasDescription = false, hasSimilar = false }) => {
   const [activeSection, setActiveSection] = useState('section-gallery');
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const navItems: NavItem[] = [
+  const navItems: NavItem[] = useMemo(() => [
     { id: 'section-gallery', label: 'Galería', icon: Image },
     { id: 'section-pricing', label: 'Cuotas', icon: Calculator },
     ...(hasDescription ? [{ id: 'section-description', label: 'Descripción', mobileLabel: 'Desc', icon: FileText }] : []),
     { id: 'section-specs', label: 'Specs', icon: Cpu },
     { id: 'section-cronograma', label: 'Cronograma', mobileLabel: 'Pagos', icon: Calendar },
-    ...(hasSimilar ? [{ id: 'section-similar', label: 'Similares', icon: Package }] : []),
+    ...(hasSimilar ? [{ id: 'section-similar', label: 'Similares', mobileLabel: 'Sim.', icon: Package }] : []),
     ...(hasLimitations ? [{ id: 'section-limitations', label: 'Consideraciones', mobileLabel: 'Notas', icon: AlertTriangle }] : []),
-  ];
+  ], [hasDescription, hasSimilar, hasLimitations]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,7 +60,7 @@ export const DetailTabs: React.FC<DetailTabsProps & { hasLimitations?: boolean; 
     window.addEventListener('scroll', handleScroll);
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [navItems]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);

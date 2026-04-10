@@ -278,6 +278,9 @@ export interface ProductGalleryProps {
 
 export interface DetailTabsProps {
   product: ProductDetail;
+  hasLimitations?: boolean;
+  hasDescription?: boolean;
+  hasSimilar?: boolean;
 }
 
 export interface SpecsProps {
