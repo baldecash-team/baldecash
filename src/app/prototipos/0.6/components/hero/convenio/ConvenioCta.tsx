@@ -10,11 +10,32 @@
  */
 
 import React from 'react';
+import Image from 'next/image';
 import { ArrowRight, MessageCircle, Phone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { CtaData, AgreementData, HeroContent, CtaQuickLink } from '../../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+
+const AVATAR_COLORS = [
+  '#4654CD', '#E85D75', '#03DBD0', '#F59E0B', '#8B5CF6',
+  '#10B981', '#EC4899', '#3B82F6', '#F97316', '#6366F1',
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function getInitials(name: string): string {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 interface ConvenioCtaProps {
   ctaData: CtaData | null;
@@ -77,17 +98,33 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
               {ctaData?.sectionSubtitle}
             </p>
 
-            {/* Advisors */}
+            {/* Advisors — show when at least one advisor exists */}
+            {ctaData?.advisors && ctaData.advisors.length > 0 && (
             <div className="flex items-center gap-4 mb-8">
               <div className="flex -space-x-3">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="w-10 h-10 rounded-full bg-white/20 border-2 border-white flex items-center justify-center"
-                  >
-                    <span className="text-xs font-medium">A{i}</span>
-                  </div>
-                ))}
+                {ctaData.advisors.map((advisor, i) => {
+                  const initials = getInitials(advisor.name);
+                  const bgColor = getAvatarColor(advisor.name || `Asesor ${i + 1}`);
+                  return (
+                    <div
+                      key={i}
+                      className="w-10 h-10 rounded-full border-2 border-white overflow-hidden flex items-center justify-center"
+                      style={!advisor.imageUrl ? { backgroundColor: bgColor } : undefined}
+                    >
+                      {advisor.imageUrl ? (
+                        <Image
+                          src={advisor.imageUrl}
+                          alt={advisor.name || `Asesor ${i + 1}`}
+                          width={40}
+                          height={40}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xs font-semibold text-white">{initials}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <div>
                 <p className="text-sm text-white/90">Asesores en línea</p>
@@ -96,6 +133,7 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
                 </p>
               </div>
             </div>
+            )}
 
             {/* WhatsApp CTA */}
             <button

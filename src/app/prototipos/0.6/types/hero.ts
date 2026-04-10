@@ -324,6 +324,7 @@ export interface CtaData {
   sectionSubtitle?: string;
   quickLinks?: CtaQuickLink[];
   phoneNumber?: string;
+  advisors?: Array<{ name: string; imageUrl: string }>;
 }
 
 export interface HeroCtaProps {

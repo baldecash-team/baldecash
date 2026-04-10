@@ -726,6 +726,12 @@ export function transformLandingData(data: LandingHeroResponse): {
       sectionSubtitle: (ctaConfig.section_subtitle as string) || undefined,
       quickLinks: (ctaConfig.quick_links as CtaQuickLink[]) || undefined,
       phoneNumber: (ctaConfig.phone_number as string) || undefined,
+      advisors: Array.isArray((ctaConfig as Record<string, unknown>).advisors)
+        ? ((ctaConfig as Record<string, unknown>).advisors as Array<{ name: string; image_url: string }>).map(a => ({
+            name: a.name || '',
+            imageUrl: a.image_url || '',
+          }))
+        : undefined,
     };
   }
 
