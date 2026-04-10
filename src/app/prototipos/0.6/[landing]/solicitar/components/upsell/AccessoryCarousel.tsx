@@ -4,7 +4,6 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Check, Plus, Search, Package, Info } from 'lucide-react';
 import type { Accessory, AccessoryCategory } from '../../types/upsell';
-import { ACCESSORY_CATEGORY_LABELS } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 
 interface AccessoryCarouselProps {
@@ -23,23 +22,25 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<AccessoryCategory | 'todos'>('todos');
+  const [activeCategory, setActiveCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Derive available categories from accessories
+  // Subcategorías disponibles (deduplicadas por slug)
   const availableCategories = useMemo(() => {
-    const cats = new Set<AccessoryCategory>();
+    const map = new Map<string, AccessoryCategory>();
     accessories.forEach((a) => {
-      if (a.category) cats.add(a.category);
+      if (a.category && !map.has(a.category.slug)) {
+        map.set(a.category.slug, a.category);
+      }
     });
-    return Array.from(cats);
+    return Array.from(map.values());
   }, [accessories]);
 
-  // Filter accessories by category and search
+  // Filter accessories by category slug and search
   const filteredAccessories = useMemo(() => {
     let filtered = accessories;
     if (activeCategory !== 'todos') {
-      filtered = filtered.filter((a) => a.category === activeCategory);
+      filtered = filtered.filter((a) => a.category?.slug === activeCategory);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -103,18 +104,18 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
               Todos ({accessories.length})
             </button>
             {availableCategories.map((cat) => {
-              const count = accessories.filter((a) => a.category === cat).length;
+              const count = accessories.filter((a) => a.category?.slug === cat.slug).length;
               return (
                 <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
+                  key={cat.slug}
+                  onClick={() => setActiveCategory(cat.slug)}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                    activeCategory === cat
+                    activeCategory === cat.slug
                       ? 'bg-[var(--color-primary)] text-white'
                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                   }`}
                 >
-                  {ACCESSORY_CATEGORY_LABELS[cat] || cat} ({count})
+                  {cat.name} ({count})
                 </button>
               );
             })}

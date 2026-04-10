@@ -17,7 +17,6 @@ import { useParams } from 'next/navigation';
 import { Search, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import { AccessoryIntro, AccessoryCard, AccessoryDetailModal } from '../../upsell';
-import { ACCESSORY_CATEGORY_LABELS, classifyAccessory } from '../../../types/upsell';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
@@ -80,8 +79,8 @@ export function AccessoriesSection({
   const [isLoading, setIsLoading] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
-  // Filters
-  const [activeCategory, setActiveCategory] = useState<AccessoryCategory | 'todos'>('todos');
+  // Filters — activeCategory es un slug de subcategoría o 'todos'
+  const [activeCategory, setActiveCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Pagination (page-based, responsive)
@@ -122,7 +121,7 @@ export function AccessoriesSection({
             term: acc.term,
             image: acc.image,
             thumbnailUrl: acc.thumbnail_url,
-            category: classifyAccessory(acc.name),
+            category: acc.category ?? { slug: 'otro', name: 'Otro' },
             isRecommended: acc.isRecommended || false,
             compatibleWith: acc.compatibleWith || ['all'],
             specs: acc.specs || [],
@@ -178,20 +177,22 @@ export function AccessoriesSection({
     }
   }, [accessories, isLoading, setSelectedAccessories]);
 
-  // Available categories (only those with items)
+  // Subcategorías disponibles (solo las que tienen items), deduplicadas por slug
   const availableCategories = useMemo(() => {
-    const cats = new Set<AccessoryCategory>();
+    const map = new Map<string, AccessoryCategory>();
     accessories.forEach((a) => {
-      if (a.category) cats.add(a.category);
+      if (a.category && !map.has(a.category.slug)) {
+        map.set(a.category.slug, a.category);
+      }
     });
-    return Array.from(cats);
+    return Array.from(map.values());
   }, [accessories]);
 
-  // Filtered accessories (category + search)
+  // Filtered accessories (subcategory slug + search)
   const filteredAccessories = useMemo(() => {
     let filtered = accessories;
     if (activeCategory !== 'todos') {
-      filtered = filtered.filter((a) => a.category === activeCategory);
+      filtered = filtered.filter((a) => a.category?.slug === activeCategory);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
@@ -241,18 +242,18 @@ export function AccessoriesSection({
                   Todos ({accessories.length})
                 </button>
                 {availableCategories.map((cat) => {
-                  const count = accessories.filter((a) => a.category === cat).length;
+                  const count = accessories.filter((a) => a.category?.slug === cat.slug).length;
                   return (
                     <button
-                      key={cat}
-                      onClick={() => setActiveCategory(cat)}
+                      key={cat.slug}
+                      onClick={() => setActiveCategory(cat.slug)}
                       className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-                        activeCategory === cat
+                        activeCategory === cat.slug
                           ? 'bg-[var(--color-primary)] text-white'
                           : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
                       }`}
                     >
-                      {ACCESSORY_CATEGORY_LABELS[cat] || cat} ({count})
+                      {cat.name} ({count})
                     </button>
                   );
                 })}

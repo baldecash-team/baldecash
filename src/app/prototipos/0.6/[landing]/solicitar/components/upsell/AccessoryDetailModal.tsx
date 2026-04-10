@@ -74,7 +74,7 @@ const ModalContentShared: React.FC<{
               {accessory.name}
             </h2>
             <p className="text-xs text-white/70 truncate">
-              {accessory.brand?.name || accessory.category}
+              {accessory.brand?.name || accessory.category?.name || ''}
             </p>
           </div>
           <button

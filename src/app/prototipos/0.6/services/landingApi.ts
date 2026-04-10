@@ -924,7 +924,7 @@ interface ApiAccessory {
   image: string;
   thumbnail_url?: string;
   micro_url?: string;
-  category: string;
+  category: { slug: string; name: string } | null;
   isRecommended: boolean;
   compatibleWith: string[];
   specs?: { label: string; value: string }[];
