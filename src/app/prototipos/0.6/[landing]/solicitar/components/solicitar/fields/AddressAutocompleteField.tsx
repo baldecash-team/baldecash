@@ -126,22 +126,21 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     onError: handleError,
   });
 
-  // .pac-container base styles live in app/globals.css. Here we only add
-  // mobile-specific safeguards so Google's suggestion dropdown remains visible
-  // on iOS Safari: forcing display:block (some resets hide it), taller tap
-  // targets for touch, and preventing parent overflow from clipping it.
+  // .pac-container base styles live in app/globals.css. Here we add ONLY
+  // mobile-specific tweaks (wider container, taller tap targets).
+  //
+  // IMPORTANT: Do NOT force `display: block` / `visibility: visible` on
+  // .pac-container here. Google injects the container into <body> with
+  // inline `display: none` and toggles it visible only when there are
+  // suggestions to show. Overriding that with !important was causing a
+  // ghost container with only the "powered by Google" footer to appear
+  // on page load (before the user even focused the input).
   useEffect(() => {
     const styleId = 'pac-container-mobile-fix';
     if (document.getElementById(styleId)) return;
     const style = document.createElement('style');
     style.id = styleId;
     style.textContent = `
-      .pac-container {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-      }
       @media (max-width: 1023px) {
         .pac-container {
           min-width: min(calc(100vw - 24px), 420px) !important;
@@ -155,6 +154,71 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
       }
     `;
     document.head.appendChild(style);
+  }, []);
+
+  // Safety net: hide any empty .pac-container that Google may have left
+  // attached to <body>. Google injects the container lazily, so we watch
+  // <body>'s direct children and only observe children of any .pac-container
+  // that appears. This keeps the observer cost minimal (we don't watch the
+  // entire app DOM tree).
+  //
+  // An "empty" .pac-container is one with no .pac-item children — which
+  // happens when:
+  //   1. Google creates the container shell on init, before suggestions load.
+  //   2. iOS Safari leaves a ghost container after selecting a suggestion.
+  // In both cases we force-hide it so the "powered by Google" footer doesn't
+  // leak onto the page.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let innerObserver: MutationObserver | null = null;
+    const observedContainers = new WeakSet<Element>();
+
+    const syncContainerVisibility = (c: HTMLElement) => {
+      const hasItems = !!c.querySelector('.pac-item');
+      if (!hasItems) {
+        if (c.style.display !== 'none') c.style.display = 'none';
+      } else {
+        // Let Google control visibility when it has real content
+        if (c.style.display === 'none') c.style.display = '';
+      }
+    };
+
+    const watchContainer = (c: HTMLElement) => {
+      if (observedContainers.has(c)) return;
+      observedContainers.add(c);
+      syncContainerVisibility(c);
+      // Watch the container's children for pac-item add/remove
+      innerObserver?.observe(c, { childList: true, subtree: true });
+    };
+
+    innerObserver = new MutationObserver(() => {
+      document
+        .querySelectorAll<HTMLElement>('.pac-container')
+        .forEach(syncContainerVisibility);
+    });
+
+    // Initial sweep in case Google already created containers before we mounted
+    document.querySelectorAll<HTMLElement>('.pac-container').forEach(watchContainer);
+
+    // Watch body's direct children to catch the first insertion of a new
+    // .pac-container node (Google appends them to <body>).
+    const bodyObserver = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        m.addedNodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
+          if (node.classList.contains('pac-container')) {
+            watchContainer(node);
+          }
+        });
+      }
+    });
+    bodyObserver.observe(document.body, { childList: true });
+
+    return () => {
+      bodyObserver.disconnect();
+      innerObserver?.disconnect();
+    };
   }, []);
 
   // Handle "Use my location" click.
