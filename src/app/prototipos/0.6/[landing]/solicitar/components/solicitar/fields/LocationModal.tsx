@@ -508,28 +508,40 @@ const MobileBottomSheet: React.FC<LocationModalProps> = ({ isOpen, onClose, onCo
   const scrollYRef = useRef<number>(0);
   const didLockRef = useRef<boolean>(false);
 
+  // Lock body scroll while open. CRITICAL: we MUST restore body styles on unmount
+  // (cleanup function), because the parent LocationModal does `if (!isOpen) return null`
+  // which unmounts this component immediately — the `else` branch of this effect
+  // would never run in that case, leaving `position: fixed` stuck on <body> and
+  // blocking all page scrolling after closing the modal.
   useEffect(() => {
-    if (isOpen) {
-      if (document.body.style.position !== 'fixed') {
-        scrollYRef.current = window.scrollY;
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${scrollYRef.current}px`;
-        document.body.style.left = '0';
-        document.body.style.right = '0';
-        document.body.style.overflow = 'hidden';
-        didLockRef.current = true;
-      }
-    } else {
-      if (didLockRef.current) {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollYRef.current);
-        didLockRef.current = false;
-      }
+    if (!isOpen) return;
+
+    const unlock = () => {
+      if (!didLockRef.current) return;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      // Restore scroll position without triggering smooth scroll
+      window.scrollTo(0, scrollYRef.current);
+      didLockRef.current = false;
+    };
+
+    // Only lock once — guard against double locking if <body> is already fixed
+    if (document.body.style.position !== 'fixed') {
+      scrollYRef.current = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollYRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+      didLockRef.current = true;
     }
+
+    // Cleanup runs on unmount OR when isOpen flips to false — this is what
+    // actually restores scrolling when the user confirms/closes the modal.
+    return unlock;
   }, [isOpen]);
 
   return (
@@ -608,12 +620,15 @@ const MobileBottomSheet: React.FC<LocationModalProps> = ({ isOpen, onClose, onCo
 export const LocationModal: React.FC<LocationModalProps> = (props) => {
   const isMobile = useIsMobile();
 
-  if (!props.isOpen) return null;
-
+  // For mobile, always mount MobileBottomSheet so its AnimatePresence can run
+  // the exit animation and its useEffect cleanup can restore body scroll when
+  // isOpen flips to false. Returning null here would unmount the component
+  // immediately, skipping both the animation and the scroll-lock cleanup.
   if (isMobile) {
     return <MobileBottomSheet {...props} />;
   }
 
+  if (!props.isOpen) return null;
   return <DesktopModal {...props} />;
 };
 

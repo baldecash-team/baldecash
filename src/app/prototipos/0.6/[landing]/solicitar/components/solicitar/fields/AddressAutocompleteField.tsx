@@ -126,8 +126,10 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     onError: handleError,
   });
 
-  // Ensure Google's pac-container floats above navbar and sticky bars on mobile,
-  // and doesn't get clipped by parent overflow. Injected once globally.
+  // .pac-container base styles live in app/globals.css. Here we only add
+  // mobile-specific safeguards so Google's suggestion dropdown remains visible
+  // on iOS Safari: forcing display:block (some resets hide it), taller tap
+  // targets for touch, and preventing parent overflow from clipping it.
   useEffect(() => {
     const styleId = 'pac-container-mobile-fix';
     if (document.getElementById(styleId)) return;
@@ -135,22 +137,21 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     style.id = styleId;
     style.textContent = `
       .pac-container {
-        z-index: 10000 !important;
-        border-radius: 12px;
-        border: 1px solid rgb(229 229 229);
-        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.12), 0 8px 10px -6px rgba(0,0,0,0.08);
-        margin-top: 4px;
-        font-family: inherit;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
       }
-      .pac-item {
-        padding: 10px 12px;
-        cursor: pointer;
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-      }
-      .pac-item:hover {
-        background-color: rgba(var(--color-primary-rgb), 0.08);
+      @media (max-width: 1023px) {
+        .pac-container {
+          min-width: min(calc(100vw - 24px), 420px) !important;
+        }
+        .pac-item {
+          min-height: 44px !important;
+          display: flex !important;
+          align-items: center !important;
+          line-height: 1.3 !important;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -245,24 +246,17 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     setLocationError(null);
   };
 
-  // On mobile, scroll input into view when focused so Google's pac-container
-  // dropdown (positioned below the input) isn't covered by the virtual keyboard
-  // or sticky product bar.
+  // On focus, let iOS handle the native input-into-view scroll.
+  //
+  // NOTE: We previously used window.scrollBy({ behavior: 'smooth' }) here to
+  // nudge the input above the fixed navbar, but on iOS Safari that programmatic
+  // smooth-scroll interacts badly with the virtual keyboard lifecycle: when the
+  // keyboard closes (e.g. after selecting a pac-container suggestion), the
+  // momentum-scroll engine gets stuck and the page can no longer be scrolled
+  // until a full reload. iOS already scrolls focused inputs above the keyboard
+  // automatically, so we simply avoid fighting it.
   const handleFocus = () => {
     setIsFocused(true);
-    if (typeof window === 'undefined') return;
-    if (window.innerWidth >= 1024) return; // desktop: no-op
-    // Delay so the keyboard has time to open on iOS before we measure/scroll
-    setTimeout(() => {
-      if (!inputRef.current) return;
-      const rect = inputRef.current.getBoundingClientRect();
-      // Target: input should sit ~120px from top (below fixed navbar)
-      const targetTop = 120;
-      const delta = rect.top - targetTop;
-      if (Math.abs(delta) > 10) {
-        window.scrollBy({ top: delta, behavior: 'smooth' });
-      }
-    }, 300);
   };
 
   // Determine display error
@@ -320,7 +314,11 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
             placeholder:text-neutral-400
             ${field.readonly ? 'cursor-not-allowed' : ''}
           `}
-          autoComplete="off"
+          /* "new-password" (instead of "off") is the documented workaround to
+             stop browsers from injecting their own autofill dropdown, which on
+             iOS Safari competes with Google's .pac-container and can prevent
+             Places suggestions from appearing at all. */
+          autoComplete="new-password"
         />
 
         {/* Status icons */}

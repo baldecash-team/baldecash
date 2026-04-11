@@ -10,17 +10,32 @@ let googleMapsLoadPromise: Promise<void> | null = null;
 /**
  * Bootstrap the Google Maps JS API with loading=async (recommended pattern).
  * This avoids the "loaded directly without loading=async" console warning.
+ *
+ * IMPORTANT: The `loading=async` query param is required by Google to be in
+ * the URL itself — setting `script.async = true` alone is NOT enough. Without
+ * this param, Google logs a warning AND some features (including Autocomplete
+ * on mobile Safari) may behave unreliably.
+ *
  * @see https://developers.google.com/maps/documentation/javascript/load-maps-js-api
  */
 async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&language=es`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&language=es&loading=async`;
     script.async = true;
     script.defer = true;
 
-    script.onload = () => resolve();
-    script.onerror = () => {
+    script.onload = () => {
+      console.info('[googleMapsService] script loaded', {
+        hasGoogle: typeof google !== 'undefined',
+        hasPlaces: typeof google !== 'undefined' && !!google?.maps?.places,
+        hasAutocomplete:
+          typeof google !== 'undefined' && !!google?.maps?.places?.Autocomplete,
+      });
+      resolve();
+    };
+    script.onerror = (err) => {
+      console.error('[googleMapsService] script failed to load', err);
       googleMapsLoadPromise = null;
       reject(new Error('Failed to load Google Maps script'));
     };
