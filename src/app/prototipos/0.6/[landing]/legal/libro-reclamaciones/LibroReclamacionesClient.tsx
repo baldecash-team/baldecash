@@ -124,8 +124,10 @@ export function LibroReclamacionesClient() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col overflow-y-auto">
-      {/* Dynamic focus styles using CSS variables */}
+    <div className="min-h-screen bg-neutral-50 flex flex-col">
+      {/* Dynamic focus styles using CSS variables.
+          NOTE: overflow-y-auto was removed from the wrapper because it
+          creates a double-scroll container on iOS Safari (inner + body). */}
       <style>{`
         .form-input-focus:focus {
           border-color: var(--color-primary, #4654CD) !important;
@@ -146,46 +148,50 @@ export function LibroReclamacionesClient() {
         institutionName={navbarProps.institutionName}
       />
 
-      {/* Main Content */}
-      <main className="flex-1 pt-40 pb-16">
+      {/* Main Content — padding-top driven by --header-total-height so it
+          adapts to preview banner + promo banner + navbar dynamically. */}
+      <main
+        className="flex-1 pb-12 sm:pb-16"
+        style={{ paddingTop: 'calc(var(--header-total-height, 6.5rem) + 1.5rem)' }}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8 text-center">
+          <div className="mb-6 sm:mb-8 text-center">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4"
               style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
             >
-              <FileText className="w-8 h-8" style={{ color: 'var(--color-primary, #4654CD)' }} />
+              <FileText className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: 'var(--color-primary, #4654CD)' }} />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 font-['Baloo_2'] mb-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 font-['Baloo_2',_sans-serif] leading-tight mb-2">
               Libro de Reclamaciones
             </h1>
-            <p className="text-neutral-500 max-w-xl mx-auto">
+            <p className="text-sm sm:text-base text-neutral-500 max-w-xl mx-auto px-2">
               Conforme a lo establecido en el Código de Protección y Defensa del Consumidor (Ley N° 29571)
             </p>
           </div>
 
           {/* Company Info */}
           <Card
-            className="mb-6 border"
+            className="mb-5 sm:mb-6 border"
             style={{
               backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 5%, transparent)',
               borderColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 20%, transparent)',
             }}
           >
-            <CardBody className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div>
+            <CardBody className="p-4 sm:p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                <div className="min-w-0">
                   <p className="text-neutral-500">Razón Social</p>
-                  <p className="font-medium text-neutral-800">Balde K S.A.C.</p>
+                  <p className="font-medium text-neutral-800 break-words">Balde K S.A.C.</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-neutral-500">RUC</p>
                   <p className="font-medium text-neutral-800">20605530509</p>
                 </div>
-                <div className="sm:col-span-2">
+                <div className="sm:col-span-2 min-w-0">
                   <p className="text-neutral-500">Dirección</p>
-                  <p className="font-medium text-neutral-800">Av. Alfredo Benavides 1238, Miraflores 15047</p>
+                  <p className="font-medium text-neutral-800 break-words">Av. Alfredo Benavides 1238, Miraflores 15047</p>
                 </div>
               </div>
             </CardBody>
@@ -195,17 +201,17 @@ export function LibroReclamacionesClient() {
           <div className="space-y-6">
             {/* Section 1: Datos del Consumidor */}
             <Card className="shadow-sm">
-              <CardBody className="p-6">
-                <div className="flex items-center gap-3 mb-6">
+              <CardBody className="p-4 sm:p-6">
+                <div className="flex items-center gap-3 mb-5 sm:mb-6">
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
                   >
                     <User className="w-5 h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
                   </div>
-                  <div>
-                    <h2 className="font-semibold text-neutral-900">1. Identificación del Consumidor</h2>
-                    <p className="text-sm text-neutral-500">Datos personales del reclamante</p>
+                  <div className="min-w-0">
+                    <h2 className="text-sm sm:text-base font-semibold text-neutral-900">1. Identificación del Consumidor</h2>
+                    <p className="text-xs sm:text-sm text-neutral-500">Datos personales del reclamante</p>
                   </div>
                 </div>
 
@@ -217,6 +223,7 @@ export function LibroReclamacionesClient() {
                     <select
                       value={formData.tipoDocumento}
                       onChange={(e) => handleInputChange('tipoDocumento', e.target.value)}
+                      style={{ fontSize: '16px' }}
                       className="w-full h-11 px-3 rounded-lg border-2 border-neutral-200 bg-white text-neutral-800 form-input-focus focus:outline-none transition-colors"
                     >
                       <option value="dni">DNI</option>
@@ -281,43 +288,48 @@ export function LibroReclamacionesClient() {
                     />
                   </div>
 
-                  <FormInput
-                    label="Departamento"
-                    value={formData.departamento}
-                    onChange={(v) => handleInputChange('departamento', v)}
-                    placeholder="Lima"
-                  />
+                  {/* Departamento/Provincia/Distrito use their own sub-grid
+                      so the 3 fields land in 3 columns on desktop instead of
+                      leaving an orphan half-row (2+1 layout). */}
+                  <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <FormInput
+                      label="Departamento"
+                      value={formData.departamento}
+                      onChange={(v) => handleInputChange('departamento', v)}
+                      placeholder="Lima"
+                    />
 
-                  <FormInput
-                    label="Provincia"
-                    value={formData.provincia}
-                    onChange={(v) => handleInputChange('provincia', v)}
-                    placeholder="Lima"
-                  />
+                    <FormInput
+                      label="Provincia"
+                      value={formData.provincia}
+                      onChange={(v) => handleInputChange('provincia', v)}
+                      placeholder="Lima"
+                    />
 
-                  <FormInput
-                    label="Distrito"
-                    value={formData.distrito}
-                    onChange={(v) => handleInputChange('distrito', v)}
-                    placeholder="Miraflores"
-                  />
+                    <FormInput
+                      label="Distrito"
+                      value={formData.distrito}
+                      onChange={(v) => handleInputChange('distrito', v)}
+                      placeholder="Miraflores"
+                    />
+                  </div>
                 </div>
               </CardBody>
             </Card>
 
             {/* Section 2: Bien Contratado */}
             <Card className="shadow-sm">
-              <CardBody className="p-6">
-                <div className="flex items-center gap-3 mb-6">
+              <CardBody className="p-4 sm:p-6">
+                <div className="flex items-center gap-3 mb-5 sm:mb-6">
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
                   >
                     <FileText className="w-5 h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
                   </div>
-                  <div>
-                    <h2 className="font-semibold text-neutral-900">2. Identificación del Bien Contratado</h2>
-                    <p className="text-sm text-neutral-500">Información del servicio o producto</p>
+                  <div className="min-w-0">
+                    <h2 className="text-sm sm:text-base font-semibold text-neutral-900">2. Identificación del Bien Contratado</h2>
+                    <p className="text-xs sm:text-sm text-neutral-500">Información del servicio o producto</p>
                   </div>
                 </div>
 
@@ -345,6 +357,7 @@ export function LibroReclamacionesClient() {
                       onChange={(e) => handleInputChange('descripcionBien', e.target.value)}
                       placeholder="Describa el producto o servicio contratado..."
                       rows={3}
+                      style={{ fontSize: '16px' }}
                       className="w-full px-3 py-2.5 rounded-lg border-2 border-neutral-200 bg-white text-neutral-800 form-input-focus focus:outline-none transition-colors resize-none"
                     />
                   </div>
@@ -354,17 +367,17 @@ export function LibroReclamacionesClient() {
 
             {/* Section 3: Detalle del Reclamo */}
             <Card className="shadow-sm">
-              <CardBody className="p-6">
-                <div className="flex items-center gap-3 mb-6">
+              <CardBody className="p-4 sm:p-6">
+                <div className="flex items-center gap-3 mb-5 sm:mb-6">
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
                   >
                     <MessageSquare className="w-5 h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
                   </div>
-                  <div>
-                    <h2 className="font-semibold text-neutral-900">3. Detalle de la Reclamación</h2>
-                    <p className="text-sm text-neutral-500">Describa su reclamo o queja</p>
+                  <div className="min-w-0">
+                    <h2 className="text-sm sm:text-base font-semibold text-neutral-900">3. Detalle de la Reclamación</h2>
+                    <p className="text-xs sm:text-sm text-neutral-500">Describa su reclamo o queja</p>
                   </div>
                 </div>
 
@@ -373,29 +386,28 @@ export function LibroReclamacionesClient() {
                     <label className="block text-sm font-medium text-neutral-700 mb-3">
                       Tipo de reclamación *
                     </label>
+                    {/* Vertical on mobile (labels with descriptions don't fit
+                        side-by-side under 640px), horizontal from sm up. */}
                     <RadioGroup
                       value={formData.tipoReclamo}
                       onValueChange={(v) => handleInputChange('tipoReclamo', v)}
-                      orientation="horizontal"
                       classNames={{
-                        wrapper: 'gap-6',
+                        wrapper: 'gap-3 sm:gap-6 sm:flex-row',
                       }}
                     >
-                      <Radio value="reclamo" classNames={{ label: 'text-sm' }}>
-                        <div>
-                          <span className="font-medium">Reclamo</span>
-                          <p className="text-xs text-neutral-500 mt-0.5">
-                            Disconformidad relacionada a los productos o servicios
-                          </p>
-                        </div>
+                      <Radio
+                        value="reclamo"
+                        description="Disconformidad relacionada a los productos o servicios"
+                        classNames={{ label: 'text-sm font-medium' }}
+                      >
+                        Reclamo
                       </Radio>
-                      <Radio value="queja" classNames={{ label: 'text-sm' }}>
-                        <div>
-                          <span className="font-medium">Queja</span>
-                          <p className="text-xs text-neutral-500 mt-0.5">
-                            Malestar o descontento respecto a la atención al público
-                          </p>
-                        </div>
+                      <Radio
+                        value="queja"
+                        description="Malestar o descontento respecto a la atención al público"
+                        classNames={{ label: 'text-sm font-medium' }}
+                      >
+                        Queja
                       </Radio>
                     </RadioGroup>
                   </div>
@@ -409,13 +421,14 @@ export function LibroReclamacionesClient() {
                       onChange={(e) => handleInputChange('detalleReclamo', e.target.value)}
                       placeholder="Describa detalladamente los hechos que motivaron su reclamo o queja..."
                       rows={4}
+                      style={{ fontSize: '16px' }}
                       className={`w-full px-3 py-2.5 rounded-lg border-2 bg-white text-neutral-800 focus:outline-none transition-colors resize-none ${
                         errors.detalleReclamo ? 'border-red-400' : 'border-neutral-200 form-input-focus'
                       }`}
                     />
                     {errors.detalleReclamo && (
-                      <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
+                      <p className="text-xs sm:text-sm text-red-500 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
                         {errors.detalleReclamo}
                       </p>
                     )}
@@ -430,13 +443,14 @@ export function LibroReclamacionesClient() {
                       onChange={(e) => handleInputChange('pedidoConsumidor', e.target.value)}
                       placeholder="Indique qué solución espera obtener..."
                       rows={3}
+                      style={{ fontSize: '16px' }}
                       className={`w-full px-3 py-2.5 rounded-lg border-2 bg-white text-neutral-800 focus:outline-none transition-colors resize-none ${
                         errors.pedidoConsumidor ? 'border-red-400' : 'border-neutral-200 form-input-focus'
                       }`}
                     />
                     {errors.pedidoConsumidor && (
-                      <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4" />
+                      <p className="text-xs sm:text-sm text-red-500 mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
                         {errors.pedidoConsumidor}
                       </p>
                     )}
@@ -446,7 +460,7 @@ export function LibroReclamacionesClient() {
             </Card>
 
             {/* Legal Notice */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 sm:p-4 text-xs sm:text-sm text-amber-800 leading-relaxed">
               <p className="font-medium mb-1">Nota importante:</p>
               <p>
                 La formulación del reclamo no impide acudir a otras vías de solución de controversias ni
@@ -456,11 +470,11 @@ export function LibroReclamacionesClient() {
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-center sm:justify-end">
               <Button
                 size="lg"
                 radius="lg"
-                className="text-white font-semibold px-8 cursor-pointer"
+                className="w-full sm:w-auto text-white font-semibold px-8 cursor-pointer"
                 style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
                 endContent={!isSubmitting && <Send className="w-4 h-4" />}
                 isLoading={isSubmitting}
@@ -523,6 +537,9 @@ function FormInput({ label, value, onChange, error, placeholder, type = 'text', 
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           maxLength={maxLength}
+          /* fontSize: 16px explicit stops iOS Safari from auto-zooming the
+             viewport when the input receives focus. */
+          style={{ fontSize: '16px' }}
           className={`w-full h-11 px-3 rounded-lg border-2 bg-white text-neutral-800 focus:outline-none transition-colors ${
             icon ? 'pl-10' : ''
           } ${
@@ -531,8 +548,8 @@ function FormInput({ label, value, onChange, error, placeholder, type = 'text', 
         />
       </div>
       {error && (
-        <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
-          <AlertCircle className="w-4 h-4" />
+        <p className="text-xs sm:text-sm text-red-500 mt-1 flex items-center gap-1">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </p>
       )}

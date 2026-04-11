@@ -59,7 +59,6 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   };
 
   const ctaUrl = transformLink(heroContent.primaryCta?.href || 'catalogo');
-  const institutionShortName = agreementData.institution_short_name || agreementData.institution_name || '';
 
   // Benefits list from trust signals (fully managed from admin)
   const beneficios = (heroContent.trustSignals || [])
@@ -89,7 +88,11 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   return (
     <div
       className="relative overflow-hidden"
-      style={{ height: 'calc(100svh - var(--header-total-height, 4rem))' }}
+      style={{
+        // Match HeroBanner: clamp keeps a sensible minimum on short landscape
+        // viewports and avoids oversized banners on very tall screens.
+        height: 'clamp(520px, calc(100svh - var(--header-total-height, 4rem)), 900px)',
+      }}
     >
       {/* Background image - next/image with priority for LCP optimization */}
       {heroContent.backgroundImage && (
@@ -111,16 +114,16 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
         />
       )}
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-transparent" />
+      {/* Gradient overlay — stronger on mobile (text overlaps image center) */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/20 sm:to-transparent" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 h-full flex items-center">
-        <div className="max-w-xl">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center py-8 sm:py-12">
+        <div className="max-w-xl lg:max-w-2xl">
           {/* Badge */}
           <Chip
             radius="sm"
             classNames={{
-              base: 'px-3 py-1 h-auto mb-4',
+              base: 'px-3 py-1 h-auto mb-3 sm:mb-4',
               content: 'text-xs font-medium',
             }}
             style={{ backgroundColor: 'var(--color-primary, #4654CD)', color: ctaTextColor }}
@@ -128,33 +131,33 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
             {heroContent.badgeText}
           </Chip>
 
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 font-['Baloo_2']">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight">
             {heroContent.headline}
           </h1>
 
-          <p className="text-lg text-white/80 mb-6">
+          <p className="text-base sm:text-lg text-white/80 mb-5 sm:mb-6">
             {heroContent.subheadline}
           </p>
 
           {/* Price highlight */}
           {heroContent.minQuota > 0 && (
-            <div className="bg-white/10 backdrop-blur rounded-xl p-4 mb-6 inline-block">
-              <p className="text-white/60 text-sm mb-1">Cuotas desde</p>
-              <p className="text-4xl font-bold text-white font-['Baloo_2']">
+            <div className="bg-white/10 backdrop-blur rounded-xl p-3 sm:p-4 mb-5 sm:mb-6 inline-block max-w-full">
+              <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
+              <p className="text-3xl sm:text-4xl font-bold text-white font-['Baloo_2',_sans-serif]">
                 S/{formatMoney(heroContent.minQuota)}
-                <span className="text-lg font-normal text-white/70">/mes</span>
+                <span className="text-base sm:text-lg font-normal text-white/70">/mes</span>
               </p>
             </div>
           )}
 
           {/* Benefits list */}
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-8">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 sm:gap-3 mb-6 sm:mb-8">
             {beneficios.map((signal, index) => {
               const IconComponent = getIconComponent(signal.icon);
               return (
-                <li key={index} className="flex items-center gap-2 text-white/90">
-                  <IconComponent className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--color-primary, #4654CD)' }} />
-                  <span>{signal.text}</span>
+                <li key={index} className="flex items-center gap-2 text-white/90 text-sm sm:text-base">
+                  <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--color-primary, #4654CD)' }} />
+                  <span className="break-words min-w-0">{signal.text}</span>
                 </li>
               );
             })}
@@ -163,11 +166,11 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
           {/* CTA */}
           <button
             onClick={handleCtaClick}
-            className="inline-flex items-center gap-2 px-8 py-3 font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity text-lg"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 font-bold rounded-xl cursor-pointer hover:opacity-90 transition-opacity text-base sm:text-lg"
             style={{ backgroundColor: 'var(--color-primary, #4654CD)', color: ctaTextColor }}
           >
             {heroContent.primaryCta?.text}
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-5 h-5 flex-shrink-0" />
           </button>
         </div>
       </div>

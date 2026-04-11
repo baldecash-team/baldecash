@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { LegalPageLayout } from '../components';
+import { LegalPageLayout, LegalSection as Section } from '../components';
 
 export function TerminosYCondicionesClient() {
   return (
@@ -14,7 +14,7 @@ export function TerminosYCondicionesClient() {
       title="Términos y Condiciones"
       lastUpdated="Junio 2023"
     >
-      <p className="text-neutral-600 mb-8">
+      <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 sm:mb-8">
         La empresa Baldecash es titular de la plataforma www.baldecash.com y está vinculada a Campus Control
         Sociedad Gestora de Fondos de Inversión S.A.C. El presente documento establece los términos para
         acceder y usar la plataforma, subdominios y cuentas en redes sociales. Los usuarios aceptan
@@ -23,7 +23,7 @@ export function TerminosYCondicionesClient() {
 
       <Section title="PRIMERO: Respecto de Baldecash">
         <p>Baldecash ofrece dos servicios principales:</p>
-        <ul className="list-disc pl-6 space-y-1 mt-2">
+        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2 mt-2">
           <li>Financiamiento para equipos de cómputo mediante leasing operativo</li>
           <li>Créditos de consumo para gastos educativos</li>
         </ul>
@@ -118,66 +118,66 @@ export function TerminosYCondicionesClient() {
       </Section>
 
       <Section title="NOVENA: Aspectos Generales">
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Derechos de Autor y Propiedad Intelectual</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Derechos de Autor y Propiedad Intelectual</h4>
         <p>
           Las marcas, diseños y elementos de propiedad intelectual pertenecen a la empresa o proveedores.
           Está prohibida la reproducción sin autorización expresa. No pueden usarse en conexión con productos
           o servicios no autorizados.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Procedimiento de Vulneración de Derechos</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Procedimiento de Vulneración de Derechos</h4>
         <p>
           Reportar al correo:{' '}
-          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
+          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
           . La empresa puede suprimir contenido tras notificación sin admitir responsabilidad.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Prohibición de Ingeniería Inversa</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Prohibición de Ingeniería Inversa</h4>
         <p>
           Prohibido copiar, descompilar, desensamblar o manipular la plataforma total o parcialmente,
           ni crear obras derivadas.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Actualizaciones Automáticas</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Actualizaciones Automáticas</h4>
         <p>
           La empresa ofrece actualizaciones sin notificación previa, procurando minimizar inconvenientes.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Opiniones y Comentarios</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Opiniones y Comentarios</h4>
         <p>
           Los usuarios pueden publicar contenido siempre que no sea ilícito, obsceno, abusivo, amenazante,
           difamatorio, invasor de privacidad, infractor de derechos intelectuales u ofensivo. No permitidos:
           correos falsos, suplantación de identidad, virus, propaganda política, spam.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Terminación de Términos y Condiciones</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Terminación de Términos y Condiciones</h4>
         <p>
           La empresa puede resolver unilateralmente sin responsabilidad mediante notificación con 15 días
           de anticipación.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Comunicaciones</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Comunicaciones</h4>
         <p>
           Las comunicaciones son electrónicas (correo, SMS, notificaciones en app). El usuario acepta que
           contratos, avisos y notificaciones electrónicas satisfacen requisitos formales.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Régimen de Responsabilidad</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Régimen de Responsabilidad</h4>
         <p>El usuario asume íntegramente los costos por daños a equipos entregados.</p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Notificaciones</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Notificaciones</h4>
         <p>
           Dirección para comentarios y reclamaciones: Av. El Ejército N° 1146 Int. 708, Magdalena del Mar, Lima.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Renuncia</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Renuncia</h4>
         <p>
           El no ejercicio de derechos en un incumplimiento no impide ejercerlos en incumplimientos posteriores.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Modificación de Servicio y Términos</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Modificación de Servicio y Términos</h4>
         <p>
           Las entidades vinculadas pueden modificar sus servicios. Baldecash se reserva el derecho de modificar
           términos, publicándolos en la plataforma. Las modificaciones entran en vigor 10 días hábiles después.
@@ -185,25 +185,25 @@ export function TerminosYCondicionesClient() {
         <p className="mt-2">
           <strong>Derecho de rechazo:</strong> El usuario tiene 5 días hábiles para notificar desacuerdo
           enviando correo a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
+          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
           . Si no responde, se presume aceptación.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Servicios de Terceros</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Servicios de Terceros</h4>
         <p>El uso de servicios de terceros puede estar sujeto a políticas adicionales y tasas propias.</p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Separabilidad</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Separabilidad</h4>
         <p>Si alguna disposición es ilegal o inaplicable, no afecta la validez de otras provisiones.</p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Validez de Documentos Electrónicos</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Validez de Documentos Electrónicos</h4>
         <p>
           Las partes aceptan que el contrato sea firmado electrónicamente conforme a artículos 141 y 141-A
           del Código Civil peruano. El documento surtirá efecto desde la aceptación.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Ley y Jurisdicción</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Ley y Jurisdicción</h4>
         <p>
           Los términos se rigen por leyes de la República del Perú. Controversias se someten a tribunales
           competentes de Lima.
@@ -229,7 +229,7 @@ export function TerminosYCondicionesClient() {
         <p className="mt-3">
           <strong>Derechos del usuario:</strong> Acceso, actualización, rectificación, inclusión, oposición,
           supresión o cancelación de datos enviando correo a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
+          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
           .
@@ -237,19 +237,19 @@ export function TerminosYCondicionesClient() {
       </Section>
 
       <Section title="ANEXO 1: Procedimiento para Solicitud de Servicios">
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">a) Remisión de Solicitud</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">a) Remisión de Solicitud</h4>
         <p>
           El usuario solicita servicios a través de la plataforma. Para financiamientos de laptops, debe
           especificar el equipo. La plataforma remite solicitudes directamente a entidades vinculadas.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">b) Análisis del Perfil</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">b) Análisis del Perfil</h4>
         <p>
           Baldecash y entidades vinculadas analizan el perfil en máximo 2 días, considerando criterios
           académicos y personales. Pueden requerir información adicional.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">c) Aceptación o Rechazo</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">c) Aceptación o Rechazo</h4>
         <p>
           Tras análisis, se contacta al usuario requiriendo información adicional o enviando documentación
           para formalizar. Es discreción absoluta aceptar o rechazar la solicitud.
@@ -263,12 +263,3 @@ export function TerminosYCondicionesClient() {
   );
 }
 
-// Helper component for sections
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mb-8">
-      <h3 className="text-lg font-semibold text-neutral-900 mb-3 font-['Asap']">{title}</h3>
-      <div className="text-neutral-600 space-y-3">{children}</div>
-    </section>
-  );
-}

@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { LegalPageLayout } from '../components';
+import { LegalPageLayout, LegalSection as Section } from '../components';
 
 export function PoliticaDePrivacidadClient() {
   return (
@@ -14,7 +14,7 @@ export function PoliticaDePrivacidadClient() {
       title="Políticas de Privacidad"
       lastUpdated="Junio 2023"
     >
-      <p className="text-neutral-600 mb-8">
+      <p className="text-sm sm:text-base text-neutral-600 leading-relaxed mb-6 sm:mb-8">
         Balde K S.A.C. (RUC N° 20605530509) con domicilio en Av. El Ejército N° 1146, Magdalena del Mar, Lima,
         se compromete a proteger la privacidad y cumplir las leyes sobre protección de datos personales recopilados
         a través de su plataforma web baldecash.com.
@@ -46,7 +46,7 @@ export function PoliticaDePrivacidadClient() {
       </Section>
 
       <Section title="4. Principios Rectores del Tratamiento">
-        <ul className="list-disc pl-6 space-y-2">
+        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2">
           <li><strong>Legalidad:</strong> Rechaza recopilación fraudulenta</li>
           <li><strong>Consentimiento:</strong> Mediará consentimiento del usuario</li>
           <li><strong>Finalidad:</strong> Determinada, explícita y lícita</li>
@@ -60,7 +60,7 @@ export function PoliticaDePrivacidadClient() {
         <p>
           Derecho a conocer qué datos personales se poseen, exigir eliminación o actualización de información
           incompleta, incorrecta o desactualizada, solicitar detención del tratamiento. Pueden contactar a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
+          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>{' '}
           para ejercer derechos de información, acceso, rectificación, cancelación y oposición.
@@ -76,25 +76,25 @@ export function PoliticaDePrivacidadClient() {
       </Section>
 
       <Section title="7. Información Recolectada">
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">a) Información proporcionada por clientes:</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">a) Información proporcionada por clientes:</h4>
         <p>
           Nombre, fecha de nacimiento, dirección, ubicación geográfica, documentos de identidad,
           fotografía, teléfono, firma, datos académicos.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">b) Información recopilada automáticamente:</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">b) Información recopilada automáticamente:</h4>
         <p>
           Dirección IP, información de navegador, tipo de sistema operativo, búsquedas realizadas,
           información de contacto con servicio al cliente.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">c) Información de terceros:</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">c) Información de terceros:</h4>
         <p>
           De otras webs asociadas, agencias de historial crediticio, proveedores de análisis de datos,
           negocios aliados.
         </p>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">d) Cookies:</h4>
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">d) Cookies:</h4>
         <p>
           Se utilizan para gestionar solicitudes de usuarios y mejorar la experiencia de navegación.
           Pueden ser aceptadas o rechazadas según Política de Cookies.
@@ -102,8 +102,8 @@ export function PoliticaDePrivacidadClient() {
       </Section>
 
       <Section title="8. Usos de la Información Recolectada">
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Información proporcionada:</h4>
-        <ul className="list-disc pl-6 space-y-1">
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Información proporcionada:</h4>
+        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2">
           <li>Cumplir obligaciones contractuales</li>
           <li>Comunicarse por cualquier medio</li>
           <li>Notificar cambios en servicios</li>
@@ -111,8 +111,8 @@ export function PoliticaDePrivacidadClient() {
           <li>Cumplir requerimientos legales</li>
         </ul>
 
-        <h4 className="font-semibold text-neutral-800 mt-4 mb-2">Información recopilada automáticamente:</h4>
-        <ul className="list-disc pl-6 space-y-1">
+        <h4 className="text-sm sm:text-base font-semibold text-neutral-800 mt-4 mb-2">Información recopilada automáticamente:</h4>
+        <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2">
           <li>Administrar operaciones internas</li>
           <li>Mejorar la plataforma</li>
           <li>Asegurar seguridad</li>
@@ -169,7 +169,7 @@ export function PoliticaDePrivacidadClient() {
       <Section title="15. Derechos de Clientes/Usuarios">
         <p>
           Pueden revocar consentimiento o ejercer derechos como titulares de datos presentando solicitud a{' '}
-          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
+          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
           . La plataforma contiene enlaces a terceros con políticas propias; BaldeCash no asume responsabilidad por ellas.
@@ -229,7 +229,7 @@ export function PoliticaDePrivacidadClient() {
       <Section title="23. Contacto">
         <p>
           Preguntas, solicitudes y comentarios dirigidos a:{' '}
-          <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
+          <a href="mailto:prestamos@baldecash.com" className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all" style={{ color: 'var(--color-primary, #4654CD)' }}>
             prestamos@baldecash.com
           </a>
         </p>
@@ -238,12 +238,3 @@ export function PoliticaDePrivacidadClient() {
   );
 }
 
-// Helper component for sections
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mb-8">
-      <h3 className="text-lg font-semibold text-neutral-900 mb-3 font-['Asap']">{title}</h3>
-      <div className="text-neutral-600 space-y-3">{children}</div>
-    </section>
-  );
-}

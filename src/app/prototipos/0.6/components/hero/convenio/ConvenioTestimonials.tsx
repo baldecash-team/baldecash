@@ -31,37 +31,39 @@ export const ConvenioTestimonials: React.FC<ConvenioTestimonialsProps> = ({
   if (visibleTestimonials.length === 0) return null;
 
   return (
-    <section id="testimonios" className="py-16 md:py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4">
+    // No `id` here — the wrapper <section> in HeroSection.tsx already provides
+    // id="testimonios", and duplicating it would make the HTML invalid.
+    <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <h2
-            className="text-3xl md:text-4xl font-bold mb-4 font-['Baloo_2']"
+            className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight"
             style={{ color: 'var(--color-primary, #4654CD)' }}
           >
             {title}
           </h2>
-          <p className="text-neutral-600 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-neutral-600 max-w-2xl mx-auto">
             Estudiantes de {institutionShortName} ya financiaron su equipo con nosotros.
           </p>
         </div>
 
-        {/* Testimonials Grid - 3 columnas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {visibleTestimonials.map((testimonial, index) => (
+        {/* Testimonials Grid - up to 3 columnas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {visibleTestimonials.map((testimonial) => (
             <div
               key={testimonial.id}
-              className="bg-neutral-50 rounded-2xl p-6 relative hover:shadow-md transition-shadow"
+              className="bg-neutral-50 rounded-2xl p-5 sm:p-6 relative hover:shadow-md transition-shadow"
             >
               {/* Quote icon */}
               <Quote
-                className="absolute top-4 right-4 w-8 h-8 opacity-10"
+                className="absolute top-4 right-4 w-7 h-7 sm:w-8 sm:h-8 opacity-10"
                 style={{ color: 'var(--color-primary, #4654CD)' }}
               />
 
               {/* Rating */}
               {testimonial.rating && testimonial.rating > 0 && (
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-3 sm:mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star
                       key={i}
@@ -72,7 +74,7 @@ export const ConvenioTestimonials: React.FC<ConvenioTestimonialsProps> = ({
               )}
 
               {/* Testimonial text */}
-              <p className="text-neutral-700 mb-6 leading-relaxed">
+              <p className="text-sm sm:text-base text-neutral-700 mb-5 sm:mb-6 leading-relaxed">
                 &ldquo;{testimonial.quote}&rdquo;
               </p>
 
@@ -81,16 +83,16 @@ export const ConvenioTestimonials: React.FC<ConvenioTestimonialsProps> = ({
                 <img
                   src={testimonial.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.name)}&background=4654CD&color=fff`}
                   alt={testimonial.name}
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
                   loading="lazy"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.name)}&background=4654CD&color=fff`;
                   }}
                 />
-                <div>
-                  <p className="font-semibold text-neutral-800">{testimonial.name}</p>
-                  <p className="text-sm text-neutral-500">{testimonial.institution}</p>
+                <div className="min-w-0">
+                  <p className="font-semibold text-neutral-800 text-sm sm:text-base truncate">{testimonial.name}</p>
+                  <p className="text-xs sm:text-sm text-neutral-500 truncate">{testimonial.institution}</p>
                 </div>
               </div>
             </div>

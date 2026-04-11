@@ -84,23 +84,23 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
 
   return (
     <section
-      className="py-16"
+      className="py-12 sm:py-16 md:py-20 scroll-mt-24"
       style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
     >
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-center">
           {/* Left: Text + WhatsApp */}
           <div className="text-white">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 font-['Baloo_2']">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight">
               {ctaData?.sectionTitle}
             </h2>
-            <p className="text-lg text-white/80 mb-6">
+            <p className="text-base sm:text-lg text-white/80 mb-5 sm:mb-6">
               {ctaData?.sectionSubtitle}
             </p>
 
             {/* Advisors — show when at least one advisor exists */}
             {ctaData?.advisors && ctaData.advisors.length > 0 && (
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-6 sm:mb-8">
               <div className="flex -space-x-3">
                 {ctaData.advisors.map((advisor, i) => {
                   const initials = getInitials(advisor.name);
@@ -138,25 +138,32 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
             {/* WhatsApp CTA */}
             <button
               onClick={handleWhatsApp}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl cursor-pointer hover:bg-[#20BD5A] transition-colors text-base"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl cursor-pointer hover:bg-[#20BD5A] transition-colors text-sm sm:text-base"
             >
-              <MessageCircle className="w-5 h-5" />
-              {ctaData?.buttons.whatsapp.text}
+              <MessageCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="break-words">{ctaData?.buttons.whatsapp.text}</span>
             </button>
 
             {ctaData?.phoneNumber && (
-              <p className="text-white/60 text-sm mt-4 flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                También puedes llamar: {ctaData.phoneNumber}
+              <p className="text-white/60 text-xs sm:text-sm mt-4 flex items-center gap-2 break-words">
+                <Phone className="w-4 h-4 flex-shrink-0" />
+                <span>También puedes llamar: {ctaData.phoneNumber}</span>
               </p>
             )}
           </div>
 
           {/* Right: Quick links + Price */}
-          <div className="bg-white/10 backdrop-blur rounded-2xl p-6 md:p-8">
-            <h3 className="text-white font-semibold mb-4">También puedes:</h3>
+          <div
+            className="bg-white/10 rounded-2xl p-4 sm:p-6 md:p-8"
+            style={{
+              // backdrop-blur with explicit -webkit- prefix for older iOS Safari
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+            }}
+          >
+            <h3 className="text-white font-semibold mb-3 sm:mb-4 text-sm sm:text-base">También puedes:</h3>
 
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {quickLinks.map((link, index) => {
                 if (link.action === 'link') {
                   const linkUrl = transformLink(link.url || '');
@@ -170,10 +177,10 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
                           router.push(linkUrl);
                         }
                       }}
-                      className="w-full flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-between gap-3 p-3 sm:p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
                     >
-                      <span className="text-white">{link.text}</span>
-                      <ArrowRight className="w-5 h-5 text-white" />
+                      <span className="text-white text-sm sm:text-base break-words min-w-0">{link.text}</span>
+                      <ArrowRight className="w-5 h-5 text-white flex-shrink-0" />
                     </a>
                   );
                 }
@@ -181,10 +188,10 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
                   <button
                     key={index}
                     onClick={() => handleScrollTo(link.target || '')}
-                    className="w-full flex items-center justify-between p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between gap-3 p-3 sm:p-4 bg-white/10 hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
                   >
-                    <span className="text-white">{link.text}</span>
-                    <ArrowRight className="w-5 h-5 text-white" />
+                    <span className="text-white text-sm sm:text-base break-words min-w-0 text-left">{link.text}</span>
+                    <ArrowRight className="w-5 h-5 text-white flex-shrink-0" />
                   </button>
                 );
               })}
@@ -192,9 +199,9 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
 
             {/* Price recap */}
             {heroContent && heroContent.minQuota > 0 && (
-              <div className="mt-6 pt-6 border-t border-white/20 text-center">
-                <p className="text-white/60 text-sm mb-1">Cuotas desde</p>
-                <p className="text-3xl font-bold text-white font-['Baloo_2']">
+              <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-white/20 text-center">
+                <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white font-['Baloo_2',_sans-serif]">
                   S/{formatMoney(heroContent.minQuota)}/mes
                 </p>
                 {discountPct > 0 && (
