@@ -9,31 +9,30 @@ let googleMapsLoadPromise: Promise<void> | null = null;
 
 /**
  * Bootstrap the Google Maps JS API with loading=async (recommended pattern).
- * This avoids the "loaded directly without loading=async" console warning.
  *
- * IMPORTANT: The `loading=async` query param is required by Google to be in
- * the URL itself — setting `script.async = true` alone is NOT enough. Without
- * this param, Google logs a warning AND some features (including Autocomplete
- * on mobile Safari) may behave unreliably.
+ * IMPORTANT — loading=async contract:
+ * With `loading=async`, Google Maps does NOT eagerly populate the global
+ * namespace (google.maps.places, google.maps.marker, etc). Instead, consumers
+ * MUST call `google.maps.importLibrary('<name>')` for each library they need,
+ * which resolves with the module. Without this call, `google.maps.places.Autocomplete`
+ * is undefined — which is exactly the failure mode observed on iOS Safari
+ * where the loader fully respects the async contract.
+ *
+ * We pre-import 'places' and 'marker' here so the rest of the app can keep
+ * using the classic `google.maps.places.Autocomplete` / `google.maps.marker.*`
+ * API surface without further refactoring.
  *
  * @see https://developers.google.com/maps/documentation/javascript/load-maps-js-api
  */
 async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
+  // 1. Inject the loader script.
   await new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&language=es&loading=async`;
     script.async = true;
     script.defer = true;
 
-    script.onload = () => {
-      console.info('[googleMapsService] script loaded', {
-        hasGoogle: typeof google !== 'undefined',
-        hasPlaces: typeof google !== 'undefined' && !!google?.maps?.places,
-        hasAutocomplete:
-          typeof google !== 'undefined' && !!google?.maps?.places?.Autocomplete,
-      });
-      resolve();
-    };
+    script.onload = () => resolve();
     script.onerror = (err) => {
       console.error('[googleMapsService] script failed to load', err);
       googleMapsLoadPromise = null;
@@ -41,6 +40,33 @@ async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
     };
 
     document.head.appendChild(script);
+  });
+
+  // 2. Pre-import the libraries we need. Required when loading=async is set,
+  //    otherwise google.maps.places.Autocomplete / google.maps.marker.* are
+  //    undefined even though the script has finished loading.
+  if (typeof google === 'undefined' || !google.maps?.importLibrary) {
+    throw new Error('google.maps.importLibrary is not available after script load');
+  }
+
+  try {
+    await Promise.all([
+      google.maps.importLibrary('places'),
+      google.maps.importLibrary('marker'),
+      google.maps.importLibrary('geocoding'),
+    ]);
+  } catch (err) {
+    console.error('[googleMapsService] importLibrary failed', err);
+    throw err;
+  }
+
+  console.info('[googleMapsService] script loaded', {
+    hasGoogle: typeof google !== 'undefined',
+    hasPlaces: typeof google !== 'undefined' && !!google?.maps?.places,
+    hasAutocomplete:
+      typeof google !== 'undefined' && !!google?.maps?.places?.Autocomplete,
+    hasMarker: typeof google !== 'undefined' && !!google?.maps?.marker,
+    hasGeocoder: typeof google !== 'undefined' && !!google?.maps?.Geocoder,
   });
 }
 
@@ -72,10 +98,18 @@ export function loadGoogleMapsScript(): Promise<void> {
 }
 
 /**
- * Check if Google Maps is loaded and ready
+ * Check if Google Maps is loaded and ready.
+ * We specifically check for `Autocomplete` (not just the `places` namespace)
+ * because with `loading=async` the namespace can exist as an empty object
+ * until `importLibrary('places')` resolves.
  */
 export function isGoogleMapsLoaded(): boolean {
-  return typeof google !== 'undefined' && !!google?.maps?.places;
+  return (
+    typeof google !== 'undefined' &&
+    !!google?.maps?.places?.Autocomplete &&
+    !!google?.maps?.marker &&
+    !!google?.maps?.Geocoder
+  );
 }
 
 /**
