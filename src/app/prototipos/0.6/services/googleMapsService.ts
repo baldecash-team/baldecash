@@ -8,45 +8,92 @@
 let googleMapsLoadPromise: Promise<void> | null = null;
 
 /**
- * Bootstrap the Google Maps JS API with loading=async (recommended pattern).
+ * Bootstrap the Google Maps JS API using the OFFICIAL inline bootstrap loader
+ * from Google. This pattern creates `google.maps.importLibrary` synchronously
+ * BEFORE any script is actually fetched, so consumers can `await importLibrary`
+ * without race conditions.
  *
- * IMPORTANT — loading=async contract:
- * With `loading=async`, Google Maps does NOT eagerly populate the global
- * namespace (google.maps.places, google.maps.marker, etc). Instead, consumers
- * MUST call `google.maps.importLibrary('<name>')` for each library they need,
- * which resolves with the module. Without this call, `google.maps.places.Autocomplete`
- * is undefined — which is exactly the failure mode observed on iOS Safari
- * where the loader fully respects the async contract.
+ * Why we can't just inject a <script> tag manually:
+ * - With `loading=async` in the URL, `google.maps` is not populated eagerly.
+ * - On iOS Safari specifically, there is a measurable window between
+ *   `script.onload` firing and `google.maps.importLibrary` actually existing,
+ *   because the loader keeps executing work after onload resolves.
+ * - The inline bootstrap loader side-steps this by installing a shim for
+ *   `importLibrary` up front, then lazily loading the real script only once
+ *   the first library is requested.
  *
- * We pre-import 'places' and 'marker' here so the rest of the app can keep
- * using the classic `google.maps.places.Autocomplete` / `google.maps.marker.*`
- * API surface without further refactoring.
- *
- * @see https://developers.google.com/maps/documentation/javascript/load-maps-js-api
+ * @see https://developers.google.com/maps/documentation/javascript/load-maps-js-api#use-the-importlibrary
  */
+
+// Type augmentation for the bootstrap loader install function
+type ImportLibraryFn = (name: string) => Promise<unknown>;
+
+function installBootstrapLoader(apiKey: string): void {
+  // This is Google's official inline bootstrap loader, expanded for clarity.
+  // It exposes `google.maps.importLibrary(name)` immediately; the real script
+  // is fetched the first time importLibrary is called.
+  //
+  // Source: https://developers.google.com/maps/documentation/javascript/load-maps-js-api#dynamic-library-import
+  const g = window as unknown as {
+    google?: { maps?: { importLibrary?: ImportLibraryFn; __ib__?: (v: unknown) => void } };
+  };
+
+  // If the loader (or a full google.maps) is already installed, do nothing.
+  if (g.google?.maps?.importLibrary) return;
+
+  g.google = g.google || {};
+  g.google.maps = g.google.maps || {};
+
+  const d = g.google.maps;
+
+  const requested = new Set<string>();
+  let loaderPromise: Promise<void> | null = null;
+
+  const loadScript = (): Promise<void> => {
+    if (loaderPromise) return loaderPromise;
+    loaderPromise = new Promise<void>((resolve, reject) => {
+      const params = new URLSearchParams();
+      params.set('key', apiKey);
+      params.set('v', 'weekly');
+      params.set('libraries', Array.from(requested).join(','));
+      params.set('language', 'es');
+      params.set('loading', 'async');
+      params.set('callback', 'google.maps.__ib__');
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
+      script.async = true;
+      script.defer = true;
+      script.nonce =
+        (document.querySelector('script[nonce]') as HTMLScriptElement | null)?.nonce || '';
+
+      d.__ib__ = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load Google Maps script'));
+      document.head.appendChild(script);
+    });
+    return loaderPromise;
+  };
+
+  d.importLibrary = ((name: string) => {
+    requested.add(name);
+    return loadScript().then(() => {
+      // After the script loads, Google replaces this shim with the real
+      // importLibrary. Call through to it with the requested library name.
+      const real = (window as unknown as { google: { maps: { importLibrary: ImportLibraryFn } } })
+        .google.maps.importLibrary;
+      return real(name);
+    });
+  }) as ImportLibraryFn;
+}
+
 async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
-  // 1. Inject the loader script.
-  await new Promise<void>((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&language=es&loading=async`;
-    script.async = true;
-    script.defer = true;
+  // 1. Install the inline bootstrap loader (synchronous; no network yet).
+  installBootstrapLoader(apiKey);
 
-    script.onload = () => resolve();
-    script.onerror = (err) => {
-      console.error('[googleMapsService] script failed to load', err);
-      googleMapsLoadPromise = null;
-      reject(new Error('Failed to load Google Maps script'));
-    };
-
-    document.head.appendChild(script);
-  });
-
-  // 2. Pre-import the libraries we need. Required when loading=async is set,
-  //    otherwise google.maps.places.Autocomplete / google.maps.marker.* are
-  //    undefined even though the script has finished loading.
+  // 2. Request every library we need in parallel. The first call triggers
+  //    the actual script download. Subsequent calls share the same promise.
   if (typeof google === 'undefined' || !google.maps?.importLibrary) {
-    throw new Error('google.maps.importLibrary is not available after script load');
+    throw new Error('[googleMapsService] bootstrap loader failed to install importLibrary');
   }
 
   try {
@@ -54,9 +101,11 @@ async function bootstrapGoogleMaps(apiKey: string): Promise<void> {
       google.maps.importLibrary('places'),
       google.maps.importLibrary('marker'),
       google.maps.importLibrary('geocoding'),
+      google.maps.importLibrary('maps'),
     ]);
   } catch (err) {
     console.error('[googleMapsService] importLibrary failed', err);
+    googleMapsLoadPromise = null;
     throw err;
   }
 
@@ -80,8 +129,11 @@ export function loadGoogleMapsScript(): Promise<void> {
     return googleMapsLoadPromise;
   }
 
-  // Check if already loaded
-  if (typeof google !== 'undefined' && google.maps && google.maps.places) {
+  // Check if already fully loaded (Autocomplete/marker/Geocoder available).
+  // We intentionally don't short-circuit on just `google.maps.places` because
+  // the bootstrap loader installs an empty `google.maps` shim before the real
+  // script is fetched — that namespace exists but has no classes yet.
+  if (isGoogleMapsLoaded()) {
     googleMapsLoadPromise = Promise.resolve();
     return googleMapsLoadPromise;
   }
