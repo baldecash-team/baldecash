@@ -39,7 +39,7 @@ export const QuickUsageCards: React.FC<QuickUsageCardsProps> = ({
 
   return (
     <div className={className}>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {quickUsageCardKeys.map((usageKey, index) => {
           const isSelected = selected.includes(usageKey);
           const Icon = usageIconMap[usageKey];

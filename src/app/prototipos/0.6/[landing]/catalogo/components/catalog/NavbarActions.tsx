@@ -146,9 +146,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative flex items-center transition-all duration-200 ${
-        isFocused ? 'w-[700px]' : 'w-[600px]'
-      }`}
+      className="relative flex items-center w-full max-w-2xl xl:max-w-3xl transition-all duration-200"
     >
       <div
         className={`flex items-center w-full bg-white rounded-xl border-2 transition-colors ${
@@ -171,7 +169,10 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
           }}
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent px-3 py-2 text-sm text-neutral-800 placeholder-neutral-400 outline-none"
+          /* text-base (16px) prevents iOS Safari from auto-zooming the
+             viewport when the input receives focus. */
+          style={{ fontSize: '16px' }}
+          className="flex-1 bg-transparent px-3 py-2 text-base text-neutral-800 placeholder-neutral-400 outline-none"
         />
         {value && (
           <button

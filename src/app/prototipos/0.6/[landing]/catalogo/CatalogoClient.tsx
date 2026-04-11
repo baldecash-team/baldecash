@@ -1453,7 +1453,11 @@ function CatalogoContent() {
           institutionName={navbarProps?.institutionName}
           previewBannerOffset={previewBannerOffset}
         />
-        <main style={{ paddingTop: (navbarProps?.promoBannerData ? 160 : 120) + previewBannerOffset }}>
+        <main
+          style={{
+            paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
+          }}
+        >
           <div className="max-w-2xl mx-auto px-4 py-16 text-center">
             <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -1556,8 +1560,14 @@ function CatalogoContent() {
         showCart={ALLOW_MULTI_PRODUCT}
       />
 
-      {/* Main Content with padding for fixed navbars (promo + primary + secondary + preview banner) */}
-      <main style={{ paddingTop: (navbarProps?.promoBannerData ? 160 : 120) + previewBannerOffset }}>
+      {/* Main Content — padding driven by CSS variables so it always matches
+          the real height of the fixed headers (preview banner + promo banner
+          + main navbar + secondary navbar). */}
+      <main
+        style={{
+          paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
+        }}
+      >
         {/* Catalog Layout with Products */}
         <CatalogLayout
         products={displayedProducts}

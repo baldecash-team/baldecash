@@ -10,7 +10,7 @@
  * para mantener coherencia de datos en todo el flujo.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardBody, Button } from '@nextui-org/react';
 import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -81,6 +81,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [selectedColorId, setSelectedColorId] = useState<string>(
     currentProductColor?.id || product.colors?.[0]?.id || ''
   );
+
+  // Hover capability detection — disables sticky :hover side-effects on touch
+  // devices (iOS/Android) where the last tapped card would stay "hovered".
+  const [isHoverCapable, setIsHoverCapable] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const handler = (e: MediaQueryListEvent) => setIsHoverCapable(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   // Get the selected color sibling data
   const selectedColor = product.colors?.find(c => c.id === selectedColorId);
@@ -179,10 +193,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <motion.div
-      className="h-full w-full min-w-[min(305px,100%)] max-w-[398px]"
+      className="h-full w-full min-w-[min(280px,100%)] max-w-[398px]"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ scale: 1.02 }}
+      whileHover={isHoverCapable ? { scale: 1.02 } : undefined}
       transition={{ duration: 0.2 }}
       onMouseEnter={onMouseEnter}
     >
@@ -195,8 +209,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               alt={displayName}
             />
 
-            {/* Action buttons - top right */}
-            <div className="absolute top-3 right-3 flex flex-col gap-1">
+            {/* Action buttons - top right (p-3 = 44px touch target WCAG 2.5.5) */}
+            <div className="absolute top-3 right-3 flex flex-col gap-1.5">
               {/* Favorite */}
               <button
                 id={favoriteButtonId}
@@ -204,7 +218,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   e.stopPropagation();
                   onFavorite?.(createWishlistItem());
                 }}
-                className="p-2.5 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
+                className="p-3 rounded-full bg-white/90 shadow-md cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.1)] transition-all"
               >
                 <Heart
                   className={`w-5 h-5 transition-colors ${
@@ -225,7 +239,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     }
                   }}
                   disabled={compareDisabled && !resolvedIsCompareSelected}
-                  className={`p-2.5 rounded-full shadow-md transition-all ${
+                  className={`p-3 rounded-full shadow-md transition-all ${
                     resolvedIsCompareSelected
                       ? 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                       : compareDisabled
@@ -270,7 +284,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* Title - Altura fija para 2 líneas */}
             <h3
-              className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3 min-h-[3.5rem] cursor-pointer hover:text-[var(--color-primary)] transition-colors"
+              className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 mb-3 min-h-[3rem] sm:min-h-[3.5rem] cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
               onClick={() => onViewDetail?.(selectedColor?.slug)}
             >
               {displayName}
@@ -325,7 +339,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex-1 min-h-4" />
 
             {/* Pricing - Altura fija para consistencia entre cards */}
-            <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-2xl py-4 px-6 mb-4">
+            <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 mb-4">
               {/* Precio anterior + descuento (altura reservada siempre) */}
               <div className="h-5 flex items-center justify-center gap-1.5">
                 {originalQuota && originalQuota > quota ? (
@@ -341,13 +355,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   <span className="text-xs text-neutral-400">Cuota mensual</span>
                 )}
               </div>
-              {/* Precio actual */}
-              <div className="flex items-baseline justify-center gap-0.5 mt-1">
-                <span className="text-3xl font-black text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.floor(quota))}</span>
-                <span className="text-lg text-neutral-400">/mes</span>
+              {/* Precio actual — graduado para cards estrechas */}
+              <div className="flex items-baseline justify-center gap-0.5 mt-1 min-w-0">
+                <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">S/{formatMoneyNoDecimals(Math.floor(quota))}</span>
+                <span className="text-base sm:text-lg text-neutral-400">/mes</span>
               </div>
               {/* Info adicional */}
-              <p className="text-xs text-neutral-500 mt-2">
+              <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words">
                 en {selectedTerm} meses{initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(initialAmount))}` : ' · sin inicial'}
               </p>
             </div>

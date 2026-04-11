@@ -67,7 +67,9 @@ export const QuotaRangeFilter: React.FC<QuotaRangeFilterProps> = ({
             base: 'max-w-full gap-3',
             filler: 'bg-gradient-to-r from-[var(--color-primary)] to-[#5a68d9]',
             thumb: [
-              'bg-white border-2 border-[var(--color-primary)] w-5 h-5 shadow-md cursor-grab active:cursor-grabbing',
+              // Larger touch target on mobile (w-6 h-6 = 24px minimum WCAG),
+              // still compact on desktop via sm: override.
+              'bg-white border-2 border-[var(--color-primary)] w-6 h-6 sm:w-5 sm:h-5 shadow-md cursor-grab active:cursor-grabbing',
               'hover:scale-110 hover:brightness-90 transition-transform',
               'after:bg-[var(--color-primary)] after:w-2 after:h-2 after:rounded-full',
               'data-[dragging=true]:scale-110 data-[dragging=true]:shadow-lg',

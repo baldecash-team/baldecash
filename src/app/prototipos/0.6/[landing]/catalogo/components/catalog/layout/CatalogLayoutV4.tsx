@@ -535,24 +535,24 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     <div className="min-h-screen bg-neutral-50">
       <div className="min-h-screen">
         {/* Full Width Header Section - Inside Card */}
-        <div className="w-full p-4 lg:p-6">
+        <div className="w-full p-3 sm:p-4 lg:p-6">
           <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200/50">
-            <CardBody className="p-6">
+            <CardBody className="p-4 sm:p-5 md:p-6">
               {/* Header */}
               <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
                     <Search className="w-5 h-5 text-[var(--color-primary)]" />
                   </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-neutral-800 font-['Baloo_2']">
+                  <div className="min-w-0">
+                    <h2 className="text-base sm:text-lg font-semibold text-neutral-800 font-['Baloo_2',_sans-serif] leading-tight">
                       Encuentra tu equipo ideal
                     </h2>
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-xs sm:text-sm text-neutral-500">
                       Selecciona según tu necesidad principal
                     </p>
                   </div>
@@ -581,10 +581,24 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
         {/* Content with Sidebar and Products */}
         <div className="flex items-start">
-          {/* Floating Filter Card - Sticky (top-40 = 160px para compensar navbars) */}
-          <aside id="onboarding-filters-desktop" className="hidden lg:block w-[320px] p-6 pt-0 sticky top-40 self-start">
+          {/* Floating Filter Card - Sticky — top offset follows the dynamic
+              header height (preview + promo + main navbar + secondary navbar)
+              via CSS variables exposed by each component. */}
+          <aside
+            id="onboarding-filters-desktop"
+            className="hidden lg:block w-[320px] p-6 pt-0 self-start sticky"
+            style={{
+              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 0.5rem)',
+            }}
+          >
             <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200/50">
-              <CardBody className="p-4 max-h-[calc(100vh-160px-24px)] overflow-y-auto lg:pb-30">
+              <CardBody
+                className="p-4 overflow-y-auto lg:pb-32"
+                style={{
+                  maxHeight:
+                    'calc(100vh - var(--header-total-height, 6.5rem) - var(--catalog-secondary-height, 3.5rem) - 2rem)',
+                }}
+              >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4 pb-4 border-b border-neutral-200">
                   <h2 className="font-semibold text-neutral-800">Filtros</h2>
@@ -764,7 +778,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 p-4 lg:p-6 pt-0">
+          <main className="flex-1 p-3 sm:p-4 lg:p-6 pt-0 min-w-0">
             {/* Applied Filters Chips */}
             <FilterChips
               filters={appliedFilters}
@@ -772,13 +786,14 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               onClearAll={handleClearAll}
             />
 
-            {/* Products Grid */}
+            {/* Products Grid — uses `auto-fill` with a lower min width so
+                tablets get 2–3 columns instead of being stuck at 2. */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
               ref={gridRef}
-              className="w-full grid gap-6 pb-20 lg:pb-0 grid-cols-[repeat(auto-fill,minmax(min(305px,100%),1fr))] justify-items-center"
+              className="w-full grid gap-4 sm:gap-6 pb-24 lg:pb-0 grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] justify-items-center"
             >
               {children}
             </motion.div>
@@ -786,17 +801,22 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         </div>
       </div>
 
-      {/* Mobile Filter Button - Only visible on mobile (lg:hidden) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 lg:hidden">
+      {/* Mobile Filter Button - Only visible on mobile (lg:hidden).
+          Matches the size of the comparator pill (ProductSelector.tsx):
+          same bottom offset, rounded-2xl, p-3, shadow-xl, border. */}
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-50 lg:hidden"
+        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+      >
         <button
           id="onboarding-filters-mobile"
           onClick={handleDrawerOpen}
-          className="flex items-center gap-3 bg-[var(--color-primary)] text-white shadow-xl hover:brightness-90 transition-all cursor-pointer px-5 py-3 rounded-xl hover:shadow-2xl hover:scale-105"
+          className="flex items-center gap-2 bg-[var(--color-primary)] text-white rounded-2xl shadow-xl border border-neutral-200/20 p-3 px-4 hover:brightness-90 transition-all cursor-pointer"
         >
-          <SlidersHorizontal className="w-5 h-5" />
-          <span className="font-medium text-base">Filtros</span>
+          <SlidersHorizontal className="w-4 h-4" />
+          <span className="font-medium text-sm">Filtros</span>
           {appliedFiltersCount > 0 && (
-            <span className="bg-[#2a3499] text-white text-sm font-semibold rounded-full min-w-[24px] h-6 flex items-center justify-center px-2">
+            <span className="bg-[#2a3499] text-white text-[11px] font-semibold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
               {appliedFiltersCount}
             </span>
           )}

@@ -18,8 +18,8 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
   totalProducts,
 }) => {
   return (
-    <div className="flex items-center gap-4">
-      <span className="text-sm text-neutral-600 whitespace-nowrap">
+    <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+      <span className="text-xs sm:text-sm text-neutral-600 whitespace-nowrap flex-shrink-0">
         <span className="font-semibold text-neutral-800">{totalProducts}</span> equipos
       </span>
 
@@ -33,16 +33,16 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
             onChange(selectedKey as SortOption);
           }
         }}
-        startContent={<ArrowUpDown className="w-4 h-4 text-neutral-400" />}
+        startContent={<ArrowUpDown className="w-4 h-4 text-neutral-400 flex-shrink-0" />}
         renderValue={(items) => {
           return items.map((item) => (
-            <span key={item.key} className="text-sm text-neutral-700">
+            <span key={item.key} className="text-sm text-neutral-700 truncate">
               {item.textValue}
             </span>
           ));
         }}
         classNames={{
-          base: 'min-w-[200px]',
+          base: 'min-w-[160px] sm:min-w-[200px]',
           trigger: 'h-10 min-h-10 bg-white border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] transition-colors cursor-pointer',
           value: 'text-sm text-neutral-700',
           popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
