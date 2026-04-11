@@ -93,10 +93,6 @@ import {
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
-// Data
-import {
-  sortProducts,
-} from './data/mockCatalogData';
 
 // API Hooks for loading products and filters
 import { useCatalogProducts, useProductsByIds, useCatalogFilters, type AppliedFiltersForCounts } from './hooks/useCatalogProducts';
@@ -1229,11 +1225,8 @@ function CatalogoContent() {
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
   }, [filters, sort, searchQuery, config.colorSelectorVersion, onboarding.config.stepCount, onboarding.config.highlightStyle, router]);
 
-  // Sort products (filtering is done by API, no client-side filtering needed)
-  const filteredProducts = useMemo(() => {
-    // API already returns filtered products, just sort them
-    return sortProducts(catalogProducts, sort);
-  }, [sort, catalogProducts]);
+  // API already returns products filtered and sorted — no client-side sort needed
+  const filteredProducts = catalogProducts;
 
   // Products to display based on viewMode
   // Note: Search filter is now applied by the API (q parameter), not locally

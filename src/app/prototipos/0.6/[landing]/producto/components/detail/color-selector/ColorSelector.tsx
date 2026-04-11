@@ -2,11 +2,13 @@
 
 /**
  * ColorSelector - Swatches style for product detail
- * Based on ColorSelectorV2 from catalog
+ * Tooltip con nombre del color al hacer hover (desktop)
+ * Nombre visible debajo en mobile
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Check } from 'lucide-react';
+import { Tooltip } from '@nextui-org/react';
 import type { ProductColor } from '../../../types/detail';
 
 interface ColorSelectorProps {
@@ -21,6 +23,13 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
   onColorSelect,
 }) => {
   const selectedColor = colors.find((c) => c.id === selectedColorId) || colors[0];
+  const [touchedId, setTouchedId] = useState<string | null>(null);
+
+  const handleTouch = (colorId: string) => {
+    setTouchedId(colorId);
+    onColorSelect(colorId);
+    setTimeout(() => setTouchedId(null), 1500);
+  };
 
   return (
     <div className="space-y-2">
@@ -28,38 +37,55 @@ export const ColorSelector: React.FC<ColorSelectorProps> = ({
         {colors.map((color) => {
           const isSelected = selectedColorId === color.id;
           const isDarkColor = isColorDark(color.hex);
+          const isTouched = touchedId === color.id;
 
           return (
-            <button
+            <Tooltip
               key={color.id}
-              type="button"
-              onClick={() => onColorSelect(color.id)}
-              className={`
-                w-7 h-7 rounded-md border-2 transition-all flex-shrink-0
-                flex items-center justify-center cursor-pointer
-                ${isSelected
-                  ? 'border-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.2)]'
-                  : 'border-neutral-200 hover:border-neutral-400'}
-              `}
-              style={{ backgroundColor: color.hex }}
-              aria-label={`Seleccionar color ${color.name}`}
-              aria-pressed={isSelected}
+              content={color.name}
+              delay={0}
+              closeDelay={0}
+              classNames={{
+                content: 'bg-neutral-800 text-white text-xs px-2 py-1 rounded-lg',
+              }}
             >
-              {isSelected && (
-                <Check
-                  className={`w-4 h-4 ${isDarkColor ? 'text-white' : 'text-neutral-800'}`}
-                  style={{
-                    filter: isDarkColor ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' : 'none',
-                  }}
-                />
-              )}
-            </button>
+              <button
+                type="button"
+                onClick={() => onColorSelect(color.id)}
+                onTouchEnd={(e) => { e.preventDefault(); handleTouch(color.id); }}
+                className={`
+                  w-8 h-8 rounded-md border-2 transition-all flex-shrink-0
+                  flex items-center justify-center cursor-pointer relative
+                  ${isSelected
+                    ? 'border-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.2)]'
+                    : 'border-neutral-200 hover:border-neutral-400'}
+                `}
+                style={{ backgroundColor: color.hex }}
+                aria-label={`Seleccionar color ${color.name}`}
+                aria-pressed={isSelected}
+              >
+                {isSelected && (
+                  <Check
+                    className={`w-4 h-4 ${isDarkColor ? 'text-white' : 'text-neutral-800'}`}
+                    style={{
+                      filter: isDarkColor ? 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' : 'none',
+                    }}
+                  />
+                )}
+                {isTouched && !isSelected && (
+                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-neutral-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap pointer-events-none z-10 sm:hidden">
+                    {color.name}
+                  </span>
+                )}
+              </button>
+            </Tooltip>
           );
         })}
       </div>
+      {/* Nombre del color seleccionado */}
       {selectedColor && (
         <p className="text-xs text-neutral-600 font-medium">
-          {selectedColor.name}
+          Color: <span className="text-neutral-800">{selectedColor.name}</span>
         </p>
       )}
     </div>

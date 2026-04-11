@@ -276,20 +276,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {displayName}
             </h3>
 
-            {/* Color Selector - Temporalmente deshabilitado
-            {!hideColors && (
+            {/* Color Selector - solo visible en cards de familia (colors.length > 1) */}
+            {!hideColors && product.colors && product.colors.length > 1 && (
               <div className="flex justify-center mb-4 min-h-[32px]">
-                {product.colors && product.colors.length > 0 ? (
-                  <ColorSelector
-                    colors={product.colors}
-                    selectedColorId={selectedColorId}
-                    onColorSelect={setSelectedColorId}
-                    version={colorSelectorVersion}
-                  />
-                ) : null}
+                <ColorSelector
+                  colors={product.colors}
+                  selectedColorId={selectedColorId}
+                  onColorSelect={setSelectedColorId}
+                  version={colorSelectorVersion}
+                />
               </div>
             )}
-            */}
 
             {/* Specs técnicas con iconos - solo muestra specs con dato real */}
             <div className="space-y-2 min-h-[100px]">
