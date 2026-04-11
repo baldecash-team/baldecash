@@ -24,6 +24,13 @@ interface LocationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (place: ParsedAddress) => void;
+  /**
+   * If provided, the modal skips the "permission" screen and opens directly
+   * on the map with these coordinates. Used when the caller already obtained
+   * geolocation from the tap (so iOS Safari shows the permission prompt on
+   * the first tap, not on the second one inside the modal).
+   */
+  initialCoords?: { latitude: number; longitude: number } | null;
 }
 
 /**
@@ -69,8 +76,11 @@ function createCustomMarkerElement(): HTMLDivElement {
 const LocationModalContent: React.FC<{
   onClose: () => void;
   onConfirm: (place: ParsedAddress) => void;
-}> = ({ onClose, onConfirm }) => {
-  const [state, setState] = useState<ModalState>('permission');
+  initialCoords?: { latitude: number; longitude: number } | null;
+}> = ({ onClose, onConfirm, initialCoords }) => {
+  const [state, setState] = useState<ModalState>(
+    initialCoords ? 'map' : 'permission'
+  );
   const [errorMessage, setErrorMessage] = useState('');
   const [currentAddress, setCurrentAddress] = useState('');
   const [currentPlace, setCurrentPlace] = useState<ParsedAddress | null>(null);
@@ -82,13 +92,15 @@ const LocationModalContent: React.FC<{
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reset state when modal opens
+  // Reset state when modal opens. If initialCoords were provided by the caller,
+  // start directly on 'map' so we skip the in-modal permission screen entirely
+  // (the permission prompt was already shown on the previous user gesture).
   useEffect(() => {
-    setState('permission');
+    setState(initialCoords ? 'map' : 'permission');
     setErrorMessage('');
     setCurrentAddress('');
     setCurrentPlace(null);
-  }, []);
+  }, [initialCoords]);
 
   // Inject pulse keyframes once
   useEffect(() => {
@@ -112,6 +124,9 @@ const LocationModalContent: React.FC<{
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
+
+  // Track whether the map was already initialized (prevents double-init on re-render)
+  const mapInitializedRef = useRef(false);
 
   // Reverse geocode coordinates to address
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
@@ -201,45 +216,97 @@ const LocationModalContent: React.FC<{
     reverseGeocode(lat, lng);
   }, [reverseGeocode, debouncedReverseGeocode]);
 
+  // If the caller supplied initialCoords, initialize the map directly.
+  // This happens when geolocation was already obtained from the previous
+  // user gesture (tap on "Usar mi ubicación"), so we skip the permission screen.
+  useEffect(() => {
+    if (!initialCoords || mapInitializedRef.current) return;
+    // Wait one tick so the map container <div> is actually rendered in the DOM.
+    const timer = setTimeout(() => {
+      if (mapContainerRef.current && !mapInitializedRef.current) {
+        mapInitializedRef.current = true;
+        initializeMap(initialCoords.latitude, initialCoords.longitude);
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [initialCoords, initializeMap]);
+
+  // Reset the init flag when the modal closes (so reopening re-initializes).
+  useEffect(() => {
+    if (!initialCoords) {
+      mapInitializedRef.current = false;
+    }
+  }, [initialCoords]);
+
   // Handle "Permitir" click
+  // IMPORTANT: iOS Safari requires navigator.geolocation.getCurrentPosition
+  // to be invoked synchronously inside a user gesture (tap handler).
+  // Any intermediate setState that triggers async work BEFORE the native call
+  // can break the user activation chain and silently suppress the permission prompt.
+  // For this reason we:
+  //   1. Call getCurrentPosition FIRST (still inside the click handler call stack).
+  //   2. Then update React state (safe — React batches will run after the native call is queued).
+  //   3. Avoid wrapping this in NextUI's Button (onPress) which uses React Aria
+  //      and can defer the handler via pointerup/rAF, losing the user gesture.
   const handleAllow = () => {
-    if (!navigator.geolocation) {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
       setErrorMessage('Tu navegador no soporta geolocalización');
       setState('error');
       return;
     }
 
-    setState('loading');
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setState('map');
-        // Delay map init slightly to ensure container is rendered
-        setTimeout(() => initializeMap(latitude, longitude), 100);
-      },
-      (geoError) => {
-        switch (geoError.code) {
-          case geoError.PERMISSION_DENIED:
-            setErrorMessage('Permiso de ubicación denegado. Habilita el acceso en la configuración de tu navegador.');
-            break;
-          case geoError.POSITION_UNAVAILABLE:
-            setErrorMessage('No se pudo determinar tu ubicación. Verifica que el GPS esté activado.');
-            break;
-          case geoError.TIMEOUT:
-            setErrorMessage('Se agotó el tiempo de espera para obtener la ubicación. Intenta nuevamente.');
-            break;
-          default:
-            setErrorMessage('Error al obtener la ubicación.');
+    // Kick off the native call IMMEDIATELY — before any setState.
+    // This guarantees iOS Safari sees the call inside the user gesture.
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setState('map');
+          // Delay map init slightly to ensure container is rendered
+          setTimeout(() => initializeMap(latitude, longitude), 100);
+        },
+        (geoError) => {
+          // Log for debugging production issues on real devices
+          if (typeof console !== 'undefined') {
+            console.warn('[LocationModal] geolocation error', {
+              code: geoError.code,
+              message: geoError.message,
+            });
+          }
+          switch (geoError.code) {
+            case geoError.PERMISSION_DENIED:
+              setErrorMessage(
+                'Permiso de ubicación denegado. Ve a Ajustes → Safari → Ubicación (o Ajustes → Privacidad → Servicios de Localización) y habilita el acceso para este sitio.'
+              );
+              break;
+            case geoError.POSITION_UNAVAILABLE:
+              setErrorMessage('No se pudo determinar tu ubicación. Verifica que el GPS esté activado.');
+              break;
+            case geoError.TIMEOUT:
+              setErrorMessage('Se agotó el tiempo de espera para obtener la ubicación. Intenta nuevamente.');
+              break;
+            default:
+              setErrorMessage('Error al obtener la ubicación.');
+          }
+          setState('error');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
         }
-        setState('error');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
+      );
+    } catch (err) {
+      if (typeof console !== 'undefined') {
+        console.error('[LocationModal] getCurrentPosition threw', err);
       }
-    );
+      setErrorMessage('No se pudo iniciar la geolocalización.');
+      setState('error');
+      return;
+    }
+
+    // Now update UI to "loading" — React will batch this after the native call is queued.
+    setState('loading');
   };
 
   // Handle confirm
@@ -267,20 +334,25 @@ const LocationModalContent: React.FC<{
         </div>
 
         <div className="flex flex-col w-full gap-3 pt-2">
-          <Button
-            onPress={handleAllow}
-            className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer"
-            startContent={<MapPin className="w-5 h-5" />}
+          {/* Native <button> (NOT NextUI's <Button onPress>) so the tap handler
+              runs inside the real user gesture activation on iOS Safari. React Aria
+              (used by NextUI) can defer handlers via pointerup/rAF which breaks
+              the permission prompt. */}
+          <button
+            type="button"
+            onClick={handleAllow}
+            className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center gap-2 active:brightness-90 transition-colors"
           >
+            <MapPin className="w-5 h-5" />
             Permitir ubicación
-          </Button>
-          <Button
-            variant="light"
-            onPress={onClose}
-            className="w-full text-neutral-500 font-medium h-12 rounded-xl cursor-pointer"
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full text-neutral-500 font-medium h-12 rounded-xl cursor-pointer hover:bg-neutral-50 transition-colors"
           >
             No permitir
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -319,19 +391,21 @@ const LocationModalContent: React.FC<{
         </div>
 
         <div className="flex flex-col w-full gap-3 pt-2">
-          <Button
-            onPress={() => setState('permission')}
-            className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer"
+          {/* Retry geolocation directly from the tap to preserve the user gesture on iOS */}
+          <button
+            type="button"
+            onClick={handleAllow}
+            className="w-full bg-[var(--color-primary)] text-white font-semibold h-12 rounded-xl cursor-pointer flex items-center justify-center active:brightness-90 transition-colors"
           >
             Intentar de nuevo
-          </Button>
-          <Button
-            variant="light"
-            onPress={onClose}
-            className="w-full text-neutral-500 font-medium h-12 rounded-xl cursor-pointer"
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full text-neutral-500 font-medium h-12 rounded-xl cursor-pointer hover:bg-neutral-50 transition-colors"
           >
             Cerrar
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -404,7 +478,7 @@ const LocationModalContent: React.FC<{
 
 // ─── Desktop Modal (NextUI) ───
 
-const DesktopModal: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm }) => (
+const DesktopModal: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm, initialCoords }) => (
   <Modal
     isOpen={isOpen}
     onClose={onClose}
@@ -421,7 +495,7 @@ const DesktopModal: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm
   >
     <ModalContent>
       <ModalBody className="p-0">
-        <LocationModalContent onClose={onClose} onConfirm={onConfirm} />
+        <LocationModalContent onClose={onClose} onConfirm={onConfirm} initialCoords={initialCoords} />
       </ModalBody>
     </ModalContent>
   </Modal>
@@ -429,7 +503,7 @@ const DesktopModal: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm
 
 // ─── Mobile Bottom Sheet (Framer Motion) ───
 
-const MobileBottomSheet: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm }) => {
+const MobileBottomSheet: React.FC<LocationModalProps> = ({ isOpen, onClose, onConfirm, initialCoords }) => {
   const dragControls = useDragControls();
   const scrollYRef = useRef<number>(0);
   const didLockRef = useRef<boolean>(false);
@@ -520,7 +594,7 @@ const MobileBottomSheet: React.FC<LocationModalProps> = ({ isOpen, onClose, onCo
               className="flex-1 overflow-y-auto"
               style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
             >
-              <LocationModalContent onClose={onClose} onConfirm={onConfirm} />
+              <LocationModalContent onClose={onClose} onConfirm={onConfirm} initialCoords={initialCoords} />
             </div>
           </motion.div>
         </>

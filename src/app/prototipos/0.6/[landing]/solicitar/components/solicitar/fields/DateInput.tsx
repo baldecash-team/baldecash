@@ -455,13 +455,15 @@ export const DateInput: React.FC<DateInputProps> = ({
         </PopoverContent>
       </Popover>
 
-      {/* Error message */}
-      {error && (
-        <p className="text-sm text-[#ef4444] flex items-center gap-1">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </p>
-      )}
+      {/* Error message - always reserve space for alignment in multi-column grids */}
+      <div className="min-h-[20px]">
+        {error && (
+          <p className="text-sm text-[#ef4444] flex items-center gap-1">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </p>
+        )}
+      </div>
     </div>
   );
 };

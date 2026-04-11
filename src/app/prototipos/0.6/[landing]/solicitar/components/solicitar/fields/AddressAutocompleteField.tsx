@@ -5,7 +5,7 @@
  * Integrates with wizard form to provide address autocomplete
  */
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Check, AlertCircle, Loader2, MapPin, Navigation } from 'lucide-react';
 import { LocationModal } from './LocationModal';
 import { FieldTooltip } from './FieldTooltip';
@@ -27,6 +27,8 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   const [isFocused, setIsFocused] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isRequestingLocation, setIsRequestingLocation] = useState(false);
+  const [initialModalCoords, setInitialModalCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Get current value and error from wizard context
@@ -124,9 +126,108 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
     onError: handleError,
   });
 
-  // Handle "Use my location" click — opens location modal
+  // Ensure Google's pac-container floats above navbar and sticky bars on mobile,
+  // and doesn't get clipped by parent overflow. Injected once globally.
+  useEffect(() => {
+    const styleId = 'pac-container-mobile-fix';
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      .pac-container {
+        z-index: 10000 !important;
+        border-radius: 12px;
+        border: 1px solid rgb(229 229 229);
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.12), 0 8px 10px -6px rgba(0,0,0,0.08);
+        margin-top: 4px;
+        font-family: inherit;
+      }
+      .pac-item {
+        padding: 10px 12px;
+        cursor: pointer;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+      }
+      .pac-item:hover {
+        background-color: rgba(var(--color-primary-rgb), 0.08);
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  // Handle "Use my location" click.
+  //
+  // IMPORTANT iOS SAFARI BEHAVIOR:
+  // We call navigator.geolocation.getCurrentPosition SYNCHRONOUSLY inside the
+  // tap handler. This guarantees iOS Safari shows the native permission prompt
+  // on the FIRST tap (instead of requiring a second tap inside the modal, which
+  // breaks the user-gesture activation chain and silently suppresses the prompt).
+  //
+  // After the browser resolves the coordinates, we open the LocationModal with
+  // `initialCoords` so it starts directly in the map view.
   const handleUseLocation = () => {
-    setIsLocationModalOpen(true);
+    setLocationError(null);
+
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setLocationError('Tu navegador no soporta geolocalización');
+      return;
+    }
+
+    // Kick off the native call IMMEDIATELY — inside the user gesture.
+    // Do NOT setState before this call; any async work between the tap and
+    // getCurrentPosition can strip the user activation on iOS Safari.
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setInitialModalCoords({ latitude, longitude });
+          setIsLocationModalOpen(true);
+          setIsRequestingLocation(false);
+        },
+        (geoError) => {
+          if (typeof console !== 'undefined') {
+            console.warn('[AddressAutocomplete] geolocation error', {
+              code: geoError.code,
+              message: geoError.message,
+            });
+          }
+          let msg = 'Error al obtener la ubicación.';
+          switch (geoError.code) {
+            case geoError.PERMISSION_DENIED:
+              msg =
+                'Permiso de ubicación denegado. Habilita el acceso en Ajustes → Privacidad → Servicios de Localización → Safari.';
+              break;
+            case geoError.POSITION_UNAVAILABLE:
+              msg = 'No se pudo determinar tu ubicación. Verifica que el GPS esté activado.';
+              break;
+            case geoError.TIMEOUT:
+              msg = 'Se agotó el tiempo de espera. Intenta nuevamente.';
+              break;
+          }
+          setLocationError(msg);
+          setIsRequestingLocation(false);
+          // Fall back to opening the modal in permission state so the user can retry.
+          setInitialModalCoords(null);
+          setIsLocationModalOpen(true);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        }
+      );
+    } catch (err) {
+      if (typeof console !== 'undefined') {
+        console.error('[AddressAutocomplete] getCurrentPosition threw', err);
+      }
+      setLocationError('No se pudo iniciar la geolocalización.');
+      setIsRequestingLocation(false);
+      return;
+    }
+
+    // Update UI state AFTER the native call is queued.
+    setIsRequestingLocation(true);
   };
 
   // Handle location confirmed from modal
@@ -142,6 +243,26 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateField(field.code, e.target.value);
     setLocationError(null);
+  };
+
+  // On mobile, scroll input into view when focused so Google's pac-container
+  // dropdown (positioned below the input) isn't covered by the virtual keyboard
+  // or sticky product bar.
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (typeof window === 'undefined') return;
+    if (window.innerWidth >= 1024) return; // desktop: no-op
+    // Delay so the keyboard has time to open on iOS before we measure/scroll
+    setTimeout(() => {
+      if (!inputRef.current) return;
+      const rect = inputRef.current.getBoundingClientRect();
+      // Target: input should sit ~120px from top (below fixed navbar)
+      const targetTop = 120;
+      const delta = rect.top - targetTop;
+      if (Math.abs(delta) > 10) {
+        window.scrollBy({ top: delta, behavior: 'smooth' });
+      }
+    }, 300);
   };
 
   // Determine display error
@@ -184,19 +305,22 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
           id={`input_${field.code}`}
           type="text"
           role="combobox"
+          aria-expanded={isFocused}
+          aria-controls="pac-container"
+          aria-autocomplete="list"
           value={value}
           onChange={handleInputChange}
-          onFocus={() => setIsFocused(true)}
+          onFocus={handleFocus}
           onBlur={() => setIsFocused(false)}
           placeholder={field.placeholder || 'Escribe tu dirección...'}
           disabled={field.readonly || !isLoaded}
+          style={{ fontSize: '16px' }}
           className={`
-            flex-1 bg-transparent outline-none text-base text-neutral-800
+            flex-1 bg-transparent outline-none text-neutral-800
             placeholder:text-neutral-400
             ${field.readonly ? 'cursor-not-allowed' : ''}
           `}
           autoComplete="off"
-          aria-autocomplete="list"
         />
 
         {/* Status icons */}
@@ -216,24 +340,30 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         <button
           type="button"
           onClick={handleUseLocation}
-          disabled={field.readonly}
+          disabled={field.readonly || isRequestingLocation}
           className={`
             flex items-center gap-1.5 text-sm text-[var(--color-primary)] cursor-pointer
             hover:underline disabled:opacity-50 disabled:cursor-not-allowed
           `}
         >
-          <Navigation className="w-4 h-4" />
-          Usar mi ubicación
+          {isRequestingLocation ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Navigation className="w-4 h-4" />
+          )}
+          {isRequestingLocation ? 'Obteniendo ubicación...' : 'Usar mi ubicación'}
         </button>
       )}
 
-      {/* Error message */}
-      {displayError && (
-        <p className="text-sm text-[#ef4444] flex items-center gap-1">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {displayError}
-        </p>
-      )}
+      {/* Error message - always reserve space for alignment in multi-column grids */}
+      <div className="min-h-[20px]">
+        {displayError && (
+          <p className="text-sm text-[#ef4444] flex items-center gap-1">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {displayError}
+          </p>
+        )}
+      </div>
 
       {/* Loading state for Google Maps */}
       {isLoading && (
@@ -243,11 +373,18 @@ export const AddressAutocompleteField: React.FC<AddressAutocompleteFieldProps> =
         </p>
       )}
 
-      {/* Location modal (permission + map with draggable pin) */}
+      {/* Location modal (permission + map with draggable pin).
+          When initialModalCoords is set, the modal skips the permission screen
+          and opens directly on the map — this happens because we already obtained
+          the coordinates from the user's tap on "Usar mi ubicación". */}
       <LocationModal
         isOpen={isLocationModalOpen}
-        onClose={() => setIsLocationModalOpen(false)}
+        onClose={() => {
+          setIsLocationModalOpen(false);
+          setInitialModalCoords(null);
+        }}
         onConfirm={handleLocationConfirm}
+        initialCoords={initialModalCoords}
       />
     </div>
   );

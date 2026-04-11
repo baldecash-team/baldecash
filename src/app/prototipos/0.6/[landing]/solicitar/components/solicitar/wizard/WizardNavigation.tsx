@@ -31,7 +31,7 @@ export const WizardNavigation: React.FC<WizardNavigationProps> = ({
   submitMessage,
 }) => {
   return (
-    <div className="flex flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between mt-8">
+    <div className="flex flex-col-reverse gap-3 lg:flex-row lg:items-center lg:justify-between mt-6 sm:mt-8 mb-4 lg:mb-0">
       {/* Back Button */}
       {onBack ? (
         <button

@@ -197,8 +197,8 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
               {currentStepData?.title || currentStep}
             </p>
 
-            {/* Progress Dots - Clickeable */}
-            <div className="flex items-center gap-2 mt-2">
+            {/* Progress Dots - Clickeable (WCAG 2.5.5: touch target ≥24×24) */}
+            <div className="flex items-center mt-1 -mx-1.5">
               {progressSteps.map((step, index) => {
                 const isCompleted = completedSteps.includes(step.slug);
                 const isCurrent = step.slug === currentStep;
@@ -211,18 +211,23 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                       onClick={() => handleStepClick(step.slug, index)}
                       disabled={!clickable}
                       className={`
-                        w-2.5 h-2.5 rounded-full transition-all duration-200
-                        ${isCompleted
-                          ? 'bg-[var(--color-primary)]'
-                          : isCurrent
-                          ? 'bg-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.3)]'
-                          : 'bg-neutral-200'}
-                        ${clickable
-                          ? 'cursor-pointer hover:scale-125 hover:ring-2 hover:ring-[rgba(var(--color-primary-rgb),0.5)]'
-                          : 'cursor-default'}
+                        flex items-center justify-center w-6 h-6 flex-shrink-0 rounded-full
+                        ${clickable ? 'cursor-pointer' : 'cursor-default'}
                       `}
                       aria-label={`Ir a ${step.title}`}
-                    />
+                    >
+                      <span
+                        className={`
+                          block w-2.5 h-2.5 rounded-full transition-all duration-200
+                          ${isCompleted
+                            ? 'bg-[var(--color-primary)]'
+                            : isCurrent
+                            ? 'bg-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.3)]'
+                            : 'bg-neutral-200'}
+                          ${clickable ? 'hover:scale-125 hover:ring-2 hover:ring-[rgba(var(--color-primary-rgb),0.5)]' : ''}
+                        `}
+                      />
+                    </button>
                     {index < progressSteps.length - 1 && (
                       <div
                         className={`

@@ -77,7 +77,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
       <div className="h-[104px]" />
 
       {/* Content Container */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 pt-14 pb-24 lg:pb-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 pt-8 sm:pt-14 pb-24 lg:pb-8">
         {/* Two-column grid on desktop */}
         <div className="lg:grid lg:grid-cols-[1fr_420px] lg:gap-10">
           {/* Left Column - Form */}
@@ -91,13 +91,15 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             </div>
 
             {/* Header */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-neutral-800">{title}</h1>
-              <p className="text-neutral-600 mt-1">{description}</p>
+            <div className="mb-4 sm:mb-6">
+              <h1 className="text-xl sm:text-2xl font-bold text-neutral-800 leading-tight">
+                {title}
+              </h1>
+              <p className="text-sm sm:text-base text-neutral-600 mt-1">{description}</p>
             </div>
 
             {/* Content */}
-            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 sm:p-6">
               {children}
             </div>
 
