@@ -186,21 +186,21 @@ function ComplementosContent() {
       {/* Navbar */}
       <Navbar {...navbarProps} landing={landing} />
 
-      {/* Spacer for fixed navbar + promo banner */}
-      <div className="h-[104px]" />
+      {/* Spacer — dynamic height driven by --header-total-height CSS variable. */}
+      <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />
 
-      <div className="max-w-3xl mx-auto px-4 pt-14 pb-32 lg:pb-6">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 lg:pt-14 pb-32 lg:pb-6">
         {/* Section Header */}
         {(hasInsuranceSection || hasAccessoriesSection) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
+            className="mb-5 sm:mb-6"
           >
-            <h1 className="text-2xl font-bold text-neutral-800">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] leading-tight">
               Personaliza tu solicitud
             </h1>
-            <p className="text-sm text-neutral-500 mt-1">
+            <p className="text-xs sm:text-sm text-neutral-500 mt-1">
               Estas opciones son opcionales. Puedes continuar sin seleccionar ninguna.
             </p>
           </motion.div>
@@ -259,13 +259,13 @@ function ComplementosContent() {
           )}
 
           {/* Total row */}
-          <div className={`px-4 py-4 flex items-center justify-between ${
+          <div className={`px-4 py-4 flex items-center justify-between gap-3 ${
             selectedInsurances.length > 0 || selectedAccessories.length > 0
               ? 'bg-[rgba(var(--color-primary-rgb),0.04)] border-t border-neutral-100'
               : ''
           }`}>
-            <p className="text-sm font-semibold text-neutral-800">Cuota mensual total</p>
-            <p className="text-2xl font-bold text-[var(--color-primary)]">
+            <p className="text-sm font-semibold text-neutral-800 min-w-0 break-words">Cuota mensual total</p>
+            <p className="text-xl sm:text-2xl font-bold text-[var(--color-primary)] break-words text-right flex-shrink-0">
               S/{formatMoneyNoDecimals(Math.floor(totalMonthly))}/mes
             </p>
           </div>

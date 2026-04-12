@@ -62,7 +62,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
 
   const gridCols = plans.length === 1
     ? 'grid-cols-1 max-w-lg mx-auto'
-    : 'grid-cols-1 md:grid-cols-2';
+    : 'grid-cols-1 sm:grid-cols-2';
 
   return (
     <>

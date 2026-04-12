@@ -268,7 +268,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                     e.stopPropagation();
                     handleRemove(file.id);
                   }}
-                  className="p-1 hover:bg-neutral-100 rounded transition-colors"
+                  className="p-2 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
+                  aria-label="Eliminar archivo"
                 >
                   <X className="w-4 h-4 text-neutral-400" />
                 </button>

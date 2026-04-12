@@ -187,7 +187,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
               return (
                 <motion.div
                   key={accessory.id}
-                  className="w-[170px] md:w-[190px] snap-start flex-shrink-0"
+                  className="w-[170px] sm:w-[180px] md:w-[190px] lg:w-[200px] xl:w-[220px] snap-start flex-shrink-0"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.2, delay: index * 0.03 }}

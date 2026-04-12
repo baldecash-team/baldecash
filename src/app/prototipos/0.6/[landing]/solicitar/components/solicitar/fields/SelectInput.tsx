@@ -228,8 +228,9 @@ export const SelectInput: React.FC<SelectInputProps> = ({
               </div>
             )}
 
-            {/* Options list */}
-            <div className="max-h-[min(15rem,50vh)] overflow-y-auto p-1 overscroll-contain">
+            {/* Options list — extra pb on mobile so the last options stay
+                visible above the iOS virtual keyboard when it is open. */}
+            <div className="max-h-[min(15rem,50vh)] overflow-y-auto p-1 pb-16 sm:pb-1 overscroll-contain">
               {needsMoreChars ? (
                 <div className="py-8 text-center text-neutral-400 text-sm">
                   {searchPrompt || `Escribe al menos ${minSearchLength} caracteres para buscar`}

@@ -73,8 +73,9 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
       {/* Navbar del Hero */}
       <Navbar {...navbarProps} landing={landing} />
 
-      {/* Spacer for fixed navbar + promo banner */}
-      <div className="h-[104px]" />
+      {/* Spacer — dynamic height driven by --header-total-height CSS variable
+          exposed by the Navbar component (preview + promo + navbar). */}
+      <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />
 
       {/* Content Container */}
       <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 pt-8 sm:pt-14 pb-24 lg:pb-8">
@@ -119,9 +120,13 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
             <SelectedProductSpacer />
           </div>
 
-          {/* Right Column - Motivational Card (Desktop only) */}
+          {/* Right Column - Motivational Card (Desktop only).
+              sticky top offset follows --header-total-height with a small extra gap. */}
           <div className="hidden lg:block">
-            <div className="sticky top-24">
+            <div
+              className="sticky"
+              style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}
+            >
               <MotivationalCard currentStep={currentStep} motivational={motivational} />
             </div>
           </div>
