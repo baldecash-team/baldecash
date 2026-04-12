@@ -232,6 +232,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
 
+  // Derived section flags (single source of truth for nav + DOM sections)
+  const GENERIC_TIERS = new Set(['Básica', 'Intermedia', 'Potente', 'medio']);
+  const displayShortDesc = product.shortDescription && !GENERIC_TIERS.has(product.shortDescription.trim())
+    ? product.shortDescription
+    : null;
+  const hasDescription = !!(product.description || displayShortDesc);
+  const hasSimilar = similarProducts.length > 0;
+  const hasLimitations = limitations.length > 0;
+
   // Helper to extract spec value
   const getSpecValue = (category: string, label: string): string | undefined => {
     const specCategory = product.specs.find((s) => s.category.toLowerCase() === category.toLowerCase());
@@ -285,7 +294,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-6">
+      {/* pb-32 en mobile para dejar espacio al bottom CTA bar fijo */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-32 lg:pb-6">
         {/* Main Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Left Column - Unified Product Card (Gallery + Info) */}
@@ -303,8 +313,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             />
           </div>
 
-          {/* Right Column - Pricing (Sticky) */}
-          <div className="order-2 lg:order-2 lg:sticky lg:top-[168px] space-y-6">
+          {/* Right Column - Pricing (Sticky).
+              top offset tracks --header-total-height + --catalog-secondary-height
+              so it stays correctly positioned regardless of promo banner state. */}
+          <div
+            className="order-2 lg:order-2 lg:sticky space-y-6"
+            style={{
+              top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 0.5rem)',
+            }}
+          >
             {/* Combo Banner */}
             {combo && combo.accessories.length > 0 && (
               <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.02)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl p-4">
@@ -326,7 +343,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                         />
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-neutral-800 truncate">
+                        <p className="text-sm font-medium text-neutral-800 line-clamp-2 break-words">
                           {accessory.productName}
                         </p>
                         {accessory.isIncludedFree ? (
@@ -368,10 +385,16 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   <p className="text-amber-800 font-medium text-sm">Este producto no se encuentra disponible actualmente</p>
                 </div>
               ) : (
-              <div className="flex gap-3">
+              // Mobile: fixed bottom CTA bar (e-commerce convention).
+              // Desktop (lg+): inline flex inside the sticky pricing column.
+              // We inject the inline safe-area padding via a data attribute so
+              // it only applies below lg via a tiny style helper below.
+              <div
+                className="fixed bottom-0 left-0 right-0 z-40 flex gap-2 sm:gap-3 bg-white border-t border-neutral-200 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-4px_12px_rgba(0,0,0,0.08)] lg:static lg:z-auto lg:bg-transparent lg:border-0 lg:p-0 lg:shadow-none"
+              >
                 <button
                   onClick={handleSolicitar}
-                  className="flex-1 bg-[var(--color-primary)] text-white py-4 rounded-xl font-semibold text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
+                  className="flex-1 bg-[var(--color-primary)] text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:brightness-90 transition-all cursor-pointer shadow-lg shadow-[rgba(var(--color-primary-rgb),0.25)]"
                 >
                   ¡Lo quiero!
                 </button>
@@ -423,7 +446,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                     <button
                       onClick={handleCartAction}
                       disabled={!isInCart && !pricingSelection}
-                      className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold transition-colors cursor-pointer border ${getButtonStyle()}`}
+                      className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-semibold transition-colors cursor-pointer border flex-shrink-0 ${getButtonStyle()}`}
                     >
                       {icon}
                       <span className="hidden sm:inline">{text}</span>
@@ -434,7 +457,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   <button
                     onClick={handleToggleWishlist}
                     disabled={!pricingSelection}
-                    className={`flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-semibold transition-colors cursor-pointer border ${
+                    className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-semibold transition-colors cursor-pointer border flex-shrink-0 ${
                       isInWishlist
                         ? 'text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-red-50 hover:text-red-500 hover:border-red-200'
                         : 'text-neutral-500 bg-neutral-50 border-neutral-200 hover:text-[var(--color-primary)] hover:border-[rgba(var(--color-primary-rgb),0.2)] hover:bg-[rgba(var(--color-primary-rgb),0.05)]'
@@ -455,7 +478,35 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         </div>
 
         {/* Section Navigation (Sidebar desktop / Bottom bar mobile) */}
-        <DetailTabs product={product} hasLimitations={limitations.length > 0} />
+        <DetailTabs
+          product={product}
+          hasLimitations={hasLimitations}
+          hasDescription={hasDescription}
+          hasSimilar={hasSimilar}
+        />
+
+        {/* Description Section - Full Width */}
+        {hasDescription && (
+          <div id="section-description" className="mt-12">
+            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-5 border-b border-neutral-100">
+                <h2 className="text-lg font-bold text-neutral-900">Descripción</h2>
+              </div>
+              <div className="px-6 py-5 space-y-3">
+                {displayShortDesc && (
+                  <p className="text-base font-semibold text-[var(--color-primary)]">
+                    {displayShortDesc}
+                  </p>
+                )}
+                {product.description && (
+                  <p className="text-neutral-600 leading-relaxed text-sm">
+                    {product.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Specs Section - Full Width */}
         <div id="section-specs" className="mt-12">
@@ -477,6 +528,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             productName={product.displayName}
             productBrand={product.brand}
             productImage={product.images[0]?.url}
+            description={product.description || undefined}
+            shortDescription={displayShortDesc || undefined}
           />
         </div>
 
@@ -497,19 +550,23 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         </div>
 
         {/* Similar Products - Full Width */}
-        <div id="section-similar" className="mt-12">
-          <SimilarProducts
-            products={similarProducts}
-            currentQuota={product.lowestQuota}
-            onAddToCart={onSimilarAddToCart}
-            cartItems={cartItems}
-          />
-        </div>
+        {hasSimilar && (
+          <div id="section-similar" className="mt-12">
+            <SimilarProducts
+              products={similarProducts}
+              currentQuota={product.lowestQuota}
+              onAddToCart={onSimilarAddToCart}
+              cartItems={cartItems}
+            />
+          </div>
+        )}
 
         {/* Limitations */}
-        <div id="section-limitations" className="mt-8">
-          <ProductLimitations limitations={limitations} />
-        </div>
+        {hasLimitations && (
+          <div id="section-limitations" className="mt-8">
+            <ProductLimitations limitations={limitations} />
+          </div>
+        )}
       </div>
     </div>
   );

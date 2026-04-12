@@ -115,16 +115,16 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
   };
 
   return (
-    <section className="py-12 bg-gradient-to-b from-neutral-50 to-white overflow-hidden">
+    <section className="py-10 sm:py-12 bg-gradient-to-b from-neutral-50 to-white overflow-hidden">
       {/* Header Convenios */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-8"
+          viewport={{ once: true, margin: '-10% 0px' }}
+          className="text-center mb-6 sm:mb-8"
         >
-          <div className="flex items-center justify-center gap-2 mb-4">
+          <div className="flex items-center justify-center gap-2 mb-3 sm:mb-4">
             <Chip
               startContent={<Building2 className="w-3.5 h-3.5" />}
               classNames={{
@@ -140,11 +140,11 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
             </Chip>
           </div>
 
-          <h3 className="text-2xl md:text-3xl font-bold text-neutral-800 font-['Baloo_2'] mb-3">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] mb-2 sm:mb-3 leading-tight">
             {renderTitle()}
           </h3>
 
-          <p className="text-neutral-500 max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-neutral-500 max-w-xl mx-auto">
             {data.subtitle || ''}
           </p>
         </motion.div>
@@ -181,11 +181,14 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
               </div>
             ))}
           </div>
-          {/* Segundo set de logos (duplicado para loop infinito) */}
+          {/* Segundo set de logos (duplicado para loop infinito).
+              The negative delay offsets this copy by half the duration so it
+              starts mid-animation, preventing the "jump" at the wrap point. */}
           <div
             className="flex shrink-0"
             style={{
               animation: `marquee ${marqueeDuration}s linear infinite`,
+              animationDelay: `-${marqueeDuration / 2}s`,
             }}
           >
             {repeatedLogos.map((logo, index) => (
@@ -218,7 +221,7 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
           </h3>
           <p className="text-neutral-500 text-sm">
             {(data.testimonialsSubtitle || '')
-              .replace('{studentCount}', data.studentCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','))}
+              .replace('{studentCount}', data.studentCount.toLocaleString('es-PE'))}
           </p>
         </div>
 
@@ -324,40 +327,20 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
             </AnimatePresence>
           </div>
 
+          {/* Dots pagination — the only pagination shown on mobile, since the
+              side arrow buttons are hidden below md (see md:flex above). */}
           <div className="flex justify-center gap-1.5 mt-6">
             {Array.from({ length: totalPages }).map((_, index) => (
               <button
                 key={index}
                 onClick={() => setPage(index)}
+                aria-label={`Ir a página ${index + 1}`}
                 className={`h-2 rounded-full transition-all cursor-pointer ${
                   page === index ? 'w-6' : 'bg-neutral-300 hover:bg-neutral-400 w-2'
                 }`}
                 style={page === index ? { backgroundColor: 'var(--color-primary, #4654CD)' } : undefined}
               />
             ))}
-          </div>
-
-          <div className="flex justify-center gap-3 mt-4 md:hidden">
-            <Button
-              isIconOnly
-              size="sm"
-              radius="full"
-              variant="flat"
-              className="bg-white shadow-sm border border-neutral-100 cursor-pointer"
-              onPress={prevPage}
-            >
-              <ChevronLeft className="w-4 h-4 text-neutral-600" />
-            </Button>
-            <Button
-              isIconOnly
-              size="sm"
-              radius="full"
-              variant="flat"
-              className="bg-white shadow-sm border border-neutral-100 cursor-pointer"
-              onPress={nextPage}
-            >
-              <ChevronRight className="w-4 h-4 text-neutral-600" />
-            </Button>
           </div>
         </div>
       </div>

@@ -93,10 +93,6 @@ import {
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
-// Data
-import {
-  sortProducts,
-} from './data/mockCatalogData';
 
 // API Hooks for loading products and filters
 import { useCatalogProducts, useProductsByIds, useCatalogFilters, type AppliedFiltersForCounts } from './hooks/useCatalogProducts';
@@ -607,7 +603,7 @@ function CatalogoContent() {
       months: (product.maxTermMonths || 24) as TermMonths,
       initialPercent: 0,
       initialAmount: 0,
-      image: product.thumbnail,
+      image: product.images[0] || product.thumbnail,
       type: product.deviceType,
       specs: {
         processor: product.specs?.processor?.model || '',
@@ -738,12 +734,9 @@ function CatalogoContent() {
 
   const onboarding = useOnboarding(onboardingInitialConfig, questionCount || 7, hasQuiz, landing);
 
-  // Preloading: dar tiempo a la página para cargar recursos
+  // No artificial delay — render as soon as data is ready
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    setIsPageLoading(false);
   }, []);
 
   // Transform layout data for Catalog Secondary Navbar config
@@ -1081,7 +1074,7 @@ function CatalogoContent() {
           name: product.displayName,
           shortName: product.name,
           brand: product.brand,
-          image: product.thumbnail,
+          image: product.images[0] || product.thumbnail,
           price: product.price,
           months: (product.maxTermMonths || 24) as TermMonths,
           initialPercent: WIZARD_SELECTED_INITIAL,
@@ -1232,11 +1225,8 @@ function CatalogoContent() {
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
   }, [filters, sort, searchQuery, config.colorSelectorVersion, onboarding.config.stepCount, onboarding.config.highlightStyle, router]);
 
-  // Sort products (filtering is done by API, no client-side filtering needed)
-  const filteredProducts = useMemo(() => {
-    // API already returns filtered products, just sort them
-    return sortProducts(catalogProducts, sort);
-  }, [sort, catalogProducts]);
+  // API already returns products filtered and sorted — no client-side sort needed
+  const filteredProducts = catalogProducts;
 
   // Products to display based on viewMode
   // Note: Search filter is now applied by the API (q parameter), not locally
@@ -1354,16 +1344,16 @@ function CatalogoContent() {
     if (!productToAdd) return;
 
     // Verificar tipo de dispositivo si ya hay productos en la lista
-    if (compareList.length > 0 && compareProducts.length > 0) {
-      // Use compareProducts from state (loaded from API) instead of catalogProducts (filtered)
-      const firstProductInList = compareProducts[0];
+    // Usa findProductOrSibling (síncrono, ya en memoria) en vez de compareProducts (async)
+    // para evitar race condition cuando el fetch aún no terminó
+    if (compareList.length > 0) {
+      const firstProductInList = findProductOrSibling(compareList[0]);
 
       if (firstProductInList) {
         const currentDeviceType = getDeviceType(firstProductInList);
         const newDeviceType = getDeviceType(productToAdd);
 
         if (currentDeviceType !== newDeviceType) {
-          // Mostrar toast de warning
           const deviceTypeLabels: Record<string, string> = {
             laptop: 'laptops',
             tablet: 'tablets',
@@ -1463,7 +1453,11 @@ function CatalogoContent() {
           institutionName={navbarProps?.institutionName}
           previewBannerOffset={previewBannerOffset}
         />
-        <main style={{ paddingTop: (navbarProps?.promoBannerData ? 160 : 120) + previewBannerOffset }}>
+        <main
+          style={{
+            paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
+          }}
+        >
           <div className="max-w-2xl mx-auto px-4 py-16 text-center">
             <div className="bg-red-50 border border-red-200 rounded-2xl p-8">
               <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -1566,8 +1560,14 @@ function CatalogoContent() {
         showCart={ALLOW_MULTI_PRODUCT}
       />
 
-      {/* Main Content with padding for fixed navbars (promo + primary + secondary + preview banner) */}
-      <main style={{ paddingTop: (navbarProps?.promoBannerData ? 160 : 120) + previewBannerOffset }}>
+      {/* Main Content — padding driven by CSS variables so it always matches
+          the real height of the fixed headers (preview banner + promo banner
+          + main navbar + secondary navbar). */}
+      <main
+        style={{
+          paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
+        }}
+      >
         {/* Catalog Layout with Products */}
         <CatalogLayout
         products={displayedProducts}
@@ -1935,7 +1935,7 @@ function CatalogoContent() {
                 className="w-10 h-10 rounded-lg bg-white border-2 border-white shadow-sm overflow-hidden"
                 style={{ zIndex: 4 - index }}
               >
-                <img src={product.thumbnail} alt={product.displayName} className="w-full h-full object-cover" />
+                <img src={product.images[0] || product.thumbnail} alt={product.displayName} className="w-full h-full object-cover" />
               </div>
             ))}
           </div>

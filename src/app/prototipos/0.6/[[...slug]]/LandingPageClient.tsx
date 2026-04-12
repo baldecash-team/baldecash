@@ -27,6 +27,7 @@ const DNI_MODAL_SLUGS = ['liderman-baldecash'];
 
 interface LandingPageClientProps {
   slug: string;
+  initialData?: HeroData | null;
 }
 
 interface HeroData {
@@ -53,16 +54,15 @@ interface HeroData {
 }
 
 // Wrapper component to handle Suspense for useSearchParams
-function LandingPageClientInner({ slug }: LandingPageClientProps) {
+function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
   // Zona Gamer: landing 100% estática, sin fetch a la API
   if (slug === 'zona-gamer') {
     return <ZonaGamerLanding />;
   }
 
   const searchParams = useSearchParams();
-  const [heroData, setHeroData] = useState<HeroData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPageLoading, setIsPageLoading] = useState(true);
+  const [heroData, setHeroData] = useState<HeroData | null>(initialData ?? null);
+  const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
 
   // Preview mode from query param (?preview=true)
@@ -76,16 +76,23 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
   const isPreviewHydrated = preview.isHydrated;
   const previewKey = preview.isPreviewingLanding(slug) ? preview.previewKey : null;
 
-  // Preloading: dar tiempo a la página para cargar recursos (igual que catálogo)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+  // Track if server initialData has been consumed to avoid skipping re-fetches on SPA nav
+  const initialDataConsumed = useRef(false);
 
   useEffect(() => {
-    // Wait for preview context to hydrate from sessionStorage before fetching
+    // If we have server-provided data, use it immediately for the first render
+    if (initialData && !initialDataConsumed.current) {
+      initialDataConsumed.current = true;
+
+      // If not in preview mode, server data is sufficient — no client fetch needed
+      if (!isPreviewParam && !isPreviewMode) {
+        // Wait for preview hydration to confirm no sessionStorage preview either
+        if (!isPreviewHydrated) return;
+        if (!previewKey) return; // No preview — server data is final
+      }
+    }
+
+    // For preview mode or missing initialData: wait for hydration then fetch
     if (!isPreviewHydrated) return;
 
     const loadData = async () => {
@@ -93,7 +100,6 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
       setError(null);
 
       try {
-        // Pass preview flags to API: postMessage preview OR sessionStorage preview
         const data = await fetchHeroData(slug, isPreviewParam || isPreviewMode, previewKey);
 
         if (!data) {
@@ -111,7 +117,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
     };
 
     loadData();
-  }, [slug, isPreviewParam, isPreviewMode, isPreviewHydrated, previewKey]);
+  }, [slug, isPreviewParam, isPreviewMode, isPreviewHydrated, previewKey, initialData]);
 
   // Merge API data with preview data (preview takes priority)
   const mergedHeroContent = useMemo((): HeroContent | null => {
@@ -260,8 +266,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
 
   // Handle hash navigation after data loads (for iframe preview)
   useEffect(() => {
-    // Wait for both loading states to complete
-    if (!isLoading && !isPageLoading && heroData && typeof window !== 'undefined') {
+    if (!isLoading && heroData && typeof window !== 'undefined') {
       const hash = window.location.hash;
       if (hash) {
         // Longer delay to ensure DOM is fully rendered after loading spinner
@@ -274,20 +279,20 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
         return () => clearTimeout(timeoutId);
       }
     }
-  }, [isLoading, isPageLoading, heroData]);
+  }, [isLoading, heroData]);
 
   // DNI modal state - solo para slugs configurados y si no hay DNI guardado
   const showDniFeature = DNI_MODAL_SLUGS.includes(slug);
   const [isDniModalOpen, setIsDniModalOpen] = useState(false);
 
   useEffect(() => {
-    if (showDniFeature && !isLoading && !isPageLoading && heroData) {
+    if (showDniFeature && !isLoading && heroData) {
       // Verificar si ya tiene DNI guardado (solo en cliente)
       if (!hasSavedDni(slug)) {
         setIsDniModalOpen(true);
       }
     }
-  }, [showDniFeature, slug, isLoading, isPageLoading, heroData]);
+  }, [showDniFeature, slug, isLoading, heroData]);
 
   const handleDniModalClose = useCallback(() => {
     setIsDniModalOpen(false);
@@ -309,8 +314,8 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
     }
   }, [heroData]);
 
-  // Loading state - mostrar preloader mientras carga página o datos
-  if (isPageLoading || isLoading) {
+  // Loading state
+  if (isLoading) {
     return <HomeSkeleton />;
   }
 
@@ -353,6 +358,7 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
         landing={slug}
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
         previewKey={previewKey}
+        primaryColor={heroData.primaryColor}
       />
 
       {/* Modal DNI - Feature personalizado para landings configuradas */}
@@ -368,12 +374,12 @@ function LandingPageClientInner({ slug }: LandingPageClientProps) {
 }
 
 // Main export with Suspense wrapper + tracking providers
-export function LandingPageClient({ slug }: LandingPageClientProps) {
+export function LandingPageClient({ slug, initialData }: LandingPageClientProps) {
   return (
     <SessionProvider landingSlug={slug}>
       <EventTrackerProvider>
         <Suspense fallback={<HomeSkeleton />}>
-          <LandingPageClientInner slug={slug} />
+          <LandingPageClientInner slug={slug} initialData={initialData} />
         </Suspense>
       </EventTrackerProvider>
     </SessionProvider>

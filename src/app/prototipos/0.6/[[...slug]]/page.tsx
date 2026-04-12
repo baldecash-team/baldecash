@@ -10,7 +10,7 @@
 
 import { notFound } from 'next/navigation';
 import { LandingPageClient } from './LandingPageClient';
-import { getLandingMeta } from '../services/landingApi';
+import { getLandingMeta, fetchHeroData, getActiveLandingSlugs } from '../services/landingApi';
 
 interface PageProps {
   params: Promise<{
@@ -32,14 +32,22 @@ export default async function LandingPage({ params }: PageProps) {
 
   const slug = slugArray[0] || 'home';
 
-  // Pasar solo el slug al cliente - el fetch ocurre en el cliente
-  return <LandingPageClient slug={slug} />;
+  // Fetch hero data server-side para eliminar el round-trip extra del client
+  const initialData = await fetchHeroData(slug);
+
+  return <LandingPageClient slug={slug} initialData={initialData} />;
 }
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  // Pre-generar landings activas para que se sirvan como estáticas
+  const slugs = await getActiveLandingSlugs();
+
   return [
     { slug: [] },
     { slug: ['home'] },
+    ...slugs
+      .filter(s => s !== 'home')
+      .map(s => ({ slug: [s] })),
   ];
 }
 

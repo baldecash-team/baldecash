@@ -119,35 +119,37 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const unavailableSet = useMemo(() => new Set(unavailableIds), [unavailableIds]);
   const isDisabled = normalizedItems.length === 0 || isOverQuotaLimit || hasUnavailable;
 
-  // Block body scroll when drawer is open (iOS Safari fix)
-  // Note: In catalog page, scroll lock is managed centrally - this is a fallback for standalone usage
+  // Block body scroll while open. CRITICAL: uses the cleanup function pattern
+  // so the unlock always runs on unmount OR when isOpen flips to false.
+  // The old if/else-branch approach left body `position: fixed` stuck if the
+  // component unmounted while still open (see LocationModal for the same fix).
   const scrollYRef = useRef<number>(0);
   const didLockRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (isOpen) {
-      // Only lock if not already locked by parent
-      if (document.body.style.position !== 'fixed') {
-        scrollYRef.current = window.scrollY;
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${scrollYRef.current}px`;
-        document.body.style.left = '0';
-        document.body.style.right = '0';
-        document.body.style.overflow = 'hidden';
-        didLockRef.current = true;
-      }
-    } else {
-      // Only unlock if we were the one who locked
-      if (didLockRef.current) {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        document.body.style.overflow = '';
-        window.scrollTo(0, scrollYRef.current);
-        didLockRef.current = false;
-      }
+    if (!isOpen) return;
+
+    // Only lock if not already locked by a parent/sibling drawer
+    if (document.body.style.position !== 'fixed') {
+      scrollYRef.current = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollYRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+      didLockRef.current = true;
     }
+
+    return () => {
+      if (!didLockRef.current) return;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, scrollYRef.current);
+      didLockRef.current = false;
+    };
   }, [isOpen]);
 
   return (
@@ -184,7 +186,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               }
             }}
             className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] min-h-[50vh] max-h-[calc(100vh-12rem)] flex flex-col"
-            style={{ overscrollBehavior: 'contain' }}
+            style={{
+              overscrollBehavior: 'contain',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
           >
             {/* Drag Handle */}
             <div

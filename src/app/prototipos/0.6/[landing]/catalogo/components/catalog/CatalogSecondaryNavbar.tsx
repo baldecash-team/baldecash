@@ -5,11 +5,9 @@
  * Se muestra debajo del navbar principal en catálogo y detalle de producto
  */
 
-import React from 'react';
-import { useParams } from 'next/navigation';
+import React, { useEffect, useRef } from 'react';
 import { CatalogProduct, CartItem, WishlistItem } from '../../types/catalog';
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
-import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import {
   NavbarSearch,
   NavbarWishlist,
@@ -93,20 +91,42 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   previewBannerOffset: previewBannerOffsetProp,
   showCart = true,
 }) => {
-  // Auto-detect preview banner offset based on whether THIS landing is being previewed
-  const params = useParams();
-  const currentLanding = (params.landing as string) || 'home';
-  const { isPreviewingLanding } = usePreview();
-  const previewBannerOffset = previewBannerOffsetProp ?? (isPreviewingLanding(currentLanding) ? 24 : 0);
+  // NOTE: previewBannerOffsetProp is still accepted for API compatibility but
+  // is no longer required — the --header-total-height CSS variable already
+  // accounts for the preview banner via Navbar.tsx.
+  void previewBannerOffsetProp;
 
-  // Position below navbar: 64px navbar + promo banner height (dynamic) + preview banner offset
-  // Uses CSS variable set by Navbar component
+  // Position below navbar using the --header-total-height CSS variable exposed
+  // by the Navbar component (preview banner + promo banner + main navbar).
+  // If `hidePromoBanner` is true, subtract the promo banner height manually.
   const topPosition = hidePromoBanner
-    ? `calc(64px + ${previewBannerOffset}px)`
-    : `calc(64px + var(--promo-banner-height, 40px) + ${previewBannerOffset}px)`;
+    ? `calc(var(--header-total-height, 4rem) - var(--promo-banner-height, 0px))`
+    : `var(--header-total-height, 4rem)`;
+
+  // Expose this navbar's own height as a CSS variable so downstream layouts
+  // (sticky sidebar, main content padding) can compensate for it dynamically.
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const updateHeight = () => {
+      const h = el.offsetHeight;
+      document.documentElement.style.setProperty('--catalog-secondary-height', `${h}px`);
+    };
+    updateHeight();
+    const ro = new ResizeObserver(updateHeight);
+    ro.observe(el);
+    window.addEventListener('resize', updateHeight);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateHeight);
+      document.documentElement.style.removeProperty('--catalog-secondary-height');
+    };
+  }, []);
 
   return (
     <div
+      ref={barRef}
       className="fixed left-0 right-0 z-40 bg-white border-b border-neutral-200"
       style={{ top: topPosition }}
     >

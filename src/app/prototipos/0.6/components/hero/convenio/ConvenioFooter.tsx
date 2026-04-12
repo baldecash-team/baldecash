@@ -64,15 +64,18 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({
   }
 
   return (
-    <footer className="bg-neutral-900 text-white py-12">
-      <div className="max-w-7xl mx-auto px-4">
+    <footer
+      className="bg-neutral-900 text-white py-10 sm:py-12"
+      style={{ paddingBottom: 'calc(3rem + env(safe-area-inset-bottom))' }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center text-center">
           {/* Co-branded Logos */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center flex-wrap justify-center gap-3 sm:gap-4 mb-5 sm:mb-6">
             <img
               src={logoUrl}
               alt="BaldeCash"
-              className="h-8 object-contain"
+              className="h-7 sm:h-8 object-contain"
             />
             <span className="text-neutral-500">×</span>
             {agreementData.institution_logo ? (
@@ -80,7 +83,7 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({
                 <img
                   src={agreementData.institution_logo}
                   alt={agreementData.institution_name || 'Institución'}
-                  className="h-5 object-contain"
+                  className="h-5 object-contain max-w-[140px]"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
@@ -88,24 +91,24 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({
                 />
               </div>
             ) : (
-              <span className="text-neutral-400 font-medium">
+              <span className="text-neutral-400 font-medium text-sm sm:text-base truncate max-w-[200px]">
                 {agreementData.institution_short_name || agreementData.institution_name}
               </span>
             )}
           </div>
 
           {/* Description */}
-          <p className="text-neutral-400 text-sm max-w-md mb-6">
+          <p className="text-neutral-400 text-xs sm:text-sm max-w-md mb-5 sm:mb-6 px-2">
             {data?.tagline}
           </p>
 
           {/* Legal Links */}
-          <div className="flex flex-wrap justify-center gap-6 mb-8 text-sm">
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-1 sm:gap-6 mb-6 sm:mb-8 text-xs sm:text-sm">
             {legalLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="text-neutral-400 hover:text-white transition-colors"
+                className="text-neutral-400 hover:text-white transition-colors py-2"
               >
                 {link.label}
               </a>
@@ -113,26 +116,26 @@ export const ConvenioFooter: React.FC<ConvenioFooterProps> = ({
           </div>
 
           {/* Divider */}
-          <div className="w-full max-w-xs h-px bg-neutral-800 mb-6" />
+          <div className="w-full max-w-xs h-px bg-neutral-800 mb-5 sm:mb-6" />
 
           {/* Libro de reclamaciones */}
           <a
             href={transformLink('legal/libro-reclamaciones')}
-            className="mb-4 opacity-80 hover:opacity-100 transition-opacity"
+            className="mb-3 sm:mb-4 opacity-80 hover:opacity-100 transition-opacity"
             title="Libro de reclamaciones"
           >
             <img
               src="https://baldecash.s3.amazonaws.com/company/libro-reclamaciones.png"
               alt="Libro de reclamaciones"
-              className="h-12 w-auto"
+              className="h-10 sm:h-12 w-auto max-w-[90px] object-contain"
             />
           </a>
 
           {/* SBS + Copyright */}
           {data?.sbs_text && (
-            <p className="text-neutral-600 text-xs mb-2">{data.sbs_text}</p>
+            <p className="text-neutral-600 text-[10px] sm:text-xs mb-2 px-2">{data.sbs_text}</p>
           )}
-          <p className="text-neutral-500 text-xs">
+          <p className="text-neutral-500 text-[10px] sm:text-xs px-2">
             {data?.copyright_text}
           </p>
         </div>

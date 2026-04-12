@@ -107,27 +107,27 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
   };
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <div className="flex flex-col sm:flex-row items-center gap-3">
+    <div className="flex flex-col items-center gap-3 w-full">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-3 w-full max-w-md sm:max-w-none">
         <Button
           size="lg"
           radius="lg"
-          className="text-white font-semibold w-52 h-14 text-base cursor-pointer transition-colors shadow-lg"
+          className="text-white font-semibold w-full sm:w-52 h-14 text-base cursor-pointer transition-colors shadow-lg"
           style={{
             backgroundColor: 'var(--color-primary, #4654CD)',
             boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--color-primary, #4654CD) 25%, transparent)',
           }}
-          startContent={<Laptop className="w-5 h-5" />}
+          startContent={<Laptop className="w-5 h-5 flex-shrink-0" />}
           onPress={handleCatalogo}
         >
-          {data?.buttons.catalog.text || ''}
+          <span className="text-wrap text-left leading-tight">{data?.buttons.catalog.text || ''}</span>
         </Button>
         {/* Quiz button - Solo mostrar si hay quiz asociado */}
         {hasQuiz && (
           <Button
             size="lg"
             radius="lg"
-            className="text-white font-semibold w-52 h-14 text-base cursor-pointer transition-colors shadow-lg"
+            className="text-white font-semibold w-full sm:w-52 h-14 text-base cursor-pointer transition-colors shadow-lg"
             style={{
               backgroundColor: 'var(--color-secondary, #03DBD0)',
               boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--color-secondary, #03DBD0) 25%, transparent)',
@@ -141,14 +141,14 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
         <Button
           size="lg"
           radius="lg"
-          className="bg-[#25D366] text-white font-semibold w-52 h-14 text-base cursor-pointer hover:bg-[#20bd5a] transition-colors shadow-lg shadow-[#25D366]/25"
+          className="bg-[#25D366] text-white font-semibold w-full sm:w-52 h-14 text-base cursor-pointer hover:bg-[#20bd5a] transition-colors shadow-lg shadow-[#25D366]/25"
           startContent={<WhatsAppIcon />}
           onPress={handleWhatsApp}
         >
-          {data?.buttons.whatsapp.text || ''}
+          <span className="text-wrap text-left leading-tight">{data?.buttons.whatsapp.text || ''}</span>
         </Button>
       </div>
-      <p className="text-sm text-neutral-400">
+      <p className="text-xs sm:text-sm text-neutral-400 text-center">
         {data?.responseTime || ''}
       </p>
     </div>

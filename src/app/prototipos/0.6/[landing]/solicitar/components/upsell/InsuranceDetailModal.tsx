@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
 import { ShieldCheck, Lock, Check, Plus, X, ExternalLink, Users } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -213,31 +213,36 @@ const MobileBottomSheet: React.FC<InsuranceDetailModalProps> = ({
   const dragControls = useDragControls();
   const shouldShow = isOpen && plan;
 
+  // Block body scroll while open — cleanup pattern ensures unlock always runs
+  // on unmount OR when isOpen flips to false (same fix as LocationModal/CartDrawer).
+  // The old if/else + return cleanup was double-unlocking and breaking scroll
+  // when two drawers overlapped.
+  const scrollYRef = useRef<number>(0);
+  const didLockRef = useRef<boolean>(false);
+
   useEffect(() => {
-    if (isOpen) {
-      const scrollY = window.scrollY;
+    if (!isOpen) return;
+
+    // Only lock if not already locked by a parent/sibling drawer
+    if (document.body.style.position !== 'fixed') {
+      scrollYRef.current = window.scrollY;
       document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
+      document.body.style.top = `-${scrollYRef.current}px`;
       document.body.style.left = '0';
       document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
-    } else {
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
-      if (scrollY) window.scrollTo(0, parseInt(scrollY) * -1);
+      didLockRef.current = true;
     }
+
     return () => {
-      const scrollY = document.body.style.top;
+      if (!didLockRef.current) return;
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.left = '';
       document.body.style.right = '';
       document.body.style.overflow = '';
-      if (scrollY) window.scrollTo(0, parseInt(scrollY) * -1);
+      window.scrollTo(0, scrollYRef.current);
+      didLockRef.current = false;
     };
   }, [isOpen]);
 

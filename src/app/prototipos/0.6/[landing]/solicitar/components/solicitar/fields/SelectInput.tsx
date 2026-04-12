@@ -142,6 +142,9 @@ export const SelectInput: React.FC<SelectInputProps> = ({
         <div
           role="button"
           tabIndex={disabled ? -1 : 0}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          aria-controls={`${id}-listbox`}
           onClick={() => {
             if (disabled) return;
             const willOpen = !isOpen;
@@ -150,9 +153,14 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             else onBlur?.();
           }}
           onKeyDown={(e) => {
-            if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+            if (disabled) return;
+            if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               setIsOpen(!isOpen);
+            } else if (e.key === 'Escape' && isOpen) {
+              e.preventDefault();
+              setIsOpen(false);
+              onBlur?.();
             }
           }}
           className={`
@@ -187,7 +195,11 @@ export const SelectInput: React.FC<SelectInputProps> = ({
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
+          <div
+            id={`${id}-listbox`}
+            role="listbox"
+            className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden"
+          >
             {/* Search input */}
             {searchable && (
               <div className="p-2 border-b border-neutral-100">
@@ -216,8 +228,9 @@ export const SelectInput: React.FC<SelectInputProps> = ({
               </div>
             )}
 
-            {/* Options list */}
-            <div className="max-h-60 overflow-y-auto p-1">
+            {/* Options list — extra pb on mobile so the last options stay
+                visible above the iOS virtual keyboard when it is open. */}
+            <div className="max-h-[min(15rem,50vh)] overflow-y-auto p-1 pb-16 sm:pb-1 overscroll-contain">
               {needsMoreChars ? (
                 <div className="py-8 text-center text-neutral-400 text-sm">
                   {searchPrompt || `Escribe al menos ${minSearchLength} caracteres para buscar`}
@@ -262,24 +275,28 @@ export const SelectInput: React.FC<SelectInputProps> = ({
         )}
       </div>
 
-      {/* Click outside to close */}
+      {/* Click outside to close - z-30 keeps it below navbar (z-50) and product bar (z-40),
+          so those elements remain interactive even when the dropdown is open. */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40"
+          className="fixed inset-0 z-30"
           onClick={() => {
             setIsOpen(false);
             onBlur?.();
           }}
+          aria-hidden="true"
         />
       )}
 
-      {/* Error message */}
-      {error && (
-        <p className="text-sm text-[#ef4444] flex items-center gap-1">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          {error}
-        </p>
-      )}
+      {/* Error message - always reserve space for alignment in multi-column grids */}
+      <div className="min-h-[20px]">
+        {error && (
+          <p className="text-sm text-[#ef4444] flex items-center gap-1">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </p>
+        )}
+      </div>
     </div>
   );
 };

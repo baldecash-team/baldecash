@@ -19,19 +19,21 @@ interface DynamicWizardStepProps {
 
 // Tailwind requires static class names - dynamic classes like `col-span-${n}` get purged
 // Map grid_columns values to static Tailwind classes
+// Uses sm: (≥640px) so 2-column layouts activate on large phones/tablets,
+// matching the wizard layout which only flips to 2-column at lg: (≥1024px).
 const GRID_COL_CLASSES: Record<number, string> = {
-  1: 'md:col-span-1',
-  2: 'md:col-span-2',
-  3: 'md:col-span-3',
-  4: 'md:col-span-4',
-  5: 'md:col-span-5',
-  6: 'md:col-span-6',
-  7: 'md:col-span-7',
-  8: 'md:col-span-8',
-  9: 'md:col-span-9',
-  10: 'md:col-span-10',
-  11: 'md:col-span-11',
-  12: 'md:col-span-12',
+  1: 'sm:col-span-1',
+  2: 'sm:col-span-2',
+  3: 'sm:col-span-3',
+  4: 'sm:col-span-4',
+  5: 'sm:col-span-5',
+  6: 'sm:col-span-6',
+  7: 'sm:col-span-7',
+  8: 'sm:col-span-8',
+  9: 'sm:col-span-9',
+  10: 'sm:col-span-10',
+  11: 'sm:col-span-11',
+  12: 'sm:col-span-12',
 };
 
 const GRID_COL_MOBILE_CLASSES: Record<number, string> = {
@@ -163,7 +165,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         const colsMobile = field.grid_columns_mobile || 12;
 
         // Get static Tailwind classes
-        const colClass = GRID_COL_CLASSES[cols] || 'md:col-span-12';
+        const colClass = GRID_COL_CLASSES[cols] || 'sm:col-span-12';
         const colMobileClass = GRID_COL_MOBILE_CLASSES[colsMobile] || 'col-span-12';
 
         return (

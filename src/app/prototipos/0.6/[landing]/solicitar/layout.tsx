@@ -7,14 +7,29 @@
  * - WizardConfigProvider: fetches form config from API
  * - WizardProvider: manages form state and persistence
  *
- * Note: SessionProvider and EventTrackerProvider are now in the parent
- * [landing] layout so tracking starts from the first page visited.
+ * Note: SessionProvider and EventTrackerProvider are in the parent
+ * [landing] layout. Session is lazy — initialized here when user
+ * enters the form flow (not on landing page load).
  */
 
+import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { WizardProvider } from './context/WizardContext';
 import { WizardConfigProvider } from './context/WizardConfigContext';
 import { ProductProvider } from './context/ProductContext';
+import { useSession } from './context/SessionContext';
+
+function SessionInitializer({ landing }: { landing: string }) {
+  const { initSession, isInitialized, isCreating } = useSession();
+
+  useEffect(() => {
+    if (!isInitialized && !isCreating) {
+      initSession(landing);
+    }
+  }, [landing, isInitialized, isCreating, initSession]);
+
+  return null;
+}
 
 export default function WizardPreviewLayout({
   children,
@@ -24,12 +39,10 @@ export default function WizardPreviewLayout({
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
-  // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
-  const wizardSlug = landing === 'zona-gamer' ? 'home' : landing;
-
   return (
     <ProductProvider landingSlug={landing}>
-      <WizardConfigProvider slug={wizardSlug}>
+      <WizardConfigProvider slug={landing}>
+        <SessionInitializer landing={landing} />
         <WizardProvider landingSlug={landing}>{children}</WizardProvider>
       </WizardConfigProvider>
     </ProductProvider>

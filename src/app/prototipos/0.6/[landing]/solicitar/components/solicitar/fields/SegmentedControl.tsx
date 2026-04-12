@@ -91,7 +91,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
               }}
               disabled={option.disabled || disabled}
               className={`
-                relative flex-1 py-2.5 text-sm font-medium rounded-lg cursor-pointer
+                relative flex-1 py-2.5 min-h-[44px] text-sm font-medium rounded-lg cursor-pointer
                 transition-colors duration-200 z-10
                 ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-600 hover:text-neutral-800'}
                 ${option.disabled ? 'opacity-50 cursor-not-allowed' : ''}

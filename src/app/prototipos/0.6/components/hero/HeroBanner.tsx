@@ -5,7 +5,8 @@
  * Layout: Imagen fullwidth con overlay oscuro + texto izquierda
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Button, Chip } from '@nextui-org/react';
 import { ArrowRight, Shield, Users, Building, Clock, CreditCard, Truck, CheckCircle, Star, Heart, Zap, Headphones, Award } from 'lucide-react';
@@ -22,6 +23,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   imagePositionX = 50,
   imagePositionY = 50,
   imageZoom = 1.0,
+  mobilePositionX,
+  mobilePositionY,
+  mobileZoom,
   primaryCta,
   trustSignals = [],
   badgeText,
@@ -30,6 +34,21 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 }) => {
   const router = useRouter();
   const tracker = useEventTrackerOptional();
+
+  // Use mobile position/zoom on small screens if configured
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const hasMobileOverride = mobilePositionX != null || mobilePositionY != null || mobileZoom != null;
+  const posX = isMobile && hasMobileOverride ? (mobilePositionX ?? 50) : imagePositionX;
+  const posY = isMobile && hasMobileOverride ? (mobilePositionY ?? 50) : imagePositionY;
+  const zoomVal = isMobile && hasMobileOverride ? (mobileZoom ?? 1.0) : imageZoom;
 
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
@@ -122,28 +141,38 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   };
 
   return (
-    <section className="relative min-h-[600px] h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Background Image */}
-      <img
+    <section
+      className="relative overflow-hidden"
+      style={{
+        // Fill the viewport minus the total fixed header height (preview + promo + navbar).
+        // `clamp` keeps a sensible minimum on very short viewports (landscape phones)
+        // without forcing an oversize banner on tall ones (tablets, 4K).
+        height: 'clamp(520px, calc(100vh - var(--header-total-height, 4rem)), 900px)',
+      }}
+    >
+      {/* Background Image - next/image with priority for LCP optimization */}
+      {imageSrc && <Image
         src={imageSrc}
         alt="Estudiantes trabajando"
-        className="absolute inset-0 w-full h-full object-cover"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
         style={{
-          objectPosition: `${imagePositionX}% ${imagePositionY}%`,
-          transform: imageZoom !== 1 ? `scale(${imageZoom})` : undefined,
+          objectPosition: `${posX}% ${posY}%`,
+          transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
         }}
-        loading="lazy"
         onError={(e) => {
           const target = e.target as HTMLImageElement;
           target.style.opacity = '0';
         }}
-      />
+      />}
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-transparent" />
+      {/* Overlay — stronger gradient on mobile where text overlaps the image center */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/20 sm:to-transparent" />
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="relative z-10 h-full flex items-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div className="max-w-2xl">
           {/* Badge */}
           {badgeText && (
@@ -151,7 +180,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               size="sm"
               radius="sm"
               classNames={{
-                base: 'bg-white/20 backdrop-blur-sm px-3 py-1 h-auto mb-6',
+                base: 'bg-white/20 backdrop-blur-sm px-3 py-1 h-auto mb-4 sm:mb-6',
                 content: 'text-white text-xs font-medium',
               }}
             >
@@ -160,28 +189,28 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           )}
 
           {/* Headline */}
-          <h1 className="font-['Baloo_2'] text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
+          <h1 className="font-['Baloo_2',_sans-serif] text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4 sm:mb-6">
             {headline || ''}
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg md:text-xl text-white/80 mb-8 max-w-xl">
+          <p className="text-base sm:text-lg md:text-xl text-white/80 mb-6 sm:mb-8 max-w-xl">
             {subheadline}
           </p>
 
           {/* Price Highlight */}
-          <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-6 py-4 mb-8">
-            <span className="text-white/70 text-lg">Desde</span>
-            <span className="text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
-            <span className="text-white/70 text-lg">/mes</span>
+          <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
+            <span className="text-white/70 text-sm sm:text-lg">Desde</span>
+            <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
+            <span className="text-white/70 text-sm sm:text-lg">/mes</span>
           </div>
 
           {/* CTAs */}
-          <div className="flex flex-wrap gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 sm:mb-8">
             <Button
               size="lg"
               radius="lg"
-              className="text-neutral-900 font-semibold px-8 cursor-pointer transition-colors"
+              className="text-neutral-900 font-semibold px-8 cursor-pointer transition-colors w-full sm:w-auto"
               style={{
                 backgroundColor: 'var(--color-secondary, #03DBD0)',
               }}
@@ -193,14 +222,14 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           </div>
 
           {/* Trust Signals */}
-          <div className="flex flex-wrap gap-6">
+          <div className="flex flex-wrap gap-x-4 gap-y-2 sm:gap-4 md:gap-6">
             {trustSignals
               .filter((signal) => signal.is_visible !== false)
               .map((signal, index) => {
                 const IconComponent = getIconComponent(signal.icon);
                 return (
-                  <div key={index} className="flex items-center gap-2 text-white/80 text-sm">
-                    <IconComponent className="w-5 h-5" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
+                  <div key={index} className="flex items-center gap-2 text-white/80 text-xs sm:text-sm">
+                    <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
                     <span>{signal.text}</span>
                   </div>
                 );

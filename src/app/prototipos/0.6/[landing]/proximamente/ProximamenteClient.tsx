@@ -154,32 +154,41 @@ function ProximamenteContent() {
         institutionName={navbarProps.institutionName}
       />
 
-      {/* Main Content */}
-      <main className="flex-1 pt-40 pb-24 flex items-center justify-center">
-        <div className="max-w-lg mx-auto px-4 text-center">
+      {/* Main Content — padding-top driven by --header-total-height so it
+          adapts to preview banner + promo banner + navbar dynamically. */}
+      <main
+        className="flex-1 pb-12 sm:pb-16 md:pb-24 flex items-center justify-center"
+        style={{ paddingTop: 'calc(var(--header-total-height, 6.5rem) + 2rem)' }}
+      >
+        <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 text-center w-full">
           {/* Icon */}
           <div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6"
+            className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 sm:mb-6"
             style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
           >
-            <IconComponent className="w-10 h-10" style={{ color: 'var(--color-primary, #4654CD)' }} />
+            <IconComponent className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: 'var(--color-primary, #4654CD)' }} />
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 font-['Baloo_2'] mb-3">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 font-['Baloo_2',_sans-serif] leading-tight mb-3">
             Estamos trabajando en esto
           </h1>
 
-          {/* Section name */}
+          {/* Section name — chip degrades gracefully with long titles */}
           <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mb-4 max-w-full"
             style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
           >
-            <span className="text-sm font-medium" style={{ color: 'var(--color-primary, #4654CD)' }}>{contenido.titulo}</span>
+            <span
+              className="text-xs sm:text-sm font-medium break-words"
+              style={{ color: 'var(--color-primary, #4654CD)' }}
+            >
+              {contenido.titulo}
+            </span>
           </div>
 
           {/* Description */}
-          <p className="text-neutral-500 mb-8 max-w-md mx-auto">
+          <p className="text-sm sm:text-base text-neutral-500 leading-relaxed mb-6 sm:mb-8 max-w-md mx-auto px-2">
             {contenido.descripcion}
           </p>
 
@@ -190,7 +199,7 @@ function ProximamenteContent() {
               href={routes.landingHome(landing)}
               size="lg"
               radius="lg"
-              className="text-white font-semibold px-6"
+              className="w-full sm:w-auto text-white font-semibold px-6"
               style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
               startContent={<ArrowLeft className="w-4 h-4" />}
             >
@@ -199,20 +208,20 @@ function ProximamenteContent() {
           </div>
 
           {/* WhatsApp CTA */}
-          <div className="mt-12 p-4 bg-white rounded-xl border border-neutral-200">
+          <div className="mt-8 sm:mt-12 p-3 sm:p-4 bg-white rounded-xl border border-neutral-200">
             <div className="flex items-start gap-3 text-left">
-              <div className="w-10 h-10 rounded-lg bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#25D366]/10 flex items-center justify-center flex-shrink-0">
                 <MessageCircle className="w-5 h-5 text-[#25D366]" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="font-medium text-neutral-800 text-sm">¿Tienes alguna consulta?</p>
-                <p className="text-neutral-500 text-sm mt-1 mb-3">
+                <p className="text-xs sm:text-sm text-neutral-500 mt-1 mb-3 break-words">
                   Nuestro equipo está disponible para ayudarte.
                 </p>
                 <Button
                   size="sm"
-                  className="bg-[#25D366] text-white font-semibold cursor-pointer"
-                  startContent={<MessageCircle className="w-4 h-4" />}
+                  className="w-full sm:w-auto bg-[#25D366] text-white font-semibold cursor-pointer"
+                  startContent={<MessageCircle className="w-4 h-4 flex-shrink-0" />}
                   onPress={() => window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer')}
                 >
                   Escríbenos por WhatsApp
@@ -222,15 +231,19 @@ function ProximamenteContent() {
           </div>
 
           {/* Email info */}
-          <div className="mt-4 p-4 bg-white rounded-xl border border-neutral-200">
+          <div className="mt-4 p-3 sm:p-4 bg-white rounded-xl border border-neutral-200">
             <div className="flex items-start gap-3 text-left">
-              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
                 <Bell className="w-5 h-5 text-amber-600" />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="font-medium text-neutral-800 text-sm">También puedes escribirnos</p>
-                <p className="text-neutral-500 text-sm mt-1">
-                  <a href="mailto:prestamos@baldecash.com" className="hover:underline" style={{ color: 'var(--color-primary, #4654CD)' }}>
+                <p className="text-xs sm:text-sm text-neutral-500 mt-1">
+                  <a
+                    href="mailto:prestamos@baldecash.com"
+                    className="underline decoration-dotted underline-offset-2 hover:decoration-solid break-all"
+                    style={{ color: 'var(--color-primary, #4654CD)' }}
+                  >
                     prestamos@baldecash.com
                   </a>
                 </p>

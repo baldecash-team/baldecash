@@ -14,7 +14,7 @@ export const mockAccessories: Accessory[] = [
     price: 89,
     monthlyQuota: 4,
     image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400&h=400&fit=crop',
-    category: 'perifericos',
+    category: { slug: 'mouse', name: 'Mouse' },
     isRecommended: true,
     compatibleWith: ['all'],
     specs: [
@@ -31,7 +31,7 @@ export const mockAccessories: Accessory[] = [
     price: 59,
     monthlyQuota: 3,
     image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
-    category: 'proteccion',
+    category: { slug: 'protector', name: 'Protector' },
     isRecommended: true,
     compatibleWith: ['all'],
     specs: [
@@ -48,7 +48,7 @@ export const mockAccessories: Accessory[] = [
     price: 79,
     monthlyQuota: 4,
     image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
-    category: 'audio',
+    category: { slug: 'auriculares', name: 'Auriculares' },
     isRecommended: false,
     compatibleWith: ['all'],
     specs: [
@@ -65,7 +65,7 @@ export const mockAccessories: Accessory[] = [
     price: 129,
     monthlyQuota: 6,
     image: 'https://images.unsplash.com/photo-1625842268584-8f3296236761?w=400&h=400&fit=crop',
-    category: 'accesorios',
+    category: { slug: 'hub', name: 'Hub' },
     isRecommended: false,
     compatibleWith: ['all'],
     specs: [
@@ -82,7 +82,7 @@ export const mockAccessories: Accessory[] = [
     price: 69,
     monthlyQuota: 3,
     image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=400&h=400&fit=crop',
-    category: 'proteccion',
+    category: { slug: 'soporte', name: 'Soporte' },
     isRecommended: false,
     compatibleWith: ['all'],
     specs: [
@@ -99,7 +99,7 @@ export const mockAccessories: Accessory[] = [
     price: 189,
     monthlyQuota: 8,
     image: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=400&h=400&fit=crop',
-    category: 'accesorios',
+    category: { slug: 'otro', name: 'Otro' },
     isRecommended: false,
     compatibleWith: ['all'],
     specs: [

@@ -78,6 +78,18 @@ export function useGooglePlacesAutocomplete({
     }
 
     try {
+      // Verify the Places library is actually available. On mobile Safari with
+      // an outdated script load path, google.maps.places may exist but the
+      // Autocomplete constructor can be missing or throw.
+      if (!google.maps.places?.Autocomplete) {
+        const msg =
+          'google.maps.places.Autocomplete no está disponible. Verifica que la API key incluya la librería "places" y que el proyecto tenga facturación habilitada.';
+        console.error('[useGooglePlacesAutocomplete]', msg);
+        setError(msg);
+        onError?.(msg);
+        return;
+      }
+
       // Create Autocomplete instance
       const options: google.maps.places.AutocompleteOptions = {
         fields: ['formatted_address', 'geometry', 'address_components', 'name'],
@@ -90,12 +102,22 @@ export function useGooglePlacesAutocomplete({
         options
       );
 
+      console.info('[useGooglePlacesAutocomplete] Autocomplete initialized', {
+        country: countryRestriction,
+        inputId: inputRef.current.id,
+      });
+
       // Initialize Geocoder for reverse geocoding
       geocoderRef.current = new google.maps.Geocoder();
 
       // Handle place selection
       autocompleteRef.current.addListener('place_changed', () => {
         const place = autocompleteRef.current?.getPlace();
+        console.info('[useGooglePlacesAutocomplete] place_changed', {
+          hasPlace: !!place,
+          hasGeometry: !!place?.geometry,
+          name: place?.name,
+        });
 
         if (!place || !place.geometry) {
           // User pressed enter without selecting from dropdown
@@ -107,6 +129,7 @@ export function useGooglePlacesAutocomplete({
       });
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error initializing autocomplete';
+      console.error('[useGooglePlacesAutocomplete] init threw', err);
       setError(errorMsg);
       onError?.(errorMsg);
     }

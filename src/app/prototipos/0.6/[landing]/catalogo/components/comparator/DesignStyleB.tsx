@@ -137,7 +137,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               {/* Product image */}
               <div className={`w-32 h-32 rounded-xl ${isBest ? 'bg-[#22c55e]/5' : 'bg-neutral-50'} flex items-center justify-center p-4`}>
                 <img
-                  src={product.thumbnail}
+                  src={product.images[0] || product.thumbnail}
                   alt={product.displayName}
                   className="w-full h-full object-contain"
                 />

@@ -180,7 +180,10 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
   };
 
   return (
-    <footer className="bg-neutral-900 text-white">
+    <footer
+      className="bg-neutral-900 text-white"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       {/* Newsletter Section - Only render if newsletter is enabled */}
       {newsletterConfig?.enabled && (
         <div style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}>
@@ -228,7 +231,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
                   </div>
                   <Button
                     radius="lg"
-                    className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors disabled:opacity-70"
+                    className="bg-neutral-900 text-white font-semibold px-6 h-11 cursor-pointer hover:bg-neutral-800 transition-colors disabled:opacity-70 w-full sm:w-auto"
                     endContent={!isSubmitting && <Send className="w-4 h-4" />}
                     onPress={handleSubmit}
                     isLoading={isSubmitting}
@@ -269,7 +272,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center transition-colors social-link-hover"
+                  className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center transition-colors social-link-hover"
                   style={{ '--hover-bg': 'var(--color-primary, #4654CD)' } as React.CSSProperties}
                   aria-label={social.label}
                   onClick={() => tracker?.track('cta_click', { cta_name: `social_${social.label.toLowerCase()}`, href: social.href, location: 'footer' })}
@@ -333,7 +336,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
               <img
                 src="https://baldecash.s3.amazonaws.com/company/libro-reclamaciones.png"
                 alt="Libro de reclamaciones"
-                className="h-12 w-auto"
+                className="h-10 sm:h-12 w-auto max-w-[90px] object-contain"
               />
             </a>
           </div>

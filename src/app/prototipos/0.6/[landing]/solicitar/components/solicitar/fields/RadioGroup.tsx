@@ -94,16 +94,16 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
             `}
           >
             {/* Content */}
-            <div>
+            <div className="min-w-0">
               <p className={`
-                font-medium text-base
+                font-medium text-sm sm:text-base break-words
                 ${value === option.value ? 'text-[var(--color-primary)]' : 'text-neutral-800'}
               `}>
                 {option.label}
               </p>
               {option.description && (
                 <p className={`
-                  text-sm mt-0.5
+                  text-xs sm:text-sm mt-0.5 break-words
                   ${value === option.value ? 'text-[rgba(var(--color-primary-rgb),0.7)]' : 'text-neutral-500'}
                 `}>
                   {option.description}

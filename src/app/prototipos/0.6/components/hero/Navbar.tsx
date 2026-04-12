@@ -39,6 +39,7 @@ import {
 import type { PromoBannerData } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { getReadableColorOnWhite, getContrastTextColor } from '@/app/prototipos/0.6/utils/colorContrast';
 
 // Helper function to build internal URLs with optional query params
 const buildInternalUrl = (basePath: string, params?: Record<string, string>) => {
@@ -121,6 +122,8 @@ interface NavbarProps {
   institutionLogo?: string;
   /** Institution name for co-branding alt text */
   institutionName?: string;
+  /** Primary brand color hex for contrast calculations */
+  primaryColor?: string;
 }
 
 // Map de iconos para megamenu (sincronizado con admin MEGAMENU_ICONS)
@@ -150,11 +153,15 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor }) => {
   // Auto-detect preview banner offset based on whether THIS landing is being previewed
   const { isPreviewingLanding } = usePreview();
   const isThisLandingPreviewed = isPreviewingLanding(landing);
   const previewBannerOffset = previewBannerOffsetProp ?? (isThisLandingPreviewed ? 24 : 0);
+  // Readable color for text/borders on white background (auto-darkens light colors like yellow)
+  const readablePrimary = getReadableColorOnWhite(primaryColor || '#4654CD');
+  const hoverTextColor = getContrastTextColor(primaryColor || '#4654CD');
+
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
@@ -294,9 +301,10 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
       {showPromo && !hidePromoBanner && hasPromoBannerContent && (
         <div
           ref={promoBannerRef}
-          className="fixed left-0 right-0 z-[60] text-white text-center py-2 sm:py-2.5 px-4 text-sm"
+          className="fixed left-0 right-0 z-[60] text-white text-center py-1.5 sm:py-2.5 px-4 text-xs sm:text-sm"
           style={{
             top: previewBannerOffset,
+            paddingTop: `calc(0.375rem + env(safe-area-inset-top))`,
             background: `linear-gradient(to right, var(--color-primary, #4654CD), color-mix(in srgb, var(--color-primary, #4654CD) 85%, white))`,
           }}
         >
@@ -322,6 +330,21 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
           </div>
         </div>
       )}
+
+      {/* Mobile menu backdrop — tap-outside-to-close */}
+      <AnimatePresence>
+        {!minimal && isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={() => setIsMenuOpen(false)}
+            className="fixed inset-0 z-40 bg-black/30 lg:hidden"
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
 
       <nav
         className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
@@ -350,7 +373,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
 
             {/* Desktop Navigation */}
             {!minimal && (
-              <div className="hidden md:flex items-center gap-8">
+              <div className="hidden lg:flex items-center gap-8">
                 {navItems.map((item, index) => (
                   <div
                     key={item.label}
@@ -440,28 +463,28 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
 
             {/* Desktop CTA */}
             {!minimal && (
-              <div className="hidden md:flex items-center gap-3">
+              <div className="hidden lg:flex items-center gap-3">
                 <Button
                   as="a"
                   href={customerPortalUrl}
                   target="_blank"
                   variant="bordered"
                   radius="lg"
-                  className="font-medium cursor-pointer transition-colors hover:text-white"
+                  className="font-medium cursor-pointer transition-colors"
                   style={{
-                    borderColor: 'var(--color-primary, #4654CD)',
-                    color: 'var(--color-primary, #4654CD)',
+                    borderColor: readablePrimary,
+                    color: readablePrimary,
                   }}
                   onPress={() => {
                     tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_desktop' });
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
-                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.color = hoverTextColor;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = '';
-                    e.currentTarget.style.color = 'var(--color-primary, #4654CD)';
+                    e.currentTarget.style.color = readablePrimary;
                   }}
                   startContent={<User className="w-4 h-4" />}
                 >
@@ -484,9 +507,9 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
               </div>
             )}
 
-            {/* Mobile buttons */}
+            {/* Mobile/tablet buttons */}
             {!minimal && (
-              <div className="flex md:hidden items-center gap-2">
+              <div className="flex lg:hidden items-center gap-2">
                 <button
                   className="p-2 rounded-lg hover:bg-neutral-100 cursor-pointer"
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -502,11 +525,11 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile/Tablet Menu */}
         <AnimatePresence>
           {!minimal && isMenuOpen && (
             <motion.div
-              className="md:hidden bg-white border-t border-neutral-100"
+              className="lg:hidden bg-white border-t border-neutral-100"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -649,19 +672,19 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                     radius="lg"
                     className="w-full font-medium cursor-pointer transition-colors"
                     style={{
-                      borderColor: 'var(--color-primary, #4654CD)',
-                      color: 'var(--color-primary, #4654CD)',
+                      borderColor: readablePrimary,
+                      color: readablePrimary,
                     }}
                     onPress={() => {
                       tracker?.track('cta_click', { cta_name: 'portal_estudiantes', href: customerPortalUrl, location: 'navbar_mobile' });
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = 'var(--color-primary, #4654CD)';
-                      e.currentTarget.style.color = 'white';
+                      e.currentTarget.style.color = hoverTextColor;
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = '';
-                      e.currentTarget.style.color = 'var(--color-primary, #4654CD)';
+                      e.currentTarget.style.color = readablePrimary;
                     }}
                     startContent={<User className="w-4 h-4" />}
                   >

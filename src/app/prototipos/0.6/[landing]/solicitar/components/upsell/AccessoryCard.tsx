@@ -95,7 +95,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
                 onViewDetails();
               }
             }}
-            className="w-full flex items-center justify-center gap-1.5 text-xs text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] hover:bg-[rgba(var(--color-primary-rgb),0.2)] font-medium py-2 px-3 rounded-lg mb-3 cursor-pointer transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 text-xs text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.1)] hover:bg-[rgba(var(--color-primary-rgb),0.2)] font-medium py-2.5 sm:py-2 px-3 min-h-[36px] sm:min-h-0 rounded-lg mb-3 cursor-pointer transition-colors"
           >
             <Info className="w-3.5 h-3.5" />
             Ver detalles

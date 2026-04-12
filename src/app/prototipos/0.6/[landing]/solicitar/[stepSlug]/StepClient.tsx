@@ -728,7 +728,7 @@ function StepContent() {
           {/* Campos editables del paso de resumen actual - usa DynamicWizardStep para renderizar
               los campos con el tipo correcto (RadioGroup, FileUpload, etc.) */}
           {step.fields.length > 0 && (
-            <div className="bg-white rounded-xl border border-neutral-200 p-6">
+            <div className="bg-white rounded-xl border border-neutral-200 p-4 sm:p-6">
               <DynamicWizardStep
                 step={step}
                 showErrors={submitted}

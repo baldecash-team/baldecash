@@ -61,23 +61,28 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         institutionName={navbarProps.institutionName}
       />
 
-      {/* Main Content - pt-40 to account for navbar (64px) + promo banner (40px) + spacing */}
-      <main className="flex-1 pt-40 pb-16">
+      {/* Main Content - use --header-total-height exposed by Navbar so the
+          top padding adapts to the actual fixed header height (preview banner
+          + promo banner + navbar) instead of guessing. */}
+      <main
+        className="flex-1 pb-12 sm:pb-16"
+        style={{ paddingTop: 'calc(var(--header-total-height, 6.5rem) + 1.5rem)' }}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
-          <div className="mb-8 pb-6 border-b border-neutral-200">
-            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 font-['Baloo_2'] mb-2">
+          <div className="mb-6 sm:mb-8 pb-5 sm:pb-6 border-b border-neutral-200">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-900 font-['Baloo_2',_sans-serif] leading-tight mb-2">
               {title}
             </h1>
             {lastUpdated && (
-              <p className="text-sm text-neutral-500">
+              <p className="text-xs sm:text-sm text-neutral-500">
                 Última actualización: {lastUpdated}
               </p>
             )}
           </div>
 
           {/* Content */}
-          <div className="prose prose-neutral max-w-none">
+          <div className="max-w-none">
             {children}
           </div>
         </div>

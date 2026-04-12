@@ -206,7 +206,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             </div>
           )}
           {displayName && (
-            <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2'] leading-tight">
+            <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2',_sans-serif] leading-tight">
               {displayName}
             </h1>
           )}
@@ -223,13 +223,25 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
         </div>
       )}
 
-      {/* Main Image */}
-      <div
-        className="relative aspect-square cursor-zoom-in group overflow-hidden"
+      {/* Main Image — swipe to change on touch devices (framer-motion drag).
+          Click/tap still opens the lightbox when drag distance is negligible. */}
+      <motion.div
+        className="relative aspect-square cursor-zoom-in group overflow-hidden touch-pan-y"
         onClick={openLightbox}
         onMouseEnter={() => setIsZoomed(true)}
         onMouseLeave={() => setIsZoomed(false)}
         onMouseMove={handleMouseMove}
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(_, info) => {
+          const threshold = 50;
+          if (info.offset.x < -threshold && selectedImage < filteredImages.length - 1) {
+            setSelectedImage((i) => i + 1);
+          } else if (info.offset.x > threshold && selectedImage > 0) {
+            setSelectedImage((i) => i - 1);
+          }
+        }}
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -238,12 +250,12 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="relative w-full h-full"
+            className="relative w-full h-full pointer-events-none"
           >
             <img
               src={filteredImages[selectedImage]?.url || undefined}
               alt={filteredImages[selectedImage]?.alt || productName}
-              className="w-full h-full object-contain p-8 transition-transform duration-200"
+              className="w-full h-full object-contain p-8 transition-transform duration-200 pointer-events-none"
               style={
                 isZoomed
                   ? {
@@ -254,6 +266,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
               }
               loading="lazy"
               onError={handleImageError}
+              draggable={false}
             />
           </motion.div>
         </AnimatePresence>
@@ -279,7 +292,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             {selectedImage + 1} / {filteredImages.length}
           </span>
         </div>
-      </div>
+      </motion.div>
 
       {/* Thumbnails */}
       <div className="px-4 py-3 border-t border-neutral-100">

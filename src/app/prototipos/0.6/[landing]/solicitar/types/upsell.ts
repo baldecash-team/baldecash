@@ -1,34 +1,13 @@
 // types/upsell.ts - BaldeCash v0.6 Upsell Types
 
-export type AccessoryCategory = 'audio' | 'perifericos' | 'proteccion' | 'impresoras' | 'accesorios';
-
-export const ACCESSORY_CATEGORY_LABELS: Record<AccessoryCategory, string> = {
-  'audio': 'Audio',
-  'perifericos': 'Periféricos',
-  'proteccion': 'Protección',
-  'impresoras': 'Impresoras',
-  'accesorios': 'Accesorios',
-};
-
 /**
- * Auto-classify an accessory by product name keywords.
- * Used when the backend returns a generic category (e.g. "accesorios" for all).
+ * Subcategoría del accesorio tal como viene del backend (tabla `category`
+ * con `parent_id = accesorios`). El slug se usa como identificador estable
+ * para agrupar/filtrar; el name es la etiqueta lista para mostrar.
  */
-const CATEGORY_KEYWORDS: { category: AccessoryCategory; keywords: string[] }[] = [
-  { category: 'audio', keywords: ['airpods', 'audífono', 'audifono', 'auricular', 'speaker', 'parlante', 'headset', 'headphone', 'earbuds', 'earphone'] },
-  { category: 'impresoras', keywords: ['impresora', 'multifunción', 'multifuncion', 'printer'] },
-  { category: 'perifericos', keywords: ['mouse', 'teclado', 'keyboard', 'ratón', 'raton', 'combo gamer', 'lápiz', 'lapiz', 'stylus', 'monitor', 'pantalla'] },
-  { category: 'proteccion', keywords: ['funda', 'case', 'mochila', 'protector', 'estuche', 'cover'] },
-];
-
-export function classifyAccessory(name: string): AccessoryCategory {
-  const lower = name.toLowerCase();
-  for (const { category, keywords } of CATEGORY_KEYWORDS) {
-    if (keywords.some((kw) => lower.includes(kw))) {
-      return category;
-    }
-  }
-  return 'accesorios';
+export interface AccessoryCategory {
+  slug: string;
+  name: string;
 }
 
 export interface AccessorySpec {
@@ -44,7 +23,7 @@ export interface Accessory {
   monthlyQuota: number;
   image: string;
   thumbnailUrl?: string;
-  category: AccessoryCategory;
+  category: AccessoryCategory | null;
   term?: number;
   isRecommended: boolean;
   compatibleWith: string[];

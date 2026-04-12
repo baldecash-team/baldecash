@@ -29,12 +29,12 @@ const CertTooltip: React.FC<{
     >
       {children}
       <div
-        className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-white border border-neutral-200 shadow-lg rounded-lg w-64 z-[9999] transition-all duration-200 ${
+        className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-white border border-neutral-200 shadow-lg rounded-lg w-[min(16rem,calc(100vw-2rem))] max-w-[min(16rem,calc(100vw-2rem))] z-[9999] transition-all duration-200 ${
           isVisible ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
         }`}
       >
-        <p className="text-sm font-semibold text-neutral-800">{content.title}</p>
-        <p className="text-sm text-neutral-500 mt-1 leading-relaxed">{content.description}</p>
+        <p className="text-sm font-semibold text-neutral-800 break-words">{content.title}</p>
+        <p className="text-sm text-neutral-500 mt-1 leading-relaxed break-words">{content.description}</p>
         {/* Arrow with border effect */}
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-neutral-200" />
         <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[5px] border-transparent border-t-white" />
@@ -67,8 +67,8 @@ export const Certifications: React.FC<CertificationsProps> = ({ certifications }
               description: cert.description,
             }}
           >
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-100 hover:bg-neutral-200 rounded-full border border-neutral-200 transition-colors cursor-default">
-              <Award className="w-3.5 h-3.5 text-[var(--color-primary)]" />
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-full border border-neutral-200 transition-colors cursor-default min-h-[32px]">
+              <Award className="w-3.5 h-3.5 text-[var(--color-primary)] flex-shrink-0" />
               <span className="text-xs font-medium text-neutral-700">{cert.code}</span>
             </div>
           </CertTooltip>

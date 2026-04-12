@@ -27,6 +27,44 @@ import type {
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
+// Slugs conocidos para pre-generar como páginas estáticas (fallback si el API no responde)
+const KNOWN_LANDING_SLUGS = [
+  'home',
+  'senati',
+  'convenio-ucv-landing',
+  'convenio-upn-landing',
+  'convenio-senati-landing',
+  'convenio-carrion-landing',
+  'convenio-certus-landing',
+  'convenio-utec-landing',
+  'convenio-wiener-landing',
+  'convenio-upc-landing',
+  'convenio-cibertec-landing',
+  'convenio-toulouse-landing',
+];
+
+/**
+ * Obtiene los slugs de todas las landings activas para pre-generación estática.
+ * Intenta obtenerlos del API; si falla, usa la lista hardcodeada como fallback.
+ */
+export async function getActiveLandingSlugs(): Promise<string[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/public/landings/slugs`, {
+      next: { revalidate: 3600 }, // Cache 1 hora en build
+    });
+
+    if (!response.ok) {
+      return KNOWN_LANDING_SLUGS;
+    }
+
+    const data = await response.json();
+    const slugs = data.slugs || data || [];
+    return Array.isArray(slugs) && slugs.length > 0 ? slugs : KNOWN_LANDING_SLUGS;
+  } catch {
+    return KNOWN_LANDING_SLUGS;
+  }
+}
+
 /**
  * Tipos de respuesta de la API
  */
@@ -40,7 +78,7 @@ interface LandingResponse {
   hero_cta_text?: string;
   hero_cta_url?: string;
   hero_cta_url_params?: string;
-  banner_images?: { url: string; alt?: string; position_x?: number; position_y?: number; zoom?: number }[];
+  banner_images?: { url: string; alt?: string; position_x?: number; position_y?: number; zoom?: number; mobile_position_x?: number; mobile_position_y?: number; mobile_zoom?: number }[];
   logo_url: string;
   primary_color: string;
   secondary_color: string;
@@ -458,6 +496,9 @@ export function transformLandingData(data: LandingHeroResponse): {
     const backgroundPositionX = firstBanner?.position_x ?? 50;
     const backgroundPositionY = firstBanner?.position_y ?? 50;
     const backgroundZoom = firstBanner?.zoom ?? 1.0;
+    const mobilePositionX = firstBanner?.mobile_position_x ?? 50;
+    const mobilePositionY = firstBanner?.mobile_position_y ?? 50;
+    const mobileZoom = firstBanner?.mobile_zoom ?? 1.0;
 
     // Combinar hero_cta_url + hero_cta_url_params si existen
     const heroBaseUrl = data.landing.hero_cta_url || ctaPrimary?.href || '#';
@@ -483,6 +524,9 @@ export function transformLandingData(data: LandingHeroResponse): {
       backgroundPositionX,
       backgroundPositionY,
       backgroundZoom,
+      mobilePositionX,
+      mobilePositionY,
+      mobileZoom,
       badgeText: (heroConfig.badge_text as string) || undefined,
     };
   }
@@ -682,6 +726,12 @@ export function transformLandingData(data: LandingHeroResponse): {
       sectionSubtitle: (ctaConfig.section_subtitle as string) || undefined,
       quickLinks: (ctaConfig.quick_links as CtaQuickLink[]) || undefined,
       phoneNumber: (ctaConfig.phone_number as string) || undefined,
+      advisors: Array.isArray((ctaConfig as Record<string, unknown>).advisors)
+        ? ((ctaConfig as Record<string, unknown>).advisors as Array<{ name: string; image_url: string }>).map(a => ({
+            name: a.name || '',
+            imageUrl: a.image_url || '',
+          }))
+        : undefined,
     };
   }
 
@@ -874,7 +924,7 @@ interface ApiAccessory {
   image: string;
   thumbnail_url?: string;
   micro_url?: string;
-  category: string;
+  category: { slug: string; name: string } | null;
   isRecommended: boolean;
   compatibleWith: string[];
   specs?: { label: string; value: string }[];

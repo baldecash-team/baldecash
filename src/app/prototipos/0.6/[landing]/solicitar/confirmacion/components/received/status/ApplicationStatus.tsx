@@ -33,22 +33,22 @@ export const ApplicationStatus: React.FC<ApplicationStatusProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="bg-white border border-neutral-200 rounded-xl p-6 mb-8"
+      className="bg-white border border-neutral-200 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8"
     >
-      <h3 className="font-semibold text-neutral-800 mb-6">Estado de tu solicitud</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-5 sm:mb-6">Estado de tu solicitud</h3>
 
       {/* Timeline horizontal */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5 sm:mb-6 gap-1">
         {steps.map((step, index) => (
           <React.Fragment key={step.id}>
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5 + index * 0.1 }}
-              className="flex flex-col items-center text-center flex-1"
+              className="flex flex-col items-center text-center flex-1 min-w-0"
             >
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${
+                className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center mb-2 flex-shrink-0 ${
                   step.status === 'completed'
                     ? 'bg-green-500 text-white'
                     : step.status === 'current'
@@ -57,25 +57,25 @@ export const ApplicationStatus: React.FC<ApplicationStatusProps> = ({
                 }`}
               >
                 {step.status === 'completed' ? (
-                  <Check className="w-6 h-6" />
+                  <Check className="w-5 h-5 sm:w-6 sm:h-6" />
                 ) : (
-                  getIcon(step.icon, 'w-6 h-6')
+                  getIcon(step.icon, 'w-5 h-5 sm:w-6 sm:h-6')
                 )}
               </div>
               <p
-                className={`text-sm font-medium ${
+                className={`text-xs sm:text-sm font-medium break-words ${
                   step.status === 'pending' ? 'text-neutral-400' : 'text-neutral-800'
                 }`}
               >
                 {step.title}
               </p>
-              <p className="text-xs text-neutral-500 hidden sm:block">{step.description}</p>
+              <p className="text-xs text-neutral-500 hidden sm:block break-words">{step.description}</p>
             </motion.div>
 
             {/* Connector line */}
             {index < steps.length - 1 && (
               <div
-                className={`h-0.5 flex-1 mx-2 ${
+                className={`h-0.5 flex-1 mx-1 sm:mx-2 mb-6 ${
                   step.status === 'completed' ? 'bg-green-500' : 'bg-neutral-200'
                 }`}
               />
@@ -85,8 +85,8 @@ export const ApplicationStatus: React.FC<ApplicationStatusProps> = ({
       </div>
 
       {/* Notification info */}
-      <div className="bg-[var(--color-primary)]/5 rounded-lg p-4 text-center">
-        <p className="text-sm text-neutral-600">
+      <div className="bg-[var(--color-primary)]/5 rounded-lg p-3 sm:p-4 text-center">
+        <p className="text-xs sm:text-sm text-neutral-600 break-words">
           Te notificaremos por{' '}
           <span className="font-semibold text-[var(--color-primary)]">
             {notificationChannels

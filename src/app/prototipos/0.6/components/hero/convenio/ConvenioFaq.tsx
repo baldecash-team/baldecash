@@ -72,17 +72,19 @@ export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ data, agreementData })
   };
 
   return (
-    <section id="faq" className="py-16 md:py-24 bg-neutral-50 scroll-mt-24">
-      <div className="max-w-3xl mx-auto px-4">
+    // No `id` here — the wrapper <section> in HeroSection.tsx already provides
+    // id="faq", and duplicating it would make the HTML invalid.
+    <section className="py-12 sm:py-16 md:py-20 lg:py-24 bg-neutral-50">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <h2
-            className="text-3xl md:text-4xl font-bold mb-4 font-['Baloo_2']"
+            className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight"
             style={{ color: 'var(--color-primary, #4654CD)' }}
           >
             {data.title}
           </h2>
-          <p className="text-neutral-600">
+          <p className="text-sm sm:text-base text-neutral-600">
             {data.subtitle}
           </p>
         </div>
@@ -99,20 +101,20 @@ export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ data, agreementData })
                 className="bg-white rounded-xl border border-neutral-200 overflow-hidden"
               >
                 <button
-                  className="w-full flex items-center gap-4 p-5 text-left cursor-pointer hover:bg-neutral-50 transition-colors"
+                  className="w-full flex items-center gap-3 sm:gap-4 p-4 sm:p-5 text-left cursor-pointer hover:bg-neutral-50 transition-colors"
                   onClick={() => setOpenIndex(isOpen ? null : index)}
                 >
                   <div
-                    className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0"
                     style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
                   >
-                    <Icon className="w-5 h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: 'var(--color-primary, #4654CD)' }} />
                   </div>
-                  <span className="flex-1 font-medium text-neutral-800">
+                  <span className="flex-1 min-w-0 font-medium text-neutral-800 text-sm sm:text-base break-words">
                     {faq.question}
                   </span>
                   <ChevronDown
-                    className={`w-5 h-5 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                    className={`w-5 h-5 flex-shrink-0 text-neutral-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
 
@@ -125,7 +127,7 @@ export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ data, agreementData })
                       transition={{ duration: 0.2 }}
                     >
                       <div
-                        className="px-5 pb-5 pl-[4.5rem]"
+                        className="px-4 sm:px-5 pb-4 sm:pb-5 pl-4 sm:pl-[4.5rem] text-sm sm:text-base"
                         dangerouslySetInnerHTML={{ __html: faq.answer }}
                       />
                     </motion.div>

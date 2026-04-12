@@ -101,8 +101,9 @@ export function useCatalogProducts({
   // Track if enabled changed from false to true
   const wasEnabledRef = useRef(enabled);
 
-  // Track filter changes to trigger re-fetch
-  const filtersKey = JSON.stringify(filters || {});
+  // Track filter + sort changes to trigger re-fetch
+  // sortBy is included so changing the sort order also triggers a fresh API fetch
+  const filtersKey = JSON.stringify({ f: filters || {}, s: sortBy });
   const lastFiltersKeyRef = useRef<string>(filtersKey);
 
   // AbortController to cancel in-flight requests when filters change

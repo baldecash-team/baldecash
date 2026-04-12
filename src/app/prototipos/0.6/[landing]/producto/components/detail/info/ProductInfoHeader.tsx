@@ -36,7 +36,7 @@ export const ProductInfoHeader: React.FC<ProductInfoHeaderProps> = ({
           </div>
 
         {/* Product Name */}
-        <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2'] leading-tight">
+        <h1 className="text-2xl md:text-3xl font-bold text-neutral-900 font-['Baloo_2',_sans-serif] leading-tight">
           {product.displayName}
         </h1>
 

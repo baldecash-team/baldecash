@@ -80,18 +80,18 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ data, underlineStyle = 4
   };
 
   return (
-    <section className="py-20 bg-neutral-50">
+    <section className="py-12 sm:py-16 md:py-20 bg-neutral-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
+          viewport={{ once: true, margin: '-10% 0px' }}
+          className="text-center mb-8 sm:mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2'] mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] mb-3 sm:mb-4 leading-tight">
             {data.title || ''}
           </h2>
-          <p className="text-neutral-600">{data.subtitle || ''}</p>
+          <p className="text-sm sm:text-base text-neutral-600">{data.subtitle || ''}</p>
         </motion.div>
 
         <motion.div
@@ -130,14 +130,14 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ data, underlineStyle = 4
                       </div>
                     }
                     title={
-                      <div className="flex items-center justify-between gap-3 w-full">
-                        <span className="flex-1">{item.question}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3 w-full">
+                        <span className="flex-1 text-sm sm:text-base">{item.question}</span>
                         <Chip
                           size="sm"
                           radius="sm"
                           classNames={{
-                            base: 'px-2 py-0.5 h-auto flex-shrink-0',
-                            content: 'text-xs font-medium',
+                            base: 'px-2 py-0.5 h-auto flex-shrink-0 self-start sm:self-auto',
+                            content: 'text-[10px] sm:text-xs font-medium',
                           }}
                           style={{
                             backgroundColor: `${color}15`,
@@ -149,7 +149,7 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ data, underlineStyle = 4
                       </div>
                     }
                   >
-                    <div className="pl-14" dangerouslySetInnerHTML={{ __html: item.answer }} />
+                    <div className="pl-0 sm:pl-14 text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: item.answer }} />
                   </AccordionItem>
                 );
               })}

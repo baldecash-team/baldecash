@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Modal,
@@ -74,7 +74,7 @@ const ModalContentShared: React.FC<{
               {accessory.name}
             </h2>
             <p className="text-xs text-white/70 truncate">
-              {accessory.brand?.name || accessory.category}
+              {accessory.brand?.name || accessory.category?.name || ''}
             </p>
           </div>
           <button
@@ -222,36 +222,34 @@ const MobileBottomSheet: React.FC<AccessoryDetailModalProps> = ({
   const dragControls = useDragControls();
   const shouldShow = isOpen && accessory;
 
-  // Block body scroll when drawer is open (iOS Safari fix)
+  // Block body scroll while open — cleanup pattern ensures unlock always runs
+  // on unmount OR when isOpen flips to false (same fix as LocationModal/CartDrawer).
+  // The old if/else + return cleanup was double-unlocking when two modals overlapped.
+  const scrollYRef = useRef<number>(0);
+  const didLockRef = useRef<boolean>(false);
+
   useEffect(() => {
-    if (isOpen) {
-      const scrollY = window.scrollY;
+    if (!isOpen) return;
+
+    if (document.body.style.position !== 'fixed') {
+      scrollYRef.current = window.scrollY;
       document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
+      document.body.style.top = `-${scrollYRef.current}px`;
       document.body.style.left = '0';
       document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
-    } else {
-      const scrollY = document.body.style.top;
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.overflow = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY) * -1);
-      }
+      didLockRef.current = true;
     }
+
     return () => {
-      const scrollY = document.body.style.top;
+      if (!didLockRef.current) return;
       document.body.style.position = '';
       document.body.style.top = '';
       document.body.style.left = '';
       document.body.style.right = '';
       document.body.style.overflow = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY) * -1);
-      }
+      window.scrollTo(0, scrollYRef.current);
+      didLockRef.current = false;
     };
   }, [isOpen]);
 

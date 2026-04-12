@@ -48,6 +48,8 @@ interface SpecSheetPDFData {
   productUrl?: string;
   specs: SpecCategory[];
   ports?: ProductPort[];
+  description?: string;
+  shortDescription?: string;
   generatedDate: Date;
 }
 
@@ -211,6 +213,95 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
   }
 
   y += productCardHeight + 10;
+
+  // ===== DESCRIPCIÓN (opcional) =====
+  if (data.description || data.shortDescription) {
+    const descPadding = 8;
+    const descInnerWidth = contentWidth - descPadding * 2;
+    const titleHeight = 6;
+    const shortDescLineHeight = 5;
+    const descLineHeight = 4.2;
+    const gapAfterTitle = 4;
+    const gapBetweenTexts = 3;
+
+    // Pre-calcular líneas
+    doc.setFont('Asap', 'bold');
+    doc.setFontSize(10);
+    // "Descripción" header — altura fija
+
+    let shortLines: string[] = [];
+    if (data.shortDescription) {
+      doc.setFont('Asap', 'bold');
+      doc.setFontSize(9);
+      shortLines = doc.splitTextToSize(data.shortDescription, descInnerWidth);
+    }
+
+    let descLines: string[] = [];
+    if (data.description) {
+      doc.setFont('Asap', 'normal');
+      doc.setFontSize(8);
+      descLines = doc.splitTextToSize(data.description, descInnerWidth);
+    }
+
+    // Altura total de la card
+    const shortBlockHeight = shortLines.length * shortDescLineHeight;
+    const descBlockHeight = descLines.length * descLineHeight;
+    const separatorGap = shortLines.length > 0 && descLines.length > 0 ? gapBetweenTexts : 0;
+
+    const descCardHeight =
+      descPadding + // top padding
+      titleHeight + // "Descripción" header
+      gapAfterTitle +
+      shortBlockHeight +
+      separatorGap +
+      descBlockHeight +
+      descPadding; // bottom padding
+
+    // Verificar espacio (si no cabe, nueva página)
+    if (y + descCardHeight > pageHeight - PDF_LAYOUT.footerHeight - 10) {
+      doc.addPage();
+      drawPageBackground(doc);
+      y = margin;
+    }
+
+    drawCard(doc, margin, y, contentWidth, descCardHeight);
+
+    let textY = y + descPadding + 4; // +4 para baseline del título
+
+    // Título "Descripción"
+    doc.setTextColor(...PDF_COLORS.text);
+    doc.setFont('Asap', 'bold');
+    doc.setFontSize(10);
+    doc.text('Descripción', margin + descPadding, textY);
+    textY += gapAfterTitle + 2;
+
+    // ShortDescription (resaltada en color primario)
+    if (shortLines.length > 0) {
+      doc.setTextColor(...PDF_COLORS.primary);
+      doc.setFont('Asap', 'bold');
+      doc.setFontSize(9);
+      shortLines.forEach((line: string) => {
+        doc.text(line, margin + descPadding, textY);
+        textY += shortDescLineHeight;
+      });
+      if (descLines.length > 0) {
+        textY += gapBetweenTexts;
+      }
+    }
+
+    // Description (cuerpo)
+    if (descLines.length > 0) {
+      doc.setTextColor(...PDF_COLORS.textMuted);
+      doc.setFont('Asap', 'normal');
+      doc.setFontSize(8);
+      descLines.forEach((line: string) => {
+        doc.text(line, margin + descPadding, textY);
+        textY += descLineHeight;
+      });
+    }
+
+    y += descCardHeight + 10;
+  }
 
   // ===== TÍTULO ESPECIFICACIONES =====
   doc.setTextColor(...PDF_COLORS.text);

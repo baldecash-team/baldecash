@@ -96,7 +96,7 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
       onClick={onToggle}
       disabled={isDisabled || disabled}
       className={`
-        flex items-center gap-3 w-full text-left
+        flex items-center gap-3 w-full text-left py-2 min-h-[44px]
         ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
     >

@@ -132,7 +132,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                         {/* Product image */}
                         <div className={`w-20 h-20 rounded-lg border ${isBest ? 'border-[#22c55e]' : 'border-neutral-100'} flex items-center justify-center p-2 bg-white`}>
                           <img
-                            src={product.thumbnail}
+                            src={product.images[0] || product.thumbnail}
                             alt={product.displayName}
                             className="w-full h-full object-contain"
                           />

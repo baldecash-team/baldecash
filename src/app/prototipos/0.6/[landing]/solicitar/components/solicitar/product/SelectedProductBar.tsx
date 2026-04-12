@@ -78,6 +78,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
         <motion.div
           layout
           className="bg-white border-t border-neutral-200 shadow-lg relative z-50"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           {/* Collapsed State */}
           <button
@@ -595,12 +596,18 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
 };
 
 // Spacer component to prevent content from being hidden behind fixed bar
+// Uses safe-area-inset-bottom so iOS devices with home indicator don't overlap
 export const SelectedProductSpacer: React.FC = () => {
   const { getAllProducts } = useProduct();
 
   if (getAllProducts().length === 0) return null;
 
-  return <div className="lg:hidden h-[72px]" />;
+  return (
+    <div
+      className="lg:hidden"
+      style={{ height: 'calc(72px + env(safe-area-inset-bottom))' }}
+    />
+  );
 };
 
 export default SelectedProductBar;

@@ -247,7 +247,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
           return (
             <motion.div
               key={`${product.id}-${index}`}
-              className="w-[280px] md:w-[300px] snap-start flex-shrink-0"
+              className="w-[260px] sm:w-[280px] md:w-[300px] lg:w-[320px] snap-start flex-shrink-0"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.02 }}

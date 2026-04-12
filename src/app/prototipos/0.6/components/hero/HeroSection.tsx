@@ -75,6 +75,8 @@ interface HeroSectionProps {
   previewBannerOffset?: number;
   /** Preview key for API authentication (sessionStorage preview) */
   previewKey?: string | null;
+  /** Primary brand color hex for contrast calculations */
+  primaryColor?: string;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -99,6 +101,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   landing = 'home',
   previewBannerOffset = 0,
   previewKey,
+  primaryColor,
 }) => {
   const heroUrl = routes.landingHome(landing || 'home');
 
@@ -196,7 +199,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className="min-h-screen flex flex-col">
       {/* Navbar - shared between normal and convenio */}
       <div id="navbar">
-        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} />
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} primaryColor={primaryColor} />
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}
@@ -207,7 +210,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Convenio Hero - Campus image, badge, checklist, price */}
             {heroContent && (
               <section id="hero">
-                <ConvenioHero heroContent={heroContent} agreementData={agreementData} landing={landing} />
+                <ConvenioHero heroContent={heroContent} agreementData={agreementData} landing={landing} primaryColor={primaryColor} />
               </section>
             )}
 
@@ -260,6 +263,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   imagePositionX={heroContent.backgroundPositionX}
                   imagePositionY={heroContent.backgroundPositionY}
                   imageZoom={heroContent.backgroundZoom}
+                  mobilePositionX={heroContent.mobilePositionX}
+                  mobilePositionY={heroContent.mobilePositionY}
+                  mobileZoom={heroContent.mobileZoom}
                   primaryCta={heroContent.primaryCta}
                   trustSignals={heroContent.trustSignals}
                   badgeText={heroContent.badgeText}
@@ -292,16 +298,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
             {/* CTA Section - Solo mostrar si existe */}
             {hasCta && (
-              <section id="cta" className="py-16 bg-neutral-50">
+              <section id="cta" className="py-12 sm:py-16 md:py-20 bg-neutral-50">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                  <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-3 font-['Baloo_2']">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-900 mb-2 sm:mb-3 font-['Baloo_2',_sans-serif] leading-tight">
                     {ctaData?.sectionTitle?.split('{highlightWord}')[0]}
                     <UnderlinedText style={UNDERLINE_STYLE} color="primary">
                       {ctaData?.highlightWord}
                     </UnderlinedText>
                     {ctaData?.sectionTitle?.split('{highlightWord}')[1]}
                   </h2>
-                  <p className="text-neutral-600 mb-8">
+                  <p className="text-sm sm:text-base text-neutral-600 mb-6 sm:mb-8">
                     {ctaData?.sectionSubtitle}
                   </p>
 

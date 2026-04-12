@@ -19,7 +19,6 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
-import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { ReceivedScreen } from './components/received';
 import type { ReceivedData } from './types/received';
@@ -227,27 +226,27 @@ function RealConfirmationContent({
  */
 function DemoContent({ onSelectResult }: { onSelectResult: (path: string) => void }) {
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-14 pb-32 lg:pb-16">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 lg:pt-14 pb-32 lg:pb-16">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="text-center mb-10"
+        className="text-center mb-8 sm:mb-10"
       >
-        <div className="w-16 h-16 bg-[var(--color-primary)] rounded-full flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-white" />
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[var(--color-primary)] rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+          <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-neutral-800 mb-2">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight">
           Solicitud Enviada
         </h1>
-        <p className="text-neutral-600">
+        <p className="text-sm sm:text-base text-neutral-600 px-2">
           Selecciona un resultado para ver la pantalla correspondiente
         </p>
       </motion.div>
 
       {/* Result Options */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {RESULT_OPTIONS.map((option, index) => {
           const Icon = option.icon;
           return (
@@ -257,18 +256,18 @@ function DemoContent({ onSelectResult }: { onSelectResult: (path: string) => voi
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
               onClick={() => onSelectResult(option.path)}
-              className="w-full bg-white rounded-xl shadow-sm border border-neutral-200 p-5
+              className="w-full bg-white rounded-xl shadow-sm border border-neutral-200 p-4 sm:p-5
                          hover:shadow-md hover:border-neutral-300 transition-all cursor-pointer
-                         flex items-center gap-4 text-left"
+                         flex items-center gap-3 sm:gap-4 text-left"
             >
-              <div className={`w-14 h-14 ${option.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                <Icon className={`w-7 h-7 ${option.iconColor}`} />
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 ${option.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                <Icon className={`w-6 h-6 sm:w-7 sm:h-7 ${option.iconColor}`} />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-neutral-800">{option.title}</h3>
-                <p className="text-sm text-neutral-500">{option.description}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold text-neutral-800 break-words">{option.title}</h3>
+                <p className="text-xs sm:text-sm text-neutral-500 break-words">{option.description}</p>
               </div>
-              <div className="px-4 py-2 bg-neutral-200 text-neutral-700 hover:bg-[var(--color-primary)] hover:text-white rounded-lg font-medium text-sm transition-colors">
+              <div className="px-3 sm:px-4 py-2 sm:py-2.5 min-h-[36px] sm:min-h-[44px] flex items-center justify-center bg-neutral-200 text-neutral-700 hover:bg-[var(--color-primary)] hover:text-white rounded-lg font-medium text-xs sm:text-sm transition-colors flex-shrink-0">
                 Ver
               </div>
             </motion.button>
@@ -281,9 +280,9 @@ function DemoContent({ onSelectResult }: { onSelectResult: (path: string) => voi
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.5 }}
-        className="mt-8 p-4 bg-neutral-100 rounded-xl"
+        className="mt-6 sm:mt-8 p-3 sm:p-4 bg-neutral-100 rounded-xl"
       >
-        <p className="text-sm text-neutral-600 text-center">
+        <p className="text-xs sm:text-sm text-neutral-600 text-center">
           Esta página es solo para demostración. En producción, el sistema determinará automáticamente el resultado.
         </p>
       </motion.div>
@@ -299,10 +298,6 @@ function ConfirmacionContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const landing = (params.landing as string) || 'home';
-
-  // Preview mode offset
-  const { isPreviewingLanding } = usePreview();
-  const previewBannerOffset = isPreviewingLanding(landing) ? 24 : 0;
 
   // Get application code from URL
   const applicationCode = searchParams.get('code');
@@ -360,7 +355,8 @@ function ConfirmacionContent() {
     <>
       <div className="min-h-screen bg-neutral-50 relative">
         <Navbar {...navbarProps} landing={landing} />
-        <div style={{ height: 68 + previewBannerOffset }} />
+        {/* Spacer — dynamic height driven by --header-total-height CSS variable. */}
+        <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />
 
         {applicationCode ? (
           <RealConfirmationContent

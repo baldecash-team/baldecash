@@ -60,7 +60,6 @@ function ProductDetailContent() {
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
-  const previewBannerOffset = previewKey ? 24 : 0;
 
   // Product context for solicitar flow
   const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
@@ -348,8 +347,14 @@ function ProductDetailContent() {
         showCart={ALLOW_MULTI_PRODUCT}
       />
 
-      {/* Main Content with padding for fixed navbars (promo + primary + secondary + preview banner) */}
-      <main style={{ paddingTop: 160 + previewBannerOffset }}>
+      {/* Main Content — padding-top driven by CSS variables exposed by Navbar
+          and CatalogSecondaryNavbar so it adapts to preview banner + promo
+          banner + main navbar + secondary navbar dynamically. */}
+      <main
+        style={{
+          paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
+        }}
+      >
         <ProductDetail
           product={apiData.product}
           combo={apiData.combo}

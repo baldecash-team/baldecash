@@ -37,12 +37,14 @@ export const MotivationalCard: React.FC<MotivationalCardProps> = ({ motivational
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 lg:p-10 sticky top-24">
+    // sticky positioning is handled by the parent WizardLayout wrapper so
+    // the offset tracks the CSS variable centrally. No sticky here.
+    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-8 lg:p-10">
       {/* Contenido de texto */}
       <div className="mb-6">
         {/* Mensaje Principal - con HTML */}
         <h2
-          className="text-2xl lg:text-3xl font-bold text-neutral-800 leading-tight"
+          className="text-2xl lg:text-3xl font-bold text-neutral-800 leading-tight font-['Baloo_2',_sans-serif]"
           dangerouslySetInnerHTML={{ __html: processTitle(motivational.title || '') }}
         />
 
