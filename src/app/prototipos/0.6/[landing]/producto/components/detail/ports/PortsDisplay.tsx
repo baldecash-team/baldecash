@@ -89,7 +89,7 @@ export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
             <Download className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h4 className="font-semibold text-neutral-900 font-['Asap']">Ficha Técnica</h4>
+            <h4 className="font-semibold text-neutral-900 font-['Asap',_sans-serif]">Ficha Técnica</h4>
             <p className="text-sm text-neutral-600 hidden sm:block">Descarga todas las especificaciones en PDF</p>
           </div>
         </div>
@@ -129,12 +129,12 @@ export const PortsDisplay: React.FC<PortsDisplayProps> = ({
     return (
       <div
         key={index}
-        className="flex items-center gap-2 px-3 py-2 bg-neutral-50 rounded-lg border border-neutral-200"
+        className="flex items-center gap-2 px-3 py-2.5 bg-neutral-50 rounded-lg border border-neutral-200 min-h-[40px]"
       >
-        <IconComponent className="w-4 h-4 text-[var(--color-primary)]" />
-        <span className="text-sm font-medium text-neutral-700">{port.name}</span>
+        <IconComponent className="w-4 h-4 text-[var(--color-primary)] flex-shrink-0" />
+        <span className="text-sm font-medium text-neutral-700 break-words">{port.name}</span>
         {port.count > 1 && (
-          <span className="text-xs text-neutral-500">×{port.count}</span>
+          <span className="text-xs text-neutral-500 flex-shrink-0">×{port.count}</span>
         )}
       </div>
     );

@@ -43,6 +43,50 @@ import { SelectedProductBar, SelectedProductSpacer } from './components/solicita
 // Utils
 import { formatMoneyNoDecimals } from './utils/formatMoney';
 
+// Checkbox definido fuera del componente padre para evitar remount en cada
+// render cuando cambia el estado del padre (antes se redefinía dentro del
+// componente, causando que React lo tratara como un tipo nuevo).
+interface CheckboxProps {
+  id: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  description: string;
+  error?: string | null;
+}
+
+const Checkbox: React.FC<CheckboxProps> = ({ checked, onChange, label, description, error }) => (
+  <div>
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className="flex items-start gap-3 w-full text-left cursor-pointer"
+    >
+      <div
+        className={`
+          w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
+          transition-all duration-200
+          ${checked
+            ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
+            : error
+              ? 'bg-white border-red-500 ring-2 ring-red-500/20'
+              : 'bg-white border-neutral-300 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+          }
+        `}
+      >
+        {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-medium ${error ? 'text-red-600' : 'text-neutral-800'}`}>{label}</p>
+        <p className="text-[11px] sm:text-xs text-neutral-500 mt-0.5 break-words">{description}</p>
+      </div>
+    </button>
+    {error && (
+      <p className="text-xs text-red-500 mt-2 ml-9">{error}</p>
+    )}
+  </div>
+);
+
 function WizardPreviewContent() {
   const router = useRouter();
   const params = useParams();
@@ -51,7 +95,7 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
-  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability } = useProduct();
+  const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability, setIsProductBarExpanded } = useProduct();
 
   // Remove product from cart (or clear selectedProduct if single)
   const handleRemoveProduct = useCallback((productId: string) => {
@@ -166,19 +210,48 @@ function WizardPreviewContent() {
   const needsTermUnification = cartProducts.length > 1 && !hasUnifiedTerms();
   const availableTerms = getAvailableTerms();
 
-  // Helper function for smooth scroll with highlight effect
+  // Helper: read the real fixed header height from CSS variable (fallback 104px)
+  const getHeaderOffset = useCallback((): number => {
+    if (typeof window === 'undefined') return 104;
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--header-total-height');
+    const trimmed = v.trim();
+    if (!trimmed) return 104;
+    if (trimmed.endsWith('rem')) return parseFloat(trimmed) * 16;
+    if (trimmed.endsWith('px')) return parseFloat(trimmed);
+    return parseFloat(trimmed) || 104;
+  }, []);
+
+  // Helper function for smooth scroll with highlight effect.
+  // Falls back to expanding the mobile product bar when the target section is
+  // hidden on mobile (e.g. `term-selector-section` is `hidden lg:block`).
   const scrollToSection = useCallback((sectionId: string) => {
     const element = document.getElementById(sectionId);
-    if (element) {
-      // Scroll to element
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Add highlight effect
-      element.classList.add('ring-2', 'ring-[var(--color-primary)]', 'ring-offset-2');
-      setTimeout(() => {
-        element.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'ring-offset-2');
-      }, 2000);
+    if (!element) return;
+
+    // If the element is display: none (hidden by a lg: visibility class),
+    // expand the mobile product bar so the user sees the term selector.
+    const isHidden = element.offsetParent === null;
+    if (isHidden && sectionId === 'term-selector-section') {
+      // Desktop card is hidden on mobile — open the floating product bar
+      // which contains an equivalent term selector.
+      try {
+        setIsProductBarExpanded(true);
+      } catch {}
+      return;
     }
-  }, []);
+
+    // Custom scroll with manual offset to compensate for the fixed navbar
+    // (smooth scrollIntoView + block: center was causing momentum issues on iOS).
+    const rect = element.getBoundingClientRect();
+    const targetTop = window.pageYOffset + rect.top - getHeaderOffset() - 24;
+    window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+
+    // Add highlight effect after scroll reaches the element
+    element.classList.add('ring-2', 'ring-[var(--color-primary)]', 'ring-offset-2');
+    setTimeout(() => {
+      element.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'ring-offset-2');
+    }, 2000);
+  }, [getHeaderOffset, setIsProductBarExpanded]);
 
   // Only consider products that are both unavailable AND still in the cart/selection
   const currentProductIds = new Set(
@@ -248,53 +321,6 @@ function WizardPreviewContent() {
     router.push(routes.solicitarStep(landing, firstStepSlug));
   };
 
-  // Checkbox component
-  const Checkbox = ({
-    id,
-    checked,
-    onChange,
-    label,
-    description,
-    error,
-  }: {
-    id: string;
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-    label: string;
-    description: string;
-    error?: string | null;
-  }) => (
-    <div>
-      <button
-        type="button"
-        onClick={() => onChange(!checked)}
-        className="flex items-start gap-3 w-full text-left cursor-pointer"
-      >
-        <div
-          className={`
-            w-6 h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5
-            transition-all duration-200
-            ${checked
-              ? 'bg-[var(--color-primary)] border-[var(--color-primary)]'
-              : error
-                ? 'bg-white border-red-500 ring-2 ring-red-500/20'
-                : 'bg-white border-neutral-300 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
-            }
-          `}
-        >
-          {checked && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-        </div>
-        <div className="flex-1">
-          <p className={`text-sm font-medium ${error ? 'text-red-600' : 'text-neutral-800'}`}>{label}</p>
-          <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
-        </div>
-      </button>
-      {error && (
-        <p className="text-xs text-red-500 mt-2 ml-9">{error}</p>
-      )}
-    </div>
-  );
-
   // Content JSX (no es componente para evitar remount en cada render)
   const pageContent = (
     <div className="min-h-screen bg-neutral-50 relative">
@@ -312,19 +338,20 @@ function WizardPreviewContent() {
         institutionName={navbarProps?.institutionName}
       />
 
-      {/* Spacer for fixed navbar + promo banner */}
-      <div className="h-[104px]" />
+      {/* Spacer — dynamic, tracks --header-total-height exposed by Navbar
+          (preview banner + promo banner + main navbar). */}
+      <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 pt-14 pb-24 lg:pb-12">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-10 lg:pt-14 pb-24 lg:pb-12">
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-[var(--color-primary)]" />
+        <div className="text-center mb-8 sm:mb-10">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[rgba(var(--color-primary-rgb),0.1)] rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
+            <FileText className="w-7 h-7 sm:w-8 sm:h-8 text-[var(--color-primary)]" />
           </div>
-          <h1 className="text-3xl font-bold text-neutral-800 mb-3">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 mb-2 sm:mb-3 font-['Baloo_2',_sans-serif] leading-tight">
             Solicitud de Financiamiento
           </h1>
-          <p className="text-neutral-600 text-lg">
+          <p className="text-sm sm:text-base md:text-lg text-neutral-600 max-w-xl mx-auto px-2">
             Completa el formulario para solicitar tu equipo tecnológico
           </p>
         </div>
@@ -337,9 +364,9 @@ function WizardPreviewContent() {
           const totalMonthly = productsToShow.reduce((sum, p) => sum + p.monthlyPayment, 0);
 
           return (
-            <div id="term-selector-section" className={`hidden lg:block bg-white rounded-xl border mb-8 overflow-hidden ${needsTermUnification ? 'border-amber-300' : 'border-neutral-200'}`}>
+            <div id="term-selector-section" className={`hidden lg:block bg-white rounded-xl border mb-6 sm:mb-8 overflow-hidden ${needsTermUnification ? 'border-amber-300' : 'border-neutral-200'}`}>
               {/* Header with term selector - Always visible */}
-              <div className={`px-5 py-3 border-b flex items-center justify-between ${needsTermUnification ? 'bg-amber-50 border-amber-200' : 'bg-[rgba(var(--color-primary-rgb),0.05)] border-neutral-200'}`}>
+              <div className={`px-4 sm:px-5 py-3 border-b flex items-center justify-between ${needsTermUnification ? 'bg-amber-50 border-amber-200' : 'bg-[rgba(var(--color-primary-rgb),0.05)] border-neutral-200'}`}>
                 <div className="flex items-center gap-2">
                   <ShoppingCart className={`w-4 h-4 ${needsTermUnification ? 'text-amber-600' : 'text-[var(--color-primary)]'}`} />
                   <span className="text-sm font-semibold text-neutral-800">
@@ -366,7 +393,7 @@ function WizardPreviewContent() {
 
               {/* Warning banner for unequal terms */}
               {needsTermUnification && (
-                <div className="px-5 py-3 bg-amber-50 border-b border-amber-200 flex items-start gap-3">
+                <div className="px-4 sm:px-5 py-3 bg-amber-50 border-b border-amber-200 flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-amber-800">Plazos diferentes detectados</p>
@@ -379,7 +406,7 @@ function WizardPreviewContent() {
               )}
 
               {/* Product List */}
-              <div className="p-5 space-y-4">
+              <div className="p-4 sm:p-5 space-y-4">
                 {productsToShow.map((product, index) => {
                   const isUnavailable = activeUnavailableIds.includes(product.id);
                   return (
@@ -430,7 +457,7 @@ function WizardPreviewContent() {
                                 <button
                                   key={option.percent}
                                   onClick={() => updateProductInitial(product.id, option.percent)}
-                                  className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
+                                  className={`text-[11px] px-2.5 py-1.5 rounded-full transition-all cursor-pointer min-h-[28px] ${
                                     product.initialPercent === option.percent
                                       ? 'bg-[var(--color-primary)] text-white font-medium'
                                       : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
@@ -467,8 +494,9 @@ function WizardPreviewContent() {
                     {/* Remove button */}
                     <button
                       onClick={() => handleRemoveProduct(product.id)}
-                      className="p-1.5 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                      className="p-2 rounded-full hover:bg-neutral-100 text-neutral-400 hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
                       title="Quitar producto"
+                      aria-label="Quitar producto"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -479,7 +507,7 @@ function WizardPreviewContent() {
 
               {/* Total + Accessories + Quota Warning */}
               {(productsToShow.length >= 1) && (
-                <div className="px-5 pb-5 space-y-3">
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-3">
                   {/* Insurance */}
                   {selectedInsurances.length > 0 && (
                     <div className="pt-3 border-t border-neutral-100">
@@ -542,22 +570,22 @@ function WizardPreviewContent() {
         })()}
 
         {/* Info Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-10">
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
             <Clock className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-800">
               {displayEstimatedMinutes < 1 ? '~1 minuto' : `~${displayEstimatedMinutes} minutos`}
             </p>
             <p className="text-xs text-neutral-500">Tiempo estimado</p>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
             <FileText className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-800">
               {displayStepsCount} pasos
             </p>
             <p className="text-xs text-neutral-500">Proceso simple</p>
           </div>
-          <div className="bg-white rounded-xl p-4 border border-neutral-200 text-center">
+          <div className="bg-white rounded-xl p-4 sm:p-5 border border-neutral-200 text-center">
             <Shield className="w-6 h-6 text-[var(--color-primary)] mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-800">100% Seguro</p>
             <p className="text-xs text-neutral-500">Datos protegidos</p>
@@ -565,13 +593,13 @@ function WizardPreviewContent() {
         </div>
 
         {/* Requirements */}
-        <div className="bg-white rounded-xl p-6 border border-neutral-200 mb-8">
-          <h2 className="text-lg font-semibold text-neutral-800 mb-4">
+        <div className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 mb-6 sm:mb-8">
+          <h2 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 sm:mb-4">
             Lo que necesitarás
           </h2>
           <ul className="space-y-3">
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-xs font-bold text-[var(--color-primary)]">1</span>
               </div>
               <div>
@@ -580,7 +608,7 @@ function WizardPreviewContent() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-xs font-bold text-[var(--color-primary)]">2</span>
               </div>
               <div>
@@ -589,7 +617,7 @@ function WizardPreviewContent() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-6 h-6 sm:w-5 sm:h-5 rounded-full bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-xs font-bold text-[var(--color-primary)]">3</span>
               </div>
               <div>
@@ -606,8 +634,8 @@ function WizardPreviewContent() {
         ))}
 
         {/* Términos y Condiciones */}
-        <div id="terms-section" className={`bg-white rounded-xl p-6 border mb-8 transition-all duration-300 ${termsError || privacyError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
-          <h3 className="font-semibold text-neutral-800 mb-4">Términos y Condiciones</h3>
+        <div id="terms-section" className={`bg-white rounded-xl p-4 sm:p-6 border mb-6 sm:mb-8 transition-all duration-300 ${termsError || privacyError ? 'border-red-300 bg-red-50/30' : 'border-neutral-200'}`}>
+          <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 sm:mb-4">Términos y Condiciones</h3>
           <div className="space-y-4">
             <Checkbox
               id="acceptTerms"
@@ -694,7 +722,7 @@ function WizardPreviewContent() {
         {/* Back to catalog link */}
         <button
           onClick={() => router.push(routes.catalogo(landing))}
-          className="w-full flex items-center justify-center gap-2 mt-4 py-2 text-neutral-500 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 mt-4 py-3 text-neutral-500 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Volver al catálogo</span>

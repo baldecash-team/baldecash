@@ -249,9 +249,44 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           )}
         </div>
 
-        {/* Payment Table - Version 1: Simple */}
+        {/* Payment Table - Version 1: Simple.
+            Mobile (< sm): card list fallback. Desktop (sm+): table. */}
         {version === 1 && (
-          <div className="overflow-x-auto rounded-xl border border-neutral-200">
+          <>
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-2">
+              {Array.from({ length: visibleMonths }, (_, i) => {
+                const isLast = i === selectedTerm - 1;
+                return (
+                  <div
+                    key={i}
+                    className={`flex items-center gap-3 p-3 rounded-xl border ${
+                      isLast
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-white border-neutral-200'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      isLast
+                        ? 'bg-green-100 text-green-600'
+                        : 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)]'
+                    }`}>
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-neutral-500 capitalize">Cuota {i + 1}</p>
+                      <p className="text-sm text-neutral-600 capitalize truncate">{getMonthDate(i)}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-neutral-900 flex-shrink-0">
+                      S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop/tablet table */}
+            <div className="hidden sm:block overflow-x-auto rounded-xl border border-neutral-200">
             <table className="w-full min-w-[400px]">
               <thead>
                 <tr className="bg-neutral-50">
@@ -289,12 +324,75 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
 
-        {/* Payment Table - Version 2: Detallado */}
+        {/* Payment Table - Version 2: Detallado.
+            Mobile (< sm): card list fallback with full breakdown.
+            Desktop (sm+): 7-column table. */}
         {version === 2 && (
-          <div className="overflow-x-auto rounded-xl border border-neutral-200">
+          <>
+            {/* Mobile cards */}
+            <div className="sm:hidden space-y-3">
+              {Array.from({ length: visibleMonths }, (_, i) => {
+                const amort = amortizationSchedule[i];
+                const isLast = i === selectedTerm - 1;
+                const monto = Math.floor(adjustedQuota);
+                const commission = commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
+                const interest = Math.floor(amort?.interest || 0);
+                const capital = monto - interest - commission;
+                return (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-xl border ${
+                      isLast
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-white border-neutral-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                          isLast
+                            ? 'bg-green-100 text-green-600'
+                            : 'bg-[rgba(var(--color-primary-rgb),0.10)] text-[var(--color-primary)]'
+                        }`}>
+                          {i + 1}
+                        </div>
+                        <p className="text-xs text-neutral-500 capitalize truncate">{getMonthDate(i)}</p>
+                      </div>
+                      <span className="text-sm font-semibold text-neutral-900">
+                        S/{formatMoneyNoDecimals(monto)}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-neutral-100 grid grid-cols-2 gap-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-400">Capital</span>
+                        <span className="text-neutral-700">S/{formatMoneyNoDecimals(capital)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-neutral-400">Interés</span>
+                        <span className="text-neutral-700">S/{formatMoneyNoDecimals(interest)}</span>
+                      </div>
+                      {commissionAmount != null && commissionAmount > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-neutral-400">Comisión</span>
+                          <span className="text-neutral-700">S/{formatMoneyNoDecimals(commission)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-neutral-400">Saldo</span>
+                        <span className="text-neutral-700">S/{formatMoneyNoDecimals(Math.floor(amort?.balance || 0))}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop/tablet table */}
+            <div className="hidden sm:block overflow-x-auto rounded-xl border border-neutral-200">
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="bg-neutral-50">
@@ -364,7 +462,8 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
 
         {/* Payment Table - Version 3: Cards */}

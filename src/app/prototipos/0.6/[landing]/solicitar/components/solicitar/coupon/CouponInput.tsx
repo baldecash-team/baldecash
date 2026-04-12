@@ -251,8 +251,11 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
             onKeyDown={handleKeyDown}
             placeholder="Ingresa tu código"
             disabled={state === 'validating' || state === 'success'}
+            /* fontSize: 16px (text-base) evita el auto-zoom de iOS Safari
+               cuando el input recibe focus. */
+            style={{ fontSize: '16px' }}
             className={`
-              w-full px-4 py-3 rounded-xl border-2 text-sm font-medium uppercase
+              w-full px-4 py-3 rounded-xl border-2 text-base font-medium uppercase
               transition-all duration-200 outline-none
               ${state === 'error'
                 ? 'border-red-300 bg-red-50 text-red-700 placeholder:text-red-300'

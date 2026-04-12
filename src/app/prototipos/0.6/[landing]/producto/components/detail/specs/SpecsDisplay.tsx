@@ -82,7 +82,7 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                 <div className="w-10 h-10 rounded-lg bg-[rgba(var(--color-primary-rgb),0.10)] flex items-center justify-center">
                   <IconComponent className="w-5 h-5 text-[var(--color-primary)]" />
                 </div>
-                <h3 className="font-semibold text-neutral-900 font-['Asap']">
+                <h3 className="font-semibold text-neutral-900 font-['Asap',_sans-serif]">
                   {specCategory.category}
                 </h3>
               </div>
@@ -99,7 +99,7 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-neutral-600 font-['Asap']">
+                      <span className="text-sm text-neutral-600 font-['Asap',_sans-serif]">
                         {spec.label}
                       </span>
                       {spec.tooltip && (
@@ -117,7 +117,7 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                       )}
                     </div>
                     <span
-                      className={`text-sm font-medium font-['Asap'] text-right max-w-[40%] ${
+                      className={`text-sm font-medium font-['Asap',_sans-serif] text-right max-w-[40%] ${
                         spec.highlight
                           ? 'text-[var(--color-primary)]'
                           : 'text-neutral-900'

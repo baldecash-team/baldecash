@@ -9,6 +9,23 @@ import { useState, useMemo, useEffect } from 'react';
 import { PricingCalculatorProps, PaymentPlan, InitialPaymentOption, InitialPaymentPercentage } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 
+// Detect hover-capable devices (desktop) so touch-only devices don't keep a
+// sticky :hover / scale effect applied after tapping a card.
+function useHoverCapable() {
+  const [isHoverCapable, setIsHoverCapable] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const handler = (e: MediaQueryListEvent) => setIsHoverCapable(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isHoverCapable;
+}
+
 export interface PricingSelection {
   term: number;
   initialPercent: InitialPaymentPercentage;
@@ -37,6 +54,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   });
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(defaultInitialPercent as InitialPaymentPercentage);
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
+  const isHoverCapable = useHoverCapable();
 
   // Obtener opciones de pago inicial del primer plan (son iguales para todos los plazos)
   const initialPaymentOptions = useMemo(() => {
@@ -96,7 +114,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
             <button
               key={option.percent}
               onClick={() => setSelectedInitialPercent(option.percent)}
-              className={`py-2 px-4 text-sm font-medium rounded-full transition-all cursor-pointer ${
+              className={`py-2.5 px-4 text-sm font-medium rounded-full transition-all cursor-pointer min-h-[40px] ${
                 selectedInitialPercent === option.percent
                   ? 'bg-[var(--color-primary)] text-white shadow-md'
                   : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
@@ -121,16 +139,16 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
             <div
               key={plan.term}
               onClick={() => setSelectedTerm(plan.term)}
-              onMouseEnter={() => setHoveredTerm(plan.term)}
-              onMouseLeave={() => setHoveredTerm(null)}
+              onMouseEnter={isHoverCapable ? () => setHoveredTerm(plan.term) : undefined}
+              onMouseLeave={isHoverCapable ? () => setHoveredTerm(null) : undefined}
               className={`
-                relative p-4 rounded-xl cursor-pointer transition-all duration-300
+                relative p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-300 min-w-0
                 ${
                   isSelected
                     ? 'bg-[var(--color-primary)] text-white shadow-xl scale-105'
                     : 'bg-white border-2 border-neutral-200 hover:border-[var(--color-primary)] hover:shadow-lg'
                 }
-                ${isHovered && !isSelected ? 'scale-102' : ''}
+                ${isHovered && !isSelected ? 'scale-[1.02]' : ''}
               `}
             >
               {isSelected && (
@@ -139,9 +157,9 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                 </div>
               )}
 
-              <div className="text-center">
+              <div className="text-center min-w-0">
                 <p
-                  className={`text-sm font-medium mb-2 ${
+                  className={`text-xs sm:text-sm font-medium mb-2 ${
                     isSelected ? 'text-white/80' : 'text-neutral-500'
                   }`}
                 >
@@ -150,7 +168,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
 
                 {option.originalQuota && (
                   <p
-                    className={`text-xs line-through mb-1 ${
+                    className={`text-[10px] sm:text-xs line-through mb-1 break-words ${
                       isSelected ? 'text-white/60' : 'text-neutral-400'
                     }`}
                   >
@@ -159,7 +177,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                 )}
 
                 <p
-                  className={`text-xl font-bold ${
+                  className={`text-lg sm:text-xl font-bold break-words ${
                     isSelected ? 'text-white' : 'text-[var(--color-primary)]'
                   }`}
                 >
@@ -167,7 +185,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                 </p>
 
                 <p
-                  className={`text-xs mt-1 ${
+                  className={`text-[10px] sm:text-xs mt-1 ${
                     isSelected ? 'text-white/80' : 'text-neutral-500'
                   }`}
                 >
