@@ -56,13 +56,13 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
-      className="mb-8 space-y-3"
+      className="mb-6 sm:mb-8 space-y-3"
     >
-      <h3 className="font-semibold text-neutral-800 mb-3">Tu solicitud</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-neutral-800 mb-3 font-['Baloo_2',_sans-serif]">Tu solicitud</h3>
 
       {/* Products Card */}
       <Card className="border border-neutral-200 shadow-sm">
-        <CardBody className="p-4">
+        <CardBody className="p-3 sm:p-4">
           {/* Header if multiple products */}
           {data.products.length > 1 && (
             <div className="flex items-center gap-2 mb-4 pb-3 border-b border-neutral-100">
@@ -98,11 +98,11 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
                   {product.brand && (
-                    <p className="text-xs text-neutral-500 uppercase tracking-wide">
+                    <p className="text-xs text-neutral-500 uppercase tracking-wide break-words">
                       {product.brand}
                     </p>
                   )}
-                  <p className="text-sm font-semibold text-neutral-800">
+                  <p className="text-sm font-semibold text-neutral-800 break-words line-clamp-2">
                     {product.name}
                   </p>
                   {product.specs && (
@@ -254,15 +254,15 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
 
       {/* Total Card */}
       <div className="p-4 rounded-xl bg-[var(--color-primary)]/5">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-semibold text-neutral-800">Cuota mensual total</span>
-          <div className="text-right">
-            <span className="text-xl font-bold text-[var(--color-primary)]">
+        <div className="flex justify-between items-center gap-3">
+          <span className="text-sm font-semibold text-neutral-800 min-w-0 break-words">Cuota mensual total</span>
+          <div className="text-right flex-shrink-0">
+            <span className="text-lg sm:text-xl font-bold text-[var(--color-primary)] break-words">
               {formatPrice(totalWithoutDiscount)}/mes
             </span>
           </div>
         </div>
-        <p className="text-xs text-neutral-500 mt-1">
+        <p className="text-xs text-neutral-500 mt-1 break-words">
           {data.termMonths} cuotas · {totalInitialPayment > 0
             ? `Inicial ${formatPrice(totalInitialPayment)}`
             : 'Sin inicial'}
