@@ -22,7 +22,7 @@ export function GamerCta({ theme, catalogUrl }: GamerCtaProps) {
 
       <section
         className="relative overflow-hidden text-center"
-        style={{ padding: '100px 0' }}
+        style={{ padding: 'clamp(40px, 10vw, 100px) 0' }}
       >
         {/* Background radial */}
         <div
@@ -70,7 +70,7 @@ export function GamerCta({ theme, catalogUrl }: GamerCtaProps) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="mx-auto mb-4"
-            style={{ fontSize: 16, color: isDark ? '#fff' : '#333', maxWidth: 560, lineHeight: 1.6 }}
+            style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', color: isDark ? '#fff' : '#333', maxWidth: 560, lineHeight: 1.6 }}
           >
             Financiamiento accesible, las mejores marcas y una comunidad que te respalda
           </motion.p>

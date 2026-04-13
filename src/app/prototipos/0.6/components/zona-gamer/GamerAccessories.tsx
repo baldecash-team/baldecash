@@ -31,7 +31,7 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
       {/* Divider */}
       <hr className="border-none h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)' }} />
 
-      <section className="py-[60px]" id="accessories">
+      <section className="py-10 sm:py-[60px]" id="accessories">
         <div className="px-6">
           {/* stag */}
           <motion.div
@@ -81,14 +81,14 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
           <div className="relative mt-10 overflow-hidden">
             {/* Left shadow */}
             <div style={{
-              position: 'absolute', left: 0, top: 0, bottom: 0, width: 150, zIndex: 2, pointerEvents: 'none',
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 'clamp(40px, 10vw, 150px)', zIndex: 2, pointerEvents: 'none',
               background: isDark
                 ? 'linear-gradient(90deg, #0e0e0e, transparent)'
                 : 'linear-gradient(90deg, #f2f2f2, transparent)',
             }} />
             {/* Right shadow */}
             <div style={{
-              position: 'absolute', right: 0, top: 0, bottom: 0, width: 150, zIndex: 2, pointerEvents: 'none',
+              position: 'absolute', right: 0, top: 0, bottom: 0, width: 'clamp(40px, 10vw, 150px)', zIndex: 2, pointerEvents: 'none',
               background: isDark
                 ? 'linear-gradient(270deg, #0e0e0e, transparent)'
                 : 'linear-gradient(270deg, #f2f2f2, transparent)',
@@ -117,8 +117,8 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                   style={{
                     background: bgCard,
                     borderColor: border,
-                    padding: 20,
-                    width: 220,
+                    padding: 'clamp(12px, 3vw, 20px)',
+                    width: 'clamp(160px, 40vw, 220px)',
                     transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
                   onMouseEnter={(e) => {
@@ -140,7 +140,7 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                     width={200}
                     height={120}
                     className="w-full object-contain mb-3 rounded-lg"
-                    style={{ height: 120, display: isDark ? 'block' : 'none' }}
+                    style={{ height: 'clamp(80px, 20vw, 120px)', display: isDark ? 'block' : 'none' }}
                   />
                   <Image
                     src={acc.imgLight}
@@ -148,13 +148,13 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                     width={200}
                     height={120}
                     className="w-full object-contain mb-3 rounded-lg"
-                    style={{ height: 120, display: isDark ? 'none' : 'block' }}
+                    style={{ height: 'clamp(80px, 20vw, 120px)', display: isDark ? 'none' : 'block' }}
                   />
                   <div
                     className="mb-1"
                     style={{
                       fontFamily: "'Barlow Condensed', sans-serif",
-                      fontSize: 15, fontWeight: 700,
+                      fontSize: 'clamp(12px, 3.5vw, 15px)', fontWeight: 700,
                       color: isDark ? '#fff' : '#333',
                     }}
                   >

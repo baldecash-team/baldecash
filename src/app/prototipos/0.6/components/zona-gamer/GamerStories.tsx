@@ -44,7 +44,7 @@ export function GamerStories({ theme }: GamerStoriesProps) {
     <>
       <hr className="border-none h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)' }} />
 
-      <section className="py-[60px]" id="stories">
+      <section className="py-10 sm:py-[60px]" id="stories">
         <div className="max-w-[1280px] mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -74,12 +74,12 @@ export function GamerStories({ theme }: GamerStoriesProps) {
             <span className="accent" style={{ backgroundImage: gradient }}>HISTORIAS REALES</span>
           </motion.h2>
 
-          <p className="text-base mb-10" style={{ color: isDark ? '#fff' : '#333', maxWidth: 560, lineHeight: 1.6 }}>
+          <p className="text-sm sm:text-base mb-10" style={{ color: isDark ? '#fff' : '#333', maxWidth: 560, lineHeight: 1.6 }}>
             Conoce a quienes ya dieron el salto con BaldeCash
           </p>
 
           {/* Stories grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mt-8 sm:mt-10">
             {STORIES.map((s, i) => (
               <motion.div
                 key={s.name}
@@ -87,7 +87,7 @@ export function GamerStories({ theme }: GamerStoriesProps) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="rounded-2xl border p-6 transition-all hover:-translate-y-1"
+                className="rounded-2xl border p-4 sm:p-6 transition-all hover:-translate-y-1"
                 style={{ background: bgCard, borderColor: border }}
               >
                 {/* Avatar */}

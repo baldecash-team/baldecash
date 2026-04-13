@@ -103,7 +103,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
     : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   return (
-    <section className="py-[60px]" id="catalogo">
+    <section className="py-10 sm:py-[60px]" id="catalogo">
       <div className="max-w-[1280px] mx-auto px-6">
         {/* stag */}
         <motion.div
@@ -149,7 +149,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
           className="mb-10"
-          style={{ fontSize: 16, color: isDark ? '#fff' : '#333', maxWidth: 560, lineHeight: 1.6 }}
+          style={{ fontSize: 'clamp(14px, 3.5vw, 16px)', color: isDark ? '#fff' : '#333', maxWidth: 560, lineHeight: 1.6 }}
         >
           Packs pensados para cada tipo de gamer — laptop + accesorios con financiamiento accesible
         </motion.p>
@@ -197,7 +197,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                 style={{
                   background: cardBg,
                   border: cardBorder,
-                  padding: '32px 24px',
+                  padding: 'clamp(20px, 4vw, 32px) clamp(16px, 3vw, 24px)',
                   borderRadius: 16,
                 }}
               >
@@ -229,7 +229,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                     width={400}
                     height={200}
                     className="w-full block"
-                    style={{ height: 200, objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'block' : 'none' }}
+                    style={{ height: 'clamp(140px, 30vw, 200px)', objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'block' : 'none' }}
                   />
                   <Image
                     src={pack.imgLight}
@@ -237,7 +237,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                     width={400}
                     height={200}
                     className="w-full block"
-                    style={{ height: 200, objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'none' : 'block' }}
+                    style={{ height: 'clamp(140px, 30vw, 200px)', objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'none' : 'block' }}
                   />
                 </div>
 
@@ -247,7 +247,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                 </div>
 
                 {/* pack-name */}
-                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, letterSpacing: 1, marginBottom: 4 }}>
+                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(22px, 5vw, 28px)', letterSpacing: 1, marginBottom: 4 }}>
                   {pack.name}
                 </div>
 
@@ -262,7 +262,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                 {/* pack-price-wrap */}
                 <div style={{ marginBottom: 20 }}>
                   <span style={{
-                    fontFamily: "'Orbitron', sans-serif", fontSize: 32, fontWeight: 800,
+                    fontFamily: "'Orbitron', sans-serif", fontSize: 'clamp(24px, 6vw, 32px)', fontWeight: 800,
                     color: accent,
                   }}>
                     {pack.price}

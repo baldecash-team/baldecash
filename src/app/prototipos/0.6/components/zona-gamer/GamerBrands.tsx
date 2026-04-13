@@ -29,7 +29,7 @@ export function GamerBrands({ theme }: GamerBrandsProps) {
     <>
       <hr className="border-none h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)' }} />
 
-      <section className="py-[60px] overflow-hidden" id="brands">
+      <section className="py-10 sm:py-[60px] overflow-hidden" id="brands">
         <div className="max-w-[1280px] mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -59,7 +59,7 @@ export function GamerBrands({ theme }: GamerBrandsProps) {
             <span className="accent" style={{ backgroundImage: gradient }}>PRIMERA LÍNEA</span>
           </motion.h2>
 
-          <p className="text-base mb-10" style={{ color: isDark ? '#fff' : '#333', maxWidth: 560, lineHeight: 1.6 }}>
+          <p className="text-sm sm:text-base mb-8 sm:mb-10" style={{ color: isDark ? '#fff' : '#333', maxWidth: 560, lineHeight: 1.6 }}>
             Solo trabajamos con las marcas líderes en gaming a nivel mundial
           </p>
 
@@ -72,14 +72,14 @@ export function GamerBrands({ theme }: GamerBrandsProps) {
             }}
           >
             <div
-              className="flex gap-10 w-max hover:[animation-play-state:paused]"
+              className="flex gap-6 sm:gap-10 w-max hover:[animation-play-state:paused]"
               style={{ animation: 'brandsScroll 18s linear infinite' }}
             >
               {carouselBrands.map((b, i) => (
                 <div
                   key={`${b.name}-${i}`}
                   className="flex flex-col items-center justify-center px-8 py-6 cursor-pointer transition-all duration-300 group"
-                  style={{ minWidth: 280 }}
+                  style={{ minWidth: 'clamp(200px, 45vw, 280px)' }}
                 >
                   <div
                     className="mb-3.5 h-20 flex items-center justify-center"
@@ -91,8 +91,8 @@ export function GamerBrands({ theme }: GamerBrandsProps) {
                       height={b.height}
                       className="object-contain transition-all duration-300 group-hover:scale-105"
                       style={{
-                        height: b.height,
-                        maxWidth: 220,
+                        height: `clamp(${Math.round(b.height * 0.6)}px, 15vw, ${b.height}px)`,
+                        maxWidth: 'clamp(140px, 35vw, 220px)',
                         opacity: isDark ? 1 : 0.9,
                       }}
                     />

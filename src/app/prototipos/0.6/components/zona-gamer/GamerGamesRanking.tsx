@@ -105,9 +105,13 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
 
   return (
     <>
+      <style>{`
+        .gamer-game-row { grid-template-columns: 36px 36px 1fr 40px; }
+        @media (min-width: 640px) { .gamer-game-row { grid-template-columns: 60px 52px 1fr 1fr 60px 28px; } }
+      `}</style>
       <hr className="border-none h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)' }} />
 
-      <section className="py-[60px]" id="games">
+      <section className="py-10 sm:py-[60px]" id="games">
         <div className="max-w-[1280px] mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -154,9 +158,8 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.06 }}
                 onClick={() => openModal(i)}
-                className="grid items-center gap-3.5 py-5 px-6 cursor-pointer transition-all relative group"
+                className="gamer-game-row grid items-center gap-2 sm:gap-3.5 py-4 sm:py-5 px-3 sm:px-6 cursor-pointer transition-all relative group"
                 style={{
-                  gridTemplateColumns: '60px 52px 1fr 1fr 60px 28px',
                   borderBottom: `1px solid ${border}`,
                   borderTop: i === 0 ? `1px solid ${border}` : 'none',
                 }}
@@ -184,7 +187,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
 
                 {/* Icon */}
                 <div
-                  className="w-[42px] h-[42px] rounded-[10px] flex items-center justify-center shrink-0 relative z-10 [&>svg]:w-[22px] [&>svg]:h-[22px]"
+                  className="w-[32px] h-[32px] sm:w-[42px] sm:h-[42px] rounded-[8px] sm:rounded-[10px] flex items-center justify-center shrink-0 relative z-10 [&>svg]:w-[16px] [&>svg]:h-[16px] sm:[&>svg]:w-[22px] sm:[&>svg]:h-[22px]"
                   style={{
                     background: `${g.color}22`,
                     border: `1px solid ${g.color}33`,
@@ -197,7 +200,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                 {/* Name + genre */}
                 <div className="relative z-10">
                   <div
-                    className="text-[17px] font-bold"
+                    className="text-[14px] sm:text-[17px] font-bold"
                     style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
                   >
                     {g.name}
@@ -268,10 +271,10 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
               style={{
                 background: bgCard,
                 border: `1px solid ${border}`,
-                padding: 32,
+                padding: 'clamp(16px, 5vw, 32px)',
                 maxWidth: 560,
-                width: '90%',
-                maxHeight: '80vh',
+                width: '92%',
+                maxHeight: '85vh',
                 boxShadow: isDark ? undefined : '0 20px 60px rgba(0,0,0,0.15)',
               }}
             >
@@ -298,7 +301,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                 </div>
                 <div>
                   <div
-                    className="text-[28px]"
+                    className="text-[22px] sm:text-[28px]"
                     style={{ fontFamily: "'Bebas Neue', sans-serif" }}
                   >
                     {game.name}
@@ -342,28 +345,28 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                   >
                     {/* Laptop icon */}
                     <div
-                      className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0"
                       style={{ background: 'rgba(99,102,241,0.06)' }}
                     >
-                      <Monitor className="w-7 h-5" style={{ color: textMuted, opacity: 0.4 }} />
+                      <Monitor className="w-5 h-4 sm:w-7 sm:h-5" style={{ color: textMuted, opacity: 0.4 }} />
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div
-                        className="text-[15px] font-bold"
+                        className="text-[13px] sm:text-[15px] font-bold"
                         style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
                       >
                         {l.n}
                       </div>
-                      <div className="text-[11px]" style={{ color: textMuted }}>
+                      <div className="text-[10px] sm:text-[11px]" style={{ color: textMuted }}>
                         {l.s}
                       </div>
                     </div>
 
                     {/* Price */}
                     <div
-                      className="text-sm font-bold whitespace-nowrap"
+                      className="text-xs sm:text-sm font-bold whitespace-nowrap"
                       style={{
                         fontFamily: "'Orbitron', sans-serif",
                         color: neonPurple,

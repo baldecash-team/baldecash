@@ -22,7 +22,7 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
   return (
     <>
       {/* hero-banner */}
-      <section className="relative overflow-hidden" style={{ padding: '80px 0', minHeight: 520 }}>
+      <section className="relative overflow-hidden" style={{ padding: 'clamp(40px, 8vw, 80px) 0', minHeight: 'clamp(360px, 60vw, 520px)' }}>
         {/* hero-banner-bg */}
         <div
           className="absolute inset-0"
@@ -107,11 +107,11 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
               style={{
-                fontSize: 18,
+                fontSize: 'clamp(15px, 3.5vw, 18px)',
                 color: isDark ? '#ffffff' : '#333',
                 lineHeight: 1.7,
                 maxWidth: 520,
-                marginBottom: 32,
+                marginBottom: 'clamp(20px, 5vw, 32px)',
               }}
             >
               Laptops gaming de las mejores marcas con planes de financiamiento accesibles.
@@ -123,8 +123,8 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.8 }}
-              className="flex items-center"
-              style={{ gap: 16 }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center"
+              style={{ gap: 12 }}
             >
               {/* btn-primary */}
               <a

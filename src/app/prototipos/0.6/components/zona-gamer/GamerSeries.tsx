@@ -79,7 +79,7 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
     <>
       <hr className="border-none h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)' }} />
 
-      <section className="py-[60px] overflow-hidden" id="linea-combate">
+      <section className="py-10 sm:py-[60px] overflow-hidden" id="linea-combate">
         <div className="max-w-[1280px] mx-auto px-6">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
@@ -92,21 +92,21 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
             <span className="accent" style={{ backgroundImage: gradient }}>LÍNEA DE COMBATE</span>
           </motion.h2>
 
-          <div className="flex items-center justify-between gap-5 mt-2">
-            <p className="text-base m-0" style={{ color: isDark ? '#fff' : '#333' }}>
+          <div className="flex items-center justify-between gap-3 sm:gap-5 mt-2">
+            <p className="text-sm sm:text-base m-0" style={{ color: isDark ? '#fff' : '#333' }}>
               Cada serie está diseñada para un tipo de gamer. Encuentra la tuya.
             </p>
-            <div className="flex gap-2.5 shrink-0">
+            <div className="flex gap-2 sm:gap-2.5 shrink-0">
               <button
                 onClick={() => scroll(-1)}
-                className="w-11 h-11 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5]"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5]"
                 style={{ background: bgCard, borderColor: border, color: textSecondary }}
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
                 onClick={() => scroll(1)}
-                className="w-11 h-11 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5]"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5]"
                 style={{ background: bgCard, borderColor: border, color: textSecondary }}
               >
                 <ChevronRight className="w-5 h-5" />
@@ -129,8 +129,8 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
                 transition={{ delay: Math.min(i + 1, 4) * 0.1 }}
                 className="series-card relative rounded-2xl overflow-hidden border cursor-pointer group shrink-0"
                 style={{
-                  width: 'calc(25% - 12px)',
-                  minWidth: 220,
+                  width: 'clamp(160px, 42vw, calc(25% - 12px))',
+                  minWidth: 160,
                   aspectRatio: '3/4',
                   borderColor: border,
                   scrollSnapAlign: 'start',
@@ -157,21 +157,21 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
                 />
 
                 {/* Content at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 p-5 translate-y-4 transition-transform duration-400 group-hover:translate-y-0">
+                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-5 translate-y-0 sm:translate-y-4 transition-transform duration-400 group-hover:translate-y-0">
                   <div
-                    className="text-[10px] font-bold tracking-[2px] uppercase mb-1"
+                    className="text-[9px] sm:text-[10px] font-bold tracking-[2px] uppercase mb-1"
                     style={{ color: s.color, fontFamily: "'Share Tech Mono', monospace" }}
                   >
                     {s.brand}
                   </div>
                   <div
-                    className="text-[28px] tracking-[2px] mb-1.5 text-white"
+                    className="text-[20px] sm:text-[28px] tracking-[2px] mb-1.5 text-white"
                     style={{ fontFamily: "'Bebas Neue', sans-serif" }}
                   >
                     {s.name}
                   </div>
                   <div
-                    className="text-xs leading-relaxed opacity-0 translate-y-2 transition-all duration-400 delay-100 group-hover:opacity-100 group-hover:translate-y-0"
+                    className="text-[10px] sm:text-xs leading-relaxed opacity-100 sm:opacity-0 translate-y-0 sm:translate-y-2 transition-all duration-400 delay-100 group-hover:opacity-100 group-hover:translate-y-0"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
                     {s.desc}

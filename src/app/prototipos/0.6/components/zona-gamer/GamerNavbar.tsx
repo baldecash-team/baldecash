@@ -50,12 +50,12 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         className="sticky z-[100] backdrop-blur-[20px] border-b"
         style={{
           top: 0,
-          height: 64,
+          height: 'clamp(52px, 10vw, 64px)',
           background: isDark ? 'rgba(14,14,14,0.85)' : 'rgba(255,255,255,0.92)',
           borderColor: V.border,
         }}
       >
-        <div className={`${fullWidth ? '' : 'max-w-[1280px] mx-auto'} px-6 w-full flex items-center justify-between h-full`}>
+        <div className={`${fullWidth ? '' : 'max-w-[1280px] mx-auto'} px-3 sm:px-6 w-full flex items-center justify-between h-full`}>
         {/* header-left */}
         <div className="flex items-center">
           <a href={routes.landingHome('zona-gamer')} className="flex items-center gap-2 no-underline">
@@ -65,7 +65,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
               width={140}
               height={32}
               className="object-contain"
-              style={{ height: 30 }}
+              style={{ height: 'clamp(22px, 5vw, 30px)' }}
             />
             <span
               className="gaming-badge-blink"
@@ -129,7 +129,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         </nav>
 
         {/* header-right */}
-        <div className="flex items-center" style={{ gap: 12 }}>
+        <div className="flex items-center" style={{ gap: 'clamp(6px, 2vw, 12px)' }}>
           {/* zona-estudiantes */}
           <a
             href="#"
@@ -154,8 +154,8 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             onClick={onToggleTheme}
             className="flex items-center justify-center cursor-pointer transition-all relative"
             style={{
-              width: 40,
-              height: 40,
+              width: 'clamp(34px, 8vw, 40px)',
+              height: 'clamp(34px, 8vw, 40px)',
               borderRadius: 10,
               background: V.bgSurface,
               border: `1px solid ${V.border}`,
@@ -171,8 +171,8 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             onClick={() => setMobileOpen(!mobileOpen)}
             className="hidden max-md:flex items-center justify-center"
             style={{
-              width: 36,
-              height: 36,
+              width: 'clamp(32px, 8vw, 36px)',
+              height: 'clamp(32px, 8vw, 36px)',
               borderRadius: 8,
               background: 'rgba(255,255,255,0.04)',
               border: `1px solid ${V.border}`,
@@ -189,15 +189,15 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
       {!hideSecondaryBar && <div
         className="sticky z-[99] border-b backdrop-blur-[20px]"
         style={{
-          top: 64,
+          top: 'clamp(52px, 10vw, 64px)',
           background: isDark ? 'rgba(14,14,14,0.95)' : 'rgba(255,255,255,0.95)',
           borderColor: V.border,
         }}
       >
-        <div className={`${fullWidth ? '' : 'max-w-[1280px] mx-auto'} px-6 flex items-center justify-between h-14 gap-4`}>
-          <div className="flex-1 flex justify-center">
+        <div className={`${fullWidth ? '' : 'max-w-[1280px] mx-auto'} px-3 sm:px-6 flex items-center justify-between h-11 sm:h-14 gap-2 sm:gap-4`}>
+          <div className="flex-1 flex justify-center min-w-0">
             <div
-              className="flex items-center w-[600px] max-w-full h-10 px-3 rounded-xl border-2 transition-all focus-within:border-[rgba(70,84,205,0.5)]"
+              className="flex items-center w-[600px] max-w-full h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border-2 transition-all focus-within:border-[rgba(70,84,205,0.5)]"
               style={{
                 background: V.bgSurface,
                 borderColor: 'rgba(70,84,205,0.2)',
@@ -207,7 +207,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
               <input
                 type="text"
                 placeholder="Buscar equipos..."
-                className="flex-1 bg-transparent border-none outline-none px-3 py-2 text-sm"
+                className="flex-1 bg-transparent border-none outline-none px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm"
                 style={{
                   color: isDark ? '#fff' : '#333',
                   fontFamily: "'Rajdhani', sans-serif",
@@ -216,9 +216,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
               />
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
-              className="w-10 h-10 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#6366f1] hover:text-[#6366f1]"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#6366f1] hover:text-[#6366f1]"
               style={{
                 background: V.bgSurface,
                 borderColor: V.border,
@@ -226,7 +226,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
               }}
               title="Favoritos"
             >
-              <Heart className="w-5 h-5" />
+              <Heart className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>

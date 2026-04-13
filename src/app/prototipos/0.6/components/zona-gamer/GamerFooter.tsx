@@ -74,17 +74,15 @@ export function GamerFooter({ theme }: GamerFooterProps) {
   const gradient = `linear-gradient(135deg, ${neonPurple}, ${neonCyan})`;
 
   return (
-    <footer className="relative" style={{ background: bgDark, borderTop: `1px solid ${border}`, padding: '0 24px' }}>
+    <footer className="relative" style={{ background: bgDark, borderTop: `1px solid ${border}`, padding: '0 clamp(16px, 4vw, 24px)' }}>
       {/* Top accent */}
       <div className="absolute top-0 left-0 right-0 h-px opacity-30" style={{ background: gradient }} />
 
       <div className="max-w-[1280px] mx-auto pt-12">
         {/* Grid */}
-        <div className="grid gap-8 mb-10"
-          style={{ gridTemplateColumns: '1.5fr 1fr 1fr 1fr 1fr' }}
-        >
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8 mb-10">
           {/* Brand column */}
-          <div className="col-span-full lg:col-span-1">
+          <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <Image
               src="/images/zona-gamer/logo baldecash/LOGO OFI.png"
               alt="BaldeCash"
@@ -105,7 +103,7 @@ export function GamerFooter({ theme }: GamerFooterProps) {
                     href={s.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-[34px] h-[34px] rounded-full flex items-center justify-center no-underline transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                    className="w-[40px] h-[40px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center no-underline transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
                     style={{
                       background: bgSurface,
                       border: `1px solid ${border}`,
@@ -121,7 +119,7 @@ export function GamerFooter({ theme }: GamerFooterProps) {
                 href="https://www.tiktok.com/@baldecash"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-[34px] h-[34px] rounded-full flex items-center justify-center no-underline transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                className="w-[40px] h-[40px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center no-underline transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
                 style={{
                   background: bgSurface,
                   border: `1px solid ${border}`,
@@ -136,7 +134,7 @@ export function GamerFooter({ theme }: GamerFooterProps) {
 
           {/* Link columns */}
           {FOOTER_COLS.map((col) => (
-            <div key={col.title} className="hidden lg:block">
+            <div key={col.title}>
               <h4
                 className="text-[11px] font-bold uppercase tracking-[2px] mb-4"
                 style={{ fontFamily: "'Share Tech Mono', monospace", color: neonCyan }}

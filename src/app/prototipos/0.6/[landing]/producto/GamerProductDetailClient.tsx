@@ -253,10 +253,10 @@ function DetailContent() {
           transform: scale(1.8);
         }
         .gallery-thumb {
-          width: 72px;
-          height: 72px;
-          flex: 0 0 72px;
-          border-radius: 8px;
+          width: 40px;
+          height: 40px;
+          flex: 0 0 40px;
+          border-radius: 6px;
           overflow: hidden;
           border: 2px solid var(--gamer-border, #e5e7eb);
           cursor: pointer;
@@ -264,13 +264,23 @@ function DetailContent() {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 6px;
+          padding: 3px;
           background: #fff;
+        }
+        @media (min-width: 480px) {
+          .gallery-thumb { width: 52px; height: 52px; flex: 0 0 52px; border-radius: 7px; padding: 4px; }
+        }
+        @media (min-width: 768px) {
+          .gallery-thumb { width: 64px; height: 64px; flex: 0 0 64px; border-radius: 8px; padding: 5px; }
+        }
+        @media (min-width: 1024px) {
+          .gallery-thumb { width: 72px; height: 72px; flex: 0 0 72px; padding: 6px; }
         }
         .gallery-thumb.active-thumb {
           border-color: #4654CD;
           box-shadow: 0 0 0 2px rgba(70,84,205,0.2);
         }
+        .gallery-thumbs-scroll::-webkit-scrollbar { display: none; }
         .gallery-thumb img {
           width: 100%;
           height: 100%;
@@ -333,17 +343,20 @@ function DetailContent() {
           .gamer-detail-pricing-order { order: 2; align-self: start; }
         }
         @media (max-width: 1023px) {
-          .gamer-detail-gallery-order { order: 2; }
-          .gamer-detail-pricing-order { order: 1; }
+          .gamer-detail-gallery-order { order: 1; }
+          .gamer-detail-pricing-order { order: 2; position: static !important; }
         }
         .gamer-term-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
+          gap: 8px;
           margin-bottom: 0;
         }
+        @media (min-width: 480px) {
+          .gamer-term-grid { gap: 12px; }
+        }
         @media (min-width: 768px) {
-          .gamer-term-grid { grid-template-columns: repeat(3, 1fr); }
+          .gamer-term-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
         }
         @media (min-width: 1024px) {
           .gamer-term-grid { grid-template-columns: repeat(5, 1fr); }
@@ -361,25 +374,25 @@ function DetailContent() {
       <SideNav isDark={isDark} T={T} />
 
       {/* MAIN CONTENT */}
-      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '24px 16px 48px' }} className="detail-main product-font">
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(12px, 3vw, 24px) clamp(8px, 3vw, 16px) 48px' }} className="detail-main product-font">
         {/* BREADCRUMB */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontFamily: F.raj, flexWrap: 'wrap', marginBottom: 24 }}>
+        <nav style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'clamp(12px, 2.5vw, 14px)', fontFamily: F.raj, flexWrap: 'nowrap', marginBottom: 16, overflow: 'hidden' }}>
           <button onClick={() => router.push(routes.landingHome(landing))} style={{ background: 'none', border: 'none', color: isDark ? '#a0a0a0' : '#737373', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', padding: 0, textDecoration: 'none' }}>Inicio</button>
           <ChevronRight size={14} style={{ color: isDark ? '#555' : '#a3a3a3' }} />
           <button onClick={() => router.push(routes.catalogo(landing))} style={{ background: 'none', border: 'none', color: isDark ? '#a0a0a0' : '#737373', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', padding: 0, textDecoration: 'none' }}>Catálogo</button>
           <ChevronRight size={14} style={{ color: isDark ? '#555' : '#a3a3a3' }} />
-          <span style={{ color: isDark ? '#f0f0f0' : '#262626', fontWeight: 600 }}>{product.displayName || product.name}</span>
+          <span style={{ color: isDark ? '#f0f0f0' : '#262626', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{product.displayName || product.name}</span>
         </nav>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 32, alignItems: 'start', animation: 'fadeIn 0.4s ease-out' }} className="gamer-detail-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 'clamp(16px, 4vw, 32px)', alignItems: 'start', animation: 'fadeIn 0.4s ease-out' }} className="gamer-detail-grid">
 
         {/* LEFT: Gallery */}
         <div id="section-gallery" className="gamer-detail-gallery-order">
           <div style={{ background: T.bgCard, borderRadius: 16, border: `1px solid ${T.border}`, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Gallery header: brand + rating + title + specs line */}
-            <div style={{ padding: '20px 20px 0', position: 'relative', zIndex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <span style={{ padding: '6px 12px', background: T.neonPurple, color: '#fff', fontSize: 14, fontWeight: 700, borderRadius: 8 }}>{product.brand}</span>
+            <div style={{ padding: 'clamp(10px, 2.5vw, 20px) clamp(10px, 2.5vw, 20px) 0', position: 'relative', zIndex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ padding: '4px 10px', background: T.neonPurple, color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 6 }}>{product.brand}</span>
                 {/* Rating solo si el backend trae reviews reales */}
                 {product.rating != null && product.reviewCount > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -389,22 +402,23 @@ function DetailContent() {
                   </div>
                 )}
               </div>
-              <h1 className="gamer-gradient-text" style={{ fontFamily: F.raj, fontWeight: 700, fontSize: 'clamp(24px, 3vw, 30px)', lineHeight: 1.2, margin: '0 0 4px' }}>
+              <h1 className="gamer-gradient-text" style={{ fontFamily: F.raj, fontWeight: 700, fontSize: 'clamp(18px, 4.5vw, 30px)', lineHeight: 1.2, margin: '0 0 2px' }}>
                 {product.displayName || product.name}
               </h1>
               {/* Quick specs pipe-separated line */}
               {quickSpecs.length > 0 && (
-                <p style={{ fontSize: 14, fontFamily: F.raj, color: T.textPrimary, margin: '4px 0 0' }}>
+                <p style={{ fontSize: 'clamp(11px, 2.8vw, 14px)', fontFamily: F.raj, color: T.textPrimary, margin: '4px 0 0', lineHeight: 1.4 }}>
                   {quickSpecs.map((s) => s.value).join(' | ')}
                 </p>
               )}
             </div>
 
             {/* Main image viewer */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 480, padding: '16px 24px', flex: 1 }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'clamp(160px, 38vw, 480px)', padding: 'clamp(4px, 1.5vw, 16px) clamp(8px, 2vw, 24px)', flex: 1 }}>
               <div
                 className="gallery-img-wrap"
                 onMouseMove={(e) => {
+                  if (!e.currentTarget) return;
                   const rect = e.currentTarget.getBoundingClientRect();
                   const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(2) + '%';
                   const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(2) + '%';
@@ -412,34 +426,35 @@ function DetailContent() {
                   if (img) img.style.transformOrigin = `${x} ${y}`;
                 }}
                 onMouseLeave={(e) => {
+                  if (!e.currentTarget) return;
                   const img = e.currentTarget.querySelector('img');
                   if (img) img.style.transformOrigin = 'center center';
                 }}
               >
-                <Image src={currentImage.url} alt={currentImage.alt || product.name} width={480} height={440} style={{ objectFit: 'contain', maxHeight: 440, width: 'auto' }} priority />
+                <Image src={currentImage.url} alt={currentImage.alt || product.name} width={480} height={440} style={{ objectFit: 'contain', maxHeight: 'clamp(160px, 42vw, 440px)', width: 'auto', maxWidth: '100%' }} priority />
               </div>
               {/* Imagen referencial label */}
-              <div style={{ position: 'absolute', bottom: 16, left: 16, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '5px 12px' }}>
-                <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.5, color: 'rgba(255,255,255,0.7)' }}>Imagen referencial</span>
+              <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 6, padding: '3px 8px' }}>
+                <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,0.7)' }}>Imagen referencial</span>
               </div>
               {/* Image counter */}
-              <div style={{ position: 'absolute', bottom: 16, right: 16, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '5px 12px' }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{selectedImage + 1} / {images.length}</span>
+              <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 6, padding: '3px 8px' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{selectedImage + 1} / {images.length}</span>
               </div>
             </div>
 
             {/* Thumbnails with arrows */}
             {images.length > 1 && (
-              <div style={{ padding: '12px 16px', borderTop: `1px solid ${isDark ? T.border : '#f5f5f5'}` }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ padding: 'clamp(8px, 2vw, 12px) clamp(8px, 2vw, 16px)', borderTop: `1px solid ${isDark ? T.border : '#f5f5f5'}` }}>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <button
                     onClick={() => setSelectedImage((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
                     style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', border: `1px solid ${isDark ? T.border : '#e5e7eb'}`, background: isDark ? T.bgCard : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: isDark ? T.textMuted : '#d1d5db', opacity: selectedImage === 0 ? 0.3 : 1, transition: 'all 0.2s' }}
                   >
                     <ChevronLeft size={14} />
                   </button>
-                  <div style={{ flex: 1, overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
-                    <div style={{ display: 'flex', gap: 8, transition: 'transform 0.3s' }}>
+                  <div className="gallery-thumbs-scroll" style={{ flex: 1, overflow: 'hidden', overflowX: 'auto', display: 'flex', scrollbarWidth: 'none' }}>
+                    <div style={{ display: 'flex', gap: 6, transition: 'transform 0.3s' }}>
                       {images.map((img, idx) => (
                         <div
                           key={img.id}
@@ -468,22 +483,22 @@ function DetailContent() {
 
         {/* RIGHT: Pricing (sticky on desktop) */}
         <div id="section-pricing" className="gamer-detail-pricing-order" style={{ position: 'sticky', top: 168, alignSelf: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 2.5vw, 24px)' }}>
             {/* Pricing card */}
-            <div style={{ background: T.bgCard, borderRadius: 16, border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : T.border}`, padding: 24, boxShadow: isDark ? '0 0 32px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.08)' }}>
-              <h3 style={{ fontFamily: F.raj, fontSize: 20, fontWeight: 700, color: '#ffffff', letterSpacing: 0, margin: '0 0 4px' }}>Calcula tu cuota mensual</h3>
-              <p style={{ fontFamily: F.raj, fontSize: '0.85rem', color: T.textPrimary, letterSpacing: 0, margin: '0 0 24px' }}>Selecciona el plazo que mejor se ajuste a tu presupuesto</p>
+            <div style={{ background: T.bgCard, borderRadius: 'clamp(12px, 3vw, 16px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : T.border}`, padding: 'clamp(12px, 3vw, 24px)', boxShadow: isDark ? '0 0 32px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.08)' }}>
+              <h3 style={{ fontFamily: F.raj, fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, color: '#ffffff', letterSpacing: 0, margin: '0 0 2px' }}>Calcula tu cuota mensual</h3>
+              <p style={{ fontFamily: F.raj, fontSize: 'clamp(11px, 2.8vw, 13px)', color: T.textPrimary, letterSpacing: 0, margin: '0 0 clamp(12px, 3vw, 24px)' }}>Selecciona el plazo que mejor se ajuste a tu presupuesto</p>
 
               {/* Initial payment selector */}
               {activePlan && activePlan.options.length > 0 && (
-                <div style={{ marginBottom: 24 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, textTransform: 'none', marginBottom: 12 }}>Cuota inicial (opcional)</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ marginBottom: 'clamp(10px, 3vw, 24px)' }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, textTransform: 'none', marginBottom: 6 }}>Cuota inicial (opcional)</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {activePlan.options.map((opt) => {
                       const isActive = opt.initialPercent === selectedInitialPercent;
                       return (
                         <button key={opt.initialPercent} onClick={() => setSelectedInitialPercent(opt.initialPercent)} style={{
-                          padding: '8px 16px', fontSize: 14, fontFamily: F.raj, borderRadius: 999, cursor: 'pointer', transition: 'all 0.2s',
+                          padding: '6px 12px', fontSize: 'clamp(12px, 3vw, 14px)', fontFamily: F.raj, borderRadius: 999, cursor: 'pointer', transition: 'all 0.2s',
                           fontWeight: isActive ? 700 : 500,
                           background: isActive ? T.neonCyan : T.bgSurface,
                           color: isActive ? '#0a0a0a' : T.textSecondary,
@@ -508,19 +523,19 @@ function DetailContent() {
                     const isSelected = term === selectedTerm;
                     return (
                       <button key={term} onClick={() => setSelectedTerm(term)} style={{
-                        position: 'relative', padding: 16, borderRadius: 12, cursor: 'pointer', transition: 'all 0.3s', textAlign: 'center',
+                        position: 'relative', padding: 'clamp(8px, 2.5vw, 16px)', borderRadius: 10, cursor: 'pointer', transition: 'all 0.3s', textAlign: 'center',
                         background: isSelected ? `linear-gradient(135deg, rgba(0,255,213,0.12), rgba(0,255,213,0.06))` : T.bgSurface,
                         border: isSelected ? `2px solid ${T.neonCyan}` : '1px solid rgba(255,255,255,0.1)',
                         transform: isSelected ? 'scale(1.05)' : 'scale(1)',
                       }}>
-                        <p style={{ fontSize: 12, color: T.textPrimary, fontFamily: F.mono, letterSpacing: 1, marginBottom: 8 }}>{term} meses</p>
+                        <p style={{ fontSize: 'clamp(10px, 2.5vw, 12px)', color: T.textPrimary, fontFamily: F.mono, letterSpacing: 1, marginBottom: 4 }}>{term} meses</p>
                         {originalOpt && (
                           <p style={{ fontSize: 12, textDecoration: 'line-through', color: 'rgba(255,255,255,0.5)', fontFamily: F.mono, marginBottom: 4 }}>S/{Math.round(originalOpt)}</p>
                         )}
-                        <p style={{ fontFamily: F.orb, fontSize: '1.25rem', fontWeight: 800, color: T.neonCyan, textShadow: isSelected ? '0 0 14px rgba(0,255,213,0.5)' : '0 0 10px rgba(0,255,213,0.5)', margin: 0 }}>
+                        <p style={{ fontFamily: F.orb, fontSize: 'clamp(0.8rem, 3.2vw, 1.25rem)', fontWeight: 800, color: T.neonCyan, textShadow: isSelected ? '0 0 14px rgba(0,255,213,0.5)' : '0 0 10px rgba(0,255,213,0.5)', margin: 0 }}>
                           S/{opt ? Math.round(opt.monthlyQuota) : '—'}
                         </p>
-                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontFamily: F.raj, marginTop: 4 }}>al mes</p>
+                        <p style={{ fontSize: 'clamp(10px, 2.5vw, 12px)', color: 'rgba(255,255,255,0.7)', fontFamily: F.raj, marginTop: 2 }}>al mes</p>
                       </button>
                     );
                   })}
@@ -528,19 +543,19 @@ function DetailContent() {
               )}
 
               {/* Payment summary */}
-              <div style={{ marginTop: 32, padding: 24, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
-                <p style={{ fontSize: 12, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, marginBottom: 8 }}>Pagarías</p>
+              <div style={{ marginTop: 'clamp(12px, 3vw, 32px)', padding: 'clamp(10px, 3vw, 24px)', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
+                <p style={{ fontSize: 11, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, marginBottom: 4 }}>Pagarías</p>
                 {/* Cuota tachada solo si el backend trae originalQuota real (no inventamos descuento) */}
                 {lowestOption?.originalQuota != null && lowestOption.originalQuota > lowestOption.monthlyQuota && (
                   <p style={{ textDecoration: 'line-through', fontSize: '1.25rem', color: 'rgba(255,255,255,0.5)', fontFamily: F.mono, marginBottom: 4 }}>
                     S/{Math.round(lowestOption.originalQuota)}/mes
                   </p>
                 )}
-                <p style={{ fontFamily: F.orb, fontSize: '2.5rem', fontWeight: 800, color: T.neonCyan, textShadow: '0 0 20px rgba(0,255,213,0.6)', lineHeight: 1.1, margin: 0 }}>
+                <p style={{ fontFamily: F.orb, fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', fontWeight: 800, color: T.neonCyan, textShadow: '0 0 20px rgba(0,255,213,0.6)', lineHeight: 1.1, margin: 0 }}>
                   S/{lowestOption ? Math.round(lowestOption.monthlyQuota) : Math.round(product.lowestQuota)}
-                  <span style={{ fontSize: '0.85rem', color: '#ffffff' }}>/mes</span>
+                  <span style={{ fontSize: 'clamp(0.65rem, 2.5vw, 0.85rem)', color: '#ffffff' }}>/mes</span>
                 </p>
-                <p style={{ fontSize: 14, color: T.textSecondary, fontFamily: F.raj, marginTop: 8 }}>durante {selectedTerm} meses</p>
+                <p style={{ fontSize: 12, color: T.textSecondary, fontFamily: F.raj, marginTop: 4 }}>durante {selectedTerm} meses</p>
                 {lowestOption && lowestOption.initialPercent > 0 && lowestOption.initialAmount > 0 && (
                   <p style={{ fontSize: 12, color: T.textSecondary, fontFamily: F.raj, marginTop: 4 }}>
                     + S/{Math.round(lowestOption.initialAmount)} de inicial
@@ -550,13 +565,13 @@ function DetailContent() {
             </div>
 
             {/* Action buttons */}
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={handleSolicitar} className="btn-loquiero-detalle" style={{ flex: 1, padding: '16px 0' }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleSolicitar} className="btn-loquiero-detalle" style={{ flex: 1, padding: 'clamp(10px, 2.5vw, 16px) 0', fontSize: 'clamp(0.85rem, 3vw, 1.1rem)' }}>
                 ¡Lo quiero! Solicitar ahora
               </button>
               <button onClick={handleToggleWishlist} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 56, flexShrink: 0, borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s',
+                width: 44, flexShrink: 0, borderRadius: 10, cursor: 'pointer', transition: 'all 0.2s',
                 background: isWishlisted ? (isDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.1)') : (isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5'),
                 border: `1px solid ${isWishlisted ? T.neonCyan : T.border}`,
                 color: isWishlisted ? T.neonCyan : (isDark ? '#707070' : '#a0a0a0'),
@@ -593,16 +608,16 @@ function DetailContent() {
 
       {/* DESCRIPTION SECTION */}
       {product.description && (
-        <section id="section-description" style={{ maxWidth: 1280, margin: '48px auto 0', padding: '0 24px' }}>
+        <section id="section-description" style={{ maxWidth: 1280, margin: 'clamp(24px, 5vw, 48px) auto 0', padding: '0 clamp(8px, 3vw, 24px)' }}>
           <div style={{
             background: T.bgCard, borderRadius: 16, border: `1px solid ${T.border}`, overflow: 'hidden',
           }}>
-            <div style={{ padding: '16px 24px', borderBottom: `1px solid ${T.border}` }}>
+            <div style={{ padding: 'clamp(12px, 3vw, 16px) clamp(16px, 4vw, 24px)', borderBottom: `1px solid ${T.border}` }}>
               <h2 style={{ fontFamily: F.raj, fontSize: 18, fontWeight: 700, color: T.textPrimary, margin: 0 }}>
                 Descripción
               </h2>
             </div>
-            <div style={{ padding: '16px 24px' }}>
+            <div style={{ padding: 'clamp(12px, 3vw, 16px) clamp(16px, 4vw, 24px)' }}>
               <p style={{ fontSize: 14, lineHeight: 1.7, color: T.textSecondary, margin: 0 }}>
                 {product.description}
               </p>
@@ -613,7 +628,7 @@ function DetailContent() {
 
       {/* SPECS SECTION */}
       {product.specs && product.specs.length > 0 && (
-        <section id="section-specs" style={{ maxWidth: 1280, margin: '64px auto 48px', padding: '0 24px' }}>
+        <section id="section-specs" style={{ maxWidth: 1280, margin: 'clamp(24px, 5vw, 64px) auto clamp(24px, 5vw, 48px)', padding: '0 clamp(8px, 3vw, 24px)' }}>
           <h2 style={{ fontFamily: F.raj, fontSize: 20, fontWeight: 700, color: T.textPrimary, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
             Especificaciones
           </h2>
@@ -629,9 +644,9 @@ function DetailContent() {
       <PortsSection T={T} isDark={isDark} ports={product.ports} />
 
       {/* FICHA TÉCNICA */}
-      <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 24px' }}>
+      <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
         <div style={{
-          padding: 16, borderRadius: 16,
+          padding: 'clamp(12px, 3vw, 16px)', borderRadius: 16,
           background: isDark
             ? 'linear-gradient(to right, rgba(0,255,213,0.05), rgba(0,255,213,0.1))'
             : 'linear-gradient(to right, rgba(70,84,205,0.05), rgba(70,84,205,0.1))',
@@ -745,10 +760,10 @@ function PortsSection({ T, isDark, ports }: { T: Theme; isDark: boolean; ports: 
   };
 
   return (
-    <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 24px' }}>
-      <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 24, boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
+    <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
+      <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 'clamp(16px, 4vw, 24px)' }}>
           <div style={{ width: 40, height: 40, borderRadius: 12, background: cyanAlphaStatic(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Usb size={20} style={{ color: T.neonCyan }} />
           </div>
@@ -761,7 +776,7 @@ function PortsSection({ T, isDark, ports }: { T: Theme; isDark: boolean; ports: 
         {/* Ports layout */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 16 }}>
           {/* Left ports */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flex: '1 1 0', minWidth: 140 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flex: '1 1 0', minWidth: 0 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#707070' : '#737373', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Izquierda</span>
             {leftPorts.map((port, i) => (
               <div key={i} style={portItemStyle}>
@@ -780,7 +795,7 @@ function PortsSection({ T, isDark, ports }: { T: Theme; isDark: boolean; ports: 
           </div>
 
           {/* Right ports */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start', flex: '1 1 0', minWidth: 140 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start', flex: '1 1 0', minWidth: 0 }}>
             <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? '#707070' : '#737373', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Derecha</span>
             {rightPorts.map((port, i) => (
               <div key={i} style={portItemStyle}>
@@ -1114,16 +1129,16 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
   const totalPagar = rows.length * Math.round(monthlyQuota);
 
   return (
-    <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 24px' }}>
-      <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 24, boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
+    <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
+      <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
         {/* Header */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: cyanAlphaStatic(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Calendar size={20} style={{ color: T.neonCyan }} />
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 'clamp(16px, 4vw, 24px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: cyanAlphaStatic(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Calendar size={18} style={{ color: T.neonCyan }} />
             </div>
             <div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: isDark ? '#fff' : '#171717', margin: 0 }}>Detalle de Cuotas</h3>
+              <h3 style={{ fontSize: 'clamp(15px, 4vw, 18px)', fontWeight: 700, color: isDark ? '#fff' : '#171717', margin: 0 }}>Detalle de Cuotas</h3>
               <p style={{ fontSize: 14, color: isDark ? '#707070' : '#737373', margin: 0 }}>{selectedTerm} pagos mensuales</p>
             </div>
           </div>
@@ -1131,7 +1146,7 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
 
         {/* Table */}
         <div style={{ overflowX: 'auto', borderRadius: 12, border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
-          <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', minWidth: 520, borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: isDark ? T.bgSurface : '#fafafa' }}>
                 {['Cuota', 'Fecha', 'Capital', 'Interés', 'Comisión', 'Monto', 'Saldo'].map((h, i) => (
@@ -1211,13 +1226,13 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
   }, []);
 
   return (
-    <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 24px' }}>
-      <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 24, boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
+    <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
+      <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'clamp(16px, 4vw, 24px)' }}>
           <div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: isDark ? '#fff' : '#171717', margin: '0 0 4px' }}>También te puede interesar</h3>
-            <p style={{ fontSize: 14, color: isDark ? '#707070' : '#737373', margin: 0 }}>Desliza para explorar más opciones</p>
+            <h3 style={{ fontSize: 'clamp(15px, 4vw, 18px)', fontWeight: 700, color: isDark ? '#fff' : '#171717', margin: '0 0 4px' }}>También te puede interesar</h3>
+            <p style={{ fontSize: 'clamp(12px, 3vw, 14px)', color: isDark ? '#707070' : '#737373', margin: 0 }}>Desliza para explorar más opciones</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button onClick={() => scroll(-1)} disabled={!canScrollLeft} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canScrollLeft ? 'pointer' : 'default', border: 'none', background: isDark ? T.bgSurface : '#f5f5f5', color: canScrollLeft ? (isDark ? '#fff' : '#404040') : (isDark ? '#555' : '#d4d4d4'), opacity: canScrollLeft ? 1 : 0.5, transition: 'all 0.2s' }}>
