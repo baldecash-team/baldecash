@@ -84,6 +84,7 @@ import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '.
 // Zona Gamer components
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerAccessories } from '@/app/prototipos/0.6/components/zona-gamer/GamerAccessories';
+import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { useToast } from '@/app/prototipos/_shared';
 
@@ -208,20 +209,19 @@ function GamerCatalogoContent() {
 
   // Sidebar sections collapsed state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    // Specs primero — lo que más buscan los gamers
+    // Specs — lo que más buscan los gamers
     gpu: true,
     procesador: true,
     ram: true,
-    cuota: true,
     almacenamiento: true,
     pantalla: true,
-    uso: true,
-    // Colapsados — menos prioridad para gamers
+    // Precio y comercial
+    cuota: true,
     destacados: false,
     marca: false,
-    tipo: false,
+    // Secundarios
+    uso: false,
     condicion: false,
-    gama: true,
   });
 
   // Build API filters
@@ -575,20 +575,12 @@ function GamerCatalogoContent() {
       )}
 
       {/* ====== HEADER ====== */}
-      <GamerCatalogHeader
-        isDark={isDark}
-        T={T}
+      <GamerNavbar
         theme={theme}
         onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-        searchQuery={searchQuery}
-        onSearch={handleSearch}
-        wishlistCount={wishlistCount}
-        cartCount={cartCount}
-        landing={landing}
-        navbarItems={navbarProps?.navbarItems || []}
-        customerPortalUrl={navbarProps?.customerPortalUrl}
-        portalButtonText={navbarProps?.portalButtonText}
-        onOpenWishlist={() => setIsWishlistDrawerOpen(true)}
+        catalogUrl={routes.catalogo(landing)}
+        hideSecondaryBar
+        fullWidth
       />
 
       {/* ====== SECONDARY NAV ====== */}
@@ -612,8 +604,6 @@ function GamerCatalogoContent() {
             gap: 16,
           }}
         >
-          {/* Spacer left */}
-          <div className="hidden md:block" style={{ width: 96, flexShrink: 0 }} />
 
           {/* Mobile search button */}
           <div className="md:hidden">
@@ -2051,7 +2041,43 @@ function GamerSidebar({
         </FilterSection>
       )}
 
-      {/* ======= 4. Cuota mensual ======= */}
+      {/* ======= 4. Almacenamiento (debajo de RAM) ======= */}
+      {apiFilters?.specs?.storage && apiFilters.specs.storage.values.length > 0 && (
+        <FilterSection title="Almacenamiento" T={T} expanded={expandedSections.almacenamiento !== false} onToggle={() => onToggleSection('almacenamiento')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {apiFilters.specs.storage.values.map((val) => {
+              const isActive = filters.storage.some((v) => v === val.value);
+              return (
+                <button key={String(val.value)} onClick={() => onStorageToggle(Number(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><HardDrive size={18} /></span>
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
+                  <span style={gridCountStyle}>{val.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
+
+      {/* ======= 5. Pantalla ======= */}
+      {apiFilters?.specs?.screen_size && apiFilters.specs.screen_size.values.length > 0 && (
+        <FilterSection title="Pantalla" T={T} expanded={expandedSections.pantalla !== false} onToggle={() => onToggleSection('pantalla')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {apiFilters.specs.screen_size.values.map((val) => {
+              const isActive = filters.displaySize.includes(Number(val.value));
+              return (
+                <button key={String(val.value)} onClick={() => onScreenSizeToggle(Number(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><Monitor size={18} /></span>
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
+                  <span style={gridCountStyle}>{val.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
+
+      {/* ======= 6. Cuota mensual ======= */}
       {apiFilters?.quota_range && RANGE_ABS_MAX > RANGE_ABS_MIN && (
       <FilterSection title="Cuota mensual" T={T} expanded={expandedSections.cuota !== false} onToggle={() => onToggleSection('cuota')}>
         {/* Range display boxes */}
@@ -2192,145 +2218,7 @@ function GamerSidebar({
       </FilterSection>
       )}
 
-      {/* ======= 5. Almacenamiento ======= */}
-      {apiFilters?.specs?.storage && apiFilters.specs.storage.values.length > 0 && (
-        <FilterSection title="Almacenamiento" T={T} expanded={expandedSections.almacenamiento !== false} onToggle={() => onToggleSection('almacenamiento')}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-            {apiFilters.specs.storage.values.map((val) => {
-              const isActive = filters.storage.some((v) => v === val.value);
-              return (
-                <button key={String(val.value)} onClick={() => onStorageToggle(Number(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
-                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><HardDrive size={18} /></span>
-                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
-                  <span style={gridCountStyle}>{val.count}</span>
-                </button>
-              );
-            })}
-          </div>
-        </FilterSection>
-      )}
-
-      {/* ======= 6. Pantalla ======= */}
-      {apiFilters?.specs?.screen_size && apiFilters.specs.screen_size.values.length > 0 && (
-        <FilterSection title="Pantalla" T={T} expanded={expandedSections.pantalla !== false} onToggle={() => onToggleSection('pantalla')}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {apiFilters.specs.screen_size.values.map((val) => {
-              const isActive = filters.displaySize.includes(Number(val.value));
-              return (
-                <button key={String(val.value)} onClick={() => onScreenSizeToggle(Number(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
-                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><Monitor size={18} /></span>
-                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
-                  <span style={gridCountStyle}>{val.count}</span>
-                </button>
-              );
-            })}
-          </div>
-        </FilterSection>
-      )}
-
-      {/* ======= Gama ======= */}
-      {apiFilters?.gamas && apiFilters.gamas.length > 0 && (
-        <FilterSection title="Gama" T={T} expanded={expandedSections.gama !== false} onToggle={() => onToggleSection('gama')}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {apiFilters.gamas.map((g) => {
-              const isActive = (filters.gama as string[]).includes(g.value);
-              const preset = gamaOptions.find((o) => o.value === g.value);
-              const chipBg = preset?.chipBg || 'rgba(136,136,170,0.18)';
-              const chipBorder = preset?.chipBorder || 'rgba(136,136,170,0.5)';
-              const chipShadow = preset?.chipShadow || 'rgba(136,136,170,0.1)';
-              const color = preset?.color || T.textSecondary;
-              return (
-                <span
-                  key={g.value}
-                  onClick={() => onGamaToggle(g.value)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '5px 12px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    border: `1px solid ${isActive ? T.neonCyan : chipBorder}`,
-                    letterSpacing: 0.3,
-                    background: chipBg,
-                    color,
-                    boxShadow: isActive ? `0 0 12px rgba(0,255,213,0.3)` : `0 0 6px ${chipShadow}`,
-                    fontFamily: "'Rajdhani', sans-serif",
-                  }}
-                >
-                  {g.label}
-                  <span style={{ opacity: 0.7, fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }}>({g.count})</span>
-                </span>
-              );
-            })}
-          </div>
-        </FilterSection>
-      )}
-
-      {/* ======= 6. Uso recomendado ======= */}
-      {apiFilters?.usages && apiFilters.usages.length > 0 && (
-        <FilterSection title="Uso recomendado" T={T} expanded={expandedSections.uso !== false} onToggle={() => onToggleSection('uso')}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-            {apiFilters.usages.map((u, idx) => {
-              const isActive = (filters.usage as string[]).includes(u.value);
-              const isLast = idx === apiFilters.usages.length - 1;
-              const isOddLast = isLast && apiFilters.usages.length % 2 !== 0;
-              const preset = usoOptions.find((o) => o.value === u.value);
-              const icon = preset?.icon || <Laptop size={20} />;
-              return (
-                <button
-                  key={u.value}
-                  onClick={() => onUsageToggle(u.value)}
-                  style={{
-                    ...gridItemStyle(isActive),
-                    ...(isOddLast ? { gridColumn: '1 / -1' } : {}),
-                  }}
-                >
-                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}>{icon}</span>
-                  <span style={gridLabelStyle(isActive)}>{u.label}</span>
-                  <span style={gridCountStyle}>{u.count} equipo{u.count !== 1 ? 's' : ''}</span>
-                </button>
-              );
-            })}
-          </div>
-        </FilterSection>
-      )}
-
-      {/* ======= 7. Condición ======= */}
-      {apiFilters?.conditions && apiFilters.conditions.length > 0 && (
-        <FilterSection title="Condición" T={T} expanded={expandedSections.condicion !== false} onToggle={() => onToggleSection('condicion')}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-            {apiFilters.conditions.map((c) => {
-              const isActive = (filters.condition as string[]).includes(c.value);
-              const isNueva = c.value.startsWith('nuev');
-              return (
-                <button
-                  key={c.value}
-                  onClick={() => onConditionToggle(c.value)}
-                  style={{
-                    ...gridItemStyle(isActive),
-                    minHeight: 'unset',
-                    padding: '12px 8px',
-                  }}
-                >
-                  {isNueva ? (
-                    <Package size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
-                  ) : (
-                    <CheckCircle2 size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
-                  )}
-                  <span style={{ ...gridLabelStyle(isActive), fontSize: 11, lineHeight: 1.2 }}>{c.label}</span>
-                  <span style={{ ...gridCountStyle, marginTop: 2 }}>{c.count} equipo{c.count !== 1 ? 's' : ''}</span>
-                </button>
-              );
-            })}
-          </div>
-        </FilterSection>
-      )}
-
-      {/* ======= 8. Destacados (baja de prioridad) ======= */}
+      {/* ======= 7. Destacados ======= */}
       {apiFilters?.labels && apiFilters.labels.length > 0 && (
         <FilterSection title="Destacados" T={T} expanded={expandedSections.destacados !== false} onToggle={() => onToggleSection('destacados')}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -2372,57 +2260,42 @@ function GamerSidebar({
         </FilterSection>
       )}
 
-      {/* ======= 9. Marca (colapsado — gamers buscan por specs) ======= */}
+      {/* ======= 8. Marca ======= */}
       {apiFilters?.brands && apiFilters.brands.length > 0 && (
         <FilterSection title="Marca" T={T} expanded={expandedSections.marca !== false} onToggle={() => onToggleSection('marca')}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {apiFilters.brands.map((brand) => {
               const isActive = filters.brands.includes(brand.slug);
               return (
+                <BrandButton key={brand.id} brand={brand} isActive={isActive} T={T} onToggle={() => onBrandToggle(brand.slug)} />
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
+
+      {/* ======= 9. Uso recomendado ======= */}
+      {apiFilters?.usages && apiFilters.usages.length > 0 && (
+        <FilterSection title="Uso recomendado" T={T} expanded={expandedSections.uso !== false} onToggle={() => onToggleSection('uso')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {apiFilters.usages.map((u, idx) => {
+              const isActive = (filters.usage as string[]).includes(u.value);
+              const isLast = idx === apiFilters.usages.length - 1;
+              const isOddLast = isLast && apiFilters.usages.length % 2 !== 0;
+              const preset = usoOptions.find((o) => o.value === u.value);
+              const icon = preset?.icon || <Laptop size={20} />;
+              return (
                 <button
-                  key={brand.id}
-                  onClick={() => onBrandToggle(brand.slug)}
+                  key={u.value}
+                  onClick={() => onUsageToggle(u.value)}
                   style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 4,
-                    padding: '10px 4px',
-                    border: `2px solid ${isActive ? T.neonCyan : T.border}`,
-                    borderRadius: 10,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    background: isActive ? 'rgba(0,255,213,0.06)' : T.bgCard,
-                    boxShadow: isActive ? '0 0 12px rgba(0,255,213,0.2)' : 'none',
-                    minHeight: 68,
+                    ...gridItemStyle(isActive),
+                    ...(isOddLast ? { gridColumn: '1 / -1' } : {}),
                   }}
                 >
-                  <Image
-                    src={brand.logo_url || `/img/logos/${brand.slug}.svg`}
-                    alt={brand.name}
-                    width={48}
-                    height={24}
-                    style={{
-                      maxWidth: 48,
-                      maxHeight: 24,
-                      objectFit: 'contain',
-                      borderRadius: 4,
-                      opacity: isActive ? 1 : 0.8,
-                      transition: 'all 0.3s',
-                    }}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.parentElement?.insertAdjacentHTML(
-                        'afterbegin',
-                        `<span style="font-size:11px;font-weight:700;color:${isActive ? T.neonCyan : T.textSecondary};font-family:'Barlow Condensed',sans-serif;text-transform:uppercase">${brand.name}</span>`
-                      );
-                    }}
-                  />
-                  <span style={{ fontSize: 10, color: isActive ? T.neonCyan : T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                    {brand.name} ({brand.count})
-                  </span>
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}>{icon}</span>
+                  <span style={gridLabelStyle(isActive)}>{u.label}</span>
+                  <span style={gridCountStyle}>{u.count} equipo{u.count !== 1 ? 's' : ''}</span>
                 </button>
               );
             })}
@@ -2430,22 +2303,30 @@ function GamerSidebar({
         </FilterSection>
       )}
 
-      {/* ======= 10. Tipo de equipo (colapsado) ======= */}
-      {apiFilters?.types && apiFilters.types.length > 0 && (
-        <FilterSection title="Tipo de equipo" T={T} expanded={expandedSections.tipo !== false} onToggle={() => onToggleSection('tipo')} isLast>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {apiFilters.types.map((t) => {
-              const isActive = (filters.deviceTypes as string[]).includes(t.value);
-              const Icon = t.value === 'laptop' ? Laptop : t.value === 'tablet' ? Tablet : t.value === 'celular' ? Smartphone : Package;
+      {/* ======= 10. Condición (último) ======= */}
+      {apiFilters?.conditions && apiFilters.conditions.length > 0 && (
+        <FilterSection title="Condición" T={T} expanded={expandedSections.condicion !== false} onToggle={() => onToggleSection('condicion')} isLast>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {apiFilters.conditions.map((c) => {
+              const isActive = (filters.condition as string[]).includes(c.value);
+              const isNueva = c.value.startsWith('nuev');
               return (
                 <button
-                  key={t.value}
-                  onClick={() => onDeviceTypeToggle(t.value)}
-                  style={gridItemStyle(isActive)}
+                  key={c.value}
+                  onClick={() => onConditionToggle(c.value)}
+                  style={{
+                    ...gridItemStyle(isActive),
+                    minHeight: 'unset',
+                    padding: '12px 8px',
+                  }}
                 >
-                  <Icon size={24} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }} />
-                  <span style={gridLabelStyle(isActive)}>{t.label}</span>
-                  <span style={gridCountStyle}>{t.count} equipo{t.count !== 1 ? 's' : ''}</span>
+                  {isNueva ? (
+                    <Package size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
+                  ) : (
+                    <CheckCircle2 size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
+                  )}
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 11, lineHeight: 1.2 }}>{c.label}</span>
+                  <span style={{ ...gridCountStyle, marginTop: 2 }}>{c.count} equipo{c.count !== 1 ? 's' : ''}</span>
                 </button>
               );
             })}
@@ -3038,6 +2919,38 @@ function GamerProductCard({
 // ============================================
 // Compare Modal
 // ============================================
+
+function BrandButton({ brand, isActive, T, onToggle }: { brand: { id: number; slug: string; name: string; logo_url?: string | null; count: number }; isActive: boolean; T: ReturnType<typeof gamerTheme>; onToggle: () => void }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <button
+      onClick={onToggle}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+        padding: '10px 4px', border: `2px solid ${isActive ? T.neonCyan : T.border}`, borderRadius: 10,
+        cursor: 'pointer', transition: 'all 0.3s',
+        background: isActive ? 'rgba(0,255,213,0.06)' : T.bgCard,
+        boxShadow: isActive ? '0 0 12px rgba(0,255,213,0.2)' : 'none', minHeight: 68,
+      }}
+    >
+      {imgError ? (
+        <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? T.neonCyan : T.textSecondary, fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>{brand.name}</span>
+      ) : (
+        <Image
+          src={brand.logo_url || `/img/logos/${brand.slug}.svg`}
+          alt={brand.name}
+          width={48}
+          height={24}
+          style={{ maxWidth: 48, maxHeight: 24, objectFit: 'contain', borderRadius: 4, opacity: isActive ? 1 : 0.8, transition: 'all 0.3s' }}
+          onError={() => setImgError(true)}
+        />
+      )}
+      <span style={{ fontSize: 10, color: isActive ? T.neonCyan : T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
+        {brand.name} ({brand.count})
+      </span>
+    </button>
+  );
+}
 
 function GamerHelpButton({ isDark, T, onOpenChat }: { isDark: boolean; T: ReturnType<typeof gamerTheme>; onOpenChat: () => void }) {
   const [open, setOpen] = useState(false);

@@ -158,8 +158,11 @@ function DetailContent() {
   const lowestOption = activePlan?.options?.find((o) => o.initialPercent === selectedInitialPercent) || activePlan?.options?.[0];
   const isWishlisted = product ? catalogState.isInWishlist(product.id) : false;
 
+  const [wishlistToast, setWishlistToast] = useState<string | null>(null);
+
   const handleToggleWishlist = useCallback(() => {
     if (!product) return;
+    const wasWishlisted = catalogState.isInWishlist(product.id);
     catalogState.toggleWishlist({
       productId: product.id,
       name: product.displayName || product.name,
@@ -175,6 +178,8 @@ function DetailContent() {
       monthlyPayment: lowestOption?.monthlyQuota || 0,
       addedAt: Date.now(),
     });
+    setWishlistToast(wasWishlisted ? 'Eliminado de favoritos' : 'Agregado a favoritos');
+    setTimeout(() => setWishlistToast(null), 2500);
   }, [product, catalogState, lowestOption, selectedTerm]);
 
   const handleSolicitar = useCallback(() => {
@@ -230,7 +235,7 @@ function DetailContent() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-        #section-gallery, #section-pricing, #section-specs, #cronograma, #similares { scroll-margin-top: 80px; }
+        #section-gallery, #section-pricing, #section-description, #section-specs, #cronograma, #similares { scroll-margin-top: 80px; }
         .gamer-gradient-text {
           background: linear-gradient(90deg, var(--gamer-purple) 0%, var(--gamer-cyan) 100%);
           -webkit-background-clip: text;
@@ -549,9 +554,14 @@ function DetailContent() {
               <button onClick={handleSolicitar} className="btn-loquiero-detalle" style={{ flex: 1, padding: '16px 0' }}>
                 ¡Lo quiero! Solicitar ahora
               </button>
-              <button onClick={handleToggleWishlist} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 24px', borderRadius: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', background: cyanAlpha(0.1), border: `1px solid ${T.neonCyan}`, color: T.neonCyan }}>
-                <ShoppingCart size={20} />
-                <span className="hidden sm:inline">{isWishlisted ? 'Guardado' : 'Al carrito'}</span>
+              <button onClick={handleToggleWishlist} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 56, flexShrink: 0, borderRadius: 12, cursor: 'pointer', transition: 'all 0.2s',
+                background: isWishlisted ? (isDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.1)') : (isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5'),
+                border: `1px solid ${isWishlisted ? T.neonCyan : T.border}`,
+                color: isWishlisted ? T.neonCyan : (isDark ? '#707070' : '#a0a0a0'),
+              }}>
+                <Heart size={20} style={{ fill: isWishlisted ? T.neonCyan : 'none' }} />
               </button>
             </div>
 
@@ -580,6 +590,26 @@ function DetailContent() {
         </div>
         </div>{/* close grid */}
       </main>{/* close container */}
+
+      {/* DESCRIPTION SECTION */}
+      {product.description && (
+        <section id="section-description" style={{ maxWidth: 1280, margin: '48px auto 0', padding: '0 24px' }}>
+          <div style={{
+            background: T.bgCard, borderRadius: 16, border: `1px solid ${T.border}`, overflow: 'hidden',
+          }}>
+            <div style={{ padding: '16px 24px', borderBottom: `1px solid ${T.border}` }}>
+              <h2 style={{ fontFamily: F.raj, fontSize: 18, fontWeight: 700, color: T.textPrimary, margin: 0 }}>
+                Descripción
+              </h2>
+            </div>
+            <div style={{ padding: '16px 24px' }}>
+              <p style={{ fontSize: 14, lineHeight: 1.7, color: T.textSecondary, margin: 0 }}>
+                {product.description}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* SPECS SECTION */}
       {product.specs && product.specs.length > 0 && (
@@ -659,6 +689,21 @@ function DetailContent() {
           />
         )}
       </div>
+
+      {/* Wishlist toast */}
+      {wishlistToast && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+          display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', borderRadius: 12,
+          background: isDark ? '#1a1a1a' : '#fff', border: `1px solid ${T.border}`,
+          boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
+          fontSize: 13, fontWeight: 500, color: isDark ? '#e0e0e0' : '#333',
+          fontFamily: "'Rajdhani', sans-serif", animation: 'fadeIn 0.25s ease-out',
+        }}>
+          <Heart size={16} style={{ color: T.neonCyan, fill: wishlistToast.includes('Agregado') ? T.neonCyan : 'none' }} />
+          {wishlistToast}
+        </div>
+      )}
 
       <GamerFooter theme={theme} />
     </div>
@@ -768,6 +813,7 @@ function cyanAlphaStatic(a: number) {
 const SIDE_NAV_ITEMS = [
   { id: 'section-gallery', icon: ImageIcon, label: 'Galería' },
   { id: 'section-pricing', icon: Calculator, label: 'Cuotas' },
+  { id: 'section-description', icon: FileText, label: 'Descripción' },
   { id: 'section-specs', icon: Cpu, label: 'Specs' },
   { id: 'cronograma', icon: Calendar, label: 'Cronograma' },
   { id: 'similares', icon: Package, label: 'Similares' },
@@ -834,8 +880,8 @@ function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
                   ? { background: T.neonCyan, color: isDark ? '#0a0a0a' : '#fff', boxShadow: isDark ? '0 0 12px rgba(0,255,213,0.3)' : '0 2px 8px rgba(0,137,122,0.3)' }
                   : { background: 'transparent', color: isDark ? '#707070' : '#a0a0a0' }
                 }
-                onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = isDark ? '#2a2a2a' : '#f0f0f0'; e.currentTarget.style.color = isDark ? '#f0f0f0' : '#333'; } }}
-                onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isDark ? '#707070' : '#a0a0a0'; } }}
+                onMouseEnter={(e) => { if (!isActive && e.currentTarget) { e.currentTarget.style.background = isDark ? '#2a2a2a' : '#f0f0f0'; e.currentTarget.style.color = isDark ? '#f0f0f0' : '#333'; } }}
+                onMouseLeave={(e) => { if (!isActive && e.currentTarget) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isDark ? '#707070' : '#a0a0a0'; } }}
               >
                 <Icon className="w-5 h-5" />
                 <span

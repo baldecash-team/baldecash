@@ -2,13 +2,16 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { Moon, Sun, Menu, X, Zap, Search, Heart, ShoppingCart, User } from 'lucide-react';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
   catalogUrl: string;
   hideSecondaryBar?: boolean;
+  fullWidth?: boolean;
 }
 
 const NAV_SECTIONS = [
@@ -19,9 +22,13 @@ const NAV_SECTIONS = [
   { id: 'stories', label: 'Historias Reales' },
 ];
 
-export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar }: GamerNavbarProps) {
+const LANDING_SLUG = 'zona-gamer';
+
+export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth }: GamerNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [bannerVisible, setBannerVisible] = useState(true);
+  const pathname = usePathname();
+  const landingHome = routes.landingHome(LANDING_SLUG);
+  const isOnLanding = pathname === landingHome || pathname === landingHome + '/';
 
   const isDark = theme === 'dark';
   const V = cssVars(isDark);
@@ -37,44 +44,21 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
 
   return (
     <>
-      {/* Top Banner */}
-      {bannerVisible && (
-        <div
-          className="fixed top-0 left-0 right-0 z-[60] text-white text-center"
-          style={{ background: `linear-gradient(to right, ${V.neonPurple}, ${V.neonPurple})`, padding: '10px 16px', fontSize: 14 }}
-        >
-          <div className="max-w-[1280px] mx-auto flex items-center justify-center gap-2 relative">
-            <Zap className="w-4 h-4 shrink-0" style={{ color: V.neonCyan }} />
-            <span>
-              <strong>Oferta especial:</strong> 0% interés en tu primera cuota
-              <a href={catalogUrl} className="text-white font-semibold underline underline-offset-2 ml-2 hover:no-underline hidden sm:inline">
-                Ver más
-              </a>
-            </span>
-            <button
-              onClick={() => setBannerVisible(false)}
-              className="absolute right-0 p-1.5 bg-transparent border-none text-white cursor-pointer rounded-full hover:bg-white/20 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <header
-        className="sticky z-[100] flex items-center justify-between backdrop-blur-[20px] border-b"
+        className="sticky z-[100] backdrop-blur-[20px] border-b"
         style={{
-          top: bannerVisible ? 40 : 0,
+          top: 0,
           height: 64,
-          padding: '0 16px',
           background: isDark ? 'rgba(14,14,14,0.85)' : 'rgba(255,255,255,0.92)',
           borderColor: V.border,
         }}
       >
+        <div className={`${fullWidth ? '' : 'max-w-[1280px] mx-auto'} px-6 w-full flex items-center justify-between h-full`}>
         {/* header-left */}
         <div className="flex items-center">
-          <a href="#" className="flex items-center gap-2 no-underline">
+          <a href={routes.landingHome('zona-gamer')} className="flex items-center gap-2 no-underline">
             <Image
               src="/images/zona-gamer/logo baldecash/LOGO OFI.png"
               alt="BaldeCash"
@@ -84,9 +68,10 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
               style={{ height: 30 }}
             />
             <span
+              className="gaming-badge-blink"
               style={{
                 fontFamily: "'Share Tech Mono', monospace",
-                fontSize: 8,
+                fontSize: 9,
                 fontWeight: 700,
                 color: V.neonRed,
                 background: 'rgba(255,32,64,0.08)',
@@ -95,25 +80,52 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                 borderRadius: 4,
                 letterSpacing: 2,
                 textTransform: 'uppercase',
+                animation: 'gamingBlink 2s ease-in-out infinite',
               }}
             >
               GAMING
             </span>
+            <style>{`
+              @keyframes gamingBlink {
+                0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(255,0,85,0.2); }
+                50% { opacity: 0.4; box-shadow: 0 0 0 rgba(255,0,85,0); }
+              }
+            `}</style>
           </a>
         </div>
 
         {/* header-nav */}
         <nav className="hidden md:flex items-center" style={{ gap: 28, fontSize: 14 }}>
-          {NAV_SECTIONS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => scrollTo(item.id)}
-              className="bg-transparent border-none cursor-pointer no-underline transition-colors p-0"
-              style={{ color: isDark ? '#fff' : '#333', fontSize: 14, fontWeight: 400, fontFamily: 'inherit' }}
-            >
-              {item.label}
-            </button>
-          ))}
+          {/* Catálogo — always a link */}
+          <a
+            href={catalogUrl}
+            className="no-underline transition-colors"
+            style={{ color: isDark ? '#fff' : '#333', fontSize: 14, fontWeight: 400, fontFamily: "'Rajdhani', sans-serif" }}
+          >
+            Catálogo
+          </a>
+          {/* Landing sections — scroll if on landing, link if not */}
+          {NAV_SECTIONS.map((item) =>
+            isOnLanding ? (
+              <button
+                key={item.id}
+                onClick={() => scrollTo(item.id)}
+                className="bg-transparent border-none cursor-pointer no-underline transition-colors p-0"
+                style={{ color: isDark ? '#fff' : '#333', fontSize: 14, fontWeight: 400, fontFamily: "'Rajdhani', sans-serif" }}
+              >
+                {item.label}
+              </button>
+            ) : (
+              <a
+                key={item.id}
+                href={`${landingHome}#${item.id}`}
+                className="no-underline transition-colors"
+                style={{ color: isDark ? '#fff' : '#333', fontSize: 14, fontWeight: 400, fontFamily: "'Rajdhani', sans-serif" }}
+              >
+                {item.label}
+              </a>
+            )
+          )}
         </nav>
 
         {/* header-right */}
@@ -170,20 +182,19 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
+        </div>{/* close max-w container */}
       </header>
 
       {/* Secondary Navbar */}
       {!hideSecondaryBar && <div
         className="sticky z-[99] border-b backdrop-blur-[20px]"
         style={{
-          top: bannerVisible ? 104 : 64,
+          top: 64,
           background: isDark ? 'rgba(14,14,14,0.95)' : 'rgba(255,255,255,0.95)',
           borderColor: V.border,
-          padding: '0 24px',
         }}
       >
-        <div className="flex items-center justify-between h-14 gap-4">
-          <div className="w-24 shrink-0" />
+        <div className={`${fullWidth ? '' : 'max-w-[1280px] mx-auto'} px-6 flex items-center justify-between h-14 gap-4`}>
           <div className="flex-1 flex justify-center">
             <div
               className="flex items-center w-[600px] max-w-full h-10 px-3 rounded-xl border-2 transition-all focus-within:border-[rgba(70,84,205,0.5)]"
@@ -217,17 +228,6 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             >
               <Heart className="w-5 h-5" />
             </button>
-            <button
-              className="w-10 h-10 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#6366f1] hover:text-[#6366f1]"
-              style={{
-                background: V.bgSurface,
-                borderColor: V.border,
-                color: isDark ? '#fff' : '#555',
-              }}
-              title="Carrito"
-            >
-              <ShoppingCart className="w-5 h-5" />
-            </button>
           </div>
         </div>
       </div>}
@@ -241,20 +241,36 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             borderTop: `1px solid ${V.border}`,
           }}
         >
-          {NAV_SECTIONS.map((item, i) => (
-            <button
-              key={item.id}
-              onClick={() => scrollTo(item.id)}
-              className="block w-full text-left py-3 text-[15px] font-semibold bg-transparent border-none cursor-pointer transition-colors hover:text-[#00ffd5]"
-              style={{
-                color: V.textSecondary,
-                fontFamily: "'Rajdhani', sans-serif",
-                borderBottom: i < NAV_SECTIONS.length - 1 ? `1px solid ${V.border}` : 'none',
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
+          {/* Catálogo link */}
+          <a
+            href={catalogUrl}
+            className="block w-full text-left py-3 text-[15px] font-semibold no-underline transition-colors hover:text-[#00ffd5]"
+            style={{ color: V.neonCyan, fontFamily: "'Rajdhani', sans-serif", borderBottom: `1px solid ${V.border}` }}
+          >
+            Catálogo
+          </a>
+          {/* Landing sections */}
+          {NAV_SECTIONS.map((item, i) =>
+            isOnLanding ? (
+              <button
+                key={item.id}
+                onClick={() => scrollTo(item.id)}
+                className="block w-full text-left py-3 text-[15px] font-semibold bg-transparent border-none cursor-pointer transition-colors hover:text-[#00ffd5]"
+                style={{ color: V.textSecondary, fontFamily: "'Rajdhani', sans-serif", borderBottom: i < NAV_SECTIONS.length - 1 ? `1px solid ${V.border}` : 'none' }}
+              >
+                {item.label}
+              </button>
+            ) : (
+              <a
+                key={item.id}
+                href={`${landingHome}#${item.id}`}
+                className="block w-full text-left py-3 text-[15px] font-semibold no-underline transition-colors hover:text-[#00ffd5]"
+                style={{ color: V.textSecondary, fontFamily: "'Rajdhani', sans-serif", borderBottom: i < NAV_SECTIONS.length - 1 ? `1px solid ${V.border}` : 'none' }}
+              >
+                {item.label}
+              </a>
+            )
+          )}
           <a
             href="#"
             className="flex items-center justify-center gap-2 mt-4 py-2.5 rounded-xl no-underline text-sm font-semibold"

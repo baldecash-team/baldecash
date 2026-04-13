@@ -69,7 +69,7 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
               }}
             >
               <Zap className="w-4 h-4" />
-              ZONA GAMER 2025
+              ZONA GAMER 2026
             </motion.div>
 
             {/* hb-title */}
@@ -150,7 +150,7 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
               {/* btn-ghost */}
               <button
                 onClick={() => scrollTo('linea-combate', 160)}
-                className="inline-flex items-center cursor-pointer transition-all"
+                className="inline-flex items-center cursor-pointer transition-all hover:-translate-y-0.5"
                 style={{
                   fontFamily: "'Barlow Condensed', sans-serif",
                   fontSize: 14,
@@ -159,11 +159,14 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
                   textTransform: 'uppercase',
                   padding: '12px 28px',
                   borderRadius: 8,
-                  background: 'none',
-                  color: isDark ? '#a0a0a0' : '#555',
-                  border: `1px solid ${isDark ? '#2a2a2a' : '#e0e0e0'}`,
+                  background: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(79,70,229,0.08)',
+                  color: isDark ? '#a5b4fc' : '#4f46e5',
+                  border: `2px solid ${isDark ? '#818cf8' : '#6366f1'}`,
+                  boxShadow: isDark ? '0 0 12px rgba(99,102,241,0.15)' : '0 0 8px rgba(79,70,229,0.1)',
                   gap: 8,
                 }}
+                onMouseEnter={(e) => { if (e.currentTarget) { e.currentTarget.style.boxShadow = isDark ? '0 4px 20px rgba(99,102,241,0.25)' : '0 4px 20px rgba(79,70,229,0.2)'; e.currentTarget.style.borderColor = isDark ? '#818cf8' : '#6366f1'; } }}
+                onMouseLeave={(e) => { if (e.currentTarget) { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = isDark ? 'rgba(99,102,241,0.4)' : 'rgba(79,70,229,0.3)'; } }}
               >
                 Ver Series
                 <ChevronDown className="w-4 h-4" />

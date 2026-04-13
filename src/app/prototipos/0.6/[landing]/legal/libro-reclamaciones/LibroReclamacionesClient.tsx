@@ -14,6 +14,7 @@ import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop, Toast } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -186,38 +187,13 @@ export function LibroReclamacionesClient() {
           .gamer-libro [data-slot="description"] { color: ${textMuted} !important; }
         `}</style>
 
-        {/* Header */}
-        <header style={{
-          position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 16px', height: 64,
-          background: isDark ? 'rgba(14,14,14,0.85)' : 'rgba(255,255,255,0.92)',
-          backdropFilter: 'blur(20px)', borderBottom: `1px solid ${border}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <a href={routes.landingHome(landing)} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-              <Image src="/images/zona-gamer/logo baldecash/LOGO OFI.png" alt="BaldeCash" width={140} height={32} className="object-contain" style={{ height: 30 }} />
-              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, fontWeight: 700, color: '#ff0055', background: 'rgba(255,32,64,0.08)', border: '1px solid rgba(255,32,64,0.25)', padding: '2px 6px', borderRadius: 4, letterSpacing: 2, textTransform: 'uppercase' }}>GAMING</span>
-            </a>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <a href={routes.landingHome(landing)} style={{
-              display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500,
-              color: textSecondary, textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
-              border: `1px solid ${border}`, background: 'none',
-            }}>
-              <ArrowLeft size={14} />
-              Volver
-            </a>
-            <button onClick={toggleTheme} style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: isDark ? '#1e1e1e' : '#f0f0f0', border: `1px solid ${border}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-              color: textSecondary,
-            }}>
-              {isDark ? <Moon size={18} /> : <Sun size={18} />}
-            </button>
-          </div>
-        </header>
+        {/* Header — shared GamerNavbar */}
+        <GamerNavbar
+          theme={theme || 'dark'}
+          onToggleTheme={toggleTheme}
+          catalogUrl={routes.catalogo(landing)}
+          hideSecondaryBar
+        />
 
         {/* Main Content */}
         <main className="gamer-libro" style={{ maxWidth: 896, margin: '0 auto', padding: '40px 16px 64px' }}>

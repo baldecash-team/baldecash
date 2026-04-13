@@ -325,19 +325,19 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
         <div className="text-center mt-10">
           <a
             href={catalogUrl}
-            className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl no-underline font-bold text-[17px] transition-all duration-300"
+            className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl no-underline font-bold text-[17px] transition-all duration-300 hover:-translate-y-0.5"
             style={{
               fontFamily: "'Rajdhani', sans-serif",
-              background: 'none',
-              color: isDark ? '#e0e0e0' : '#333',
-              border: `1px solid ${isDark ? '#444' : '#ccc'}`,
+              background: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(79,70,229,0.08)',
+              color: isDark ? '#a5b4fc' : '#4f46e5',
+              border: `2px solid ${isDark ? '#818cf8' : '#6366f1'}`,
               animation: 'catalogPulse 2.5s ease-in-out infinite',
             }}
           >
             <style>{`
               @keyframes catalogPulse {
-                0%, 100% { box-shadow: 0 0 0 0 ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}; }
-                50% { box-shadow: 0 0 16px 4px ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}; border-color: ${isDark ? '#666' : '#999'}; }
+                0%, 100% { box-shadow: 0 0 0 0 ${isDark ? 'rgba(99,102,241,0.1)' : 'rgba(79,70,229,0.06)'}; }
+                50% { box-shadow: 0 0 16px 4px ${isDark ? 'rgba(99,102,241,0.2)' : 'rgba(79,70,229,0.15)'}; border-color: ${isDark ? '#a5b4fc' : '#818cf8'}; }
               }
             `}</style>
             Ver catálogo completo

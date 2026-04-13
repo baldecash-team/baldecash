@@ -156,7 +156,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                 onClick={() => openModal(i)}
                 className="grid items-center gap-3.5 py-5 px-6 cursor-pointer transition-all relative group"
                 style={{
-                  gridTemplateColumns: '60px 52px 1fr 1fr 60px',
+                  gridTemplateColumns: '60px 52px 1fr 1fr 60px 28px',
                   borderBottom: `1px solid ${border}`,
                   borderTop: i === 0 ? `1px solid ${border}` : 'none',
                 }}
@@ -233,6 +233,14 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                   style={{ fontFamily: "'Orbitron', sans-serif", color: textSecondary }}
                 >
                   {g.pct}%
+                </span>
+
+                {/* Arrow hint */}
+                <span
+                  className="relative z-10 hidden sm:flex items-center opacity-30 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1"
+                  style={{ color: g.color, fontSize: 24, fontWeight: 700 }}
+                >
+                  ›
                 </span>
               </motion.div>
             ))}

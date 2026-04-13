@@ -32,7 +32,7 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
       <hr className="border-none h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)' }} />
 
       <section className="py-[60px]" id="accessories">
-        <div className="max-w-[1280px] mx-auto px-6">
+        <div className="px-6">
           {/* stag */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -76,9 +76,23 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
           </div>
         </div>
 
-        {/* acc-carousel-wrap */}
-        <div className="max-w-[1280px] mx-auto px-6">
+        {/* acc-carousel-wrap — full width with edge shadows */}
+        <div className="w-full">
           <div className="relative mt-10 overflow-hidden">
+            {/* Left shadow */}
+            <div style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0, width: 150, zIndex: 2, pointerEvents: 'none',
+              background: isDark
+                ? 'linear-gradient(90deg, #0e0e0e, transparent)'
+                : 'linear-gradient(90deg, #f2f2f2, transparent)',
+            }} />
+            {/* Right shadow */}
+            <div style={{
+              position: 'absolute', right: 0, top: 0, bottom: 0, width: 150, zIndex: 2, pointerEvents: 'none',
+              background: isDark
+                ? 'linear-gradient(270deg, #0e0e0e, transparent)'
+                : 'linear-gradient(270deg, #f2f2f2, transparent)',
+            }} />
             <style>{`
               @keyframes accScroll {
                 0% { transform: translateX(0); }
@@ -108,12 +122,14 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                     transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
                   onMouseEnter={(e) => {
+                    if (!e.currentTarget) return;
                     e.currentTarget.style.borderColor = isDark ? neonCyan : neonPurple;
                     e.currentTarget.style.boxShadow = isDark
                       ? '0 12px 32px rgba(0,255,213,0.1)'
                       : '0 12px 32px rgba(99,102,241,0.12)';
                   }}
                   onMouseLeave={(e) => {
+                    if (!e.currentTarget) return;
                     e.currentTarget.style.borderColor = border;
                     e.currentTarget.style.boxShadow = 'none';
                   }}
