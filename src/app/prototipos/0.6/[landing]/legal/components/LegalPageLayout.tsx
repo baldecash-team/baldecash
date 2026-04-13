@@ -174,7 +174,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
           </div>
         </main>
 
-        <GamerFooter theme={theme} />
+        <GamerFooter theme={theme || 'dark'} />
       </div>
     );
   }
