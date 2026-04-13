@@ -76,27 +76,35 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
           </div>
         </div>
 
-        {/* acc-grid-wrap */}
+        {/* acc-carousel-wrap */}
         <div className="max-w-[1280px] mx-auto px-6">
-          <div className="relative mt-10">
-            {/* acc-grid */}
+          <div className="relative mt-10 overflow-hidden">
+            <style>{`
+              @keyframes accScroll {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-50%); }
+              }
+              .acc-carousel-track {
+                animation: accScroll 25s linear infinite;
+              }
+              .acc-carousel-track:hover {
+                animation-play-state: paused;
+              }
+            `}</style>
             <div
-              className="flex gap-5 overflow-x-auto py-4"
-              style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none' }}
+              className="acc-carousel-track flex gap-5 py-4"
+              style={{ width: 'max-content' }}
             >
-              {ACCESSORIES.map((acc, i) => (
-                <motion.div
-                  key={acc.name}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
+              {/* Duplicamos el array para efecto infinito */}
+              {[...ACCESSORIES, ...ACCESSORIES].map((acc, i) => (
+                <div
+                  key={`${acc.name}-${i}`}
                   className="shrink-0 rounded-2xl border text-center cursor-default hover:-translate-y-1.5"
                   style={{
                     background: bgCard,
                     borderColor: border,
                     padding: 20,
-                    minWidth: 'calc((100% - 80px) / 5)',
+                    width: 220,
                     transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
                   onMouseEnter={(e) => {
@@ -110,7 +118,6 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  {/* acc-card-img dark */}
                   <Image
                     src={acc.imgDark}
                     alt={acc.name}
@@ -119,7 +126,6 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                     className="w-full object-contain mb-3 rounded-lg"
                     style={{ height: 120, display: isDark ? 'block' : 'none' }}
                   />
-                  {/* acc-card-img light */}
                   <Image
                     src={acc.imgLight}
                     alt={acc.name}
@@ -128,8 +134,6 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                     className="w-full object-contain mb-3 rounded-lg"
                     style={{ height: 120, display: isDark ? 'none' : 'block' }}
                   />
-
-                  {/* acc-card-name */}
                   <div
                     className="mb-1"
                     style={{
@@ -140,8 +144,6 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                   >
                     {acc.name}
                   </div>
-
-                  {/* acc-card-tag */}
                   <div
                     style={{
                       fontFamily: "'Share Tech Mono', monospace",
@@ -151,7 +153,7 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                   >
                     {acc.tag}
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>

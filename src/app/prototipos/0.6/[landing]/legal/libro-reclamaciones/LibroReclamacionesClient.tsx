@@ -6,12 +6,14 @@
  * Usa useLayout() para obtener navbar y footer del landing
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Button, Card, CardBody, Radio, RadioGroup } from '@nextui-org/react';
-import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
+import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare, ArrowLeft, Sun, Moon, Zap } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
+import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop, Toast } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -69,10 +71,25 @@ function LoadingFallback() {
 export function LibroReclamacionesClient() {
   const { navbarProps, footerData, agreementData, isLoading, hasError, landing } = useLayout();
   const isConvenio = !!agreementData;
+  const isGamer = landing === 'zona-gamer';
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Gamer theme
+  const [theme, setTheme] = useState<'dark' | 'light' | null>(null);
+  useEffect(() => {
+    if (!isGamer) return;
+    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    setTheme(saved || 'dark');
+  }, [isGamer]);
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('baldecash-theme', next);
+  };
+  const isDark = theme === 'dark';
 
   useScrollToTop();
 
@@ -114,13 +131,272 @@ export function LibroReclamacionesClient() {
   };
 
   // Show loading spinner while fetching
-  if (isLoading) {
-    return <LoadingFallback />;
+  if (isLoading || (isGamer && theme === null)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: isGamer ? (typeof window !== 'undefined' && localStorage.getItem('baldecash-theme') === 'light' ? '#f2f2f2' : '#0e0e0e') : '#fafafa' }}>
+        <CubeGridSpinner />
+      </div>
+    );
   }
 
   // Show 404 if landing not found (paused, archived, or doesn't exist)
   if (hasError || !navbarProps) {
     return <NotFoundContent homeUrl={routes.home()} />;
+  }
+
+  // ====== GAMER LAYOUT ======
+  if (isGamer) {
+    const neonCyan = isDark ? '#00ffd5' : '#00897a';
+    const border = isDark ? '#2a2a2a' : '#e0e0e0';
+    const bgCard = isDark ? '#1a1a1a' : '#ffffff';
+    const bgSurface = isDark ? '#1e1e1e' : '#f0f0f0';
+    const textPrimary = isDark ? '#f0f0f0' : '#1a1a1a';
+    const textSecondary = isDark ? '#a0a0a0' : '#555';
+    const textMuted = isDark ? '#707070' : '#888';
+
+    return (
+      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
+          .gamer-libro input, .gamer-libro textarea, .gamer-libro select {
+            background: ${bgSurface} !important;
+            border-color: ${border} !important;
+            color: ${textPrimary} !important;
+            font-family: 'Rajdhani', sans-serif !important;
+          }
+          .gamer-libro input:focus, .gamer-libro textarea:focus, .gamer-libro select:focus {
+            border-color: ${neonCyan} !important;
+            box-shadow: 0 0 0 1px ${neonCyan}40 !important;
+          }
+          .gamer-libro input::placeholder, .gamer-libro textarea::placeholder {
+            color: ${textMuted} !important;
+          }
+          .gamer-libro label { color: ${textSecondary} !important; }
+          .gamer-libro .text-neutral-900, .gamer-libro .text-neutral-800 { color: ${textPrimary} !important; }
+          .gamer-libro .text-neutral-700 { color: ${textSecondary} !important; }
+          .gamer-libro .text-neutral-500 { color: ${textMuted} !important; }
+          .gamer-libro .text-neutral-400 { color: ${textMuted} !important; }
+          .gamer-libro .bg-white, .gamer-libro [class*="shadow-sm"] { background: ${bgCard} !important; border-color: ${border} !important; }
+          .gamer-libro .bg-amber-50 { background: ${isDark ? 'rgba(245,158,11,0.08)' : 'rgba(245,158,11,0.06)'} !important; border-color: ${isDark ? 'rgba(245,158,11,0.2)' : 'rgba(245,158,11,0.3)'} !important; }
+          .gamer-libro .text-amber-800 { color: ${isDark ? '#fbbf24' : '#92400e'} !important; }
+          .gamer-libro .border-neutral-200 { border-color: ${border} !important; }
+          .gamer-libro [data-slot="wrapper"] { border-color: ${border} !important; }
+          .gamer-libro [data-slot="control"] { background: ${neonCyan} !important; }
+          .gamer-libro [data-slot="label"] { color: ${textPrimary} !important; }
+          .gamer-libro [data-slot="description"] { color: ${textMuted} !important; }
+        `}</style>
+
+        {/* Header */}
+        <header style={{
+          position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px', height: 64,
+          background: isDark ? 'rgba(14,14,14,0.85)' : 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(20px)', borderBottom: `1px solid ${border}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <a href={routes.landingHome(landing)} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
+              <Image src="/images/zona-gamer/logo baldecash/LOGO OFI.png" alt="BaldeCash" width={140} height={32} className="object-contain" style={{ height: 30 }} />
+              <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 8, fontWeight: 700, color: '#ff0055', background: 'rgba(255,32,64,0.08)', border: '1px solid rgba(255,32,64,0.25)', padding: '2px 6px', borderRadius: 4, letterSpacing: 2, textTransform: 'uppercase' }}>GAMING</span>
+            </a>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <a href={routes.landingHome(landing)} style={{
+              display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500,
+              color: textSecondary, textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
+              border: `1px solid ${border}`, background: 'none',
+            }}>
+              <ArrowLeft size={14} />
+              Volver
+            </a>
+            <button onClick={toggleTheme} style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: isDark ? '#1e1e1e' : '#f0f0f0', border: `1px solid ${border}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              color: textSecondary,
+            }}>
+              {isDark ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="gamer-libro" style={{ maxWidth: 896, margin: '0 auto', padding: '40px 16px 64px' }}>
+          {/* Header */}
+          <div style={{ marginBottom: 32, textAlign: 'center' }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px', background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)',
+            }}>
+              <FileText size={28} style={{ color: neonCyan }} />
+            </div>
+            <h1 style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px, 5vw, 48px)', lineHeight: 1, letterSpacing: 1, marginBottom: 8,
+              backgroundImage: isDark ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            }}>
+              Libro de Reclamaciones
+            </h1>
+            <p style={{ fontSize: 14, color: textMuted, maxWidth: 480, margin: '0 auto' }}>
+              Conforme a lo establecido en el Código de Protección y Defensa del Consumidor (Ley N° 29571)
+            </p>
+          </div>
+
+          {/* Company Info */}
+          <div style={{
+            background: isDark ? 'rgba(0,255,213,0.04)' : 'rgba(0,137,122,0.04)',
+            border: `1px solid ${isDark ? 'rgba(0,255,213,0.12)' : 'rgba(0,137,122,0.15)'}`,
+            borderRadius: 12, padding: '16px 20px', marginBottom: 24,
+          }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div><p style={{ color: textMuted, fontSize: 12 }}>Razón Social</p><p style={{ fontWeight: 600 }}>Balde K S.A.C.</p></div>
+              <div><p style={{ color: textMuted, fontSize: 12 }}>RUC</p><p style={{ fontWeight: 600 }}>20605530509</p></div>
+              <div className="sm:col-span-2"><p style={{ color: textMuted, fontSize: 12 }}>Dirección</p><p style={{ fontWeight: 600 }}>Av. Alfredo Benavides 1238, Miraflores 15047</p></div>
+            </div>
+          </div>
+
+          {/* Form sections - reuse existing cards with CSS overrides */}
+          <div className="space-y-6">
+            {/* Section 1 */}
+            <div style={{ background: bgCard, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 20px' }}>
+              <div className="flex items-center gap-3 mb-5">
+                <div style={{ width: 40, height: 40, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)' }}>
+                  <User size={20} style={{ color: neonCyan }} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: neonCyan }}>1. Identificación del Consumidor</h2>
+                  <p style={{ fontSize: 12, color: textMuted }}>Datos personales del reclamante</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>Tipo de documento *</label>
+                  <select value={formData.tipoDocumento} onChange={(e) => handleInputChange('tipoDocumento', e.target.value)} style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 8, border: `1px solid ${border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none' }}>
+                    <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
+                  </select>
+                </div>
+                <GamerFormInput isDark={isDark} label="Número de documento *" value={formData.numeroDocumento} onChange={(v) => handleInputChange('numeroDocumento', v)} error={errors.numeroDocumento} placeholder="12345678" maxLength={12} />
+                <GamerFormInput isDark={isDark} label="Nombres *" value={formData.nombres} onChange={(v) => handleInputChange('nombres', v)} error={errors.nombres} placeholder="Juan Carlos" />
+                <GamerFormInput isDark={isDark} label="Apellidos *" value={formData.apellidos} onChange={(v) => handleInputChange('apellidos', v)} error={errors.apellidos} placeholder="Pérez García" />
+                <GamerFormInput isDark={isDark} label="Correo electrónico *" value={formData.email} onChange={(v) => handleInputChange('email', v)} error={errors.email} placeholder="correo@ejemplo.com" type="email" />
+                <GamerFormInput isDark={isDark} label="Teléfono *" value={formData.telefono} onChange={(v) => handleInputChange('telefono', v.replace(/\D/g, ''))} error={errors.telefono} placeholder="987654321" maxLength={9} />
+                <div className="sm:col-span-2">
+                  <GamerFormInput isDark={isDark} label="Dirección *" value={formData.direccion} onChange={(v) => handleInputChange('direccion', v)} error={errors.direccion} placeholder="Av. Ejemplo 123" />
+                </div>
+                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <GamerFormInput isDark={isDark} label="Departamento" value={formData.departamento} onChange={(v) => handleInputChange('departamento', v)} placeholder="Lima" />
+                  <GamerFormInput isDark={isDark} label="Provincia" value={formData.provincia} onChange={(v) => handleInputChange('provincia', v)} placeholder="Lima" />
+                  <GamerFormInput isDark={isDark} label="Distrito" value={formData.distrito} onChange={(v) => handleInputChange('distrito', v)} placeholder="Miraflores" />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2 */}
+            <div style={{ background: bgCard, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 20px' }}>
+              <div className="flex items-center gap-3 mb-5">
+                <div style={{ width: 40, height: 40, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)' }}>
+                  <FileText size={20} style={{ color: neonCyan }} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: neonCyan }}>2. Identificación del Bien Contratado</h2>
+                  <p style={{ fontSize: 12, color: textMuted }}>Información del servicio o producto</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <GamerFormInput isDark={isDark} label="Tipo de servicio" value={formData.tipoServicio} onChange={(v) => handleInputChange('tipoServicio', v)} placeholder="Ej: Financiamiento de laptop" />
+                <GamerFormInput isDark={isDark} label="Monto reclamado (S/)" value={formData.montoReclamado} onChange={(v) => handleInputChange('montoReclamado', v.replace(/[^\d.]/g, ''))} placeholder="0.00" />
+                <div className="sm:col-span-2">
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>Descripción del bien o servicio</label>
+                  <textarea value={formData.descripcionBien} onChange={(e) => handleInputChange('descripcionBien', e.target.value)} placeholder="Describa el producto o servicio contratado..." rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3 */}
+            <div style={{ background: bgCard, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 20px' }}>
+              <div className="flex items-center gap-3 mb-5">
+                <div style={{ width: 40, height: 40, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)' }}>
+                  <MessageSquare size={20} style={{ color: neonCyan }} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: neonCyan }}>3. Detalle de la Reclamación</h2>
+                  <p style={{ fontSize: 12, color: textMuted }}>Describa su reclamo o queja</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 12 }}>Tipo de reclamación *</label>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    {['reclamo', 'queja'].map((tipo) => (
+                      <button key={tipo} onClick={() => handleInputChange('tipoReclamo', tipo)} style={{
+                        flex: 1, minWidth: 140, padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                        border: `2px solid ${formData.tipoReclamo === tipo ? neonCyan : border}`,
+                        background: formData.tipoReclamo === tipo ? (isDark ? 'rgba(0,255,213,0.06)' : 'rgba(0,137,122,0.04)') : 'transparent',
+                        textAlign: 'left',
+                      }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: formData.tipoReclamo === tipo ? neonCyan : textPrimary, marginBottom: 4 }}>
+                          {tipo === 'reclamo' ? 'Reclamo' : 'Queja'}
+                        </div>
+                        <div style={{ fontSize: 11, color: textMuted, lineHeight: 1.3 }}>
+                          {tipo === 'reclamo' ? 'Disconformidad con productos o servicios' : 'Malestar respecto a la atención'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>Detalle del reclamo o queja *</label>
+                  <textarea value={formData.detalleReclamo} onChange={(e) => handleInputChange('detalleReclamo', e.target.value)} placeholder="Describa detalladamente los hechos..." rows={4} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${errors.detalleReclamo ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
+                  {errors.detalleReclamo && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><AlertCircle size={14} />{errors.detalleReclamo}</p>}
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>Pedido del consumidor *</label>
+                  <textarea value={formData.pedidoConsumidor} onChange={(e) => handleInputChange('pedidoConsumidor', e.target.value)} placeholder="Indique qué solución espera..." rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${errors.pedidoConsumidor ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
+                  {errors.pedidoConsumidor && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><AlertCircle size={14} />{errors.pedidoConsumidor}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Legal Notice */}
+            <div style={{
+              background: isDark ? 'rgba(245,158,11,0.06)' : 'rgba(245,158,11,0.05)',
+              border: `1px solid ${isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.25)'}`,
+              borderRadius: 10, padding: '12px 16px', fontSize: 13, color: isDark ? '#fbbf24' : '#92400e', lineHeight: 1.6,
+            }}>
+              <p style={{ fontWeight: 600, marginBottom: 4 }}>Nota importante:</p>
+              <p>La formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante el INDECOPI. El proveedor deberá dar respuesta al reclamo en un plazo no mayor a 30 días calendario.</p>
+            </div>
+
+            {/* Submit */}
+            <div className="flex justify-center sm:justify-end">
+              <button onClick={handleSubmit} disabled={isSubmitting} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                height: 44, padding: '0 32px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                background: neonCyan, color: '#0a0a0a', fontSize: 15, fontWeight: 700,
+                fontFamily: "'Rajdhani', sans-serif", opacity: isSubmitting ? 0.6 : 1,
+              }}>
+                {isSubmitting ? 'Enviando...' : 'Enviar Reclamo'}
+                {!isSubmitting && <Send size={16} />}
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <GamerFooter theme={theme!} />
+
+        {isSuccess && (
+          <div style={{
+            position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+            padding: '12px 20px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10,
+            background: isDark ? '#1a1a1a' : '#fff', border: `1px solid ${isDark ? '#2a2a2a' : '#e5e5e5'}`,
+            boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
+            fontSize: 13, color: isDark ? '#e0e0e0' : '#333',
+          }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,255,213,0.1)' : 'rgba(0,137,122,0.1)', color: neonCyan }}>✓</div>
+            Su reclamo ha sido registrado. Recibirá respuesta en 30 días calendario.
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -553,6 +829,30 @@ function FormInput({ label, value, onChange, error, placeholder, type = 'text', 
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+// Gamer-styled form input
+function GamerFormInput({ isDark, label, value, onChange, error, placeholder, type = 'text', maxLength }: {
+  isDark: boolean; label: string; value: string; onChange: (v: string) => void;
+  error?: string; placeholder?: string; type?: string; maxLength?: number;
+}) {
+  const border = isDark ? '#2a2a2a' : '#e0e0e0';
+  const bgSurface = isDark ? '#1e1e1e' : '#f0f0f0';
+  const textPrimary = isDark ? '#f0f0f0' : '#1a1a1a';
+  const textSecondary = isDark ? '#a0a0a0' : '#555';
+  const textMuted = isDark ? '#707070' : '#888';
+  const neonCyan = isDark ? '#00ffd5' : '#00897a';
+  return (
+    <div>
+      <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>{label}</label>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength}
+        style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 8, border: `1px solid ${error ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none' }}
+        onFocus={(e) => { if (!error) e.currentTarget.style.borderColor = neonCyan; }}
+        onBlur={(e) => { if (!error) e.currentTarget.style.borderColor = border; }}
+      />
+      {error && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><AlertCircle size={14} />{error}</p>}
     </div>
   );
 }

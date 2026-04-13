@@ -133,11 +133,12 @@ export function GamerCatalogoClient() {
 }
 
 function GamerLoadingFallback() {
+  const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('baldecash-theme') : null;
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: '#0e0e0e',
+        background: savedTheme === 'light' ? '#f2f2f2' : '#0e0e0e',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -995,6 +996,14 @@ function GamerCatalogoContent() {
               onBrandToggle={handleBrandToggle}
               onGamaToggle={handleGamaToggle}
               onConditionToggle={handleConditionToggle}
+              onDeviceTypeToggle={handleDeviceTypeToggle}
+              onUsageToggle={handleUsageToggle}
+              onTagToggle={handleTagToggle}
+              onRamToggle={handleRamToggle}
+              onStorageToggle={handleStorageToggle}
+              onGpuToggle={handleGpuToggle}
+              onProcessorToggle={handleProcessorToggle}
+              onScreenSizeToggle={handleScreenSizeToggle}
               onClearSearch={() => setSearchQuery('')}
               onClearAll={handleClearFilters}
             />
@@ -2499,6 +2508,14 @@ function ActiveFiltersBar({
   onBrandToggle,
   onGamaToggle,
   onConditionToggle,
+  onDeviceTypeToggle,
+  onUsageToggle,
+  onTagToggle,
+  onRamToggle,
+  onStorageToggle,
+  onGpuToggle,
+  onProcessorToggle,
+  onScreenSizeToggle,
   onClearSearch,
   onClearAll,
 }: {
@@ -2509,6 +2526,14 @@ function ActiveFiltersBar({
   onBrandToggle: (b: string) => void;
   onGamaToggle: (g: string) => void;
   onConditionToggle: (c: string) => void;
+  onDeviceTypeToggle: (t: string) => void;
+  onUsageToggle: (u: string) => void;
+  onTagToggle: (t: string) => void;
+  onRamToggle: (r: number) => void;
+  onStorageToggle: (s: number) => void;
+  onGpuToggle: (g: string) => void;
+  onProcessorToggle: (p: string) => void;
+  onScreenSizeToggle: (s: number) => void;
   onClearSearch: () => void;
   onClearAll: () => void;
 }) {
@@ -2541,6 +2566,48 @@ function ActiveFiltersBar({
           <X className="w-3 h-3" />
         </button>
       ))}
+      {filters.deviceTypes.map((t) => (
+        <button key={t} onClick={() => onDeviceTypeToggle(t)} style={chipStyle}>
+          {t === 'laptop' ? 'Laptops' : t === 'tablet' ? 'Tablets' : t}
+          <X className="w-3 h-3" />
+        </button>
+      ))}
+      {filters.gpuType.map((g) => (
+        <button key={g} onClick={() => onGpuToggle(g)} style={chipStyle}>
+          {g}
+          <X className="w-3 h-3" />
+        </button>
+      ))}
+      {filters.processorModel.map((p) => (
+        <button key={p} onClick={() => onProcessorToggle(p)} style={chipStyle}>
+          {p}
+          <X className="w-3 h-3" />
+        </button>
+      ))}
+      {filters.ram.map((r) => (
+        <button key={r} onClick={() => onRamToggle(r)} style={chipStyle}>
+          {r} GB RAM
+          <X className="w-3 h-3" />
+        </button>
+      ))}
+      {filters.storage.map((s) => (
+        <button key={s} onClick={() => onStorageToggle(s)} style={chipStyle}>
+          {s >= 1000 ? `${s / 1000} TB` : `${s} GB`}
+          <X className="w-3 h-3" />
+        </button>
+      ))}
+      {filters.displaySize.map((s) => (
+        <button key={s} onClick={() => onScreenSizeToggle(s)} style={chipStyle}>
+          {s}&quot;
+          <X className="w-3 h-3" />
+        </button>
+      ))}
+      {filters.usage.map((u) => (
+        <button key={u} onClick={() => onUsageToggle(u)} style={chipStyle}>
+          {u}
+          <X className="w-3 h-3" />
+        </button>
+      ))}
       {filters.gama.map((g) => (
         <button key={g} onClick={() => onGamaToggle(g)} style={chipStyle}>
           {g}
@@ -2550,6 +2617,12 @@ function ActiveFiltersBar({
       {filters.condition.map((c) => (
         <button key={c} onClick={() => onConditionToggle(c)} style={chipStyle}>
           {c}
+          <X className="w-3 h-3" />
+        </button>
+      ))}
+      {filters.tags.map((t) => (
+        <button key={t} onClick={() => onTagToggle(t)} style={chipStyle}>
+          {t}
           <X className="w-3 h-3" />
         </button>
       ))}

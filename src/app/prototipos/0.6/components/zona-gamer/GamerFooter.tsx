@@ -44,7 +44,6 @@ const FOOTER_COLS = [
       { label: 'Términos y condiciones', href: routes.legal(LANDING, 'terminos-y-condiciones') },
       { label: 'Política de privacidad', href: routes.legal(LANDING, 'politica-de-privacidad') },
       { label: 'Libro de reclamaciones', href: routes.legal(LANDING, 'libro-reclamaciones') },
-      { label: 'Regulación SBS', href: '#' },
     ],
   },
 ];

@@ -79,11 +79,13 @@ export function GamerProductDetailClient() {
 }
 
 function LoadingFallback() {
+  const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('baldecash-theme') : null;
+  const isLight = savedTheme === 'light';
   return (
-    <div style={{ minHeight: '100vh', background: '#0e0e0e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ minHeight: '100vh', background: isLight ? '#f2f2f2' : '#0e0e0e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 40, height: 40, border: '3px solid #2a2a2a', borderTopColor: '#00ffd5', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-        <p style={{ color: '#707070', fontFamily: F.raj, fontSize: 14 }}>Cargando producto...</p>
+        <div style={{ width: 40, height: 40, border: `3px solid ${isLight ? '#e0e0e0' : '#2a2a2a'}`, borderTopColor: isLight ? '#00897a' : '#00ffd5', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+        <p style={{ color: isLight ? '#888' : '#707070', fontFamily: F.raj, fontSize: 14 }}>Cargando producto...</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
