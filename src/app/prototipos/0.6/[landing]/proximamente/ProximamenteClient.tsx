@@ -7,7 +7,7 @@
  * Contenido de secciones viene de la API (coming_soon_sections)
  */
 
-import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import {
@@ -32,6 +32,9 @@ import {
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
+import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
@@ -60,8 +63,17 @@ function getIconComponent(iconName: string): LucideIcon {
 }
 
 function LoadingFallback() {
+  const [bg, setBg] = useState<string | null>(null);
+  useEffect(() => {
+    if (window.location.pathname.includes('zona-gamer')) {
+      const saved = localStorage.getItem('baldecash-theme');
+      setBg(saved === 'light' ? '#f2f2f2' : '#0e0e0e');
+    } else {
+      setBg('#fafafa');
+    }
+  }, []);
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center" style={{ background: bg || '#0e0e0e' }} suppressHydrationWarning>
       <CubeGridSpinner />
     </div>
   );
@@ -71,6 +83,21 @@ function ProximamenteContent() {
   const searchParams = useSearchParams();
   const seccion = searchParams.get('seccion') || '';
   const { navbarProps, footerData, agreementData, isLoading, hasError, landing } = useLayout();
+  const isGamer = landing === 'zona-gamer';
+
+  // Gamer theme
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  useEffect(() => {
+    if (!isGamer) return;
+    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    if (saved) setTheme(saved);
+  }, [isGamer]);
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('baldecash-theme', next);
+  };
+  const isDark = theme === 'dark';
 
   const [sections, setSections] = useState<ComingSoonSection[]>([]);
   const [sectionsLoading, setSectionsLoading] = useState(true);
@@ -136,6 +163,99 @@ function ProximamenteContent() {
   // Show 404 if landing not found (paused, archived, or doesn't exist)
   if (hasError || !navbarProps) {
     return <NotFoundContent homeUrl={routes.home()} />;
+  }
+
+  if (isGamer) {
+    const neonCyan = isDark ? '#00ffd5' : '#00897a';
+    const border = isDark ? '#2a2a2a' : '#e0e0e0';
+    const bgCard = isDark ? '#1a1a1a' : '#ffffff';
+    const textMuted = isDark ? '#707070' : '#888';
+    const IconComponent = getIconComponent(contenido.icon);
+
+    return (
+      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: isDark ? '#f0f0f0' : '#1a1a1a', fontFamily: "'Rajdhani', sans-serif" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');`}</style>
+        <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
+        <main style={{ paddingTop: 24 }}>
+          <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+            {/* Icon */}
+            <div style={{ width: 72, height: 72, borderRadius: 16, background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+              <IconComponent size={36} style={{ color: neonCyan }} />
+            </div>
+
+            {/* Title */}
+            <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 12 }}>
+              Estamos trabajando en esto
+            </h1>
+
+            {/* Section badge */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 999, background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)', marginBottom: 16 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: neonCyan }}>{contenido.titulo}</span>
+            </div>
+
+            {/* Description */}
+            <p style={{ fontSize: 15, color: isDark ? '#a0a0a0' : '#555', maxWidth: 420, margin: '0 auto 32px', lineHeight: 1.6 }}>
+              {contenido.descripcion}
+            </p>
+
+            {/* Back button */}
+            <a
+              href={routes.landingHome(landing)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 10,
+                background: neonCyan, color: '#0a0a0a', fontSize: 15, fontWeight: 700,
+                textDecoration: 'none', fontFamily: "'Rajdhani', sans-serif",
+              }}
+            >
+              <ArrowLeft size={16} />
+              Volver al inicio
+            </a>
+
+            {/* WhatsApp card */}
+            <div style={{ marginTop: 40, padding: 16, background: bgCard, borderRadius: 14, border: `1px solid ${border}`, textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(37,211,102,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <MessageCircle size={20} style={{ color: '#25D366' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 4px' }}>¿Tienes alguna consulta?</p>
+                  <p style={{ fontSize: 13, color: textMuted, margin: '0 0 12px' }}>Nuestro equipo está disponible para ayudarte.</p>
+                  <a
+                    href="https://wa.me/51999999999"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
+                      background: '#25D366', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                    }}
+                  >
+                    <MessageCircle size={14} />
+                    Escríbenos por WhatsApp
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Email card */}
+            <div style={{ marginTop: 12, padding: 16, background: bgCard, borderRadius: 14, border: `1px solid ${border}`, textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: isDark ? 'rgba(245,158,11,0.1)' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Bell size={20} style={{ color: '#d97706' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 4px' }}>También puedes escribirnos</p>
+                  <a href="mailto:prestamos@baldecash.com" style={{ fontSize: 13, color: neonCyan, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                    prestamos@baldecash.com
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+        <GamerNewsletter theme={theme} />
+        <GamerFooter theme={theme} />
+      </div>
+    );
   }
 
   return (

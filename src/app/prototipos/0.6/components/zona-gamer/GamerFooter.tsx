@@ -16,26 +16,26 @@ const FOOTER_COLS = [
     links: [
       { label: 'Equipos', href: routes.catalogo(LANDING) },
       { label: 'Accesorios', href: '#accessories' },
-      { label: 'Seguros', href: '#' },
-      { label: 'Promociones', href: '#' },
+      { label: 'Seguros', href: routes.proximamente(LANDING) + '?seccion=seguros' },
+      { label: 'Promociones', href: routes.proximamente(LANDING) + '?seccion=promociones' },
     ],
   },
   {
     title: 'Empresa',
     links: [
-      { label: 'Sobre nosotros', href: '#' },
-      { label: 'Convenios', href: '#' },
-      { label: 'Trabaja con nosotros', href: '#' },
-      { label: 'Blog', href: '#' },
+      { label: 'Sobre nosotros', href: routes.proximamente(LANDING) + '?seccion=nosotros' },
+      { label: 'Convenios', href: routes.proximamente(LANDING) + '?seccion=convenios' },
+      { label: 'Trabaja con nosotros', href: routes.proximamente(LANDING) + '?seccion=trabaja' },
+      { label: 'Blog', href: routes.proximamente(LANDING) + '?seccion=blog' },
     ],
   },
   {
     title: 'Soporte',
     links: [
-      { label: 'Centro de ayuda', href: '#' },
-      { label: 'FAQ', href: '#' },
-      { label: 'Estado de solicitud', href: '#' },
-      { label: 'Contacto', href: '#' },
+      { label: 'Centro de ayuda', href: routes.proximamente(LANDING) + '?seccion=ayuda' },
+      { label: 'FAQ', href: routes.proximamente(LANDING) + '?seccion=faq' },
+      { label: 'Estado de solicitud', href: routes.proximamente(LANDING) + '?seccion=estado' },
+      { label: 'Contacto', href: routes.proximamente(LANDING) + '?seccion=contacto' },
     ],
   },
   {
