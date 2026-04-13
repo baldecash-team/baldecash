@@ -195,6 +195,8 @@ function GamerCatalogoContent() {
   const [filters, setFilters] = useState<FilterState>(() => mergeFiltersWithDefaults(initialUrlFilters));
   const [sort, setSort] = useState<SortOption>((initialUrlFilters as { sort?: SortOption }).sort || 'recommended');
   const [searchQuery, setSearchQuery] = useState((initialUrlFilters as { searchQuery?: string }).searchQuery || '');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
 
   // Mobile filters
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -353,9 +355,21 @@ function GamerCatalogoContent() {
 
   const isInCompare = useCallback((id: string) => compareList.some(p => p.id === id), [compareList]);
 
+  // Close search dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setShowSearchDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   // Handlers
   const handleSearch = useCallback((q: string) => {
     setSearchQuery(q);
+    setShowSearchDropdown(q.trim().length > 0);
   }, []);
 
   const handleToggleSection = useCallback((section: string) => {
@@ -621,35 +635,110 @@ function GamerCatalogoContent() {
 
           {/* Desktop search box */}
           <div className="hidden md:flex" style={{ flex: 1, justifyContent: 'center' }}>
-            <div
-              className="focus-within:shadow-[0_0_15px_rgba(0,255,213,0.1)]"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                width: 600,
-                maxWidth: '100%',
-                background: T.bgSurface,
-                border: `2px solid ${isDark ? 'rgba(70,84,205,0.2)' : '#d0d0d0'}`,
-                borderRadius: 12,
-                padding: '0 12px',
-                height: 40,
-                transition: 'all 0.3s',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: isDark ? '#fff' : '#999', flexShrink: 0 }}>
-                <path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Buscar equipos..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
+            <div ref={searchBoxRef} style={{ position: 'relative', width: 600, maxWidth: '100%' }}>
+              <div
+                className="focus-within:shadow-[0_0_15px_rgba(0,255,213,0.1)]"
                 style={{
-                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                  padding: '8px 12px', fontSize: 14, color: isDark ? '#fff' : '#333',
-                  fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%',
+                  background: T.bgSurface,
+                  border: `2px solid ${showSearchDropdown ? 'rgba(70,84,205,0.5)' : (isDark ? 'rgba(70,84,205,0.2)' : '#d0d0d0')}`,
+                  borderRadius: 12,
+                  padding: '0 12px',
+                  height: 40,
+                  transition: 'all 0.3s',
                 }}
-              />
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: isDark ? '#fff' : '#999', flexShrink: 0 }}>
+                  <path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Buscar equipos..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onFocus={() => { if (searchQuery.trim() && allProducts.length > 0) setShowSearchDropdown(true); }}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setShowSearchDropdown(false); }}
+                  style={{
+                    flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                    padding: '8px 12px', fontSize: 14, color: isDark ? '#fff' : '#333',
+                    fontFamily: "'Rajdhani', sans-serif", letterSpacing: '0.5px',
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => { handleSearch(''); setShowSearchDropdown(false); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.textMuted, padding: 2 }}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Search dropdown */}
+              {showSearchDropdown && searchQuery.trim() && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6,
+                  background: isDark ? '#1a1a1a' : '#fff',
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 12,
+                  boxShadow: isDark ? '0 12px 40px rgba(0,0,0,0.6)' : '0 12px 40px rgba(0,0,0,0.15)',
+                  maxHeight: 400, overflowY: 'auto', zIndex: 200,
+                }}>
+                  {isLoading && (
+                    <div style={{ padding: '16px 20px', textAlign: 'center', color: T.textMuted, fontSize: 13, fontFamily: "'Rajdhani', sans-serif" }}>
+                      Buscando...
+                    </div>
+                  )}
+                  {!isLoading && allProducts.length === 0 && (
+                    <div style={{ padding: '16px 20px', textAlign: 'center', color: T.textMuted, fontSize: 13, fontFamily: "'Rajdhani', sans-serif" }}>
+                      No se encontraron equipos para &ldquo;{searchQuery}&rdquo;
+                    </div>
+                  )}
+                  {!isLoading && allProducts.length > 0 && (
+                    <>
+                      {allProducts.slice(0, 8).map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => { setShowSearchDropdown(false); router.push(routes.producto(landing, product.slug)); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                            padding: '10px 16px', background: 'none', border: 'none',
+                            borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f0'}`,
+                            cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : '#f8f8f8'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                        >
+                          <div style={{
+                            width: 44, height: 44, borderRadius: 8, flexShrink: 0, overflow: 'hidden',
+                            background: isDark ? '#111' : '#f5f5f5',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            {product.thumbnail ? (
+                              <Image src={product.thumbnail} alt={product.name} width={44} height={44} style={{ objectFit: 'contain', width: '100%', height: '100%' }} />
+                            ) : (
+                              <Laptop className="w-5 h-5" style={{ color: T.textMuted }} />
+                            )}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#f0f0f0' : '#333', fontFamily: "'Rajdhani', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {product.displayName || product.name}
+                            </div>
+                            <div style={{ fontSize: 11, color: T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
+                              {product.brand}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: T.neonCyan, fontFamily: "'Orbitron', sans-serif", whiteSpace: 'nowrap' }}>
+                            S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: T.textMuted }}>/mes</span>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

@@ -89,7 +89,7 @@ export function GamerFooter({ theme }: GamerFooterProps) {
               width={130}
               height={28}
               className="object-contain mb-4"
-              style={{ height: 32 }}
+              style={{ height: 32, width: 'auto' }}
             />
             <p className="text-[13px] mb-4" style={{ color: textMuted }}>
               Financiamiento para estudiantes

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
-import { Moon, Sun, Menu, X, Zap, Search, Heart, ShoppingCart, User } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Moon, Sun, Menu, X, Zap, Search, Heart, ShoppingCart, User, Laptop } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { fetchCatalogData } from '@/app/prototipos/0.6/services/catalogApi';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
@@ -24,14 +25,108 @@ const NAV_SECTIONS = [
 
 const LANDING_SLUG = 'zona-gamer';
 
+interface SearchResult {
+  id: string;
+  slug: string;
+  name: string;
+  displayName: string;
+  brand: string;
+  thumbnail: string;
+  quotaMonthly: number;
+}
+
 export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth }: GamerNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const landingHome = routes.landingHome(LANDING_SLUG);
   const isOnLanding = pathname === landingHome || pathname === landingHome + '/';
 
   const isDark = theme === 'dark';
   const V = cssVars(isDark);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleSearch = useCallback((q: string) => {
+    setSearchQuery(q);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!q.trim()) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    setIsSearching(true);
+    setShowDropdown(true);
+
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await fetchCatalogData(LANDING_SLUG, {
+          filters: { q: q.trim() },
+          limit: 8,
+        });
+        if (data) {
+          setSearchResults(data.products.map((p) => ({
+            id: p.id,
+            slug: p.slug,
+            name: p.name,
+            displayName: p.displayName,
+            brand: p.brand,
+            thumbnail: p.thumbnail,
+            quotaMonthly: p.quotaMonthly,
+          })));
+        } else {
+          setSearchResults([]);
+        }
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+  }, []);
+
+  const handleSelectProduct = useCallback((slug: string) => {
+    setShowDropdown(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    router.push(routes.producto(LANDING_SLUG, slug));
+  }, [router]);
+
+  const handleViewAll = useCallback(() => {
+    setShowDropdown(false);
+    const q = searchQuery.trim();
+    setSearchQuery('');
+    setSearchResults([]);
+    router.push(routes.catalogo(LANDING_SLUG, q ? `q=${encodeURIComponent(q)}` : ''));
+  }, [router, searchQuery]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleViewAll();
+    }
+    if (e.key === 'Escape') {
+      setShowDropdown(false);
+    }
+  }, [handleViewAll]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
@@ -65,7 +160,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
               width={140}
               height={32}
               className="object-contain"
-              style={{ height: 'clamp(22px, 5vw, 30px)' }}
+              style={{ height: 'clamp(22px, 5vw, 30px)', width: 'auto' }}
             />
             <span
               className="gaming-badge-blink"
@@ -196,17 +291,22 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
       >
         <div className={`${fullWidth ? '' : 'max-w-[1280px] mx-auto'} px-3 sm:px-6 flex items-center justify-between h-11 sm:h-14 gap-2 sm:gap-4`}>
           <div className="flex-1 flex justify-center min-w-0">
+            <div ref={searchRef} style={{ position: 'relative', width: 600, maxWidth: '100%' }}>
             <div
-              className="flex items-center w-[600px] max-w-full h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border-2 transition-all focus-within:border-[rgba(70,84,205,0.5)]"
+              className="flex items-center w-full h-9 sm:h-10 px-2.5 sm:px-3 rounded-xl border-2 transition-all focus-within:border-[rgba(70,84,205,0.5)]"
               style={{
                 background: V.bgSurface,
-                borderColor: 'rgba(70,84,205,0.2)',
+                borderColor: showDropdown ? 'rgba(70,84,205,0.5)' : 'rgba(70,84,205,0.2)',
               }}
             >
               <Search className="w-4 h-4 shrink-0" style={{ color: isDark ? '#fff' : '#999' }} />
               <input
                 type="text"
                 placeholder="Buscar equipos..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                onFocus={() => { if (searchQuery.trim() && searchResults.length > 0) setShowDropdown(true); }}
+                onKeyDown={handleKeyDown}
                 className="flex-1 bg-transparent border-none outline-none px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm"
                 style={{
                   color: isDark ? '#fff' : '#333',
@@ -214,6 +314,134 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                   letterSpacing: '0.5px',
                 }}
               />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setSearchResults([]); setShowDropdown(false); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: V.textMuted, padding: 2 }}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Search Dropdown */}
+            {showDropdown && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: 6,
+                  background: isDark ? '#1a1a1a' : '#fff',
+                  border: `1px solid ${V.border}`,
+                  borderRadius: 12,
+                  boxShadow: isDark ? '0 12px 40px rgba(0,0,0,0.6)' : '0 12px 40px rgba(0,0,0,0.15)',
+                  maxHeight: 400,
+                  overflowY: 'auto',
+                  zIndex: 200,
+                }}
+              >
+                {isSearching && (
+                  <div style={{ padding: '16px 20px', textAlign: 'center', color: V.textMuted, fontSize: 13, fontFamily: "'Rajdhani', sans-serif" }}>
+                    Buscando...
+                  </div>
+                )}
+
+                {!isSearching && searchResults.length === 0 && searchQuery.trim() && (
+                  <div style={{ padding: '16px 20px', textAlign: 'center', color: V.textMuted, fontSize: 13, fontFamily: "'Rajdhani', sans-serif" }}>
+                    No se encontraron equipos para &ldquo;{searchQuery}&rdquo;
+                  </div>
+                )}
+
+                {!isSearching && searchResults.length > 0 && (
+                  <>
+                    {searchResults.map((product) => (
+                      <button
+                        key={product.id}
+                        onClick={() => handleSelectProduct(product.slug)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          width: '100%',
+                          padding: '10px 16px',
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#f0f0f0'}`,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'background 0.15s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.04)' : '#f8f8f8'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+                      >
+                        {/* Thumbnail */}
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 8, flexShrink: 0, overflow: 'hidden',
+                          background: isDark ? '#111' : '#f5f5f5',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          {product.thumbnail ? (
+                            <Image
+                              src={product.thumbnail}
+                              alt={product.name}
+                              width={44}
+                              height={44}
+                              style={{ objectFit: 'contain', width: '100%', height: '100%' }}
+                            />
+                          ) : (
+                            <Laptop className="w-5 h-5" style={{ color: V.textMuted }} />
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontSize: 13, fontWeight: 600, color: isDark ? '#f0f0f0' : '#333',
+                            fontFamily: "'Rajdhani', sans-serif",
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {product.displayName || product.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
+                            {product.brand}
+                          </div>
+                        </div>
+
+                        {/* Price */}
+                        <div style={{
+                          fontSize: 13, fontWeight: 700, color: V.neonCyan,
+                          fontFamily: "'Orbitron', sans-serif", whiteSpace: 'nowrap',
+                        }}>
+                          S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
+                        </div>
+                      </button>
+                    ))}
+
+                    {/* View all link */}
+                    <button
+                      onClick={handleViewAll}
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        padding: '10px 16px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: V.neonPurple,
+                        fontFamily: "'Rajdhani', sans-serif",
+                        textAlign: 'center',
+                      }}
+                    >
+                      Ver todos los resultados para &ldquo;{searchQuery}&rdquo;
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
