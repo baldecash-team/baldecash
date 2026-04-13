@@ -230,6 +230,7 @@ function DetailContent() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        #section-gallery, #section-pricing, #section-specs, #cronograma, #similares { scroll-margin-top: 80px; }
         .gamer-gradient-text {
           background: linear-gradient(90deg, var(--gamer-purple) 0%, var(--gamer-cyan) 100%);
           -webkit-background-clip: text;
@@ -779,24 +780,19 @@ function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
 
   useEffect(() => {
     const handleScroll = () => {
-      // If user just clicked a nav button, keep that section active
       if (manualOverride.current) { setActiveSection(manualOverride.current); return; }
 
-      const scrollY = window.scrollY + 200;
-      const sections: { id: string; top: number }[] = [];
+      // Use getBoundingClientRect for accurate position (works with sticky elements)
+      const threshold = 200;
+      let current = SIDE_NAV_ITEMS[0].id;
       for (const item of SIDE_NAV_ITEMS) {
+        // Skip sticky pricing section for scroll detection
+        if (item.id === 'section-pricing') continue;
         const el = document.getElementById(item.id);
         if (el) {
-          let top = 0;
-          let node: HTMLElement | null = el;
-          while (node) { top += node.offsetTop; node = node.offsetParent as HTMLElement | null; }
-          sections.push({ id: item.id, top });
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= threshold) current = item.id;
         }
-      }
-      sections.sort((a, b) => a.top - b.top);
-      let current = sections[0]?.id || SIDE_NAV_ITEMS[0].id;
-      for (const s of sections) {
-        if (s.top <= scrollY) current = s.id;
       }
       setActiveSection(current);
     };
@@ -814,13 +810,15 @@ function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
 
     const el = document.getElementById(id);
     if (el) {
-      const y = el.getBoundingClientRect().top + window.pageYOffset - 120;
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const rect = el.getBoundingClientRect();
+      const targetY = scrollTop + rect.top - 110;
+      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
     }
   };
 
   return (
-    <div className="hidden xl:block" style={{ position: 'fixed', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 40 }}>
+    <div className="hidden lg:block" style={{ position: 'fixed', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 40 }}>
       <div style={{ background: isDark ? 'rgba(26,26,26,0.95)' : 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderRadius: 16, boxShadow: isDark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 16px rgba(0,0,0,0.08)', border: `1px solid ${T.border}`, padding: 8 }}>
         <nav className="flex flex-col gap-1">
           {SIDE_NAV_ITEMS.map((item) => {
@@ -831,11 +829,22 @@ function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
                 key={item.id}
                 onClick={() => scrollTo(item.id)}
                 title={item.label}
-                className={`group relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer ${isActive ? 'text-white shadow-md' : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'}`}
-                style={isActive ? { background: T.neonCyan } : { background: 'transparent' }}
+                className="group relative flex items-center justify-center w-10 h-10 rounded-xl transition-all cursor-pointer"
+                style={isActive
+                  ? { background: T.neonCyan, color: isDark ? '#0a0a0a' : '#fff', boxShadow: isDark ? '0 0 12px rgba(0,255,213,0.3)' : '0 2px 8px rgba(0,137,122,0.3)' }
+                  : { background: 'transparent', color: isDark ? '#707070' : '#a0a0a0' }
+                }
+                onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = isDark ? '#2a2a2a' : '#f0f0f0'; e.currentTarget.style.color = isDark ? '#f0f0f0' : '#333'; } }}
+                onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isDark ? '#707070' : '#a0a0a0'; } }}
               >
                 <Icon className="w-5 h-5" />
-                <span className={`absolute left-full ml-3 px-2 py-1 text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-white ${isActive ? '' : 'bg-neutral-800'}`} style={isActive ? { background: T.neonCyan } : undefined}>
+                <span
+                  className="absolute left-full ml-3 px-2 py-1 text-xs font-medium rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+                  style={isActive
+                    ? { background: T.neonCyan, color: isDark ? '#0a0a0a' : '#fff' }
+                    : { background: isDark ? '#2a2a2a' : '#333', color: '#fff' }
+                  }
+                >
                   {item.label}
                 </span>
               </button>

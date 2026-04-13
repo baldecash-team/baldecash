@@ -52,6 +52,9 @@ import {
   Info,
   Star,
   Sparkles,
+  HelpCircle,
+  GraduationCap,
+  MessageSquare,
 } from 'lucide-react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 
@@ -81,6 +84,7 @@ import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '.
 // Zona Gamer components
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerAccessories } from '@/app/prototipos/0.6/components/zona-gamer/GamerAccessories';
+import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { useToast } from '@/app/prototipos/_shared';
 
 // ============================================
@@ -194,6 +198,14 @@ function GamerCatalogoContent() {
   // Mobile filters
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  // Scroll to top button
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   // Sidebar sections collapsed state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     // Specs primero — lo que más buscan los gamers
@@ -293,6 +305,9 @@ function GamerCatalogoContent() {
 
   // Toast
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Blip Chat
+  const blipChat = useBlipChat();
 
   // Wishlist drawer
   const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
@@ -1373,6 +1388,69 @@ function GamerCatalogoContent() {
       {/* ====== FOOTER ====== */}
       <GamerFooter theme={theme} />
 
+      {/* Blip Chat (hidden button, opened from help menu) */}
+      <BlipChat
+        buttonColor={isDark ? '#1a1a1a' : T.neonCyan}
+        hideFloatingButton={true}
+        onOpen={() => {}}
+        onClose={() => {}}
+        customStyle={isDark ? `
+          #blip-chat-header { background-color: #1a1a1a !important; }
+          .ss-content { background-color: #0e0e0e !important; }
+          .blip-container { background-color: #0e0e0e !important; }
+          #message-input { background-color: #1a1a1a !important; border-top: 1px solid #2a2a2a !important; }
+          #msg-textarea { background-color: #1a1a1a !important; color: #f0f0f0 !important; }
+          #msg-textarea::placeholder { color: #707070 !important; }
+          .blip-chat-bot-name { color: #00ffd5 !important; }
+          .blip-chat-bot-status span { color: #00ffd5 !important; }
+          #blip-send-message { background-color: #00ffd5 !important; }
+          .blip-cards-items-list { background-color: #0e0e0e !important; }
+          .infinite-status-prompt { color: #707070 !important; }
+        ` : ''}
+      />
+      {/* Override Blip Chat colors based on theme */}
+      <style>{`
+        #blip-chat-container #blip-chat-open-iframe.opened,
+        #blip-chat-container #blip-chat-open-iframe {
+          background-color: ${isDark ? '#1a1a1a' : T.neonCyan} !important;
+        }
+        #blip-chat-header {
+          background-color: ${isDark ? '#1a1a1a' : T.neonCyan} !important;
+        }
+        #blip-chat-container #blip-chat-close-icon g#Close g#close path {
+          fill: ${isDark ? '#00ffd5' : '#ffffff'} !important;
+        }
+      `}</style>
+
+      {/* Help button */}
+      <GamerHelpButton isDark={isDark} T={T} onOpenChat={() => blipChat.openChat()} />
+
+      {/* Scroll to top */}
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 100,
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            border: 'none',
+            background: T.neonCyan,
+            color: '#0a0a0a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: isDark ? '0 4px 16px rgba(0,255,213,0.3)' : '0 4px 16px rgba(0,137,122,0.25)',
+            transition: 'all 0.3s',
+          }}
+        >
+          <ArrowRight className="w-5 h-5" style={{ transform: 'rotate(-90deg)' }} />
+        </button>
+      )}
     </div>
   );
 }
@@ -2960,6 +3038,84 @@ function GamerProductCard({
 // ============================================
 // Compare Modal
 // ============================================
+
+function GamerHelpButton({ isDark, T, onOpenChat }: { isDark: boolean; T: ReturnType<typeof gamerTheme>; onOpenChat: () => void }) {
+  const [open, setOpen] = useState(false);
+  const neonCyan = T.neonCyan;
+  const border = T.border;
+  const bgCard = T.bgCard;
+  const textPrimary = T.textPrimary;
+  const textMuted = T.textMuted;
+
+  return (
+    <div style={{ position: 'fixed', bottom: 24, left: 24, zIndex: 100 }}>
+      {/* Dropdown */}
+      {open && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setOpen(false)} />
+          <div style={{
+            position: 'absolute', bottom: 52, left: 0, zIndex: 100,
+            width: 256, borderRadius: 12, overflow: 'hidden',
+            background: bgCard, border: `1px solid ${border}`,
+            boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
+          }}>
+            <button
+              onClick={() => { setOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 16px', background: 'none', border: 'none', borderBottom: `1px solid ${border}`,
+                cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)', flexShrink: 0 }}>
+                <GraduationCap size={20} style={{ color: neonCyan }} />
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: textPrimary, margin: 0 }}>Ver tour guiado</p>
+                <p style={{ fontSize: 11, color: textMuted, margin: 0 }}>Aprende a usar el catálogo</p>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onOpenChat();
+              }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '12px 16px', background: 'none', border: 'none',
+                cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,255,213,0.08)', flexShrink: 0 }}>
+                <MessageSquare size={20} style={{ color: '#00ffd5' }} />
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: textPrimary, margin: 0 }}>Habla con nosotros</p>
+                <p style={{ fontSize: 11, color: textMuted, margin: 0 }}>Te ayudamos al instante</p>
+              </div>
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Button */}
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+          background: neonCyan, color: '#0a0a0a', fontSize: 13, fontWeight: 700,
+          fontFamily: "'Rajdhani', sans-serif",
+          boxShadow: isDark ? '0 4px 16px rgba(0,255,213,0.3)' : '0 4px 16px rgba(0,137,122,0.25)',
+          transition: 'all 0.3s',
+        }}
+      >
+        <HelpCircle size={16} />
+        <span className="hidden sm:inline">¿Necesitas ayuda?</span>
+      </button>
+    </div>
+  );
+}
 
 function GamerCompareModal({
   products,
