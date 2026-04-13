@@ -66,8 +66,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
 
-  // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
-  const layoutSlug = landing === 'zona-gamer' ? 'home' : landing;
+  const layoutSlug = landing;
 
   // Check if we're in preview mode for this landing
   // Wait for preview context to hydrate from sessionStorage before fetching

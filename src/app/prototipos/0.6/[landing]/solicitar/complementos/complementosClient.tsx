@@ -63,8 +63,6 @@ function ComplementosContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
-  // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
-  const flowSlug = landing === 'zona-gamer' ? 'home' : landing;
   const isGamer = landing === 'zona-gamer';
 
   // Get solicitar flow configuration
@@ -73,35 +71,35 @@ function ComplementosContent() {
     isEnabled,
     isCouponRequired,
     isLoading: isFlowConfigLoading,
-  } = useSolicitarFlow({ slug: flowSlug, previewKey });
+  } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
-    if (!isGamer && !isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
+    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
       router.push(routes.solicitar(landing));
     }
-  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router, isGamer]);
+  }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
   useEffect(() => {
-    if (!isGamer && cartProducts.length > 1 && !hasUnifiedTerms()) {
+    if (cartProducts.length > 1 && !hasUnifiedTerms()) {
       router.push(routes.solicitar(landing));
     }
-  }, [cartProducts.length, hasUnifiedTerms, landing, router, isGamer]);
+  }, [cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
   useEffect(() => {
-    if (!isGamer && isOverQuotaLimit) {
+    if (isOverQuotaLimit) {
       router.push(routes.solicitar(landing));
     }
-  }, [isOverQuotaLimit, landing, router, isGamer]);
+  }, [isOverQuotaLimit, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
   useEffect(() => {
-    if (!isGamer && unavailableProductIds.length > 0) {
+    if (unavailableProductIds.length > 0) {
       router.push(routes.solicitar(landing));
     }
-  }, [unavailableProductIds, landing, router, isGamer]);
+  }, [unavailableProductIds, landing, router]);
 
   // Build form values for cross-step validation
   const formValues = useMemo(() => {
@@ -526,7 +524,7 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
           color: #00ffd5 !important;
         }
         /* === Submit overlay === */
-        .gamer-complementos-dark .fixed.inset-0.bg-white\/95 {
+        .gamer-complementos-dark .fixed.inset-0.bg-white\\/95 {
           background: rgba(14,14,14,0.95) !important;
         }
         .gamer-complementos-dark .fixed.inset-0 .bg-white.border.border-neutral-200.rounded-xl {

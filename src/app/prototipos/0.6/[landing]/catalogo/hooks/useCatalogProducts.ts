@@ -35,6 +35,8 @@ export interface UseCatalogProductsOptions {
   previewKey?: string | null;
   /** Number of grid columns - used to round limits so rows are always complete */
   gridColumns?: number;
+  /** Override initial load limit (bypasses default INITIAL_LOAD_LIMIT). Useful for landings that need to fetch all products in one shot. */
+  initialLimitOverride?: number;
 }
 
 export interface UseCatalogProductsResult {
@@ -81,9 +83,11 @@ export function useCatalogProducts({
   enabled = true,
   previewKey,
   gridColumns,
+  initialLimitOverride,
 }: UseCatalogProductsOptions): UseCatalogProductsResult {
   // Round limits to fill complete rows
-  const initialLimit = gridColumns ? roundToColumns(INITIAL_LOAD_LIMIT, gridColumns) : INITIAL_LOAD_LIMIT;
+  const baseInitialLimit = initialLimitOverride ?? INITIAL_LOAD_LIMIT;
+  const initialLimit = gridColumns ? roundToColumns(baseInitialLimit, gridColumns) : baseInitialLimit;
   const loadMoreLimit = gridColumns ? roundToColumns(LOAD_MORE_LIMIT, gridColumns) : LOAD_MORE_LIMIT;
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [total, setTotal] = useState(0);

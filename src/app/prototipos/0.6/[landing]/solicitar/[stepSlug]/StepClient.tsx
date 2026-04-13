@@ -121,41 +121,35 @@ function StepContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // Get solicitar flow configuration (to check if there are sections after wizard)
-  // TODO: Quitar override cuando zona-gamer tenga su propia config en el backend
-  const flowSlug = landing === 'zona-gamer' ? 'home' : landing;
-  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: flowSlug, previewKey });
+  const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
   const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
 
   // Redirect to /solicitar if coupon is required but not applied
-  // TODO: Quitar override cuando zona-gamer tenga backend propio
   useEffect(() => {
-    if (landing !== 'zona-gamer' && !isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
+    if (!isFlowConfigLoading && isCouponRequired && !appliedCoupon) {
       router.push(routes.solicitar(landing));
     }
   }, [isFlowConfigLoading, isCouponRequired, appliedCoupon, landing, router]);
 
   // Redirect to /solicitar if terms are not unified (multiple products with different terms)
-  // TODO: Quitar override cuando zona-gamer tenga backend propio
   useEffect(() => {
-    if (landing !== 'zona-gamer' && cartProducts.length > 1 && !hasUnifiedTerms()) {
+    if (cartProducts.length > 1 && !hasUnifiedTerms()) {
       router.push(routes.solicitar(landing));
     }
   }, [cartProducts.length, hasUnifiedTerms, landing, router]);
 
   // Redirect to /solicitar if monthly quota is exceeded
-  // TODO: Quitar override cuando zona-gamer tenga backend propio
   useEffect(() => {
-    if (landing !== 'zona-gamer' && isOverQuotaLimit) {
+    if (isOverQuotaLimit) {
       router.push(routes.solicitar(landing));
     }
   }, [isOverQuotaLimit, landing, router]);
 
   // Redirect to /solicitar if there are unavailable products
-  // TODO: Quitar override cuando zona-gamer tenga backend propio
   useEffect(() => {
-    if (landing !== 'zona-gamer' && unavailableProductIds.length > 0) {
+    if (unavailableProductIds.length > 0) {
       router.push(routes.solicitar(landing));
     }
   }, [unavailableProductIds, landing, router]);
@@ -636,10 +630,7 @@ function StepContent() {
         canProceed={true}
         hideNavbar={landing === 'zona-gamer'}
         navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
-        motivational={landing === 'zona-gamer' && step.motivational ? {
-          ...step.motivational,
-          illustration: '/images/zona-gamer/baldi gamer - solicitud/baldi gaming setup.png',
-        } : step.motivational}
+        motivational={step.motivational}
       >
         <div className="space-y-4">
           {/* Dynamic sections from regular API steps */}
@@ -796,18 +787,7 @@ function StepContent() {
         canProceed={true}
         hideNavbar={landing === 'zona-gamer'}
         navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
-        motivational={landing === 'zona-gamer' && stepMotivational ? {
-          ...stepMotivational,
-          illustration: (() => {
-            const gamerImages: Record<string, string> = {
-              'datos-personales': '/images/zona-gamer/baldi gamer - solicitud/baldi gamer.png',
-              'datos-academicos': '/images/zona-gamer/baldi gamer - solicitud/baldi con laptop.png',
-              'datos-economicos': '/images/zona-gamer/baldi gamer - solicitud/baldi gamer con control.png',
-              'preferencias': '/images/zona-gamer/baldi gamer - solicitud/baldi gaming setup.png',
-            };
-            return gamerImages[stepSlug] || '/images/zona-gamer/baldi gamer - solicitud/baldi gamer.png';
-          })(),
-        } : stepMotivational}
+        motivational={stepMotivational}
       >
         <DynamicWizardStep
           step={step}
@@ -1011,6 +991,14 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
         .gamer-wizard-dark .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\] {
           background: rgba(0,255,213,0.1) !important;
         }
+        /* Mobile bottom sheet (LocationModal) — dark overrides */
+        .gamer-wizard-dark .fixed.bottom-0.bg-white {
+          background: #1a1a1a !important;
+          border-color: #2a2a2a !important;
+        }
+        .gamer-wizard-dark .bg-neutral-300.rounded-full {
+          background: #555 !important;
+        }
         /* Green → Cyan overrides (check icons, success states, completed fields) */
         .gamer-wizard-dark .bg-green-500,
         .gamer-wizard-dark .bg-green-600,
@@ -1194,7 +1182,7 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
           background: #2a2a2a !important;
         }
         /* === Submit overlay === */
-        .gamer-wizard-dark .fixed.inset-0.bg-white\/95 {
+        .gamer-wizard-dark .fixed.inset-0.bg-white\\/95 {
           background: rgba(14,14,14,0.95) !important;
         }
         .gamer-wizard-dark .fixed.inset-0 .bg-white.border.border-neutral-200.rounded-xl {
@@ -1231,9 +1219,16 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
           position: fixed !important;
           inset: 0 !important;
         }
-        /* Dialog: light style with cyan accents (both modes) */
+        /* Dialog: dark mode gets dark bg, light mode stays white */
         body:has(.gamer-wizard-dark) [role="dialog"],
-        body:has(.gamer-wizard-dark) section[role="dialog"],
+        body:has(.gamer-wizard-dark) section[role="dialog"] {
+          background: #1a1a1a !important;
+          border: 1px solid #2a2a2a !important;
+          color: #f0f0f0 !important;
+          border-radius: 16px !important;
+          z-index: 10000 !important;
+          position: relative !important;
+        }
         body:has(.gamer-wizard-light) [role="dialog"],
         body:has(.gamer-wizard-light) section[role="dialog"] {
           background: #ffffff !important;
@@ -1243,6 +1238,15 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
           z-index: 10000 !important;
           position: relative !important;
         }
+        /* Dialog dark mode text overrides */
+        body:has(.gamer-wizard-dark) [role="dialog"] .text-neutral-800,
+        body:has(.gamer-wizard-dark) [role="dialog"] .text-neutral-900 { color: #f0f0f0 !important; }
+        body:has(.gamer-wizard-dark) [role="dialog"] .text-neutral-700 { color: #d4d4d4 !important; }
+        body:has(.gamer-wizard-dark) [role="dialog"] .text-neutral-500 { color: #a0a0a0 !important; }
+        body:has(.gamer-wizard-dark) [role="dialog"] .text-neutral-400 { color: #707070 !important; }
+        /* Dialog dark mode error states */
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-red-50 { background: rgba(239,68,68,0.1) !important; }
+        body:has(.gamer-wizard-dark) [role="dialog"] .text-red-600 { color: #ff6b6b !important; }
         /* Modal wrapper container */
         body:has(.gamer-wizard-dark) [data-slot="wrapper"][class*="z-"],
         body:has(.gamer-wizard-light) [data-slot="wrapper"][class*="z-"] {
@@ -1291,19 +1295,29 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
           background: #00ffd5 !important;
           color: #0a0a0a !important;
         }
-        /* Detected address card inside dialog - light */
-        body:has(.gamer-wizard-dark) [role="dialog"] .bg-neutral-50,
+        /* Detected address card inside dialog */
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-neutral-50 {
+          background: #252525 !important;
+        }
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-neutral-50.rounded-xl {
+          background: #252525 !important;
+          border: 1px solid #2a2a2a !important;
+        }
         body:has(.gamer-wizard-light) [role="dialog"] .bg-neutral-50 {
           background: #f5f5f5 !important;
         }
-        body:has(.gamer-wizard-dark) [role="dialog"] .bg-neutral-50.rounded-xl,
         body:has(.gamer-wizard-light) [role="dialog"] .bg-neutral-50.rounded-xl {
           background: #f5f5f5 !important;
           border: 1px solid #e5e5e5 !important;
         }
-        /* Inputs inside dialog - light */
+        /* Inputs inside dialog - dark */
         body:has(.gamer-wizard-dark) [role="dialog"] input,
-        body:has(.gamer-wizard-dark) [role="dialog"] select,
+        body:has(.gamer-wizard-dark) [role="dialog"] select {
+          background: #1e1e1e !important;
+          color: #f0f0f0 !important;
+          border-color: #2a2a2a !important;
+        }
+        /* Inputs inside dialog - light */
         body:has(.gamer-wizard-light) [role="dialog"] input,
         body:has(.gamer-wizard-light) [role="dialog"] select {
           background: #ffffff !important;

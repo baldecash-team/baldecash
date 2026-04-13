@@ -18,6 +18,8 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
+import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { ReceivedScreen } from './components/received';
@@ -341,6 +343,34 @@ function ConfirmacionContent() {
     router.push(routes.landingHome(landing));
   };
 
+  const isGamer = landing === 'zona-gamer';
+
+  // Zona Gamer: wrap antes de checks de layout para asegurar tema dark siempre
+  if (isGamer) {
+    if (isLoadingStatus) {
+      return (
+        <GamerConfirmacionWrapper>
+          <GamerLoadingFallback />
+        </GamerConfirmacionWrapper>
+      );
+    }
+    return (
+      <GamerConfirmacionWrapper>
+        {applicationCode ? (
+          <RealConfirmationContent
+            applicationCode={applicationCode}
+            applicationData={applicationData}
+            isLoading={isLoadingStatus}
+            searchParams={searchParams}
+            onGoHome={handleGoHome}
+          />
+        ) : (
+          <DemoContent onSelectResult={handleSelectResult} />
+        )}
+      </GamerConfirmacionWrapper>
+    );
+  }
+
   // Show loading while layout data is loading
   if (isLayoutLoading) {
     return <LoadingFallback />;
@@ -376,9 +406,215 @@ function ConfirmacionContent() {
 }
 
 function LoadingFallback() {
+  const params = useParams();
+  const isGamer = (params?.landing as string) === 'zona-gamer';
+
+  if (isGamer) {
+    const savedTheme = typeof window !== 'undefined' ? sessionStorage.getItem('gamer-theme') : null;
+    const isDark = savedTheme !== 'light';
+
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f5f5f5' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 rounded-full animate-spin" style={{ border: `3px solid ${isDark ? '#2a2a2a' : '#e0e0e0'}`, borderTopColor: '#00ffd5' }} />
+          </div>
+          <p style={{ color: isDark ? '#555' : '#999', fontFamily: 'Rajdhani, sans-serif', fontSize: 14 }}>Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
       <CubeGridSpinner />
+    </div>
+  );
+}
+
+function GamerLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 200px)' }}>
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative w-12 h-12">
+          <div className="absolute inset-0 rounded-full animate-spin" style={{ border: '3px solid #2a2a2a', borderTopColor: '#00ffd5' }} />
+        </div>
+        <p style={{ color: '#555', fontFamily: 'Rajdhani, sans-serif', fontSize: 14 }}>Cargando tu solicitud...</p>
+      </div>
+    </div>
+  );
+}
+
+function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (sessionStorage.getItem('gamer-theme') as 'dark' | 'light') || 'dark';
+    }
+    return 'dark';
+  });
+  const params = useParams();
+  const landing = (params.landing as string) || 'zona-gamer';
+
+  const handleToggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    sessionStorage.setItem('gamer-theme', next);
+  };
+  const isDark = theme === 'dark';
+
+  return (
+    <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
+      <style jsx global>{`
+        /* Override CSS variables → neon cyan instead of landing purple */
+        .gamer-confirmacion-dark {
+          --color-primary: #00ffd5 !important;
+          --color-primary-rgb: 0,255,213 !important;
+          --color-secondary: #00ffd5 !important;
+        }
+        .gamer-confirmacion-light {
+          --color-primary: #00b396 !important;
+          --color-primary-rgb: 0,179,150 !important;
+          --color-secondary: #00b396 !important;
+        }
+        .gamer-confirmacion-dark {
+          background: #0e0e0e !important;
+        }
+        .gamer-confirmacion-dark .min-h-screen { background: #0e0e0e !important; }
+        /* Override ReceivedScreen gradient */
+        .gamer-confirmacion-dark .bg-gradient-to-b {
+          background: #0e0e0e !important;
+          background-image: none !important;
+        }
+        .gamer-confirmacion-dark .bg-white { background: #1a1a1a !important; }
+        .gamer-confirmacion-dark .bg-neutral-50 { background: #0e0e0e !important; }
+        .gamer-confirmacion-dark .bg-neutral-100 { background: #252525 !important; }
+        .gamer-confirmacion-dark .bg-neutral-200 { background: #2a2a2a !important; }
+
+        .gamer-confirmacion-dark .border-neutral-200,
+        .gamer-confirmacion-dark .border-neutral-100,
+        .gamer-confirmacion-dark .border-neutral-300 { border-color: #2a2a2a !important; }
+
+        .gamer-confirmacion-dark .text-neutral-900,
+        .gamer-confirmacion-dark .text-neutral-800 { color: #f0f0f0 !important; }
+        .gamer-confirmacion-dark .text-neutral-700 { color: #d4d4d4 !important; }
+        .gamer-confirmacion-dark .text-neutral-600 { color: #a0a0a0 !important; }
+        .gamer-confirmacion-dark .text-neutral-500 { color: #707070 !important; }
+        .gamer-confirmacion-dark .text-neutral-400 { color: #555 !important; }
+        .gamer-confirmacion-dark .text-foreground { color: #f0f0f0 !important; }
+
+        .gamer-confirmacion-dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; }
+        .gamer-confirmacion-dark .shadow-md { box-shadow: 0 4px 12px rgba(0,0,0,0.35) !important; }
+        .gamer-confirmacion-dark .shadow-lg { box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important; }
+
+        /* Primary color → neon cyan */
+        .gamer-confirmacion-dark .bg-\\[var\\(--color-primary\\)\\] { background: #00ffd5 !important; color: #0a0a0a !important; }
+        .gamer-confirmacion-dark .text-\\[var\\(--color-primary\\)\\] { color: #00ffd5 !important; }
+        .gamer-confirmacion-dark .border-\\[var\\(--color-primary\\)\\] { border-color: #00ffd5 !important; }
+        .gamer-confirmacion-dark .text-\\[var\\(--color-secondary\\)\\] { color: #00ffd5 !important; }
+        .gamer-confirmacion-dark .bg-\\[var\\(--color-secondary\\)\\] { background: #00ffd5 !important; }
+        .gamer-confirmacion-dark .border-\\[var\\(--color-secondary\\)\\] { border-color: #00ffd5 !important; }
+
+        /* Success/green → neon cyan (dark) / teal (light) */
+        .gamer-confirmacion-dark .bg-green-500,
+        .gamer-confirmacion-dark .bg-green-600 { background: #00ffd5 !important; }
+        .gamer-confirmacion-dark .text-green-500,
+        .gamer-confirmacion-dark .text-green-600,
+        .gamer-confirmacion-dark .text-green-700 { color: #00ffd5 !important; }
+        .gamer-confirmacion-dark .bg-green-50,
+        .gamer-confirmacion-dark .bg-green-100 { background: rgba(0,255,213,0.08) !important; }
+        .gamer-confirmacion-dark .border-green-100,
+        .gamer-confirmacion-dark .border-green-200 { border-color: rgba(0,255,213,0.2) !important; }
+
+        .gamer-confirmacion-light .bg-green-500,
+        .gamer-confirmacion-light .bg-green-600 { background: #00b396 !important; }
+        .gamer-confirmacion-light .text-green-500,
+        .gamer-confirmacion-light .text-green-600,
+        .gamer-confirmacion-light .text-green-700 { color: #00b396 !important; }
+        .gamer-confirmacion-light .bg-green-50,
+        .gamer-confirmacion-light .bg-green-100 { background: rgba(0,179,150,0.1) !important; }
+        .gamer-confirmacion-light .border-green-100,
+        .gamer-confirmacion-light .border-green-200 { border-color: rgba(0,179,150,0.25) !important; }
+
+        /* Amber (Clock badge on illustration) → neon cyan */
+        .gamer-confirmacion-dark .bg-amber-500 { background: #00ffd5 !important; }
+        .gamer-confirmacion-dark .bg-amber-100 { background: rgba(0,255,213,0.12) !important; }
+        .gamer-confirmacion-dark .text-amber-600 { color: #00ffd5 !important; }
+
+        .gamer-confirmacion-light .bg-amber-500 { background: #00b396 !important; }
+        .gamer-confirmacion-light .bg-amber-100 { background: rgba(0,179,150,0.12) !important; }
+        .gamer-confirmacion-light .text-amber-600 { color: #00b396 !important; }
+
+        /* Red (XCircle option) → neon red for demo mode */
+        .gamer-confirmacion-dark .bg-red-100,
+        .gamer-confirmacion-light .bg-red-100 { background: rgba(255,0,85,0.12) !important; }
+        .gamer-confirmacion-dark .text-red-600,
+        .gamer-confirmacion-light .text-red-600 { color: #ff0055 !important; }
+
+        /* WhatsApp button (hardcoded #25D366) → neon cyan from gamer palette */
+        .gamer-confirmacion-dark [class*="bg-[#25D366]"] {
+          background: #00ffd5 !important;
+          color: #0a0a0a !important;
+          border-color: #00ffd5 !important;
+        }
+        .gamer-confirmacion-dark [class*="bg-[#25D366]"]:hover {
+          background: #00e6c0 !important;
+          border-color: #00e6c0 !important;
+        }
+        .gamer-confirmacion-light [class*="bg-[#25D366]"] {
+          background: #00b396 !important;
+          color: #ffffff !important;
+          border-color: #00b396 !important;
+        }
+        .gamer-confirmacion-light [class*="bg-[#25D366]"]:hover {
+          background: #00997f !important;
+          border-color: #00997f !important;
+        }
+
+        /* Card wrappers */
+        .gamer-confirmacion-dark .bg-white.rounded-xl,
+        .gamer-confirmacion-dark .bg-white.rounded-2xl { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+
+        /* Primary tinted backgrounds */
+        .gamer-confirmacion-dark [class*="bg-[var(--color-primary)]/5"],
+        .gamer-confirmacion-dark [class*="bg-[var(--color-primary)]/10"] {
+          background: rgba(0,255,213,0.06) !important;
+        }
+        .gamer-confirmacion-dark [class*="border-[var(--color-primary)]/10"] {
+          border-color: rgba(0,255,213,0.2) !important;
+        }
+        .gamer-confirmacion-dark [class*="bg-[var(--color-secondary)]/5"] {
+          background: rgba(0,255,213,0.06) !important;
+        }
+        .gamer-confirmacion-dark [class*="border-[var(--color-secondary)]/10"] {
+          border-color: rgba(0,255,213,0.2) !important;
+        }
+        .gamer-confirmacion-dark .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\] {
+          background: rgba(0,255,213,0.1) !important;
+        }
+
+        /* NextUI Card overrides */
+        .gamer-confirmacion-dark [data-slot="base"].shadow-sm,
+        .gamer-confirmacion-dark .shadow-sm.border.border-neutral-200 {
+          background: #1a1a1a !important;
+          border-color: #2a2a2a !important;
+        }
+
+        /* Scrollbar */
+        .gamer-confirmacion-dark ::-webkit-scrollbar { width: 6px; }
+        .gamer-confirmacion-dark ::-webkit-scrollbar-track { background: #0e0e0e; }
+        .gamer-confirmacion-dark ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+      `}</style>
+      <div className={isDark ? 'gamer-confirmacion-dark' : 'gamer-confirmacion-light'}>
+        <GamerNavbar
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          catalogUrl={routes.catalogo(landing)}
+          hideSecondaryBar
+        />
+        <div style={{ height: 80 }} />
+        {children}
+        <GamerFooter theme={theme} />
+      </div>
     </div>
   );
 }

@@ -9,16 +9,15 @@
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Network, Package, Percent, Phone, Scale, Send, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
+import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Network, Package, Percent, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
-import { findGamerMockProduct } from './data/gamerMockProducts';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
-import type { ProductSpec, ProductPort } from './types/detail';
+import type { ProductSpec, ProductPort, SimilarProduct } from './types/detail';
 import { generateFichaTecnica } from './utils/generateFichaTecnica';
 import { generateGamerCronogramaPdf } from './utils/generateGamerCronogramaPdf';
 
@@ -114,10 +113,11 @@ function DetailContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedTerm, setSelectedTerm] = useState(12);
+  const [selectedInitialPercent, setSelectedInitialPercent] = useState<number>(0);
 
   const catalogState = useCatalogSharedState(landing, previewKey);
 
-  // Fetch product data
+  // Fetch product data desde el endpoint real de zona-gamer — sin fallback a mocks
   useEffect(() => {
     if (!slug) return;
     let cancelled = false;
@@ -126,18 +126,17 @@ function DetailContent() {
     fetchProductDetail(landing, slug)
       .then((result) => {
         if (cancelled) return;
-        if (result) { setData(result); setIsLoading(false); return; }
-        // API returned null (404) — try mock data for zona-gamer
-        const mock = landing === 'zona-gamer' ? findGamerMockProduct(slug) : null;
-        if (mock) { setData(mock); } else { setError('Producto no encontrado'); }
+        if (result) {
+          setData(result);
+        } else {
+          setError('Producto no encontrado');
+        }
         setIsLoading(false);
       })
       .catch((err) => {
         if (cancelled) return;
-        // API failed — try mock data for zona-gamer
-        const mock = landing === 'zona-gamer' ? findGamerMockProduct(slug) : null;
-        if (mock) { setData(mock); setIsLoading(false); return; }
-        setError(err?.message || 'Error al cargar el producto'); setIsLoading(false);
+        setError(err?.message || 'Error al cargar el producto');
+        setIsLoading(false);
       });
     return () => { cancelled = true; };
   }, [landing, slug]);
@@ -149,8 +148,12 @@ function DetailContent() {
 
   const product = data?.product;
   const paymentPlans = data?.paymentPlans || [];
+  const similarProducts = data?.similarProducts || [];
+  const limitations = data?.limitations || [];
+  const certifications = data?.certifications || [];
+  const isAvailable = data?.isAvailable !== false;
   const activePlan = paymentPlans.find((p) => p.term === selectedTerm) || paymentPlans[0];
-  const lowestOption = activePlan?.options?.[0];
+  const lowestOption = activePlan?.options?.find((o) => o.initialPercent === selectedInitialPercent) || activePlan?.options?.[0];
   const isWishlisted = product ? catalogState.isInWishlist(product.id) : false;
 
   const handleToggleWishlist = useCallback(() => {
@@ -383,11 +386,14 @@ function DetailContent() {
             <div style={{ padding: '20px 20px 0', position: 'relative', zIndex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <span style={{ padding: '6px 12px', background: T.neonCyan, color: '#fff', fontSize: 14, fontWeight: 700, borderRadius: 8 }}>{product.brand}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Star size={20} style={{ color: '#fbbf24', fill: '#fbbf24' }} />
-                  <span style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary }}>{product.rating || '4.5'}</span>
-                  <span style={{ fontSize: 14, color: T.textMuted }}>({product.reviewCount || 0})</span>
-                </div>
+                {/* Rating solo si el backend trae reviews reales */}
+                {product.rating != null && product.reviewCount > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Star size={20} style={{ color: '#fbbf24', fill: '#fbbf24' }} />
+                    <span style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary }}>{product.rating}</span>
+                    <span style={{ fontSize: 14, color: T.textMuted }}>({product.reviewCount})</span>
+                  </div>
+                )}
               </div>
               <h1 className="gamer-gradient-text" style={{ fontFamily: F.raj, fontWeight: 700, fontSize: 'clamp(24px, 3vw, 30px)', lineHeight: 1.2, margin: '0 0 4px' }}>
                 {product.displayName || product.name}
@@ -480,9 +486,9 @@ function DetailContent() {
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, textTransform: 'none', marginBottom: 12 }}>Cuota inicial (opcional)</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {activePlan.options.map((opt) => {
-                      const isActive = lowestOption === opt;
+                      const isActive = opt.initialPercent === selectedInitialPercent;
                       return (
-                        <button key={opt.initialPercent} onClick={() => { /* TODO: select initial */ }} style={{
+                        <button key={opt.initialPercent} onClick={() => setSelectedInitialPercent(opt.initialPercent)} style={{
                           padding: '8px 16px', fontSize: 14, fontFamily: F.raj, borderRadius: 999, cursor: 'pointer', transition: 'all 0.2s',
                           fontWeight: isActive ? 700 : 500,
                           background: isActive ? T.neonCyan : T.bgSurface,
@@ -503,7 +509,7 @@ function DetailContent() {
                 <div className="gamer-term-grid">
                   {availableTerms.map((term) => {
                     const plan = paymentPlans.find((p) => p.term === term);
-                    const opt = plan?.options?.[0];
+                    const opt = plan?.options?.find((o) => o.initialPercent === selectedInitialPercent) || plan?.options?.[0];
                     const originalOpt = opt?.originalQuota;
                     const isSelected = term === selectedTerm;
                     return (
@@ -530,14 +536,22 @@ function DetailContent() {
               {/* Payment summary */}
               <div style={{ marginTop: 32, padding: 24, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
                 <p style={{ fontSize: 12, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, marginBottom: 8 }}>Pagarías</p>
-                <p style={{ textDecoration: 'line-through', fontSize: '1.25rem', color: 'rgba(255,255,255,0.5)', fontFamily: F.mono, marginBottom: 4 }}>
-                  S/{lowestOption?.originalQuota ? Math.round(lowestOption.originalQuota) : (lowestOption ? Math.round(lowestOption.monthlyQuota * 1.2) : Math.round(product.lowestQuota * 1.2))}/mes
-                </p>
+                {/* Cuota tachada solo si el backend trae originalQuota real (no inventamos descuento) */}
+                {lowestOption?.originalQuota != null && lowestOption.originalQuota > lowestOption.monthlyQuota && (
+                  <p style={{ textDecoration: 'line-through', fontSize: '1.25rem', color: 'rgba(255,255,255,0.5)', fontFamily: F.mono, marginBottom: 4 }}>
+                    S/{Math.round(lowestOption.originalQuota)}/mes
+                  </p>
+                )}
                 <p style={{ fontFamily: F.orb, fontSize: '2.5rem', fontWeight: 800, color: T.neonCyan, textShadow: '0 0 20px rgba(0,255,213,0.6)', lineHeight: 1.1, margin: 0 }}>
                   S/{lowestOption ? Math.round(lowestOption.monthlyQuota) : Math.round(product.lowestQuota)}
                   <span style={{ fontSize: '0.85rem', color: '#ffffff' }}>/mes</span>
                 </p>
                 <p style={{ fontSize: 14, color: T.textSecondary, fontFamily: F.raj, marginTop: 8 }}>durante {selectedTerm} meses</p>
+                {lowestOption && lowestOption.initialPercent > 0 && lowestOption.initialAmount > 0 && (
+                  <p style={{ fontSize: 12, color: T.textSecondary, fontFamily: F.raj, marginTop: 4 }}>
+                    + S/{Math.round(lowestOption.initialAmount)} de inicial
+                  </p>
+                )}
               </div>
             </div>
 
@@ -552,7 +566,8 @@ function DetailContent() {
               </button>
             </div>
 
-            {/* Certifications */}
+            {/* Certifications — replica el comportamiento del home: muestra el header
+                aunque data.certifications esté vacío, con los chips reales del backend */}
             <div id="section-certifications">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <div style={{ width: 32, height: 32, borderRadius: '50%', background: isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -564,13 +579,10 @@ function DetailContent() {
                 </div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {(product.badges && product.badges.length > 0
-                  ? product.badges.map((b) => b.text)
-                  : ['energy-star', 'epeat', 'tco']
-                ).map((label, i) => (
-                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 500, background: isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5', border: `1px solid ${isDark ? T.border : '#e5e7eb'}`, color: isDark ? '#d4d4d4' : '#404040' }}>
+                {certifications.map((cert) => (
+                  <span key={cert.code} title={cert.description} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 500, background: isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5', border: `1px solid ${isDark ? T.border : '#e5e7eb'}`, color: isDark ? '#d4d4d4' : '#404040' }}>
                     <Award size={14} style={{ color: T.neonCyan }} />
-                    {label}
+                    {cert.name}
                   </span>
                 ))}
               </div>
@@ -622,7 +634,7 @@ function DetailContent() {
                 brand: product.brand,
                 imageUrl: product.images?.[0]?.url,
                 specs: product.specs || [],
-                ports: product.ports?.length ? product.ports.map((p) => ({ name: p.name, position: p.position, count: p.count })) : DEFAULT_PORTS,
+                ports: product.ports?.length ? product.ports.map((p) => ({ name: p.name, position: p.position, count: p.count })) : [],
                 price: product.price,
                 lowestQuota: product.lowestQuota,
               })}
@@ -648,11 +660,16 @@ function DetailContent() {
 
       {/* SIMILAR PRODUCTS */}
       <div id="similares">
-        <SimilarProductsSection T={T} isDark={isDark} currentQuota={lowestOption?.monthlyQuota || product.lowestQuota} landing={landing} currentProductId={product.id} />
+        {similarProducts.length > 0 && (
+          <SimilarProductsSection
+            T={T}
+            isDark={isDark}
+            similarProducts={similarProducts}
+            currentQuota={lowestOption?.monthlyQuota || product.lowestQuota}
+            landing={landing}
+          />
+        )}
       </div>
-
-      {/* NEWSLETTER */}
-      <NewsletterSection T={T} isDark={isDark} />
 
       <GamerFooter theme={theme} />
     </div>
@@ -674,19 +691,11 @@ const PORT_ICON_MAP: Record<string, React.ReactNode> = {
   'lector sd': <HardDrive size={16} />,
 };
 
-const DEFAULT_PORTS = [
-  { name: 'USB-C', position: 'left' as const, count: 1 },
-  { name: 'HDMI', position: 'left' as const, count: 1 },
-  { name: 'Audio Jack', position: 'left' as const, count: 1 },
-  { name: 'USB-A 3.2', position: 'right' as const, count: 2 },
-  { name: 'Lector SD', position: 'right' as const, count: 1 },
-];
-
 function PortsSection({ T, isDark, ports }: { T: Theme; isDark: boolean; ports: ProductPort[] }) {
-  const portList = ports && ports.length > 0
-    ? ports.map((p) => ({ name: p.name, position: p.position, count: p.count }))
-    : DEFAULT_PORTS;
+  // Si el backend no devuelve ports, ocultamos la sección (no inventamos puertos genéricos)
+  if (!ports || ports.length === 0) return null;
 
+  const portList = ports.map((p) => ({ name: p.name, position: p.position, count: p.count }));
   const leftPorts = portList.filter((p) => p.position === 'left');
   const rightPorts = portList.filter((p) => p.position === 'right');
   const totalPorts = portList.reduce((sum, p) => sum + (p.count || 1), 0);
@@ -854,7 +863,7 @@ function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
 // Financiamiento Modal
 // ============================================
 
-function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, totalPagar, onClose, onDownloadPdf }: { T: Theme; isDark: boolean; price: number; monthlyQuota: number; selectedTerm: number; totalPagar: number; onClose: () => void; onDownloadPdf: () => void }) {
+function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, totalPagar, tea, tcea, commission, onClose, onDownloadPdf }: { T: Theme; isDark: boolean; price: number; monthlyQuota: number; selectedTerm: number; totalPagar: number; tea?: number | null; tcea?: number | null; commission?: number | null; onClose: () => void; onDownloadPdf: () => void }) {
   // Block body scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -911,42 +920,45 @@ function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, tot
             </div>
           </div>
 
-          {/* Tasas */}
-          <h4 style={{ fontSize: 14, fontWeight: 600, color: textMain, display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0 4px' }}>
-            <Percent size={16} style={{ color: accent }} />
-            Tasas de Interés
-          </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div style={{ background: surface, borderRadius: 8, padding: 12, border: `1px solid ${border}` }}>
-              <p style={{ fontSize: 11, color: textMut, marginBottom: 4 }}>TEA (Tasa Efectiva Anual)</p>
-              <p style={{ fontSize: 18, fontWeight: 700, color: textMain, margin: 0 }}>59.4%</p>
-            </div>
-            <div style={{ background: surface, borderRadius: 8, padding: 12, border: `1px solid ${border}` }}>
-              <p style={{ fontSize: 11, color: textMut, marginBottom: 4 }}>TCEA (Costo Efectivo Anual)</p>
-              <p style={{ fontSize: 18, fontWeight: 700, color: textMain, margin: 0 }}>91.96%</p>
-            </div>
-          </div>
+          {/* Tasas — desde el plan seleccionado (backend) */}
+          {(tea != null || tcea != null) && (
+            <>
+              <h4 style={{ fontSize: 14, fontWeight: 600, color: textMain, display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0 4px' }}>
+                <Percent size={16} style={{ color: accent }} />
+                Tasas de Interés
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: tea != null && tcea != null ? '1fr 1fr' : '1fr', gap: 12 }}>
+                {tea != null && (
+                  <div style={{ background: surface, borderRadius: 8, padding: 12, border: `1px solid ${border}` }}>
+                    <p style={{ fontSize: 11, color: textMut, marginBottom: 4 }}>TEA (Tasa Efectiva Anual)</p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: textMain, margin: 0 }}>{tea}%</p>
+                  </div>
+                )}
+                {tcea != null && (
+                  <div style={{ background: surface, borderRadius: 8, padding: 12, border: `1px solid ${border}` }}>
+                    <p style={{ fontSize: 11, color: textMut, marginBottom: 4 }}>TCEA (Costo Efectivo Anual)</p>
+                    <p style={{ fontSize: 18, fontWeight: 700, color: textMain, margin: 0 }}>{tcea}%</p>
+                  </div>
+                )}
+              </div>
+              <hr style={{ border: 'none', height: 1, background: border, margin: '12px 0' }} />
+            </>
+          )}
 
-          <hr style={{ border: 'none', height: 1, background: border, margin: '12px 0' }} />
-
-          {/* Comisiones */}
-          <h4 style={{ fontSize: 14, fontWeight: 600, color: textMain, display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 4px' }}>
-            <CircleAlert size={16} style={{ color: accent }} />
-            Comisiones y Seguros
-          </h4>
-          {[
-            ['Comisión de desembolso', 'Sin costo'],
-            ['Seguro de desgravamen', '0% mensual'],
-            ['Seguro multiriesgo', 'No aplica'],
-            ['Gastos notariales', 'Sin costo'],
-          ].map(([label, value]) => (
-            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${border}` }}>
-              <span style={{ fontSize: 14, color: textSec }}>{label}</span>
-              <span style={{ fontSize: 14, fontWeight: 500, color: textMain }}>{value}</span>
-            </div>
-          ))}
-
-          <hr style={{ border: 'none', height: 1, background: border, margin: '12px 0' }} />
+          {/* Comisión mensual — solo si el backend la envía */}
+          {commission != null && commission > 0 && (
+            <>
+              <h4 style={{ fontSize: 14, fontWeight: 600, color: textMain, display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 4px' }}>
+                <CircleAlert size={16} style={{ color: accent }} />
+                Comisión mensual
+              </h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${border}` }}>
+                <span style={{ fontSize: 14, color: textSec }}>Comisión mensual incluida en la cuota</span>
+                <span style={{ fontSize: 14, fontWeight: 500, color: textMain }}>S/{Math.round(commission)}</span>
+              </div>
+              <hr style={{ border: 'none', height: 1, background: border, margin: '12px 0' }} />
+            </>
+          )}
 
           {/* Total */}
           <div style={{ background: isDark ? 'rgba(0,255,213,0.06)' : '#f0fdf4', borderRadius: 12, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: `1px solid ${isDark ? 'rgba(0,255,213,0.15)' : 'rgba(34,197,94,0.2)'}` }}>
@@ -986,8 +998,9 @@ const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'jul
 function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commission, productName, productBrand, tea, tcea }: { T: Theme; isDark: boolean; selectedTerm: number; monthlyQuota: number; price: number; commission: number | null; productName: string; productBrand: string; tea?: number | null; tcea?: number | null }) {
   const [expanded, setExpanded] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  const tasaMensual = 0.049;
-  const comisionMensual = commission || Math.round(monthlyQuota * 0.09);
+  // TEA viene del plan activo (backend). Si no hay TEA no calculamos amortización falsa.
+  const effectiveTea = tea ?? null;
+  const comisionMensual = commission != null ? commission : 0;
 
   const handleDownloadCronograma = useCallback(() => {
     generateGamerCronogramaPdf({
@@ -1002,24 +1015,57 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
   }, [price, selectedTerm, monthlyQuota, productName, productBrand, tea, tcea]);
 
   const rows = useMemo(() => {
-    let saldo = price;
+    // Sin TEA del backend no calculamos amortización (evitamos data falsa)
+    if (effectiveTea == null) return [];
+    // Replicate light-mode Cronograma.tsx logic exactly for consistency
+    const monthlyRate = effectiveTea / 100 / 12;
+    const n = selectedTerm;
+    // Derive principal from quota minus commission (exact float)
+    const quotaNoComm = monthlyQuota - comisionMensual;
+    const principal = monthlyRate > 0
+      ? quotaNoComm * (Math.pow(1 + monthlyRate, n) - 1) / (monthlyRate * Math.pow(1 + monthlyRate, n))
+      : quotaNoComm * n;
+
+    // French amortization with exact floats
+    let balance = principal;
+    const schedule: { interestF: number; balanceF: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const interestF = balance * monthlyRate;
+      const quotaF = principal * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1);
+      const capitalF = quotaF - interestF;
+      balance = Math.max(0, balance - capitalF);
+      schedule.push({ interestF, balanceF: balance });
+    }
+
     const result = [];
     const now = new Date();
     const mesInicio = now.getMonth();
     const anioInicio = now.getFullYear();
+    const montoFloor = Math.floor(monthlyQuota);
+    const commissionFloor = comisionMensual > 0 ? Math.floor(comisionMensual) : 0;
 
-    for (let i = 1; i <= selectedTerm; i++) {
-      const interes = Math.round(saldo * tasaMensual);
-      const capital = Math.round(monthlyQuota - interes - comisionMensual);
-      saldo = Math.max(0, saldo - capital);
+    for (let i = 0; i < selectedTerm; i++) {
+      const interesFloor = Math.floor(schedule[i].interestF);
+      // Capital = Monto - Interés - Comisión (siempre cuadra, como en light mode)
+      const capital = montoFloor - interesFloor - commissionFloor;
+      const saldoFloor = Math.floor(schedule[i].balanceF);
 
       const mesIdx = (mesInicio + i) % 12;
       const anio = anioInicio + Math.floor((mesInicio + i) / 12);
 
-      result.push({ num: i, fecha: `${MONTH_NAMES[mesIdx]} de ${anio}`, capital, interes, comision: comisionMensual, monto: Math.round(monthlyQuota), saldo, isLast: i === selectedTerm });
+      result.push({
+        num: i + 1,
+        fecha: `${MONTH_NAMES[mesIdx]} de ${anio}`,
+        capital,
+        interes: interesFloor,
+        comision: commissionFloor,
+        monto: montoFloor,
+        saldo: saldoFloor,
+        isLast: i === selectedTerm - 1,
+      });
     }
     return result;
-  }, [selectedTerm, monthlyQuota, price, comisionMensual, tasaMensual]);
+  }, [selectedTerm, monthlyQuota, comisionMensual, effectiveTea]);
 
   const visibleRows = expanded ? rows : rows.slice(0, 6);
   const totalPagar = rows.length * Math.round(monthlyQuota);
@@ -1092,50 +1138,7 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
       </div>
 
       {/* Modal: Detalle del Financiamiento */}
-      {showDetail && <FinanciamientoModal T={T} isDark={isDark} price={price} monthlyQuota={monthlyQuota} selectedTerm={selectedTerm} totalPagar={totalPagar} onClose={() => setShowDetail(false)} onDownloadPdf={handleDownloadCronograma} />}
-    </section>
-  );
-}
-
-// ============================================
-// Spec Card
-// ============================================
-
-// ============================================
-// Newsletter Section
-// ============================================
-
-function NewsletterSection({ T, isDark }: { T: Theme; isDark: boolean }) {
-  const [phone, setPhone] = useState('');
-
-  return (
-    <section style={{ width: '100%', background: isDark ? `linear-gradient(135deg, rgba(99,102,241,0.15), rgba(0,255,213,0.05))` : `linear-gradient(135deg, rgba(70,84,205,0.08), rgba(0,179,150,0.05))`, borderTop: `1px solid ${T.border}`, position: 'relative', overflow: 'hidden', marginTop: 48 }}>
-      {/* Top accent line */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: `linear-gradient(135deg, ${T.neonPurple}, ${T.neonCyan})`, opacity: 0.4 }} />
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '40px 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
-        <div style={{ flex: '1 1 300px' }}>
-          <h3 style={{ fontSize: 20, fontWeight: 700, color: T.textPrimary, marginBottom: 4 }}>Recibe ofertas exclusivas</h3>
-          <p style={{ fontSize: 14, color: isDark ? 'rgba(255,255,255,0.8)' : T.textSecondary, margin: 0 }}>Sé el primero en enterarte de promociones y nuevos equipos</p>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, flex: '0 1 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 44, padding: '0 12px', width: 288, borderRadius: 8, border: '2px solid transparent', background: '#fff', transition: 'all 0.2s' }}>
-            <Phone size={16} style={{ color: '#a3a3a3', flexShrink: 0 }} />
-            <input
-              type="tel"
-              placeholder="999 999 999"
-              maxLength={9}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
-              style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 16, color: '#171717', fontFamily: 'inherit' }}
-            />
-            <span style={{ fontSize: 12, color: '#a3a3a3', flexShrink: 0 }}>{phone.length}/9</span>
-          </div>
-          <button style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0 24px', height: 44, borderRadius: 8, border: 'none', background: '#171717', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer', transition: 'background 0.2s' }}>
-            Enviar
-            <Send size={16} />
-          </button>
-        </div>
-      </div>
+      {showDetail && <FinanciamientoModal T={T} isDark={isDark} price={price} monthlyQuota={monthlyQuota} selectedTerm={selectedTerm} totalPagar={totalPagar} tea={tea} tcea={tcea} commission={commission} onClose={() => setShowDetail(false)} onDownloadPdf={handleDownloadCronograma} />}
     </section>
   );
 }
@@ -1144,20 +1147,14 @@ function NewsletterSection({ T, isDark }: { T: Theme; isDark: boolean }) {
 // Similar Products Section
 // ============================================
 
-const MOCK_SIMILAR = [
-  { id: 'sim-1', slug: 'hp-victus-15-fb3022la', name: 'HP Victus 15-FB3022LA', brand: 'HP', image: '/images/zona-gamer/catalogo-laptops/HP-Victus-15-FB3022LA/1.png', quota: 375, match: 85 },
-  { id: 'sim-2', slug: 'asus-tuf-f16-fx607vu', name: 'ASUS TUF Gaming F16 FX607VU', brand: 'ASUS', image: '/images/zona-gamer/catalogo-laptops/ASUS-TUF-Gaming-F16-FX607VU-RL048/1.png', quota: 339, match: 78 },
-  { id: 'sim-3', slug: 'lenovo-loq-15iax9', name: 'Lenovo LOQ 15IAX9', brand: 'Lenovo', image: '/images/zona-gamer/catalogo-laptops/Lenovo-LOQ-15IAX9/1.png', quota: 375, match: 72 },
-  { id: 'sim-4', slug: 'hp-victus-15-fb3020la', name: 'HP Victus 15-fb3020la', brand: 'HP', image: '/images/zona-gamer/catalogo-laptops/VICTUS-15-fb3020la/1.png', quota: 309, match: 65 },
-];
-
-function SimilarProductsSection({ T, isDark, currentQuota, landing, currentProductId }: { T: Theme; isDark: boolean; currentQuota: number; landing: string; currentProductId: string }) {
+function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, landing }: { T: Theme; isDark: boolean; similarProducts: SimilarProduct[]; currentQuota: number; landing: string }) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  const products = MOCK_SIMILAR.filter((p) => p.id !== currentProductId);
+  // Similares vienen directo del backend (data.similarProducts)
+  const products = similarProducts;
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -1192,21 +1189,25 @@ function SimilarProductsSection({ T, isDark, currentQuota, landing, currentProdu
         {/* Carousel */}
         <div ref={scrollRef} onScroll={updateScrollState} style={{ display: 'flex', gap: 16, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 24, scrollbarWidth: 'none' }}>
           {products.map((prod) => {
-            const diff = prod.quota - Math.round(currentQuota);
+            // quotaDifference viene del backend; si no, calculamos vs la cuota actual
+            const diff = prod.quotaDifference != null ? prod.quotaDifference : Math.round(prod.monthlyQuota) - Math.round(currentQuota);
+            const displayName = prod.displayName || prod.name;
             return (
               <div key={prod.id} style={{ width: 300, minWidth: 300, flexShrink: 0, scrollSnapAlign: 'start' }}>
                 <div style={{ height: '100%', borderRadius: 16, overflow: 'hidden', background: isDark ? T.bgSurface : '#fff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.08)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column' }}>
                   {/* Image */}
                   <div style={{ position: 'relative', padding: 16, background: isDark ? 'linear-gradient(to bottom, #1e1e1e, #1a1a1a)' : 'linear-gradient(to bottom, #fafafa, #fff)' }}>
                     <div style={{ aspectRatio: '4/3', overflow: 'hidden', borderRadius: 12, marginBottom: 8 }}>
-                      <Image src={prod.image} alt={prod.name} width={268} height={200} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      <Image src={prod.thumbnail} alt={displayName} width={268} height={200} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </div>
                     <p style={{ fontSize: 10, color: isDark ? '#555' : '#a3a3a3', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', marginBottom: 8 }}>Imagen referencial</p>
-                    {/* Match badge */}
-                    <div style={{ position: 'absolute', top: 12, left: 12, padding: '6px 12px', background: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderRadius: 999, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.neonCyan }} />
-                      <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? '#fff' : '#171717' }}>{prod.match}% match</span>
-                    </div>
+                    {/* Match badge — solo si el backend lo trae */}
+                    {prod.matchScore > 0 && (
+                      <div style={{ position: 'absolute', top: 12, left: 12, padding: '6px 12px', background: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderRadius: 999, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: T.neonCyan }} />
+                        <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? '#fff' : '#171717' }}>{prod.matchScore}% match</span>
+                      </div>
+                    )}
                     {/* Price diff badge */}
                     <div style={{ position: 'absolute', top: 12, right: 12, padding: '6px 12px', borderRadius: 999, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: 4, background: T.neonPurple, color: '#fff' }}>
                       <TrendingUp size={14} />
@@ -1217,13 +1218,13 @@ function SimilarProductsSection({ T, isDark, currentQuota, landing, currentProdu
                   {/* Content */}
                   <div style={{ padding: 20, textAlign: 'center', display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <p style={{ fontSize: 12, color: T.neonCyan, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{prod.brand}</p>
-                    <h3 style={{ fontWeight: 700, color: isDark ? '#fff' : '#262626', fontSize: 18, marginBottom: 12, minHeight: '3.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{prod.name}</h3>
+                    <h3 style={{ fontWeight: 700, color: isDark ? '#fff' : '#262626', fontSize: 18, marginBottom: 12, minHeight: '3.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{displayName}</h3>
 
                     {/* Quota box */}
                     <div style={{ borderRadius: 16, padding: '16px 24px', marginBottom: 12, background: isDark ? 'rgba(0,255,213,0.04)' : 'rgba(70,84,205,0.05)' }}>
                       <p style={{ fontSize: 12, color: isDark ? '#707070' : '#737373', marginBottom: 4 }}>Cuota mensual</p>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 30, fontWeight: 900, color: T.neonCyan }}>S/{prod.quota}</span>
+                        <span style={{ fontSize: 30, fontWeight: 900, color: T.neonCyan }}>S/{Math.round(prod.monthlyQuota)}</span>
                         <span style={{ fontSize: 16, color: isDark ? '#555' : '#a3a3a3' }}>/mes</span>
                       </div>
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, marginTop: 4, color: T.neonPurple }}>

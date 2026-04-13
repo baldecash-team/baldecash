@@ -37,6 +37,8 @@ import {
   Trophy,
   Scale,
   Laptop,
+  Tablet,
+  Smartphone,
   Gamepad2,
   BookOpen,
   Palette,
@@ -208,7 +210,9 @@ function GamerCatalogoContent() {
       // Pass brand slugs as types for text-based filtering
       af.types = filters.deviceTypes.length > 0 ? filters.deviceTypes : undefined;
     }
-    if (filters.deviceTypes.length > 0) af.types = filters.deviceTypes;
+    if (filters.deviceTypes.length > 0) {
+      af.types = filters.deviceTypes;
+    }
     if (filters.gama.length > 0) af.gamas = filters.gama;
     if (filters.condition.length > 0) af.conditions = filters.condition;
     if (filters.usage.length > 0) af.usages = filters.usage;
@@ -221,7 +225,7 @@ function GamerCatalogoContent() {
     if (filters.storage.length > 0) specs.storage = filters.storage;
     if (Object.keys(specs).length > 0) af.specs = specs;
     return af;
-  }, [filters, searchQuery]);
+  }, [filters, searchQuery, landing]);
 
   // API sort mapping
   const apiSortBy = useMemo((): ApiSortBy => {
@@ -253,38 +257,15 @@ function GamerCatalogoContent() {
     previewKey,
   });
 
-  // Mock gaming products for design preview (remove when real products are in DB)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mockGamingProducts = useMemo(() => ([
-    { id: 'mock-1', slug: 'lenovo-loq-15arp9', name: 'LOQ 15ARP9', displayName: 'Lenovo LOQ 15ARP9', brand: 'Lenovo', thumbnail: '/images/zona-gamer/catalogo-laptops/Lenovo-LOQ-15ARP9/1.png', images: [], price: 4399, quotaMonthly: 345, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 419, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 5, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: ['recomendado' as const], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 7435HS', cores: 8, speed: '3.1GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 4050', vram: 6 }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-2', slug: 'hp-victus-15-fb3022la', name: 'Victus 15-FB3022LA', displayName: 'HP Victus 15-FB3022LA', brand: 'HP', thumbnail: '/images/zona-gamer/catalogo-laptops/HP-Victus-15-FB3022LA/1.png', images: [], price: 4799, quotaMonthly: 375, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 449, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 3, usage: ['gaming' as const], isFeatured: true, isNew: false, tags: ['recomendado' as const, 'mas_vendido' as const], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 8845HS', cores: 8, speed: '3.8GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 4050', vram: 6 }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-3', slug: 'hp-15-fb3013la', name: '15-fb3013la', displayName: 'HP VICTUS 15-fb3013la', brand: 'HP', thumbnail: '/images/zona-gamer/catalogo-laptops/HP-15-fb3013la/1.png', images: [], price: 5099, quotaMonthly: 383, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 459, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 4, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: ['recomendado' as const], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 8845HS', cores: 8, speed: '3.8GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 1000, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 4050', vram: 6 }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-4', slug: 'asus-tuf-f16-fx607vu', name: 'TUF Gaming F16', displayName: 'ASUS TUF Gaming F16 FX607VU-RL048', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-TUF-Gaming-F16-FX607VU-RL048/1.png', images: [], price: 4299, quotaMonthly: 339, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 407, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 2, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: ['mas_vendido' as const], specs: { processor: { brand: 'intel' as const, model: 'Core Ultra 5 235H', cores: 14, speed: '3.4GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 4050', vram: 6 }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-5', slug: 'asus-tuf-f16-fx607vjb', name: 'TUF Gaming F16', displayName: 'ASUS TUF Gaming F16 FX607VJB-RL209', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-TUF-Gaming-F16-FX607VJB-RL209/1.png', images: [], price: 3999, quotaMonthly: 318, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 382, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 6, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: ['cuota_baja' as const], specs: { processor: { brand: 'intel' as const, model: 'Core Ultra 5 235H', cores: 14, speed: '3.4GHz' }, ram: { size: 8, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 3050', vram: 4 }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-6', slug: 'asus-f16-fx608jh', name: 'F16 FX608JH', displayName: 'ASUS F16 FX608JH-RV010', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-F16-FX608JH-RV010/1.png', images: [], price: 5499, quotaMonthly: 428, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 514, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 3, usage: ['gaming' as const, 'diseno' as const], isFeatured: false, isNew: false, tags: ['recomendado' as const], specs: { processor: { brand: 'intel' as const, model: 'Core i5-13500H', cores: 12, speed: '3.5GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 4050', vram: 6 }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-7', slug: 'asus-g614pm', name: 'G614PM', displayName: 'ASUS ROG Strix G614PM-RV127W', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-G614PM-RV127W/1.png', images: [], price: 8599, quotaMonthly: 671, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 805, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 1, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: ['oferta' as const], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 9 8945HS', cores: 8, speed: '4.0GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 1000, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 5060', vram: 8 }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 240 } }, createdAt: '' },
-    { id: 'mock-8', slug: 'hp-victus-15-fb3020la', name: 'Victus 15-fb3020la', displayName: 'HP Victus 15-fb3020la', brand: 'HP', thumbnail: '/images/zona-gamer/catalogo-laptops/VICTUS-15-fb3020la/1.png', images: [], price: 3899, quotaMonthly: 309, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 371, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 5, usage: ['gaming' as const, 'estudios' as const], isFeatured: true, isNew: false, tags: ['recomendado' as const, 'mas_vendido' as const], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 7435HS', cores: 8, speed: '3.1GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 3050', vram: 4 }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-9', slug: 'hp-victus-15-fb3021la', name: 'Victus 15-fb3021la', displayName: 'HP Victus 15-fb3021la', brand: 'HP', thumbnail: '/images/zona-gamer/catalogo-laptops/VICTUS-15-fb3021la/1.png', images: [], price: 4399, quotaMonthly: 346, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 415, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 4, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: ['mas_vendido' as const], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 8845HS', cores: 8, speed: '3.8GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 4050', vram: 6 }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-10', slug: 'hp-victus-15-fb3019la', name: 'Victus 15-FB3019LA', displayName: 'HP Victus 15-FB3019LA', brand: 'HP', thumbnail: '/images/zona-gamer/catalogo-laptops/HP-Victus-15-FB3019LA/1.png', images: [], price: 3499, quotaMonthly: 283, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 340, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 7, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: ['cuota_baja' as const], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 7435HS', cores: 8, speed: '3.1GHz' }, ram: { size: 8, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 3050', vram: 4 }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-11', slug: 'lenovo-loq-15arp9-r5', name: 'LOQ 15ARP9', displayName: 'Lenovo LOQ 15ARP9 R5', brand: 'Lenovo', thumbnail: '/images/zona-gamer/catalogo-laptops/Lenovo-LOQ-15ARP9-Combo/1.png', images: [], price: 3299, quotaMonthly: 266, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 319, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 8, usage: ['gaming' as const, 'estudios' as const], isFeatured: false, isNew: false, tags: ['recomendado' as const, 'mas_vendido' as const], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 5 7535HS', cores: 6, speed: '3.3GHz' }, ram: { size: 8, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 3050', vram: 4 }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-12', slug: 'lenovo-loq-15iax9', name: 'LOQ 15IAX9', displayName: 'Lenovo LOQ 15IAX9', brand: 'Lenovo', thumbnail: '/images/zona-gamer/catalogo-laptops/Lenovo-LOQ-15IAX9/1.png', images: [], price: 4799, quotaMonthly: 375, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 450, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 3, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: ['recomendado' as const], specs: { processor: { brand: 'intel' as const, model: 'Core i5-12450HX', cores: 8, speed: '3.3GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, gpu: { type: 'dedicated' as const, model: 'RTX 4050', vram: 6 }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-13', slug: 'lenovo-legion-7', name: 'Legion 7', displayName: 'Lenovo Legion 7', brand: 'Lenovo', thumbnail: '/images/zona-gamer/catalogo-laptops/Lenovo-Legion-7/1.png', images: [], price: 9999, quotaMonthly: 780, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 1, usage: ['gaming' as const], isFeatured: true, isNew: true, tags: ['premium' as const], specs: { processor: { brand: 'amd' as const, model: 'Por confirmar', cores: 8, speed: '' }, ram: { size: 32, type: 'DDR5' }, storage: { size: 2000, type: 'SSD' }, display: { size: 16, type: 'IPS', resolution: 'QHD', refreshRate: 165 } }, createdAt: '' },
-    { id: 'mock-14', slug: 'asus-rog-strix-g615lm', name: 'ROG STRIX G615LM', displayName: 'ASUS ROG STRIX G615LM-RV015W', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-ROG-STRIX-G615LM-RV015W/1.png', images: [], price: 8499, quotaMonthly: 660, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 2, usage: ['gaming' as const], isFeatured: false, isNew: true, tags: [], specs: { processor: { brand: 'amd' as const, model: 'Por confirmar', cores: 8, speed: '' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 1000, type: 'SSD' }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-15', slug: 'asus-rog-g614fm', name: 'ROG G614FM', displayName: 'ASUS ROG G614FM-RV009W', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-ROG-G614FM-RV009W/1.png', images: [], price: 8499, quotaMonthly: 660, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 2, usage: ['gaming' as const], isFeatured: false, isNew: true, tags: [], specs: { processor: { brand: 'amd' as const, model: 'Por confirmar', cores: 8, speed: '' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 1000, type: 'SSD' }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-16', slug: 'lenovo-legion-5-pro', name: 'Legion 5 Pro', displayName: 'Lenovo Legion 5 Pro', brand: 'Lenovo', thumbnail: '/images/zona-gamer/catalogo-laptops/Lenovo-Legion-5-Pro/1.png', images: [], price: 8999, quotaMonthly: 700, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 1, usage: ['gaming' as const], isFeatured: true, isNew: true, tags: [], specs: { processor: { brand: 'amd' as const, model: 'Por confirmar', cores: 8, speed: '' }, ram: { size: 32, type: 'DDR5' }, storage: { size: 1000, type: 'SSD' }, display: { size: 16, type: 'IPS', resolution: 'QHD', refreshRate: 165 } }, createdAt: '' },
-    { id: 'mock-17', slug: 'hp-omen-17-db1001la', name: 'OMEN 17-db1001la', displayName: 'HP OMEN 17-db1001la', brand: 'HP', thumbnail: '/images/zona-gamer/catalogo-laptops/HP-OMEN-17-db1001la/1.png', images: [], price: 7999, quotaMonthly: 620, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 2, usage: ['gaming' as const], isFeatured: false, isNew: true, tags: [], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 8845HS', cores: 8, speed: '3.8GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 1000, type: 'SSD' }, display: { size: 17.3, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-18', slug: 'asus-tuf-fx608jhr', name: 'TUF FX608JHR', displayName: 'ASUS TUF FX608JHR-RV006', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-TUF-FX608JHR-RV006/1.png', images: [], price: 7499, quotaMonthly: 580, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 3, usage: ['gaming' as const], isFeatured: false, isNew: true, tags: [], specs: { processor: { brand: 'intel' as const, model: 'Core i7-13700H', cores: 14, speed: '3.7GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 1000, type: 'SSD' }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-19', slug: 'hp-omen-16-ap0001la', name: 'OMEN 16-ap0001la', displayName: 'HP OMEN 16-ap0001la', brand: 'HP', thumbnail: '/images/zona-gamer/catalogo-laptops/HP-OMEN-16-ap0001la/1.png', images: [], price: 7999, quotaMonthly: 620, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 2, usage: ['gaming' as const], isFeatured: false, isNew: true, tags: [], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 8845HS', cores: 8, speed: '3.8GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 1000, type: 'SSD' }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-20', slug: 'asus-tuf-gaming-a15', name: 'TUF GAMING A15', displayName: 'ASUS TUF GAMING A15', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-TUF-GAMING-A15/1.png', images: [], price: 5999, quotaMonthly: 465, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 4, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: [], specs: { processor: { brand: 'amd' as const, model: 'Ryzen 7 7435HS', cores: 8, speed: '3.1GHz' }, ram: { size: 16, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, display: { size: 15.6, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-    { id: 'mock-21', slug: 'asus-tuf-fx607vj', name: 'TUF FX607VJ', displayName: 'ASUS TUF FX607VJ-RL016', brand: 'ASUS', thumbnail: '/images/zona-gamer/catalogo-laptops/ASUS-TUF-FX607VJ-RL016/1.png', images: [], price: 4299, quotaMonthly: 339, quotaBiweekly: 0, quotaWeekly: 0, originalQuotaMonthly: 0, maxTermMonths: 24, gama: 'gamer' as const, condition: 'nuevo' as const, stock: 'available' as const, stockQuantity: 5, usage: ['gaming' as const], isFeatured: false, isNew: false, tags: [], specs: { processor: { brand: 'intel' as const, model: 'Core i5-13500H', cores: 12, speed: '3.5GHz' }, ram: { size: 8, type: 'DDR5' }, storage: { size: 512, type: 'SSD' }, display: { size: 16, type: 'IPS', resolution: 'FHD', refreshRate: 144 } }, createdAt: '' },
-  ] as unknown as CatalogProduct[]), []);
-
-  // Only show mock gaming products (remove when real gaming products are in DB)
-  const allProducts = mockGamingProducts;
-  const displayTotal = mockGamingProducts.length;
+  // Productos tal cual vienen del endpoint, sin filtros frontend ni overrides de thumbnail
+  const allProducts = products;
+  const displayTotal = total;
 
   // Fetch filter options
   const catalogFilters = useCatalogFilters(landing);
+
+  // Layout data (navbar items, promo banner) desde /landing/zona-gamer/layout
+  const { navbarProps } = useLayout();
 
   // Cart / Wishlist
   const {
@@ -346,6 +327,55 @@ function GamerCatalogoContent() {
     });
   }, []);
 
+  const handleDeviceTypeToggle = useCallback((type: string) => {
+    setFilters((prev) => {
+      const next = (prev.deviceTypes as string[]).includes(type)
+        ? prev.deviceTypes.filter((t) => t !== type)
+        : [...prev.deviceTypes, type as typeof prev.deviceTypes[number]];
+      return { ...prev, deviceTypes: next };
+    });
+  }, []);
+
+  const handleUsageToggle = useCallback((usage: string) => {
+    setFilters((prev) => {
+      const next = (prev.usage as string[]).includes(usage)
+        ? prev.usage.filter((u) => u !== usage)
+        : [...prev.usage, usage as typeof prev.usage[number]];
+      return { ...prev, usage: next };
+    });
+  }, []);
+
+  const handleTagToggle = useCallback((tag: string) => {
+    setFilters((prev) => {
+      const next = (prev.tags as string[]).includes(tag)
+        ? prev.tags.filter((t) => t !== tag)
+        : [...prev.tags, tag as typeof prev.tags[number]];
+      return { ...prev, tags: next };
+    });
+  }, []);
+
+  const handleRamToggle = useCallback((ram: number) => {
+    setFilters((prev) => {
+      const next = prev.ram.includes(ram)
+        ? prev.ram.filter((r) => r !== ram)
+        : [...prev.ram, ram];
+      return { ...prev, ram: next };
+    });
+  }, []);
+
+  const handleStorageToggle = useCallback((storage: number) => {
+    setFilters((prev) => {
+      const next = prev.storage.includes(storage)
+        ? prev.storage.filter((s) => s !== storage)
+        : [...prev.storage, storage];
+      return { ...prev, storage: next };
+    });
+  }, []);
+
+  const handleQuotaRangeChange = useCallback((min: number, max: number) => {
+    setFilters((prev) => ({ ...prev, quotaRange: [min, max] }));
+  }, []);
+
   const handleClearFilters = useCallback(() => {
     setFilters(defaultFilterState);
     setSearchQuery('');
@@ -402,10 +432,14 @@ function GamerCatalogoContent() {
   // Active filters count
   const activeFilterCount = useMemo(() => {
     let count = 0;
-    if (filters.brands.length > 0) count += filters.brands.length;
-    if (filters.gama.length > 0) count += filters.gama.length;
-    if (filters.condition.length > 0) count += filters.condition.length;
-    if (filters.usage.length > 0) count += filters.usage.length;
+    count += filters.brands.length;
+    count += filters.gama.length;
+    count += filters.condition.length;
+    count += filters.usage.length;
+    count += filters.deviceTypes.length;
+    count += filters.tags.length;
+    count += filters.ram.length;
+    count += filters.storage.length;
     if (searchQuery.trim()) count += 1;
     return count;
   }, [filters, searchQuery]);
@@ -435,8 +469,18 @@ function GamerCatalogoContent() {
         }
       `}</style>
 
-      {/* ====== PROMO BANNER ====== */}
-      <PromoBanner isDark={isDark} T={T} catalogUrl={routes.catalogo(landing)} />
+      {/* ====== PROMO BANNER ====== (solo se muestra si el backend devuelve data) */}
+      {navbarProps?.promoBannerData && (navbarProps.promoBannerData.text || navbarProps.promoBannerData.highlight) && (
+        <PromoBanner
+          isDark={isDark}
+          T={T}
+          text={navbarProps.promoBannerData.text}
+          highlight={navbarProps.promoBannerData.highlight}
+          ctaText={navbarProps.promoBannerData.ctaText}
+          ctaUrl={navbarProps.promoBannerData.ctaUrl || routes.catalogo(landing)}
+          dismissible={navbarProps.promoBannerData.dismissible}
+        />
+      )}
 
       {/* ====== HEADER ====== */}
       <GamerCatalogHeader
@@ -449,6 +493,9 @@ function GamerCatalogoContent() {
         wishlistCount={wishlistCount}
         cartCount={cartCount}
         landing={landing}
+        navbarItems={navbarProps?.navbarItems || []}
+        customerPortalUrl={navbarProps?.customerPortalUrl}
+        portalButtonText={navbarProps?.portalButtonText}
       />
 
       {/* ====== SECONDARY NAV ====== */}
@@ -585,7 +632,7 @@ function GamerCatalogoContent() {
 
       {/* ====== CATALOG INTRO ====== */}
       <section id="catalogo" style={{ padding: '40px 0 20px' }}>
-        <div className="max-w-[1400px] mx-auto px-4">
+        <div className="w-full" style={{ padding: '0 24px' }}>
           <div
             className="inline-flex items-center gap-2"
             style={{
@@ -640,8 +687,8 @@ function GamerCatalogoContent() {
 
       {/* ====== MAIN CONTENT ====== */}
       <div
-        className="max-w-[1400px] mx-auto"
-        style={{ padding: '24px 16px', display: 'flex', gap: 20 }}
+        className="w-full"
+        style={{ padding: '24px 24px', display: 'flex', gap: 20 }}
       >
         {/* ====== SIDEBAR FILTERS (desktop) ====== */}
         <aside
@@ -660,7 +707,7 @@ function GamerCatalogoContent() {
             isDark={isDark}
             T={T}
             filters={filters}
-            brands={catalogFilters.brands}
+            apiFilters={catalogFilters.apiFilters}
             sort={sort}
             onSortChange={setSort}
             expandedSections={expandedSections}
@@ -668,6 +715,12 @@ function GamerCatalogoContent() {
             onBrandToggle={handleBrandToggle}
             onGamaToggle={handleGamaToggle}
             onConditionToggle={handleConditionToggle}
+            onDeviceTypeToggle={handleDeviceTypeToggle}
+            onUsageToggle={handleUsageToggle}
+            onTagToggle={handleTagToggle}
+            onRamToggle={handleRamToggle}
+            onStorageToggle={handleStorageToggle}
+            onQuotaRangeChange={handleQuotaRangeChange}
             onClearFilters={handleClearFilters}
             activeFilterCount={activeFilterCount}
             sortOptions={catalogFilters.sortOptions}
@@ -720,7 +773,7 @@ function GamerCatalogoContent() {
                   isDark={isDark}
                   T={T}
                   filters={filters}
-                  brands={catalogFilters.brands}
+                  apiFilters={catalogFilters.apiFilters}
                   sort={sort}
                   onSortChange={setSort}
                   expandedSections={expandedSections}
@@ -728,6 +781,12 @@ function GamerCatalogoContent() {
                   onBrandToggle={handleBrandToggle}
                   onGamaToggle={handleGamaToggle}
                   onConditionToggle={handleConditionToggle}
+                  onDeviceTypeToggle={handleDeviceTypeToggle}
+                  onUsageToggle={handleUsageToggle}
+                  onTagToggle={handleTagToggle}
+                  onRamToggle={handleRamToggle}
+                  onStorageToggle={handleStorageToggle}
+                  onQuotaRangeChange={handleQuotaRangeChange}
                   onClearFilters={handleClearFilters}
                   activeFilterCount={activeFilterCount}
                   sortOptions={catalogFilters.sortOptions}
@@ -785,22 +844,23 @@ function GamerCatalogoContent() {
           {/* Loading skeleton */}
           {isLoading && !error && (
             <div
-              className="grid gap-[14px]"
-              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}
+              className="gap-[14px]"
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}
             >
-              {Array.from({ length: 8 }).map((_, i) => (
+              {Array.from({ length: 12 }).map((_, i) => (
                 <GamerCardSkeleton key={i} isDark={isDark} T={T} />
               ))}
             </div>
           )}
 
-          {/* Products grid */}
+          {/* Products grid — auto-fill: el número de columnas crece con el ancho disponible */}
           {!isLoading && !error && allProducts.length > 0 && (
             <>
               <div
-                className="grid gap-[14px]"
+                className="gamer-products-grid gap-[14px]"
                 style={{
-                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
                 }}
               >
                 {allProducts.map((product) => (
@@ -818,19 +878,6 @@ function GamerCatalogoContent() {
                   />
                 ))}
               </div>
-
-              {/* Responsive grid overrides */}
-              <style>{`
-                @media (max-width: 1200px) {
-                  .grid { grid-template-columns: repeat(3, 1fr) !important; }
-                }
-                @media (max-width: 1000px) {
-                  .grid { grid-template-columns: repeat(2, 1fr) !important; }
-                }
-                @media (max-width: 600px) {
-                  .grid { grid-template-columns: 1fr !important; }
-                }
-              `}</style>
 
               {/* Load More */}
               {hasMore && (
@@ -1065,11 +1112,19 @@ function GamerCatalogoContent() {
 function PromoBanner({
   isDark,
   T,
-  catalogUrl,
+  text,
+  highlight,
+  ctaText,
+  ctaUrl,
+  dismissible = true,
 }: {
   isDark: boolean;
   T: ReturnType<typeof gamerTheme>;
-  catalogUrl: string;
+  text: string;
+  highlight?: string;
+  ctaText?: string;
+  ctaUrl?: string;
+  dismissible?: boolean;
 }) {
   const [visible, setVisible] = useState(true);
   if (!visible) return null;
@@ -1086,20 +1141,26 @@ function PromoBanner({
       <div className="max-w-[1280px] mx-auto flex items-center justify-center gap-2 relative">
         <Zap className="w-4 h-4 shrink-0" style={{ color: T.neonCyan }} />
         <span>
-          <strong>Oferta especial:</strong> 0% interés en tu primera cuota
-          <a
-            href={catalogUrl}
-            className="text-white font-semibold underline underline-offset-2 ml-2 hover:no-underline hidden sm:inline"
-          >
-            Ver más
-          </a>
+          {highlight && <strong>{highlight}</strong>}
+          {highlight && text ? ' ' : ''}
+          {text}
+          {ctaText && ctaUrl && (
+            <a
+              href={ctaUrl}
+              className="text-white font-semibold underline underline-offset-2 ml-2 hover:no-underline hidden sm:inline"
+            >
+              {ctaText}
+            </a>
+          )}
         </span>
-        <button
-          onClick={() => setVisible(false)}
-          className="absolute right-0 p-1.5 bg-transparent border-none text-white cursor-pointer rounded-full hover:bg-white/20 transition-colors"
-        >
-          <X className="w-4 h-4" />
-        </button>
+        {dismissible && (
+          <button
+            onClick={() => setVisible(false)}
+            className="absolute right-0 p-1.5 bg-transparent border-none text-white cursor-pointer rounded-full hover:bg-white/20 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1119,6 +1180,9 @@ function GamerCatalogHeader({
   wishlistCount,
   cartCount,
   landing,
+  navbarItems,
+  customerPortalUrl,
+  portalButtonText,
 }: {
   isDark: boolean;
   T: ReturnType<typeof gamerTheme>;
@@ -1129,13 +1193,25 @@ function GamerCatalogHeader({
   wishlistCount: number;
   cartCount: number;
   landing: string;
+  navbarItems: { label: string; href: string; section: string | null; has_megamenu?: boolean; badge_text?: string }[];
+  customerPortalUrl?: string;
+  portalButtonText?: string;
 }) {
-  const navLinks = [
-    { label: 'Equipos', href: routes.catalogo(landing), badge: 'NUEVO' },
-    { label: 'Convenios', href: '#' },
-    { label: 'Ver requisitos', href: '#' },
-    { label: '¿Tienes dudas?', href: '#' },
-  ];
+  // Navbar items vienen del backend (layout.navbar.content_config.items).
+  // Normalizamos los href: si es relativo (ej. 'catalogo') lo componemos con el landing
+  const navLinks = navbarItems.map((item) => {
+    const isAnchor = item.href.startsWith('#') || item.href.startsWith('http');
+    const href = isAnchor
+      ? item.href
+      : item.href.startsWith('catalogo')
+        ? routes.catalogo(landing) + item.href.slice('catalogo'.length)
+        : `/${landing}/${item.href.replace(/^\//, '')}`;
+    return {
+      label: item.label,
+      href,
+      badge: item.badge_text,
+    };
+  });
 
   return (
     <header
@@ -1231,30 +1307,34 @@ function GamerCatalogHeader({
 
       {/* Right: Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        {/* Zona Gamers button */}
-        <a
-          href="#"
-          className="hidden sm:flex"
-          style={{
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            color: T.neonPurple,
-            padding: '6px 14px',
-            borderRadius: 8,
-            background: 'rgba(99,102,241,0.06)',
-            border: '1px solid rgba(99,102,241,0.12)',
-            transition: 'all 0.2s',
-            textDecoration: 'none',
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-          </svg>
-          <span>Zona Gamers</span>
-        </a>
+        {/* Customer portal button (desde layout.company.customer_portal_url) */}
+        {customerPortalUrl && (
+          <a
+            href={customerPortalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:flex"
+            style={{
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              color: T.neonPurple,
+              padding: '6px 14px',
+              borderRadius: 8,
+              background: 'rgba(99,102,241,0.06)',
+              border: '1px solid rgba(99,102,241,0.12)',
+              transition: 'all 0.2s',
+              textDecoration: 'none',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
+            <span>{portalButtonText || 'Mi zona'}</span>
+          </a>
+        )}
 
         {/* Theme toggle */}
         <button
@@ -1312,7 +1392,7 @@ function GamerSidebar({
   isDark,
   T,
   filters,
-  brands,
+  apiFilters,
   sort,
   onSortChange,
   expandedSections,
@@ -1320,6 +1400,12 @@ function GamerSidebar({
   onBrandToggle,
   onGamaToggle,
   onConditionToggle,
+  onDeviceTypeToggle,
+  onUsageToggle,
+  onTagToggle,
+  onRamToggle,
+  onStorageToggle,
+  onQuotaRangeChange,
   onClearFilters,
   activeFilterCount,
   sortOptions,
@@ -1327,7 +1413,7 @@ function GamerSidebar({
   isDark: boolean;
   T: ReturnType<typeof gamerTheme>;
   filters: FilterState;
-  brands: { id: number; name: string; slug: string }[];
+  apiFilters: import('@/app/prototipos/0.6/types/filters').CatalogFiltersResponse | null;
   sort: SortOption;
   onSortChange: (s: SortOption) => void;
   expandedSections: Record<string, boolean>;
@@ -1335,14 +1421,24 @@ function GamerSidebar({
   onBrandToggle: (b: string) => void;
   onGamaToggle: (g: string) => void;
   onConditionToggle: (c: string) => void;
+  onDeviceTypeToggle: (t: string) => void;
+  onUsageToggle: (u: string) => void;
+  onTagToggle: (t: string) => void;
+  onRamToggle: (r: number) => void;
+  onStorageToggle: (s: number) => void;
+  onQuotaRangeChange: (min: number, max: number) => void;
   onClearFilters: () => void;
   activeFilterCount: number;
   sortOptions: { value: string; label: string }[];
 }) {
-  const [rangeMin, setRangeMin] = useState(40);
-  const [rangeMax, setRangeMax] = useState(400);
-  const RANGE_ABS_MIN = 40;
-  const RANGE_ABS_MAX = 400;
+  // Quota range bounds vienen del backend (apiFilters.quota_range)
+  const RANGE_ABS_MIN = apiFilters?.quota_range?.min ?? 0;
+  const RANGE_ABS_MAX = apiFilters?.quota_range?.max ?? 0;
+  // Estado local del slider, sincronizado con filters.quotaRange del padre
+  const quotaMinSentinel = filters.quotaRange[0] !== defaultFilterState.quotaRange[0];
+  const quotaMaxSentinel = filters.quotaRange[1] !== defaultFilterState.quotaRange[1];
+  const rangeMin = quotaMinSentinel ? filters.quotaRange[0] : RANGE_ABS_MIN;
+  const rangeMax = quotaMaxSentinel ? filters.quotaRange[1] : RANGE_ABS_MAX;
 
   const gamaOptions: { value: string; label: string; color: string; chipBg: string; chipBorder: string; chipShadow: string }[] = [
     { value: 'economica', label: 'Económica', color: T.textSecondary, chipBg: 'rgba(136,136,170,0.18)', chipBorder: 'rgba(136,136,170,0.5)', chipShadow: 'rgba(136,136,170,0.1)' },
@@ -1350,11 +1446,6 @@ function GamerSidebar({
     { value: 'profesional', label: 'Profesional', color: '#3de876', chipBg: 'rgba(34,197,94,0.18)', chipBorder: 'rgba(34,197,94,0.5)', chipShadow: 'rgba(34,197,94,0.1)' },
     { value: 'creativa', label: 'Creativa', color: '#b87aff', chipBg: 'rgba(168,85,247,0.18)', chipBorder: 'rgba(168,85,247,0.5)', chipShadow: 'rgba(168,85,247,0.1)' },
     { value: 'gamer', label: 'Gamer', color: '#ff3366', chipBg: 'rgba(255,0,64,0.18)', chipBorder: 'rgba(255,0,64,0.5)', chipShadow: 'rgba(255,0,64,0.1)' },
-  ];
-
-  const conditionOptions = [
-    { value: 'nuevo', label: 'Nuevo' },
-    { value: 'reacondicionado', label: 'Reacondicionado' },
   ];
 
   const destacadosOptions: { value: string; label: string; color: string; chipBg: string; chipBorder: string; chipShadow: string }[] = [
@@ -1372,59 +1463,10 @@ function GamerSidebar({
     { value: 'programacion', label: 'Programación', icon: <Code2 size={20} /> },
   ];
 
-  // Advanced filter data
-  const advancedSections: { key: string; label: string; icon: React.ReactNode; options: { value: string; label: string }[]; cols?: number }[] = [
-    {
-      key: 'ram', label: 'RAM', icon: <MemoryStick size={18} />,
-      options: [
-        { value: '4gb', label: '4 GB' }, { value: '8gb', label: '8 GB' },
-        { value: '16gb', label: '16 GB' }, { value: '32gb', label: '32 GB' },
-      ],
-    },
-    {
-      key: 'almacenamiento', label: 'Almacenamiento', icon: <HardDrive size={18} />,
-      options: [
-        { value: '256gb', label: '256 GB' }, { value: '512gb', label: '512 GB' },
-        { value: '1tb', label: '1 TB' },
-      ],
-    },
-    {
-      key: 'pantalla', label: 'Tamaño pantalla', icon: <Monitor size={18} />,
-      options: [
-        { value: '13', label: '13"' }, { value: '14', label: '14"' },
-        { value: '15.6', label: '15.6"' }, { value: '17', label: '17"' },
-      ],
-      cols: 3,
-    },
-    {
-      key: 'resolucion', label: 'Resolución', icon: <Maximize size={18} />,
-      options: [
-        { value: 'hd', label: 'HD' }, { value: 'fullhd', label: 'Full HD' },
-        { value: 'qhd', label: 'QHD' }, { value: '4k', label: '4K' },
-      ],
-    },
-    {
-      key: 'tipo_pantalla', label: 'Tipo pantalla', icon: <Layers size={18} />,
-      options: [
-        { value: 'ips', label: 'IPS' }, { value: 'tn', label: 'TN' },
-        { value: 'oled', label: 'OLED' }, { value: 'va', label: 'VA' },
-      ],
-    },
-    {
-      key: 'procesador', label: 'Procesador', icon: <Cpu size={18} />,
-      options: [
-        { value: 'celeron', label: 'Intel Celeron' }, { value: 'i3', label: 'Intel Core i3' },
-        { value: 'i5', label: 'Intel Core i5' }, { value: 'i7', label: 'Intel Core i7' },
-        { value: 'i9', label: 'Intel Core i9' }, { value: 'r3', label: 'AMD Ryzen 3' },
-        { value: 'r5', label: 'AMD Ryzen 5' }, { value: 'r7', label: 'AMD Ryzen 7' },
-        { value: 'r9', label: 'AMD Ryzen 9' },
-      ],
-    },
-  ];
-
-  // Range fill calculation
-  const fillLeft = ((rangeMin - RANGE_ABS_MIN) / (RANGE_ABS_MAX - RANGE_ABS_MIN)) * 100;
-  const fillRight = ((rangeMax - RANGE_ABS_MIN) / (RANGE_ABS_MAX - RANGE_ABS_MIN)) * 100;
+  // Range fill calculation (guarda contra división por cero si aún no llega apiFilters)
+  const span = RANGE_ABS_MAX - RANGE_ABS_MIN || 1;
+  const fillLeft = ((rangeMin - RANGE_ABS_MIN) / span) * 100;
+  const fillRight = ((rangeMax - RANGE_ABS_MIN) / span) * 100;
 
   // Shared button style for grid items (type, uso, condicion, advanced)
   const gridItemStyle = (isActive: boolean): React.CSSProperties => ({
@@ -1583,102 +1625,130 @@ function GamerSidebar({
       </div>
 
       {/* ======= 1. Tipo de equipo ======= */}
-      <FilterSection title="Tipo de equipo" T={T} expanded={expandedSections.tipo !== false} onToggle={() => onToggleSection('tipo')}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          <button style={gridItemStyle(false)}>
-            <Laptop size={24} style={{ color: T.textMuted, transition: 'color 0.3s' }} />
-            <span style={gridLabelStyle(false)}>Laptop (3)</span>
-          </button>
-        </div>
-      </FilterSection>
+      {apiFilters?.types && apiFilters.types.length > 0 && (
+        <FilterSection title="Tipo de equipo" T={T} expanded={expandedSections.tipo !== false} onToggle={() => onToggleSection('tipo')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {apiFilters.types.map((t) => {
+              const isActive = (filters.deviceTypes as string[]).includes(t.value);
+              const Icon = t.value === 'laptop' ? Laptop : t.value === 'tablet' ? Tablet : t.value === 'celular' ? Smartphone : Package;
+              return (
+                <button
+                  key={t.value}
+                  onClick={() => onDeviceTypeToggle(t.value)}
+                  style={gridItemStyle(isActive)}
+                >
+                  <Icon size={24} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }} />
+                  <span style={gridLabelStyle(isActive)}>{t.label}</span>
+                  <span style={gridCountStyle}>{t.count} equipo{t.count !== 1 ? 's' : ''}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
       {/* ======= 2. Destacados ======= */}
-      <FilterSection title="Destacados" T={T} expanded={expandedSections.destacados !== false} onToggle={() => onToggleSection('destacados')}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {destacadosOptions.map((opt) => (
-            <span
-              key={opt.value}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '5px 12px',
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.3s',
-                border: `1px solid ${opt.chipBorder}`,
-                letterSpacing: 0.3,
-                background: opt.chipBg,
-                color: opt.color,
-                boxShadow: `0 0 6px ${opt.chipShadow}`,
-                fontFamily: "'Rajdhani', sans-serif",
-              }}
-            >
-              {opt.label}
-            </span>
-          ))}
-        </div>
-      </FilterSection>
+      {apiFilters?.labels && apiFilters.labels.length > 0 && (
+        <FilterSection title="Destacados" T={T} expanded={expandedSections.destacados !== false} onToggle={() => onToggleSection('destacados')}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {apiFilters.labels.map((lbl) => {
+              const isActive = (filters.tags as string[]).includes(lbl.code);
+              const preset = destacadosOptions.find((o) => o.value === lbl.code);
+              const chipBg = preset?.chipBg || `${lbl.color}22`;
+              const chipBorder = preset?.chipBorder || `${lbl.color}99`;
+              const chipShadow = preset?.chipShadow || `${lbl.color}33`;
+              const color = preset?.color || lbl.color;
+              return (
+                <span
+                  key={lbl.code}
+                  onClick={() => onTagToggle(lbl.code)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '5px 12px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    border: `1px solid ${isActive ? T.neonCyan : chipBorder}`,
+                    letterSpacing: 0.3,
+                    background: chipBg,
+                    color,
+                    boxShadow: isActive ? `0 0 12px rgba(0,255,213,0.3)` : `0 0 6px ${chipShadow}`,
+                    fontFamily: "'Rajdhani', sans-serif",
+                  }}
+                >
+                  {lbl.name}
+                  <span style={{ opacity: 0.7, fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }}>({lbl.count})</span>
+                </span>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
       {/* ======= 3. Marca ======= */}
-      <FilterSection title="Marca" T={T} expanded={expandedSections.marca !== false} onToggle={() => onToggleSection('marca')}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {brands.filter((b) => !['apple', 'samsung'].includes(b.slug.toLowerCase())).map((brand) => {
-            const isActive = filters.brands.includes(brand.slug);
-            return (
-              <button
-                key={brand.id}
-                onClick={() => onBrandToggle(brand.slug)}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4,
-                  padding: '10px 4px',
-                  border: `2px solid ${isActive ? T.neonCyan : T.border}`,
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  background: isActive ? 'rgba(0,255,213,0.06)' : T.bgCard,
-                  boxShadow: isActive ? '0 0 12px rgba(0,255,213,0.2)' : 'none',
-                  minHeight: 60,
-                }}
-              >
-                <Image
-                  src={`/img/logos/${brand.slug}.svg`}
-                  alt={brand.name}
-                  width={48}
-                  height={24}
+      {apiFilters?.brands && apiFilters.brands.length > 0 && (
+        <FilterSection title="Marca" T={T} expanded={expandedSections.marca !== false} onToggle={() => onToggleSection('marca')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {apiFilters.brands.map((brand) => {
+              const isActive = filters.brands.includes(brand.slug);
+              return (
+                <button
+                  key={brand.id}
+                  onClick={() => onBrandToggle(brand.slug)}
                   style={{
-                    maxWidth: 48,
-                    maxHeight: 24,
-                    objectFit: 'contain',
-                    borderRadius: 4,
-                    opacity: isActive ? 1 : 0.8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    padding: '10px 4px',
+                    border: `2px solid ${isActive ? T.neonCyan : T.border}`,
+                    borderRadius: 10,
+                    cursor: 'pointer',
                     transition: 'all 0.3s',
+                    background: isActive ? 'rgba(0,255,213,0.06)' : T.bgCard,
+                    boxShadow: isActive ? '0 0 12px rgba(0,255,213,0.2)' : 'none',
+                    minHeight: 68,
                   }}
-                  onError={(e) => {
-                    // Fallback: show brand name text if logo fails to load
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.parentElement?.insertAdjacentHTML(
-                      'afterbegin',
-                      `<span style="font-size:11px;font-weight:700;color:${isActive ? T.neonCyan : T.textSecondary};font-family:'Barlow Condensed',sans-serif;text-transform:uppercase">${brand.name}</span>`
-                    );
-                  }}
-                />
-                <span style={{ fontSize: 10, color: T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                  {brand.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </FilterSection>
+                >
+                  <Image
+                    src={brand.logo_url || `/img/logos/${brand.slug}.svg`}
+                    alt={brand.name}
+                    width={48}
+                    height={24}
+                    style={{
+                      maxWidth: 48,
+                      maxHeight: 24,
+                      objectFit: 'contain',
+                      borderRadius: 4,
+                      opacity: isActive ? 1 : 0.8,
+                      transition: 'all 0.3s',
+                    }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement?.insertAdjacentHTML(
+                        'afterbegin',
+                        `<span style="font-size:11px;font-weight:700;color:${isActive ? T.neonCyan : T.textSecondary};font-family:'Barlow Condensed',sans-serif;text-transform:uppercase">${brand.name}</span>`
+                      );
+                    }}
+                  />
+                  <span style={{ fontSize: 10, color: isActive ? T.neonCyan : T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
+                    {brand.name} ({brand.count})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
       {/* ======= 4. Cuota mensual ======= */}
+      {apiFilters?.quota_range && RANGE_ABS_MAX > RANGE_ABS_MIN && (
       <FilterSection title="Cuota mensual" T={T} expanded={expandedSections.cuota !== false} onToggle={() => onToggleSection('cuota')}>
         {/* Range display boxes */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -1755,11 +1825,11 @@ function GamerSidebar({
             type="range"
             min={RANGE_ABS_MIN}
             max={RANGE_ABS_MAX}
-            step={10}
+            step={1}
             value={rangeMin}
             onChange={(e) => {
               const v = Number(e.target.value);
-              if (v <= rangeMax - 10) setRangeMin(v);
+              if (v <= rangeMax - 1) onQuotaRangeChange(v, rangeMax);
             }}
             style={{
               position: 'absolute',
@@ -1780,11 +1850,11 @@ function GamerSidebar({
             type="range"
             min={RANGE_ABS_MIN}
             max={RANGE_ABS_MAX}
-            step={10}
+            step={1}
             value={rangeMax}
             onChange={(e) => {
               const v = Number(e.target.value);
-              if (v >= rangeMin + 10) setRangeMax(v);
+              if (v >= rangeMin + 1) onQuotaRangeChange(rangeMin, v);
             }}
             style={{
               position: 'absolute',
@@ -1816,91 +1886,109 @@ function GamerSidebar({
           <span>S/{RANGE_ABS_MAX}</span>
         </div>
       </FilterSection>
+      )}
 
       {/* ======= 5. Gama ======= */}
-      <FilterSection title="Gama" T={T} expanded={expandedSections.gama !== false} onToggle={() => onToggleSection('gama')}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {gamaOptions.map((opt) => {
-            const isActive = (filters.gama as string[]).includes(opt.value);
-            return (
-              <span
-                key={opt.value}
-                onClick={() => onGamaToggle(opt.value)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '5px 12px',
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  border: `1px solid ${isActive ? T.neonCyan : opt.chipBorder}`,
-                  letterSpacing: 0.3,
-                  background: opt.chipBg,
-                  color: opt.color,
-                  boxShadow: isActive ? `0 0 12px rgba(0,255,213,0.3)` : `0 0 6px ${opt.chipShadow}`,
-                  fontFamily: "'Rajdhani', sans-serif",
-                  position: 'relative',
-                }}
-              >
-                {opt.label}
-              </span>
-            );
-          })}
-        </div>
-      </FilterSection>
+      {apiFilters?.gamas && apiFilters.gamas.length > 0 && (
+        <FilterSection title="Gama" T={T} expanded={expandedSections.gama !== false} onToggle={() => onToggleSection('gama')}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {apiFilters.gamas.map((g) => {
+              const isActive = (filters.gama as string[]).includes(g.value);
+              const preset = gamaOptions.find((o) => o.value === g.value);
+              const chipBg = preset?.chipBg || 'rgba(136,136,170,0.18)';
+              const chipBorder = preset?.chipBorder || 'rgba(136,136,170,0.5)';
+              const chipShadow = preset?.chipShadow || 'rgba(136,136,170,0.1)';
+              const color = preset?.color || T.textSecondary;
+              return (
+                <span
+                  key={g.value}
+                  onClick={() => onGamaToggle(g.value)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '5px 12px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    border: `1px solid ${isActive ? T.neonCyan : chipBorder}`,
+                    letterSpacing: 0.3,
+                    background: chipBg,
+                    color,
+                    boxShadow: isActive ? `0 0 12px rgba(0,255,213,0.3)` : `0 0 6px ${chipShadow}`,
+                    fontFamily: "'Rajdhani', sans-serif",
+                  }}
+                >
+                  {g.label}
+                  <span style={{ opacity: 0.7, fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }}>({g.count})</span>
+                </span>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
       {/* ======= 6. Uso recomendado ======= */}
-      <FilterSection title="Uso recomendado" T={T} expanded={expandedSections.uso !== false} onToggle={() => onToggleSection('uso')}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-          {usoOptions.map((opt, idx) => {
-            const isLast = idx === usoOptions.length - 1;
-            const isOddLast = isLast && usoOptions.length % 2 !== 0;
-            return (
-              <button
-                key={opt.value}
-                style={{
-                  ...gridItemStyle(false),
-                  ...(isOddLast ? { gridColumn: '1 / -1' } : {}),
-                }}
-              >
-                <span style={{ color: T.textMuted, transition: 'color 0.3s' }}>{opt.icon}</span>
-                <span style={gridLabelStyle(false)}>{opt.label}</span>
-                <span style={gridCountStyle}>0 equipos</span>
-              </button>
-            );
-          })}
-        </div>
-      </FilterSection>
+      {apiFilters?.usages && apiFilters.usages.length > 0 && (
+        <FilterSection title="Uso recomendado" T={T} expanded={expandedSections.uso !== false} onToggle={() => onToggleSection('uso')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {apiFilters.usages.map((u, idx) => {
+              const isActive = (filters.usage as string[]).includes(u.value);
+              const isLast = idx === apiFilters.usages.length - 1;
+              const isOddLast = isLast && apiFilters.usages.length % 2 !== 0;
+              const preset = usoOptions.find((o) => o.value === u.value);
+              const icon = preset?.icon || <Laptop size={20} />;
+              return (
+                <button
+                  key={u.value}
+                  onClick={() => onUsageToggle(u.value)}
+                  style={{
+                    ...gridItemStyle(isActive),
+                    ...(isOddLast ? { gridColumn: '1 / -1' } : {}),
+                  }}
+                >
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}>{icon}</span>
+                  <span style={gridLabelStyle(isActive)}>{u.label}</span>
+                  <span style={gridCountStyle}>{u.count} equipo{u.count !== 1 ? 's' : ''}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
       {/* ======= 7. Condición ======= */}
-      <FilterSection title="Condición" T={T} expanded={expandedSections.condicion !== false} onToggle={() => onToggleSection('condicion')}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-          {conditionOptions.map((opt) => {
-            const isActive = (filters.condition as string[]).includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                onClick={() => onConditionToggle(opt.value)}
-                style={{
-                  ...gridItemStyle(isActive),
-                  minHeight: 'unset',
-                  padding: '12px 8px',
-                }}
-              >
-                {opt.value === 'nuevo' ? (
-                  <Package size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
-                ) : (
-                  <CheckCircle2 size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
-                )}
-                <span style={{ ...gridLabelStyle(isActive), fontSize: 11, lineHeight: 1.2 }}>{opt.label}</span>
-                <span style={{ ...gridCountStyle, marginTop: 2 }}>0 equipos</span>
-              </button>
-            );
-          })}
-        </div>
-      </FilterSection>
+      {apiFilters?.conditions && apiFilters.conditions.length > 0 && (
+        <FilterSection title="Condición" T={T} expanded={expandedSections.condicion !== false} onToggle={() => onToggleSection('condicion')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {apiFilters.conditions.map((c) => {
+              const isActive = (filters.condition as string[]).includes(c.value);
+              const isNueva = c.value.startsWith('nuev');
+              return (
+                <button
+                  key={c.value}
+                  onClick={() => onConditionToggle(c.value)}
+                  style={{
+                    ...gridItemStyle(isActive),
+                    minHeight: 'unset',
+                    padding: '12px 8px',
+                  }}
+                >
+                  {isNueva ? (
+                    <Package size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
+                  ) : (
+                    <CheckCircle2 size={20} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s', marginBottom: 6 }} />
+                  )}
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 11, lineHeight: 1.2 }}>{c.label}</span>
+                  <span style={{ ...gridCountStyle, marginTop: 2 }}>{c.count} equipo{c.count !== 1 ? 's' : ''}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
       {/* ======= 8. Filtros Avanzados ======= */}
       <div style={{ borderBottom: `1px solid ${T.border}`, padding: '16px 0' }}>
@@ -1937,92 +2025,114 @@ function GamerSidebar({
             />
           </button>
 
-          {expandedSections.avanzados && (
+          {expandedSections.avanzados && apiFilters?.specs && (
             <div style={{ marginTop: 12 }}>
-              {advancedSections.map((section, sIdx) => {
-                const sectionKey = `adv_${section.key}`;
-                const isExpanded = expandedSections[sectionKey] !== false;
-                const isLast = sIdx === advancedSections.length - 1;
-                return (
-                  <div
-                    key={section.key}
-                    style={{
-                      padding: '12px 0',
-                      borderBottom: isLast ? 'none' : `1px solid ${T.border}`,
-                    }}
-                  >
-                    {/* Sub-section header */}
-                    <button
-                      onClick={() => onToggleSection(sectionKey)}
+              {(() => {
+                // Derivar secciones avanzadas desde apiFilters.specs (backend counts)
+                const advSpecMap: { key: string; specKey: string; label: string; icon: React.ReactNode; cols?: number; onToggle?: (v: string | number | boolean) => void; activeValues?: (string | number | boolean)[] }[] = [
+                  { key: 'ram', specKey: 'ram', label: 'RAM', icon: <MemoryStick size={18} />, onToggle: (v) => onRamToggle(Number(v)), activeValues: filters.ram },
+                  { key: 'storage', specKey: 'storage', label: 'Almacenamiento', icon: <HardDrive size={18} />, onToggle: (v) => onStorageToggle(Number(v)), activeValues: filters.storage },
+                  { key: 'screen_size', specKey: 'screen_size', label: 'Tamaño pantalla', icon: <Monitor size={18} />, cols: 3 },
+                  { key: 'screen_resolution', specKey: 'screen_resolution', label: 'Resolución', icon: <Maximize size={18} /> },
+                  { key: 'screen_type', specKey: 'screen_type', label: 'Tipo pantalla', icon: <Layers size={18} /> },
+                  { key: 'processor', specKey: 'processor', label: 'Procesador', icon: <Cpu size={18} /> },
+                ];
+                const availableSections = advSpecMap.filter((s) => {
+                  const spec = apiFilters.specs[s.specKey];
+                  return spec && spec.values && spec.values.length > 0;
+                });
+                return availableSections.map((section, sIdx) => {
+                  const sectionKey = `adv_${section.key}`;
+                  const isExpanded = expandedSections[sectionKey] !== false;
+                  const isLast = sIdx === availableSections.length - 1;
+                  const spec = apiFilters.specs[section.specKey];
+                  return (
+                    <div
+                      key={section.key}
                       style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: 0,
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: T.textSecondary,
+                        padding: '12px 0',
+                        borderBottom: isLast ? 'none' : `1px solid ${T.border}`,
                       }}
                     >
-                      <span
+                      {/* Sub-section header */}
+                      <button
+                        onClick={() => onToggleSection(sectionKey)}
                         style={{
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: T.textSecondary,
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.5,
-                          transition: 'color 0.3s',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 8,
-                          fontFamily: "'Rajdhani', sans-serif",
+                          justifyContent: 'space-between',
+                          width: '100%',
+                          padding: 0,
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          color: T.textSecondary,
                         }}
                       >
-                        {section.label}
-                        <Info size={13} style={{ color: T.textMuted, cursor: 'help' }} />
-                      </span>
-                      <ChevronUp
-                        size={16}
-                        style={{
-                          color: T.textMuted,
-                          transition: 'all 0.3s',
-                          transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
-                        }}
-                      />
-                    </button>
-
-                    {/* Sub-section content */}
-                    {isExpanded && (
-                      <div style={{ marginTop: 10 }}>
-                        <div
+                        <span
                           style={{
-                            display: 'grid',
-                            gridTemplateColumns: `repeat(${section.cols || 2}, 1fr)`,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: T.textSecondary,
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5,
+                            transition: 'color 0.3s',
+                            display: 'flex',
+                            alignItems: 'center',
                             gap: 8,
+                            fontFamily: "'Rajdhani', sans-serif",
                           }}
                         >
-                          {section.options.map((opt) => (
-                            <button
-                              key={opt.value}
-                              style={{
-                                ...gridItemStyle(false),
-                                minHeight: 60,
-                                padding: '8px 4px',
-                              }}
-                            >
-                              <span style={{ color: T.textMuted, transition: 'color 0.3s' }}>{section.icon}</span>
-                              <span style={{ ...gridLabelStyle(false), fontSize: 10 }}>{opt.label}</span>
-                              <span style={gridCountStyle}>0 equipos</span>
-                            </button>
-                          ))}
+                          {section.label}
+                          <Info size={13} style={{ color: T.textMuted, cursor: 'help' }} />
+                        </span>
+                        <ChevronUp
+                          size={16}
+                          style={{
+                            color: T.textMuted,
+                            transition: 'all 0.3s',
+                            transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
+                          }}
+                        />
+                      </button>
+
+                      {/* Sub-section content */}
+                      {isExpanded && (
+                        <div style={{ marginTop: 10 }}>
+                          <div
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: `repeat(${section.cols || 2}, 1fr)`,
+                              gap: 8,
+                            }}
+                          >
+                            {spec.values.map((val) => {
+                              const isActive = section.activeValues?.some((v) => v === val.value) || false;
+                              const handleClick = section.onToggle ? () => section.onToggle!(val.value) : undefined;
+                              return (
+                                <button
+                                  key={String(val.value)}
+                                  onClick={handleClick}
+                                  style={{
+                                    ...gridItemStyle(isActive),
+                                    minHeight: 60,
+                                    padding: '8px 4px',
+                                    cursor: handleClick ? 'pointer' : 'default',
+                                  }}
+                                >
+                                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}>{section.icon}</span>
+                                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
+                                  <span style={gridCountStyle}>{val.count} equipo{val.count !== 1 ? 's' : ''}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
