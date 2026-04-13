@@ -39,7 +39,7 @@ function gamerTheme(isDark: boolean) {
     bg: isDark ? '#0e0e0e' : '#f5f5f5',
     bgCard: isDark ? '#1a1a1a' : '#ffffff',
     bgSurface: isDark ? '#1e1e1e' : '#f0f0f0',
-    neonCyan: isDark ? '#00ffd5' : '#00b396',
+    neonCyan: isDark ? '#00ffd5' : '#00897a',
     neonPurple: isDark ? '#6366f1' : '#4f46e5',
     border: isDark ? '#2a2a2a' : '#e0e0e0',
     textPrimary: isDark ? '#f0f0f0' : '#1a1a1a',
@@ -287,22 +287,16 @@ function SolicitarContent() {
   }, [product, selectedMonths]);
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)' } as React.CSSProperties}>
+    <div style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)' } as React.CSSProperties}>
       <style>{FONTS_CSS}</style>
       <style>{`
         .btn-loquiero-detalle {
-          position: relative; overflow: hidden;
-          background: var(--gradient-cyber);
-          color: #fff; border: none; border-radius: 12px;
+          background: var(--gamer-cyan, #00ffd5);
+          color: #0a0a0a; border: none; border-radius: 12px;
           font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700;
           cursor: pointer; transition: all 0.3s;
         }
-        .btn-loquiero-detalle::before {
-          content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-          transition: left 0.5s;
-        }
-        .btn-loquiero-detalle:hover::before { left: 100%; }
+        .btn-loquiero-detalle:hover { filter: brightness(0.9); }
       `}</style>
 
       {/* NAVBAR */}
@@ -516,7 +510,7 @@ function SolicitarContent() {
                       <button key={acc.id} onClick={() => toggleAcc(acc)} type="button" style={{ display: 'flex', flexDirection: 'column', background: T.bgCard, borderRadius: 12, border: `2px solid ${isSelected ? T.neonCyan : 'transparent'}`, boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)', padding: 16, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', height: '100%' }}>
                         {/* Check icon */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', opacity: isSelected ? 1 : 0, transform: isSelected ? 'scale(1)' : 'scale(0)' }}>
+                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#00ffd5', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', opacity: isSelected ? 1 : 0, transform: isSelected ? 'scale(1)' : 'scale(0)' }}>
                             <Check size={14} style={{ color: '#fff' }} />
                           </div>
                         </div>
@@ -721,7 +715,7 @@ function SolicitarContent() {
                   <span style={{ fontSize: 12, color: T.textMuted }}>S/ {Math.round(acc.price)} · {months} cuotas</span>
                 </div>
                 {/* Add button */}
-                <button onClick={() => { toggleAcc(acc); setAccDetailId(null); }} style={{ width: '100%', height: 44, borderRadius: 10, border: 'none', background: isSelected ? '#22c55e' : T.neonCyan, color: isSelected ? '#fff' : (isDark ? '#0a0a0a' : '#fff'), fontWeight: 500, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button onClick={() => { toggleAcc(acc); setAccDetailId(null); }} style={{ width: '100%', height: 44, borderRadius: 10, border: 'none', background: isSelected ? '#00ffd5' : T.neonCyan, color: isSelected ? '#fff' : (isDark ? '#0a0a0a' : '#fff'), fontWeight: 500, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {isSelected ? <Check size={16} /> : <Plus size={16} />}
                   {isSelected ? 'Quitar accesorio' : 'Agregar accesorio'}
                 </button>

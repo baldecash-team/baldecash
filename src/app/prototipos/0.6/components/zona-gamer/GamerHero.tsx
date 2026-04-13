@@ -61,7 +61,7 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
                 fontSize: 12,
                 letterSpacing: 3,
                 textTransform: 'uppercase',
-                color: isDark ? '#00ffd5' : '#00b396',
+                color: isDark ? '#00ffd5' : '#00897a',
                 background: isDark ? 'rgba(0,255,213,0.06)' : 'rgba(14,148,133,0.06)',
                 border: `1px solid ${isDark ? 'rgba(0,255,213,0.15)' : 'rgba(14,148,133,0.15)'}`,
                 padding: '6px 16px',
@@ -91,8 +91,8 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
                 className="accent"
                 style={{
                   backgroundImage: isDark
-                    ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
-                    : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)',
+                    ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+                    : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)',
                 }}
               >
                 AL ALCANCE

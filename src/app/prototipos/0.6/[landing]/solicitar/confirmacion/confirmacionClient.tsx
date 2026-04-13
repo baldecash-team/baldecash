@@ -472,9 +472,9 @@ function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
           --color-secondary: #00ffd5 !important;
         }
         .gamer-confirmacion-light {
-          --color-primary: #00b396 !important;
+          --color-primary: #00897a !important;
           --color-primary-rgb: 0,179,150 !important;
-          --color-secondary: #00b396 !important;
+          --color-secondary: #00897a !important;
         }
         .gamer-confirmacion-dark {
           background: #0e0e0e !important;
@@ -526,10 +526,10 @@ function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
         .gamer-confirmacion-dark .border-green-200 { border-color: rgba(0,255,213,0.2) !important; }
 
         .gamer-confirmacion-light .bg-green-500,
-        .gamer-confirmacion-light .bg-green-600 { background: #00b396 !important; }
+        .gamer-confirmacion-light .bg-green-600 { background: #00897a !important; }
         .gamer-confirmacion-light .text-green-500,
         .gamer-confirmacion-light .text-green-600,
-        .gamer-confirmacion-light .text-green-700 { color: #00b396 !important; }
+        .gamer-confirmacion-light .text-green-700 { color: #00897a !important; }
         .gamer-confirmacion-light .bg-green-50,
         .gamer-confirmacion-light .bg-green-100 { background: rgba(0,179,150,0.1) !important; }
         .gamer-confirmacion-light .border-green-100,
@@ -540,9 +540,9 @@ function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
         .gamer-confirmacion-dark .bg-amber-100 { background: rgba(0,255,213,0.12) !important; }
         .gamer-confirmacion-dark .text-amber-600 { color: #00ffd5 !important; }
 
-        .gamer-confirmacion-light .bg-amber-500 { background: #00b396 !important; }
+        .gamer-confirmacion-light .bg-amber-500 { background: #00897a !important; }
         .gamer-confirmacion-light .bg-amber-100 { background: rgba(0,179,150,0.12) !important; }
-        .gamer-confirmacion-light .text-amber-600 { color: #00b396 !important; }
+        .gamer-confirmacion-light .text-amber-600 { color: #00897a !important; }
 
         /* Red (XCircle option) → neon red for demo mode */
         .gamer-confirmacion-dark .bg-red-100,
@@ -561,9 +561,9 @@ function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
           border-color: #00e6c0 !important;
         }
         .gamer-confirmacion-light [class*="bg-[#25D366]"] {
-          background: #00b396 !important;
+          background: #00897a !important;
           color: #ffffff !important;
-          border-color: #00b396 !important;
+          border-color: #00897a !important;
         }
         .gamer-confirmacion-light [class*="bg-[#25D366]"]:hover {
           background: #00997f !important;

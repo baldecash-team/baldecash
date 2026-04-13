@@ -16,11 +16,11 @@ const BRANDS = [
 
 export function GamerBrands({ theme }: GamerBrandsProps) {
   const isDark = theme === 'dark';
-  const neonCyan = isDark ? '#00ffd5' : '#00b396';
+  const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const textMuted = isDark ? '#707070' : '#888';
   const gradient = isDark
-    ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
-    : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)';
+    ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+    : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   // Duplicate brands for seamless carousel
   const carouselBrands = [...BRANDS, ...BRANDS, ...BRANDS, ...BRANDS];

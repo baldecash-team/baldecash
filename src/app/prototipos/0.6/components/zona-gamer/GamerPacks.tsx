@@ -38,8 +38,8 @@ const PACKS: Pack[] = [
     price: 'S/59',
     save: 'Ahorras S/120 vs compra individual',
     color: '#5b9cff',
-    colorLight: '#3b82f6',
-    colorBg: 'rgba(91,156,255,0.1)',
+    colorLight: '#2563eb',
+    colorBg: 'rgba(91,156,255,0.08)',
     popular: false,
   },
   {
@@ -57,9 +57,9 @@ const PACKS: Pack[] = [
     ],
     price: 'S/89',
     save: 'Ahorras S/280 vs compra individual',
-    color: '#b87aff',
-    colorLight: '#a855f7',
-    colorBg: 'rgba(184,122,255,0.1)',
+    color: '#818cf8',
+    colorLight: '#6366f1',
+    colorBg: 'rgba(99,102,241,0.1)',
     popular: true,
   },
   {
@@ -78,9 +78,9 @@ const PACKS: Pack[] = [
     ],
     price: 'S/119',
     save: 'Ahorras S/450 vs compra individual',
-    color: '#f5b070',
-    colorLight: '#e69500',
-    colorBg: 'rgba(245,176,112,0.1)',
+    color: '#00ffd5',
+    colorLight: '#00897a',
+    colorBg: 'rgba(0,255,213,0.08)',
     popular: false,
     imgPad: 0,
   },
@@ -93,14 +93,14 @@ interface GamerPacksProps {
 
 export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
   const isDark = theme === 'dark';
-  const neonCyan = isDark ? '#00ffd5' : '#00b396';
+  const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#6366f1' : '#4f46e5';
   const border = isDark ? '#2a2a2a' : '#e0e0e0';
   const bgCard = isDark ? '#1a1a1a' : '#ffffff';
   const textMuted = isDark ? '#707070' : '#888';
   const gradient = isDark
-    ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
-    : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)';
+    ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+    : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   return (
     <section className="py-[60px]" id="catalogo">
@@ -160,6 +160,32 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
         >
           {PACKS.map((pack, i) => {
             const accent = isDark ? pack.color : pack.colorLight;
+            const isStarter = pack.name === 'STARTER';
+            const isElite = pack.name === 'ELITE';
+
+            // Card border: solo PRO tiene borde de color
+            const cardBorder = pack.popular
+              ? `2px solid ${accent}`
+              : `1px solid ${border}`;
+
+            // Card bg: solo PRO tiene tint
+            const cardBg = pack.popular
+              ? (isDark ? '#1a1530' : '#f5f3ff')
+              : bgCard;
+
+            // Buttons: PRO solid (destaca), STARTER y ELITE outline (sutiles)
+            const btnStyle = pack.popular
+              ? {
+                  background: isDark ? '#818cf8' : '#6366f1',
+                  color: '#fff',
+                  border: 'none',
+                }
+              : {
+                  background: 'none',
+                  color: accent,
+                  border: `1px solid ${accent}`,
+                };
+
             return (
               <motion.div
                 key={pack.name}
@@ -169,17 +195,17 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                 transition={{ delay: i * 0.1 }}
                 className="relative rounded-2xl overflow-hidden flex flex-col text-center transition-all hover:-translate-y-1.5"
                 style={{
-                  background: bgCard,
-                  border: `1px solid ${pack.popular ? accent : border}`,
+                  background: cardBg,
+                  border: cardBorder,
                   padding: '32px 24px',
                   borderRadius: 16,
                 }}
               >
-                {/* Popular top bar */}
+                {/* Popular: solid purple top bar + badge */}
                 {pack.popular && (
                   <>
                     <div className="absolute top-0 left-0 right-0 h-[3px]"
-                      style={{ background: `linear-gradient(90deg, ${accent}, #82e2d2)` }} />
+                      style={{ background: accent }} />
                     <div
                       className="absolute top-3.5 right-3.5"
                       style={{
@@ -194,9 +220,9 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                   </>
                 )}
 
+
                 {/* pack-card-img-wrap */}
                 <div className="w-full overflow-hidden" style={{ borderRadius: '12px 12px 0 0', margin: '0 -24px 0', width: 'calc(100% + 48px)' }}>
-                  {/* Dark image */}
                   <Image
                     src={pack.imgDark}
                     alt={pack.name}
@@ -205,7 +231,6 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                     className="w-full block"
                     style={{ height: 200, objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'block' : 'none' }}
                   />
-                  {/* Light image */}
                   <Image
                     src={pack.imgLight}
                     alt={pack.name}
@@ -238,7 +263,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                 <div style={{ marginBottom: 20 }}>
                   <span style={{
                     fontFamily: "'Orbitron', sans-serif", fontSize: 32, fontWeight: 800,
-                    color: isDark ? accent : accent,
+                    color: accent,
                   }}>
                     {pack.price}
                   </span>
@@ -248,7 +273,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                 {/* pack-divider */}
                 <div className="mx-0 my-4" style={{
                   height: 1,
-                  background: `linear-gradient(90deg, transparent, ${border}, transparent)`,
+                  background: `linear-gradient(90deg, transparent, ${accent}40, transparent)`,
                 }} />
 
                 {/* pack-items */}
@@ -270,11 +295,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                     fontFamily: "'Barlow Condensed', sans-serif",
                     fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase',
                     padding: 12, borderRadius: 8,
-                    background: pack.popular
-                      ? `linear-gradient(135deg, ${accent}, #82e2d2)`
-                      : 'none',
-                    color: pack.popular ? '#fff' : (isDark ? '#a0a0a0' : '#555'),
-                    border: pack.popular ? 'none' : `1px solid ${border}`,
+                    ...btnStyle,
                   }}
                 >
                   Lo quiero
@@ -304,16 +325,27 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
         <div className="text-center mt-10">
           <a
             href={catalogUrl}
-            className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-white no-underline font-bold text-[17px] transition-opacity hover:opacity-[0.88]"
+            className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl no-underline font-bold text-[17px] transition-all duration-300"
             style={{
               fontFamily: "'Rajdhani', sans-serif",
-              background: `linear-gradient(90deg, ${neonPurple}, ${neonCyan})`,
+              background: 'none',
+              color: isDark ? '#e0e0e0' : '#333',
+              border: `1px solid ${isDark ? '#444' : '#ccc'}`,
+              animation: 'catalogPulse 2.5s ease-in-out infinite',
             }}
           >
+            <style>{`
+              @keyframes catalogPulse {
+                0%, 100% { box-shadow: 0 0 0 0 ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}; }
+                50% { box-shadow: 0 0 16px 4px ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}; border-color: ${isDark ? '#666' : '#999'}; }
+              }
+            `}</style>
             Ver catálogo completo
-            <ArrowRight className="w-[18px] h-[18px]" />
+            <ArrowRight className="w-[18px] h-[18px] transition-transform duration-300 group-hover:translate-x-1" />
           </a>
         </div>
+
+
       </div>
     </section>
   );

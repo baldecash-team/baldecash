@@ -27,7 +27,7 @@ function gamerTheme(isDark: boolean) {
     bg: isDark ? '#0e0e0e' : '#f5f5f5',
     bgCard: isDark ? '#1a1a1a' : '#ffffff',
     bgSurface: isDark ? '#1e1e1e' : '#f0f0f0',
-    neonCyan: isDark ? '#00ffd5' : '#00b396',
+    neonCyan: isDark ? '#00ffd5' : '#00897a',
     neonPurple: isDark ? '#6366f1' : '#4f46e5',
     neonRed: '#ff0055',
     border: isDark ? '#2a2a2a' : '#e0e0e0',
@@ -223,7 +223,7 @@ function DetailContent() {
   const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,179,150,${a})`;
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gamer-bg-card': T.bgCard, '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)' } as React.CSSProperties}>
+    <div style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gamer-bg-card': T.bgCard, '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)' } as React.CSSProperties}>
       <style>{FONTS_CSS}</style>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -269,10 +269,8 @@ function DetailContent() {
           object-fit: contain;
         }
         .btn-loquiero-detalle {
-          position: relative;
-          overflow: hidden;
-          background: var(--gradient-cyber, linear-gradient(135deg, #6366f1 0%, #82e2d2 100%));
-          color: #fff;
+          background: var(--gamer-cyan, #00ffd5);
+          color: #0a0a0a;
           border: none;
           border-radius: 12px;
           font-family: 'Rajdhani', sans-serif;
@@ -281,19 +279,7 @@ function DetailContent() {
           cursor: pointer;
           transition: all 0.3s;
         }
-        .btn-loquiero-detalle::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-          transition: left 0.5s;
-        }
-        .btn-loquiero-detalle:hover::before {
-          left: 100%;
-        }
+        .btn-loquiero-detalle:hover { filter: brightness(0.9); }
         .spec-card {
           position: relative;
           background: var(--gamer-bg-card, #1a1a1a);
@@ -385,11 +371,11 @@ function DetailContent() {
             {/* Gallery header: brand + rating + title + specs line */}
             <div style={{ padding: '20px 20px 0', position: 'relative', zIndex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <span style={{ padding: '6px 12px', background: T.neonCyan, color: '#fff', fontSize: 14, fontWeight: 700, borderRadius: 8 }}>{product.brand}</span>
+                <span style={{ padding: '6px 12px', background: T.neonPurple, color: '#fff', fontSize: 14, fontWeight: 700, borderRadius: 8 }}>{product.brand}</span>
                 {/* Rating solo si el backend trae reviews reales */}
                 {product.rating != null && product.reviewCount > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Star size={20} style={{ color: '#fbbf24', fill: '#fbbf24' }} />
+                    <Star size={20} style={{ color: '#00ffd5', fill: '#00ffd5' }} />
                     <span style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary }}>{product.rating}</span>
                     <span style={{ fontSize: 14, color: T.textMuted }}>({product.reviewCount})</span>
                   </div>

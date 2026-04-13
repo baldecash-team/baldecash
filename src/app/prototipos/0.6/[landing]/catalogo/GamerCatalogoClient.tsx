@@ -80,6 +80,8 @@ import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '.
 
 // Zona Gamer components
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerAccessories } from '@/app/prototipos/0.6/components/zona-gamer/GamerAccessories';
+import { useToast } from '@/app/prototipos/_shared';
 
 // ============================================
 // Theme helpers
@@ -90,7 +92,7 @@ function gamerTheme(isDark: boolean) {
     bg: isDark ? '#0e0e0e' : '#f5f5f5',
     bgCard: isDark ? '#1a1a1a' : '#ffffff',
     bgSurface: isDark ? '#1e1e1e' : '#f0f0f0',
-    neonCyan: isDark ? '#00ffd5' : '#00b396',
+    neonCyan: isDark ? '#00ffd5' : '#00897a',
     neonPurple: isDark ? '#6366f1' : '#4f46e5',
     neonRed: '#ff0055',
     border: isDark ? '#2a2a2a' : '#e0e0e0',
@@ -100,16 +102,17 @@ function gamerTheme(isDark: boolean) {
   };
 }
 
-// Badge color mapping - semitransparent bg with colored border (matching HTML design)
+// Badge color mapping — paleta consolidada: cyan (primario), purple (secundario), red (funcional)
+// Eliminados: naranja, verde, amber. Solo 3 colores + neutro.
 const BADGE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  recomendado: { bg: 'rgba(168,85,247,0.2)', text: '#b87aff', border: 'rgba(168,85,247,0.55)' },
-  mas_vendido: { bg: 'rgba(240,160,96,0.2)', text: '#f5b070', border: 'rgba(240,160,96,0.55)' },
-  oferta: { bg: 'rgba(255,0,64,0.2)', text: '#ff3366', border: 'rgba(255,0,64,0.55)' },
-  cuota_baja: { bg: 'rgba(130,226,210,0.2)', text: '#00ffd5', border: 'rgba(130,226,210,0.55)' },
-  nuevo: { bg: 'rgba(34,197,94,0.2)', text: '#4ade80', border: 'rgba(34,197,94,0.55)' },
-  premium: { bg: 'rgba(217,119,6,0.2)', text: '#f5b070', border: 'rgba(217,119,6,0.55)' },
-  destacado: { bg: 'rgba(99,102,241,0.2)', text: '#818cf8', border: 'rgba(99,102,241,0.55)' },
-  economico: { bg: 'rgba(16,185,129,0.2)', text: '#34d399', border: 'rgba(16,185,129,0.55)' },
+  recomendado: { bg: 'rgba(99,102,241,0.2)', text: '#818cf8', border: 'rgba(99,102,241,0.55)' },       // purple
+  mas_vendido: { bg: 'rgba(99,102,241,0.2)', text: '#818cf8', border: 'rgba(99,102,241,0.55)' },       // purple (era naranja)
+  oferta: { bg: 'rgba(255,0,85,0.2)', text: '#ff3366', border: 'rgba(255,0,85,0.55)' },                // red (funcional)
+  cuota_baja: { bg: 'rgba(0,255,213,0.15)', text: '#00ffd5', border: 'rgba(0,255,213,0.4)' },          // cyan
+  nuevo: { bg: 'rgba(0,255,213,0.15)', text: '#00ffd5', border: 'rgba(0,255,213,0.4)' },               // cyan (era verde)
+  premium: { bg: 'rgba(99,102,241,0.2)', text: '#818cf8', border: 'rgba(99,102,241,0.55)' },           // purple (era naranja)
+  destacado: { bg: 'rgba(99,102,241,0.2)', text: '#818cf8', border: 'rgba(99,102,241,0.55)' },         // purple
+  economico: { bg: 'rgba(0,255,213,0.15)', text: '#00ffd5', border: 'rgba(0,255,213,0.4)' },           // cyan (era verde)
 };
 
 // ============================================
@@ -192,14 +195,20 @@ function GamerCatalogoContent() {
 
   // Sidebar sections collapsed state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    tipo: true,
-    destacados: true,
-    marca: true,
+    // Specs primero — lo que más buscan los gamers
+    gpu: true,
+    procesador: true,
+    ram: true,
     cuota: true,
-    gama: true,
+    almacenamiento: true,
+    pantalla: true,
     uso: true,
-    condicion: true,
-    avanzados: false,
+    // Colapsados — menos prioridad para gamers
+    destacados: false,
+    marca: false,
+    tipo: false,
+    condicion: false,
+    gama: true,
   });
 
   // Build API filters
@@ -223,6 +232,9 @@ function GamerCatalogoContent() {
     const specs: Record<string, unknown> = {};
     if (filters.ram.length > 0) specs.ram = filters.ram;
     if (filters.storage.length > 0) specs.storage = filters.storage;
+    if (filters.gpuType.length > 0) specs.gpu = filters.gpuType;
+    if (filters.processorModel.length > 0) specs.processor = filters.processorModel;
+    if (filters.displaySize.length > 0) specs.screen_size = filters.displaySize;
     if (Object.keys(specs).length > 0) af.specs = specs;
     return af;
   }, [filters, searchQuery, landing]);
@@ -273,21 +285,55 @@ function GamerCatalogoContent() {
     cartCount,
     toggleWishlist,
     isInWishlist,
+    wishlist,
+    removeFromWishlist,
+    clearWishlist,
   } = useCatalogSharedState(landing, previewKey);
+
+  // Toast
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Wishlist drawer
+  const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
 
   // Compare
   const [compareList, setCompareList] = useState<CatalogProduct[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showDiffOnly, setShowDiffOnly] = useState(false);
 
+  const getDeviceType = (product: CatalogProduct): string => {
+    return product.deviceType || 'laptop';
+  };
+
   const handleToggleCompare = useCallback((product: CatalogProduct) => {
-    setCompareList(prev => {
-      const exists = prev.find(p => p.id === product.id);
-      if (exists) return prev.filter(p => p.id !== product.id);
-      if (prev.length >= 4) return prev; // max 4
-      return [...prev, product];
-    });
-  }, []);
+    // Si ya está, quitarlo
+    if (compareList.some(p => p.id === product.id)) {
+      setCompareList(prev => prev.filter(p => p.id !== product.id));
+      return;
+    }
+    // Límite
+    if (compareList.length >= 3) return;
+    // Validar mismo tipo de dispositivo
+    if (compareList.length > 0) {
+      const currentDeviceType = getDeviceType(compareList[0]);
+      const newDeviceType = getDeviceType(product);
+      if (currentDeviceType !== newDeviceType) {
+        const deviceTypeLabels: Record<string, string> = {
+          laptop: 'laptops',
+          tablet: 'tablets',
+          celular: 'celulares',
+        };
+        const currentTypeLabel = deviceTypeLabels[currentDeviceType] || currentDeviceType;
+        const newTypeLabel = deviceTypeLabels[newDeviceType] || newDeviceType;
+        showToast(
+          `Solo puedes comparar productos del mismo tipo. Actualmente comparas ${currentTypeLabel}, no puedes agregar ${newTypeLabel}.`,
+          'warning'
+        );
+        return;
+      }
+    }
+    setCompareList(prev => [...prev, product]);
+  }, [compareList, showToast]);
 
   const isInCompare = useCallback((id: string) => compareList.some(p => p.id === id), [compareList]);
 
@@ -372,6 +418,33 @@ function GamerCatalogoContent() {
     });
   }, []);
 
+  const handleGpuToggle = useCallback((gpu: string) => {
+    setFilters((prev) => {
+      const next = (prev.gpuType as string[]).includes(gpu)
+        ? prev.gpuType.filter((g) => g !== gpu)
+        : [...prev.gpuType, gpu as typeof prev.gpuType[number]];
+      return { ...prev, gpuType: next };
+    });
+  }, []);
+
+  const handleProcessorToggle = useCallback((proc: string) => {
+    setFilters((prev) => {
+      const next = (prev.processorModel as string[]).includes(proc)
+        ? prev.processorModel.filter((p) => p !== proc)
+        : [...prev.processorModel, proc as typeof prev.processorModel[number]];
+      return { ...prev, processorModel: next };
+    });
+  }, []);
+
+  const handleScreenSizeToggle = useCallback((size: number) => {
+    setFilters((prev) => {
+      const next = prev.displaySize.includes(size)
+        ? prev.displaySize.filter((s) => s !== size)
+        : [...prev.displaySize, size];
+      return { ...prev, displaySize: next };
+    });
+  }, []);
+
   const handleQuotaRangeChange = useCallback((min: number, max: number) => {
     setFilters((prev) => ({ ...prev, quotaRange: [min, max] }));
   }, []);
@@ -440,6 +513,9 @@ function GamerCatalogoContent() {
     count += filters.tags.length;
     count += filters.ram.length;
     count += filters.storage.length;
+    count += filters.gpuType.length;
+    count += filters.processorModel.length;
+    count += filters.displaySize.length;
     if (searchQuery.trim()) count += 1;
     return count;
   }, [filters, searchQuery]);
@@ -496,6 +572,7 @@ function GamerCatalogoContent() {
         navbarItems={navbarProps?.navbarItems || []}
         customerPortalUrl={navbarProps?.customerPortalUrl}
         portalButtonText={navbarProps?.portalButtonText}
+        onOpenWishlist={() => setIsWishlistDrawerOpen(true)}
       />
 
       {/* ====== SECONDARY NAV ====== */}
@@ -575,57 +652,150 @@ function GamerCatalogoContent() {
 
           {/* Actions: favorites + cart */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Favorites */}
-            <button
-              style={{
-                width: 40, height: 40, borderRadius: 12,
-                background: T.bgSurface, border: `1px solid ${T.border}`,
-                color: isDark ? '#fff' : '#555', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.3s', position: 'relative',
-              }}
-              title="Favoritos"
-            >
-              <Heart className="w-5 h-5" />
-              {wishlistCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -5, right: -5,
-                  minWidth: 18, height: 18, borderRadius: '50%',
-                  background: '#ff0055', color: '#fff',
-                  fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
+            {/* Favorites with dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setIsWishlistDrawerOpen(prev => !prev)}
+                style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: T.bgSurface, border: `1px solid ${T.border}`,
+                  color: isDark ? '#fff' : '#555', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
-                }}>
-                  {wishlistCount}
-                </span>
-              )}
-            </button>
+                  transition: 'all 0.3s', position: 'relative',
+                }}
+                title="Favoritos"
+              >
+                <Heart className="w-5 h-5" />
+                {wishlistCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -5, right: -5,
+                    minWidth: 18, height: 18, borderRadius: '50%',
+                    background: '#ff0055', color: '#fff',
+                    fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
+                  }}>
+                    {wishlistCount}
+                  </span>
+                )}
+              </button>
 
-            {/* Cart */}
-            <button
-              style={{
-                width: 40, height: 40, borderRadius: 12,
-                background: T.bgSurface, border: `1px solid ${T.border}`,
-                color: isDark ? '#fff' : '#555', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.3s', position: 'relative',
-              }}
-              title="Carrito"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {cartCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -5, right: -5,
-                  minWidth: 18, height: 18, borderRadius: '50%',
-                  background: '#ff0055', color: '#fff',
-                  fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
-                }}>
-                  {cartCount}
-                </span>
+              {/* Wishlist dropdown */}
+              {isWishlistDrawerOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 40 }}
+                    onClick={() => setIsWishlistDrawerOpen(false)}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute', top: '100%', right: 0, marginTop: 8,
+                      width: 320, zIndex: 50, borderRadius: 12, overflow: 'hidden',
+                      background: isDark ? '#1a1a1a' : '#fff',
+                      border: `1px solid ${isDark ? '#2a2a2a' : '#e5e5e5'}`,
+                      boxShadow: isDark
+                        ? '0 8px 32px rgba(0,0,0,0.5)'
+                        : '0 8px 32px rgba(0,0,0,0.12)',
+                    }}
+                  >
+                    {/* Header */}
+                    <div style={{
+                      padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      borderBottom: `1px solid ${isDark ? '#2a2a2a' : '#f0f0f0'}`,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Heart className="w-4 h-4" style={{ color: T.neonCyan, fill: T.neonCyan }} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: isDark ? '#e0e0e0' : '#333' }}>
+                          Mis favoritos ({wishlistCount})
+                        </span>
+                      </div>
+                      {wishlistCount > 0 && (
+                        <button
+                          onClick={() => clearWishlist()}
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: 12, color: isDark ? '#666' : '#999',
+                          }}
+                        >
+                          Limpiar
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Items */}
+                    <div style={{ maxHeight: 280, overflowY: 'auto', padding: 12 }}>
+                      {wishlist.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '24px 16px', color: isDark ? '#555' : '#999', fontSize: 13 }}>
+                          Aún no tienes favoritos
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {wishlist.map((item) => (
+                            <div
+                              key={item.productId}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 12, padding: 8, borderRadius: 8,
+                                background: isDark ? '#222' : '#f9f9f9',
+                              }}
+                            >
+                              <div
+                                onClick={() => {
+                                  const prod = products.find(p => p.id === item.productId);
+                                  if (prod) router.push(routes.producto(landing, prod.slug));
+                                  setIsWishlistDrawerOpen(false);
+                                }}
+                                style={{
+                                  width: 48, height: 48, borderRadius: 8, flexShrink: 0,
+                                  background: isDark ? '#2a2a2a' : '#fff',
+                                  border: `1px solid ${isDark ? '#333' : '#e5e5e5'}`,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  overflow: 'hidden', cursor: 'pointer',
+                                }}
+                              >
+                                <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: 11, color: isDark ? '#666' : '#999', textTransform: 'uppercase', margin: 0 }}>{item.brand}</p>
+                                <p
+                                  onClick={() => {
+                                    const prod = products.find(p => p.id === item.productId);
+                                    if (prod) router.push(routes.producto(landing, prod.slug));
+                                    setIsWishlistDrawerOpen(false);
+                                  }}
+                                  style={{
+                                    fontSize: 13, fontWeight: 500, color: isDark ? '#e0e0e0' : '#333',
+                                    margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer',
+                                  }}
+                                >
+                                  {item.name}
+                                </p>
+                                <p style={{ fontSize: 13, fontWeight: 700, color: T.neonCyan, margin: '2px 0 0' }}>
+                                  S/{Math.floor(item.monthlyPayment)}/mes
+                                  <span style={{ fontSize: 11, fontWeight: 400, color: isDark ? '#666' : '#999', marginLeft: 4 }}>
+                                    x {item.months} meses
+                                  </span>
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => removeFromWishlist(item.productId)}
+                                style={{
+                                  background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8,
+                                  color: isDark ? '#555' : '#ccc', display: 'flex',
+                                }}
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
-            </button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -669,8 +839,8 @@ function GamerCatalogoContent() {
             <span
               style={{
                 backgroundImage: isDark
-                  ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
-                  : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)',
+                  ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+                  : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -698,9 +868,7 @@ function GamerCatalogoContent() {
             position: 'sticky',
             top: 130,
             maxHeight: 'calc(100vh - 150px)',
-            overflowY: 'auto',
-            scrollbarWidth: 'thin',
-            scrollbarColor: `${T.border} transparent`,
+            overflow: 'hidden',
           }}
         >
           <GamerSidebar
@@ -720,6 +888,9 @@ function GamerCatalogoContent() {
             onTagToggle={handleTagToggle}
             onRamToggle={handleRamToggle}
             onStorageToggle={handleStorageToggle}
+            onGpuToggle={handleGpuToggle}
+            onProcessorToggle={handleProcessorToggle}
+            onScreenSizeToggle={handleScreenSizeToggle}
             onQuotaRangeChange={handleQuotaRangeChange}
             onClearFilters={handleClearFilters}
             activeFilterCount={activeFilterCount}
@@ -786,6 +957,9 @@ function GamerCatalogoContent() {
                   onTagToggle={handleTagToggle}
                   onRamToggle={handleRamToggle}
                   onStorageToggle={handleStorageToggle}
+                  onGpuToggle={handleGpuToggle}
+                  onProcessorToggle={handleProcessorToggle}
+                  onScreenSizeToggle={handleScreenSizeToggle}
                   onQuotaRangeChange={handleQuotaRangeChange}
                   onClearFilters={handleClearFilters}
                   activeFilterCount={activeFilterCount}
@@ -956,6 +1130,86 @@ function GamerCatalogoContent() {
         </main>
       </div>
 
+      {/* ====== GAMER TOAST ====== */}
+      {toast && isToastVisible && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 94,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 20px',
+            borderRadius: 12,
+            maxWidth: 420,
+            background: isDark ? '#1a1a1a' : '#ffffff',
+            border: `1px solid ${
+              toast.type === 'warning'
+                ? (isDark ? 'rgba(245,158,11,0.3)' : 'rgba(245,158,11,0.5)')
+                : toast.type === 'error'
+                  ? (isDark ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.5)')
+                  : (isDark ? T.border : '#e5e5e5')
+            }`,
+            boxShadow: isDark
+              ? '0 8px 32px rgba(0,0,0,0.5)'
+              : '0 8px 32px rgba(0,0,0,0.12)',
+            fontFamily: "'Rajdhani', sans-serif",
+            animation: 'fadeInUp 0.25s ease-out',
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              background: toast.type === 'warning'
+                ? (isDark ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)')
+                : toast.type === 'error'
+                  ? (isDark ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.1)')
+                  : (isDark ? 'rgba(0,255,213,0.1)' : 'rgba(0,137,122,0.1)'),
+              color: toast.type === 'warning'
+                ? '#f59e0b'
+                : toast.type === 'error'
+                  ? '#ef4444'
+                  : T.neonCyan,
+            }}
+          >
+            {toast.type === 'warning' ? '⚠' : toast.type === 'error' ? '✕' : '✓'}
+          </div>
+          <p style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: isDark ? '#e0e0e0' : '#333',
+            margin: 0,
+            lineHeight: 1.4,
+          }}>
+            {toast.message}
+          </p>
+          <button
+            onClick={hideToast}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: isDark ? '#555' : '#aaa',
+              padding: 4,
+              display: 'flex',
+              flexShrink: 0,
+              marginLeft: 4,
+            }}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* ====== FLOATING COMPARE BAR ====== */}
       {compareList.length > 0 && !showCompareModal && (
         <div
@@ -1096,11 +1350,20 @@ function GamerCatalogoContent() {
           onToggleDiffOnly={() => setShowDiffOnly(prev => !prev)}
           onClose={() => setShowCompareModal(false)}
           onRemove={(id) => setCompareList(prev => prev.filter(p => p.id !== id))}
+          onClearAll={() => { setCompareList([]); setShowCompareModal(false); }}
+          onSelectProduct={(product) => {
+            router.push(`/prototipos/0.6/${landing}/solicitar/?product=${product.slug}`);
+            setShowCompareModal(false);
+          }}
         />
       )}
 
+      {/* ====== ACCESORIOS GAMING ====== */}
+      <GamerAccessories theme={theme} />
+
       {/* ====== FOOTER ====== */}
       <GamerFooter theme={theme} />
+
     </div>
   );
 }
@@ -1183,6 +1446,7 @@ function GamerCatalogHeader({
   navbarItems,
   customerPortalUrl,
   portalButtonText,
+  onOpenWishlist,
 }: {
   isDark: boolean;
   T: ReturnType<typeof gamerTheme>;
@@ -1196,7 +1460,13 @@ function GamerCatalogHeader({
   navbarItems: { label: string; href: string; section: string | null; has_megamenu?: boolean; badge_text?: string }[];
   customerPortalUrl?: string;
   portalButtonText?: string;
+  onOpenWishlist?: () => void;
 }) {
+  // Hydration guard: navbarItems llega vacío en SSR (useLayout fetchea en client).
+  // Solo renderizamos los links después del mount para evitar mismatch.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   // Navbar items vienen del backend (layout.navbar.content_config.items).
   // Normalizamos los href: si es relativo (ej. 'catalogo') lo componemos con el landing
   const navLinks = navbarItems.map((item) => {
@@ -1237,12 +1507,12 @@ function GamerCatalogHeader({
           style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
         >
           <Image
-            src={isDark ? '/images/zona-gamer/logo-dark.png' : '/images/zona-gamer/logo-light.png'}
+            src="/images/zona-gamer/logo baldecash/LOGO OFI.png"
             alt="BaldeCash"
-            width={100}
-            height={25}
+            width={140}
+            height={32}
             className="object-contain"
-            style={{ height: 25 }}
+            style={{ height: 30 }}
           />
           <span
             style={{
@@ -1263,12 +1533,12 @@ function GamerCatalogHeader({
         </a>
       </div>
 
-      {/* Center: Nav links */}
+      {/* Nav links ocultos en catálogo — no aplican fuera del landing */}
       <nav
-        className="hidden md:flex"
+        className="hidden"
         style={{ alignItems: 'center', gap: 28 }}
       >
-        {navLinks.map((link) => (
+        {mounted && navLinks.map((link) => (
           <a
             key={link.label}
             href={link.href}
@@ -1308,7 +1578,7 @@ function GamerCatalogHeader({
       {/* Right: Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         {/* Customer portal button (desde layout.company.customer_portal_url) */}
-        {customerPortalUrl && (
+        {mounted && customerPortalUrl && (
           <a
             href={customerPortalUrl}
             target="_blank"
@@ -1405,6 +1675,9 @@ function GamerSidebar({
   onTagToggle,
   onRamToggle,
   onStorageToggle,
+  onGpuToggle,
+  onProcessorToggle,
+  onScreenSizeToggle,
   onQuotaRangeChange,
   onClearFilters,
   activeFilterCount,
@@ -1426,6 +1699,9 @@ function GamerSidebar({
   onTagToggle: (t: string) => void;
   onRamToggle: (r: number) => void;
   onStorageToggle: (s: number) => void;
+  onGpuToggle: (g: string) => void;
+  onProcessorToggle: (p: string) => void;
+  onScreenSizeToggle: (s: number) => void;
   onQuotaRangeChange: (min: number, max: number) => void;
   onClearFilters: () => void;
   activeFilterCount: number;
@@ -1444,15 +1720,16 @@ function GamerSidebar({
     { value: 'economica', label: 'Económica', color: T.textSecondary, chipBg: 'rgba(136,136,170,0.18)', chipBorder: 'rgba(136,136,170,0.5)', chipShadow: 'rgba(136,136,170,0.1)' },
     { value: 'estudiante', label: 'Estudiante', color: '#5b9cff', chipBg: 'rgba(59,130,246,0.18)', chipBorder: 'rgba(59,130,246,0.5)', chipShadow: 'rgba(59,130,246,0.1)' },
     { value: 'profesional', label: 'Profesional', color: '#3de876', chipBg: 'rgba(34,197,94,0.18)', chipBorder: 'rgba(34,197,94,0.5)', chipShadow: 'rgba(34,197,94,0.1)' },
-    { value: 'creativa', label: 'Creativa', color: '#b87aff', chipBg: 'rgba(168,85,247,0.18)', chipBorder: 'rgba(168,85,247,0.5)', chipShadow: 'rgba(168,85,247,0.1)' },
+    { value: 'creativa', label: 'Creativa', color: '#818cf8', chipBg: 'rgba(99,102,241,0.18)', chipBorder: 'rgba(99,102,241,0.5)', chipShadow: 'rgba(99,102,241,0.1)' },
     { value: 'gamer', label: 'Gamer', color: '#ff3366', chipBg: 'rgba(255,0,64,0.18)', chipBorder: 'rgba(255,0,64,0.5)', chipShadow: 'rgba(255,0,64,0.1)' },
   ];
 
+  // Paleta consolidada: red (oferta), purple (destacados), cyan (beneficio)
   const destacadosOptions: { value: string; label: string; color: string; chipBg: string; chipBorder: string; chipShadow: string }[] = [
-    { value: 'oferta', label: 'Oferta', color: '#ff3366', chipBg: 'rgba(255,0,64,0.18)', chipBorder: 'rgba(255,0,64,0.5)', chipShadow: 'rgba(255,0,64,0.1)' },
-    { value: 'mas_vendido', label: 'Más vendido', color: '#f5b070', chipBg: 'rgba(240,160,96,0.18)', chipBorder: 'rgba(240,160,96,0.5)', chipShadow: 'rgba(240,160,96,0.1)' },
-    { value: 'recomendado', label: 'Recomendado', color: '#b87aff', chipBg: 'rgba(168,85,247,0.18)', chipBorder: 'rgba(168,85,247,0.5)', chipShadow: 'rgba(168,85,247,0.1)' },
-    { value: 'cuota_baja', label: 'Cuota baja', color: T.neonCyan, chipBg: 'rgba(130,226,210,0.18)', chipBorder: 'rgba(130,226,210,0.5)', chipShadow: 'rgba(130,226,210,0.1)' },
+    { value: 'oferta', label: 'Oferta', color: '#ff3366', chipBg: 'rgba(255,0,85,0.18)', chipBorder: 'rgba(255,0,85,0.5)', chipShadow: 'rgba(255,0,85,0.1)' },
+    { value: 'mas_vendido', label: 'Más vendido', color: '#818cf8', chipBg: 'rgba(99,102,241,0.18)', chipBorder: 'rgba(99,102,241,0.5)', chipShadow: 'rgba(99,102,241,0.1)' },
+    { value: 'recomendado', label: 'Recomendado', color: '#818cf8', chipBg: 'rgba(99,102,241,0.18)', chipBorder: 'rgba(99,102,241,0.5)', chipShadow: 'rgba(99,102,241,0.1)' },
+    { value: 'cuota_baja', label: 'Cuota baja', color: T.neonCyan, chipBg: 'rgba(0,255,213,0.12)', chipBorder: 'rgba(0,255,213,0.4)', chipShadow: 'rgba(0,255,213,0.1)' },
   ];
 
   const usoOptions: { value: string; label: string; icon: React.ReactNode }[] = [
@@ -1509,6 +1786,10 @@ function GamerSidebar({
         borderRadius: 14,
         padding: 20,
         boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+        maxHeight: 'calc(100vh - 170px)',
+        overflowY: 'auto',
+        scrollbarWidth: 'thin',
+        scrollbarColor: `${T.border} transparent`,
       }}
     >
       {/* Range slider thumb styles (can't be done inline) */}
@@ -1624,22 +1905,22 @@ function GamerSidebar({
         </select>
       </div>
 
-      {/* ======= 1. Tipo de equipo ======= */}
-      {apiFilters?.types && apiFilters.types.length > 0 && (
-        <FilterSection title="Tipo de equipo" T={T} expanded={expandedSections.tipo !== false} onToggle={() => onToggleSection('tipo')}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {apiFilters.types.map((t) => {
-              const isActive = (filters.deviceTypes as string[]).includes(t.value);
-              const Icon = t.value === 'laptop' ? Laptop : t.value === 'tablet' ? Tablet : t.value === 'celular' ? Smartphone : Package;
+      {/* =====================================================================
+          NUEVO ORDEN DE FILTROS (optimizado para gamers — specs primero)
+          Toda la data viene de apiFilters (backend). Solo cambia el ORDEN.
+          ===================================================================== */}
+
+      {/* ======= 1. GPU / Tarjeta Gráfica ======= */}
+      {apiFilters?.specs?.gpu && apiFilters.specs.gpu.values.length > 0 && (
+        <FilterSection title="GPU / Tarjeta Gráfica" T={T} expanded={expandedSections.gpu !== false} onToggle={() => onToggleSection('gpu')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {apiFilters.specs.gpu.values.map((val) => {
+              const isActive = (filters.gpuType as string[]).includes(String(val.value));
               return (
-                <button
-                  key={t.value}
-                  onClick={() => onDeviceTypeToggle(t.value)}
-                  style={gridItemStyle(isActive)}
-                >
-                  <Icon size={24} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }} />
-                  <span style={gridLabelStyle(isActive)}>{t.label}</span>
-                  <span style={gridCountStyle}>{t.count} equipo{t.count !== 1 ? 's' : ''}</span>
+                <button key={String(val.value)} onClick={() => onGpuToggle(String(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><Zap size={18} /></span>
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
+                  <span style={gridCountStyle}>{val.count} equipo{val.count !== 1 ? 's' : ''}</span>
                 </button>
               );
             })}
@@ -1647,99 +1928,35 @@ function GamerSidebar({
         </FilterSection>
       )}
 
-      {/* ======= 2. Destacados ======= */}
-      {apiFilters?.labels && apiFilters.labels.length > 0 && (
-        <FilterSection title="Destacados" T={T} expanded={expandedSections.destacados !== false} onToggle={() => onToggleSection('destacados')}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {apiFilters.labels.map((lbl) => {
-              const isActive = (filters.tags as string[]).includes(lbl.code);
-              const preset = destacadosOptions.find((o) => o.value === lbl.code);
-              const chipBg = preset?.chipBg || `${lbl.color}22`;
-              const chipBorder = preset?.chipBorder || `${lbl.color}99`;
-              const chipShadow = preset?.chipShadow || `${lbl.color}33`;
-              const color = preset?.color || lbl.color;
+      {/* ======= 2. Procesador (CPU) ======= */}
+      {apiFilters?.specs?.processor && apiFilters.specs.processor.values.length > 0 && (
+        <FilterSection title="Procesador" T={T} expanded={expandedSections.procesador !== false} onToggle={() => onToggleSection('procesador')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {apiFilters.specs.processor.values.map((val) => {
+              const isActive = (filters.processorModel as string[]).includes(String(val.value));
               return (
-                <span
-                  key={lbl.code}
-                  onClick={() => onTagToggle(lbl.code)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '5px 12px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    border: `1px solid ${isActive ? T.neonCyan : chipBorder}`,
-                    letterSpacing: 0.3,
-                    background: chipBg,
-                    color,
-                    boxShadow: isActive ? `0 0 12px rgba(0,255,213,0.3)` : `0 0 6px ${chipShadow}`,
-                    fontFamily: "'Rajdhani', sans-serif",
-                  }}
-                >
-                  {lbl.name}
-                  <span style={{ opacity: 0.7, fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }}>({lbl.count})</span>
-                </span>
+                <button key={String(val.value)} onClick={() => onProcessorToggle(String(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><Cpu size={18} /></span>
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
+                  <span style={gridCountStyle}>{val.count} equipo{val.count !== 1 ? 's' : ''}</span>
+                </button>
               );
             })}
           </div>
         </FilterSection>
       )}
 
-      {/* ======= 3. Marca ======= */}
-      {apiFilters?.brands && apiFilters.brands.length > 0 && (
-        <FilterSection title="Marca" T={T} expanded={expandedSections.marca !== false} onToggle={() => onToggleSection('marca')}>
+      {/* ======= 3. RAM ======= */}
+      {apiFilters?.specs?.ram && apiFilters.specs.ram.values.length > 0 && (
+        <FilterSection title="RAM" T={T} expanded={expandedSections.ram !== false} onToggle={() => onToggleSection('ram')}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-            {apiFilters.brands.map((brand) => {
-              const isActive = filters.brands.includes(brand.slug);
+            {apiFilters.specs.ram.values.map((val) => {
+              const isActive = filters.ram.some((v) => v === val.value);
               return (
-                <button
-                  key={brand.id}
-                  onClick={() => onBrandToggle(brand.slug)}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 4,
-                    padding: '10px 4px',
-                    border: `2px solid ${isActive ? T.neonCyan : T.border}`,
-                    borderRadius: 10,
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    background: isActive ? 'rgba(0,255,213,0.06)' : T.bgCard,
-                    boxShadow: isActive ? '0 0 12px rgba(0,255,213,0.2)' : 'none',
-                    minHeight: 68,
-                  }}
-                >
-                  <Image
-                    src={brand.logo_url || `/img/logos/${brand.slug}.svg`}
-                    alt={brand.name}
-                    width={48}
-                    height={24}
-                    style={{
-                      maxWidth: 48,
-                      maxHeight: 24,
-                      objectFit: 'contain',
-                      borderRadius: 4,
-                      opacity: isActive ? 1 : 0.8,
-                      transition: 'all 0.3s',
-                    }}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.parentElement?.insertAdjacentHTML(
-                        'afterbegin',
-                        `<span style="font-size:11px;font-weight:700;color:${isActive ? T.neonCyan : T.textSecondary};font-family:'Barlow Condensed',sans-serif;text-transform:uppercase">${brand.name}</span>`
-                      );
-                    }}
-                  />
-                  <span style={{ fontSize: 10, color: isActive ? T.neonCyan : T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
-                    {brand.name} ({brand.count})
-                  </span>
+                <button key={String(val.value)} onClick={() => onRamToggle(Number(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><MemoryStick size={18} /></span>
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
+                  <span style={gridCountStyle}>{val.count}</span>
                 </button>
               );
             })}
@@ -1888,7 +2105,43 @@ function GamerSidebar({
       </FilterSection>
       )}
 
-      {/* ======= 5. Gama ======= */}
+      {/* ======= 5. Almacenamiento ======= */}
+      {apiFilters?.specs?.storage && apiFilters.specs.storage.values.length > 0 && (
+        <FilterSection title="Almacenamiento" T={T} expanded={expandedSections.almacenamiento !== false} onToggle={() => onToggleSection('almacenamiento')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+            {apiFilters.specs.storage.values.map((val) => {
+              const isActive = filters.storage.some((v) => v === val.value);
+              return (
+                <button key={String(val.value)} onClick={() => onStorageToggle(Number(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><HardDrive size={18} /></span>
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
+                  <span style={gridCountStyle}>{val.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
+
+      {/* ======= 6. Pantalla ======= */}
+      {apiFilters?.specs?.screen_size && apiFilters.specs.screen_size.values.length > 0 && (
+        <FilterSection title="Pantalla" T={T} expanded={expandedSections.pantalla !== false} onToggle={() => onToggleSection('pantalla')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {apiFilters.specs.screen_size.values.map((val) => {
+              const isActive = filters.displaySize.includes(Number(val.value));
+              return (
+                <button key={String(val.value)} onClick={() => onScreenSizeToggle(Number(val.value))} style={{ ...gridItemStyle(isActive), minHeight: 60, padding: '8px 4px' }}>
+                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}><Monitor size={18} /></span>
+                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
+                  <span style={gridCountStyle}>{val.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
+
+      {/* ======= Gama ======= */}
       {apiFilters?.gamas && apiFilters.gamas.length > 0 && (
         <FilterSection title="Gama" T={T} expanded={expandedSections.gama !== false} onToggle={() => onToggleSection('gama')}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -1990,153 +2243,128 @@ function GamerSidebar({
         </FilterSection>
       )}
 
-      {/* ======= 8. Filtros Avanzados ======= */}
-      <div style={{ borderBottom: `1px solid ${T.border}`, padding: '16px 0' }}>
-        <div style={{ borderTop: `1px solid ${T.border}`, marginTop: 0, paddingTop: 16 }}>
-          <button
-            onClick={() => onToggleSection('avanzados')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%',
-              padding: '8px 0',
-              background: 'none',
-              border: 'none',
-              color: T.textSecondary,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'color 0.3s',
-              fontFamily: "'Rajdhani', sans-serif",
-              letterSpacing: 0.5,
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Settings2 size={16} />
-              Filtros Avanzados
-            </span>
-            <ChevronDown
-              size={16}
-              style={{
-                transition: 'transform 0.3s',
-                transform: expandedSections.avanzados ? 'rotate(180deg)' : 'rotate(0deg)',
-              }}
-            />
-          </button>
+      {/* ======= 8. Destacados (baja de prioridad) ======= */}
+      {apiFilters?.labels && apiFilters.labels.length > 0 && (
+        <FilterSection title="Destacados" T={T} expanded={expandedSections.destacados !== false} onToggle={() => onToggleSection('destacados')}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {apiFilters.labels.map((lbl) => {
+              const isActive = (filters.tags as string[]).includes(lbl.code);
+              const preset = destacadosOptions.find((o) => o.value === lbl.code);
+              const chipBg = preset?.chipBg || `${lbl.color}22`;
+              const chipBorder = preset?.chipBorder || `${lbl.color}99`;
+              const chipShadow = preset?.chipShadow || `${lbl.color}33`;
+              const color = preset?.color || lbl.color;
+              return (
+                <span
+                  key={lbl.code}
+                  onClick={() => onTagToggle(lbl.code)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '5px 12px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    border: `1px solid ${isActive ? T.neonCyan : chipBorder}`,
+                    letterSpacing: 0.3,
+                    background: chipBg,
+                    color,
+                    boxShadow: isActive ? `0 0 12px rgba(0,255,213,0.3)` : `0 0 6px ${chipShadow}`,
+                    fontFamily: "'Rajdhani', sans-serif",
+                  }}
+                >
+                  {lbl.name}
+                  <span style={{ opacity: 0.7, fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }}>({lbl.count})</span>
+                </span>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
-          {expandedSections.avanzados && apiFilters?.specs && (
-            <div style={{ marginTop: 12 }}>
-              {(() => {
-                // Derivar secciones avanzadas desde apiFilters.specs (backend counts)
-                const advSpecMap: { key: string; specKey: string; label: string; icon: React.ReactNode; cols?: number; onToggle?: (v: string | number | boolean) => void; activeValues?: (string | number | boolean)[] }[] = [
-                  { key: 'ram', specKey: 'ram', label: 'RAM', icon: <MemoryStick size={18} />, onToggle: (v) => onRamToggle(Number(v)), activeValues: filters.ram },
-                  { key: 'storage', specKey: 'storage', label: 'Almacenamiento', icon: <HardDrive size={18} />, onToggle: (v) => onStorageToggle(Number(v)), activeValues: filters.storage },
-                  { key: 'screen_size', specKey: 'screen_size', label: 'Tamaño pantalla', icon: <Monitor size={18} />, cols: 3 },
-                  { key: 'screen_resolution', specKey: 'screen_resolution', label: 'Resolución', icon: <Maximize size={18} /> },
-                  { key: 'screen_type', specKey: 'screen_type', label: 'Tipo pantalla', icon: <Layers size={18} /> },
-                  { key: 'processor', specKey: 'processor', label: 'Procesador', icon: <Cpu size={18} /> },
-                ];
-                const availableSections = advSpecMap.filter((s) => {
-                  const spec = apiFilters.specs[s.specKey];
-                  return spec && spec.values && spec.values.length > 0;
-                });
-                return availableSections.map((section, sIdx) => {
-                  const sectionKey = `adv_${section.key}`;
-                  const isExpanded = expandedSections[sectionKey] !== false;
-                  const isLast = sIdx === availableSections.length - 1;
-                  const spec = apiFilters.specs[section.specKey];
-                  return (
-                    <div
-                      key={section.key}
-                      style={{
-                        padding: '12px 0',
-                        borderBottom: isLast ? 'none' : `1px solid ${T.border}`,
-                      }}
-                    >
-                      {/* Sub-section header */}
-                      <button
-                        onClick={() => onToggleSection(sectionKey)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          width: '100%',
-                          padding: 0,
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: T.textSecondary,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: T.textSecondary,
-                            textTransform: 'uppercase',
-                            letterSpacing: 0.5,
-                            transition: 'color 0.3s',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            fontFamily: "'Rajdhani', sans-serif",
-                          }}
-                        >
-                          {section.label}
-                          <Info size={13} style={{ color: T.textMuted, cursor: 'help' }} />
-                        </span>
-                        <ChevronUp
-                          size={16}
-                          style={{
-                            color: T.textMuted,
-                            transition: 'all 0.3s',
-                            transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
-                          }}
-                        />
-                      </button>
+      {/* ======= 9. Marca (colapsado — gamers buscan por specs) ======= */}
+      {apiFilters?.brands && apiFilters.brands.length > 0 && (
+        <FilterSection title="Marca" T={T} expanded={expandedSections.marca !== false} onToggle={() => onToggleSection('marca')}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {apiFilters.brands.map((brand) => {
+              const isActive = filters.brands.includes(brand.slug);
+              return (
+                <button
+                  key={brand.id}
+                  onClick={() => onBrandToggle(brand.slug)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    padding: '10px 4px',
+                    border: `2px solid ${isActive ? T.neonCyan : T.border}`,
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    background: isActive ? 'rgba(0,255,213,0.06)' : T.bgCard,
+                    boxShadow: isActive ? '0 0 12px rgba(0,255,213,0.2)' : 'none',
+                    minHeight: 68,
+                  }}
+                >
+                  <Image
+                    src={brand.logo_url || `/img/logos/${brand.slug}.svg`}
+                    alt={brand.name}
+                    width={48}
+                    height={24}
+                    style={{
+                      maxWidth: 48,
+                      maxHeight: 24,
+                      objectFit: 'contain',
+                      borderRadius: 4,
+                      opacity: isActive ? 1 : 0.8,
+                      transition: 'all 0.3s',
+                    }}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.parentElement?.insertAdjacentHTML(
+                        'afterbegin',
+                        `<span style="font-size:11px;font-weight:700;color:${isActive ? T.neonCyan : T.textSecondary};font-family:'Barlow Condensed',sans-serif;text-transform:uppercase">${brand.name}</span>`
+                      );
+                    }}
+                  />
+                  <span style={{ fontSize: 10, color: isActive ? T.neonCyan : T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
+                    {brand.name} ({brand.count})
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
 
-                      {/* Sub-section content */}
-                      {isExpanded && (
-                        <div style={{ marginTop: 10 }}>
-                          <div
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: `repeat(${section.cols || 2}, 1fr)`,
-                              gap: 8,
-                            }}
-                          >
-                            {spec.values.map((val) => {
-                              const isActive = section.activeValues?.some((v) => v === val.value) || false;
-                              const handleClick = section.onToggle ? () => section.onToggle!(val.value) : undefined;
-                              return (
-                                <button
-                                  key={String(val.value)}
-                                  onClick={handleClick}
-                                  style={{
-                                    ...gridItemStyle(isActive),
-                                    minHeight: 60,
-                                    padding: '8px 4px',
-                                    cursor: handleClick ? 'pointer' : 'default',
-                                  }}
-                                >
-                                  <span style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }}>{section.icon}</span>
-                                  <span style={{ ...gridLabelStyle(isActive), fontSize: 10 }}>{val.display}</span>
-                                  <span style={gridCountStyle}>{val.count} equipo{val.count !== 1 ? 's' : ''}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* ======= 10. Tipo de equipo (colapsado) ======= */}
+      {apiFilters?.types && apiFilters.types.length > 0 && (
+        <FilterSection title="Tipo de equipo" T={T} expanded={expandedSections.tipo !== false} onToggle={() => onToggleSection('tipo')} isLast>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {apiFilters.types.map((t) => {
+              const isActive = (filters.deviceTypes as string[]).includes(t.value);
+              const Icon = t.value === 'laptop' ? Laptop : t.value === 'tablet' ? Tablet : t.value === 'celular' ? Smartphone : Package;
+              return (
+                <button
+                  key={t.value}
+                  onClick={() => onDeviceTypeToggle(t.value)}
+                  style={gridItemStyle(isActive)}
+                >
+                  <Icon size={24} style={{ color: isActive ? T.neonCyan : T.textMuted, transition: 'color 0.3s' }} />
+                  <span style={gridLabelStyle(isActive)}>{t.label}</span>
+                  <span style={gridCountStyle}>{t.count} equipo{t.count !== 1 ? 's' : ''}</span>
+                </button>
+              );
+            })}
+          </div>
+        </FilterSection>
+      )}
     </div>
   );
 }
@@ -2151,15 +2379,17 @@ function FilterSection({
   expanded,
   onToggle,
   children,
+  isLast,
 }: {
   title: string;
   T: ReturnType<typeof gamerTheme>;
   expanded: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  isLast?: boolean;
 }) {
   return (
-    <div style={{ borderBottom: `1px solid ${T.border}`, padding: '16px 0' }}>
+    <div style={{ borderBottom: isLast ? 'none' : `1px solid ${T.border}`, padding: '16px 0' }}>
       <button
         onClick={onToggle}
         style={{
@@ -2638,7 +2868,7 @@ function GamerProductCard({
               backgroundColor: T.neonCyan,
               border: 'none',
               borderRadius: 12,
-              color: isDark ? '#000' : '#fff',
+              color: '#0a0a0a',
               fontSize: 14,
               fontWeight: 700,
               cursor: 'pointer',
@@ -2666,6 +2896,8 @@ function GamerCompareModal({
   onToggleDiffOnly,
   onClose,
   onRemove,
+  onClearAll,
+  onSelectProduct,
 }: {
   products: CatalogProduct[];
   isDark: boolean;
@@ -2674,10 +2906,12 @@ function GamerCompareModal({
   onToggleDiffOnly: () => void;
   onClose: () => void;
   onRemove: (id: string) => void;
+  onClearAll: () => void;
+  onSelectProduct: (product: CatalogProduct) => void;
 }) {
   // Primary color for tints
   const primaryColor = T.neonCyan;
-  const trophyGreen = '#22c55e';
+  const trophyGreen = '#00ffd5'; // cyan — paleta consolidada (era verde)
   const colTint = isDark ? 'rgba(0,255,213,0.05)' : 'rgba(70,84,205,0.05)';
 
   // Extract spec values for comparison
@@ -3142,7 +3376,7 @@ function GamerCompareModal({
                     </div>
                     {/* Lo quiero button */}
                     <button
-                      onClick={onClose}
+                      onClick={() => onSelectProduct(bestProduct)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -3328,7 +3562,7 @@ function GamerCompareModal({
                                     fontSize: 11,
                                     fontFamily: "'Rajdhani', sans-serif",
                                     fontWeight: 600,
-                                    color: '#22c55e',
+                                    color: '#00ffd5',
                                     background: 'rgba(34,197,94,0.1)',
                                     padding: '2px 10px',
                                     borderRadius: 999,
@@ -3338,7 +3572,7 @@ function GamerCompareModal({
                                 </span>
                               )}
                               <button
-                                onClick={onClose}
+                                onClick={() => onSelectProduct(product)}
                                 style={{
                                   height: 28,
                                   padding: '0 14px',
@@ -3674,7 +3908,7 @@ function GamerCompareModal({
             <>
               {/* Trash button (desktop) */}
               <button
-                onClick={() => { onRemove(''); onClose(); }}
+                onClick={onClearAll}
                 className="hidden md:flex"
                 style={{
                   width: 40,
@@ -3743,7 +3977,7 @@ function GamerCompareModal({
 
               {/* Trash button (mobile) */}
               <button
-                onClick={() => { onRemove(''); onClose(); }}
+                onClick={onClearAll}
                 className="flex md:hidden items-center justify-center gap-2 w-full"
                 style={{
                   height: 40,
@@ -3765,7 +3999,7 @@ function GamerCompareModal({
               {/* Best option footer */}
               {/* Trash button (desktop) */}
               <button
-                onClick={() => { onRemove(''); onClose(); }}
+                onClick={onClearAll}
                 className="hidden md:flex"
                 style={{
                   width: 40,
@@ -3787,12 +4021,12 @@ function GamerCompareModal({
               <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-full md:w-auto">
                 {/* Elegir ganador */}
                 <button
-                  onClick={onClose}
+                  onClick={() => onSelectProduct(bestProduct)}
                   className="flex items-center justify-center gap-2 w-full md:w-auto"
                   style={{
                     height: 40,
                     padding: '0 16px',
-                    background: '#22c55e',
+                    background: '#00ffd5',
                     border: 'none',
                     borderRadius: 10,
                     color: '#fff',
@@ -3853,7 +4087,7 @@ function GamerCompareModal({
 
               {/* Trash button (mobile) */}
               <button
-                onClick={() => { onRemove(''); onClose(); }}
+                onClick={onClearAll}
                 className="flex md:hidden items-center justify-center gap-2 w-full"
                 style={{
                   height: 40,

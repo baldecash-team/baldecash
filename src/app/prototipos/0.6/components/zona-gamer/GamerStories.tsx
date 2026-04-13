@@ -30,15 +30,15 @@ const STORIES = [
 
 export function GamerStories({ theme }: GamerStoriesProps) {
   const isDark = theme === 'dark';
-  const neonCyan = isDark ? '#00ffd5' : '#00b396';
+  const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#6366f1' : '#4f46e5';
   const border = isDark ? '#2a2a2a' : '#e0e0e0';
   const bgCard = isDark ? '#1a1a1a' : '#ffffff';
   const textMuted = isDark ? '#707070' : '#888';
   const textSecondary = isDark ? '#a0a0a0' : '#555';
   const gradient = isDark
-    ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
-    : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)';
+    ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+    : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   return (
     <>

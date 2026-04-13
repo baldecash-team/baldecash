@@ -18,13 +18,13 @@ const ACCESSORIES = [
 
 export function GamerAccessories({ theme }: GamerAccessoriesProps) {
   const isDark = theme === 'dark';
-  const neonCyan = isDark ? '#00ffd5' : '#00b396';
+  const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#6366f1' : '#4f46e5';
   const border = isDark ? '#2a2a2a' : '#e0e0e0';
   const bgCard = isDark ? '#1a1a1a' : '#ffffff';
   const gradient = isDark
-    ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
-    : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)';
+    ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+    : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   return (
     <>
@@ -57,10 +57,15 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="mb-4"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(36px, 5vw, 64px)', lineHeight: 1, letterSpacing: 1 }}
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(36px, 5vw, 64px)', lineHeight: 1, letterSpacing: 1, color: isDark ? '#ffffff' : '#1a1a1a' }}
           >
             ACCESORIOS{' '}
-            <span className="accent" style={{ backgroundImage: gradient }}>GAMING</span>
+            <span style={{
+              backgroundImage: gradient,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>GAMING</span>
           </motion.h2>
 
           {/* acc-header-row */}

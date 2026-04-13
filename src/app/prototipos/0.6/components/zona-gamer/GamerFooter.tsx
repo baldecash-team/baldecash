@@ -65,7 +65,7 @@ function TikTokIcon() {
 
 export function GamerFooter({ theme }: GamerFooterProps) {
   const isDark = theme === 'dark';
-  const neonCyan = isDark ? '#00ffd5' : '#00b396';
+  const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#6366f1' : '#4f46e5';
   const bgDark = isDark ? '#141414' : '#eaeaea';
   const border = isDark ? '#2a2a2a' : '#e0e0e0';

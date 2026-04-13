@@ -44,7 +44,7 @@ const SERIES = [
   {
     name: 'LEGION',
     brand: 'LENOVO',
-    color: '#82e2d2',
+    color: '#00ffd5',
     desc: 'Rendimiento sin compromisos para competir al más alto nivel',
     img: '/images/zona-gamer/series/legion.png',
     pos: 'center 60%',
@@ -66,8 +66,8 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
   const bgCard = isDark ? '#1a1a1a' : '#ffffff';
   const textSecondary = isDark ? '#a0a0a0' : '#555';
   const gradient = isDark
-    ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
-    : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)';
+    ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+    : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   const scroll = (dir: number) => {
     if (!scrollRef.current) return;

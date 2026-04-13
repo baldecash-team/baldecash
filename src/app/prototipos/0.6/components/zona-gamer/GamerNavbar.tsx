@@ -11,12 +11,29 @@ interface GamerNavbarProps {
   hideSecondaryBar?: boolean;
 }
 
+const NAV_SECTIONS = [
+  { id: 'catalogo', label: 'Packs Gamer' },
+  { id: 'brands', label: 'Marcas' },
+  { id: 'linea-combate', label: 'Series' },
+  { id: 'games', label: 'Top Games' },
+  { id: 'stories', label: 'Historias Reales' },
+];
+
 export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar }: GamerNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [bannerVisible, setBannerVisible] = useState(true);
 
   const isDark = theme === 'dark';
   const V = cssVars(isDark);
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.pageYOffset - 120;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+    setMobileOpen(false);
+  };
 
   return (
     <>
@@ -86,33 +103,17 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         </div>
 
         {/* header-nav */}
-        <nav className="hidden md:flex items-center" style={{ gap: 28, fontSize: 14, fontWeight: 500 }}>
-          <a
-            href={catalogUrl}
-            className="relative no-underline transition-colors"
-            style={{ color: isDark ? '#fff' : '#333' }}
-          >
-            Equipos
-            <span
-              className="absolute"
-              style={{
-                top: -10,
-                right: -8,
-                fontSize: 10,
-                fontWeight: 700,
-                color: '#fff',
-                background: V.neonCyan,
-                padding: '0 4px',
-                borderRadius: 4,
-                lineHeight: '16px',
-              }}
+        <nav className="hidden md:flex items-center" style={{ gap: 28, fontSize: 14 }}>
+          {NAV_SECTIONS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => scrollTo(item.id)}
+              className="bg-transparent border-none cursor-pointer no-underline transition-colors p-0"
+              style={{ color: isDark ? '#fff' : '#333', fontSize: 14, fontWeight: 400, fontFamily: 'inherit' }}
             >
-              NUEVO
-            </span>
-          </a>
-          <a href="#" className="no-underline transition-colors" style={{ color: isDark ? '#fff' : '#333' }}>Convenios</a>
-          <a href="#" className="no-underline transition-colors" style={{ color: isDark ? '#fff' : '#333' }}>Ver requisitos</a>
-          <a href="#" className="no-underline transition-colors" style={{ color: isDark ? '#fff' : '#333' }}>¿Tienes dudas?</a>
+              {item.label}
+            </button>
+          ))}
         </nav>
 
         {/* header-right */}
@@ -240,19 +241,19 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             borderTop: `1px solid ${V.border}`,
           }}
         >
-          {['Equipos', 'Convenios', 'Ver requisitos', '¿Tienes dudas?'].map((label, i) => (
-            <a
-              key={label}
-              href={i === 0 ? catalogUrl : '#'}
-              className="block py-3 text-[15px] font-semibold no-underline transition-colors hover:text-[#00ffd5]"
+          {NAV_SECTIONS.map((item, i) => (
+            <button
+              key={item.id}
+              onClick={() => scrollTo(item.id)}
+              className="block w-full text-left py-3 text-[15px] font-semibold bg-transparent border-none cursor-pointer transition-colors hover:text-[#00ffd5]"
               style={{
                 color: V.textSecondary,
                 fontFamily: "'Rajdhani', sans-serif",
-                borderBottom: i < 3 ? `1px solid ${V.border}` : 'none',
+                borderBottom: i < NAV_SECTIONS.length - 1 ? `1px solid ${V.border}` : 'none',
               }}
             >
-              {label}
-            </a>
+              {item.label}
+            </button>
           ))}
           <a
             href="#"
@@ -276,7 +277,7 @@ function cssVars(isDark: boolean) {
   return {
     bgDarkest: isDark ? '#0e0e0e' : '#f2f2f2',
     bgSurface: isDark ? '#1e1e1e' : '#f0f0f0',
-    neonCyan: isDark ? '#00ffd5' : '#00b396',
+    neonCyan: isDark ? '#00ffd5' : '#00897a',
     neonPurple: isDark ? '#6366f1' : '#4f46e5',
     neonRed: '#ff0055',
     textPrimary: isDark ? '#f0f0f0' : '#1a1a1a',

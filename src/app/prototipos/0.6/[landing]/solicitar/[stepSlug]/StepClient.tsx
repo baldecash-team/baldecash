@@ -958,7 +958,7 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
         .gamer-wizard-dark .bg-\\[var\\(--color-primary\\)\\] { background: #00ffd5 !important; color: #0a0a0a !important; }
         .gamer-wizard-dark .text-\\[var\\(--color-primary\\)\\] { color: #00ffd5 !important; }
         /* Hover states */
-        .gamer-wizard-dark .hover\\:bg-\\[\\#3a47b3\\]:hover { background: #00b396 !important; }
+        .gamer-wizard-dark .hover\\:bg-\\[\\#3a47b3\\]:hover { background: #00897a !important; }
         .gamer-wizard-dark .hover\\:text-neutral-800:hover { color: #f0f0f0 !important; }
         /* Step progress - active step */
         .gamer-wizard-dark .bg-\\[\\#4654CD\\].text-white {

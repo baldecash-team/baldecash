@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { GamerNavbar } from './GamerNavbar';
 import { GamerHero } from './GamerHero';
 import { GamerPacks } from './GamerPacks';
-import { GamerAccessories } from './GamerAccessories';
 import { GamerBrands } from './GamerBrands';
 import { GamerSeries } from './GamerSeries';
 import { GamerGamesRanking } from './GamerGamesRanking';
@@ -95,7 +94,6 @@ export function ZonaGamerLanding() {
         <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={catalogUrl} hideSecondaryBar />
         <GamerHero theme={theme} catalogUrl={catalogUrl} />
         <GamerPacks theme={theme} catalogUrl={catalogUrl} />
-        <GamerAccessories theme={theme} />
         <GamerBrands theme={theme} />
         <GamerSeries theme={theme} />
         <GamerGamesRanking theme={theme} />

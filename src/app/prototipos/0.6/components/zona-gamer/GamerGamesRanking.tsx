@@ -19,19 +19,23 @@ const GAME_ICONS = [
   <svg key="0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/></svg>,
   // Espada (LoL)
   <svg key="1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6"/><path d="M16 16l4 4"/><path d="M19 21l2-2"/></svg>,
+  // Crosshair (Counter-Strike 2)
+  <svg key="2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="3" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="21" y2="12"/></svg>,
   // Cuadrícula (Fortnite)
-  <svg key="2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+  <svg key="3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+  // Shield (Dota 2)
+  <svg key="4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
   // Globo (FC 25)
-  <svg key="3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+  <svg key="5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
   // Auto (GTA V)
-  <svg key="4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-2-2.2-3.5C13 5.5 12 5 11 5H5c-.6 0-1.1.2-1.4.6L1.4 8.3C1.1 8.7 1 9.1 1 9.6V16c0 .6.4 1 1 1h1"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>,
+  <svg key="6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-2-2.2-3.5C13 5.5 12 5 11 5H5c-.6 0-1.1.2-1.4.6L1.4 8.3C1.1 8.7 1 9.1 1 9.6V16c0 .6.4 1 1 1h1"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>,
   // Flechas (Minecraft)
-  <svg key="5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 4l-4 4-4-4"/><path d="M10 8v12"/><path d="M6 14l4 4 4-4"/></svg>,
+  <svg key="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 4l-4 4-4-4"/><path d="M10 8v12"/><path d="M6 14l4 4 4-4"/></svg>,
 ];
 
 const GAMES = [
   {
-    name: 'Valorant', genre: 'FPS Táctico', pct: 34, bar: 92, color: '#ff0055', iconIdx: 0,
+    name: 'Valorant', genre: 'FPS Táctico', pct: 35, bar: 92, color: '#ff2d55', iconIdx: 0,
     laptops: [
       { n: 'Legion 5 Pro', s: 'RTX 4060 · 165Hz · Alta calidad', p: 'S/89/mes' },
       { n: 'Victus 15', s: 'RTX 4050 · 144Hz · Media-alta', p: 'S/59/mes' },
@@ -39,15 +43,23 @@ const GAMES = [
     ],
   },
   {
-    name: 'League of Legends', genre: 'MOBA', pct: 28, bar: 78, color: '#ff8800', iconIdx: 1,
+    name: 'Counter-Strike 2', genre: 'FPS Competitivo', pct: 25, bar: 72, color: '#ff9500', iconIdx: 2,
     laptops: [
-      { n: 'IdeaPad Gaming 3', s: 'RTX 3050 · Sobra para LoL · Ultra', p: 'S/49/mes' },
-      { n: 'TUF Gaming A15', s: 'RTX 4050 · Máximos sin esfuerzo', p: 'S/65/mes' },
+      { n: 'TUF Gaming A15', s: 'RTX 4050 · 200+ fps · Competitivo', p: 'S/65/mes' },
+      { n: 'Legion 5 Pro', s: 'RTX 4060 · 300+ fps · Máximos', p: 'S/89/mes' },
+      { n: 'Victus 15', s: 'RTX 4050 · 144Hz · Alta calidad', p: 'S/59/mes' },
+    ],
+  },
+  {
+    name: 'Dota 2', genre: 'MOBA', pct: 18, bar: 56, color: '#a855f7', iconIdx: 4,
+    laptops: [
+      { n: 'IdeaPad Gaming 3', s: 'RTX 3050 · Ultra · 60fps estable', p: 'S/49/mes' },
+      { n: 'TUF Gaming A15', s: 'RTX 4050 · Máximos sin drops', p: 'S/65/mes' },
       { n: 'Victus 15', s: 'RTX 4050 · Ultra + streaming', p: 'S/59/mes' },
     ],
   },
   {
-    name: 'Fortnite', genre: 'Battle Royale', pct: 18, bar: 64, color: '#00ffd5', iconIdx: 2,
+    name: 'Fortnite', genre: 'Battle Royale', pct: 12, bar: 44, color: '#00ffd5', iconIdx: 3,
     laptops: [
       { n: 'TUF Gaming A15', s: 'RTX 4050 · Alta calidad · 120fps', p: 'S/65/mes' },
       { n: 'Legion 5 Pro', s: 'RTX 4060 · Épico · 165Hz', p: 'S/89/mes' },
@@ -55,25 +67,10 @@ const GAMES = [
     ],
   },
   {
-    name: 'FC 25', genre: 'Deportes', pct: 10, bar: 52, color: '#00ff7f', iconIdx: 3,
+    name: 'FC 25', genre: 'Deportes', pct: 10, bar: 38, color: '#34d399', iconIdx: 5,
     laptops: [
       { n: 'IdeaPad Gaming 3', s: 'RTX 3050 · Ultra · 60fps estable', p: 'S/49/mes' },
       { n: 'Victus 15', s: 'RTX 4050 · Máximos sin drops', p: 'S/59/mes' },
-    ],
-  },
-  {
-    name: 'GTA V Online', genre: 'Acción / Mundo abierto', pct: 6, bar: 44, color: '#00aaff', iconIdx: 4,
-    laptops: [
-      { n: 'TUF Gaming A15', s: 'RTX 4050 · Alta · Sin problemas', p: 'S/65/mes' },
-      { n: 'OMEN 16', s: 'RTX 4070 · Ultra + mods', p: 'S/105/mes' },
-      { n: 'Legion 5 Pro', s: 'RTX 4060 · Muy alta calidad', p: 'S/89/mes' },
-    ],
-  },
-  {
-    name: 'Minecraft', genre: 'Sandbox / Aventura', pct: 4, bar: 36, color: '#bf5fff', iconIdx: 5,
-    laptops: [
-      { n: 'IdeaPad Gaming 3', s: 'RTX 3050 · Shaders incluidos', p: 'S/49/mes' },
-      { n: 'TUF Gaming A15', s: 'RTX 4050 · Shaders + mods pesados', p: 'S/65/mes' },
     ],
   },
 ];
@@ -83,7 +80,7 @@ const RANK_COLORS = ['#ff8800', '#94a3b8', '#cd7f32'];
 export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
   const isDark = theme === 'dark';
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
-  const neonCyan = isDark ? '#00ffd5' : '#00b396';
+  const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#00ffd5' : '#4f46e5';
   const textMuted = isDark ? '#707070' : '#888';
   const textSecondary = isDark ? '#a0a0a0' : '#555';
@@ -91,8 +88,8 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
   const bgCard = isDark ? '#111' : '#fff';
   const bgSurface = isDark ? '#0a0a0a' : '#f5f5f5';
   const gradient = isDark
-    ? 'linear-gradient(135deg, #6366f1 0%, #82e2d2 100%)'
-    : 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)';
+    ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+    : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   const openModal = useCallback((idx: number) => {
     setSelectedGame(idx);
@@ -179,7 +176,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                   className="text-base font-extrabold relative z-10"
                   style={{
                     fontFamily: "'Orbitron', sans-serif",
-                    color: i < 3 ? RANK_COLORS[i] : textMuted,
+                    color: g.color,
                   }}
                 >
                   #{i + 1}

@@ -13,7 +13,7 @@ export function GamerNewsletter({ theme }: GamerNewsletterProps) {
   const border = isDark ? '#2a2a2a' : '#e0e0e0';
   const bgSurface = isDark ? '#1e1e1e' : '#f0f0f0';
   const textMuted = isDark ? '#707070' : '#888';
-  const neonCyan = isDark ? '#00ffd5' : '#00b396';
+  const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#6366f1' : '#4f46e5';
   const gradient = isDark
     ? 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(0,255,213,0.05))'
