@@ -546,6 +546,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             // Sincronizar con PricingCalculator
             selectedTerm={pricingSelection?.term}
             selectedInitialPercent={pricingSelection?.initialPercent}
+            financialData={product.tea != null && product.tcea != null ? { tea: product.tea, tcea: product.tcea } : undefined}
           />
         </div>
 

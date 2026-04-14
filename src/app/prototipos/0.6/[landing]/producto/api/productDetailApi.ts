@@ -128,6 +128,8 @@ interface ApiProductData {
   stock: number;
   rating: number | null;
   review_count: number;
+  tea?: number;
+  tcea?: number;
 }
 
 interface ApiInitialPaymentOption {
@@ -136,6 +138,8 @@ interface ApiInitialPaymentOption {
   monthly_quota: string;
   original_quota: string | null;
   commission_amount: string | null;
+  tea?: number | null;
+  tcea?: number | null;
 }
 
 interface ApiPaymentPlan {
@@ -319,6 +323,8 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       monthlyQuota: parseFloat(opt.monthly_quota),
       originalQuota: opt.original_quota ? parseFloat(opt.original_quota) : undefined,
       commissionAmount: opt.commission_amount ? parseFloat(opt.commission_amount) : null,
+      tea: opt.tea ?? null,
+      tcea: opt.tcea ?? null,
     })),
   };
 }
@@ -437,6 +443,8 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     stock: apiProduct.stock,
     rating: apiProduct.rating || 0,
     reviewCount: apiProduct.review_count,
+    tea: apiProduct.tea,
+    tcea: apiProduct.tcea,
   };
 }
 

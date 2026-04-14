@@ -149,6 +149,8 @@ export interface ProductDetail {
   stock: number;
   rating: number;
   reviewCount: number;
+  tea?: number;
+  tcea?: number;
 }
 
 // ============================================
@@ -189,6 +191,8 @@ export interface InitialPaymentOption {
   monthlyQuota: number;
   originalQuota?: number;
   commissionAmount?: number | null;
+  tea?: number | null;
+  tcea?: number | null;
 }
 
 /** Plan de pago con opciones precalculadas para cada % de inicial */
