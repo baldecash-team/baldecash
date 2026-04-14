@@ -155,7 +155,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 
   // Fields come already ordered by display_order from the API
   return (
-    <div className="grid grid-cols-12 gap-4">
+    <div className="grid grid-cols-12 gap-x-4 gap-y-1">
       {step.fields.map((field) => {
         // Hide wrapper for invisible fields so grid gap doesn't create empty space
         if (!fieldVisibility[field.code]) return null;
