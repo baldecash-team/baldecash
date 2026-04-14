@@ -426,7 +426,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}/mes</span>
                     {displayDiscount && displayDiscount > 0 && (
                       <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
-                        -{displayDiscount}%
+                        -{Math.round(displayDiscount)}%
                       </span>
                     )}
                   </>
