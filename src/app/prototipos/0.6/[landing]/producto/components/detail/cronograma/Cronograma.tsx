@@ -79,19 +79,20 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const selectedTerm = isSynced ? externalSelectedTerm : internalSelectedTerm;
   const selectedInitialPercent = externalInitialPercent ?? internalInitialPercent;
 
-  // Combinar datos financieros: prioridad API plan tea > external > default
+  // Combinar datos financieros: prioridad opción seleccionada > producto (external) > default
   const FINANCIAL_DATA = {
     ...DEFAULT_FINANCIAL_DATA,
     ...(externalFinancialData || {}),
   };
 
-  // Override TEA/TCEA from current payment plan if available (from backend 3-level pricing system)
+  // Override TEA/TCEA from selected option if available (backend returns per term+initial%)
   const planForRates = paymentPlans.find(p => p.term === selectedTerm) ?? paymentPlans[0];
-  if (planForRates?.tea != null) {
-    FINANCIAL_DATA.tea = planForRates.tea;
+  const selectedOption = planForRates?.options.find(o => o.initialPercent === selectedInitialPercent) ?? planForRates?.options[0];
+  if (selectedOption?.tea != null) {
+    FINANCIAL_DATA.tea = selectedOption.tea;
   }
-  if (planForRates?.tcea != null) {
-    FINANCIAL_DATA.tcea = planForRates.tcea;
+  if (selectedOption?.tcea != null) {
+    FINANCIAL_DATA.tcea = selectedOption.tcea;
   }
 
   const [showAll, setShowAll] = useState(false);
@@ -751,10 +752,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           size="lg"
+          scrollBehavior="inside"
           classNames={{
             wrapper: "z-[9999]",
             backdrop: "bg-black/50 backdrop-blur-sm z-[9998]",
-            base: "bg-white rounded-2xl overflow-hidden",
+            base: "bg-white rounded-2xl overflow-hidden max-h-[90vh]",
             body: "p-0",
             closeButton: "hidden",
           }}
@@ -775,7 +777,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 <X className="w-4 h-4 text-white" />
               </button>
             </ModalHeader>
-            <ModalBody className="p-5 pt-6">
+            <ModalBody className="p-5 pt-6 overflow-y-auto">
               {/* Summary */}
               <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-6">
                 {productPrice > 0 && (
