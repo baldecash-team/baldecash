@@ -70,8 +70,6 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const dragControls = useDragControls();
   const params = useParams();
   const landing = (params.landing as string) || '';
-  const hideSeguroDesgravamen = landing === 'liderman-baldecash';
-
   // Usar valores externos si están disponibles, sino usar estado interno
   const [internalSelectedTerm, setInternalSelectedTerm] = useState(paymentPlans[0]?.term ?? term);
   const [internalInitialPercent, setInternalInitialPercent] = useState<InitialPaymentPercentage>(0);
@@ -631,7 +629,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     )}
                     {selectedInitialPercent > 0 && initialAmount > 0 && (
                       <div className="flex justify-between items-center mb-2">
-                        <span className="text-neutral-600">Cuota inicial ({selectedInitialPercent}%)</span>
+                        <span className="text-neutral-600">Cuota inicial</span>
                         <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(initialAmount))}</span>
                       </div>
                     )}
@@ -788,7 +786,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 )}
                 {selectedInitialPercent > 0 && initialAmount > 0 && (
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-neutral-600">Cuota inicial ({selectedInitialPercent}%)</span>
+                    <span className="text-neutral-600">Cuota inicial</span>
                     <span className="font-semibold text-neutral-900">S/{formatMoneyNoDecimals(Math.floor(initialAmount))}</span>
                   </div>
                 )}
@@ -836,12 +834,6 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     <div className="flex justify-between py-2 border-b border-neutral-100">
                       <span className="text-sm text-neutral-600">Comisión de plataformas digitales</span>
                       <span className="text-sm font-medium text-neutral-900">S/{commissionAmount}</span>
-                    </div>
-                  )}
-                  {!hideSeguroDesgravamen && (
-                    <div className="flex justify-between py-2 border-b border-neutral-100">
-                      <span className="text-sm text-neutral-600">Seguro de desgravamen</span>
-                      <span className="text-sm font-medium text-neutral-900">{FINANCIAL_DATA.seguroDesgravamen}% mensual</span>
                     </div>
                   )}
                   <div className="flex justify-between py-2 border-b border-neutral-100">
