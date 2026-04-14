@@ -50,7 +50,7 @@ export function DisplaySection() {
         {/* Display image */}
         <div className="relative mt-12 lg:mt-20 aspect-[16/9] rounded-2xl overflow-hidden">
           <Image
-            src="/images/macbook-neo/dca_display_2x.png"
+            src="https://baldecash.s3.amazonaws.com/images/macbook-neo/dca_display_2x.png"
             alt="MacBook Neo pantalla Liquid Retina"
             fill
             className="object-contain"

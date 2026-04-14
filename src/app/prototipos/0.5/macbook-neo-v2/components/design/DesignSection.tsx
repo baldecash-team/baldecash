@@ -69,7 +69,7 @@ export function DesignSection() {
         <div ref={imageRef} className="mt-12 lg:mt-20">
           <div className="relative aspect-[16/9] rounded-2xl overflow-hidden">
             <Image
-              src="/images/macbook-neo/design_endframe_2x.png"
+              src="https://baldecash.s3.amazonaws.com/images/macbook-neo/design_endframe_2x.png"
               alt="MacBook Neo diseño - cuatro colores"
               fill
               className="object-contain"

@@ -7,7 +7,7 @@ import {
   HowItWorksStep,
 } from '../types/macbook-neo';
 
-const IMG_BASE = '/images/macbook-neo';
+const IMG_BASE = 'https://baldecash.s3.amazonaws.com/images/macbook-neo';
 
 // Hero data
 export const heroData = {

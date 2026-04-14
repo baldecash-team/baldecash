@@ -18,7 +18,7 @@ export function CtaFinalSection() {
           className="relative w-full max-w-3xl mx-auto mb-12"
         >
           <Image
-            src="/images/macbook-neo/design_endframe_2x.png"
+            src="https://baldecash.s3.amazonaws.com/images/macbook-neo/design_endframe_2x.png"
             alt="MacBook Neo en cuatro colores"
             width={1200}
             height={600}

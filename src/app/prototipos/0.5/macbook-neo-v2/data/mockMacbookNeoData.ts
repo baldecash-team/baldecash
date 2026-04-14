@@ -6,7 +6,7 @@ import {
   FinancingPlan,
 } from '../types/macbook-neo';
 
-const IMG_BASE = '/images/macbook-neo';
+const IMG_BASE = 'https://baldecash.s3.amazonaws.com/images/macbook-neo';
 
 export const heroData = {
   headline: 'MacBook Neo',

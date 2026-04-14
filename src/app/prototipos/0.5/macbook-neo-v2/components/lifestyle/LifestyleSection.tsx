@@ -40,7 +40,7 @@ export function LifestyleSection() {
         className="absolute inset-0 -top-[15%] -bottom-[15%]"
       >
         <Image
-          src="/images/macbook-neo/performance_lifestyle_2x.jpg"
+          src="https://baldecash.s3.amazonaws.com/images/macbook-neo/performance_lifestyle_2x.jpg"
           alt="MacBook Neo estilo de vida"
           fill
           className="object-cover"
