@@ -22,7 +22,7 @@ import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTracke
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
 
 // Slugs que activan el modal de DNI al cargar la landing
-const DNI_MODAL_SLUGS = ['liderman-baldecash'];
+const DNI_MODAL_SLUGS = ['liderman-baldecash', 'renueva-tu-laptop'];
 
 interface LandingPageClientProps {
   slug: string;
