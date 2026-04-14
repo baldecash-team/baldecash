@@ -31,7 +31,7 @@ import {
 gsap.registerPlugin(ScrollTrigger);
 
 const config = variants.balanced;
-const IMG = '/images/macbook-neo';
+const IMG = 'https://baldecash.s3.amazonaws.com/images/macbook-neo';
 
 export function BalancedLanding() {
   useLenis();

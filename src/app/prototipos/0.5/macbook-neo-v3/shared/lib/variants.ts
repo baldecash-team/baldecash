@@ -26,9 +26,10 @@ export interface VariantConfig {
   };
 }
 
-const IMG_BASE = '/images/macbook-neo';
-const IMG_V3 = '/images/macbook-neo-v3';
-const VID_BASE = '/videos/macbook-neo';
+const S3 = 'https://baldecash.s3.amazonaws.com';
+const IMG_BASE = `${S3}/images/macbook-neo`;
+const IMG_V3 = `${S3}/images/macbook-neo-v3`;
+const VID_BASE = `${S3}/videos/macbook-neo`;
 
 function generateFrameUrls(folder: string, count: number): string[] {
   return Array.from({ length: count }, (_, i) => {

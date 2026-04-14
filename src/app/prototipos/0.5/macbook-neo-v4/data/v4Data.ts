@@ -30,7 +30,7 @@ export const heroData: HeroData = {
   ctaSecondary: { label: 'Learn more', href: '#highlights' },
   poster: ASSETS.hero.poster,
   frameCount: 180,
-  framePathPattern: '/images/macbook-neo-v3/sequences/hero/frame_{NNNN}.webp',
+  framePathPattern: 'https://baldecash.s3.amazonaws.com/images/macbook-neo-v3/sequences/hero/frame_{NNNN}.webp',
 };
 
 // ============================================================

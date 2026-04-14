@@ -1,7 +1,8 @@
-const IMG = '/images/macbook-neo';
-const IMG_V3 = '/images/macbook-neo-v3';
+const S3 = 'https://baldecash.s3.amazonaws.com';
+const IMG = `${S3}/images/macbook-neo`;
+const IMG_V3 = `${S3}/images/macbook-neo-v3`;
 
-const VID = '/videos/macbook-neo';
+const VID = `${S3}/videos/macbook-neo`;
 
 export const ASSETS = {
   hero: {

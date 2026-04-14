@@ -18,7 +18,7 @@ import {
   privacyItems,
 } from '../../shared/data/macbookNeoData';
 
-const IMG = '/images/macbook-neo';
+const IMG = 'https://baldecash.s3.amazonaws.com/images/macbook-neo';
 
 export function LiteLanding() {
   const { tier } = useDeviceCapabilities();
