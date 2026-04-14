@@ -119,7 +119,6 @@ export default function RootLayout({
       </head>
       <body
         className={`${asap.variable} ${baloo2.variable} font-sans antialiased`}
-        style={{ fontFamily: "var(--font-asap), sans-serif" }}
       >
         <JsonLd />
         <Providers>{children}</Providers>
