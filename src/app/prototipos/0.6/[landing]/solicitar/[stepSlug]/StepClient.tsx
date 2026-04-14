@@ -822,7 +822,7 @@ function LoadingFallback() {
   const isGamer = (params?.landing as string) === 'zona-gamer';
 
   if (isGamer) {
-    const savedTheme = typeof window !== 'undefined' ? sessionStorage.getItem('gamer-theme') : null;
+    const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('baldecash-theme') : null;
     const isDark = savedTheme !== 'light';
 
     return (
@@ -852,25 +852,26 @@ function LoadingFallback() {
 
 // Gamer theme wrapper for zona-gamer wizard steps
 function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
+    }
+    return 'dark';
+  });
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
 
-  // Hydrate theme from sessionStorage after mount
-  useEffect(() => {
-    const saved = sessionStorage.getItem('gamer-theme') as 'dark' | 'light' | null;
-    if (saved) setTheme(saved);
-    setHydrated(true);
-  }, []);
+  // Hydrate
+  useEffect(() => { setHydrated(true); }, []);
+  // Persist theme
+  useEffect(() => { localStorage.setItem('baldecash-theme', theme); }, [theme]);
 
   const isDark = theme === 'dark';
 
   const handleToggleTheme = useCallback(() => {
-    const next = isDark ? 'light' : 'dark';
-    setTheme(next);
-    sessionStorage.setItem('gamer-theme', next);
-  }, [isDark]);
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
@@ -878,13 +879,18 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
         /* Gamer cyan overrides - both dark and light modes */
         .gamer-wizard-dark,
-        .gamer-wizard-dark *,
-        .gamer-wizard-light,
-        .gamer-wizard-light * {
+        .gamer-wizard-dark * {
           --color-primary: #00ffd5 !important;
           --color-primary-rgb: 0,255,213 !important;
           --color-secondary: #00ffd5 !important;
           --color-secondary-rgb: 0,255,213 !important;
+        }
+        .gamer-wizard-light,
+        .gamer-wizard-light * {
+          --color-primary: #00897a !important;
+          --color-primary-rgb: 0,137,122 !important;
+          --color-secondary: #00897a !important;
+          --color-secondary-rgb: 0,137,122 !important;
         }
         /* Inline color overrides - both modes */
         .gamer-wizard-dark [style*="color: #4654cd"],
@@ -897,8 +903,27 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
         .gamer-wizard-light [style*="color: #4654CD"],
         .gamer-wizard-light [style*="color:#4654CD"],
         .gamer-wizard-light [style*="color: rgb(70, 84, 205)"] {
-          color: #00ffd5 !important;
+          color: #00897a !important;
         }
+        /* Light mode: buttons with cyan bg get white text */
+        .gamer-wizard-light .bg-\[\#4654CD\] { background: #00897a !important; color: #fff !important; }
+        .gamer-wizard-light .bg-\[var\(--color-primary\)\] { background: #00897a !important; color: #fff !important; }
+        .gamer-wizard-light .bg-\[\#4654CD\].text-white { background: #00897a !important; color: #fff !important; }
+        .gamer-wizard-light .bg-\[var\(--color-primary\)\].text-white { background: #00897a !important; color: #fff !important; }
+        .gamer-wizard-light .bg-\[\#4654CD\].text-white.rounded-xl { background: #00897a !important; color: #fff !important; }
+        .gamer-wizard-light .text-\[\#4654CD\],
+        .gamer-wizard-light span.text-\[\#4654CD\],
+        .gamer-wizard-light [class*="text-[#4654CD]"] { color: #00897a !important; }
+        .gamer-wizard-light .border-\[\#4654CD\] { border-color: #00897a !important; }
+        .gamer-wizard-light .ring-\[\#4654CD\]\/20 { --tw-ring-color: rgba(0,137,122,0.2) !important; }
+        .gamer-wizard-light .ring-\[\#4654CD\]\/30 { --tw-ring-color: rgba(0,137,122,0.3) !important; }
+        .gamer-wizard-light .shadow-\[\#4654CD\]\/25 { --tw-shadow-color: rgba(0,137,122,0.25) !important; }
+        .gamer-wizard-light .hover\:bg-\[\#3a47b3\]:hover { background: #00796b !important; }
+        .gamer-wizard-light .bg-green-500,
+        .gamer-wizard-light .bg-green-600 { background: #00897a !important; }
+        .gamer-wizard-light .text-green-500,
+        .gamer-wizard-light .text-green-600 { color: #00897a !important; }
+        .gamer-wizard-light .border-green-400 { border-color: #00897a !important; }
         /* Backgrounds */
         .gamer-wizard-dark .min-h-screen { background: #0e0e0e !important; }
         .gamer-wizard-dark .bg-white { background: #1a1a1a !important; }
@@ -1282,18 +1307,25 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
         body:has(.gamer-wizard-light) [role="dialog"] .text-\\[\\#4654CD\\] {
           color: #00d4b0 !important;
         }
-        /* Button - cyan */
+        /* Button - cyan (dark) */
         body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\],
-        body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[\\#4654CD\\],
-        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\],
-        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[\\#4654CD\\] {
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[\\#4654CD\\] {
           background: #00ffd5 !important;
           color: #0a0a0a !important;
         }
-        body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\].text-white,
-        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\].text-white {
+        body:has(.gamer-wizard-dark) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\].text-white {
           background: #00ffd5 !important;
           color: #0a0a0a !important;
+        }
+        /* Button - cyan (light) */
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\],
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[\\#4654CD\\] {
+          background: #00897a !important;
+          color: #fff !important;
+        }
+        body:has(.gamer-wizard-light) [role="dialog"] .bg-\\[var\\(--color-primary\\)\\].text-white {
+          background: #00897a !important;
+          color: #fff !important;
         }
         /* Detected address card inside dialog */
         body:has(.gamer-wizard-dark) [role="dialog"] .bg-neutral-50 {

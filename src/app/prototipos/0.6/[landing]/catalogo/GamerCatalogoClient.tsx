@@ -86,6 +86,8 @@ import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFoo
 import { GamerAccessories } from '@/app/prototipos/0.6/components/zona-gamer/GamerAccessories';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
+import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
+import type { OnboardingStep } from './types/catalog';
 import { useToast } from '@/app/prototipos/_shared';
 
 // ============================================
@@ -181,8 +183,14 @@ function GamerCatalogoContent() {
   const landing = (params.landing as string) || 'zona-gamer';
   const { setSelectedProduct } = useProduct();
 
-  // Theme
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  // Theme - persist to localStorage
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
+    }
+    return 'dark';
+  });
+  useEffect(() => { localStorage.setItem('baldecash-theme', theme); }, [theme]);
   const isDark = theme === 'dark';
   const T = gamerTheme(isDark);
 
@@ -197,6 +205,81 @@ function GamerCatalogoContent() {
   const [searchQuery, setSearchQuery] = useState((initialUrlFilters as { searchQuery?: string }).searchQuery || '');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+
+  // Onboarding tour (custom steps for zona-gamer)
+  const [tourActive, setTourActive] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const gamerTourSteps: OnboardingStep[] = useMemo(() => [
+    {
+      id: 'filters',
+      targetId: 'onboarding-filters-desktop',
+      targetIdMobile: 'onboarding-filters-mobile',
+      title: 'Filtros avanzados',
+      description: 'Ajusta marca, precio, RAM y más para encontrar exactamente lo que buscas.',
+      position: 'right',
+      positionMobile: 'bottom',
+    },
+    {
+      id: 'sort',
+      targetId: 'onboarding-sort',
+      title: 'Ordena resultados',
+      description: 'Ordena por precio, cuota mensual o popularidad.',
+      position: 'bottom',
+      positionMobile: 'bottom',
+    },
+    {
+      id: 'card-favorite',
+      targetId: 'onboarding-card-favorite',
+      title: 'Añadir a favoritos',
+      description: 'Haz clic en el corazón para guardar este equipo en tu lista de favoritos.',
+      position: 'left',
+      positionMobile: 'bottom',
+    },
+    {
+      id: 'card-compare',
+      targetId: 'onboarding-card-compare',
+      title: 'Comparar equipos',
+      description: 'Selecciona hasta 3 equipos para ver sus diferencias lado a lado.',
+      position: 'left',
+      positionMobile: 'bottom',
+    },
+    {
+      id: 'card-detail',
+      targetId: 'onboarding-card-detail',
+      title: 'Ver detalle',
+      description: 'Explora todas las especificaciones, fotos y características del equipo.',
+      position: 'top',
+      positionMobile: 'top',
+    },
+    {
+      id: 'card-add-to-cart',
+      targetId: 'onboarding-card-add-to-cart',
+      title: '¡Lo quiero!',
+      description: 'Solicita este equipo directamente para iniciar tu financiamiento.',
+      position: 'top',
+      positionMobile: 'top',
+    },
+    {
+      id: 'wishlist',
+      targetId: 'onboarding-wishlist',
+      title: 'Tus favoritos',
+      description: 'Accede rápidamente a todos los equipos que has marcado como favoritos.',
+      position: 'bottom',
+      positionMobile: 'bottom',
+    },
+  ], []);
+  const currentTourStep = tourActive ? gamerTourSteps[tourStep] || null : null;
+  const handleTourNext = useCallback(() => {
+    if (tourStep >= gamerTourSteps.length - 1) {
+      setTourActive(false);
+      setTourStep(0);
+    } else {
+      setTourStep(s => s + 1);
+    }
+  }, [tourStep, gamerTourSteps.length]);
+  const handleTourPrev = useCallback(() => setTourStep(s => Math.max(0, s - 1)), []);
+  const handleTourSkip = useCallback(() => { setTourActive(false); setTourStep(0); }, []);
+  const handleStartTour = useCallback(() => { setTourStep(0); setTourActive(true); }, []);
 
   // Mobile filters
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -750,6 +833,7 @@ function GamerCatalogoContent() {
             {/* Favorites with dropdown */}
             <div style={{ position: 'relative' }}>
               <button
+                id="onboarding-wishlist"
                 onClick={() => setIsWishlistDrawerOpen(prev => !prev)}
                 style={{
                   width: 40, height: 40, borderRadius: 12,
@@ -957,6 +1041,7 @@ function GamerCatalogoContent() {
       >
         {/* ====== SIDEBAR FILTERS (desktop) ====== */}
         <aside
+          id="onboarding-filters-desktop"
           className="hidden lg:block shrink-0"
           style={{
             width: 260,
@@ -998,6 +1083,7 @@ function GamerCatalogoContent() {
           {/* Mobile filter banner */}
           <div className="lg:hidden mb-4">
             <button
+              id="onboarding-filters-mobile"
               onClick={() => setShowMobileFilters(!showMobileFilters)}
               style={{
                 width: '100%',
@@ -1022,7 +1108,7 @@ function GamerCatalogoContent() {
                 <span
                   style={{
                     background: T.neonCyan,
-                    color: '#000',
+                    color: isDark ? '#000' : '#fff',
                     fontSize: 11,
                     fontWeight: 700,
                     padding: '2px 7px',
@@ -1069,7 +1155,7 @@ function GamerCatalogoContent() {
             <p style={{ color: T.textMuted, fontSize: 13 }}>
               {isLoading ? 'Cargando...' : `${displayTotal} producto${displayTotal !== 1 ? 's' : ''}`}
             </p>
-            <div className="hidden lg:block">
+            <div id="onboarding-sort" className="hidden lg:block">
               <SortDropdown
                 isDark={isDark}
                 T={T}
@@ -1140,7 +1226,7 @@ function GamerCatalogoContent() {
                   gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
                 }}
               >
-                {allProducts.map((product) => (
+                {allProducts.map((product, idx) => (
                   <GamerProductCard
                     key={product.id}
                     product={product}
@@ -1152,6 +1238,7 @@ function GamerCatalogoContent() {
                     onCompare={() => handleToggleCompare(product)}
                     onDetail={() => handleProductDetail(product)}
                     onSolicitar={() => handleProductSolicitar(product)}
+                    isFirstCard={idx === 0}
                   />
                 ))}
               </div>
@@ -1502,7 +1589,19 @@ function GamerCatalogoContent() {
       `}</style>
 
       {/* Help button */}
-      <GamerHelpButton isDark={isDark} T={T} onOpenChat={() => blipChat.openChat()} />
+      <GamerHelpButton isDark={isDark} T={T} onOpenChat={() => blipChat.openChat()} onStartTour={handleStartTour} />
+
+      {/* Onboarding Tour */}
+      <GamerOnboardingTour
+        isActive={tourActive}
+        currentStep={currentTourStep}
+        currentStepIndex={tourStep}
+        totalSteps={gamerTourSteps.length}
+        theme={theme}
+        onNext={handleTourNext}
+        onPrev={handleTourPrev}
+        onSkip={handleTourSkip}
+      />
 
       {/* Scroll to top */}
       {showScrollTop && (
@@ -1518,7 +1617,7 @@ function GamerCatalogoContent() {
             borderRadius: 10,
             border: 'none',
             background: T.neonCyan,
-            color: '#0a0a0a',
+            color: isDark ? '#0a0a0a' : '#fff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -2704,6 +2803,7 @@ function GamerProductCard({
   onCompare,
   onDetail,
   onSolicitar,
+  isFirstCard = false,
 }: {
   product: CatalogProduct;
   isDark: boolean;
@@ -2714,6 +2814,7 @@ function GamerProductCard({
   onCompare: () => void;
   onDetail: () => void;
   onSolicitar: () => void;
+  isFirstCard?: boolean;
 }) {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -2795,6 +2896,7 @@ function GamerProductCard({
         {/* Action buttons top-right */}
         <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
           <button
+            {...(isFirstCard ? { id: 'onboarding-card-favorite' } : {})}
             onClick={(e) => { e.stopPropagation(); onWishlistToggle(); }}
             className="flex items-center justify-center transition-all"
             style={{
@@ -2818,6 +2920,7 @@ function GamerProductCard({
             />
           </button>
           <button
+            {...(isFirstCard ? { id: 'onboarding-card-compare' } : {})}
             onClick={(e) => { e.stopPropagation(); onCompare(); }}
             className="flex items-center justify-center transition-all"
             style={{
@@ -2963,6 +3066,7 @@ function GamerProductCard({
         {/* Action buttons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
           <button
+            {...(isFirstCard ? { id: 'onboarding-card-detail' } : {})}
             onClick={onDetail}
             className="flex items-center justify-center gap-2 transition-all"
             style={{
@@ -2982,6 +3086,7 @@ function GamerProductCard({
             Detalle
           </button>
           <button
+            {...(isFirstCard ? { id: 'onboarding-card-add-to-cart' } : {})}
             onClick={onSolicitar}
             className="flex items-center justify-center gap-2 transition-all"
             style={{
@@ -2989,7 +3094,7 @@ function GamerProductCard({
               backgroundColor: T.neonCyan,
               border: 'none',
               borderRadius: 12,
-              color: '#0a0a0a',
+              color: isDark ? '#0a0a0a' : '#fff',
               fontSize: 14,
               fontWeight: 700,
               cursor: 'pointer',
@@ -3041,7 +3146,7 @@ function BrandButton({ brand, isActive, T, onToggle }: { brand: { id: number; sl
   );
 }
 
-function GamerHelpButton({ isDark, T, onOpenChat }: { isDark: boolean; T: ReturnType<typeof gamerTheme>; onOpenChat: () => void }) {
+function GamerHelpButton({ isDark, T, onOpenChat, onStartTour }: { isDark: boolean; T: ReturnType<typeof gamerTheme>; onOpenChat: () => void; onStartTour: () => void }) {
   const [open, setOpen] = useState(false);
   const neonCyan = T.neonCyan;
   const border = T.border;
@@ -3062,7 +3167,7 @@ function GamerHelpButton({ isDark, T, onOpenChat }: { isDark: boolean; T: Return
             boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
           }}>
             <button
-              onClick={() => { setOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onClick={() => { setOpen(false); onStartTour(); }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 16px', background: 'none', border: 'none', borderBottom: `1px solid ${border}`,
@@ -3106,7 +3211,7 @@ function GamerHelpButton({ isDark, T, onOpenChat }: { isDark: boolean; T: Return
         style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '10px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
-          background: neonCyan, color: '#0a0a0a', fontSize: 13, fontWeight: 700,
+          background: neonCyan, color: isDark ? '#0a0a0a' : '#fff', fontSize: 13, fontWeight: 700,
           fontFamily: "'Rajdhani', sans-serif",
           boxShadow: isDark ? '0 4px 16px rgba(0,255,213,0.3)' : '0 4px 16px rgba(0,137,122,0.25)',
           transition: 'all 0.3s',
@@ -4356,6 +4461,7 @@ function GamerCardSkeleton({
   const shimmerBg = isDark
     ? 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)'
     : 'linear-gradient(90deg, #e0e0e0 25%, #ebebeb 50%, #e0e0e0 75%)';
+  const shimmerStyle = { backgroundImage: shimmerBg, backgroundSize: '200% 100%', animation: 'shimmer 1.5s ease-in-out infinite' };
 
   return (
     <div
@@ -4370,9 +4476,7 @@ function GamerCardSkeleton({
       <div
         style={{
           height: 176,
-          background: shimmerBg,
-          backgroundSize: '200% 100%',
-          animation: 'shimmer 1.5s ease-in-out infinite',
+          ...shimmerStyle,
         }}
       />
       <div style={{ padding: '12px 14px' }}>

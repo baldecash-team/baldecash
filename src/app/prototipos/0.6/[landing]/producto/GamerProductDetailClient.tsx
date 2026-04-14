@@ -106,7 +106,13 @@ function DetailContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
+    }
+    return 'dark';
+  });
+  useEffect(() => { localStorage.setItem('baldecash-theme', theme); }, [theme]);
   const isDark = theme === 'dark';
   const T = gamerTheme(isDark);
 
@@ -230,7 +236,7 @@ function DetailContent() {
   const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,179,150,${a})`;
 
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gamer-bg-card': T.bgCard, '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)' } as React.CSSProperties}>
+    <div style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gamer-bg-card': T.bgCard, '--gamer-btn-text': isDark ? '#0a0a0a' : '#fff', '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)' } as React.CSSProperties}>
       <style>{FONTS_CSS}</style>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -288,7 +294,7 @@ function DetailContent() {
         }
         .btn-loquiero-detalle {
           background: var(--gamer-cyan, #00ffd5);
-          color: #0a0a0a;
+          color: var(--gamer-btn-text, #0a0a0a);
           border: none;
           border-radius: 12px;
           font-family: 'Rajdhani', sans-serif;

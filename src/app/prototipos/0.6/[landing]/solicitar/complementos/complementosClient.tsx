@@ -364,7 +364,7 @@ function LoadingFallback() {
   const isGamer = (params?.landing as string) === 'zona-gamer';
 
   if (isGamer) {
-    const savedTheme = typeof window !== 'undefined' ? sessionStorage.getItem('gamer-theme') : null;
+    const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('baldecash-theme') : null;
     const isDark = savedTheme !== 'light';
 
     return (
@@ -389,7 +389,7 @@ function LoadingFallback() {
 function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     if (typeof window !== 'undefined') {
-      return (sessionStorage.getItem('gamer-theme') as 'dark' | 'light') || 'dark';
+      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
     }
     return 'dark';
   });
@@ -399,7 +399,7 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
   const handleToggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
-    sessionStorage.setItem('gamer-theme', next);
+    localStorage.setItem('baldecash-theme', next);
   };
   const isDark = theme === 'dark';
 

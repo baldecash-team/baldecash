@@ -76,7 +76,7 @@ export const GamerStepSuccess: React.FC<GamerStepSuccessProps> = ({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
       className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
-      style={{ background: typeof window !== 'undefined' && sessionStorage.getItem('gamer-theme') === 'light' ? '#f5f5f5' : '#0e0e0e' }}
+      style={{ background: typeof window !== 'undefined' && localStorage.getItem('baldecash-theme') === 'light' ? '#f5f5f5' : '#0e0e0e' }}
     >
       {/* Subtle glow behind center */}
       <div
@@ -173,7 +173,7 @@ export const GamerStepSuccess: React.FC<GamerStepSuccessProps> = ({
               key={s}
               className="w-2.5 h-2.5 rounded-full"
               style={{
-                background: s <= stepNumber ? CYAN : (typeof window !== 'undefined' && sessionStorage.getItem('gamer-theme') === 'light' ? '#d4d4d4' : '#2a2a2a'),
+                background: s <= stepNumber ? CYAN : (typeof window !== 'undefined' && localStorage.getItem('baldecash-theme') === 'light' ? '#d4d4d4' : '#2a2a2a'),
                 boxShadow: s <= stepNumber ? `0 0 6px ${CYAN}` : 'none',
               }}
               initial={s === stepNumber ? { scale: 0 } : {}}
