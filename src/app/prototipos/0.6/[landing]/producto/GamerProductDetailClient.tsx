@@ -6,10 +6,10 @@
  * Tema: neon cyan (#00ffd5), neon purple (#6366f1), fondo oscuro (#0e0e0e)
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore, Suspense } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Network, Package, Percent, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
+import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Network, Package, Percent, Plus, Puzzle, Scale, Sparkles, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -20,6 +20,8 @@ import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNav
 import type { ProductSpec, ProductPort, SimilarProduct } from './types/detail';
 import { generateFichaTecnica } from './utils/generateFichaTecnica';
 import { generateGamerCronogramaPdf } from './utils/generateGamerCronogramaPdf';
+import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
+import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
 // Theme helper (same as GamerCatalogoClient)
 function gamerTheme(isDark: boolean) {
@@ -78,16 +80,10 @@ export function GamerProductDetailClient() {
   );
 }
 
-function LoadingFallback() {
-  const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('baldecash-theme') : null;
-  const isLight = savedTheme === 'light';
+function LoadingFallback({ dark }: { dark?: boolean }) {
   return (
-    <div style={{ minHeight: '100vh', background: isLight ? '#f2f2f2' : '#0e0e0e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 40, height: 40, border: `3px solid ${isLight ? '#e0e0e0' : '#2a2a2a'}`, borderTopColor: isLight ? '#00897a' : '#00ffd5', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-        <p style={{ color: isLight ? '#888' : '#707070', fontFamily: F.raj, fontSize: 14 }}>Cargando producto...</p>
-      </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    <div style={{ minHeight: '100vh', background: dark ? '#0e0e0e' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <CubeGridSpinner />
     </div>
   );
 }
@@ -106,13 +102,14 @@ function DetailContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
-    }
-    return 'dark';
-  });
-  useEffect(() => { localStorage.setItem('baldecash-theme', theme); }, [theme]);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [themeHydrated, setThemeHydrated] = useState(false);
+  useEffect(() => {
+    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    if (saved) setTheme(saved);
+    setThemeHydrated(true);
+  }, []);
+  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-theme', theme); }, [theme, themeHydrated]);
   const isDark = theme === 'dark';
   const T = gamerTheme(isDark);
 
@@ -122,6 +119,9 @@ function DetailContent() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedTerm, setSelectedTerm] = useState(12);
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<number>(0);
+
+  // Accessories
+  const [accessories, setAccessories] = useState<{ id: string; name: string; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]>([]);
 
   const catalogState = useCatalogSharedState(landing, previewKey);
 
@@ -153,6 +153,27 @@ function DetailContent() {
   useEffect(() => {
     if (data?.paymentPlans?.length) setSelectedTerm(data.paymentPlans[0].term);
   }, [data]);
+
+  // Fetch accessories
+  useEffect(() => {
+    let cancelled = false;
+    const deviceType = data?.product?.deviceType;
+    const term = data?.paymentPlans?.[0]?.term;
+    if (!deviceType) return;
+    getLandingAccessories(landing, deviceType, term).then((items) => {
+      if (cancelled || !items?.length) return;
+      setAccessories(items.map((a) => ({
+        id: a.id,
+        name: a.name,
+        image: a.thumbnail_url || a.image,
+        monthlyQuota: a.monthlyQuota,
+        term: a.term,
+        category: a.category?.name || null,
+        brand: a.brand?.name || null,
+      })));
+    });
+    return () => { cancelled = true; };
+  }, [landing, data]);
 
   const product = data?.product;
   const paymentPlans = data?.paymentPlans || [];
@@ -241,7 +262,7 @@ function DetailContent() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
-        #section-gallery, #section-pricing, #section-description, #section-specs, #cronograma, #similares { scroll-margin-top: 80px; }
+        #section-gallery, #section-pricing, #section-description, #section-specs, #cronograma, #accesorios, #similares { scroll-margin-top: 80px; }
         .gamer-gradient-text {
           background: linear-gradient(90deg, var(--gamer-purple) 0%, var(--gamer-cyan) 100%);
           -webkit-background-clip: text;
@@ -307,7 +328,7 @@ function DetailContent() {
         .spec-card {
           position: relative;
           background: var(--gamer-bg-card, #1a1a1a);
-          border: 1px solid rgba(255,255,255,0.08);
+          border: 1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb'};
           border-radius: 12px;
           padding: 20px;
           cursor: pointer;
@@ -323,7 +344,7 @@ function DetailContent() {
         }
         .spec-card::before { top: 9px; left: 9px; border-top: 2px solid var(--gamer-cyan); border-left: 2px solid var(--gamer-cyan); }
         .spec-card::after { bottom: 9px; right: 9px; border-bottom: 2px solid var(--gamer-cyan); border-right: 2px solid var(--gamer-cyan); }
-        .spec-card:hover { transform: translateY(-3px); border-color: rgba(0,255,213,0.4); box-shadow: 0 0 20px rgba(0,255,213,0.15), 0 8px 24px rgba(0,0,0,0.4); }
+        .spec-card:hover { transform: translateY(-3px); border-color: rgba(0,255,213,0.4); box-shadow: ${isDark ? '0 0 20px rgba(0,255,213,0.15), 0 8px 24px rgba(0,0,0,0.4)' : '0 0 16px rgba(0,137,122,0.12), 0 8px 24px rgba(0,0,0,0.08)'}; }
         .spec-card:hover::before, .spec-card:hover::after { opacity: 1; }
         .spec-card-icon {
           width: 40px; height: 40px; border-radius: 8px;
@@ -333,12 +354,12 @@ function DetailContent() {
         }
         .spec-card-title {
           font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700;
-          text-transform: uppercase; letter-spacing: 1.5px; color: #ffffff;
+          text-transform: uppercase; letter-spacing: 1.5px; color: ${isDark ? '#ffffff' : '#1a1a1a'};
         }
-        .spec-card-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 12px 0; }
+        .spec-card-divider { height: 1px; background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'}; margin: 12px 0; }
         .spec-row { display: flex; align-items: center; justify-content: space-between; padding: 3px 0; }
-        .spec-row-label { font-size: 13px; color: #ffffff; font-family: 'Rajdhani', sans-serif; }
-        .spec-row-value { font-size: 13px; font-weight: 600; color: #ffffff; font-family: 'Rajdhani', sans-serif; text-align: right; }
+        .spec-row-label { font-size: 13px; color: ${isDark ? '#ffffff' : '#1a1a1a'}; font-family: 'Rajdhani', sans-serif; }
+        .spec-row-value { font-size: 13px; font-weight: 600; color: ${isDark ? '#ffffff' : '#1a1a1a'}; font-family: 'Rajdhani', sans-serif; text-align: right; }
         .spec-row-value.primary { color: var(--gamer-cyan); }
         @media (min-width: 768px) {
           .gamer-specs-grid { grid-template-columns: repeat(2, 1fr) !important; }
@@ -492,7 +513,7 @@ function DetailContent() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 2.5vw, 24px)' }}>
             {/* Pricing card */}
             <div style={{ background: T.bgCard, borderRadius: 'clamp(12px, 3vw, 16px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : T.border}`, padding: 'clamp(12px, 3vw, 24px)', boxShadow: isDark ? '0 0 32px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.08)' }}>
-              <h3 style={{ fontFamily: F.raj, fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, color: '#ffffff', letterSpacing: 0, margin: '0 0 2px' }}>Calcula tu cuota mensual</h3>
+              <h3 style={{ fontFamily: F.raj, fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, color: T.textPrimary, letterSpacing: 0, margin: '0 0 2px' }}>Calcula tu cuota mensual</h3>
               <p style={{ fontFamily: F.raj, fontSize: 'clamp(11px, 2.8vw, 13px)', color: T.textPrimary, letterSpacing: 0, margin: '0 0 clamp(12px, 3vw, 24px)' }}>Selecciona el plazo que mejor se ajuste a tu presupuesto</p>
 
               {/* Initial payment selector */}
@@ -507,7 +528,7 @@ function DetailContent() {
                           padding: '6px 12px', fontSize: 'clamp(12px, 3vw, 14px)', fontFamily: F.raj, borderRadius: 999, cursor: 'pointer', transition: 'all 0.2s',
                           fontWeight: isActive ? 700 : 500,
                           background: isActive ? T.neonCyan : T.bgSurface,
-                          color: isActive ? '#0a0a0a' : T.textSecondary,
+                          color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
                           border: `1px solid ${isActive ? T.neonCyan : (isDark ? 'rgba(255,255,255,0.12)' : T.border)}`,
                           boxShadow: isActive ? `0 0 10px rgba(0,255,213,0.4)` : 'none',
                         }}>
@@ -531,17 +552,17 @@ function DetailContent() {
                       <button key={term} onClick={() => setSelectedTerm(term)} style={{
                         position: 'relative', padding: 'clamp(8px, 2.5vw, 16px)', borderRadius: 10, cursor: 'pointer', transition: 'all 0.3s', textAlign: 'center',
                         background: isSelected ? `linear-gradient(135deg, rgba(0,255,213,0.12), rgba(0,255,213,0.06))` : T.bgSurface,
-                        border: isSelected ? `2px solid ${T.neonCyan}` : '1px solid rgba(255,255,255,0.1)',
+                        border: isSelected ? `2px solid ${T.neonCyan}` : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
                         transform: isSelected ? 'scale(1.05)' : 'scale(1)',
                       }}>
                         <p style={{ fontSize: 'clamp(10px, 2.5vw, 12px)', color: T.textPrimary, fontFamily: F.mono, letterSpacing: 1, marginBottom: 4 }}>{term} meses</p>
                         {originalOpt && (
-                          <p style={{ fontSize: 12, textDecoration: 'line-through', color: 'rgba(255,255,255,0.5)', fontFamily: F.mono, marginBottom: 4 }}>S/{Math.round(originalOpt)}</p>
+                          <p style={{ fontSize: 12, textDecoration: 'line-through', color: isDark ? 'rgba(255,255,255,0.5)' : '#999', fontFamily: F.mono, marginBottom: 4 }}>S/{Math.round(originalOpt)}</p>
                         )}
-                        <p style={{ fontFamily: F.orb, fontSize: 'clamp(0.8rem, 3.2vw, 1.25rem)', fontWeight: 800, color: T.neonCyan, textShadow: isSelected ? '0 0 14px rgba(0,255,213,0.5)' : '0 0 10px rgba(0,255,213,0.5)', margin: 0 }}>
+                        <p style={{ fontFamily: F.orb, fontSize: 'clamp(0.8rem, 3.2vw, 1.25rem)', fontWeight: 800, color: T.neonCyan, textShadow: isDark ? (isSelected ? '0 0 14px rgba(0,255,213,0.5)' : '0 0 10px rgba(0,255,213,0.5)') : 'none', margin: 0 }}>
                           S/{opt ? Math.round(opt.monthlyQuota) : '—'}
                         </p>
-                        <p style={{ fontSize: 'clamp(10px, 2.5vw, 12px)', color: 'rgba(255,255,255,0.7)', fontFamily: F.raj, marginTop: 2 }}>al mes</p>
+                        <p style={{ fontSize: 'clamp(10px, 2.5vw, 12px)', color: T.textSecondary, fontFamily: F.raj, marginTop: 2 }}>al mes</p>
                       </button>
                     );
                   })}
@@ -549,17 +570,17 @@ function DetailContent() {
               )}
 
               {/* Payment summary */}
-              <div style={{ marginTop: 'clamp(12px, 3vw, 32px)', padding: 'clamp(10px, 3vw, 24px)', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' }}>
+              <div style={{ marginTop: 'clamp(12px, 3vw, 32px)', padding: 'clamp(10px, 3vw, 24px)', borderRadius: 10, background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`, textAlign: 'center' }}>
                 <p style={{ fontSize: 11, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, marginBottom: 4 }}>Pagarías</p>
                 {/* Cuota tachada solo si el backend trae originalQuota real (no inventamos descuento) */}
                 {lowestOption?.originalQuota != null && lowestOption.originalQuota > lowestOption.monthlyQuota && (
-                  <p style={{ textDecoration: 'line-through', fontSize: '1.25rem', color: 'rgba(255,255,255,0.5)', fontFamily: F.mono, marginBottom: 4 }}>
+                  <p style={{ textDecoration: 'line-through', fontSize: '1.25rem', color: isDark ? 'rgba(255,255,255,0.5)' : '#999', fontFamily: F.mono, marginBottom: 4 }}>
                     S/{Math.round(lowestOption.originalQuota)}/mes
                   </p>
                 )}
-                <p style={{ fontFamily: F.orb, fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', fontWeight: 800, color: T.neonCyan, textShadow: '0 0 20px rgba(0,255,213,0.6)', lineHeight: 1.1, margin: 0 }}>
+                <p style={{ fontFamily: F.orb, fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', fontWeight: 800, color: T.neonCyan, textShadow: isDark ? '0 0 20px rgba(0,255,213,0.6)' : 'none', lineHeight: 1.1, margin: 0 }}>
                   S/{lowestOption ? Math.round(lowestOption.monthlyQuota) : Math.round(product.lowestQuota)}
-                  <span style={{ fontSize: 'clamp(0.65rem, 2.5vw, 0.85rem)', color: '#ffffff' }}>/mes</span>
+                  <span style={{ fontSize: 'clamp(0.65rem, 2.5vw, 0.85rem)', color: T.textPrimary }}>/mes</span>
                 </p>
                 <p style={{ fontSize: 12, color: T.textSecondary, fontFamily: F.raj, marginTop: 4 }}>durante {selectedTerm} meses</p>
                 {lowestOption && lowestOption.initialPercent > 0 && lowestOption.initialAmount > 0 && (
@@ -697,6 +718,13 @@ function DetailContent() {
       <div id="cronograma">
         <CronogramaSection T={T} isDark={isDark} selectedTerm={selectedTerm} monthlyQuota={lowestOption?.monthlyQuota || product.lowestQuota} price={product.price} commission={lowestOption?.commissionAmount || null} productName={product.displayName || product.name} productBrand={product.brand} tea={activePlan?.tea} tcea={activePlan?.tcea} />
       </div>
+
+      {/* ACCESSORIES */}
+      {accessories.length > 0 && (
+        <div id="accesorios">
+          <AccessoriesCarousel T={T} isDark={isDark} accessories={accessories} selectedTerm={selectedTerm} />
+        </div>
+      )}
 
       {/* SIMILAR PRODUCTS */}
       <div id="similares">
@@ -837,6 +865,7 @@ const SIDE_NAV_ITEMS = [
   { id: 'section-description', icon: FileText, label: 'Descripción' },
   { id: 'section-specs', icon: Cpu, label: 'Specs' },
   { id: 'cronograma', icon: Calendar, label: 'Cronograma' },
+  { id: 'accesorios', icon: Puzzle, label: 'Accesorios' },
   { id: 'similares', icon: Package, label: 'Similares' },
 ];
 
@@ -1062,7 +1091,7 @@ const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'jul
 function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commission, productName, productBrand, tea, tcea }: { T: Theme; isDark: boolean; selectedTerm: number; monthlyQuota: number; price: number; commission: number | null; productName: string; productBrand: string; tea?: number | null; tcea?: number | null }) {
   const [expanded, setExpanded] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  // TEA viene del plan activo (backend). Si no hay TEA no calculamos amortización falsa.
+  // TEA viene del plan activo (backend). Sin TEA no mostramos cronograma.
   const effectiveTea = tea ?? null;
   const comisionMensual = commission != null ? commission : 0;
 
@@ -1211,6 +1240,123 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
 // Similar Products Section
 // ============================================
 
+// ============================================
+// Accessories Carousel
+// ============================================
+
+function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Theme; isDark: boolean; accessories: { id: string; name: string; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]; selectedTerm: number }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  }, []);
+
+  const scroll = useCallback((dir: number) => {
+    scrollRef.current?.scrollBy({ left: dir * 236, behavior: 'smooth' });
+  }, []);
+
+  return (
+    <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
+      <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'clamp(16px, 4vw, 24px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: `${T.neonCyan}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Puzzle size={20} style={{ color: T.neonCyan }} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 'clamp(15px, 4vw, 18px)', fontWeight: 700, color: isDark ? '#fff' : '#171717', margin: '0 0 4px' }}>Complementa tu equipo</h3>
+              <p style={{ fontSize: 'clamp(12px, 3vw, 14px)', color: isDark ? '#707070' : '#737373', margin: 0 }}>Accesorios disponibles con financiamiento</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={() => scroll(-1)} disabled={!canScrollLeft} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canScrollLeft ? 'pointer' : 'default', border: `1.5px solid ${canScrollLeft ? T.neonCyan : T.border}`, background: isDark ? T.bgSurface : '#fff', color: canScrollLeft ? T.neonCyan : (isDark ? '#555' : '#d4d4d4'), opacity: canScrollLeft ? 1 : 0.5, transition: 'all 0.2s' }}>
+              <ChevronLeft size={20} />
+            </button>
+            <button onClick={() => scroll(1)} disabled={!canScrollRight} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canScrollRight ? 'pointer' : 'default', border: `1.5px solid ${canScrollRight ? T.neonCyan : T.border}`, background: isDark ? T.bgSurface : '#fff', color: canScrollRight ? T.neonCyan : (isDark ? '#555' : '#d4d4d4'), opacity: canScrollRight ? 1 : 0.5, transition: 'all 0.2s' }}>
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Carousel */}
+        <div ref={scrollRef} onScroll={updateScrollState} style={{ display: 'flex', gap: 14, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 8, scrollbarWidth: 'none' }}>
+          {accessories.map((acc) => (
+            <div key={acc.id} style={{ width: 220, minWidth: 220, flexShrink: 0, scrollSnapAlign: 'start' }}>
+              <div style={{
+                height: '100%', borderRadius: 14, overflow: 'hidden',
+                background: isDark ? T.bgSurface : '#fafafa',
+                border: `1px solid ${isDark ? T.border : '#e5e7eb'}`,
+                display: 'flex', flexDirection: 'column',
+                transition: 'all 0.2s',
+              }}>
+                {/* Image */}
+                <div style={{ padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 120 }}>
+                  <Image
+                    src={acc.image}
+                    alt={acc.name}
+                    width={100}
+                    height={100}
+                    style={{ objectFit: 'contain', maxHeight: 96, width: 'auto' }}
+                  />
+                </div>
+
+                {/* Content */}
+                <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                  {/* Category */}
+                  {acc.category && (
+                    <span style={{ fontSize: 10, color: T.neonCyan, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                      {acc.category}
+                    </span>
+                  )}
+
+                  {/* Name */}
+                  <h4 style={{
+                    fontSize: 13, fontWeight: 600, color: isDark ? '#f0f0f0' : '#333',
+                    margin: '0 0 8px', minHeight: '2.4rem',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    fontFamily: "'Rajdhani', sans-serif",
+                  }}>
+                    {acc.name}
+                  </h4>
+
+                  {/* Spacer */}
+                  <div style={{ flex: 1 }} />
+
+                  {/* Price */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: T.neonCyan }}>
+                      +S/{Math.round(acc.monthlyQuota)}
+                    </span>
+                    <span style={{ fontSize: 11, color: isDark ? '#555' : '#999' }}>/mes</span>
+                  </div>
+                  {acc.term && (
+                    <span style={{ fontSize: 10, color: isDark ? '#555' : '#999' }}>en {acc.term} meses</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile hint */}
+        <p className="md:hidden" style={{ textAlign: 'center', fontSize: 12, color: isDark ? '#555' : '#999', marginTop: 4 }}>
+          Desliza para ver más
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ============================================
+// Similar Products Section
+// ============================================
+
 function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, landing }: { T: Theme; isDark: boolean; similarProducts: SimilarProduct[]; currentQuota: number; landing: string }) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1241,10 +1387,10 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
             <p style={{ fontSize: 'clamp(12px, 3vw, 14px)', color: isDark ? '#707070' : '#737373', margin: 0 }}>Desliza para explorar más opciones</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => scroll(-1)} disabled={!canScrollLeft} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canScrollLeft ? 'pointer' : 'default', border: 'none', background: isDark ? T.bgSurface : '#f5f5f5', color: canScrollLeft ? (isDark ? '#fff' : '#404040') : (isDark ? '#555' : '#d4d4d4'), opacity: canScrollLeft ? 1 : 0.5, transition: 'all 0.2s' }}>
+            <button onClick={() => scroll(-1)} disabled={!canScrollLeft} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canScrollLeft ? 'pointer' : 'default', border: `1.5px solid ${canScrollLeft ? T.neonCyan : T.border}`, background: isDark ? T.bgSurface : '#fff', color: canScrollLeft ? T.neonCyan : (isDark ? '#555' : '#d4d4d4'), opacity: canScrollLeft ? 1 : 0.5, transition: 'all 0.2s' }}>
               <ChevronLeft size={20} />
             </button>
-            <button onClick={() => scroll(1)} disabled={!canScrollRight} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canScrollRight ? 'pointer' : 'default', border: 'none', background: isDark ? T.bgSurface : '#f5f5f5', color: canScrollRight ? (isDark ? '#fff' : '#404040') : (isDark ? '#555' : '#d4d4d4'), opacity: canScrollRight ? 1 : 0.5, transition: 'all 0.2s' }}>
+            <button onClick={() => scroll(1)} disabled={!canScrollRight} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canScrollRight ? 'pointer' : 'default', border: `1.5px solid ${canScrollRight ? T.neonCyan : T.border}`, background: isDark ? T.bgSurface : '#fff', color: canScrollRight ? T.neonCyan : (isDark ? '#555' : '#d4d4d4'), opacity: canScrollRight ? 1 : 0.5, transition: 'all 0.2s' }}>
               <ChevronRight size={20} />
             </button>
           </div>

@@ -13,6 +13,7 @@ interface GamerNavbarProps {
   catalogUrl: string;
   hideSecondaryBar?: boolean;
   fullWidth?: boolean;
+  onMobileMenuChange?: (open: boolean) => void;
 }
 
 const NAV_SECTIONS = [
@@ -35,8 +36,12 @@ interface SearchResult {
   quotaMonthly: number;
 }
 
-export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth }: GamerNavbarProps) {
+export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth, onMobileMenuChange }: GamerNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const setMobileOpenAndNotify = useCallback((open: boolean) => {
+    setMobileOpen(open);
+    onMobileMenuChange?.(open);
+  }, [onMobileMenuChange]);
   const pathname = usePathname();
   const router = useRouter();
   const landingHome = routes.landingHome(LANDING_SLUG);
@@ -134,7 +139,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
       const y = el.getBoundingClientRect().top + window.pageYOffset - 120;
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
-    setMobileOpen(false);
+    setMobileOpenAndNotify(false);
   };
 
   return (
@@ -263,7 +268,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
 
           {/* hamburger-btn (mobile only) */}
           <button
-            onClick={() => setMobileOpen(!mobileOpen)}
+            onClick={() => setMobileOpenAndNotify(!mobileOpen)}
             className="hidden max-md:flex items-center justify-center"
             style={{
               width: 'clamp(32px, 8vw, 36px)',
@@ -462,56 +467,76 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
 
       {/* Mobile Menu */}
       {mobileOpen && (
-        <div
-          className="md:hidden fixed inset-0 z-40 pt-28 px-4 flex flex-col gap-0 backdrop-blur-[20px]"
-          style={{
-            background: isDark ? 'rgba(12,12,12,0.98)' : 'rgba(255,255,255,0.98)',
-            borderTop: `1px solid ${V.border}`,
-          }}
-        >
-          {/* Catálogo link */}
-          <a
-            href={catalogUrl}
-            className="block w-full text-left py-3 text-[15px] font-semibold no-underline transition-colors hover:text-[#00ffd5]"
-            style={{ color: V.neonCyan, fontFamily: "'Rajdhani', sans-serif", borderBottom: `1px solid ${V.border}` }}
-          >
-            Catálogo
-          </a>
-          {/* Landing sections */}
-          {NAV_SECTIONS.map((item, i) =>
-            isOnLanding ? (
-              <button
-                key={item.id}
-                onClick={() => scrollTo(item.id)}
-                className="block w-full text-left py-3 text-[15px] font-semibold bg-transparent border-none cursor-pointer transition-colors hover:text-[#00ffd5]"
-                style={{ color: V.textSecondary, fontFamily: "'Rajdhani', sans-serif", borderBottom: i < NAV_SECTIONS.length - 1 ? `1px solid ${V.border}` : 'none' }}
-              >
-                {item.label}
-              </button>
-            ) : (
-              <a
-                key={item.id}
-                href={`${landingHome}#${item.id}`}
-                className="block w-full text-left py-3 text-[15px] font-semibold no-underline transition-colors hover:text-[#00ffd5]"
-                style={{ color: V.textSecondary, fontFamily: "'Rajdhani', sans-serif", borderBottom: i < NAV_SECTIONS.length - 1 ? `1px solid ${V.border}` : 'none' }}
-              >
-                {item.label}
-              </a>
-            )
-          )}
-          <a
-            href="#"
-            className="flex items-center justify-center gap-2 mt-4 py-2.5 rounded-xl no-underline text-sm font-semibold"
+        <>
+          {/* Backdrop overlay */}
+          <div
+            className="md:hidden fixed inset-0 z-[39]"
+            onClick={() => setMobileOpenAndNotify(false)}
             style={{
-              border: '2px solid rgba(0,255,213,0.3)',
-              color: V.neonCyan,
-              fontFamily: "'Barlow Condensed', sans-serif",
+              background: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)',
+              backdropFilter: 'blur(8px)',
+              animation: 'gamerFadeIn 0.2s ease-out',
+            }}
+          />
+          {/* Menu panel */}
+          <div
+            className="md:hidden fixed left-0 right-0 z-40 px-4 py-4 flex flex-col gap-0"
+            style={{
+              top: 'clamp(52px, 10vw, 64px)',
+              background: isDark ? '#0e0e0e' : '#fff',
+              borderBottom: `1px solid ${V.border}`,
+              boxShadow: isDark ? '0 12px 40px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.12)',
+              animation: 'gamerSlideDown 0.25s ease-out',
             }}
           >
-            <User className="w-3.5 h-3.5" />
-            Zona Gamers
-          </a>
-        </div>
+            <style>{`
+              @keyframes gamerFadeIn { from { opacity: 0; } to { opacity: 1; } }
+              @keyframes gamerSlideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+            `}</style>
+            {/* Catálogo link */}
+            <a
+              href={catalogUrl}
+              className="block w-full text-left py-3 text-[15px] font-semibold no-underline transition-colors hover:text-[#00ffd5]"
+              style={{ color: V.neonCyan, fontFamily: "'Rajdhani', sans-serif", borderBottom: `1px solid ${V.border}` }}
+            >
+              Catálogo
+            </a>
+            {/* Landing sections */}
+            {NAV_SECTIONS.map((item, i) =>
+              isOnLanding ? (
+                <button
+                  key={item.id}
+                  onClick={() => scrollTo(item.id)}
+                  className="block w-full text-left py-3 text-[15px] font-semibold bg-transparent border-none cursor-pointer transition-colors hover:text-[#00ffd5]"
+                  style={{ color: V.textSecondary, fontFamily: "'Rajdhani', sans-serif", borderBottom: i < NAV_SECTIONS.length - 1 ? `1px solid ${V.border}` : 'none' }}
+                >
+                  {item.label}
+                </button>
+              ) : (
+                <a
+                  key={item.id}
+                  href={`${landingHome}#${item.id}`}
+                  className="block w-full text-left py-3 text-[15px] font-semibold no-underline transition-colors hover:text-[#00ffd5]"
+                  style={{ color: V.textSecondary, fontFamily: "'Rajdhani', sans-serif", borderBottom: i < NAV_SECTIONS.length - 1 ? `1px solid ${V.border}` : 'none' }}
+                >
+                  {item.label}
+                </a>
+              )
+            )}
+            <a
+              href="#"
+              className="flex items-center justify-center gap-2 mt-4 py-2.5 rounded-xl no-underline text-sm font-semibold"
+              style={{
+                border: '2px solid rgba(0,255,213,0.3)',
+                color: V.neonCyan,
+                fontFamily: "'Barlow Condensed', sans-serif",
+              }}
+            >
+              <User className="w-3.5 h-3.5" />
+              Zona Gamers
+            </a>
+          </div>
+        </>
       )}
     </>
   );

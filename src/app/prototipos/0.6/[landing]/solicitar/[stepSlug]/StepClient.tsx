@@ -852,18 +852,17 @@ function LoadingFallback() {
 
 // Gamer theme wrapper for zona-gamer wizard steps
 function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
-    }
-    return 'dark';
-  });
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
 
-  // Hydrate
-  useEffect(() => { setHydrated(true); }, []);
+  // Hydrate theme from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    if (saved) setTheme(saved);
+    setHydrated(true);
+  }, []);
   // Persist theme
   useEffect(() => { localStorage.setItem('baldecash-theme', theme); }, [theme]);
 

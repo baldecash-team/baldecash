@@ -36,18 +36,26 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
           }}
         />
 
-        {/* hero-banner::after overlay */}
+        {/* hero-banner::after overlay - horizontal en desktop, vertical en mobile */}
         <div
-          className="absolute inset-0 z-[1]"
+          className="absolute inset-0 z-[1] hidden sm:block"
           style={{
             background: isDark
               ? 'linear-gradient(90deg, rgba(5,5,10,0.85) 0%, rgba(5,5,10,0.6) 45%, transparent 75%)'
-              : 'linear-gradient(90deg, rgba(240,240,240,0.85) 0%, rgba(240,240,240,0.5) 40%, transparent 65%)',
+              : 'linear-gradient(90deg, rgba(242,242,242,0.95) 0%, rgba(242,242,242,0.88) 35%, rgba(242,242,242,0.6) 55%, transparent 75%)',
+          }}
+        />
+        <div
+          className="absolute inset-0 z-[1] sm:hidden"
+          style={{
+            background: isDark
+              ? 'linear-gradient(180deg, rgba(5,5,10,0.85) 0%, rgba(5,5,10,0.6) 60%, rgba(5,5,10,0.4) 100%)'
+              : 'linear-gradient(180deg, rgba(242,242,242,0.9) 0%, rgba(242,242,242,0.75) 50%, rgba(242,242,242,0.55) 100%)',
           }}
         />
 
         {/* container */}
-        <div className="relative z-[3] max-w-[1280px] mx-auto px-6">
+        <div className="relative z-[11] max-w-[1280px] mx-auto px-6">
           {/* hero-banner-content */}
           <div style={{ maxWidth: 680 }}>
             {/* hb-tag */}
@@ -159,10 +167,11 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
                   textTransform: 'uppercase',
                   padding: '12px 28px',
                   borderRadius: 8,
-                  background: isDark ? 'rgba(99,102,241,0.12)' : 'rgba(79,70,229,0.08)',
-                  color: isDark ? '#a5b4fc' : '#4f46e5',
-                  border: `2px solid ${isDark ? '#818cf8' : '#6366f1'}`,
-                  boxShadow: isDark ? '0 0 12px rgba(99,102,241,0.15)' : '0 0 8px rgba(79,70,229,0.1)',
+                  background: isDark ? 'rgba(99,102,241,0.25)' : 'rgba(79,70,229,0.08)',
+                  color: isDark ? '#c7d2fe' : '#4f46e5',
+                  border: `2px solid ${isDark ? '#a5b4fc' : '#6366f1'}`,
+                  boxShadow: isDark ? '0 0 16px rgba(99,102,241,0.3)' : '0 0 8px rgba(79,70,229,0.1)',
+                  backdropFilter: 'blur(8px)',
                   gap: 8,
                 }}
                 onMouseEnter={(e) => { if (e.currentTarget) { e.currentTarget.style.boxShadow = isDark ? '0 4px 20px rgba(99,102,241,0.25)' : '0 4px 20px rgba(79,70,229,0.2)'; e.currentTarget.style.borderColor = isDark ? '#818cf8' : '#6366f1'; } }}

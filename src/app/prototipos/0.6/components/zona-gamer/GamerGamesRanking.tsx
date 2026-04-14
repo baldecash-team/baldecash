@@ -106,7 +106,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
   return (
     <>
       <style>{`
-        .gamer-game-row { grid-template-columns: 36px 36px 1fr 40px; }
+        .gamer-game-row { grid-template-columns: 36px 36px 1fr 40px 16px; }
         @media (min-width: 640px) { .gamer-game-row { grid-template-columns: 60px 52px 1fr 1fr 60px 28px; } }
       `}</style>
       <hr className="border-none h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)' }} />
@@ -240,8 +240,8 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
 
                 {/* Arrow hint */}
                 <span
-                  className="relative z-10 hidden sm:flex items-center opacity-30 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1"
-                  style={{ color: g.color, fontSize: 24, fontWeight: 700 }}
+                  className="relative z-10 flex items-center opacity-50 sm:opacity-30 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1"
+                  style={{ color: g.color, fontSize: 20, fontWeight: 700 }}
                 >
                   ›
                 </span>

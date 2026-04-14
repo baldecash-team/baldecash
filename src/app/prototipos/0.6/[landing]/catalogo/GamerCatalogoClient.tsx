@@ -13,7 +13,7 @@
  * Fuentes: Rajdhani, Orbitron, Share Tech Mono, Barlow Condensed
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect, Suspense } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, useSyncExternalStore, Suspense } from 'react';
 import Image from 'next/image';
 import {
   Search,
@@ -83,12 +83,11 @@ import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '.
 
 // Zona Gamer components
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
-import { GamerAccessories } from '@/app/prototipos/0.6/components/zona-gamer/GamerAccessories';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
 import type { OnboardingStep } from './types/catalog';
-import { useToast } from '@/app/prototipos/_shared';
+import { useToast, CubeGridSpinner } from '@/app/prototipos/_shared';
 
 // ============================================
 // Theme helpers
@@ -139,35 +138,18 @@ export function GamerCatalogoClient() {
   );
 }
 
-function GamerLoadingFallback() {
-  const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('baldecash-theme') : null;
+function GamerLoadingFallback({ dark }: { dark?: boolean }) {
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: savedTheme === 'light' ? '#f2f2f2' : '#0e0e0e',
+        background: dark ? '#0e0e0e' : '#fff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <div style={{ textAlign: 'center' }}>
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            border: '3px solid #2a2a2a',
-            borderTopColor: '#00ffd5',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-            margin: '0 auto 16px',
-          }}
-        />
-        <p style={{ color: '#707070', fontFamily: "'Rajdhani', sans-serif", fontSize: 14 }}>
-          Cargando catálogo...
-        </p>
-      </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <CubeGridSpinner />
     </div>
   );
 }
@@ -183,14 +165,15 @@ function GamerCatalogoContent() {
   const landing = (params.landing as string) || 'zona-gamer';
   const { setSelectedProduct } = useProduct();
 
-  // Theme - persist to localStorage
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
-    }
-    return 'dark';
-  });
-  useEffect(() => { localStorage.setItem('baldecash-theme', theme); }, [theme]);
+  // Theme - persist to localStorage (SSR-safe: always start dark, hydrate from localStorage)
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [themeHydrated, setThemeHydrated] = useState(false);
+  useEffect(() => {
+    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    if (saved) setTheme(saved);
+    setThemeHydrated(true);
+  }, []);
+  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-theme', theme); }, [theme, themeHydrated]);
   const isDark = theme === 'dark';
   const T = gamerTheme(isDark);
 
@@ -283,6 +266,7 @@ function GamerCatalogoContent() {
 
   // Mobile filters
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Scroll to top button
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -633,6 +617,7 @@ function GamerCatalogoContent() {
     return count;
   }, [filters, searchQuery]);
 
+
   return (
     <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Rajdhani', sans-serif" }}>
       {/* Google Fonts */}
@@ -678,17 +663,19 @@ function GamerCatalogoContent() {
         catalogUrl={routes.catalogo(landing)}
         hideSecondaryBar
         fullWidth
+        onMobileMenuChange={setMobileMenuOpen}
       />
 
       {/* ====== SECONDARY NAV ====== */}
       <div
+        className={mobileMenuOpen ? 'max-md:hidden' : ''}
         style={{
           background: isDark ? 'rgba(14,14,14,0.95)' : 'rgba(255,255,255,0.95)',
           borderBottom: `1px solid ${T.border}`,
           padding: '0 24px',
           backdropFilter: 'blur(20px)',
           position: 'sticky',
-          top: 64,
+          top: 'clamp(52px, 10vw, 64px)',
           zIndex: 99,
         }}
       >
@@ -1080,47 +1067,21 @@ function GamerCatalogoContent() {
 
         {/* ====== PRODUCT GRID ====== */}
         <main style={{ flex: 1, minWidth: 0 }}>
-          {/* Mobile filter banner */}
-          <div className="lg:hidden mb-4">
-            <button
-              id="onboarding-filters-mobile"
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                padding: '12px 16px',
-                background: T.bgCard,
-                border: `1px solid ${T.border}`,
-                borderRadius: 12,
-                color: T.neonCyan,
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <SlidersHorizontal className="w-4 h-4" />
-              Filtros
-              {activeFilterCount > 0 && (
-                <span
-                  style={{
-                    background: T.neonCyan,
-                    color: isDark ? '#000' : '#fff',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: '2px 7px',
-                    borderRadius: 10,
-                  }}
-                >
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
-            {showMobileFilters && (
-              <div style={{ marginTop: 12 }}>
+          {/* Mobile filter panel - fullscreen overlay */}
+          {showMobileFilters && (
+            <div className="lg:hidden fixed inset-0 z-[100] flex flex-col" style={{ background: isDark ? '#0e0e0e' : '#fff' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${T.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <SlidersHorizontal className="w-5 h-5" style={{ color: T.neonCyan }} />
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: T.textPrimary, margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>Filtros</h2>
+                </div>
+                <button onClick={() => setShowMobileFilters(false)} style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: `1px solid ${T.border}`, color: T.textSecondary, cursor: 'pointer' }}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              {/* Scrollable filters */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
                 <GamerSidebar
                   isDark={isDark}
                   T={T}
@@ -1145,10 +1106,20 @@ function GamerCatalogoContent() {
                   onClearFilters={handleClearFilters}
                   activeFilterCount={activeFilterCount}
                   sortOptions={catalogFilters.sortOptions}
+                  bare
                 />
               </div>
-            )}
-          </div>
+              {/* Footer */}
+              <div style={{ padding: '16px 20px', borderTop: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button onClick={() => { handleClearFilters(); }} style={{ padding: '12px 20px', borderRadius: 12, border: `1px solid ${T.border}`, background: 'none', color: T.textSecondary, fontSize: 14, fontWeight: 600, fontFamily: "'Rajdhani', sans-serif", cursor: 'pointer' }}>
+                  Limpiar
+                </button>
+                <button onClick={() => setShowMobileFilters(false)} style={{ flex: 1, padding: '12px 20px', borderRadius: 12, border: 'none', background: T.neonCyan, color: isDark ? '#0a0a0a' : '#fff', fontSize: 14, fontWeight: 700, fontFamily: "'Rajdhani', sans-serif", cursor: 'pointer' }}>
+                  Ver {displayTotal} resultados
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Sort dropdown (desktop) */}
           <div className="flex items-center justify-between mb-4">
@@ -1530,6 +1501,80 @@ function GamerCatalogoContent() {
         </div>
       )}
 
+      {/* ====== MOBILE FILTERS FAB ====== */}
+      <div className="lg:hidden" style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 90 }}>
+        <button
+          id="onboarding-filters-mobile"
+          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '12px 20px',
+            borderRadius: 16,
+            border: 'none',
+            background: T.neonCyan,
+            color: isDark ? '#0a0a0a' : '#fff',
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "'Rajdhani', sans-serif",
+            cursor: 'pointer',
+            boxShadow: isDark ? '0 4px 20px rgba(0,255,213,0.3)' : '0 4px 20px rgba(0,137,122,0.25)',
+            transition: 'all 0.2s',
+          }}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Filtros
+          {activeFilterCount > 0 && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, borderRadius: 999,
+              minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 5px', background: isDark ? '#0a0a0a' : '#fff', color: T.neonCyan,
+            }}>
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* ====== MOBILE COMPARE FAB ====== */}
+      {compareList.length > 0 && !showCompareModal && (
+        <button
+          className="lg:hidden"
+          onClick={() => setShowCompareModal(true)}
+          style={{
+            position: 'fixed',
+            bottom: 76,
+            left: 24,
+            zIndex: 90,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '10px 16px',
+            borderRadius: 16,
+            border: 'none',
+            background: T.neonCyan,
+            color: isDark ? '#0a0a0a' : '#fff',
+            fontSize: 14,
+            fontWeight: 700,
+            fontFamily: "'Rajdhani', sans-serif",
+            cursor: 'pointer',
+            boxShadow: isDark ? '0 4px 20px rgba(0,255,213,0.3)' : '0 4px 20px rgba(0,137,122,0.25)',
+            transition: 'all 0.2s',
+          }}
+        >
+          <Scale className="w-5 h-5" />
+          <span className="hidden sm:inline">Comparar</span>
+          <span style={{
+            fontSize: 12, fontWeight: 700, borderRadius: 999,
+            minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '0 6px', background: isDark ? '#0a0a0a' : '#fff', color: T.neonCyan,
+          }}>
+            {compareList.length}/3
+          </span>
+        </button>
+      )}
+
       {/* ====== COMPARE MODAL ====== */}
       {showCompareModal && (
         <GamerCompareModal
@@ -1547,9 +1592,6 @@ function GamerCatalogoContent() {
           }}
         />
       )}
-
-      {/* ====== ACCESORIOS GAMING ====== */}
-      <GamerAccessories theme={theme} />
 
       {/* ====== FOOTER ====== */}
       <GamerFooter theme={theme} />
@@ -1589,7 +1631,7 @@ function GamerCatalogoContent() {
       `}</style>
 
       {/* Help button */}
-      <GamerHelpButton isDark={isDark} T={T} onOpenChat={() => blipChat.openChat()} onStartTour={handleStartTour} />
+      {!showMobileFilters && <GamerHelpButton isDark={isDark} T={T} onOpenChat={() => blipChat.openChat()} onStartTour={handleStartTour} />}
 
       {/* Onboarding Tour */}
       <GamerOnboardingTour
@@ -1947,6 +1989,7 @@ function GamerSidebar({
   onClearFilters,
   activeFilterCount,
   sortOptions,
+  bare = false,
 }: {
   isDark: boolean;
   T: ReturnType<typeof gamerTheme>;
@@ -1971,6 +2014,7 @@ function GamerSidebar({
   onClearFilters: () => void;
   activeFilterCount: number;
   sortOptions: { value: string; label: string }[];
+  bare?: boolean;
 }) {
   // Quota range bounds vienen del backend (apiFilters.quota_range)
   const RANGE_ABS_MIN = apiFilters?.quota_range?.min ?? 0;
@@ -2043,20 +2087,8 @@ function GamerSidebar({
     fontFamily: "'Share Tech Mono', monospace",
   };
 
-  return (
-    <div
-      style={{
-        background: T.bgCard,
-        border: `1px solid ${T.border}`,
-        borderRadius: 14,
-        padding: 20,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-        maxHeight: 'calc(100vh - 170px)',
-        overflowY: 'auto',
-        scrollbarWidth: 'thin',
-        scrollbarColor: `${T.border} transparent`,
-      }}
-    >
+  const content = (
+    <>
       {/* Range slider thumb styles (can't be done inline) */}
       <style>{`
         .gamer-range-slider::-webkit-slider-thumb {
@@ -2086,8 +2118,8 @@ function GamerSidebar({
         .gamer-filter-header:hover .gamer-chevron { color: ${T.neonCyan} !important; }
       `}</style>
 
-      {/* ======= Header ======= */}
-      <div
+      {/* ======= Header (hidden in bare/fullscreen mode) ======= */}
+      {!bare && <div
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -2131,10 +2163,10 @@ function GamerSidebar({
             <span>Limpiar</span>
           </button>
         )}
-      </div>
+      </div>}
 
-      {/* Sort (mobile/sidebar) */}
-      <div className="lg:hidden" style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${T.border}` }}>
+      {/* Sort (mobile/sidebar - hidden in bare mode) */}
+      {!bare && <div className="lg:hidden" style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${T.border}` }}>
         <label
           style={{
             display: 'block',
@@ -2168,7 +2200,7 @@ function GamerSidebar({
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
-      </div>
+      </div>}
 
       {/* =====================================================================
           NUEVO ORDEN DE FILTROS (optimizado para gamers — specs primero)
@@ -2521,6 +2553,26 @@ function GamerSidebar({
           </div>
         </FilterSection>
       )}
+    </>
+  );
+
+  if (bare) return content;
+
+  return (
+    <div
+      style={{
+        background: T.bgCard,
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        padding: 20,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+        maxHeight: 'calc(100vh - 170px)',
+        overflowY: 'auto',
+        scrollbarWidth: 'thin',
+        scrollbarColor: `${T.border} transparent`,
+      }}
+    >
+      {content}
     </div>
   );
 }
@@ -4486,9 +4538,7 @@ function GamerCardSkeleton({
             height: 14,
             width: '80%',
             borderRadius: 4,
-            background: shimmerBg,
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s ease-in-out infinite',
+            ...shimmerStyle,
             marginBottom: 8,
           }}
         />
@@ -4497,9 +4547,7 @@ function GamerCardSkeleton({
             height: 14,
             width: '60%',
             borderRadius: 4,
-            background: shimmerBg,
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s ease-in-out infinite',
+            ...shimmerStyle,
             marginBottom: 16,
           }}
         />
@@ -4508,9 +4556,7 @@ function GamerCardSkeleton({
           style={{
             height: 48,
             borderRadius: 10,
-            background: shimmerBg,
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s ease-in-out infinite',
+            ...shimmerStyle,
             marginBottom: 12,
           }}
         />
@@ -4521,9 +4567,7 @@ function GamerCardSkeleton({
               flex: 1,
               height: 36,
               borderRadius: 8,
-              background: shimmerBg,
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s ease-in-out infinite',
+              ...shimmerStyle,
             }}
           />
           <div
@@ -4531,9 +4575,7 @@ function GamerCardSkeleton({
               flex: 1,
               height: 36,
               borderRadius: 8,
-              background: shimmerBg,
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.5s ease-in-out infinite',
+              ...shimmerStyle,
             }}
           />
         </div>

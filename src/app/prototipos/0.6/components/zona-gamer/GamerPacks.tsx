@@ -229,7 +229,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                     width={400}
                     height={200}
                     className="w-full block"
-                    style={{ height: 'clamp(140px, 30vw, 200px)', objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'block' : 'none' }}
+                    style={{ height: 'auto', aspectRatio: '2/1', objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'block' : 'none' }}
                   />
                   <Image
                     src={pack.imgLight}
@@ -237,7 +237,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                     width={400}
                     height={200}
                     className="w-full block"
-                    style={{ height: 'clamp(140px, 30vw, 200px)', objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'none' : 'block' }}
+                    style={{ height: 'auto', aspectRatio: '2/1', objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'none' : 'block' }}
                   />
                 </div>
 

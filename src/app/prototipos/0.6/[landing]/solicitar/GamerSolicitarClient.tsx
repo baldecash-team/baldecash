@@ -73,13 +73,14 @@ function SolicitarContent() {
   const landing = (params.landing as string) || 'zona-gamer';
   useScrollToTop();
 
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
-    }
-    return 'dark';
-  });
-  useEffect(() => { localStorage.setItem('baldecash-theme', theme); }, [theme]);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [themeHydrated, setThemeHydrated] = useState(false);
+  useEffect(() => {
+    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    if (saved) setTheme(saved);
+    setThemeHydrated(true);
+  }, []);
+  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-theme', theme); }, [theme, themeHydrated]);
   const isDark = theme === 'dark';
   const T = gamerTheme(isDark);
 

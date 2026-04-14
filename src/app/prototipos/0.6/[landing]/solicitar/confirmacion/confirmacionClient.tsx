@@ -446,14 +446,14 @@ function GamerLoadingFallback() {
 }
 
 function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('baldecash-theme') as 'dark' | 'light') || 'dark';
-    }
-    return 'dark';
-  });
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
+
+  useEffect(() => {
+    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    if (saved) setTheme(saved);
+  }, []);
 
   const handleToggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
