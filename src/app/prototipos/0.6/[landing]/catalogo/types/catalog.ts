@@ -816,6 +816,8 @@ export interface CatalogLayoutProps {
   totalProducts: number;
   // Ref for grid container to detect column count
   gridRef?: React.RefObject<HTMLDivElement | null>;
+  // Catalog banner configuration from layout
+  catalogBanner?: Record<string, unknown> | null;
 }
 
 export interface BrandFilterProps {

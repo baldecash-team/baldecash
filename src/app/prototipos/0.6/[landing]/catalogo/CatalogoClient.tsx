@@ -296,7 +296,7 @@ function CatalogoContent() {
   const tracker = useEventTrackerOptional();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
   // Preview mode support
@@ -1589,6 +1589,7 @@ function CatalogoContent() {
         searchQuery={searchQuery}
         onSearchClear={handleSearchClear}
         gridRef={gridRef}
+        catalogBanner={catalogBanner}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
         {searchCorrected && !isProductsLoading && (

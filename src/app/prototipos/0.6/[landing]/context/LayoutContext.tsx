@@ -45,6 +45,7 @@ interface LayoutContextValue {
   previewLandingId: number | null;
   /** Public system configuration flags from backend */
   settings: Record<string, string>;
+  catalogBanner: Record<string, unknown> | null;
 }
 
 /**
@@ -234,6 +235,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   // Extract public settings from layout data
   const settings = useMemo<Record<string, string>>(() => layoutData?.settings ?? {}, [layoutData]);
 
+  // Extract catalog banner data
+  const catalogBanner = useMemo(() => (layoutData?.catalog_banner?.content_config as Record<string, unknown>) ?? null, [layoutData]);
+
   // Extract agreement data for convenio pages
   const agreementData = useMemo((): AgreementData | null => {
     if (!layoutData) return null;
@@ -256,7 +260,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     isPreviewMode,
     previewLandingId,
     settings,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings]);
+    catalogBanner,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner]);
 
   return (
     <LayoutContext.Provider value={value}>

@@ -284,6 +284,7 @@ export interface LandingLayoutResponse {
   footer: HomeComponentResponse | null;
   promo_banner: HomeComponentResponse | null;
   catalog_secondary_navbar: HomeComponentResponse | null;
+  catalog_banner: HomeComponentResponse | null;
   company: {
     name?: string;
     legal_name?: string;

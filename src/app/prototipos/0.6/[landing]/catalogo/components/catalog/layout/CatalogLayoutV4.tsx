@@ -13,6 +13,7 @@ import { FilterChips } from '../filters/FilterChips';
 import { TagsFilter } from '../filters/TagsFilter';
 import { SortDropdown } from '../sorting/SortDropdown';
 import { QuickUsageCards } from '../QuickUsageCards';
+import CatalogBanner from '../CatalogBanner';
 import {
   BrandFilterV1,
   BrandFilterV2,
@@ -56,6 +57,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   isApiFiltersLoading,
   totalProducts,
   gridRef,
+  catalogBanner,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -578,6 +580,16 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             </CardBody>
           </Card>
         </div>
+
+        {/* Banner Promocional del Catálogo */}
+        {catalogBanner && (
+          <div className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
+            <CatalogBanner
+              desktopImageUrl={catalogBanner.desktop_image_url as string}
+              mobileImageUrl={catalogBanner.mobile_image_url as string}
+            />
+          </div>
+        )}
 
         {/* Content with Sidebar and Products */}
         <div className="flex items-start">
