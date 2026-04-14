@@ -645,6 +645,30 @@ export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: b
 // Device type for linking to detail page
 export type CatalogDeviceType = 'laptop' | 'tablet' | 'celular' | 'accesorio';
 
+export interface PromotionTemplate {
+  code: string;
+  bannerText: string;
+  bannerStyle: 'top_bar' | 'ribbon_corner';
+  borderColor: string | null;
+  bannerBgColor: string | null;
+  bannerTextColor: string;
+  bannerIcon: string | null;
+  ctaText: string;
+  ctaStyle: 'golden' | 'primary';
+  showSpecs: boolean;
+  showLinks: boolean;
+}
+
+export interface ProductPromotion {
+  id: number;
+  name: string;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  validUntil?: string;
+  template: PromotionTemplate | null;
+}
+
 export interface CatalogProduct {
   id: string;
   landingProductId?: number;
@@ -676,6 +700,7 @@ export interface CatalogProduct {
   specs: ProductSpecs;
   rawSpecs?: Record<string, string | number | boolean>;
   createdAt: string;
+  promotion?: ProductPromotion | null;
 }
 
 export interface ProductSpecs {

@@ -117,6 +117,31 @@ export interface ApiCatalogProduct {
   images?: string[];
   colors?: ApiProductColor[];
   color_siblings?: ApiColorSibling[];
+  promotion?: ApiProductPromotion | null;
+}
+
+export interface ApiPromotionTemplate {
+  code: string;
+  banner_text: string;
+  banner_style: string;
+  border_color: string | null;
+  banner_bg_color: string | null;
+  banner_text_color: string;
+  banner_icon: string | null;
+  cta_text: string;
+  cta_style: string;
+  show_specs: boolean;
+  show_links: boolean;
+}
+
+export interface ApiProductPromotion {
+  id: number;
+  name: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  valid_until: string | null;
+  template: ApiPromotionTemplate | null;
 }
 
 export interface SearchSuggestion {
@@ -566,6 +591,27 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     specs: productSpecs,
     rawSpecs: specs || undefined,
     createdAt: new Date().toISOString(),
+    promotion: apiProduct.promotion ? {
+      id: apiProduct.promotion.id,
+      name: apiProduct.promotion.name,
+      code: apiProduct.promotion.code,
+      discountType: apiProduct.promotion.discount_type,
+      discountValue: apiProduct.promotion.discount_value,
+      validUntil: apiProduct.promotion.valid_until ?? undefined,
+      template: apiProduct.promotion.template ? {
+        code: apiProduct.promotion.template.code,
+        bannerText: apiProduct.promotion.template.banner_text,
+        bannerStyle: apiProduct.promotion.template.banner_style as 'top_bar' | 'ribbon_corner',
+        borderColor: apiProduct.promotion.template.border_color,
+        bannerBgColor: apiProduct.promotion.template.banner_bg_color,
+        bannerTextColor: apiProduct.promotion.template.banner_text_color,
+        bannerIcon: apiProduct.promotion.template.banner_icon,
+        ctaText: apiProduct.promotion.template.cta_text,
+        ctaStyle: apiProduct.promotion.template.cta_style as 'golden' | 'primary',
+        showSpecs: apiProduct.promotion.template.show_specs,
+        showLinks: apiProduct.promotion.template.show_links,
+      } : null,
+    } : null,
   };
 }
 

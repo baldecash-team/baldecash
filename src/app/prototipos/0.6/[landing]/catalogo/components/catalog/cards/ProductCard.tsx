@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, type LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
@@ -22,6 +22,14 @@ import {
   TermMonths,
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
+
+const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
+  fire: Flame,
+  siren: Siren,
+  lightning: Zap,
+  star: Star,
+  gift: Gift,
+};
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { ColorSelector } from '../color-selector';
@@ -191,6 +199,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     addedAt: Date.now(),
   });
 
+  // Promotion template data
+  const promoTemplate = product.promotion?.template;
+  const promoBorderColor = promoTemplate?.borderColor || 'var(--color-primary)';
+  const promoBannerBg = promoTemplate?.bannerBgColor || 'var(--color-primary)';
+  const promoBannerTextColor = promoTemplate?.bannerTextColor || '#FFFFFF';
+  const PromoBannerIcon = promoTemplate?.bannerIcon ? PROMO_BANNER_ICONS[promoTemplate.bannerIcon] : null;
+  const isTopBarBanner = promoTemplate?.bannerStyle === 'top_bar' || !promoTemplate?.bannerStyle;
+
   return (
     <motion.div
       className="h-full w-full min-w-[min(280px,100%)] max-w-[398px]"
@@ -200,8 +216,71 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       transition={{ duration: 0.2 }}
       onMouseEnter={onMouseEnter}
     >
-      <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white">
+      <Card
+        className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white"
+        style={promoTemplate ? {
+          border: `3px solid ${promoBorderColor}`,
+          boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
+        } : undefined}
+      >
         <CardBody className="p-0 flex flex-col">
+          {/* Promotion Banner */}
+          {promoTemplate && isTopBarBanner && (
+            <div
+              className="w-full py-3 px-4 flex items-center justify-center gap-2.5"
+              style={{
+                background: `linear-gradient(135deg, ${promoBannerBg} 0%, ${promoBannerBg}cc 50%, ${promoBannerBg} 100%)`,
+                backgroundColor: promoBannerBg,
+              }}
+            >
+              {PromoBannerIcon && (
+                <motion.div
+                  animate={{ scale: [1, 1.25, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <PromoBannerIcon className="w-5 h-5" color={promoBannerTextColor} />
+                </motion.div>
+              )}
+              <span
+                className="text-lg font-black tracking-widest uppercase"
+                style={{ color: promoBannerTextColor, textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
+              >
+                {promoTemplate.bannerText}
+              </span>
+              {PromoBannerIcon && (
+                <motion.div
+                  animate={{ scale: [1, 1.25, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <PromoBannerIcon className="w-5 h-5" color={promoBannerTextColor} />
+                </motion.div>
+              )}
+            </div>
+          )}
+          {promoTemplate && !isTopBarBanner && (
+            <div className="absolute top-0 left-0 z-20">
+              <div
+                className="px-4 py-1.5 text-sm font-black rounded-br-xl"
+                style={{
+                  backgroundColor: promoBannerBg,
+                  color: promoBannerTextColor,
+                  textShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                  boxShadow: `0 3px 10px ${promoBannerBg}66`,
+                }}
+              >
+                {PromoBannerIcon && (
+                  <motion.span
+                    className="inline-block mr-1 align-middle"
+                    animate={{ scale: [1, 1.25, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <PromoBannerIcon className="w-4 h-4 inline" />
+                  </motion.span>
+                )}
+                {promoTemplate.bannerText}
+              </div>
+            </div>
+          )}
           {/* Image - Altura fija para consistencia */}
           <div className="relative bg-white p-6 h-[220px] flex items-center justify-center">
             <ImageGallery
