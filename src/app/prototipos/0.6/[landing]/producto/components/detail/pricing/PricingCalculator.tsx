@@ -127,7 +127,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       </div>
 
       {/* Term Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {paymentPlans.map((plan) => {
           const option = getOptionForTerm(plan.term);
           if (!option) return null;
@@ -136,78 +136,82 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
           const isHovered = hoveredTerm === plan.term;
 
           return (
-            <div
+            <button
+              type="button"
               key={plan.term}
               onClick={() => setSelectedTerm(plan.term)}
               onMouseEnter={isHoverCapable ? () => setHoveredTerm(plan.term) : undefined}
               onMouseLeave={isHoverCapable ? () => setHoveredTerm(null) : undefined}
               className={`
-                relative p-3 sm:p-4 rounded-xl cursor-pointer transition-all duration-300 min-w-0
+                relative p-4 rounded-xl cursor-pointer transition-all duration-200 min-w-0 text-center
                 ${
                   isSelected
-                    ? 'bg-[var(--color-primary)] text-white shadow-xl scale-105'
-                    : 'bg-white border-2 border-neutral-200 hover:border-[var(--color-primary)] hover:shadow-lg'
+                    ? 'bg-[var(--color-primary)] text-white shadow-md ring-2 ring-[var(--color-primary)] ring-offset-2'
+                    : 'bg-white border border-neutral-200 shadow-sm hover:border-[var(--color-primary)]/40 hover:shadow-md'
                 }
                 ${isHovered && !isSelected ? 'scale-[1.02]' : ''}
               `}
             >
-              {isSelected && (
-                <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                  ✓
-                </div>
-              )}
+              <span
+                className={`text-xs font-semibold uppercase tracking-wide ${
+                  isSelected ? 'text-white/70' : 'text-neutral-400'
+                }`}
+              >
+                {plan.term} meses
+              </span>
 
-              <div className="text-center min-w-0">
-                <p
-                  className={`text-xs sm:text-sm font-medium mb-2 ${
-                    isSelected ? 'text-white/80' : 'text-neutral-500'
-                  }`}
-                >
-                  {plan.term}<br />meses
-                </p>
-
+              <span className="block mt-3">
                 {option.originalQuota && (
-                  <p
-                    className={`text-[10px] sm:text-xs line-through mb-1 break-words ${
-                      isSelected ? 'text-white/60' : 'text-neutral-400'
+                  <span
+                    className={`block text-xs line-through mb-0.5 ${
+                      isSelected ? 'text-white/50' : 'text-neutral-400'
                     }`}
                   >
                     S/{formatMoneyNoDecimals(Math.floor(option.originalQuota))}
-                  </p>
+                  </span>
                 )}
 
-                <p
-                  className={`text-lg sm:text-xl font-bold break-words ${
-                    isSelected ? 'text-white' : 'text-[var(--color-primary)]'
+                <span
+                  className={`block text-xl sm:text-2xl font-bold leading-tight ${
+                    isSelected ? 'text-white' : 'text-neutral-800'
                   }`}
                 >
                   S/{formatMoneyNoDecimals(Math.floor(option.monthlyQuota))}
-                </p>
+                </span>
+              </span>
 
-                <p
-                  className={`text-[10px] sm:text-xs mt-1 ${
-                    isSelected ? 'text-white/80' : 'text-neutral-500'
-                  }`}
-                >
-                  al mes
-                </p>
-              </div>
-            </div>
+              <span
+                className={`block text-[11px] mt-1.5 ${
+                  isSelected ? 'text-white/70' : 'text-neutral-400'
+                }`}
+              >
+                al mes
+              </span>
+
+              {isSelected && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-white text-[var(--color-primary)] rounded-full flex items-center justify-center shadow-sm">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              )}
+            </button>
           );
         })}
       </div>
 
       {/* Selected Quote Summary */}
-      <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
+      <div className="mt-6 p-5 bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/15 rounded-xl">
         <div className="text-center">
-          <p className="text-sm text-neutral-600 mb-2">Pagarías</p>
+          <p className="text-sm text-neutral-500 mb-1">Tu cuota mensual</p>
           {selectedOption?.originalQuota && (
-            <p className="line-through text-neutral-400 text-xl mb-1">
+            <p className="line-through text-neutral-400 text-lg mb-0.5">
               S/{formatMoneyNoDecimals(Math.floor(selectedOption.originalQuota))}/mes
             </p>
           )}
-          <p className="text-4xl font-bold text-[var(--color-primary)]">
-            S/{formatMoneyNoDecimals(Math.floor(selectedOption?.monthlyQuota || 0))}/mes
+          <p className="text-3xl sm:text-4xl font-bold text-[var(--color-primary)]">
+            S/{formatMoneyNoDecimals(Math.floor(selectedOption?.monthlyQuota || 0))}
+            <span className="text-lg font-medium text-neutral-500">/mes</span>
           </p>
           <p className="text-sm text-neutral-500 mt-2">
             durante {selectedTerm} meses

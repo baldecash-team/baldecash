@@ -58,7 +58,7 @@ export interface ProductImage {
   id: string;
   url: string;
   alt: string;
-  type: 'main' | 'gallery' | 'detail';
+  type: 'main' | 'gallery' | 'detail' | 'video';
   variantId?: number;  // Para filtrar imágenes por color/variante
 }
 

@@ -194,12 +194,14 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       // birth_date: -20 años (para personas ~20 años)
       // work_start_date y otros: 0 (año actual)
       const dateYearOffset = field.code === 'birth_date' ? -20 : 0;
+      const dateMinAge = field.code === 'birth_date' ? 17 : 0;
       return (
         <DateInput
           {...commonProps}
           placeholder={field.placeholder || 'Selecciona una fecha'}
           success={!error && !!value}
           defaultYearOffset={dateYearOffset}
+          minAge={dateMinAge}
         />
       );
 

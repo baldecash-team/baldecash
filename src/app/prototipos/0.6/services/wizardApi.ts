@@ -520,7 +520,17 @@ export function validateField(
     }
   }
 
-  // 5. Validaciones del array validations[] del API
+  // 5. Validación de edad mínima para fecha de nacimiento
+  if (field.type === 'date' && field.code === 'birth_date' && trimmedValue) {
+    const birthDate = new Date(trimmedValue + 'T12:00:00');
+    const today = new Date();
+    const minAgeCutoff = new Date(today.getFullYear() - 17, today.getMonth(), today.getDate());
+    if (birthDate > minAgeCutoff) {
+      return { isValid: false, error: 'Debes tener al menos 17 años' };
+    }
+  }
+
+  // 6. Validaciones del array validations[] del API
   for (const validation of field.validations) {
     let hasError = false;
     let errorMessage = validation.message;
