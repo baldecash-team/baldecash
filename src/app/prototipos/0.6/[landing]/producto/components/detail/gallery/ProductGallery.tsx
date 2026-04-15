@@ -237,8 +237,10 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
             key={filteredImages[selectedImage].id}
             src={filteredImages[selectedImage].url}
             controls
+            autoPlay
+            muted
             playsInline
-            preload="metadata"
+            preload="auto"
             className="w-full h-full object-contain"
             poster={filteredImages.find(img => !isVideo(img))?.url}
           />
