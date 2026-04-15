@@ -3,7 +3,10 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
+  ...(isProduction && { output: "export" }),
   basePath: basePath,
   trailingSlash: true,
   images: {
