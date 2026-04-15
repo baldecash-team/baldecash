@@ -153,7 +153,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
               `}
             >
               <span
-                className={`text-xs font-semibold uppercase tracking-wide ${
+                className={`text-xs font-semibold tracking-wide ${
                   isSelected ? 'text-white/70' : 'text-neutral-400'
                 }`}
               >
@@ -173,7 +173,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
 
                 <span
                   className={`block text-xl sm:text-2xl font-bold leading-tight ${
-                    isSelected ? 'text-white' : 'text-neutral-800'
+                    isSelected ? 'text-white' : 'text-[var(--color-primary)]'
                   }`}
                 >
                   S/{formatMoneyNoDecimals(Math.floor(option.monthlyQuota))}
