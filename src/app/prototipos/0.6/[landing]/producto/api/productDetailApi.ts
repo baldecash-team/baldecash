@@ -222,6 +222,7 @@ interface ApiProductDetailResponse {
   limitations: ApiLimitation[];
   certifications: ApiCertification[];
   is_available: boolean;
+  payment_frequencies?: string[] | null;
 }
 
 // ============================================
@@ -460,6 +461,7 @@ export interface ProductDetailResult {
   limitations: ProductLimitation[];
   certifications: Certification[];
   isAvailable: boolean;
+  paymentFrequencies?: string[];
 }
 
 export interface FetchError {
@@ -482,9 +484,10 @@ export interface FetchError {
  * - Product is within availability dates
  * - Landing and product are active
  */
-export async function fetchProductDetail(landing: string, slug: string): Promise<ProductDetailResult | null> {
+export async function fetchProductDetail(landing: string, slug: string, paymentFrequency?: string): Promise<ProductDetailResult | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${slug}/detail`, {
+    const params = paymentFrequency ? `?payment_frequency=${encodeURIComponent(paymentFrequency)}` : '';
+    const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${slug}/detail${params}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -509,6 +512,7 @@ export async function fetchProductDetail(landing: string, slug: string): Promise
       limitations: data.limitations.map(transformLimitation),
       certifications: data.certifications.map(transformCertification),
       isAvailable: data.is_available,
+      paymentFrequencies: data.payment_frequencies ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching product detail:', error);
@@ -519,12 +523,12 @@ export async function fetchProductDetail(landing: string, slug: string): Promise
 /**
  * Hook-friendly fetch with loading/error states
  */
-export async function getProductDetail(landing: string, slug: string): Promise<{
+export async function getProductDetail(landing: string, slug: string, paymentFrequency?: string): Promise<{
   data: ProductDetailResult | null;
   error: FetchError | null;
 }> {
   try {
-    const data = await fetchProductDetail(landing, slug);
+    const data = await fetchProductDetail(landing, slug, paymentFrequency);
     return { data, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

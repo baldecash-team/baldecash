@@ -367,6 +367,7 @@ function ProductDetailContent() {
           isAvailable={isAvailable}
           defaultTerm={defaultTerm}
           defaultInitialPercent={defaultInitialPercent}
+          paymentFrequencies={apiData.paymentFrequencies}
           onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}
           onRemoveFromCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.removeFromCart : undefined}
           onUpdateCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.updateCartItem : undefined}

@@ -689,6 +689,9 @@ export interface CatalogProduct {
   quotaWeekly: number;
   originalQuotaMonthly?: number; // Cuota original antes de descuento (del backend)
   maxTermMonths: number;
+  paymentFrequency?: string; // Frecuencia de la cuota hook: 'mensual' | 'semanal' | 'quincenal'
+  paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
+  paymentHooks?: Record<string, number>; // Cuota hook por frecuencia: {semanal: 15, quincenal: 26}
   gama: GamaTier;
   condition: ProductCondition;
   stock: StockStatus;
