@@ -144,7 +144,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
               <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
               <p className="text-3xl sm:text-4xl font-bold text-white font-['Baloo_2',_sans-serif]">
                 S/{formatMoney(heroContent.minQuota)}
-                <span className="text-base sm:text-lg font-normal text-white/70">/mes</span>
+                <span className="text-base sm:text-lg font-normal text-white/70">{heroContent.quotaSuffix || '/mes'}</span>
               </p>
             </div>
           )}

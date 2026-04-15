@@ -317,6 +317,8 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
     }
   }, [heroData]);
 
+  const isProductLanding = PRODUCT_LANDING_SLUGS.includes(slug);
+
   // Loading state
   if (isLoading) {
     return <HomeSkeleton />;
@@ -327,8 +329,8 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
     return <NotFoundContent homeUrl={routes.home()} />;
   }
 
-  // Product landing: render specialized component instead of HeroSection
-  if (PRODUCT_LANDING_SLUGS.includes(slug)) {
+  // Product landing: render specialized component with footer from DB
+  if (isProductLanding) {
     return (
       <div
         style={{
@@ -337,7 +339,7 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
         } as React.CSSProperties}
       >
         <Suspense fallback={<HomeSkeleton />}>
-          <MacBookNeoLanding footerData={mergedFooterData} landing={slug} />
+          <MacBookNeoLanding footerData={mergedFooterData} heroContent={mergedHeroContent} landing={slug} />
         </Suspense>
       </div>
     );

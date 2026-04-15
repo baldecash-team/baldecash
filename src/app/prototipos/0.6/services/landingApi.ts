@@ -511,6 +511,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       headline: data.landing.hero_title || '',
       subheadline: data.landing.hero_subtitle || '',
       minQuota: (heroConfig.minQuota ?? heroConfig.min_quota ?? 0) as number,
+      quotaSuffix: (heroConfig.quotaSuffix ?? heroConfig.quota_suffix ?? '/mes') as string,
       primaryCta: {
         text: data.landing.hero_cta_text || ctaPrimary?.text || '',
         href: fullHeroCtaUrl,

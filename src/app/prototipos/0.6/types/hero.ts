@@ -80,6 +80,7 @@ export interface HeroContent {
   primaryCta: CtaConfig;
   secondaryCta?: CtaConfig;
   minQuota: number;
+  quotaSuffix?: string;
   trustSignals: TrustSignal[];
   backgroundImage?: string;
   backgroundPositionX?: number;
@@ -105,6 +106,7 @@ export interface HeroBannerProps {
   headline: string;
   subheadline: string;
   minQuota: number;
+  quotaSuffix?: string;
   imageSrc?: string;
   imagePositionX?: number;
   imagePositionY?: number;
