@@ -1,78 +1,134 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { ArrowRight } from 'lucide-react';
 import { performanceData } from './data/v5Data';
-import { ASSETS } from './lib/constants';
+import { BC } from './lib/constants';
 import { RevealOnScroll } from './shared/components/RevealOnScroll';
 
-export default function PerformanceSection() {
+function ChapterCard({ chapter, imageLeft }: { chapter: { id: string; title: string; description: string; image: string }; imageLeft: boolean }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+
+    let ctx: ReturnType<typeof import('gsap')['gsap']['context']> | null = null;
+
+    async function init() {
+      const [gsapMod, stMod] = await Promise.all([
+        import('gsap'),
+        import('gsap/ScrollTrigger'),
+      ]);
+      const { gsap } = gsapMod;
+      const { ScrollTrigger } = stMod;
+      gsap.registerPlugin(ScrollTrigger);
+
+      const imgEl = el!.querySelector('[data-perf-img]');
+      const txtEl = el!.querySelector('[data-perf-txt]');
+      if (!imgEl || !txtEl) return;
+
+      gsap.set(imgEl, { opacity: 0, y: 50 });
+      gsap.set(txtEl, { opacity: 0, y: 50 });
+
+      ctx = gsap.context(() => {
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 85%',
+            toggleActions: 'play none none none',
+          },
+        });
+        tl.to(imgEl, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' })
+          .to(txtEl, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' }, '-=0.5');
+      });
+    }
+
+    init();
+    return () => { ctx?.revert(); };
+  }, [imageLeft]);
+
   return (
-    <section id="performance" className="bg-black text-[#f5f5f7] py-24">
+    <div
+      ref={rowRef}
+      className={`flex flex-col ${imageLeft ? 'md:flex-row' : 'md:flex-row-reverse'} gap-6 items-center`}
+    >
+      <div
+        data-perf-img
+        className="w-full md:w-1/2 relative overflow-hidden flex-shrink-0"
+        style={{ borderRadius: 20, aspectRatio: '4 / 3' }}
+      >
+        <Image
+          src={chapter.image}
+          alt={chapter.title}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 490px"
+        />
+      </div>
+      <div
+        data-perf-txt
+        className="w-full md:w-1/2 flex flex-col justify-center gap-3 py-4 md:px-6"
+      >
+        <h3
+          className="text-3xl md:text-4xl font-bold m-0 text-[#f5f5f7]"
+          style={{ fontFamily: "'Baloo 2', cursive", letterSpacing: '-0.01em' }}
+        >
+          {chapter.title}
+        </h3>
+        <p className="text-[17px] md:text-[19px] text-[#86868b] leading-relaxed m-0">
+          {chapter.description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function PerformanceSection() {
+  const handleScrollToPlans = () => {
+    const el = document.getElementById('financing');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <section id="performance" className="bg-black text-[#f5f5f7] py-16 sm:py-24">
       <div className="max-w-[980px] mx-auto px-6">
         {/* Header */}
         <RevealOnScroll>
-          <div className="md:text-center mb-20">
+          <div className="md:text-center mb-12 sm:mb-20">
             <p className="text-[#86868b] text-sm font-semibold mb-2 uppercase tracking-wider">
               {performanceData.eyebrow}
             </p>
             <h2
-              className="text-[48px] sm:text-[72px] md:text-[96px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
+              className="text-[32px] sm:text-[48px] md:text-[72px] lg:text-[96px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               {performanceData.headline}
             </h2>
-            <p className="text-[17px] md:text-[21px] text-[#86868b] max-w-[680px] md:mx-auto leading-[1.47]">
+            <p className="text-[15px] sm:text-[17px] md:text-[21px] text-[#86868b] max-w-[680px] md:mx-auto leading-[1.47]">
               {performanceData.description}
             </p>
           </div>
         </RevealOnScroll>
 
-        {/* Chapter cards — stacked hero layout */}
-        <div className="flex flex-col gap-6">
-          {performanceData.chapters.map((chapter) => (
-            <RevealOnScroll key={chapter.id}>
-              <div
-                className="relative overflow-hidden"
-                style={{ borderRadius: 20 }}
-              >
-                {/* Image */}
-                <div className="relative" style={{ aspectRatio: '1.63 / 1' }}>
-                  <Image
-                    src={chapter.image}
-                    alt={chapter.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 980px) 100vw, 980px"
-                  />
-                  {/* Gradient overlay */}
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background:
-                        'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.25) 35%, transparent 60%)',
-                    }}
-                  />
-                </div>
-                {/* Text overlay at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10 z-10">
-                  <h3
-                    className="text-2xl md:text-3xl font-semibold mb-2 text-white m-0"
-                    style={{ letterSpacing: '-0.01em' }}
-                  >
-                    {chapter.title}
-                  </h3>
-                  <p className="text-[15px] md:text-[17px] text-white/70 leading-relaxed m-0 max-w-[520px]">
-                    {chapter.description}
-                  </p>
-                </div>
-              </div>
-            </RevealOnScroll>
-          ))}
+        {/* Chapter cards — alternating layout with slide-in */}
+        <div className="flex flex-col gap-10">
+          {performanceData.chapters.map((chapter, i) => {
+            const imageLeft = i % 2 === 0;
+            return (
+              <ChapterCard
+                key={chapter.id}
+                chapter={chapter}
+                imageLeft={imageLeft}
+              />
+            );
+          })}
         </div>
 
         {/* Battery stat */}
         <RevealOnScroll>
-          <div className="text-center py-20 mt-16">
+          <div className="text-center py-12 sm:py-20 mt-10 sm:mt-16">
             <p className="text-sm text-[#86868b] mb-3 uppercase tracking-wider font-medium m-0">
               {performanceData.batteryLabel}
             </p>
@@ -93,16 +149,24 @@ export default function PerformanceSection() {
           </div>
         </RevealOnScroll>
 
-        {/* Lifestyle image */}
+        {/* Mini CTA */}
         <RevealOnScroll>
-          <div className="relative overflow-hidden" style={{ borderRadius: 20, aspectRatio: '16 / 9' }}>
-            <Image
-              src={ASSETS.lifestyle}
-              alt="MacBook Neo en uso"
-              fill
-              className="object-cover"
-              sizes="(max-width: 980px) 100vw, 980px"
-            />
+          <div className="text-center mt-4">
+            <p className="text-xl sm:text-2xl md:text-3xl text-[#f5f5f7] m-0 mb-4">
+              Desde{' '}
+              <span className="font-bold" style={{ color: BC.primary, fontFamily: "'Baloo 2', cursive" }}>
+                S/199
+              </span>
+              <span className="text-[#86868b]">/mes</span>
+            </p>
+            <button
+              onClick={handleScrollToPlans}
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-white border-none cursor-pointer rounded-xl transition-opacity hover:opacity-90 active:scale-[0.97]"
+              style={{ backgroundColor: BC.primary }}
+            >
+              Ver planes
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </RevealOnScroll>
       </div>

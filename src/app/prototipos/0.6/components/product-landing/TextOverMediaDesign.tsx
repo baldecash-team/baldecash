@@ -14,7 +14,7 @@ export default function TextOverMediaDesign() {
 
   return (
     <TextOverMedia
-      height="300vh"
+      height="200vh"
       align="center"
       media={
         <Image
@@ -26,19 +26,19 @@ export default function TextOverMediaDesign() {
         />
       }
     >
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-3 sm:gap-4 px-4">
         <span
-          className="text-[56px] sm:text-[72px] md:text-[96px] font-semibold tracking-[-0.015em] leading-[1.05] text-white"
+          className="text-[32px] sm:text-[56px] md:text-[72px] lg:text-[96px] font-semibold tracking-[-0.015em] leading-[1.05] text-white"
           style={{ fontFamily: "'Baloo 2', cursive" }}
         >
           {designData.headline}
         </span>
-        <p className="text-[17px] sm:text-[19px] md:text-[21px] font-medium text-white max-w-[680px] leading-[1.38]">
+        <p className="text-[15px] sm:text-[17px] md:text-[21px] font-medium text-white max-w-[680px] leading-[1.38]">
           {designData.description}
         </p>
         <button
           onClick={handleScrollTo}
-          className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-semibold text-white hover:opacity-90 transition-all border-none cursor-pointer rounded-lg shadow-sm mt-2"
+          className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-white hover:opacity-90 transition-all border-none cursor-pointer rounded-lg shadow-sm mt-2 active:scale-[0.97]"
           style={{ backgroundColor: BC.primary }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = BC.primaryHover)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = BC.primary)}

@@ -1,9 +1,9 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { testimonials } from './data/v5Data';
 import { BC } from './lib/constants';
 import { RevealOnScroll } from './shared/components/RevealOnScroll';
-import { StaggeredFadeIn } from './shared/components/StaggeredFadeIn';
 
 const UNIVERSIDAD_FULL: Record<string, string> = {
   UPC: 'Universidad Peruana de Ciencias Aplicadas',
@@ -22,16 +22,91 @@ function getInitials(name: string) {
 }
 
 export default function SocialProof() {
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    let ctx: ReturnType<typeof import('gsap')['gsap']['context']> | null = null;
+
+    async function init() {
+      const [gsapMod, stMod] = await Promise.all([
+        import('gsap'),
+        import('gsap/ScrollTrigger'),
+      ]);
+      const { gsap } = gsapMod;
+      const { ScrollTrigger } = stMod;
+      gsap.registerPlugin(ScrollTrigger);
+
+      const cards = grid!.querySelectorAll('[data-testimonial]');
+      const isMobile = window.innerWidth < 768;
+
+      gsap.set(cards, { opacity: 0, y: isMobile ? 30 : 40, scale: 0.92 });
+
+      ctx = gsap.context(() => {
+        if (isMobile) {
+          // Mobile: each card triggers individually when it enters viewport
+          cards.forEach((card) => {
+            const avatar = card.querySelector('[data-avatar]');
+            const quote = card.querySelector('[data-quote-mark]');
+            if (avatar) gsap.set(avatar, { scale: 0 });
+            if (quote) gsap.set(quote, { opacity: 0, y: -10 });
+
+            gsap.to(card, {
+              opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'power2.out',
+              scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none' },
+            });
+            if (avatar) {
+              gsap.to(avatar, {
+                scale: 1, duration: 0.4, ease: 'back.out(1.7)', delay: 0.3,
+                scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none' },
+              });
+            }
+            if (quote) {
+              gsap.to(quote, {
+                opacity: 0.3, y: 0, duration: 0.4, ease: 'power2.out', delay: 0.2,
+                scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none' },
+              });
+            }
+          });
+        } else {
+          // Desktop: stagger all cards from grid trigger
+          const avatars = grid!.querySelectorAll('[data-avatar]');
+          const quotes = grid!.querySelectorAll('[data-quote-mark]');
+          gsap.set(avatars, { scale: 0 });
+          gsap.set(quotes, { opacity: 0, y: -10 });
+
+          gsap.to(cards, {
+            opacity: 1, y: 0, scale: 1, duration: 0.7, stagger: 0.15, ease: 'power2.out',
+            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none' },
+          });
+          gsap.to(avatars, {
+            scale: 1, duration: 0.4, stagger: 0.15, ease: 'back.out(1.7)', delay: 0.5,
+            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none' },
+          });
+          gsap.to(quotes, {
+            opacity: 0.3, y: 0, duration: 0.5, stagger: 0.15, ease: 'power2.out', delay: 0.3,
+            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none' },
+          });
+        }
+      });
+    }
+
+    init();
+    return () => { ctx?.revert(); };
+  }, []);
+
   return (
-    <section id="social-proof" className="bg-[#f5f5f7] text-[#1d1d1f] py-24">
+    <section id="social-proof" className="bg-[#f5f5f7] text-[#1d1d1f] py-16 sm:py-24">
       <div className="max-w-[980px] mx-auto px-6">
         <RevealOnScroll>
-          <div className="text-center mb-16">
+          <div className="text-center mb-10 sm:mb-16">
             <p className="text-[#6e6e73] text-sm font-semibold mb-2 uppercase tracking-wider">
               Testimonios
             </p>
             <h2
-              className="text-[40px] sm:text-[56px] md:text-[64px] font-semibold tracking-[-0.009em] leading-[1.06]"
+              className="text-[28px] sm:text-[40px] md:text-[56px] lg:text-[64px] font-semibold tracking-[-0.009em] leading-[1.06]"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               Estudiantes como tú ya tienen su MacBook Neo
@@ -39,59 +114,72 @@ export default function SocialProof() {
           </div>
         </RevealOnScroll>
 
-        <StaggeredFadeIn>
-          <div className="grid md:grid-cols-2 gap-5">
-            {testimonials.map((t, i) => {
-              const initials = getInitials(t.nombre);
-              const fullUni = UNIVERSIDAD_FULL[t.universidad] || t.universidad;
-              return (
-                <div
-                  key={t.id}
-                  className="rounded-2xl p-8 relative overflow-hidden flex flex-col"
+        <div ref={gridRef} className="grid md:grid-cols-2 gap-5">
+          {testimonials.map((t) => {
+            const initials = getInitials(t.nombre);
+            const fullUni = UNIVERSIDAD_FULL[t.universidad] || t.universidad;
+            return (
+              <div
+                key={t.id}
+                data-testimonial
+                className="rounded-2xl p-5 sm:p-8 relative overflow-hidden flex flex-col cursor-default"
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: '2px solid transparent',
+                  transition: 'border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = BC.primary;
+                  e.currentTarget.style.boxShadow = `0 0 30px rgba(70, 84, 205, 0.12), 0 0 60px rgba(70, 84, 205, 0.05)`;
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'transparent';
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {/* Large typographic quote mark */}
+                <span
+                  data-quote-mark
+                  className="block leading-none select-none"
                   style={{
-                    backgroundColor: '#ffffff',
-                    border: '1px solid rgba(0,0,0,0.06)',
+                    fontSize: 'clamp(40px, 10vw, 64px)',
+                    fontFamily: 'Georgia, serif',
+                    color: BC.primary,
+                    opacity: 0,
+                    marginTop: -8,
+                    marginBottom: -20,
+                    transition: 'color 0.3s ease',
                   }}
                 >
-                  {/* Large typographic quote mark */}
-                  <span
-                    className="block leading-none select-none"
-                    style={{
-                      fontSize: 64,
-                      fontFamily: 'Georgia, serif',
-                      color: BC.primary,
-                      opacity: 0.3,
-                      marginTop: -8,
-                      marginBottom: -20,
-                    }}
+                  &ldquo;
+                </span>
+
+                {/* Quote */}
+                <p className="text-[15px] md:text-[16px] leading-[1.6] text-[#1d1d1f] mb-8 flex-1">
+                  {t.quote}
+                </p>
+
+                {/* Author */}
+                <div className="flex items-center gap-3">
+                  {/* Avatar circle with initials */}
+                  <div
+                    data-avatar
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold text-white"
+                    style={{ backgroundColor: BC.primary }}
                   >
-                    &ldquo;
-                  </span>
-
-                  {/* Quote */}
-                  <p className="text-[15px] md:text-[16px] leading-[1.6] text-[#1d1d1f] mb-8 flex-1">
-                    {t.quote}
-                  </p>
-
-                  {/* Author */}
-                  <div className="flex items-center gap-3">
-                    {/* Avatar circle with initials */}
-                    <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold text-white"
-                      style={{ backgroundColor: BC.primary }}
-                    >
-                      {initials}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-[#1d1d1f] m-0">{t.nombre}</p>
-                      <p className="text-xs text-[#6e6e73] m-0">{fullUni}</p>
-                    </div>
+                    {initials}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#1d1d1f] m-0">{t.nombre}</p>
+                    <p className="text-xs text-[#6e6e73] m-0">{fullUni}</p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </StaggeredFadeIn>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

@@ -18,7 +18,7 @@ import { ASSETS } from '../lib/constants';
 // ============================================================
 export const heroData: V5HeroData = {
   eyebrow: 'MacBook Neo',
-  headline: 'Tu Mac. Tus cuotas.',
+  headline: 'Tu próxima Mac te espera.',
   ctaPrimary: { label: 'Solicitar financiamiento', scrollTo: 'lead-form' },
   ctaSecondary: { label: 'Desde S/119/mes', scrollTo: 'financing' },
   poster: ASSETS.hero.poster,
@@ -77,29 +77,29 @@ export const designData: V5DesignData = {
 // ============================================================
 export const financingPlans: V5FinancingPlan[] = [
   {
-    id: '6mo',
-    nombre: '6 cuotas',
-    cuotaMensual: 299,
-    plazoMeses: 6,
+    id: 'normal',
+    nombre: 'MacBook Neo',
+    descripcion: 'Equipo normal',
+    cuotaMensual: 199,
+    plazoMeses: 24,
     cuotaInicial: 0,
-    precioTotal: 1794,
   },
   {
-    id: '12mo',
-    nombre: '12 cuotas',
-    cuotaMensual: 159,
-    plazoMeses: 12,
+    id: '512',
+    nombre: 'MacBook Neo 512GB',
+    descripcion: 'Equipo 512GB',
+    cuotaMensual: 249,
+    plazoMeses: 24,
     cuotaInicial: 0,
-    precioTotal: 1908,
     destacado: true,
   },
   {
-    id: '18mo',
-    nombre: '18 cuotas',
-    cuotaMensual: 119,
-    plazoMeses: 18,
+    id: '512-premium',
+    nombre: 'MacBook Neo 512GB Premium',
+    descripcion: 'Equipo 512GB Premium + AirPods',
+    cuotaMensual: 299,
+    plazoMeses: 24,
     cuotaInicial: 0,
-    precioTotal: 2142,
   },
 ];
 
@@ -107,10 +107,10 @@ export const financingPlans: V5FinancingPlan[] = [
 // S6: Performance
 // ============================================================
 export const performanceData: V5PerformanceData = {
-  eyebrow: 'Rendimiento',
+  eyebrow: 'Potencia',
   headline: 'La potencia para tu día a día.',
   description:
-    'El chip A18 Pro te permite usar tus apps favoritas, volar con las tareas del día a día, explotar tu creatividad y disfrutar de juegos de acción. Tu inspiración no espera.',
+    'Videollamadas, trabajos de investigación, presentaciones y tus juegos favoritos. MacBook Neo lo maneja todo sin despeinarse.',
   chapters: [
     {
       id: 'productivity',

@@ -46,10 +46,10 @@ export interface V5DesignData {
 export interface V5FinancingPlan {
   id: string;
   nombre: string;
+  descripcion: string;
   cuotaMensual: number;
   plazoMeses: number;
   cuotaInicial: number;
-  precioTotal: number;
   destacado?: boolean;
 }
 

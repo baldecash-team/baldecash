@@ -6,19 +6,20 @@ const VID = `${S3}/videos/macbook-neo`;
 
 export const ASSETS = {
   hero: {
-    video: `${VID}/hero-v5.mp4`,
-    poster: `${IMG}/hero-v5-poster.jpg`,
-    endframe: `${IMG}/hero-v5-endframe.jpg`,
+    video: `${VID}/hero-banner-uhd.mp4`,
+    poster: `${IMG}/hero-banner-uhd-poster.jpg`,
+    posterMobile: `${IMG}/hero-mobile.jpg`,
+    endframe: `${IMG}/hero-banner-uhd-endframe.jpg`,
     fallback: `${IMG}/hero_endframe_2x.jpg`,
   },
   design: `${IMG}/design_endframe_2x.png`,
   display: `${IMG}/dca_display_2x.png`,
   lifestyle: `${IMG}/performance_lifestyle_2x.jpg`,
   colors: {
-    silver: `${IMG}/pv_colors_silver_2x.jpg`,
-    blush: `${IMG}/pv_colors_blush_2x.jpg`,
-    citrus: `${IMG}/pv_colors_citrus_2x.jpg`,
-    indigo: `${IMG}/pv_colors_indigo_2x.jpg`,
+    silver: `${IMG}/pv_colors_silver_large_2x.jpg`,
+    blush: `${IMG}/pv_colors_blush_large_2x.jpg`,
+    citrus: `${IMG}/pv_colors_citrus_large_2x.jpg`,
+    indigo: `${IMG}/pv_colors_indigo_large_2x.jpg`,
   },
   highlights: {
     colors: `${IMG}/highlights_colors_2x.jpg`,
@@ -32,8 +33,8 @@ export const ASSETS = {
     `${IMG}/performance_hero_4_2x.jpg`,
   ],
   productViews: {
-    display: `${IMG}/pv_display_2x.jpg`,
-    keyboard: `${IMG}/pv_keyboard_2x.jpg`,
+    display: `${IMG}/pv_display_large_2x.jpg`,
+    keyboard: `${IMG}/pv_keyboard_large_2x.jpg`,
     hero: `${IMG}/pv_hero_2x.jpg`,
   },
   productViewerHD: {
@@ -50,6 +51,11 @@ export const ASSETS = {
     camera: `${IMG}/pv_camera_large_2x.jpg`,
     audio: `${IMG}/pv_audio_large_2x.jpg`,
     connectivity: `${IMG}/pv_connectivity_large_2x.jpg`,
+  },
+  dca: {
+    display: `${IMG}/dca_display_2x.png`,
+    camera: `${IMG}/dca_camera_2x.png`,
+    audio: `${IMG}/dca_audio_2x.jpg`,
   },
 } as const;
 

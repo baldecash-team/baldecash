@@ -1,26 +1,58 @@
 'use client';
 
-import { useState } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, type ReactNode } from 'react';
 import { useLenis } from './shared/hooks/useLenis';
 import { useDeviceCapabilities } from './shared/hooks/useDeviceCapabilities';
 import StickyNav from './StickyNav';
 import HeroCanvasScrub from './HeroCanvasScrub';
 import MediaCardGallery from './MediaCardGallery';
-import TextOverMediaDesign from './TextOverMediaDesign';
-import FinancingPlans from './FinancingPlans';
-import PerformanceSection from './PerformanceSection';
-import DisplayCameraAudio from './DisplayCameraAudio';
-import ProductViewer from './ProductViewer';
-import SocialProof from './SocialProof';
 import { Footer } from '../hero/Footer';
-import type { FooterData } from '../../types/hero';
+import type { FooterData, HeroContent } from '../../types/hero';
+
+// Lazy load below-fold sections
+const TextOverMediaDesign = lazy(() => import('./TextOverMediaDesign'));
+const FinancingPlans = lazy(() => import('./FinancingPlans'));
+const PerformanceSection = lazy(() => import('./PerformanceSection'));
+const DisplayCameraAudio = lazy(() => import('./DisplayCameraAudio'));
+const ProductViewer = lazy(() => import('./ProductViewer'));
+const SocialProof = lazy(() => import('./SocialProof'));
+
+// Load section when it's near the viewport
+function LazySection({ children, fallbackHeight = 400 }: { children: ReactNode; fallbackHeight?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { rootMargin: '200px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref}>
+      {visible ? (
+        <Suspense fallback={<div style={{ height: fallbackHeight }} />}>
+          {children}
+        </Suspense>
+      ) : (
+        <div style={{ height: fallbackHeight }} />
+      )}
+    </div>
+  );
+}
 
 interface MacBookNeoLandingProps {
   footerData?: FooterData | null;
+  heroContent?: HeroContent | null;
   landing?: string;
 }
 
-export default function MacBookNeoLanding({ footerData, landing = 'baldecash-mac-book-neo' }: MacBookNeoLandingProps) {
+export default function MacBookNeoLanding({ footerData, heroContent, landing = 'baldecash-mac-book-neo' }: MacBookNeoLandingProps) {
   useLenis();
   const { tier } = useDeviceCapabilities();
   const [videoEnded, setVideoEnded] = useState(tier === 'base');
@@ -30,33 +62,49 @@ export default function MacBookNeoLanding({ footerData, landing = 'baldecash-mac
       className="bg-black text-[#f5f5f7]"
       style={{ fontFamily: "'Asap', -apple-system, BlinkMacSystemFont, sans-serif" }}
     >
-      <StickyNav videoEnded={videoEnded} />
+      {/* Preconnect to S3 CDN */}
+      <link rel="preconnect" href="https://baldecash.s3.amazonaws.com" />
+      <link rel="dns-prefetch" href="https://baldecash.s3.amazonaws.com" />
 
-      {/* S1: Hero */}
+      <StickyNav videoEnded={videoEnded} landing={landing} />
+
+      {/* S1: Hero — loads immediately */}
       <HeroCanvasScrub tier={tier} onVideoEnd={() => setVideoEnded(true)} onVideoReplay={() => setVideoEnded(false)} />
 
-      {/* S2: Highlights */}
+      {/* S2: Highlights — loads immediately (near hero) */}
       <MediaCardGallery />
 
       {/* S4: Design */}
-      <TextOverMediaDesign />
+      <LazySection fallbackHeight={600}>
+        <TextOverMediaDesign />
+      </LazySection>
 
       {/* S5: Financing Plans */}
-      <FinancingPlans tier={tier} />
+      <LazySection fallbackHeight={800}>
+        <FinancingPlans tier={tier} landing={landing} />
+      </LazySection>
 
       {/* S6: Performance */}
-      <PerformanceSection />
+      <LazySection fallbackHeight={900}>
+        <PerformanceSection />
+      </LazySection>
 
       {/* S7: Display, Camera, Audio */}
-      <DisplayCameraAudio />
+      <LazySection fallbackHeight={800}>
+        <DisplayCameraAudio />
+      </LazySection>
 
       {/* S8: Product Viewer */}
-      <ProductViewer />
+      <LazySection fallbackHeight={900}>
+        <ProductViewer />
+      </LazySection>
 
       {/* S9: Social Proof */}
-      <SocialProof />
+      <LazySection fallbackHeight={500}>
+        <SocialProof />
+      </LazySection>
 
-      {/* S10: Footer from DB */}
+      {/* S10: Footer */}
       <Footer data={footerData} landing={landing} />
     </div>
   );

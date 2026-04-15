@@ -8,9 +8,10 @@ import { useReducedMotion } from './shared/hooks/useReducedMotion';
 
 interface FinancingPlansV5Props {
   tier: string;
+  landing?: string;
 }
 
-export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
+export default function FinancingPlans({ tier, landing = 'baldecash-mac-book-neo' }: FinancingPlansV5Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const priceRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
@@ -72,13 +73,13 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
 
   return (
     <section id="financing" className="bg-black">
-      <div ref={containerRef} style={{ height: useStaticLayout ? 'auto' : '200vh' }}>
+      <div ref={containerRef} style={{ height: useStaticLayout ? 'auto' : '150vh' }}>
         <div
           className={`flex items-center justify-center ${
             useStaticLayout ? 'py-24' : 'sticky top-0 h-screen'
           }`}
         >
-          <div className="max-w-[1040px] w-full mx-auto px-4 text-center">
+          <div className="max-w-[1040px] w-full mx-auto px-5 sm:px-6 md:px-4 text-center">
             {/* Price headline */}
             <div ref={priceRef}>
               <p className="text-lg text-[#a1a1a6] m-0">Desde</p>
@@ -91,7 +92,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                 }}
               >
                 <span className="text-[#f5f5f7]">S/</span>
-                <span style={{ color: BC.primary }}>119</span>
+                <span style={{ color: BC.primary }}>199</span>
                 <span className="text-[#f5f5f7]">/mes</span>
               </p>
               <p className="text-lg mt-3 text-[#a1a1a6] m-0">
@@ -100,20 +101,37 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             </div>
 
             {/* Plan cards */}
-            <div ref={cardsRef} className="flex flex-col md:flex-row gap-4 mt-14 justify-center">
+            <div ref={cardsRef} className="flex flex-col md:flex-row gap-4 mt-10 sm:mt-14 justify-center">
               {financingPlans.map((plan) => (
-                <div
+                <a
                   key={plan.id}
-                  className="rounded-2xl flex-1 max-w-[340px] mx-auto md:mx-0 relative overflow-hidden"
+                  href={`/prototipos/0.6/${landing}/solicitar?plan=${plan.id}`}
+                  className="rounded-2xl flex-1 w-full md:max-w-[340px] md:mx-0 relative overflow-hidden block no-underline group active:scale-[0.98]"
                   style={{
                     backgroundColor: '#161617',
                     border: plan.destacado
                       ? `2px solid ${BC.primary}`
-                      : '1px solid rgba(255,255,255,0.08)',
+                      : '2px solid transparent',
                     transform: plan.destacado ? 'scale(1.04)' : 'scale(1)',
                     boxShadow: plan.destacado
                       ? `0 0 40px rgba(70, 84, 205, 0.15), 0 0 80px rgba(70, 84, 205, 0.06)`
                       : 'none',
+                    transition: 'border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!plan.destacado) {
+                      e.currentTarget.style.borderColor = BC.primary;
+                      e.currentTarget.style.boxShadow = `0 0 40px rgba(70, 84, 205, 0.15), 0 0 80px rgba(70, 84, 205, 0.06)`;
+                      e.currentTarget.style.transform = 'scale(1.04)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!plan.destacado) {
+                      e.currentTarget.style.borderColor = 'transparent';
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }
                   }}
                 >
                   {/* Popular badge */}
@@ -126,20 +144,20 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                     </div>
                   )}
 
-                  <div className="p-7">
+                  <div className="p-5 sm:p-7">
                     <p className="text-sm font-medium text-[#a1a1a6] m-0 uppercase tracking-wider">
                       {plan.nombre}
                     </p>
 
                     <p className="font-bold text-[#f5f5f7] m-0 mt-3">
-                      <span className="text-4xl" style={{ fontFamily: "'Baloo 2', cursive" }}>
+                      <span className="text-3xl sm:text-4xl" style={{ fontFamily: "'Baloo 2', cursive" }}>
                         S/{plan.cuotaMensual}
                       </span>
                       <span className="text-base text-[#a1a1a6] ml-1">/mes</span>
                     </p>
 
                     <p className="text-sm mt-1 text-[#6e6e73] m-0">
-                      {plan.plazoMeses} meses &middot; Total S/{plan.precioTotal.toLocaleString()}
+                      {plan.plazoMeses} meses &middot; {plan.descripcion}
                     </p>
 
                     {/* Benefits checklist */}
@@ -158,12 +176,12 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                       </div>
                     </div>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
 
             {/* Trust badges */}
-            <div className="flex flex-wrap justify-center gap-8 mt-10">
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-8 mt-8 sm:mt-10">
               <div className="flex items-center gap-2 text-sm text-[#86868b]">
                 <Clock className="w-4 h-4" style={{ color: BC.secondary }} />
                 Aprobación en 24h
@@ -180,16 +198,16 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
 
             {/* CTA */}
             <div ref={ctaRef} className="mt-10">
-              <button
-                onClick={handleScrollToFinancing}
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-semibold text-white hover:opacity-90 transition-all border-none cursor-pointer rounded-lg shadow-sm"
+              <a
+                href={`/prototipos/0.6/${landing}/solicitar`}
+                className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-white hover:opacity-90 transition-all no-underline cursor-pointer rounded-lg shadow-sm active:scale-[0.97]"
                 style={{ backgroundColor: BC.primary }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = BC.primaryHover)}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = BC.primary)}
               >
                 Solicitar ahora
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </a>
             </div>
           </div>
         </div>

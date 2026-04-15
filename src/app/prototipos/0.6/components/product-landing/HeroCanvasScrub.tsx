@@ -1,142 +1,184 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import { Play, ArrowRight } from 'lucide-react';
-import { heroData } from './data/v5Data';
 import { ASSETS, BC } from './lib/constants';
 
-interface HeroV5Props {
+const STAGGER = {
+  eyebrow: 0,
+  headline: 100,
+  price: 200,
+  limited: 300,
+  cta: 400,
+  replay: 500,
+};
+
+const FADE_OUT_MS = 300;
+
+interface HeroProps {
   tier: string;
   onVideoEnd?: () => void;
   onVideoReplay?: () => void;
 }
 
-export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: HeroV5Props) {
+export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: HeroProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoEnded, setVideoEnded] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
+  const [isReplaying, setIsReplaying] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Autoplay video on mount
+  // Detect mobile on mount (no video on <768px)
+  useEffect(() => {
+    const mobile = window.innerWidth < 768;
+    setIsMobile(mobile);
+    if (mobile) {
+      setVideoEnded(true);
+      onVideoEnd?.();
+    }
+  }, []);
+
+  const skipVideo = tier === 'base' || isMobile;
+
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || tier === 'base') return;
+    if (!video || skipVideo) return;
 
-    const handleCanPlay = () => setVideoReady(true);
     const handleEnded = () => { setVideoEnded(true); onVideoEnd?.(); };
 
-    video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('ended', handleEnded);
 
-    // Attempt autoplay
     video.play().catch(() => {
-      // If autoplay blocked, show endframe directly
       setVideoEnded(true);
       onVideoEnd?.();
     });
 
     return () => {
-      video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [tier]);
+  }, [tier, skipVideo]);
 
   const handleReplay = useCallback(() => {
     const video = videoRef.current;
-    if (!video) return;
-    // 1. Hide logo, CTAs, replay button immediately
-    setVideoEnded(false);
+    if (!video || isReplaying) return;
+
     onVideoReplay?.();
-    // 2. Wait 3 seconds, then play video
+    setIsReplaying(true);
+
     setTimeout(() => {
+      setVideoEnded(false);
       video.currentTime = 0;
       video.play().catch(() => {});
-    }, 3000);
-  }, [onVideoReplay]);
+      setIsReplaying(false);
+    }, FADE_OUT_MS);
+  }, [onVideoReplay, isReplaying]);
 
-  const handleScrollTo = (sectionId: string) => {
-    const el = document.getElementById(sectionId);
+  const showContent = (videoEnded || skipVideo) && !isReplaying;
+
+  const staggerStyle = (delayMs: number): React.CSSProperties => ({
+    opacity: showContent ? 1 : 0,
+    transform: showContent ? 'translateY(0)' : 'translateY(16px)',
+    transition: showContent
+      ? `opacity 0.5s ease ${delayMs}ms, transform 0.5s ease ${delayMs}ms`
+      : `opacity ${FADE_OUT_MS}ms ease, transform ${FADE_OUT_MS}ms ease`,
+  });
+
+  const handleFinanciar = () => {
+    const el = document.getElementById('financing');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <section id="hero" className="relative h-screen bg-black overflow-hidden">
-      {/* Video background (enhanced tier) */}
-      {tier !== 'base' && (
+      {/* Poster for mobile / base tier */}
+      {skipVideo && (
+        <img
+          src={isMobile ? ASSETS.hero.posterMobile : ASSETS.hero.poster}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
+
+      {/* Video for desktop enhanced tier */}
+      {!skipVideo && (
         <video
           ref={videoRef}
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           poster={ASSETS.hero.poster}
           className="absolute inset-0 w-full h-full object-cover"
-          style={{
-            opacity: videoEnded ? 0 : 1,
-            transition: 'opacity 0.8s ease',
-          }}
+          style={{ willChange: 'transform' }}
         >
           <source src={ASSETS.hero.video} type="video/mp4" />
         </video>
       )}
 
-      {/* Endframe — fades in after video ends (or shown immediately on base tier) */}
-      <div
-        className="absolute inset-0"
-        style={{
-          opacity: tier === 'base' || videoEnded ? 1 : 0,
-          transition: 'opacity 0.8s ease',
-        }}
-      >
-        <Image
-          src={ASSETS.hero.endframe}
-          alt="MacBook Neo"
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw"
-        />
+      {/* Content overlay — left side, hardcoded */}
+      <div className="absolute inset-0 z-[3] flex items-center">
+        <div className="w-full mx-auto px-5 sm:px-8 md:px-14 lg:px-44">
+          <div className="flex justify-start">
+            <div className="w-full max-w-[520px] flex flex-col gap-3 sm:gap-4">
+              {/* Eyebrow */}
+              <p
+                className="text-xs sm:text-sm md:text-base font-semibold uppercase tracking-[0.2em] m-0"
+                style={{ color: BC.primary, ...staggerStyle(STAGGER.eyebrow) }}
+              >
+                Exclusivo
+              </p>
+
+              {/* Headline */}
+              <h1
+                className="text-3xl sm:text-4xl md:text-6xl lg:text-[80px] font-bold leading-[1.05] m-0"
+                style={{ fontFamily: "'Baloo 2', sans-serif", color: isMobile ? '#f5f5f7' : '#1d1d1f', ...staggerStyle(STAGGER.headline) }}
+              >
+                MacBook Neo llegó a BaldeCash.
+              </h1>
+
+              {/* Price */}
+              <p
+                className="text-xl sm:text-2xl md:text-3xl m-0"
+                style={{ color: isMobile ? '#f5f5f7' : '#6e6e73', ...staggerStyle(STAGGER.price) }}
+              >
+                Desde{' '}
+                <span className="font-bold text-2xl sm:text-3xl md:text-5xl" style={{ color: isMobile ? '#03DBD0' : BC.primary }}>
+                  S/199
+                </span>
+                <span style={{ color: isMobile ? '#f5f5f7' : '#6e6e73' }}>/mes</span>
+              </p>
+
+              {/* Limited time */}
+              <p
+                className="text-sm md:text-lg m-0"
+                style={{ color: isMobile ? 'rgba(245,245,247,0.8)' : '#86868b', ...staggerStyle(STAGGER.limited) }}
+              >
+                Precio de lanzamiento por tiempo limitado
+              </p>
+
+              {/* CTA */}
+              <div className="mt-1 sm:mt-2" style={staggerStyle(STAGGER.cta)}>
+                <button
+                  onClick={handleFinanciar}
+                  className="inline-flex items-center gap-2 px-6 sm:px-10 py-3 sm:py-4 text-base sm:text-lg font-semibold text-white border-none cursor-pointer rounded-xl transition-opacity hover:opacity-90 active:scale-[0.97]"
+                  style={{ backgroundColor: BC.primary }}
+                >
+                  Financiar ahora
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* CTA overlay — appears after video ends, positioned below video text */}
-      <div
-        className="absolute z-[3] left-0 right-0 flex flex-col items-center gap-3"
-        style={{
-          bottom: '18%',
-          opacity: videoEnded || tier === 'base' ? 1 : 0,
-          transform: videoEnded || tier === 'base' ? 'translateY(0)' : 'translateY(10px)',
-          transition: 'opacity 0.6s ease 0.5s, transform 0.6s ease 0.5s',
-        }}
-      >
-        <button
-          onClick={() => handleScrollTo(heroData.ctaPrimary.scrollTo)}
-          className="inline-flex items-center justify-center gap-2 px-8 py-3.5 text-base font-semibold text-white hover:opacity-90 transition-all border-none cursor-pointer rounded-lg shadow-sm"
-          style={{ backgroundColor: BC.primary }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = BC.primaryHover)}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = BC.primary)}
-        >
-          {heroData.ctaPrimary.label}
-          <ArrowRight className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => handleScrollTo(heroData.ctaSecondary.scrollTo)}
-          className="inline-flex items-center text-sm font-normal hover:underline bg-transparent border-none cursor-pointer"
-          style={{ color: BC.secondary }}
-        >
-          {heroData.ctaSecondary.label}
-          <span className="ml-1">&rsaquo;</span>
-        </button>
-      </div>
-
-      {/* Bottom bar — replay + scroll indicator */}
+      {/* Bottom bar — replay */}
       <div
         className="absolute bottom-8 left-0 right-0 flex items-center justify-center gap-6 z-[3]"
         style={{
-          opacity: videoEnded || tier === 'base' ? 1 : 0,
-          transition: 'opacity 0.6s ease 0.3s',
-          pointerEvents: videoEnded || tier === 'base' ? 'auto' : 'none',
+          ...staggerStyle(STAGGER.replay),
+          pointerEvents: showContent ? 'auto' : 'none',
         }}
       >
-        {tier !== 'base' && (
+        {!skipVideo && (
           <button
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleReplay(); }}
             className="flex items-center justify-center bg-transparent border-none cursor-pointer"
@@ -147,11 +189,11 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
               style={{
                 width: 56,
                 height: 56,
-                backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                backgroundColor: 'rgba(0, 0, 0, 0.06)',
                 backdropFilter: 'blur(10px)',
               }}
             >
-              <Play className="w-5 h-5 text-[#1d1d1f]/60 fill-[#1d1d1f]/60" />
+              <Play className="w-5 h-5 text-[#1d1d1f]/50 fill-[#1d1d1f]/50" />
             </span>
           </button>
         )}

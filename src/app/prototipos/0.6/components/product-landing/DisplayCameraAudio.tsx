@@ -54,21 +54,21 @@ export default function DisplayCameraAudio() {
   const subChapters = dcaChapters.slice(1); // Cámara, Audio
 
   return (
-    <section id="display" className="bg-black text-[#f5f5f7] py-24">
+    <section id="display" className="bg-black text-[#f5f5f7] py-16 sm:py-24">
       <div className="max-w-[980px] mx-auto px-6">
         {/* Header */}
         <RevealOnScroll>
-          <div className="md:text-center mb-20">
+          <div className="md:text-center mb-12 sm:mb-20">
             <p className="text-[#86868b] text-sm font-semibold mb-2 uppercase tracking-wider">
               Pantalla, Cámara y Audio
             </p>
             <h2
-              className="text-[48px] sm:text-[72px] md:text-[96px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
+              className="text-[32px] sm:text-[48px] md:text-[72px] lg:text-[96px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               Un festín para tus sentidos.
             </h2>
-            <p className="text-[17px] md:text-[21px] text-[#86868b] max-w-[680px] md:mx-auto leading-[1.47]">
+            <p className="text-[15px] sm:text-[17px] md:text-[21px] text-[#86868b] max-w-[680px] md:mx-auto leading-[1.47]">
               Fotos y videos con contraste vibrante y detalle nítido. Texto legible para
               estudiar sin cansarte. Y altavoces laterales con sonido envolvente.
             </p>
@@ -91,7 +91,7 @@ export default function DisplayCameraAudio() {
               />
             </div>
             {/* Text + stats below image */}
-            <div className="p-8 md:p-10">
+            <div className="p-5 sm:p-8 md:p-10">
               <h3
                 className="text-2xl md:text-3xl font-semibold mb-2 m-0"
                 style={{ letterSpacing: '-0.01em' }}
@@ -102,11 +102,11 @@ export default function DisplayCameraAudio() {
                 {displayChapter.description}
               </p>
               {displayChapter.stats && (
-                <div className="flex gap-10 mt-8">
+                <div className="flex gap-6 sm:gap-10 mt-6 sm:mt-8">
                   {displayChapter.stats.map((stat) => (
                     <div key={stat.label}>
                       <p
-                        className="text-[36px] md:text-[48px] font-semibold m-0"
+                        className="text-[28px] sm:text-[36px] md:text-[48px] font-semibold m-0"
                         style={{ fontFamily: "'Baloo 2', cursive", lineHeight: 1.1 }}
                       >
                         <AnimatedNumber value={stat.value} />
