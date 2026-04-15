@@ -1,327 +1,327 @@
 {
   "redirects": [
     {
-      "source": "/isat",
+      "source": "/isat/",
       "destination": "https://beneficios.baldecash.com/isat",
       "permanent": true
     },
     {
-      "source": "/colegios",
+      "source": "/colegios/",
       "destination": "https://baldecash-colegios-financiamientos.lovable.app/",
       "permanent": true
     },
     {
-      "source": "/coar",
+      "source": "/coar/",
       "destination": "https://baldecash-coar.lovable.app/",
       "permanent": true
     },
     {
-      "source": "/terminos-condiciones-baldecash",
+      "source": "/terminos-condiciones-baldecash/",
       "destination": "https://baldecash-legal-hub.lovable.app/",
       "permanent": true
     },
     {
-      "source": "/ucal-cachimbo",
+      "source": "/ucal-cachimbo/",
       "destination": "https://beneficios.baldecash.com/ucal-cachimbo",
       "permanent": true
     },
     {
-      "source": "/icpna",
+      "source": "/icpna/",
       "destination": "https://beneficios.baldecash.com/icpna",
       "permanent": true
     },
     {
-      "source": "/isil",
+      "source": "/isil/",
       "destination": "https://beneficios.baldecash.com/isil",
       "permanent": true
     },
     {
-      "source": "/carloscueto",
+      "source": "/carloscueto/",
       "destination": "https://beneficios.baldecash.com/carloscueto",
       "permanent": true
     },
     {
-      "source": "/innova",
+      "source": "/innova/",
       "destination": "https://beneficios.baldecash.com/innova",
       "permanent": true
     },
     {
-      "source": "/corrientealterna",
+      "source": "/corrientealterna/",
       "destination": "https://beneficios.baldecash.com/corrientealterna",
       "permanent": true
     },
     {
-      "source": "/zegel",
+      "source": "/zegel/",
       "destination": "https://beneficios.baldecash.com/zegel",
       "permanent": true
     },
     {
-      "source": "/idat",
+      "source": "/idat/",
       "destination": "https://beneficios.baldecash.com/idat",
       "permanent": true
     },
     {
-      "source": "/iurusayhua",
+      "source": "/iurusayhua/",
       "destination": "https://beneficios.baldecash.com/iurusayhua",
       "permanent": true
     },
     {
-      "source": "/terminos-condiciones-sorteo-mayo-baldecash",
+      "source": "/terminos-condiciones-sorteo-mayo-baldecash/",
       "destination": "https://drive.google.com/file/d/1IdE3FIG0y7iwL6sxYNGnookGZIMuaVtB/view",
       "permanent": true
     },
     {
-      "source": "/usjb",
+      "source": "/usjb/",
       "destination": "https://beneficios.baldecash.com/usjb",
       "permanent": true
     },
     {
-      "source": "/colegiatura-cpsp",
+      "source": "/colegiatura-cpsp/",
       "destination": "https://beneficios.baldecash.com/colegiatura-cpsp",
       "permanent": true
     },
     {
-      "source": "/matriculaupn",
+      "source": "/matriculaupn/",
       "destination": "https://pidetuprestamo.baldecash.com/#/matriculasupn",
       "permanent": true
     },
     {
-      "source": "/undac",
+      "source": "/undac/",
       "destination": "https://beneficios.baldecash.com/undac",
       "permanent": true
     },
     {
-      "source": "/cachimbos",
+      "source": "/cachimbos/",
       "destination": "https://beneficios.baldecash.com/ucv-2025",
       "permanent": true
     },
     {
-      "source": "/icontinental",
+      "source": "/icontinental/",
       "destination": "https://beneficios.baldecash.com/icontinental",
       "permanent": true
     },
     {
-      "source": "/tituloupn",
+      "source": "/tituloupn/",
       "destination": "https://pidetuprestamo.baldecash.com/#/titulosupn",
       "permanent": true
     },
     {
-      "source": "/titulosupn",
+      "source": "/titulosupn/",
       "destination": "https://pidetuprestamo.baldecash.com/#/titulosupn",
       "permanent": true
     },
     {
-      "source": "/iestp",
+      "source": "/iestp/",
       "destination": "https://beneficios.baldecash.com/iestp",
       "permanent": true
     },
     {
-      "source": "/uss",
+      "source": "/uss/",
       "destination": "https://beneficios.baldecash.com/uss",
       "permanent": true
     },
     {
-      "source": "/cpsp",
+      "source": "/cpsp/",
       "destination": "https://beneficios.baldecash.com/cpsp",
       "permanent": true
     },
     {
-      "source": "/wiener",
+      "source": "/wiener/",
       "destination": "https://pidetuprestamo.baldecash.com/#/norbertwiener?fuente=wiener-verano",
       "permanent": true
     },
     {
-      "source": "/carrion-egresados",
+      "source": "/carrion-egresados/",
       "destination": "https://pidetuprestamo.baldecash.com/#/prestamos?source=carrion&fuente=carrion-egresados",
       "permanent": true
     },
     {
-      "source": "/ansimar",
+      "source": "/ansimar/",
       "destination": "https://beneficios.baldecash.com/ansimar",
       "permanent": true
     },
     {
-      "source": "/ucv-docentes",
+      "source": "/ucv-docentes/",
       "destination": "https://pidetuprestamo.baldecash.com/#/ucv-docentes-y-administrativos",
       "permanent": true
     },
     {
-      "source": "/mrap",
+      "source": "/mrap/",
       "destination": "https://beneficios.baldecash.com/maria-araoz",
       "permanent": true
     },
     {
-      "source": "/untumbes",
+      "source": "/untumbes/",
       "destination": "https://beneficios.baldecash.com/untumbes",
       "permanent": true
     },
     {
-      "source": "/unap",
+      "source": "/unap/",
       "destination": "https://beneficios.baldecash.com/unap",
       "permanent": true
     },
     {
-      "source": "/utec",
+      "source": "/utec/",
       "destination": "https://beneficios.baldecash.com/utec",
       "permanent": true
     },
     {
-      "source": "/cibertec",
+      "source": "/cibertec/",
       "destination": "https://beneficios.baldecash.com/cibertec",
       "permanent": true
     },
     {
-      "source": "/sorteo-senati-cuotas",
+      "source": "/sorteo-senati-cuotas/",
       "destination": "/sorteo-senati-becas",
       "permanent": true
     },
     {
-      "source": "/jhalebet",
+      "source": "/jhalebet/",
       "destination": "https://beneficios.baldecash.com/jhalebet",
       "permanent": true
     },
     {
-      "source": "/iesrp",
+      "source": "/iesrp/",
       "destination": "https://beneficios.baldecash.com/instituto-ricardo-palma",
       "permanent": true
     },
     {
-      "source": "/educad",
+      "source": "/educad/",
       "destination": "https://beneficios.baldecash.com/educad",
       "permanent": true
     },
     {
-      "source": "/ucsur",
+      "source": "/ucsur/",
       "destination": "https://beneficios.baldecash.com/ucsur",
       "permanent": true
     },
     {
-      "source": "/sise",
+      "source": "/sise/",
       "destination": "https://beneficios.baldecash.com/sise",
       "permanent": true
     },
     {
-      "source": "/continental",
+      "source": "/continental/",
       "destination": "https://beneficios.baldecash.com/continental",
       "permanent": true
     },
     {
-      "source": "/senati",
+      "source": "/senati/",
       "destination": "https://beneficios.baldecash.com/senati",
       "permanent": true
     },
     {
-      "source": "/carrion",
+      "source": "/carrion/",
       "destination": "https://beneficios.baldecash.com/carrion",
       "permanent": true
     },
     {
-      "source": "/maria-araoz",
+      "source": "/maria-araoz/",
       "destination": "https://beneficios.baldecash.com/maria-araoz",
       "permanent": true
     },
     {
-      "source": "/lasartes",
+      "source": "/lasartes/",
       "destination": "https://beneficios.baldecash.com/lasartes-lima",
       "permanent": true
     },
     {
-      "source": "/ucv-losolivos",
+      "source": "/ucv-losolivos/",
       "destination": "https://beneficios.baldecash.com/ucv-losolivos",
       "permanent": true
     },
     {
-      "source": "/uncp",
+      "source": "/uncp/",
       "destination": "https://beneficios.baldecash.com/uncp",
       "permanent": true
     },
     {
-      "source": "/upn",
+      "source": "/upn/",
       "destination": "https://beneficios.baldecash.com/upn",
       "permanent": true
     },
     {
-      "source": "/ucv",
+      "source": "/ucv/",
       "destination": "https://beneficios.baldecash.com/ucv",
       "permanent": true
     },
     {
-      "source": "/bachillerupn",
+      "source": "/bachillerupn/",
       "destination": "https://pidetuprestamo.baldecash.com/#/titulos-upn",
       "permanent": true
     },
     {
-      "source": "/promoestudiantes",
+      "source": "/promoestudiantes/",
       "destination": "https://pidetuprestamo.baldecash.com/#/prestamos?fuente=marcoloretdemola",
       "permanent": true
     },
     {
-      "source": "/baldecash-que-oferton",
+      "source": "/baldecash-que-oferton/",
       "destination": "/baldecash-oferton",
       "permanent": true
     },
     {
-      "source": "/encerrona",
+      "source": "/encerrona/",
       "destination": "https://pidetuprestamo.baldecash.com/#/campaign-107",
       "permanent": true
     },
     {
-      "source": "/promo",
+      "source": "/promo/",
       "destination": "https://pidetuprestamo.baldecash.com/#/prestamos?fuente=jorgeek",
       "permanent": true
     },
     {
-      "source": "/terminos-y-condiciones-grupoa",
+      "source": "/terminos-y-condiciones-grupoa/",
       "destination": "/terminos-y-condiciones-9466",
       "permanent": true
     },
     {
-      "source": "/que-oferton/9014",
+      "source": "/que-oferton/9014/",
       "destination": "/que-oferton/que-oferton-9014",
       "permanent": true
     },
     {
-      "source": "/que-oferton/que-oferton-9014",
+      "source": "/que-oferton/que-oferton-9014/",
       "destination": "/que-oferton-9014",
       "permanent": true
     },
     {
-      "source": "/baldecash-oferton",
+      "source": "/baldecash-oferton/",
       "destination": "/baldecash-oferton-9842",
       "permanent": true
     },
     {
-      "source": "/terminos-y-condiciones-grupoc",
+      "source": "/terminos-y-condiciones-grupoc/",
       "destination": "/terminos-y-condiciones-7617",
       "permanent": true
     },
     {
-      "source": "/terminos-y-condiciones-pv1",
+      "source": "/terminos-y-condiciones-pv1/",
       "destination": "/terminos-y-condiciones-grupoa",
       "permanent": true
     },
     {
-      "source": "/terminos-y-condiciones-pv3",
+      "source": "/terminos-y-condiciones-pv3/",
       "destination": "/terminos-y-condiciones-grupoc",
       "permanent": true
     },
     {
-      "source": "/que-oferton/9842",
+      "source": "/que-oferton/9842/",
       "destination": "/que-oferton/que-oferton-9841",
       "permanent": true
     },
     {
-      "source": "/pasalavoz",
+      "source": "/pasalavoz/",
       "destination": "/pasa-la-voz-9466",
       "permanent": true
     },
     {
-      "source": "/terminos-y-condiciones-grupob",
+      "source": "/terminos-y-condiciones-grupob/",
       "destination": "/terminos-y-condiciones-7321",
       "permanent": true
     },
     {
-      "source": "/zonaestudiantes",
+      "source": "/zonaestudiantes/",
       "destination": "https://zonaclientes.baldecash.com/",
       "permanent": true
     }
