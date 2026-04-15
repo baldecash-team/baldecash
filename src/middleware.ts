@@ -14,6 +14,7 @@ const LEGACY_REDIRECTS: Record<string, string> = {
   '/colegios': 'https://baldecash-colegios-financiamientos.lovable.app/',
   '/coar': 'https://baldecash-coar.lovable.app/',
   '/terminos-condiciones-baldecash': 'https://baldecash-legal-hub.lovable.app/',
+  '/terminos-y-condiciones-baldecash': 'https://baldecash-legal-hub.lovable.app/',
   '/ucal-cachimbo': 'https://beneficios.baldecash.com/ucal-cachimbo',
   '/icpna': 'https://beneficios.baldecash.com/icpna',
   '/isil': 'https://beneficios.baldecash.com/isil',
