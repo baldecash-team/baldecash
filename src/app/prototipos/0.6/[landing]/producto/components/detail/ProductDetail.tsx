@@ -72,6 +72,8 @@ interface ProductDetailProps {
   // Default pricing from catalog card
   defaultTerm?: number;
   defaultInitialPercent?: number;
+  // Payment frequencies (e.g. ['quincenal', 'semanal'] for celulares)
+  paymentFrequencies?: string[];
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -99,6 +101,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   isAvailable = true,
   defaultTerm,
   defaultInitialPercent,
+  paymentFrequencies,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -383,6 +386,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 defaultTerm={defaultTerm}
                 defaultInitialPercent={defaultInitialPercent ?? 0}
                 productPrice={product.price}
+                paymentFrequencies={paymentFrequencies}
+                landing={landing}
+                productSlug={product.slug}
                 onSelectionChange={handlePricingSelectionChange}
               />
               {/* CTA Buttons or Unavailable banner */}

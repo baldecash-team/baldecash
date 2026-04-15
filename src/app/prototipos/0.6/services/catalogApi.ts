@@ -40,6 +40,7 @@ export interface ApiPricingHook {
   term_months: number;
   initial_percent: number;
   tea: number;
+  payment_frequency?: string; // 'mensual' | 'semanal' | 'quincenal'
 }
 
 export interface ApiProductPricing {
@@ -50,6 +51,8 @@ export interface ApiProductPricing {
   hook: ApiPricingHook;
   available_terms: number[];
   available_initials: number[];
+  payment_frequencies?: string[]; // e.g. ['quincenal', 'semanal'] for celulares
+  payment_hooks?: Record<string, number>; // e.g. {semanal: 15, quincenal: 26}
 }
 
 export interface ApiBrand {
@@ -580,6 +583,9 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     quotaWeekly,
     originalQuotaMonthly: hook.original_monthly_price ?? undefined,
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
+    paymentFrequency: hook.payment_frequency || undefined,
+    paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
+    paymentHooks: pricing.payment_hooks ?? undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
     stock: 'available' as StockStatus, // Default - not in API response

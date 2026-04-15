@@ -299,6 +299,9 @@ export interface PricingCalculatorProps {
   defaultTerm?: number;
   defaultInitialPercent?: number;
   productPrice?: number;
+  paymentFrequencies?: string[]; // Available frequencies (e.g. ['quincenal', 'semanal'])
+  landing?: string;              // Landing slug — needed to re-fetch plans on frequency change
+  productSlug?: string;          // Product slug — needed to re-fetch plans on frequency change
 }
 
 export interface SimilarProductsProps {

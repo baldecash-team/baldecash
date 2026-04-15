@@ -150,6 +150,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const quota = displayQuota;
   const { initialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, selectedInitial);
 
+  // Payment frequency selector (for celulares: semanal/quincenal)
+  const hookFrequency = product.paymentFrequency || 'mensual';
+  const [selectedFrequency, setSelectedFrequency] = useState(hookFrequency);
+
+  // Cuota para la frecuencia seleccionada (desde payment_hooks, fallback al hook principal)
+  const displayQuotaForFreq = (product.paymentHooks && product.paymentHooks[selectedFrequency] != null)
+    ? product.paymentHooks[selectedFrequency]
+    : displayQuota;
+
+  const freqShort = selectedFrequency === 'semanal' ? '/sem' : selectedFrequency === 'quincenal' ? '/qcn' : '/mes';
+  // Plazo máximo en meses: semanal ÷4, quincenal ÷2
+  const displayTermMonths = hookFrequency === 'semanal'
+    ? Math.round(selectedTerm / 4)
+    : hookFrequency === 'quincenal'
+      ? Math.round(selectedTerm / 2)
+      : selectedTerm;
+
   const originalQuota = displayOriginalQuota;
 
   // ============================================
@@ -426,11 +443,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* Pricing - Altura fija para consistencia entre cards */}
             <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 mb-4">
+              {/* Frequency chips — shown when product has semanal/quincenal options */}
+              {product.paymentFrequencies && product.paymentFrequencies.length > 1 && (
+                <div className="flex justify-center gap-1.5 mb-2">
+                  {product.paymentFrequencies.map((freq) => (
+                    <button
+                      key={freq}
+                      onClick={(e) => { e.stopPropagation(); setSelectedFrequency(freq); }}
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                        freq === selectedFrequency
+                          ? 'bg-[var(--color-primary)] text-white'
+                          : 'bg-neutral-200 text-neutral-500 hover:bg-neutral-300'
+                      }`}
+                    >
+                      {freq === 'semanal' ? 'Semanal' : freq === 'quincenal' ? 'Quincenal' : freq}
+                    </button>
+                  ))}
+                </div>
+              )}
               {/* Precio anterior + descuento (altura reservada siempre) */}
               <div className="h-5 flex items-center justify-center gap-1.5">
                 {originalQuota && originalQuota > quota ? (
                   <>
-                    <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}/mes</span>
+                    <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
                     {displayDiscount && displayDiscount > 0 && (
                       <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
                         -{Math.round(displayDiscount)}%
@@ -438,17 +473,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     )}
                   </>
                 ) : (
-                  <span className="text-xs text-neutral-400">Cuota mensual</span>
+                  <span className="text-xs text-neutral-400">Cuota {selectedFrequency !== 'mensual' ? selectedFrequency : 'mensual'}</span>
                 )}
               </div>
               {/* Precio actual — graduado para cards estrechas */}
               <div className="flex items-baseline justify-center gap-0.5 mt-1 min-w-0">
-                <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">S/{formatMoneyNoDecimals(Math.floor(quota))}</span>
-                <span className="text-base sm:text-lg text-neutral-400">/mes</span>
+                <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">S/{formatMoneyNoDecimals(Math.floor(displayQuotaForFreq))}</span>
+                <span className="text-base sm:text-lg text-neutral-400">{freqShort}</span>
               </div>
               {/* Info adicional */}
               <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words">
-                en {selectedTerm} meses{initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(initialAmount))}` : ' · sin inicial'}
+                en {displayTermMonths} meses{initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(initialAmount))}` : ' · sin inicial'}
               </p>
             </div>
 
