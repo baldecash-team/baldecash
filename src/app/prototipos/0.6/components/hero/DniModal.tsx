@@ -24,6 +24,8 @@ interface DniModalProps {
   onClose: () => void;
   /** Si el modal está abierto */
   isOpen: boolean;
+  /** Permite cerrar/omitir sin ingresar DNI (default: true) */
+  allowSkip?: boolean;
 }
 
 /** Genera la key de localStorage para este landing */
@@ -44,6 +46,7 @@ export const DniModal: React.FC<DniModalProps> = ({
   landingSlug,
   onClose,
   isOpen,
+  allowSkip = true,
 }) => {
   const [dni, setDni] = useState('');
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -67,15 +70,22 @@ export const DniModal: React.FC<DniModalProps> = ({
       // Silently fail if localStorage is not available
     }
 
+    if (!allowSkip) {
+      // Cierre inmediato sin mensaje de confirmación
+      onClose();
+      return;
+    }
+
     setIsConfirmed(true);
 
     setTimeout(() => {
       onClose();
     }, 2000);
-  }, [isValid, dni, landingSlug, onClose]);
+  }, [isValid, dni, landingSlug, onClose, allowSkip]);
 
-  // Cerrar con Escape
+  // Cerrar con Escape (solo si allowSkip)
   useEffect(() => {
+    if (!allowSkip) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -83,7 +93,7 @@ export const DniModal: React.FC<DniModalProps> = ({
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, allowSkip]);
 
   // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
@@ -106,7 +116,7 @@ export const DniModal: React.FC<DniModalProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
+            onClick={allowSkip ? onClose : undefined}
           />
 
           {/* Modal */}
@@ -215,12 +225,14 @@ export const DniModal: React.FC<DniModalProps> = ({
                       </button>
 
                       {/* Skip link */}
-                      <button
-                        onClick={onClose}
-                        className="mt-4 text-sm text-neutral-400 hover:text-neutral-600 transition-colors duration-150 cursor-pointer"
-                      >
-                        No, omitir por ahora
-                      </button>
+                      {allowSkip && (
+                        <button
+                          onClick={onClose}
+                          className="mt-4 text-sm text-neutral-400 hover:text-neutral-600 transition-colors duration-150 cursor-pointer"
+                        >
+                          No, omitir por ahora
+                        </button>
+                      )}
                     </motion.div>
                   ) : (
                     <motion.div

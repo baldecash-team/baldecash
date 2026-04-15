@@ -7,7 +7,7 @@
  * Soporta preview mode via postMessage desde el admin
  */
 
-import { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback, Suspense, useRef, lazy } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
 import { DniModal, hasSavedDni } from '../components/hero/DniModal';
@@ -20,6 +20,12 @@ import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
+
+// Product landing pages (lazy-loaded to avoid bundling when not needed)
+const MacBookNeoLanding = lazy(() => import('../components/product-landing/MacBookNeoLanding'));
+
+// Slugs that render a product-specific landing instead of the standard HeroSection
+const PRODUCT_LANDING_SLUGS = ['baldecash-mac-book-neo'];
 
 // Slugs que activan el modal de DNI al cargar la landing
 const DNI_MODAL_SLUGS = ['liderman-baldecash', 'renueva-tu-laptop'];
@@ -280,14 +286,16 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
   const showDniFeature = DNI_MODAL_SLUGS.includes(slug);
   const [isDniModalOpen, setIsDniModalOpen] = useState(false);
 
+  // Slugs donde el DNI es obligatorio (siempre aparece el modal)
+  const dniRequired = slug === 'renueva-tu-laptop';
+
   useEffect(() => {
     if (showDniFeature && !isLoading && heroData) {
-      // Verificar si ya tiene DNI guardado (solo en cliente)
-      if (!hasSavedDni(slug)) {
+      if (dniRequired || !hasSavedDni(slug)) {
         setIsDniModalOpen(true);
       }
     }
-  }, [showDniFeature, slug, isLoading, heroData]);
+  }, [showDniFeature, slug, isLoading, heroData, dniRequired]);
 
   const handleDniModalClose = useCallback(() => {
     setIsDniModalOpen(false);
@@ -317,6 +325,22 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
   // Error state - usar componente 404 con branding
   if (error || !heroData) {
     return <NotFoundContent homeUrl={routes.home()} />;
+  }
+
+  // Product landing: render specialized component instead of HeroSection
+  if (PRODUCT_LANDING_SLUGS.includes(slug)) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData.primaryColor || '#4654CD',
+          '--color-secondary': heroData.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        <Suspense fallback={<HomeSkeleton />}>
+          <MacBookNeoLanding footerData={mergedFooterData} landing={slug} />
+        </Suspense>
+      </div>
+    );
   }
 
   // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)
@@ -363,6 +387,7 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
           landingSlug={slug}
           isOpen={isDniModalOpen}
           onClose={handleDniModalClose}
+          allowSkip={slug !== 'renueva-tu-laptop'}
         />
       )}
     </div>
