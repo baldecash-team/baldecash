@@ -18,6 +18,7 @@ Sentry.init({
     "ResizeObserver loop",
     "Loading chunk",
     "ChunkLoadError",
+    /Failed to load chunk/,
     // Generic third-party patterns
     /^Script error\.?$/,
     /can't redefine non-configurable property/i,
