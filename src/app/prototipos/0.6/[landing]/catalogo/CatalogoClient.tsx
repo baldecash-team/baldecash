@@ -1250,6 +1250,28 @@ function CatalogoContent() {
   const hasMoreProducts = hasMoreFromApi; // API indicates if there are more to fetch
   const remainingProducts = totalProducts - catalogProducts.length; // Remaining in API
 
+  // Detect which rows have at least one promo card (for spacer alignment)
+  const promoSpacerFlags = useMemo(() => {
+    const cols = gridColumns || 1;
+    const flags = new Array(visibleProducts.length).fill(false);
+    for (let i = 0; i < visibleProducts.length; i += cols) {
+      const rowEnd = Math.min(i + cols, visibleProducts.length);
+      let rowHasPromo = false;
+      for (let j = i; j < rowEnd; j++) {
+        if (visibleProducts[j].promotion?.template) {
+          rowHasPromo = true;
+          break;
+        }
+      }
+      if (rowHasPromo) {
+        for (let j = i; j < rowEnd; j++) {
+          flags[j] = true;
+        }
+      }
+    }
+    return flags;
+  }, [visibleProducts, gridColumns]);
+
   // Load more products from API
   const handleLoadMore = useCallback(() => {
     loadMoreFromApi();
@@ -1618,6 +1640,7 @@ function CatalogoContent() {
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
                 hideColors
+                needsPromoSpacer={promoSpacerFlags[index]}
                 onAddToCart={(cartItem: CartItem) => {
                   if (!ALLOW_MULTI_PRODUCT) {
                     // Single-product mode: go directly to solicitar

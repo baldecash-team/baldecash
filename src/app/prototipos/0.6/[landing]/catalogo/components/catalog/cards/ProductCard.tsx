@@ -61,6 +61,8 @@ interface ProductCardProps {
   addToCartButtonId?: string;
   /** Ocultar selector de colores (ej: landing sin variantes de color) */
   hideColors?: boolean;
+  /** Agregar spacer arriba cuando otra card en la misma fila tiene banner promo */
+  needsPromoSpacer?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -83,6 +85,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   detailButtonId,
   addToCartButtonId,
   hideColors = true,
+  needsPromoSpacer = false,
 }) => {
   // Color selector state — default to current product's ID if it's in the siblings
   const currentProductColor = product.colors?.find(c => c.productId === product.id);
@@ -224,10 +227,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         } : undefined}
       >
         <CardBody className="p-0 flex flex-col">
-          {/* Promotion Banner / Spacer — fixed h-[44px] so all cards align */}
-          {promoTemplate && isTopBarBanner ? (
+          {/* Spacer for non-promo cards in rows that have promo cards */}
+          {needsPromoSpacer && !(promoTemplate && isTopBarBanner) && (
+            <div className="h-[44px] shrink-0" />
+          )}
+          {/* Promotion Banner */}
+          {promoTemplate && isTopBarBanner && (
             <div
-              className="w-full h-[44px] shrink-0 px-4 flex items-center justify-center gap-2.5"
+              className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
               style={{
                 background: `linear-gradient(135deg, ${promoBannerBg} 0%, ${promoBannerBg}cc 50%, ${promoBannerBg} 100%)`,
                 backgroundColor: promoBannerBg,
@@ -256,7 +263,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </motion.div>
               )}
             </div>
-          ) : promoTemplate && !isTopBarBanner ? (
+          )}
+          {promoTemplate && !isTopBarBanner && (
             <div className="absolute top-0 left-0 z-20">
               <div
                 className="px-4 py-1.5 text-sm font-black rounded-br-xl"
@@ -279,8 +287,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {promoTemplate.bannerText}
               </div>
             </div>
-          ) : (
-            <div className="h-[44px] shrink-0" />
           )}
           {/* Image - Altura fija para consistencia */}
           <div className="relative bg-white p-6 h-[220px] flex items-center justify-center">
