@@ -145,9 +145,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       className="relative overflow-hidden"
       style={{
         // Fill the viewport minus the total fixed header height (preview + promo + navbar).
-        // `clamp` keeps a sensible minimum on very short viewports (landscape phones)
-        // without forcing an oversize banner on tall ones (tablets, 4K).
-        height: 'clamp(520px, calc(100vh - var(--header-total-height, 4rem)), 900px)',
+        // min 520px for landscape phones, no max cap.
+        height: 'max(520px, calc(100vh - var(--header-total-height, 4rem)))',
       }}
     >
       {/* Background Image - next/image with priority for LCP optimization */}

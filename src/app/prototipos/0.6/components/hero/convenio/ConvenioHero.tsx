@@ -89,9 +89,8 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
     <div
       className="relative overflow-hidden"
       style={{
-        // Match HeroBanner: clamp keeps a sensible minimum on short landscape
-        // viewports and avoids oversized banners on very tall screens.
-        height: 'clamp(520px, calc(100svh - var(--header-total-height, 4rem)), 900px)',
+        // Fill viewport minus header. min 520px for landscape phones, no max cap.
+        height: 'max(520px, calc(100svh - var(--header-total-height, 4rem)))',
       }}
     >
       {/* Background image - next/image with priority for LCP optimization */}

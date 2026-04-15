@@ -393,6 +393,7 @@ export function transformLandingData(data: LandingHeroResponse): {
   megamenuItems: MegaMenuItemData[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
+  testimonialsSubtitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;
@@ -680,9 +681,12 @@ export function transformLandingData(data: LandingHeroResponse): {
       }))
     : [];
 
-  // Extraer título de testimonios desde el componente (solo si visible)
+  // Extraer título y subtítulo de testimonios desde el config del componente
   const testimonialsTitle = isTestimonialsVisible
-    ? testimonialsComponent?.component_name || undefined
+    ? (testimonialsConfig.title as string) || undefined
+    : undefined;
+  const rawTestimonialsSubtitle = isTestimonialsVisible
+    ? (testimonialsConfig.subtitle_template as string) || undefined
     : undefined;
 
   // Extraer datos de CTA (null si el componente no existe)
@@ -853,6 +857,8 @@ export function transformLandingData(data: LandingHeroResponse): {
     megamenuItems,
     testimonials,
     testimonialsTitle,
+    testimonialsSubtitle: rawTestimonialsSubtitle
+      ?.replace('{studentCount}', (socialProof?.studentCount || 0).toLocaleString('es-PE')),
     activeSections,
     hasCta,
     logoUrl: data.landing.logo_url || undefined,
@@ -883,6 +889,7 @@ export async function fetchHeroData(slug: string, preview: boolean = false, prev
   megamenuItems: MegaMenuItemData[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
+  testimonialsSubtitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;

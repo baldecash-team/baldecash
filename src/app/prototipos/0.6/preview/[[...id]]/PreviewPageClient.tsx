@@ -39,6 +39,7 @@ interface HeroData {
   megamenuItems: { label: string; href: string; icon: string; description: string }[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
+  testimonialsSubtitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;
@@ -331,6 +332,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         megamenuItems={heroData.megamenuItems}
         testimonials={heroData.testimonials}
         testimonialsTitle={heroData.testimonialsTitle}
+        testimonialsSubtitle={heroData.testimonialsSubtitle}
         activeSections={heroData.activeSections}
         hasCta={heroData.hasCta}
         logoUrl={heroData.logoUrl}

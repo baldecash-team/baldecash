@@ -61,6 +61,7 @@ interface HeroSectionProps {
   megamenuItems?: { label: string; href: string; icon: string; description: string }[];
   testimonials?: Testimonial[];
   testimonialsTitle?: string;
+  testimonialsSubtitle?: string;
   activeSections?: string[];
   hasCta?: boolean;
   logoUrl?: string;
@@ -90,6 +91,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   megamenuItems = [],
   testimonials = [],
   testimonialsTitle,
+  testimonialsSubtitle,
   activeSections = [],
   hasCta = true,
   logoUrl,
@@ -224,7 +226,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Convenio Testimonials - 3-col card grid */}
             {testimonials.length > 0 && (
               <section id="testimonios" className="scroll-mt-24">
-                <ConvenioTestimonials testimonials={testimonials} title={testimonialsTitle} agreementData={agreementData} />
+                <ConvenioTestimonials testimonials={testimonials} title={testimonialsTitle} subtitle={testimonialsSubtitle} agreementData={agreementData} />
               </section>
             )}
 

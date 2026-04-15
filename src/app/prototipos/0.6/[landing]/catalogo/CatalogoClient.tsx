@@ -1617,9 +1617,7 @@ function CatalogoContent() {
                 key={product.landingProductId ?? product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
-                // TODO: Quitar este hardcode cuando el migrador llene variant.color en la BD.
-                // Hoy los productos de Liderman tienen color solo en specs, no en product_variant.
-                hideColors={landing === 'liderman-baldecash'}
+                hideColors
                 onAddToCart={(cartItem: CartItem) => {
                   if (!ALLOW_MULTI_PRODUCT) {
                     // Single-product mode: go directly to solicitar
