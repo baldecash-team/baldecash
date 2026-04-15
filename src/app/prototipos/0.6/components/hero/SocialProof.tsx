@@ -100,18 +100,20 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
     ) || null;
   };
 
-  const getInstitutionLogo = (institutionName: string) => {
-    return findStudyCenter(institutionName)?.logo || '';
+  const getInstitutionLogo = (testimonial: { institution: string; institutionLogo?: string }) => {
+    // Prefer pre-resolved logo from API, fallback to studyCenters lookup
+    if (testimonial.institutionLogo) return testimonial.institutionLogo;
+    return findStudyCenter(testimonial.institution)?.logo || '';
   };
 
-  const getInstitutionDisplayName = (institutionName: string) => {
-    if (!institutionName) return '';
-    const sc = findStudyCenter(institutionName);
-    if (!sc) return institutionName;
-    // shortName from API = short_name || name (see landingApi.ts)
-    // If shortName differs from name, it's the actual sigla — uppercase it
+  const getInstitutionDisplayName = (testimonial: { institution: string; institutionName?: string }) => {
+    // Prefer pre-resolved name from API, fallback to studyCenters lookup
+    if (testimonial.institutionName) return testimonial.institutionName;
+    if (!testimonial.institution) return '';
+    const sc = findStudyCenter(testimonial.institution);
+    if (!sc) return testimonial.institution;
     if (sc.shortName && sc.shortName !== sc.name) return sc.shortName.toUpperCase();
-    return sc.name || institutionName;
+    return sc.name || testimonial.institution;
   };
 
   return (
@@ -268,7 +270,7 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                   >
                     <div className="flex justify-between items-start mb-3">
                       <Quote className="w-6 h-6" style={{ color: 'color-mix(in srgb, var(--color-primary, #4654CD) 20%, transparent)' }} />
-                      {getInstitutionLogo(testimonial.institution) && (
+                      {getInstitutionLogo(testimonial) && (
                         <div
                           className="w-14 h-8 rounded-lg p-1.5 flex items-center justify-center"
                           style={{
@@ -278,7 +280,7 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                           }}
                         >
                           <img
-                            src={getInstitutionLogo(testimonial.institution)}
+                            src={getInstitutionLogo(testimonial)}
                             alt={testimonial.institution}
                             className="max-h-5 max-w-10 object-contain"
                             loading="lazy"
@@ -312,7 +314,7 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
                           {testimonial.name}
                         </p>
                         <p className="text-xs font-medium truncate" style={{ color: 'var(--color-primary, #4654CD)' }}>
-                          {getInstitutionDisplayName(testimonial.institution)}
+                          {getInstitutionDisplayName(testimonial)}
                         </p>
                       </div>
                       <div className="flex gap-0.5">

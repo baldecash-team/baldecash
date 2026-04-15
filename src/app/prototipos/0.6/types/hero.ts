@@ -216,6 +216,8 @@ export interface Testimonial {
   id: string;
   name: string;
   institution: string;
+  institutionLogo?: string;
+  institutionName?: string;
   quote: string;
   avatar?: string;
   rating?: number;
