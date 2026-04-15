@@ -339,7 +339,7 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
         } as React.CSSProperties}
       >
         <Suspense fallback={<HomeSkeleton />}>
-          <MacBookNeoLanding footerData={mergedFooterData} heroContent={mergedHeroContent} landing={slug} />
+          <MacBookNeoLanding footerData={mergedFooterData} landing={slug} />
         </Suspense>
       </div>
     );
