@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Grid CSS: grid-cols-[repeat(auto-fill,minmax(min(305px,100%),1fr))]
 // Sidebar: 320px on lg+ screens, padding ~48px (p-6 on each side)
-const CARD_MIN_WIDTH = 305;
+const CARD_MIN_WIDTH = 280;
 const SIDEBAR_WIDTH = 320;
 const GRID_GAP = 24; // gap-6 = 1.5rem = 24px
 const LAYOUT_PADDING = 48; // p-6 on each side of main area
