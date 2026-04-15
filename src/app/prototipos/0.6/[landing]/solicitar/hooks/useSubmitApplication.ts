@@ -226,6 +226,11 @@ export function useSubmitApplication(
         // Map form data and extract files from wizard context
         const { data: mappedFormData, files: uploadFiles } = mapFormData();
 
+        // If income_source was auto-set because applicant is a minor, flag it
+        if (formData['_income_source_auto']?.value === 'true') {
+          mappedFormData['llenada_manualmente'] = true;
+        }
+
         // Cambiar a estado "uploading" si hay archivos, sino directo a "processing"
         if (uploadFiles.length > 0) {
           setSubmitStage('uploading');

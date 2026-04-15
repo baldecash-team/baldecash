@@ -244,7 +244,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   // First non-video image URL (for thumbnails in cart, solicitar, spec-sheet, etc.)
   const productThumbnail = useMemo(() => {
     const img = product.images.find(i => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
-    return img?.url || productThumbnail;
+    return img?.url || product.images[0]?.url || '';
   }, [product.images]);
 
   // Helper to extract spec value

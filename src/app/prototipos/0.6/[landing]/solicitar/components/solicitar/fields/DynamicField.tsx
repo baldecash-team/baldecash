@@ -5,7 +5,7 @@
  * Maps WizardField type to the appropriate UI component
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useEffect } from 'react';
 import { WizardField, WizardFieldOption, filterFieldOptions } from '../../../../../services/wizardApi';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
@@ -47,6 +47,47 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     return values;
   }, [formData]);
 
+
+  // Minor detection: if birth_date indicates < 18, lock income_source to "familiar"
+  const isMinor = useMemo(() => {
+    const birthDateValue = formData['birth_date']?.value as string | undefined;
+    if (!birthDateValue) return false;
+    const birth = new Date(birthDateValue + 'T12:00:00');
+    if (isNaN(birth.getTime())) return false;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age < 18;
+  }, [formData]);
+
+  // Auto-select "familiar" option and set flag when minor + income_source field
+  const familiarOption = useMemo(() => {
+    if (!isMinor || field.code !== 'income_source') return null;
+    const options = filterFieldOptions(field, formValues);
+    return options.find(opt =>
+      /familiar/i.test(opt.value) || /familiar/i.test(opt.label)
+    ) ?? null;
+  }, [isMinor, field, formValues]);
+
+  useEffect(() => {
+    if (familiarOption && field.code === 'income_source') {
+      if (value !== familiarOption.value) {
+        updateField(field.code, familiarOption.value);
+      }
+      // Set internal flag so submit knows this was auto-filled
+      if (formData['_income_source_auto']?.value !== 'true') {
+        updateField('_income_source_auto', 'true');
+      }
+    } else if (!isMinor && field.code === 'income_source' && formData['_income_source_auto']?.value === 'true') {
+      // User changed birth_date to adult — remove lock
+      updateField('_income_source_auto', '');
+    }
+  }, [familiarOption, isMinor, field.code, value, updateField, formData]);
+
+  const isLockedByMinor = field.code === 'income_source' && isMinor && !!familiarOption;
 
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
@@ -95,7 +136,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onBlur: handleBlur,
     error,
     required: field.required,
-    disabled: field.readonly,
+    disabled: field.readonly || isLockedByMinor,
     tooltip,
     helpText: undefined as string | undefined,
   };
