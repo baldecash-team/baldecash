@@ -150,7 +150,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
                 loading="lazy"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = 'https://via.placeholder.com/200?text=Laptop';
+                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' fill='%23f5f5f5'%3E%3Crect width='200' height='200'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23a3a3a3' font-family='sans-serif' font-size='14'%3EImagen no disponible%3C/text%3E%3C/svg%3E";
                 }}
               />
             </div>
@@ -371,7 +371,7 @@ const SecondaryProductCard: React.FC<{
                 loading="lazy"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = 'https://via.placeholder.com/80?text=Laptop';
+                  target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' fill='%23f5f5f5'%3E%3Crect width='80' height='80'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23a3a3a3' font-family='sans-serif' font-size='10'%3ESin imagen%3C/text%3E%3C/svg%3E";
                 }}
               />
             </div>

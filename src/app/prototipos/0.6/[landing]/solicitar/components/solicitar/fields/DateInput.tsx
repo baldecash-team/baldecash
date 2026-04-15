@@ -6,7 +6,7 @@
  * Click en mes/año abre selector para navegación rápida
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Popover, PopoverTrigger, PopoverContent, Button } from '@nextui-org/react';
 import { Check, AlertCircle, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
@@ -83,8 +83,28 @@ export const DateInput: React.FC<DateInputProps> = ({
     return Math.floor(year / 10) * 10 - 10; // Empezar una década antes
   });
 
-  const showError = !!error;
-  const showSuccess = success && !error && value;
+  // Fecha límite por edad mínima: cualquier fecha posterior a esta resulta en < minAge años
+  const minAgeCutoff = useMemo(() => {
+    if (minAge <= 0) return null;
+    const today = new Date();
+    return new Date(today.getFullYear() - minAge, today.getMonth(), today.getDate());
+  }, [minAge]);
+
+  // Validar si una fecha viola la restricción de edad mínima
+  const getMinAgeError = useCallback((dateStr: string): string | null => {
+    if (!minAgeCutoff || !dateStr) return null;
+    const date = new Date(dateStr + 'T12:00:00');
+    if (date > minAgeCutoff) {
+      return `Debes tener al menos ${minAge} años`;
+    }
+    return null;
+  }, [minAgeCutoff, minAge]);
+
+  const minAgeError = value ? getMinAgeError(value) : null;
+  const effectiveError = error || minAgeError;
+
+  const showError = !!effectiveError;
+  const showSuccess = success && !effectiveError && value;
 
   const selectedDate = value ? parseDateString(value) : null;
 
@@ -173,17 +193,22 @@ export const DateInput: React.FC<DateInputProps> = ({
     );
   };
 
-  // Solo bloquear fechas futuras (no se puede nacer en el futuro)
-  const isFutureDate = (day: number) => {
+  // Bloquear fechas futuras y fechas que violen la edad mínima
+  const isDayDisabled = (day: number) => {
     const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
     const today = new Date();
-    today.setHours(23, 59, 59, 999); // Fin del día actual
-    return date > today;
+    today.setHours(23, 59, 59, 999);
+    if (date > today) return true;
+    if (minAgeCutoff && date > minAgeCutoff) return true;
+    return false;
   };
 
   const isYearDisabled = (year: number) => {
     const currentYear = new Date().getFullYear();
-    return year > currentYear; // Solo bloquear años futuros
+    if (year > currentYear) return true;
+    // Si el 1 de enero del año es posterior al cutoff, todo el año está deshabilitado
+    if (minAgeCutoff && new Date(year, 0, 1) > minAgeCutoff) return true;
+    return false;
   };
 
   const isMonthDisabled = (monthIndex: number) => {
@@ -192,9 +217,10 @@ export const DateInput: React.FC<DateInputProps> = ({
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
-    // Solo bloquear meses futuros del año actual
     if (year > currentYear) return true;
     if (year === currentYear && monthIndex > currentMonth) return true;
+    // Si el 1er día del mes es posterior al cutoff, todo el mes está deshabilitado
+    if (minAgeCutoff && new Date(year, monthIndex, 1) > minAgeCutoff) return true;
     return false;
   };
 
@@ -358,7 +384,7 @@ export const DateInput: React.FC<DateInputProps> = ({
           ))}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const day = i + 1;
-            const isDisabled = isFutureDate(day);
+            const isDisabled = isDayDisabled(day);
             const selected = isSelected(day);
             const today = isToday(day);
 
@@ -457,10 +483,10 @@ export const DateInput: React.FC<DateInputProps> = ({
 
       {/* Error message - always reserve space for alignment in multi-column grids */}
       <div className="min-h-[20px]">
-        {error && (
+        {effectiveError && (
           <p className="text-sm text-[#ef4444] flex items-center gap-1">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            {error}
+            {effectiveError}
           </p>
         )}
       </div>

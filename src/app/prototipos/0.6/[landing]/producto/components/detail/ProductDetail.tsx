@@ -182,7 +182,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       shortName: product.name,    // Short name for compact views
       brand: product.brand,
       price: product.price,
-      image: product.images[0]?.url || '',
+      image: productThumbnail,
       type: product.deviceType as CartItem['type'],  // Product type for accessory/insurance compatibility
       months: pricingSelection.term as TermMonths,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
@@ -213,7 +213,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       shortName: product.name,
       brand: product.brand,
       price: product.price,
-      image: product.images[0]?.url || '',
+      image: productThumbnail,
       lowestQuota: pricingSelection.monthlyQuota,
       type: product.deviceType as WishlistItem['type'],
       months: pricingSelection.term as TermMonths,
@@ -240,6 +240,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const hasDescription = !!(product.description || displayShortDesc);
   const hasSimilar = similarProducts.length > 0;
   const hasLimitations = limitations.length > 0;
+
+  // First non-video image URL (for thumbnails in cart, solicitar, spec-sheet, etc.)
+  const productThumbnail = useMemo(() => {
+    const img = product.images.find(i => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
+    return img?.url || product.images[0]?.url || '';
+  }, [product.images]);
 
   // Helper to extract spec value
   const getSpecValue = (category: string, label: string): string | undefined => {
@@ -269,7 +275,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       months: months,
       initialPercent: initialPercent,
       initialAmount: initialAmount,
-      image: product.images[0]?.url || '',
+      image: productThumbnail,
       specs: {
         processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model') || '',
         ram: getSpecValue('memoria', 'capacidad') || getSpecValue('ram', 'size') || '',
@@ -527,7 +533,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             ports={product.ports}
             productName={product.displayName}
             productBrand={product.brand}
-            productImage={product.images[0]?.url}
+            productImage={productThumbnail}
             description={product.description || undefined}
             shortDescription={displayShortDesc || undefined}
           />
