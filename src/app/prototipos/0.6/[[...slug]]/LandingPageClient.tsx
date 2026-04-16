@@ -25,7 +25,7 @@ import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial
 const MacBookNeoLanding = lazy(() => import('../components/product-landing/MacBookNeoLanding'));
 
 // Slugs that render a product-specific landing instead of the standard HeroSection
-const PRODUCT_LANDING_SLUGS = ['baldecash-mac-book-neo'];
+const PRODUCT_LANDING_SLUGS = ['baldecash-macbook-neo'];
 
 // Slugs que activan el modal de DNI al cargar la landing
 const DNI_MODAL_SLUGS = ['liderman-baldecash', 'renueva-tu-laptop'];
