@@ -487,9 +487,12 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       y = margin;
     }
 
-    // Pre-cargar íconos de puertos (incluyendo laptop y usb para header)
+    // Pre-cargar íconos de puertos — color primary del tema
+    const toHex = (rgb: readonly [number, number, number]) =>
+      '#' + rgb.map(c => c.toString(16).padStart(2, '0')).join('');
+    const primaryHex = toHex(primary);
     const portIconNames = [...new Set(data.ports.map(p => p.icon)), 'laptop', 'usb'];
-    const portIconCache = await preloadAllIcons(portIconNames, 32, '#3D47B0'); // Color primary
+    const portIconCache = await preloadAllIcons(portIconNames, 32, primaryHex);
 
     // Card para puertos
     const leftPorts = data.ports.filter(p => p.position === 'left');
@@ -516,11 +519,13 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     doc.setFillColor(...primary);
     doc.roundedRect(iconX, iconY, headerIconSize, headerIconSize, 1.5, 1.5, 'F');
 
-    // Ícono USB en blanco
-    const usbIconWhite = await getIconAsBase64('usb', 48, '#FFFFFF');
+    // Ícono USB — color de contraste sobre el primary
+    // En dark el primary es cyan neón claro, texto oscuro contrasta mejor que blanco
+    const onPrimaryHex = isDark ? '#0a0a0a' : '#FFFFFF';
+    const usbIconContrast = await getIconAsBase64('usb', 48, onPrimaryHex);
     try {
       const iconInnerSize = headerIconSize * 0.6;
-      doc.addImage(usbIconWhite, 'PNG', iconX + (headerIconSize - iconInnerSize) / 2, iconY + (headerIconSize - iconInnerSize) / 2, iconInnerSize, iconInnerSize);
+      doc.addImage(usbIconContrast, 'PNG', iconX + (headerIconSize - iconInnerSize) / 2, iconY + (headerIconSize - iconInnerSize) / 2, iconInnerSize, iconInnerSize);
     } catch {
       // Continuar sin ícono
     }
@@ -552,9 +557,14 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       const badgeCenterY = badgeTop + badgeHeight / 2;
       const iconSizeInBadge = 5; // Ícono un poco más grande para mejor visibilidad
 
-      // Fondo del puerto (como bg-neutral-50 en web)
-      doc.setFillColor(250, 250, 250);
-      doc.setDrawColor(229, 229, 229);
+      // Fondo del puerto — theme-aware
+      if (isDark) {
+        doc.setFillColor(38, 38, 38);   // surface-2 dark
+        doc.setDrawColor(55, 55, 55);   // border dark
+      } else {
+        doc.setFillColor(250, 250, 250); // bg-neutral-50
+        doc.setDrawColor(229, 229, 229); // bg-neutral-200
+      }
       doc.setLineWidth(0.2);
       doc.roundedRect(x, badgeTop, width, badgeHeight, 1.5, 1.5, 'FD');
 
@@ -596,17 +606,22 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     const laptopW = laptopVisualWidth;
     const laptopH = laptopVisualHeight;
 
-    // Fondo gris claro (como bg-neutral-100 en web)
-    doc.setFillColor(245, 245, 245);
+    // Fondo del visual laptop — theme-aware
+    if (isDark) {
+      doc.setFillColor(38, 38, 38);   // surface-2 dark
+      doc.setDrawColor(55, 55, 55);   // border dark
+    } else {
+      doc.setFillColor(245, 245, 245); // bg-neutral-100
+      doc.setDrawColor(229, 229, 229); // border-neutral-200
+    }
     doc.roundedRect(laptopX, laptopY, laptopW, laptopH, 2, 2, 'F');
 
-    // Borde sutil (como border-neutral-200 en web)
-    doc.setDrawColor(229, 229, 229);
+    // Borde sutil
     doc.setLineWidth(0.3);
     doc.roundedRect(laptopX, laptopY, laptopW, laptopH, 2, 2, 'S');
 
-    // Ícono Laptop centrado (como en web) - usar versión gris
-    const laptopIconGray = await getIconAsBase64('laptop', 48, '#a3a3a3'); // neutral-400
+    // Ícono Laptop centrado — color adaptado al tema
+    const laptopIconGray = await getIconAsBase64('laptop', 48, isDark ? '#a0a0a0' : '#a3a3a3');
     const laptopIconX = laptopX + (laptopW - laptopIconSize) / 2;
     const laptopIconY = laptopY + (laptopH - laptopIconSize) / 2;
     try {
