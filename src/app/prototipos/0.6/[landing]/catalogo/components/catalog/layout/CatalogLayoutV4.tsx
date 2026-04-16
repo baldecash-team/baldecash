@@ -627,7 +627,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   )}
                 </div>
 
-                {/* Device Type Filter - hide if empty */}
+                {/* Device Type Filter - hide if 1 or fewer options */}
                 {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length <= 1) && (
                 <FilterSection title="Tipo de equipo" defaultExpanded={true}>
                   <div className="grid grid-cols-3 gap-2">
@@ -695,7 +695,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   showCounts={config.showFilterCounts}
                 />
 
-                {/* Brand Filter - hide if empty */}
+                {/* Brand Filter - hide if 1 or fewer options */}
                 {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
                 <FilterSection title="Marca" defaultExpanded={true}>
                   {renderBrandFilter()}
@@ -860,7 +860,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </ModalHeader>
 
           <ModalBody className="px-4 py-6 overflow-y-auto">
-            {/* Device Type Filter - hide if empty */}
+            {/* Device Type Filter - hide if 1 or fewer options */}
             {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length <= 1) && (
             <FilterSection title="Tipo de equipo" defaultExpanded={true}>
               <div className="grid grid-cols-3 gap-2">
@@ -927,7 +927,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               showCounts={config.showFilterCounts}
             />
 
-            {/* Brand Filter - hide if empty */}
+            {/* Brand Filter - hide if 1 or fewer options */}
             {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
             <FilterSection title="Marca" defaultExpanded={true}>
               {renderBrandFilter()}
