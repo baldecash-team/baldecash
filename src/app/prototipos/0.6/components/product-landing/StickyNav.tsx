@@ -11,7 +11,7 @@ interface StickyNavV5Props {
 
 const LOGO_WHITE = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
 
-export default function StickyNav({ videoEnded, landing = 'baldecash-mac-book-neo' }: StickyNavV5Props) {
+export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo' }: StickyNavV5Props) {
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('hero');
   const observersRef = useRef<IntersectionObserver[]>([]);

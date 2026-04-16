@@ -52,7 +52,7 @@ interface MacBookNeoLandingProps {
   landing?: string;
 }
 
-export default function MacBookNeoLanding({ footerData, heroContent, landing = 'baldecash-mac-book-neo' }: MacBookNeoLandingProps) {
+export default function MacBookNeoLanding({ footerData, heroContent, landing = 'baldecash-macbook-neo' }: MacBookNeoLandingProps) {
   useLenis();
   const { tier } = useDeviceCapabilities();
   const [videoEnded, setVideoEnded] = useState(tier === 'base');

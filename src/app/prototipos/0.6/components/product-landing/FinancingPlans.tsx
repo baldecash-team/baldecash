@@ -11,7 +11,7 @@ interface FinancingPlansV5Props {
   landing?: string;
 }
 
-export default function FinancingPlans({ tier, landing = 'baldecash-mac-book-neo' }: FinancingPlansV5Props) {
+export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo' }: FinancingPlansV5Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const priceRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
