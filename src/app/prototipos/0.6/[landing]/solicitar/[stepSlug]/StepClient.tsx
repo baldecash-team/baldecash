@@ -22,6 +22,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Context
@@ -1401,6 +1402,7 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
         {/* Spacer for fixed GamerNavbar */}
         <div style={{ height: 80 }} />
         {children}
+        <GamerNewsletter theme={theme} />
         <GamerFooter theme={theme} />
       </div>
     </div>

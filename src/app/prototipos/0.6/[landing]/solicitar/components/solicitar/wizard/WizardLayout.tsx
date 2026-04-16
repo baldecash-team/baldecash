@@ -87,7 +87,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
           {/* Left Column - Form */}
           <div className="max-w-2xl mx-auto lg:mx-0 lg:max-w-none">
             {/* Progress Indicator */}
-            <WizardProgress currentStep={currentStep} onStepClick={onStepClick} />
+            <WizardProgress currentStep={currentStep} onStepClick={onStepClick} motivationalIllustration={motivational?.illustration} />
 
             {/* Selected Product Bar (Desktop: top position) */}
             <div className="mt-6">

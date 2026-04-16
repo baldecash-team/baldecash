@@ -41,6 +41,7 @@ interface ProgressStep {
 interface WizardProgressProps {
   currentStep: WizardStepId;
   onStepClick?: (stepId: WizardStepId) => void;
+  motivationalIllustration?: string;
 }
 
 /**
@@ -70,6 +71,7 @@ const isStepDynamicallyCompleted = (
 export const WizardProgress: React.FC<WizardProgressProps> = ({
   currentStep,
   onStepClick,
+  motivationalIllustration,
 }) => {
   const { steps: apiSteps, isLoading } = useWizardConfig();
   const { formData } = useWizard();
@@ -138,6 +140,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
   };
 
   const getIllustration = (slug: string): string => {
+    if (motivationalIllustration) return motivationalIllustration;
     return STEP_ILLUSTRATIONS[slug] || DEFAULT_ILLUSTRATION;
   };
 

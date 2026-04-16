@@ -8,7 +8,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
-import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Info, Loader2, Package, Plus, Search, ShoppingCart, Tag, Users, X } from 'lucide-react';
+import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Loader2, Package, Plus, Search, ShoppingCart, Tag, Users, X } from 'lucide-react';
 import { useProduct } from './context/ProductContext';
 import { useWizardConfig } from './context/WizardConfigContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -122,6 +122,7 @@ function SolicitarContent() {
   const [accPage, setAccPage] = useState(0);
   const [accDetailId, setAccDetailId] = useState<string | null>(null);
   const [termDropdownOpen, setTermDropdownOpen] = useState(false);
+  const [mobileProductExpanded, setMobileProductExpanded] = useState(false);
   const [selectedMonths, setSelectedMonths] = useState(product?.months || 12);
   const [termsError, setTermsError] = useState(false);
   const termsRef = useRef<HTMLDivElement>(null);
@@ -360,9 +361,9 @@ function SolicitarContent() {
           </div>
         </div>
 
-        {/* Product summary */}
+        {/* Product summary — desktop only (mobile uses fixed bottom bar) */}
         {product && (
-          <div style={{ background: T.bgCard, borderRadius: 12, border: `1px solid ${T.border}`, marginBottom: 32, overflow: 'hidden' }}>
+          <div className="hidden sm:block" style={{ background: T.bgCard, borderRadius: 12, border: `1px solid ${T.border}`, marginBottom: 32, overflow: 'hidden' }}>
             {/* Header bar */}
             <div style={{ padding: '12px 20px', borderBottom: `1px solid ${T.border}`, background: cyanAlpha(0.05), display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -770,6 +771,147 @@ function SolicitarContent() {
           </div>
         );
       })()}
+
+      {/* Mobile product bottom bar */}
+      {product && mobileProductExpanded && (
+        <div
+          className="sm:hidden fixed inset-0 z-40"
+          onClick={() => setMobileProductExpanded(false)}
+          style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }}
+        />
+      )}
+      {product && (
+        <div
+          className="sm:hidden fixed bottom-0 left-0 right-0 z-50"
+          style={{
+            background: isDark ? T.bgCard : '#fff',
+            borderTop: `1px solid ${T.border}`,
+            boxShadow: isDark ? '0 -4px 20px rgba(0,0,0,0.4)' : '0 -4px 20px rgba(0,0,0,0.08)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
+        >
+          {/* Collapsed bar */}
+          <button
+            onClick={() => setMobileProductExpanded(!mobileProductExpanded)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+              padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer',
+            }}
+          >
+            <div style={{
+              width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+              background: isDark ? T.bgSurface : '#f5f5f5',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {product.image && <Image src={product.image} alt={product.name} width={48} height={48} style={{ objectFit: 'contain' }} />}
+            </div>
+            <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {product.name}
+                {selectedAccessories.length > 0 && (
+                  <span style={{ fontSize: 12, color: T.textMuted, marginLeft: 4 }}>+{selectedAccessories.length} acc.</span>
+                )}
+              </p>
+              <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{selectedMonths} meses</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(product.monthlyPayment)}/mes</span>
+              <ChevronUp size={20} style={{ color: T.textMuted, transition: 'transform 0.2s', transform: mobileProductExpanded ? 'rotate(180deg)' : 'none' }} />
+            </div>
+          </button>
+
+          {/* Expanded content */}
+          {mobileProductExpanded && (
+            <div style={{ borderTop: `1px solid ${T.border}`, padding: 16, maxHeight: '60vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <div style={{
+                  width: 80, height: 80, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
+                  background: isDark ? T.bgSurface : '#f5f5f5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {product.image && <Image src={product.image} alt={product.name} width={80} height={80} style={{ objectFit: 'contain' }} />}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{product.brand}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, margin: '2px 0 0' }}>{product.name}</p>
+                  {product.shortName && (
+                    <p style={{ fontSize: 11, color: T.textMuted, margin: '2px 0 0' }}>
+                      {product.shortName !== product.name ? product.shortName : ''}
+                    </p>
+                  )}
+                  {/* Initial payment pills */}
+                  {currentPlanOptions.length > 0 && (
+                    <div style={{ marginTop: 8 }}>
+                      <p style={{ fontSize: 10, color: T.textMuted, marginBottom: 4 }}>Inicial:</p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {currentPlanOptions.map((opt: { initialPercent: number; initialAmount: number }) => {
+                          const isActive = opt.initialPercent === (product.initialPercent || 0);
+                          const label = opt.initialPercent === 0 ? 'Sin inicial' : `S/${Math.round(opt.initialAmount)}`;
+                          return (
+                            <span key={opt.initialPercent} style={{
+                              fontSize: 10, padding: '3px 8px', borderRadius: 999,
+                              background: isActive ? T.neonCyan : T.bgSurface,
+                              color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
+                              fontWeight: isActive ? 600 : 400,
+                            }}>
+                              {label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.neonCyan, margin: '6px 0 0' }}>S/{Math.round(product.monthlyPayment)}/mes</p>
+                </div>
+              </div>
+
+              {/* Accessories summary */}
+              {selectedAccessories.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  {selectedAccessories.map((acc: { id: string; name: string; monthlyQuota: number }) => (
+                    <div key={acc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.textSecondary, padding: '4px 0' }}>
+                      <Plus size={12} style={{ color: T.neonCyan }} />
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</span>
+                      <span style={{ color: T.neonCyan, fontWeight: 600 }}>+S/{Math.round(acc.monthlyQuota)}/mes</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Total + term */}
+              <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: cyanAlpha(0.05) }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>Cuota mensual total</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(product.monthlyPayment)}/mes</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                  <span style={{ fontSize: 12, color: T.textMuted }}>Plazo:</span>
+                  <div style={{ position: 'relative' }}>
+                    <button type="button" onClick={() => setTermDropdownOpen(!termDropdownOpen)} style={{
+                      display: 'flex', alignItems: 'center', gap: 4,
+                      height: 28, padding: '0 8px', borderRadius: 8,
+                      border: `1.5px solid ${T.border}`, background: isDark ? T.bgCard : '#fff',
+                      cursor: 'pointer', fontSize: 12, color: T.textPrimary,
+                    }}>
+                      <span>{selectedMonths} meses</span>
+                      <ChevronDown size={14} style={{ color: T.textMuted }} />
+                    </button>
+                    {termDropdownOpen && availableTerms.length > 0 && (
+                      <div style={{ position: 'absolute', zIndex: 50, bottom: '100%', right: 0, marginBottom: 4, minWidth: 120, background: isDark ? T.bgCard : '#fff', border: `1px solid ${T.border}`, borderRadius: 8, boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.12)', padding: 4 }}>
+                        {availableTerms.map((m) => (
+                          <button key={m} type="button" onClick={() => { setSelectedMonths(m); setTermDropdownOpen(false); }} style={{ width: '100%', padding: '6px 10px', textAlign: 'left', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}>
+                            {m} meses
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <GamerNewsletter theme={theme} />
       <GamerFooter theme={theme} />
