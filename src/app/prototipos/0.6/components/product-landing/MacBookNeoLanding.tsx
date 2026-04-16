@@ -57,6 +57,11 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
   const { tier } = useDeviceCapabilities();
   const [videoEnded, setVideoEnded] = useState(tier === 'base');
 
+  // Always scroll to top on mount (page refresh)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div
       className="bg-black text-[#f5f5f7]"
