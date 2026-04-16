@@ -92,43 +92,54 @@ export const drawHeader = (
   options: {
     showDate?: boolean;
     date?: Date;
+    primaryColor?: readonly [number, number, number];
+    /** Optional base64 logo override. Use when the page has a non-default brand logo. */
+    logoBase64?: string;
+    /** Logo display width in mm. Defaults to 50. */
+    logoWidth?: number;
+    /** Logo display height in mm. Defaults to 14. */
+    logoHeight?: number;
+    /** Dark mode: inverts bg/text for gamer-dark PDFs. */
+    darkMode?: boolean;
   } = {}
 ): number => {
-  const { showDate = true, date = new Date() } = options;
+  const { showDate = true, date = new Date(), primaryColor, logoBase64, logoWidth = 50, logoHeight = 14, darkMode = false } = options;
+  const primary = primaryColor ?? PDF_COLORS.primary;
+  const headerBg: readonly [number, number, number] = darkMode ? [14, 14, 14] : PDF_COLORS.white;
+  const mutedText: readonly [number, number, number] = darkMode ? [160, 160, 160] : PDF_COLORS.textMuted;
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = PDF_LAYOUT.margin;
   let y = 12;
 
-  // Fondo blanco del header
-  doc.setFillColor(...PDF_COLORS.white);
+  // Fondo del header (blanco en light, negro en dark)
+  doc.setFillColor(...headerBg);
   doc.rect(0, 0, pageWidth, PDF_LAYOUT.headerHeight, 'F');
 
-  // Línea azul inferior como acento
-  doc.setFillColor(...PDF_COLORS.primary);
+  // Línea de acento inferior
+  doc.setFillColor(...primary);
   doc.rect(0, PDF_LAYOUT.headerHeight, pageWidth, 2, 'F');
 
-  // Logo BaldeCash (derecha)
+  // Logo (derecha) — usa override si se provee, sino el default
   try {
-    const logoWidth = 50;
-    const logoHeight = 14;
+    const logoSrc = logoBase64 || BALDECASH_LOGO_BASE64;
     const logoX = pageWidth - logoWidth - margin;
-    doc.addImage(BALDECASH_LOGO_BASE64, 'PNG', logoX, y, logoWidth, logoHeight);
+    doc.addImage(logoSrc, 'PNG', logoX, y, logoWidth, logoHeight);
   } catch {
     // Si falla el logo, mostrar texto
-    doc.setTextColor(...PDF_COLORS.primary);
+    doc.setTextColor(...primary);
     doc.setFontSize(12);
     doc.setFont('Asap', 'bold');
     doc.text(COMPANY_INFO.name, pageWidth - margin, y + 10, { align: 'right' });
   }
 
   // Título
-  doc.setTextColor(...PDF_COLORS.primary);
+  doc.setTextColor(...primary);
   doc.setFontSize(18);
   doc.setFont('Asap', 'bold');
   doc.text(title, margin, y + 8);
 
   // Subtítulo / Fecha
-  doc.setTextColor(...PDF_COLORS.textMuted);
+  doc.setTextColor(...mutedText);
   doc.setFontSize(9);
   doc.setFont('Asap', 'normal');
 
@@ -152,16 +163,19 @@ export const drawFooter = (
     totalPages?: number;
     qrData?: string;
     qrBase64?: string | null;
+    darkMode?: boolean;
   } = {}
 ): void => {
-  const { pageNumber, totalPages, qrBase64 } = options;
+  const { pageNumber, totalPages, qrBase64, darkMode = false } = options;
+  const borderColor: readonly [number, number, number] = darkMode ? [42, 42, 42] : PDF_COLORS.border;
+  const mutedText: readonly [number, number, number] = darkMode ? [160, 160, 160] : PDF_COLORS.textMuted;
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = PDF_LAYOUT.margin;
   const footerY = pageHeight - PDF_LAYOUT.footerHeight;
 
   // Línea separadora
-  doc.setDrawColor(...PDF_COLORS.border);
+  doc.setDrawColor(...borderColor);
   doc.setLineWidth(0.3);
   doc.line(margin, footerY, pageWidth - margin, footerY);
 
@@ -177,7 +191,7 @@ export const drawFooter = (
 
   // Texto legal
   doc.setFontSize(7);
-  doc.setTextColor(...PDF_COLORS.textMuted);
+  doc.setTextColor(...mutedText);
   doc.text(legalText, margin, footerY + 6);
 
   // Info de empresa
@@ -238,13 +252,15 @@ export const drawCard = (
     radius?: number;
     fillColor?: RGBColor;
     borderColor?: RGBColor;
+    darkMode?: boolean;
   } = {}
 ): void => {
+  const { darkMode = false } = options;
   const {
     shadow = true,
     radius = PDF_LAYOUT.cardRadius,
-    fillColor = PDF_COLORS.cardBg,
-    borderColor = PDF_COLORS.border,
+    fillColor = darkMode ? ([26, 26, 26] as const) : PDF_COLORS.cardBg,
+    borderColor = darkMode ? ([42, 42, 42] as const) : PDF_COLORS.border,
   } = options;
 
   // Sombra (rectángulo offset gris)
@@ -268,10 +284,11 @@ export const drawCard = (
 /**
  * Añade el fondo de página
  */
-export const drawPageBackground = (doc: jsPDF): void => {
+export const drawPageBackground = (doc: jsPDF, options: { darkMode?: boolean } = {}): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  doc.setFillColor(...PDF_COLORS.pageBg);
+  const bg: readonly [number, number, number] = options.darkMode ? [14, 14, 14] : PDF_COLORS.pageBg;
+  doc.setFillColor(...bg);
   doc.rect(0, 0, pageWidth, pageHeight, 'F');
 };
 
@@ -289,7 +306,8 @@ export const getTotalPages = (doc: jsPDF): number => {
 export const addFootersToAllPages = (
   doc: jsPDF,
   legalText: string,
-  qrBase64?: string | null
+  qrBase64?: string | null,
+  options: { darkMode?: boolean } = {}
 ): void => {
   const totalPages = getTotalPages(doc);
 
@@ -299,6 +317,7 @@ export const addFootersToAllPages = (
       pageNumber: i,
       totalPages,
       qrBase64: qrBase64 || undefined,
+      darkMode: options.darkMode,
     });
   }
 };

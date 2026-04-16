@@ -22,6 +22,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useWizardConfig } from '../context/WizardConfigContext';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../context/WizardContext';
@@ -186,7 +187,7 @@ function ComplementosContent() {
   }, [isFlowConfigLoading, sectionsAfterWizard.length, router, landing]);
 
   const pageContent = (
-    <div className={`min-h-screen relative ${isGamer ? '' : 'bg-neutral-50'}`} style={isGamer ? { background: '#0e0e0e' } : undefined}>
+    <div className={`min-h-screen relative ${isGamer ? '' : 'bg-neutral-50'}`}>
       {/* Navbar */}
       {!isGamer && <Navbar {...navbarProps} landing={landing} />}
 
@@ -363,10 +364,15 @@ function LoadingFallback() {
   const params = useParams();
   const isGamer = (params?.landing as string) === 'zona-gamer';
 
-  if (isGamer) {
-    const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('baldecash-theme') : null;
-    const isDark = savedTheme !== 'light';
+  const [isDark, setIsDark] = useState(true);
 
+  useEffect(() => {
+    if (!isGamer) return;
+    const savedTheme = localStorage.getItem('baldecash-theme');
+    setIsDark(savedTheme !== 'light');
+  }, [isGamer]);
+
+  if (isGamer) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f5f5f5' }}>
         <div className="flex flex-col items-center gap-4">
@@ -532,9 +538,23 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
         .gamer-complementos-dark .rounded-2xl.border-2:hover {
           border-color: rgba(0,255,213,0.3) !important;
         }
-        /* Insurance card selected state */
-        .gamer-complementos-dark .rounded-2xl.border-2.border-\\[var\\(--color-primary\\)\\] {
+        /* Insurance card selected state — strong cyan border + neon glow */
+        .gamer-complementos-dark .rounded-2xl.border-2.border-\\[var\\(--color-primary\\)\\],
+        .gamer-complementos-dark .rounded-2xl.border-2.border-\\[var\\(--color-secondary\\)\\] {
           border-color: #00ffd5 !important;
+          box-shadow:
+            0 0 0 1px #00ffd5,
+            0 0 24px rgba(0,255,213,0.35),
+            0 8px 24px rgba(0,0,0,0.4) !important;
+        }
+        /* Light mode: selected insurance card — strong teal glow */
+        .gamer-complementos-light .rounded-2xl.border-2.border-\\[var\\(--color-primary\\)\\],
+        .gamer-complementos-light .rounded-2xl.border-2.border-\\[var\\(--color-secondary\\)\\] {
+          border-color: #00897a !important;
+          box-shadow:
+            0 0 0 1px #00897a,
+            0 0 18px rgba(0,137,122,0.25),
+            0 8px 24px rgba(0,137,122,0.15) !important;
         }
         /* Insurance add button */
         .gamer-complementos-dark button.bg-\\[var\\(--color-primary\\)\\] {
@@ -630,8 +650,8 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
         />
-        <div style={{ height: 80 }} />
         {children}
+        <GamerNewsletter theme={theme} />
         <GamerFooter theme={theme} />
       </div>
     </div>

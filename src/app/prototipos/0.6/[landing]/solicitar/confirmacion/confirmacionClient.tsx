@@ -20,6 +20,7 @@ import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { ReceivedScreen } from './components/received';
@@ -617,8 +618,8 @@ function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
         />
-        <div style={{ height: 80 }} />
         {children}
+        <GamerNewsletter theme={theme} />
         <GamerFooter theme={theme} />
       </div>
     </div>

@@ -26,6 +26,14 @@ export function ZonaGamerLanding() {
     if (saved) setTheme(saved);
   }, []);
 
+  // Siempre mostrar el hero al entrar al index (scroll top al montar)
+  // EXCEPTO cuando el URL trae un hash (#catalogo, #series, etc.), para no romper deep-links
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash) return;
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, []);
+
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);

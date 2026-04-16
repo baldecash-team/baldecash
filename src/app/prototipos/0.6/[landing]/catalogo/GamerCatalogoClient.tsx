@@ -13,7 +13,7 @@
  * Fuentes: Rajdhani, Orbitron, Share Tech Mono, Barlow Condensed
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect, useSyncExternalStore, Suspense } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, useLayoutEffect, useSyncExternalStore, Suspense } from 'react';
 import Image from 'next/image';
 import {
   Search,
@@ -61,6 +61,7 @@ import { useRouter, useSearchParams, useParams } from 'next/navigation';
 // Hooks de datos (los mismos que CatalogoClient)
 import { useCatalogProducts, useCatalogFilters } from './hooks/useCatalogProducts';
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
+import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -84,6 +85,7 @@ import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '.
 
 // Zona Gamer components
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
@@ -139,12 +141,19 @@ export function GamerCatalogoClient() {
   );
 }
 
-function GamerLoadingFallback({ dark }: { dark?: boolean }) {
+function GamerLoadingFallback() {
+  const [isDark, setIsDark] = useState(true);
+  // useLayoutEffect corre antes del paint: actualiza el tema antes de que el browser pinte
+  // el primer frame, eliminando el flash de fondo incorrecto al navegar client-side.
+  useIsomorphicLayoutEffect(() => {
+    setIsDark(localStorage.getItem('baldecash-theme') !== 'light');
+  }, []);
   return (
     <div
+      suppressHydrationWarning
       style={{
         minHeight: '100vh',
-        background: dark ? '#0e0e0e' : '#fff',
+        background: isDark ? '#0e0e0e' : '#f5f5f5',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -154,6 +163,9 @@ function GamerLoadingFallback({ dark }: { dark?: boolean }) {
     </div>
   );
 }
+
+// useLayoutEffect solo en browser; useEffect fallback en SSR para evitar warnings.
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // ============================================
 // Content
@@ -828,150 +840,33 @@ function GamerCatalogoContent() {
 
           {/* Actions: favorites + cart */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Favorites with dropdown */}
-            <div style={{ position: 'relative' }}>
-              <button
-                id="onboarding-wishlist"
-                onClick={() => setIsWishlistDrawerOpen(prev => !prev)}
-                style={{
-                  width: 40, height: 40, borderRadius: 12,
-                  background: T.bgSurface, border: `1px solid ${T.border}`,
-                  color: isDark ? '#fff' : '#555', cursor: 'pointer',
+            {/* Favorites button — drawer renderizado en el footer */}
+            <button
+              id="onboarding-wishlist"
+              onClick={() => setIsWishlistDrawerOpen(true)}
+              style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: T.bgSurface, border: `1px solid ${T.border}`,
+                color: isDark ? '#fff' : '#555', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.3s', position: 'relative',
+              }}
+              title="Favoritos"
+            >
+              <Heart className="w-5 h-5" />
+              {wishlistCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: -5, right: -5,
+                  minWidth: 18, height: 18, borderRadius: '50%',
+                  background: '#ff0055', color: '#fff',
+                  fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all 0.3s', position: 'relative',
-                }}
-                title="Favoritos"
-              >
-                <Heart className="w-5 h-5" />
-                {wishlistCount > 0 && (
-                  <span style={{
-                    position: 'absolute', top: -5, right: -5,
-                    minWidth: 18, height: 18, borderRadius: '50%',
-                    background: '#ff0055', color: '#fff',
-                    fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
-                  }}>
-                    {wishlistCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Wishlist dropdown */}
-              {isWishlistDrawerOpen && (
-                <>
-                  {/* Backdrop */}
-                  <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 40 }}
-                    onClick={() => setIsWishlistDrawerOpen(false)}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute', top: '100%', right: 0, marginTop: 8,
-                      width: 320, zIndex: 50, borderRadius: 12, overflow: 'hidden',
-                      background: isDark ? '#1a1a1a' : '#fff',
-                      border: `1px solid ${isDark ? '#2a2a2a' : '#e5e5e5'}`,
-                      boxShadow: isDark
-                        ? '0 8px 32px rgba(0,0,0,0.5)'
-                        : '0 8px 32px rgba(0,0,0,0.12)',
-                    }}
-                  >
-                    {/* Header */}
-                    <div style={{
-                      padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      borderBottom: `1px solid ${isDark ? '#2a2a2a' : '#f0f0f0'}`,
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Heart className="w-4 h-4" style={{ color: T.neonCyan, fill: T.neonCyan }} />
-                        <span style={{ fontSize: 14, fontWeight: 600, color: isDark ? '#e0e0e0' : '#333' }}>
-                          Mis favoritos ({wishlistCount})
-                        </span>
-                      </div>
-                      {wishlistCount > 0 && (
-                        <button
-                          onClick={() => clearWishlist()}
-                          style={{
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            fontSize: 12, color: isDark ? '#666' : '#999',
-                          }}
-                        >
-                          Limpiar
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Items */}
-                    <div style={{ maxHeight: 280, overflowY: 'auto', padding: 12 }}>
-                      {wishlist.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '24px 16px', color: isDark ? '#555' : '#999', fontSize: 13 }}>
-                          Aún no tienes favoritos
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {wishlist.map((item) => (
-                            <div
-                              key={item.productId}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 12, padding: 8, borderRadius: 8,
-                                background: isDark ? '#222' : '#f9f9f9',
-                              }}
-                            >
-                              <div
-                                onClick={() => {
-                                  const prod = products.find(p => p.id === item.productId);
-                                  if (prod) router.push(routes.producto(landing, prod.slug));
-                                  setIsWishlistDrawerOpen(false);
-                                }}
-                                style={{
-                                  width: 48, height: 48, borderRadius: 8, flexShrink: 0,
-                                  background: isDark ? '#2a2a2a' : '#fff',
-                                  border: `1px solid ${isDark ? '#333' : '#e5e5e5'}`,
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  overflow: 'hidden', cursor: 'pointer',
-                                }}
-                              >
-                                <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontSize: 11, color: isDark ? '#666' : '#999', textTransform: 'uppercase', margin: 0 }}>{item.brand}</p>
-                                <p
-                                  onClick={() => {
-                                    const prod = products.find(p => p.id === item.productId);
-                                    if (prod) router.push(routes.producto(landing, prod.slug));
-                                    setIsWishlistDrawerOpen(false);
-                                  }}
-                                  style={{
-                                    fontSize: 13, fontWeight: 500, color: isDark ? '#e0e0e0' : '#333',
-                                    margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer',
-                                  }}
-                                >
-                                  {item.name}
-                                </p>
-                                <p style={{ fontSize: 13, fontWeight: 700, color: T.neonCyan, margin: '2px 0 0' }}>
-                                  S/{Math.floor(item.monthlyPayment)}/mes
-                                  <span style={{ fontSize: 11, fontWeight: 400, color: isDark ? '#666' : '#999', marginLeft: 4 }}>
-                                    x {item.months} meses
-                                  </span>
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => removeFromWishlist(item.productId)}
-                                style={{
-                                  background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8,
-                                  color: isDark ? '#555' : '#ccc', display: 'flex',
-                                }}
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
+                  boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
+                }}>
+                  {wishlistCount}
+                </span>
               )}
-            </div>
+            </button>
 
           </div>
         </div>
@@ -1814,6 +1709,126 @@ function GamerCatalogoContent() {
         />
       )}
 
+      {/* ====== Wishlist Drawer (shared component) ====== */}
+      <WishlistDrawer
+        isOpen={isWishlistDrawerOpen}
+        onClose={() => setIsWishlistDrawerOpen(false)}
+        products={wishlist}
+        onRemoveProduct={(productId) => removeFromWishlist(productId)}
+        onClearAll={() => clearWishlist()}
+        onViewProduct={(productId) => {
+          setIsWishlistDrawerOpen(false);
+          const prod = products.find((p) => p.id === productId);
+          if (prod) router.push(routes.producto(landing, prod.slug));
+        }}
+        onAddToCompare={(productId) => {
+          const prod = products.find((p) => p.id === productId);
+          if (prod) handleToggleCompare(prod);
+        }}
+        compareList={compareList.map((p) => p.id)}
+        maxCompareProducts={3}
+        themeClassName={isDark ? 'gamer-wishlist-dark' : 'gamer-wishlist-light'}
+      />
+
+      {/* Gamer Wishlist Drawer theme overrides */}
+      <style>{`
+        /* ========= Shared tokens (light + dark gamer) ========= */
+        .gamer-wishlist-dark, .gamer-wishlist-dark *,
+        .gamer-wishlist-light, .gamer-wishlist-light * {
+          font-family: 'Rajdhani', sans-serif;
+        }
+        .gamer-wishlist-dark {
+          --color-primary: #00ffd5;
+          --color-primary-rgb: 0,255,213;
+        }
+        .gamer-wishlist-light {
+          --color-primary: #00897a;
+          --color-primary-rgb: 0,137,122;
+        }
+
+        /* ========= DARK MODE ========= */
+        .gamer-wishlist-dark {
+          background: #0e0e0e !important;
+          color: #f0f0f0 !important;
+        }
+        .gamer-wishlist-dark .bg-white { background: #1a1a1a !important; }
+        .gamer-wishlist-dark .bg-neutral-50 { background: #151515 !important; }
+        .gamer-wishlist-dark .bg-neutral-100 { background: #252525 !important; }
+        .gamer-wishlist-dark .bg-neutral-200 { background: #2a2a2a !important; }
+        .gamer-wishlist-dark .bg-neutral-300 { background: #333 !important; }
+        .gamer-wishlist-dark .border-neutral-100,
+        .gamer-wishlist-dark .border-neutral-200,
+        .gamer-wishlist-dark .border-neutral-300 { border-color: #2a2a2a !important; }
+        .gamer-wishlist-dark .text-neutral-900,
+        .gamer-wishlist-dark .text-neutral-800 { color: #f0f0f0 !important; }
+        .gamer-wishlist-dark .text-neutral-700 { color: #d4d4d4 !important; }
+        .gamer-wishlist-dark .text-neutral-600 { color: #a0a0a0 !important; }
+        .gamer-wishlist-dark .text-neutral-500 { color: #888 !important; }
+        .gamer-wishlist-dark .text-neutral-400 { color: #666 !important; }
+        .gamer-wishlist-dark .text-neutral-300 { color: #555 !important; }
+        .gamer-wishlist-dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important; }
+        .gamer-wishlist-dark .shadow-md { box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important; }
+        .gamer-wishlist-dark .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\] {
+          background: rgba(0,255,213,0.15) !important;
+        }
+        .gamer-wishlist-dark .text-\\[var\\(--color-primary\\)\\],
+        .gamer-wishlist-dark .fill-\\[var\\(--color-primary\\)\\] {
+          color: #00ffd5 !important;
+          fill: #00ffd5 !important;
+        }
+        .gamer-wishlist-dark .hover\\:text-\\[var\\(--color-primary\\)\\]:hover {
+          color: #00ffd5 !important;
+        }
+        /* Empty state icon */
+        .gamer-wishlist-dark .rounded-full.bg-neutral-100 { background: #252525 !important; }
+        /* Amber warning box */
+        .gamer-wishlist-dark .bg-amber-50 { background: rgba(245, 158, 11, 0.12) !important; }
+        .gamer-wishlist-dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.35) !important; }
+        .gamer-wishlist-dark .text-amber-600 { color: #fbbf24 !important; }
+        .gamer-wishlist-dark .text-amber-700 { color: #fcd34d !important; }
+        /* Red accents (remove btn hover) */
+        .gamer-wishlist-dark .text-red-500 { color: #ff4d6d !important; }
+        .gamer-wishlist-dark .hover\\:bg-red-50:hover { background: rgba(255,77,109,0.1) !important; }
+        .gamer-wishlist-dark .hover\\:text-red-500:hover { color: #ff4d6d !important; }
+        /* Drag handle */
+        .gamer-wishlist-dark .rounded-t-3xl .bg-neutral-300 { background: #00ffd5 !important; opacity: 0.4; }
+        /* NextUI default button surfaces inside drawer */
+        .gamer-wishlist-dark .border-medium { border-color: #2a2a2a !important; }
+        /* NextUI "text-foreground" resuelve a casi-negro en modo claro; forzar claro en dark */
+        .gamer-wishlist-dark .text-foreground,
+        .gamer-wishlist-dark .text-default-foreground { color: #f0f0f0 !important; }
+        /* Botón "Comparar" bordered en dark */
+        .gamer-wishlist-dark button.border-neutral-300 {
+          border-color: #3a3a3a !important;
+          color: #d4d4d4 !important;
+        }
+        .gamer-wishlist-dark button.border-neutral-300:hover {
+          border-color: #00ffd5 !important;
+          color: #00ffd5 !important;
+        }
+
+        /* ========= LIGHT MODE ========= */
+        .gamer-wishlist-light {
+          background: #f5f5f5 !important;
+          color: #1a1a1a !important;
+        }
+        .gamer-wishlist-light .bg-white { background: #ffffff !important; }
+        .gamer-wishlist-light .bg-neutral-50 { background: #fafafa !important; }
+        .gamer-wishlist-light .bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\] {
+          background: rgba(0,137,122,0.12) !important;
+        }
+        .gamer-wishlist-light .text-\\[var\\(--color-primary\\)\\],
+        .gamer-wishlist-light .fill-\\[var\\(--color-primary\\)\\] {
+          color: #00897a !important;
+          fill: #00897a !important;
+        }
+        .gamer-wishlist-light .hover\\:text-\\[var\\(--color-primary\\)\\]:hover {
+          color: #00897a !important;
+        }
+        /* Drag handle (light) */
+        .gamer-wishlist-light .rounded-t-3xl .bg-neutral-300 { background: #00897a !important; opacity: 0.35; }
+      `}</style>
+
       {/* ====== FOOTER ====== */}
       {/* Wishlist toast */}
       {wishlistToast && (
@@ -1831,6 +1846,7 @@ function GamerCatalogoContent() {
         </div>
       )}
 
+      <GamerNewsletter theme={theme} />
       <GamerFooter theme={theme} />
 
       {/* Blip Chat (hidden button, opened from help menu) */}

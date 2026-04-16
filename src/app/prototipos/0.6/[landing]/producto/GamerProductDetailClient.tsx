@@ -6,20 +6,21 @@
  * Tema: neon cyan (#00ffd5), neon purple (#6366f1), fondo oscuro (#0e0e0e)
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef, useSyncExternalStore, Suspense } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, useSyncExternalStore, Suspense } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Network, Package, Percent, Plus, Puzzle, Scale, Sparkles, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
+import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Maximize2, Minus, Network, Package, Percent, Plus, Puzzle, Scale, Sparkles, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import type { ProductSpec, ProductPort, SimilarProduct } from './types/detail';
-import { generateFichaTecnica } from './utils/generateFichaTecnica';
-import { generateGamerCronogramaPdf } from './utils/generateGamerCronogramaPdf';
+import { generateSpecSheetPDF } from './utils/generateSpecSheetPDF';
+import { generateCronogramaPDF } from './utils/generateCronogramaPDF';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 
@@ -80,13 +81,29 @@ export function GamerProductDetailClient() {
   );
 }
 
-function LoadingFallback({ dark }: { dark?: boolean }) {
+function LoadingFallback() {
+  const [isDark, setIsDark] = useState(true);
+  // useLayoutEffect corre antes del paint: sincroniza el tema antes de que el browser pinte el primer frame.
+  useIsomorphicLayoutEffect(() => {
+    setIsDark(localStorage.getItem('baldecash-theme') !== 'light');
+  }, []);
   return (
-    <div style={{ minHeight: '100vh', background: dark ? '#0e0e0e' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div
+      suppressHydrationWarning
+      style={{
+        minHeight: '100vh',
+        background: isDark ? '#0e0e0e' : '#f5f5f5',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
       <CubeGridSpinner />
     </div>
   );
 }
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // ============================================
 // Content
@@ -117,6 +134,9 @@ function DetailContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [zoom, setZoom] = useState<{ active: boolean; x: number; y: number }>({ active: false, x: 50, y: 50 });
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxZoom, setLightboxZoom] = useState(100);
   const [selectedTerm, setSelectedTerm] = useState(12);
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<number>(0);
 
@@ -262,6 +282,10 @@ function DetailContent() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+          to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
         #section-gallery, #section-pricing, #section-description, #section-specs, #cronograma, #accesorios, #similares { scroll-margin-top: 80px; }
         .gamer-gradient-text {
           background: linear-gradient(90deg, var(--gamer-purple) 0%, var(--gamer-cyan) 100%);
@@ -269,16 +293,29 @@ function DetailContent() {
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
-        .gallery-img-wrap {
-          overflow: hidden;
-          cursor: zoom-in;
-        }
         .gallery-img-wrap img {
-          transition: transform 0.3s ease;
+          will-change: transform;
         }
-        .gallery-img-wrap:hover img {
-          transform: scale(1.8);
+        .gallery-zoom-hint {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: rgba(255,255,255,0.85);
+          backdrop-filter: blur(6px);
+          border-radius: 8px;
+          padding: 6px 10px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 500;
+          color: #525252;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.2s;
+          z-index: 2;
         }
+        .gallery-img-wrap:hover ~ .gallery-zoom-hint { opacity: 1; }
         .gallery-thumb {
           width: 40px;
           height: 40px;
@@ -313,6 +350,52 @@ function DetailContent() {
           height: 100%;
           object-fit: contain;
         }
+        .gamer-thumbs-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 8px;
+        }
+        @media (min-width: 768px) {
+          .gamer-thumbs-grid { grid-template-columns: repeat(6, 1fr); }
+        }
+        /* Ficha técnica card */
+        .gamer-ficha-inner {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+        .gamer-ficha-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          text-align: center;
+        }
+        .gamer-ficha-subtitle { display: none; }
+        .gamer-ficha-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 10px 24px;
+          border-radius: 10px;
+          border: none;
+          font-size: 14px;
+          font-weight: 600;
+          font-family: 'Rajdhani', sans-serif;
+          cursor: pointer;
+          transition: opacity 0.2s;
+          min-height: 40px;
+        }
+        .gamer-ficha-btn:hover { opacity: 0.9; }
+        @media (min-width: 640px) {
+          .gamer-ficha-inner { flex-direction: row; }
+          .gamer-ficha-info { text-align: left; }
+          .gamer-ficha-subtitle { display: block; }
+          .gamer-ficha-btn { width: auto; }
+        }
         .btn-loquiero-detalle {
           background: var(--gamer-cyan, #00ffd5);
           color: var(--gamer-btn-text, #0a0a0a);
@@ -323,8 +406,73 @@ function DetailContent() {
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s;
+          box-shadow: ${isDark ? '0 8px 24px rgba(0,255,213,0.25)' : '0 8px 24px rgba(0,137,122,0.25)'};
         }
         .btn-loquiero-detalle:hover { filter: brightness(0.9); }
+        /* Mobile-fixed CTA bar; static inline on desktop */
+        .gamer-detail-cta-bar {
+          display: flex;
+          gap: 8px;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 40;
+          padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+          background: ${isDark ? '#0e0e0e' : '#fff'};
+          border-top: 1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb'};
+          box-shadow: 0 -4px 12px rgba(0,0,0,${isDark ? '0.4' : '0.08'});
+        }
+        @media (min-width: 640px) {
+          .gamer-detail-cta-bar { gap: 12px; }
+        }
+        @media (min-width: 1024px) {
+          .gamer-detail-cta-bar {
+            position: static;
+            z-index: auto;
+            padding: 0;
+            background: transparent;
+            border-top: none;
+            box-shadow: none;
+          }
+        }
+        .gamer-detail-cta-heart {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 18px;
+          flex-shrink: 0;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: ${isDark ? 'rgba(255,255,255,0.04)' : '#fafafa'};
+          border: 1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb'};
+          color: ${isDark ? '#707070' : '#a0a0a0'};
+        }
+        .gamer-detail-cta-heart.is-wishlisted {
+          background: ${isDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.1)'};
+          border-color: var(--gamer-cyan);
+          color: var(--gamer-cyan);
+        }
+        .gamer-detail-cta-heart:hover {
+          color: var(--gamer-cyan);
+          border-color: rgba(0,255,213,0.3);
+          background: ${isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.05)'};
+        }
+        @media (min-width: 640px) {
+          .gamer-detail-cta-heart { padding: 14px 24px; }
+        }
+        /* Reserve space so fixed bar doesn't cover content on mobile */
+        @media (max-width: 1023px) {
+          .gamer-detail-mobile-spacer { height: calc(72px + env(safe-area-inset-bottom)); }
+        }
+        /* Wishlist toast: on mobile sits above the fixed CTA bar; on desktop at standard bottom */
+        .gamer-detail-toast {
+          bottom: calc(84px + env(safe-area-inset-bottom));
+        }
+        @media (min-width: 1024px) {
+          .gamer-detail-toast { bottom: 24px; }
+        }
         .spec-card {
           position: relative;
           background: var(--gamer-bg-card, #1a1a1a);
@@ -440,68 +588,83 @@ function DetailContent() {
               )}
             </div>
 
-            {/* Main image viewer */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'clamp(160px, 38vw, 480px)', padding: 'clamp(4px, 1.5vw, 16px) clamp(8px, 2vw, 24px)', flex: 1 }}>
-              <div
-                className="gallery-img-wrap"
-                onMouseMove={(e) => {
-                  if (!e.currentTarget) return;
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(2) + '%';
-                  const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(2) + '%';
-                  const img = e.currentTarget.querySelector('img');
-                  if (img) img.style.transformOrigin = `${x} ${y}`;
+            {/* Main image viewer — square aspect with cursor-guided zoom */}
+            <div
+              className="gallery-img-wrap"
+              style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', cursor: 'zoom-in' }}
+              onMouseEnter={() => setZoom((z) => ({ ...z, active: true }))}
+              onMouseLeave={() => setZoom({ active: false, x: 50, y: 50 })}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setZoom({ active: true, x, y });
+              }}
+              onClick={() => { setLightboxZoom(100); setLightboxOpen(true); }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setLightboxZoom(100); setLightboxOpen(true); } }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={currentImage.url}
+                alt={currentImage.alt || product.name}
+                draggable={false}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  padding: 'clamp(16px, 6vw, 32px)',
+                  transform: zoom.active ? 'scale(2.5)' : 'scale(1)',
+                  transformOrigin: `${zoom.x}% ${zoom.y}%`,
+                  transition: 'transform 0.1s ease-out',
+                  pointerEvents: 'none',
+                  userSelect: 'none',
                 }}
-                onMouseLeave={(e) => {
-                  if (!e.currentTarget) return;
-                  const img = e.currentTarget.querySelector('img');
-                  if (img) img.style.transformOrigin = 'center center';
-                }}
-              >
-                <Image src={currentImage.url} alt={currentImage.alt || product.name} width={480} height={440} style={{ objectFit: 'contain', maxHeight: 'clamp(160px, 42vw, 440px)', width: 'auto', maxWidth: '100%' }} priority />
+              />
+              {/* Zoom hint (hover only) */}
+              <div className="gallery-zoom-hint">
+                <Maximize2 size={14} />
+                <span>Pasa el cursor para ampliar</span>
               </div>
               {/* Imagen referencial label */}
-              <div style={{ position: 'absolute', bottom: 8, left: 8, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 6, padding: '3px 8px' }}>
-                <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,0.7)' }}>Imagen referencial</span>
+              <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '4px 10px' }}>
+                <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,0.8)' }}>Imagen referencial</span>
               </div>
               {/* Image counter */}
-              <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 6, padding: '3px 8px' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#fff' }}>{selectedImage + 1} / {images.length}</span>
+              <div style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '4px 10px' }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{selectedImage + 1} / {images.length}</span>
               </div>
             </div>
 
-            {/* Thumbnails with arrows */}
+            {/* Thumbnails — grid */}
             {images.length > 1 && (
-              <div style={{ padding: 'clamp(8px, 2vw, 12px) clamp(8px, 2vw, 16px)', borderTop: `1px solid ${isDark ? T.border : '#f5f5f5'}` }}>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button
-                    onClick={() => setSelectedImage((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
-                    style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', border: `1px solid ${isDark ? T.border : '#e5e7eb'}`, background: isDark ? T.bgCard : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: isDark ? T.textMuted : '#d1d5db', opacity: selectedImage === 0 ? 0.3 : 1, transition: 'all 0.2s' }}
-                  >
-                    <ChevronLeft size={14} />
-                  </button>
-                  <div className="gallery-thumbs-scroll" style={{ flex: 1, overflow: 'hidden', overflowX: 'auto', display: 'flex', scrollbarWidth: 'none' }}>
-                    <div style={{ display: 'flex', gap: 6, transition: 'transform 0.3s' }}>
-                      {images.map((img, idx) => (
-                        <div
-                          key={img.id}
-                          className={`gallery-thumb${idx === selectedImage ? ' active-thumb' : ''}`}
-                          onClick={() => setSelectedImage(idx)}
-                          style={{ background: isDark ? T.bgSurface : '#fff' }}
-                          role="button"
-                          tabIndex={0}
-                        >
-                          <Image src={img.url} alt={img.alt || `Vista ${idx + 1}`} width={60} height={60} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setSelectedImage((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
-                    style={{ flexShrink: 0, width: 28, height: 28, borderRadius: '50%', border: `1px solid ${isDark ? T.border : '#e5e7eb'}`, background: isDark ? T.bgCard : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: isDark ? T.textMuted : '#9ca3af', opacity: selectedImage === images.length - 1 ? 0.3 : 1, transition: 'all 0.2s' }}
-                  >
-                    <ChevronRight size={14} />
-                  </button>
+              <div style={{ padding: '12px 16px', borderTop: `1px solid ${isDark ? T.border : '#f5f5f5'}` }}>
+                <div className="gamer-thumbs-grid">
+                  {images.map((img, idx) => {
+                    const isActive = idx === selectedImage;
+                    return (
+                      <div
+                        key={img.id}
+                        onClick={() => setSelectedImage(idx)}
+                        role="button"
+                        tabIndex={0}
+                        style={{
+                          position: 'relative',
+                          aspectRatio: '1 / 1',
+                          borderRadius: 8,
+                          overflow: 'hidden',
+                          border: `2px solid ${isActive ? T.neonCyan : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
+                          boxShadow: isActive ? `0 0 0 2px ${isDark ? 'rgba(0,255,213,0.25)' : 'rgba(0,137,122,0.2)'}` : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          background: isDark ? T.bgSurface : '#fff',
+                        }}
+                      >
+                        <Image src={img.url} alt={img.alt || `Vista ${idx + 1}`} fill style={{ objectFit: 'contain', padding: 6 }} />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -512,25 +675,26 @@ function DetailContent() {
         <div id="section-pricing" className="gamer-detail-pricing-order" style={{ position: 'sticky', top: 168, alignSelf: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 2.5vw, 24px)' }}>
             {/* Pricing card */}
-            <div style={{ background: T.bgCard, borderRadius: 'clamp(12px, 3vw, 16px)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : T.border}`, padding: 'clamp(12px, 3vw, 24px)', boxShadow: isDark ? '0 0 32px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.08)' }}>
-              <h3 style={{ fontFamily: F.raj, fontSize: 'clamp(16px, 4vw, 20px)', fontWeight: 700, color: T.textPrimary, letterSpacing: 0, margin: '0 0 2px' }}>Calcula tu cuota mensual</h3>
-              <p style={{ fontFamily: F.raj, fontSize: 'clamp(11px, 2.8vw, 13px)', color: T.textPrimary, letterSpacing: 0, margin: '0 0 clamp(12px, 3vw, 24px)' }}>Selecciona el plazo que mejor se ajuste a tu presupuesto</p>
+            <div style={{ background: T.bgCard, borderRadius: 16, border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : T.border}`, padding: 24, boxShadow: isDark ? '0 0 32px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.08)' }}>
+              <h3 style={{ fontFamily: F.raj, fontSize: 20, fontWeight: 700, color: T.textPrimary, letterSpacing: 0, margin: '0 0 8px' }}>Calcula tu cuota mensual</h3>
+              <p style={{ fontFamily: F.raj, fontSize: 14, color: T.textSecondary, letterSpacing: 0, margin: '0 0 20px' }}>Selecciona el plazo que mejor se ajuste a tu presupuesto</p>
 
               {/* Initial payment selector */}
               {activePlan && activePlan.options.length > 0 && (
-                <div style={{ marginBottom: 'clamp(10px, 3vw, 24px)' }}>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, textTransform: 'none', marginBottom: 6 }}>Cuota inicial (opcional)</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, marginBottom: 12 }}>Cuota inicial (opcional)</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {activePlan.options.map((opt) => {
                       const isActive = opt.initialPercent === selectedInitialPercent;
                       return (
                         <button key={opt.initialPercent} onClick={() => setSelectedInitialPercent(opt.initialPercent)} style={{
-                          padding: '6px 12px', fontSize: 'clamp(12px, 3vw, 14px)', fontFamily: F.raj, borderRadius: 999, cursor: 'pointer', transition: 'all 0.2s',
+                          padding: '10px 16px', fontSize: 14, fontFamily: F.raj, borderRadius: 999, cursor: 'pointer', transition: 'all 0.2s',
+                          minHeight: 40,
                           fontWeight: isActive ? 700 : 500,
-                          background: isActive ? T.neonCyan : T.bgSurface,
+                          background: isActive ? T.neonCyan : (isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5'),
                           color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
-                          border: `1px solid ${isActive ? T.neonCyan : (isDark ? 'rgba(255,255,255,0.12)' : T.border)}`,
-                          boxShadow: isActive ? `0 0 10px rgba(0,255,213,0.4)` : 'none',
+                          border: `1px solid ${isActive ? T.neonCyan : 'transparent'}`,
+                          boxShadow: isActive ? `0 2px 10px rgba(0,255,213,0.35)` : 'none',
                         }}>
                           {opt.initialPercent === 0 ? 'Sin inicial' : `S/${Math.round(opt.initialAmount)}`}
                         </button>
@@ -550,19 +714,25 @@ function DetailContent() {
                     const isSelected = term === selectedTerm;
                     return (
                       <button key={term} onClick={() => setSelectedTerm(term)} style={{
-                        position: 'relative', padding: 'clamp(8px, 2.5vw, 16px)', borderRadius: 10, cursor: 'pointer', transition: 'all 0.3s', textAlign: 'center',
-                        background: isSelected ? `linear-gradient(135deg, rgba(0,255,213,0.12), rgba(0,255,213,0.06))` : T.bgSurface,
-                        border: isSelected ? `2px solid ${T.neonCyan}` : `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+                        position: 'relative', padding: 12, borderRadius: 10, cursor: 'pointer', transition: 'all 0.3s', textAlign: 'center',
+                        background: isSelected ? T.neonCyan : T.bgSurface,
+                        border: isSelected ? `2px solid ${T.neonCyan}` : `2px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
                         transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                        boxShadow: isSelected ? (isDark ? '0 8px 24px rgba(0,255,213,0.35)' : '0 8px 24px rgba(0,137,122,0.3)') : 'none',
                       }}>
-                        <p style={{ fontSize: 'clamp(10px, 2.5vw, 12px)', color: T.textPrimary, fontFamily: F.mono, letterSpacing: 1, marginBottom: 4 }}>{term} meses</p>
-                        {originalOpt && (
-                          <p style={{ fontSize: 12, textDecoration: 'line-through', color: isDark ? 'rgba(255,255,255,0.5)' : '#999', fontFamily: F.mono, marginBottom: 4 }}>S/{Math.round(originalOpt)}</p>
+                        {isSelected && (
+                          <div style={{ position: 'absolute', top: -7, right: -7, background: '#10b981', color: '#fff', fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 999 }}>✓</div>
                         )}
-                        <p style={{ fontFamily: F.orb, fontSize: 'clamp(0.8rem, 3.2vw, 1.25rem)', fontWeight: 800, color: T.neonCyan, textShadow: isDark ? (isSelected ? '0 0 14px rgba(0,255,213,0.5)' : '0 0 10px rgba(0,255,213,0.5)') : 'none', margin: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 500, color: isSelected ? (isDark ? 'rgba(10,10,10,0.8)' : 'rgba(255,255,255,0.85)') : T.textSecondary, fontFamily: F.raj, marginBottom: 6, lineHeight: 1.2 }}>
+                          {term}<br />meses
+                        </p>
+                        {originalOpt && !isSelected && (
+                          <p style={{ fontSize: 11, textDecoration: 'line-through', color: isDark ? 'rgba(255,255,255,0.5)' : '#999', fontFamily: F.mono, marginBottom: 3 }}>S/{Math.round(originalOpt)}</p>
+                        )}
+                        <p style={{ fontFamily: F.orb, fontSize: 18, fontWeight: 800, color: isSelected ? (isDark ? '#0a0a0a' : '#fff') : T.neonCyan, textShadow: !isSelected && isDark ? '0 0 10px rgba(0,255,213,0.5)' : 'none', margin: 0, wordBreak: 'break-word' }}>
                           S/{opt ? Math.round(opt.monthlyQuota) : '—'}
                         </p>
-                        <p style={{ fontSize: 'clamp(10px, 2.5vw, 12px)', color: T.textSecondary, fontFamily: F.raj, marginTop: 2 }}>al mes</p>
+                        <p style={{ fontSize: 11, color: isSelected ? (isDark ? 'rgba(10,10,10,0.8)' : 'rgba(255,255,255,0.85)') : T.textSecondary, fontFamily: F.raj, marginTop: 3 }}>al mes</p>
                       </button>
                     );
                   })}
@@ -570,39 +740,36 @@ function DetailContent() {
               )}
 
               {/* Payment summary */}
-              <div style={{ marginTop: 'clamp(12px, 3vw, 32px)', padding: 'clamp(10px, 3vw, 24px)', borderRadius: 10, background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`, textAlign: 'center' }}>
-                <p style={{ fontSize: 11, color: T.textPrimary, fontFamily: F.raj, letterSpacing: 0, marginBottom: 4 }}>Pagarías</p>
+              <div style={{ marginTop: 32, padding: 24, borderRadius: 12, background: isDark ? 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(0,255,213,0.06))' : 'linear-gradient(135deg, #eff6ff, #eef2ff)', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'transparent'}`, textAlign: 'center' }}>
+                <p style={{ fontSize: 14, color: T.textSecondary, fontFamily: F.raj, letterSpacing: 0, marginBottom: 8 }}>Pagarías</p>
                 {/* Cuota tachada solo si el backend trae originalQuota real (no inventamos descuento) */}
                 {lowestOption?.originalQuota != null && lowestOption.originalQuota > lowestOption.monthlyQuota && (
-                  <p style={{ textDecoration: 'line-through', fontSize: '1.25rem', color: isDark ? 'rgba(255,255,255,0.5)' : '#999', fontFamily: F.mono, marginBottom: 4 }}>
+                  <p style={{ textDecoration: 'line-through', fontSize: 20, color: isDark ? 'rgba(255,255,255,0.5)' : '#999', fontFamily: F.mono, marginBottom: 4 }}>
                     S/{Math.round(lowestOption.originalQuota)}/mes
                   </p>
                 )}
-                <p style={{ fontFamily: F.orb, fontSize: 'clamp(1.5rem, 6vw, 2.5rem)', fontWeight: 800, color: T.neonCyan, textShadow: isDark ? '0 0 20px rgba(0,255,213,0.6)' : 'none', lineHeight: 1.1, margin: 0 }}>
-                  S/{lowestOption ? Math.round(lowestOption.monthlyQuota) : Math.round(product.lowestQuota)}
-                  <span style={{ fontSize: 'clamp(0.65rem, 2.5vw, 0.85rem)', color: T.textPrimary }}>/mes</span>
+                <p style={{ fontFamily: F.orb, fontSize: 'clamp(2rem, 8vw, 2.5rem)', fontWeight: 800, color: T.neonCyan, textShadow: isDark ? '0 0 20px rgba(0,255,213,0.6)' : 'none', lineHeight: 1.1, margin: 0 }}>
+                  S/{lowestOption ? Math.round(lowestOption.monthlyQuota) : Math.round(product.lowestQuota)}/mes
                 </p>
-                <p style={{ fontSize: 12, color: T.textSecondary, fontFamily: F.raj, marginTop: 4 }}>durante {selectedTerm} meses</p>
+                <p style={{ fontSize: 14, color: T.textSecondary, fontFamily: F.raj, marginTop: 8 }}>durante {selectedTerm} meses</p>
                 {lowestOption && lowestOption.initialPercent > 0 && lowestOption.initialAmount > 0 && (
-                  <p style={{ fontSize: 12, color: T.textSecondary, fontFamily: F.raj, marginTop: 4 }}>
+                  <p style={{ fontSize: 14, color: T.textSecondary, fontFamily: F.raj, marginTop: 4 }}>
                     + S/{Math.round(lowestOption.initialAmount)} de inicial
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleSolicitar} className="btn-loquiero-detalle" style={{ flex: 1, padding: 'clamp(10px, 2.5vw, 16px) 0', fontSize: 'clamp(0.85rem, 3vw, 1.1rem)' }}>
-                ¡Lo quiero! Solicitar ahora
+            {/* Action buttons — fixed at bottom on mobile, inline on desktop */}
+            <div className="gamer-detail-cta-bar">
+              <button onClick={handleSolicitar} className="btn-loquiero-detalle" style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}>
+                ¡Lo quiero!
               </button>
-              <button onClick={handleToggleWishlist} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 44, flexShrink: 0, borderRadius: 10, cursor: 'pointer', transition: 'all 0.2s',
-                background: isWishlisted ? (isDark ? 'rgba(0,255,213,0.15)' : 'rgba(0,137,122,0.1)') : (isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5'),
-                border: `1px solid ${isWishlisted ? T.neonCyan : T.border}`,
-                color: isWishlisted ? T.neonCyan : (isDark ? '#707070' : '#a0a0a0'),
-              }}>
+              <button
+                onClick={handleToggleWishlist}
+                className={`gamer-detail-cta-heart${isWishlisted ? ' is-wishlisted' : ''}`}
+                aria-label={isWishlisted ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+              >
                 <Heart size={20} style={{ fill: isWishlisted ? T.neonCyan : 'none' }} />
               </button>
             </div>
@@ -672,39 +839,43 @@ function DetailContent() {
 
       {/* FICHA TÉCNICA */}
       <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
-        <div style={{
-          padding: 'clamp(12px, 3vw, 16px)', borderRadius: 16,
+        <div className="gamer-ficha-card" style={{
+          padding: 16, borderRadius: 16,
           background: isDark
             ? 'linear-gradient(to right, rgba(0,255,213,0.05), rgba(0,255,213,0.1))'
-            : 'linear-gradient(to right, rgba(70,84,205,0.05), rgba(70,84,205,0.1))',
-          border: isDark ? '1px solid rgba(0,255,213,0.2)' : '1px solid rgba(70,84,205,0.2)',
+            : 'linear-gradient(to right, rgba(0,137,122,0.06), rgba(0,137,122,0.12))',
+          border: isDark ? '1px solid rgba(0,255,213,0.2)' : '1px solid rgba(0,137,122,0.2)',
         }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="gamer-ficha-inner">
+            <div className="gamer-ficha-info">
               <div style={{ width: 40, height: 40, borderRadius: 8, background: T.neonCyan, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Download size={20} style={{ color: '#fff' }} />
+                <Download size={20} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />
               </div>
               <div>
-                <h4 style={{ fontWeight: 600, color: T.textPrimary, margin: 0, fontSize: 15 }}>Ficha Técnica</h4>
-                <p style={{ fontSize: 14, color: T.textSecondary, margin: 0 }} className="hidden sm:block">Descarga todas las especificaciones en PDF</p>
+                <h4 style={{ fontWeight: 600, color: T.textPrimary, margin: 0, fontSize: 15, fontFamily: F.raj }}>Ficha Técnica</h4>
+                <p className="gamer-ficha-subtitle" style={{ fontSize: 14, color: T.textSecondary, margin: 0, fontFamily: F.raj }}>Descarga todas las especificaciones en PDF</p>
               </div>
             </div>
             <button
-              onClick={() => generateFichaTecnica({
+              onClick={() => generateSpecSheetPDF({
                 productName: product.displayName || product.name,
-                brand: product.brand,
-                imageUrl: product.images?.[0]?.url,
+                productBrand: product.brand,
+                productImage: product.images?.[0]?.url,
+                productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
                 specs: product.specs || [],
-                ports: product.ports?.length ? product.ports.map((p) => ({ name: p.name, position: p.position, count: p.count })) : [],
-                price: product.price,
-                lowestQuota: product.lowestQuota,
+                ports: product.ports,
+                description: product.description,
+                shortDescription: product.shortDescription,
+                generatedDate: new Date(),
+                // Gamer cyan — neón en dark, teal en light
+                primaryColor: isDark ? [0, 255, 213] : [0, 137, 122],
+                logoUrl: '/images/zona-gamer/logo baldecash/LOGO OFI.png',
+                darkMode: isDark,
               })}
+              className="gamer-ficha-btn"
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '10px 24px', borderRadius: 10,
-                border: `2px solid ${T.neonCyan}`, background: 'transparent', color: T.neonCyan,
-                fontSize: 14, fontWeight: 500, cursor: 'pointer', transition: 'opacity 0.2s',
-                width: 'auto',
+                background: T.neonCyan,
+                color: isDark ? '#0a0a0a' : '#fff',
               }}
             >
               <Download size={16} />
@@ -739,22 +910,141 @@ function DetailContent() {
         )}
       </div>
 
-      {/* Wishlist toast */}
+      {/* Wishlist toast — aparece arriba del CTA bar fijo en mobile */}
       {wishlistToast && (
-        <div style={{
-          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+        <div className="gamer-detail-toast" style={{
+          position: 'fixed', left: '50%', transform: 'translateX(-50%)', zIndex: 200,
           display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', borderRadius: 12,
           background: isDark ? '#1a1a1a' : '#fff', border: `1px solid ${T.border}`,
           boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
           fontSize: 13, fontWeight: 500, color: isDark ? '#e0e0e0' : '#333',
-          fontFamily: "'Rajdhani', sans-serif", animation: 'fadeIn 0.25s ease-out',
+          fontFamily: "'Rajdhani', sans-serif", animation: 'toastIn 0.25s ease-out',
         }}>
           <Heart size={16} style={{ color: T.neonCyan, fill: wishlistToast.includes('Agregado') ? T.neonCyan : 'none' }} />
           {wishlistToast}
         </div>
       )}
 
+      {/* Newsletter — before footer */}
+      <GamerNewsletter theme={theme} />
+
       <GamerFooter theme={theme} />
+      {/* Spacer for mobile fixed CTA bar */}
+      <div className="gamer-detail-mobile-spacer" />
+
+      {/* Image Lightbox Modal */}
+      {lightboxOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            background: isDark ? 'rgba(0,0,0,0.92)' : 'rgba(255,255,255,0.96)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex', flexDirection: 'column',
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={() => setLightboxOpen(false)}
+        >
+          {/* Top bar: zoom controls + close */}
+          <div
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, position: 'relative' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ width: 40 }} />
+            {/* Zoom controls */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              borderRadius: 999, padding: '6px 14px',
+            }}>
+              <button
+                onClick={() => setLightboxZoom((z) => Math.max(50, z - 25))}
+                disabled={lightboxZoom <= 50}
+                aria-label="Reducir zoom"
+                style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'transparent', color: T.textPrimary, cursor: lightboxZoom <= 50 ? 'not-allowed' : 'pointer', opacity: lightboxZoom <= 50 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Minus size={16} />
+              </button>
+              <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, minWidth: 50, textAlign: 'center' }}>
+                {lightboxZoom}%
+              </span>
+              <button
+                onClick={() => setLightboxZoom((z) => Math.min(300, z + 25))}
+                disabled={lightboxZoom >= 300}
+                aria-label="Aumentar zoom"
+                style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'transparent', color: T.textPrimary, cursor: lightboxZoom >= 300 ? 'not-allowed' : 'pointer', opacity: lightboxZoom >= 300 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            <button
+              onClick={() => setLightboxOpen(false)}
+              aria-label="Cerrar"
+              style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: T.textPrimary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Main image */}
+          <div
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflow: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={currentImage.url}
+              alt={currentImage.alt || product.name}
+              draggable={false}
+              style={{
+                maxWidth: '90%',
+                maxHeight: '100%',
+                objectFit: 'contain',
+                transform: `scale(${lightboxZoom / 100})`,
+                transformOrigin: 'center',
+                transition: 'transform 0.2s ease-out',
+                userSelect: 'none',
+              }}
+            />
+          </div>
+
+          {/* Bottom: thumbnails + counter */}
+          <div
+            style={{ padding: '12px 16px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {images.length > 1 && (
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', maxWidth: '100%', padding: '4px 0' }}>
+                {images.map((img, idx) => {
+                  const isActive = idx === selectedImage;
+                  return (
+                    <div
+                      key={img.id}
+                      onClick={() => { setSelectedImage(idx); setLightboxZoom(100); }}
+                      role="button"
+                      tabIndex={0}
+                      style={{
+                        width: 56, height: 56, flexShrink: 0,
+                        borderRadius: 8, overflow: 'hidden',
+                        border: `2px solid ${isActive ? T.neonCyan : 'transparent'}`,
+                        cursor: 'pointer',
+                        background: isDark ? '#1a1a1a' : '#fff',
+                        padding: 4,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img.url} alt={img.alt || `Vista ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.textSecondary, fontFamily: F.raj }}>
+              {selectedImage + 1} / {images.length}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1095,18 +1385,6 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
   const effectiveTea = tea ?? null;
   const comisionMensual = commission != null ? commission : 0;
 
-  const handleDownloadCronograma = useCallback(() => {
-    generateGamerCronogramaPdf({
-      productName,
-      productBrand,
-      price,
-      term: selectedTerm,
-      monthlyQuota: Math.round(monthlyQuota),
-      tea: tea || undefined,
-      tcea: tcea || undefined,
-    });
-  }, [price, selectedTerm, monthlyQuota, productName, productBrand, tea, tcea]);
-
   const rows = useMemo(() => {
     // Sin TEA del backend no calculamos amortización (evitamos data falsa)
     if (effectiveTea == null) return [];
@@ -1162,6 +1440,38 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
 
   const visibleRows = expanded ? rows : rows.slice(0, 6);
   const totalPagar = rows.length * Math.round(monthlyQuota);
+
+  const handleDownloadCronograma = useCallback(() => {
+    generateCronogramaPDF({
+      productName,
+      productBrand,
+      productPrice: price,
+      productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+      term: selectedTerm,
+      monthlyQuota: Math.round(monthlyQuota),
+      totalPayment: totalPagar,
+      amortizationSchedule: rows.map((r) => ({
+        month: r.num,
+        date: r.fecha,
+        capital: r.capital,
+        interest: r.interes,
+        quota: r.monto,
+        balance: r.saldo,
+      })),
+      financialData: {
+        tea: tea ?? 0,
+        tcea: tcea ?? 0,
+        comisionDesembolso: 0,
+        seguroDesgravamen: 0,
+        seguroMultiriesgo: 0,
+        gastoNotarial: 0,
+      },
+      generatedDate: new Date(),
+      primaryColor: isDark ? [0, 255, 213] : [0, 137, 122],
+      logoUrl: '/images/zona-gamer/logo baldecash/LOGO OFI.png',
+      darkMode: isDark,
+    });
+  }, [price, selectedTerm, monthlyQuota, productName, productBrand, tea, tcea, rows, totalPagar, isDark]);
 
   return (
     <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>

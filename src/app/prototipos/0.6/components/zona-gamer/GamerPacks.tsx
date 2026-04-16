@@ -322,7 +322,13 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
         </div>
 
         {/* btn-ver-catalogo */}
-        <div className="text-center mt-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3 }}
+          className="text-center mt-10"
+        >
           <a
             href={catalogUrl}
             className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl no-underline font-bold text-[17px] transition-all duration-300 hover:-translate-y-0.5"
@@ -343,7 +349,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
             Ver catálogo completo
             <ArrowRight className="w-[18px] h-[18px] transition-transform duration-300 group-hover:translate-x-1" />
           </a>
-        </div>
+        </motion.div>
 
 
       </div>

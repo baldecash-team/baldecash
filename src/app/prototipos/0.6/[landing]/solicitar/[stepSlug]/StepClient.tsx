@@ -822,10 +822,15 @@ function LoadingFallback() {
   const params = useParams();
   const isGamer = (params?.landing as string) === 'zona-gamer';
 
-  if (isGamer) {
-    const savedTheme = typeof window !== 'undefined' ? localStorage.getItem('baldecash-theme') : null;
-    const isDark = savedTheme !== 'light';
+  const [isDark, setIsDark] = useState(true);
 
+  useEffect(() => {
+    if (!isGamer) return;
+    const savedTheme = localStorage.getItem('baldecash-theme');
+    setIsDark(savedTheme !== 'light');
+  }, [isGamer]);
+
+  if (isGamer) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f5f5f5' }}>
         <div className="flex flex-col items-center gap-4">
@@ -864,8 +869,11 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
     if (saved) setTheme(saved);
     setHydrated(true);
   }, []);
-  // Persist theme
-  useEffect(() => { localStorage.setItem('baldecash-theme', theme); }, [theme]);
+  // Persist theme (solo después de hidratar para no sobrescribir el valor previo en el mount)
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem('baldecash-theme', theme);
+  }, [theme, hydrated]);
 
   const isDark = theme === 'dark';
 

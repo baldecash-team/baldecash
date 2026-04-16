@@ -51,6 +51,18 @@ interface SpecSheetPDFData {
   description?: string;
   shortDescription?: string;
   generatedDate: Date;
+  /** Optional primary color override (RGB tuple). Defaults to BaldeCash blue. */
+  primaryColor?: readonly [number, number, number];
+  /** Optional primary light color override. Derived from primaryColor if omitted. */
+  primaryLightColor?: readonly [number, number, number];
+  /** Optional logo URL (public path). Will be loaded as base64 and used in the header. */
+  logoUrl?: string;
+  /** Logo display width in mm. Defaults to 50. */
+  logoWidth?: number;
+  /** Logo display height in mm. Defaults to 14. */
+  logoHeight?: number;
+  /** Dark mode: renders PDF on black background with light text (gamer-dark). */
+  darkMode?: boolean;
 }
 
 /**
@@ -146,6 +158,36 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
   const margin = PDF_LAYOUT.margin;
   const contentWidth = pageWidth - margin * 2;
 
+  // Primary color resolution (with optional override for gamer theme)
+  const PRIMARY_DEFAULT = PDF_COLORS.primary;
+  const PRIMARY_LIGHT_DEFAULT = PDF_COLORS.primaryLight;
+  const primary = data.primaryColor ?? PRIMARY_DEFAULT;
+  const isDark = !!data.darkMode;
+  const primaryLight = data.primaryLightColor ?? (data.primaryColor
+    ? (isDark
+        ? [
+            Math.round(primary[0] * 0.15),
+            Math.round(primary[1] * 0.15),
+            Math.round(primary[2] * 0.15),
+          ] as const
+        : [
+            Math.round(primary[0] + (255 - primary[0]) * 0.92),
+            Math.round(primary[1] + (255 - primary[1]) * 0.92),
+            Math.round(primary[2] + (255 - primary[2]) * 0.92),
+          ] as const)
+    : PRIMARY_LIGHT_DEFAULT);
+  // Theme-aware neutral colors
+  const TEXT_LIGHT = PDF_COLORS.text;
+  const TEXT_MUTED_LIGHT = PDF_COLORS.textMuted;
+  const BORDER_LIGHT = PDF_COLORS.border;
+  const PAGE_BG_LIGHT = PDF_COLORS.pageBg;
+  const CARD_BG_LIGHT = PDF_COLORS.cardBg;
+  const text: readonly [number, number, number] = isDark ? [240, 240, 240] : TEXT_LIGHT;
+  const textMuted: readonly [number, number, number] = isDark ? [160, 160, 160] : TEXT_MUTED_LIGHT;
+  const border: readonly [number, number, number] = isDark ? [42, 42, 42] : BORDER_LIGHT;
+  const pageBg: readonly [number, number, number] = isDark ? [14, 14, 14] : PAGE_BG_LIGHT;
+  const cardBg: readonly [number, number, number] = isDark ? [26, 26, 26] : CARD_BG_LIGHT;
+
   // Registrar fuente Asap (misma que usa la web)
   registerAsapFont(doc);
 
@@ -160,12 +202,27 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
   }
 
   // Fondo de página
-  drawPageBackground(doc);
+  drawPageBackground(doc, { darkMode: isDark });
+
+  // Load custom logo if provided
+  let logoBase64: string | undefined;
+  if (data.logoUrl) {
+    try {
+      logoBase64 = await loadImageAsBase64(data.logoUrl) ?? undefined;
+    } catch {
+      logoBase64 = undefined;
+    }
+  }
 
   // Header estandarizado
   let y = drawHeader(doc, 'Ficha Técnica', 'Especificaciones del producto', {
     showDate: true,
     date: data.generatedDate,
+    primaryColor: data.primaryColor,
+    logoBase64,
+    logoWidth: data.logoWidth,
+    logoHeight: data.logoHeight,
+    darkMode: isDark,
   });
 
   // ===== PRODUCTO CARD =====
@@ -179,7 +236,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
   }
 
   const productCardHeight = productImageBase64 ? 45 : 25;
-  drawCard(doc, margin, y, contentWidth, productCardHeight);
+  drawCard(doc, margin, y, contentWidth, productCardHeight, { darkMode: isDark });
 
   if (productImageBase64) {
     // Con imagen
@@ -190,23 +247,23 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
       // Sin imagen si falla
     }
 
-    doc.setTextColor(...PDF_COLORS.text);
+    doc.setTextColor(...text);
     doc.setFontSize(9);
     doc.setFont('Asap', 'normal');
     doc.text(data.productBrand.toUpperCase(), margin + imgSize + 12, y + 15);
 
-    doc.setTextColor(...PDF_COLORS.primary);
+    doc.setTextColor(...primary);
     doc.setFontSize(12);
     doc.setFont('Asap', 'bold');
     doc.text(data.productName, margin + imgSize + 12, y + 24);
   } else {
     // Sin imagen
-    doc.setTextColor(...PDF_COLORS.text);
+    doc.setTextColor(...text);
     doc.setFontSize(9);
     doc.setFont('Asap', 'normal');
     doc.text(data.productBrand.toUpperCase(), margin + 8, y + 10);
 
-    doc.setTextColor(...PDF_COLORS.primary);
+    doc.setTextColor(...primary);
     doc.setFontSize(12);
     doc.setFont('Asap', 'bold');
     doc.text(data.productName, margin + 8, y + 18);
@@ -260,16 +317,16 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     // Verificar espacio (si no cabe, nueva página)
     if (y + descCardHeight > pageHeight - PDF_LAYOUT.footerHeight - 10) {
       doc.addPage();
-      drawPageBackground(doc);
+      drawPageBackground(doc, { darkMode: isDark });
       y = margin;
     }
 
-    drawCard(doc, margin, y, contentWidth, descCardHeight);
+    drawCard(doc, margin, y, contentWidth, descCardHeight, { darkMode: isDark });
 
     let textY = y + descPadding + 4; // +4 para baseline del título
 
     // Título "Descripción"
-    doc.setTextColor(...PDF_COLORS.text);
+    doc.setTextColor(...text);
     doc.setFont('Asap', 'bold');
     doc.setFontSize(10);
     doc.text('Descripción', margin + descPadding, textY);
@@ -277,7 +334,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
     // ShortDescription (resaltada en color primario)
     if (shortLines.length > 0) {
-      doc.setTextColor(...PDF_COLORS.primary);
+      doc.setTextColor(...primary);
       doc.setFont('Asap', 'bold');
       doc.setFontSize(9);
       shortLines.forEach((line: string) => {
@@ -291,7 +348,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
     // Description (cuerpo)
     if (descLines.length > 0) {
-      doc.setTextColor(...PDF_COLORS.textMuted);
+      doc.setTextColor(...textMuted);
       doc.setFont('Asap', 'normal');
       doc.setFontSize(8);
       descLines.forEach((line: string) => {
@@ -304,7 +361,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
   }
 
   // ===== TÍTULO ESPECIFICACIONES =====
-  doc.setTextColor(...PDF_COLORS.text);
+  doc.setTextColor(...text);
   doc.setFontSize(14);
   doc.setFont('Asap', 'bold');
   doc.text('Especificaciones Técnicas', margin, y);
@@ -334,7 +391,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     // Verificar si necesitamos nueva página
     if (cardY + cardHeight > pageHeight - PDF_LAYOUT.footerHeight - 10) {
       doc.addPage();
-      drawPageBackground(doc);
+      drawPageBackground(doc, { darkMode: isDark });
       // Reset ambas columnas en nueva página
       leftY = margin;
       rightY = margin;
@@ -345,7 +402,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     const finalCardY = useLeftColumn ? leftY : rightY;
 
     // Dibujar la card
-    drawCard(doc, cardX, finalCardY, cardWidth, cardHeight);
+    drawCard(doc, cardX, finalCardY, cardWidth, cardHeight, { darkMode: isDark });
 
     // Header de categoría (usa constantes compartidas)
     const { headerPadding, iconSize, iconTopMargin, lineGap, specGap, specRowHeight, specLineHeight, valueWidthRatio } = SPEC_CARD_LAYOUT;
@@ -353,7 +410,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     const iconY = finalCardY + iconTopMargin;
 
     // Cuadrado con ícono
-    doc.setFillColor(...PDF_COLORS.primary);
+    doc.setFillColor(...primary);
     doc.roundedRect(iconX, iconY, iconSize, iconSize, 1.5, 1.5, 'F');
 
     // Dibujar ícono dentro del cuadrado (usa Lucide icons pre-renderizados)
@@ -362,14 +419,14 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
     // Título de categoría (alineado verticalmente con el centro del ícono)
     const textY = iconY + iconSize / 2 + 1; // Centro vertical del ícono + ajuste baseline
-    doc.setTextColor(...PDF_COLORS.text);
+    doc.setTextColor(...text);
     doc.setFontSize(9);
     doc.setFont('Asap', 'bold');
     doc.text(category.category, iconX + iconSize + 4, textY);
 
     // Línea separadora bajo header
     const lineY = iconY + iconSize + lineGap;
-    doc.setDrawColor(...PDF_COLORS.border);
+    doc.setDrawColor(...border);
     doc.setLineWidth(0.3);
     doc.line(cardX + headerPadding, lineY, cardX + cardWidth - headerPadding, lineY);
 
@@ -381,20 +438,20 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
     category.specs.forEach((spec) => {
       if (spec.highlight) {
-        doc.setFillColor(...PDF_COLORS.primaryLight);
+        doc.setFillColor(...primaryLight);
         doc.roundedRect(cardX + 3, specY - 2, cardWidth - 6, 6, 1, 1, 'F');
       }
 
-      doc.setTextColor(...PDF_COLORS.textMuted);
+      doc.setTextColor(...textMuted);
       doc.setFontSize(7.5);
       doc.setFont('Asap', 'normal');
       doc.text(spec.label, labelX, specY + 2);
 
       if (spec.highlight) {
-        doc.setTextColor(...PDF_COLORS.primary);
+        doc.setTextColor(...primary);
         doc.setFont('Asap', 'bold');
       } else {
-        doc.setTextColor(...PDF_COLORS.text);
+        doc.setTextColor(...text);
         doc.setFont('Asap', 'normal');
       }
 
@@ -426,7 +483,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     // Verificar espacio
     if (y + 80 > pageHeight - PDF_LAYOUT.footerHeight - 10) {
       doc.addPage();
-      drawPageBackground(doc);
+      drawPageBackground(doc, { darkMode: isDark });
       y = margin;
     }
 
@@ -448,7 +505,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     const badgesHeight = 28; // Más espacio para badges de resumen
     const portsCardHeight = headerHeight + contentHeight + backPortsHeight + bottomPortsHeight + badgesHeight;
 
-    drawCard(doc, margin, y, contentWidth, portsCardHeight);
+    drawCard(doc, margin, y, contentWidth, portsCardHeight, { darkMode: isDark });
 
     // ===== Header de la card (como en specs cards) =====
     const cardY = y;
@@ -456,7 +513,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     const iconY = cardY + 5;
 
     // Cuadrado con ícono USB (header)
-    doc.setFillColor(...PDF_COLORS.primary);
+    doc.setFillColor(...primary);
     doc.roundedRect(iconX, iconY, headerIconSize, headerIconSize, 1.5, 1.5, 'F');
 
     // Ícono USB en blanco
@@ -469,19 +526,19 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     }
 
     // Título y subtítulo
-    doc.setTextColor(...PDF_COLORS.text);
+    doc.setTextColor(...text);
     doc.setFontSize(9);
     doc.setFont('Asap', 'bold');
     doc.text('Puertos y Conectividad', iconX + headerIconSize + 4, iconY + 4);
 
-    doc.setTextColor(...PDF_COLORS.textMuted);
+    doc.setTextColor(...textMuted);
     doc.setFontSize(7);
     doc.setFont('Asap', 'normal');
     doc.text('Distribución de puertos en el equipo', iconX + headerIconSize + 4, iconY + 9);
 
     // Línea separadora
     const lineY = iconY + headerIconSize + 3;
-    doc.setDrawColor(...PDF_COLORS.border);
+    doc.setDrawColor(...border);
     doc.setLineWidth(0.3);
     doc.line(margin + headerPadding, lineY, margin + contentWidth - headerPadding, lineY);
 
@@ -514,7 +571,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
       // Texto del puerto (centrado verticalmente - ajuste para baseline de fuente)
       const textY = badgeCenterY + 1; // +1 compensa el baseline de la fuente
-      doc.setTextColor(...PDF_COLORS.text);
+      doc.setTextColor(...text);
       doc.setFontSize(6.5);
       doc.setFont('Asap', 'normal');
       const portText = port.name + (port.count > 1 ? ` ×${port.count}` : '');
@@ -522,7 +579,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     };
 
     // Izquierda
-    doc.setTextColor(...PDF_COLORS.textMuted);
+    doc.setTextColor(...textMuted);
     doc.setFontSize(7);
     doc.setFont('Asap', 'bold');
     doc.text('IZQUIERDA', margin + 10, portsContentY);
@@ -559,7 +616,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     }
 
     // Indicadores de puertos (barras en los bordes, como en web)
-    doc.setFillColor(...PDF_COLORS.primary);
+    doc.setFillColor(...primary);
     doc.setGState(new GState({ opacity: 0.3 }));
     doc.roundedRect(laptopX - 1, laptopY + laptopH * 0.3, 1, laptopH * 0.4, 0.5, 0.5, 'F');
     doc.roundedRect(laptopX + laptopW, laptopY + laptopH * 0.3, 1, laptopH * 0.4, 0.5, 0.5, 'F');
@@ -570,7 +627,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
     // Derecha
     const rightColX = margin + colWidthPorts + laptopW + 24;
-    doc.setTextColor(...PDF_COLORS.textMuted);
+    doc.setTextColor(...textMuted);
     doc.setFontSize(7);
     doc.setFont('Asap', 'bold');
     doc.text('DERECHA', rightColX, portsContentY);
@@ -586,10 +643,10 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
     if (backPorts.length > 0) {
       const backY = portsContentY + 26 + Math.max(leftPorts.length, rightPorts.length) * portRowHeight;
-      doc.setDrawColor(...PDF_COLORS.border);
+      doc.setDrawColor(...border);
       doc.line(margin + headerPadding, backY - 5, margin + contentWidth - headerPadding, backY - 5);
 
-      doc.setTextColor(...PDF_COLORS.textMuted);
+      doc.setTextColor(...textMuted);
       doc.setFontSize(7);
       doc.setFont('Asap', 'bold');
       doc.text('PARTE TRASERA', margin + headerPadding, backY);
@@ -640,23 +697,29 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
     doc.setFontSize(badgeFontSize);
     doc.setFont('Asap', 'bold');
     const totalBadgeWidth = doc.getTextWidth(totalText) + 14;
+    // In dark mode: darker tint; in light mode: very light tint (original behavior)
     doc.setFillColor(
-      PDF_COLORS.primary[0] + (255 - PDF_COLORS.primary[0]) * 0.85,
-      PDF_COLORS.primary[1] + (255 - PDF_COLORS.primary[1]) * 0.85,
-      PDF_COLORS.primary[2] + (255 - PDF_COLORS.primary[2]) * 0.85
+      isDark ? Math.round(primary[0] * 0.18) : primary[0] + (255 - primary[0]) * 0.85,
+      isDark ? Math.round(primary[1] * 0.18) : primary[1] + (255 - primary[1]) * 0.85,
+      isDark ? Math.round(primary[2] * 0.18) : primary[2] + (255 - primary[2]) * 0.85
     );
     doc.roundedRect(centerX - totalBadgeWidth / 2, badgesStartY, totalBadgeWidth, badgeHeight, 3, 3, 'F');
-    doc.setTextColor(...PDF_COLORS.primary);
+    doc.setTextColor(...primary);
     doc.text(totalText, centerX, badgesStartY + textOffsetY, { align: 'center' });
 
     // Badge 2: Distribución izquierda/derecha (gris) - abajo
     const distText = `${leftCount} izquierda • ${rightCount} derecha`;
     doc.setFont('Asap', 'normal');
     const distBadgeWidth = doc.getTextWidth(distText) + 14;
-    doc.setFillColor(PDF_COLORS.pageBg[0] - 15, PDF_COLORS.pageBg[1] - 15, PDF_COLORS.pageBg[2] - 15);
+    // Slightly lighter in dark mode, slightly darker in light mode
+    doc.setFillColor(
+      isDark ? Math.min(255, pageBg[0] + 20) : Math.max(0, pageBg[0] - 15),
+      isDark ? Math.min(255, pageBg[1] + 20) : Math.max(0, pageBg[1] - 15),
+      isDark ? Math.min(255, pageBg[2] + 20) : Math.max(0, pageBg[2] - 15),
+    );
     const badge2Y = badgesStartY + badgeHeight + badgeGapV;
     doc.roundedRect(centerX - distBadgeWidth / 2, badge2Y, distBadgeWidth, badgeHeight, 3, 3, 'F');
-    doc.setTextColor(...PDF_COLORS.textMuted);
+    doc.setTextColor(...textMuted);
     doc.text(distText, centerX, badge2Y + textOffsetY, { align: 'center' });
 
     // Recalcular altura de card basado en contenido real
@@ -667,7 +730,7 @@ export const generateSpecSheetPDF = async (data: SpecSheetPDFData): Promise<void
 
   // ===== WATERMARK Y FOOTER =====
   addWatermarksToAllPages(doc, LEGAL_TEXTS.watermark);
-  addFootersToAllPages(doc, LEGAL_TEXTS.specSheet, qrBase64);
+  addFootersToAllPages(doc, LEGAL_TEXTS.specSheet, qrBase64, { darkMode: isDark });
 
   // Descargar
   const brandSlug = data.productBrand.toLowerCase().replace(/\s+/g, '-');

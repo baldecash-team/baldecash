@@ -203,7 +203,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
             {/* Progress Dots - Clickeable (WCAG 2.5.5: touch target ≥24×24) */}
             <div className="flex items-center mt-1 -mx-1.5">
               {progressSteps.map((step, index) => {
-                const isCompleted = completedSteps.includes(step.slug);
+                const isReached = index <= currentIndex;
                 const isCurrent = step.slug === currentStep;
                 const clickable = isStepClickable(step.slug, index);
 
@@ -222,10 +222,10 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                       <span
                         className={`
                           block w-2.5 h-2.5 rounded-full transition-all duration-200
-                          ${isCompleted
-                            ? 'bg-[var(--color-primary)]'
-                            : isCurrent
+                          ${isCurrent
                             ? 'bg-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.3)]'
+                            : isReached
+                            ? 'bg-[var(--color-primary)]'
                             : 'bg-neutral-200'}
                           ${clickable ? 'hover:scale-125 hover:ring-2 hover:ring-[rgba(var(--color-primary-rgb),0.5)]' : ''}
                         `}
@@ -250,7 +250,8 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
       {/* Desktop Version */}
       <div className="hidden lg:flex items-center justify-between">
         {progressSteps.map((step, index) => {
-          const isCompleted = completedSteps.includes(step.slug);
+          const isReached = index <= currentIndex;
+          const isPast = index < currentIndex;
           const isCurrent = step.slug === currentStep;
           const clickable = isStepClickable(step.slug, index);
 
@@ -270,17 +271,17 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                   className={`
                     w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
                     transition-all duration-200
-                    ${isCompleted
-                      ? 'bg-[var(--color-primary)] text-white'
-                      : isCurrent
+                    ${isCurrent
                       ? 'bg-[var(--color-primary)] text-white ring-4 ring-[rgba(var(--color-primary-rgb),0.2)]'
+                      : isReached
+                      ? 'bg-[var(--color-primary)] text-white'
                       : 'bg-neutral-200 text-neutral-500'}
                     ${clickable
                       ? 'group-hover:scale-110 group-hover:ring-4 group-hover:ring-[rgba(var(--color-primary-rgb),0.3)]'
                       : ''}
                   `}
                 >
-                  {isCompleted ? (
+                  {isPast ? (
                     <Check className="w-5 h-5" />
                   ) : (
                     index + 1
@@ -290,7 +291,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
                   className={`
                     mt-2 text-xs font-medium text-center max-w-[80px]
                     transition-colors duration-200
-                    ${isCurrent ? 'text-[var(--color-primary)]' : isCompleted ? 'text-neutral-700' : 'text-neutral-400'}
+                    ${isCurrent ? 'text-[var(--color-primary)]' : isReached ? 'text-neutral-700' : 'text-neutral-400'}
                     ${clickable ? 'group-hover:text-[var(--color-primary)]' : ''}
                   `}
                 >

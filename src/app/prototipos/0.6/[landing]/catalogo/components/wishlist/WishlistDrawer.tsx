@@ -65,6 +65,8 @@ interface WishlistDrawerProps {
   config?: WishlistConfig;
   /** IDs of products that are no longer available */
   unavailableIds?: string[];
+  /** Optional class applied to the root sheet/modal for theme overrides (e.g. gamer) */
+  themeClassName?: string;
 }
 
 // Contenido compartido entre mobile y desktop
@@ -290,6 +292,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
   maxCompareProducts = 3,
   config,
   unavailableIds = [],
+  themeClassName,
 }) => (
   <Modal
     isOpen={isOpen}
@@ -297,7 +300,7 @@ const DesktopModal: React.FC<WishlistDrawerProps> = ({
     size="full"
     scrollBehavior="inside"
     classNames={{
-      base: 'bg-white m-0 rounded-none sm:rounded-l-xl sm:ml-auto sm:max-w-md h-full',
+      base: `bg-white m-0 rounded-none sm:rounded-l-xl sm:ml-auto sm:max-w-md h-full ${themeClassName || ''}`,
       header: 'border-b border-neutral-200 bg-white py-4',
       body: 'bg-white p-0',
       footer: 'border-t border-neutral-200 bg-white',
@@ -363,6 +366,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
   maxCompareProducts = 3,
   config,
   unavailableIds = [],
+  themeClassName,
 }) => {
   const dragControls = useDragControls();
 
@@ -429,7 +433,7 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col min-h-[50vh] max-h-[calc(100vh-12rem)]"
+            className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col min-h-[50vh] max-h-[calc(100vh-12rem)] ${themeClassName || ''}`}
             style={{
               overscrollBehavior: 'contain',
               paddingBottom: 'env(safe-area-inset-bottom)',

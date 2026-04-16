@@ -32,7 +32,13 @@ export function GamerNewsletter({ theme }: GamerNewsletterProps) {
         <div className="md:text-left text-center">
           <h3
             className="mb-1.5"
-            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, fontWeight: 700 }}
+            style={{
+              fontFamily: "'Rajdhani', sans-serif",
+              fontSize: 22,
+              fontWeight: 700,
+              color: isDark ? '#f0f0f0' : '#1a1a1a',
+              letterSpacing: 0.2,
+            }}
           >
             Recibe ofertas exclusivas
           </h3>
