@@ -95,6 +95,7 @@ export const financingPlans: V5FinancingPlan[] = [
     ],
     ahorroText: '',
     colorAccent: '#B8B8B8',
+    productUrl: 'https://demo.baldecash.com/baldecash-macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/',
   },
   {
     id: 'avanzado',
@@ -116,6 +117,7 @@ export const financingPlans: V5FinancingPlan[] = [
     ahorroText: '',
     colorAccent: '#4654CD',
     destacado: true,
+    productUrl: 'https://demo.baldecash.com/baldecash-macbook-neo/producto/laptop-macbook-neo-lpappr0001351/',
   },
   {
     id: 'premium',
