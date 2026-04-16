@@ -254,9 +254,16 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-10">
-          {/* Logo Column */}
-          <div className="col-span-2 md:col-span-4 lg:col-span-1">
+        <div className={`grid grid-cols-2 gap-8 mb-10 ${
+          // lg: 1 logo col + N link cols (safelist: lg:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4 lg:grid-cols-5 lg:grid-cols-6)
+          columns?.length === 1 ? 'md:grid-cols-2 lg:grid-cols-2'
+          : columns?.length === 2 ? 'md:grid-cols-3 lg:grid-cols-3'
+          : columns?.length === 3 ? 'md:grid-cols-4 lg:grid-cols-4'
+          : columns?.length === 4 ? 'md:grid-cols-4 lg:grid-cols-5'
+          : 'md:grid-cols-4 lg:grid-cols-5'
+        }`}>
+          {/* Logo Column - full width on mobile/tablet, single col on desktop */}
+          <div className="col-span-full lg:col-span-1">
             <a href={heroUrl} className="inline-block mb-4">
               <img
                 src={logoUrl}
