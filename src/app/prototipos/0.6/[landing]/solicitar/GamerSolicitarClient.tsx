@@ -295,6 +295,10 @@ function SolicitarContent() {
     return plan?.options || [];
   }, [product, selectedMonths]);
 
+  if (!themeHydrated) {
+    return <div style={{ minHeight: '100vh', background: '#fff' }} />;
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gamer-btn-text': isDark ? '#0a0a0a' : '#fff', '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)' } as React.CSSProperties}>
       <style>{FONTS_CSS}</style>

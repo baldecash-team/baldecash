@@ -873,6 +873,10 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   }, []);
 
+  if (!hydrated) {
+    return <div style={{ minHeight: '100vh', background: '#fff' }} />;
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
       <style>{`

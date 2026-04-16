@@ -388,12 +388,14 @@ function LoadingFallback() {
 
 function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
 
   useEffect(() => {
     const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
+    setHydrated(true);
   }, []);
 
   const handleToggleTheme = () => {
@@ -403,19 +405,40 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
   };
   const isDark = theme === 'dark';
 
+  if (!hydrated) {
+    return <div style={{ minHeight: '100vh', background: '#fff' }} />;
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
         /* Gamer cyan overrides - both dark and light modes */
         .gamer-complementos-dark,
-        .gamer-complementos-dark *,
-        .gamer-complementos-light,
-        .gamer-complementos-light * {
+        .gamer-complementos-dark * {
           --color-primary: #00ffd5 !important;
           --color-primary-rgb: 0,255,213 !important;
           --color-secondary: #00ffd5 !important;
           --color-secondary-rgb: 0,255,213 !important;
+        }
+        .gamer-complementos-light,
+        .gamer-complementos-light * {
+          --color-primary: #00897a !important;
+          --color-primary-rgb: 0,137,122 !important;
+          --color-secondary: #00897a !important;
+          --color-secondary-rgb: 0,137,122 !important;
+        }
+        /* Light mode button text */
+        .gamer-complementos-light .bg-\[var\(--color-primary\)\].text-white {
+          color: #fff !important;
+        }
+        .gamer-complementos-light button.bg-\[var\(--color-primary\)\] {
+          color: #fff !important;
+        }
+        /* Light mode mobile product bar */
+        .gamer-complementos-light .fixed.bottom-0 .bg-white {
+          background: #fff !important;
+          border-color: #e5e7eb !important;
         }
         .gamer-complementos-dark {
           --color-primary: #00ffd5;
@@ -495,6 +518,25 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
         .gamer-complementos-dark .rounded-lg.border-2.bg-white {
           background: #1e1e1e !important;
           border-color: #2a2a2a !important;
+        }
+        .gamer-complementos-dark .rounded-lg.border-2.bg-white span {
+          color: #f0f0f0 !important;
+        }
+        /* Term dropdown */
+        .gamer-complementos-dark .bg-white.border.border-neutral-200.rounded-lg.shadow-lg {
+          background: #1a1a1a !important;
+          border-color: #2a2a2a !important;
+        }
+        .gamer-complementos-dark .text-neutral-700.hover\\:bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\] {
+          color: #f0f0f0 !important;
+        }
+        .gamer-complementos-dark .text-neutral-700.hover\\:bg-\\[rgba\\(var\\(--color-primary-rgb\\)\\,0\\.1\\)\\]:hover {
+          background: rgba(0,255,213,0.1) !important;
+          color: #00ffd5 !important;
+        }
+        /* Light mode term dropdown */
+        .gamer-complementos-light .bg-\\[var\\(--color-primary\\)\\].text-white {
+          background: #00897a !important;
         }
         /* Inicial pills */
         .gamer-complementos-dark .bg-neutral-100.text-neutral-600 {

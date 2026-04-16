@@ -70,7 +70,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute z-50 top-full right-0 mt-1 min-w-[140px] bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
+          <div className="absolute z-50 bottom-full right-0 mb-1 min-w-[140px] bg-white border border-neutral-200 rounded-lg shadow-lg overflow-hidden">
             <div className="p-1">
               {options.map((term) => (
                 <button

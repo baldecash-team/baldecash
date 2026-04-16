@@ -447,12 +447,14 @@ function GamerLoadingFallback() {
 
 function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
 
   useEffect(() => {
     const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
+    setHydrated(true);
   }, []);
 
   const handleToggleTheme = () => {
@@ -461,6 +463,10 @@ function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
     localStorage.setItem('baldecash-theme', next);
   };
   const isDark = theme === 'dark';
+
+  if (!hydrated) {
+    return <div style={{ minHeight: '100vh', background: '#fff' }} />;
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
