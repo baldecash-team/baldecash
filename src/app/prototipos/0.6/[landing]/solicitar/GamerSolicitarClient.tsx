@@ -62,7 +62,7 @@ const ACC_PAGE_SIZE = 6;
 // ── Main export ──
 export function GamerSolicitarClient() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#0e0e0e' }} />}>
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#ffffff' }} />}>
       <SolicitarContent />
     </Suspense>
   );
@@ -788,9 +788,9 @@ function SolicitarContent() {
         <div
           className="sm:hidden fixed bottom-0 left-0 right-0 z-50"
           style={{
-            background: isDark ? T.bgCard : '#fff',
-            borderTop: `1px solid ${T.border}`,
-            boxShadow: isDark ? '0 -4px 20px rgba(0,0,0,0.4)' : '0 -4px 20px rgba(0,0,0,0.08)',
+            background: isDark ? T.bgCard : '#ffffff',
+            borderTop: `2px solid ${T.neonCyan}`,
+            boxShadow: isDark ? '0 -4px 20px rgba(0,0,0,0.4)' : '0 -8px 24px rgba(0,137,122,0.15), 0 -2px 6px rgba(0,0,0,0.08)',
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >

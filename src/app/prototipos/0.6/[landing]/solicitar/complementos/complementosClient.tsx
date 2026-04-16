@@ -438,7 +438,37 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
         /* Light mode mobile product bar */
         .gamer-complementos-light .fixed.bottom-0 .bg-white {
           background: #fff !important;
+          border-color: #e0e0e0 !important;
+          box-shadow: 0 -4px 20px rgba(0,0,0,0.08) !important;
+        }
+        /* Light mode: product bar text colors */
+        .gamer-complementos-light .fixed.bottom-0 .text-neutral-800 {
+          color: #1a1a1a !important;
+        }
+        .gamer-complementos-light .fixed.bottom-0 .text-neutral-500 {
+          color: #888 !important;
+        }
+        .gamer-complementos-light .fixed.bottom-0 .bg-neutral-100 {
+          background: #f5f5f5 !important;
+        }
+        /* Light mode: product bar expanded */
+        .gamer-complementos-light .fixed.bottom-0 .border-neutral-100 {
           border-color: #e5e7eb !important;
+        }
+        .gamer-complementos-light .fixed.bottom-0 .bg-neutral-50 {
+          background: #fafafa !important;
+        }
+        /* Light mode: term selector in product bar */
+        .gamer-complementos-light .fixed.bottom-0 .rounded-lg.border-2.bg-white {
+          background: #fff !important;
+          border-color: #00897a !important;
+        }
+        .gamer-complementos-light .fixed.bottom-0 .rounded-lg.border-2.bg-white span {
+          color: #1a1a1a !important;
+        }
+        /* Light mode: backdrop blur */
+        .gamer-complementos-light .fixed.inset-0.bg-black\/20 {
+          background: rgba(0,0,0,0.15) !important;
         }
         .gamer-complementos-dark {
           --color-primary: #00ffd5;
