@@ -90,7 +90,7 @@ export default function LeadCaptureForm() {
   const inputClasses = (field: string) => {
     const hasError = touched[field] && errors[field];
     const isValid = touched[field] && formData[field as keyof V5LeadFormData] && !errors[field];
-    return `w-full px-4 py-3 rounded-xl text-sm bg-[#1c1c1e] text-white border transition-colors outline-none ${
+    return `w-full px-4 py-3 rounded-xl text-xs bg-[#1c1c1e] text-white border transition-colors outline-none ${
       hasError
         ? 'border-red-500 focus:border-red-500'
         : isValid
@@ -108,13 +108,13 @@ export default function LeadCaptureForm() {
               <CheckCircle2 className="w-10 h-10" style={{ color: BC.secondary }} />
             </div>
           </div>
-          <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: "'Baloo 2', cursive" }}>
+          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "'Baloo 2', cursive" }}>
             ¡Solicitud enviada!
           </h2>
-          <p className="text-[#86868b] mb-4">
+          <p className="text-sm text-[#86868b] mb-4">
             Hemos recibido tus datos correctamente. Te contactaremos pronto por WhatsApp.
           </p>
-          <p className="text-sm text-[#86868b]">
+          <p className="text-xs text-[#86868b]">
             Revisa tu correo <span className="text-white font-medium">{formData.correo}</span> para más información.
           </p>
         </div>
@@ -140,19 +140,19 @@ export default function LeadCaptureForm() {
           {/* Right: Form */}
           <div>
             <h2
-              className="text-3xl md:text-4xl font-semibold mb-2"
+              className="text-2xl md:text-3xl font-semibold mb-2"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               Solicita tu MacBook Neo
             </h2>
-            <p className="text-[#86868b] mb-8">
+            <p className="text-sm text-[#86868b] mb-8">
               Completa tus datos y te contactamos en menos de 24 horas.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nombre */}
               <div>
-                <label htmlFor="v5-nombre" className="block text-sm text-[#86868b] mb-1">Nombre completo</label>
+                <label htmlFor="v5-nombre" className="block text-xs text-[#86868b] mb-1">Nombre completo</label>
                 <input
                   id="v5-nombre"
                   type="text"
@@ -162,12 +162,12 @@ export default function LeadCaptureForm() {
                   onBlur={() => handleBlur('nombre')}
                   className={inputClasses('nombre')}
                 />
-                {touched.nombre && errors.nombre && <p className="text-xs text-red-500 mt-1">{errors.nombre}</p>}
+                {touched.nombre && errors.nombre && <p className="text-[10px] text-red-500 mt-1">{errors.nombre}</p>}
               </div>
 
               {/* Email */}
               <div>
-                <label htmlFor="v5-correo" className="block text-sm text-[#86868b] mb-1">Correo electrónico</label>
+                <label htmlFor="v5-correo" className="block text-xs text-[#86868b] mb-1">Correo electrónico</label>
                 <input
                   id="v5-correo"
                   type="email"
@@ -177,13 +177,13 @@ export default function LeadCaptureForm() {
                   onBlur={() => handleBlur('correo')}
                   className={inputClasses('correo')}
                 />
-                {touched.correo && errors.correo && <p className="text-xs text-red-500 mt-1">{errors.correo}</p>}
+                {touched.correo && errors.correo && <p className="text-[10px] text-red-500 mt-1">{errors.correo}</p>}
               </div>
 
               {/* WhatsApp + DNI */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="v5-whatsapp" className="block text-sm text-[#86868b] mb-1">WhatsApp</label>
+                  <label htmlFor="v5-whatsapp" className="block text-xs text-[#86868b] mb-1">WhatsApp</label>
                   <input
                     id="v5-whatsapp"
                     type="tel"
@@ -193,10 +193,10 @@ export default function LeadCaptureForm() {
                     onBlur={() => handleBlur('whatsapp')}
                     className={inputClasses('whatsapp')}
                   />
-                  {touched.whatsapp && errors.whatsapp && <p className="text-xs text-red-500 mt-1">{errors.whatsapp}</p>}
+                  {touched.whatsapp && errors.whatsapp && <p className="text-[10px] text-red-500 mt-1">{errors.whatsapp}</p>}
                 </div>
                 <div>
-                  <label htmlFor="v5-dni" className="block text-sm text-[#86868b] mb-1">DNI</label>
+                  <label htmlFor="v5-dni" className="block text-xs text-[#86868b] mb-1">DNI</label>
                   <input
                     id="v5-dni"
                     type="text"
@@ -207,13 +207,13 @@ export default function LeadCaptureForm() {
                     maxLength={8}
                     className={inputClasses('dni')}
                   />
-                  {touched.dni && errors.dni && <p className="text-xs text-red-500 mt-1">{errors.dni}</p>}
+                  {touched.dni && errors.dni && <p className="text-[10px] text-red-500 mt-1">{errors.dni}</p>}
                 </div>
               </div>
 
               {/* Institución */}
               <div>
-                <label htmlFor="v5-institucion" className="block text-sm text-[#86868b] mb-1">Institución educativa</label>
+                <label htmlFor="v5-institucion" className="block text-xs text-[#86868b] mb-1">Institución educativa</label>
                 <select
                   id="v5-institucion"
                   value={formData.institucionId}
@@ -225,7 +225,7 @@ export default function LeadCaptureForm() {
                     <option key={inst.id} value={inst.id}>{inst.nombre}</option>
                   ))}
                 </select>
-                {touched.institucionId && errors.institucionId && <p className="text-xs text-red-500 mt-1">{errors.institucionId}</p>}
+                {touched.institucionId && errors.institucionId && <p className="text-[10px] text-red-500 mt-1">{errors.institucionId}</p>}
               </div>
 
               {/* Checkboxes */}
@@ -244,7 +244,7 @@ export default function LeadCaptureForm() {
                   >
                     {formData.aceptaTerminos && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                   </div>
-                  <span className="text-xs text-[#86868b]">
+                  <span className="text-[10px] text-[#86868b]">
                     Acepto los <a href="#" className="underline" style={{ color: BC.secondary }}>términos y condiciones</a> y la política de privacidad
                   </span>
                 </button>
@@ -263,11 +263,11 @@ export default function LeadCaptureForm() {
                   >
                     {formData.aceptaPromociones && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
                   </div>
-                  <span className="text-xs text-[#86868b]">Quiero recibir ofertas por WhatsApp y correo</span>
+                  <span className="text-[10px] text-[#86868b]">Quiero recibir ofertas por WhatsApp y correo</span>
                 </button>
 
                 {showTermsError && !formData.aceptaTerminos && (
-                  <p className="text-xs text-red-500">Debes aceptar los términos y condiciones</p>
+                  <p className="text-[10px] text-red-500">Debes aceptar los términos y condiciones</p>
                 )}
               </div>
 

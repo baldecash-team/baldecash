@@ -18,7 +18,7 @@ import { ASSETS } from '../lib/constants';
 // ============================================================
 export const heroData: V5HeroData = {
   eyebrow: 'MacBook Neo',
-  headline: 'Tu próxima Mac te espera.',
+  headline: 'Tu próxima Mac te espera',
   ctaPrimary: { label: 'Solicitar financiamiento', scrollTo: 'lead-form' },
   ctaSecondary: { label: 'Desde S/119/mes', scrollTo: 'financing' },
   poster: ASSETS.hero.poster,
@@ -64,9 +64,9 @@ export const highlightCards: V5HighlightCard[] = [
 // S4: Design - TextOverMedia
 // ============================================================
 export const designData: V5DesignData = {
-  headline: 'Enamórate de tu Mac.',
+  headline: 'Cuatro colores.\nUno para ti.',
   description:
-    'MacBook Neo combina un diseño ultra delgado con una pantalla vibrante y un rendimiento increíble. Ahora con financiamiento BaldeCash.',
+    'Silver, Blush, Citrus e Indigo. Elige el que refleja tu estilo y financialo con BaldeCash.',
   ctaLabel: 'Conoce los planes',
   ctaScrollTo: 'financing',
   image: ASSETS.design,
@@ -77,29 +77,65 @@ export const designData: V5DesignData = {
 // ============================================================
 export const financingPlans: V5FinancingPlan[] = [
   {
-    id: 'normal',
-    nombre: 'MacBook Neo',
-    descripcion: 'Equipo normal',
+    id: 'esencial',
+    nombre: 'Esencial',
+    subtitulo: 'Pack entrada',
+    descripcion: 'MacBook Neo 256GB',
     cuotaMensual: 199,
     plazoMeses: 24,
     cuotaInicial: 0,
+    icono: 'Zap',
+    imagen: '',
+    items: [
+      'Chip Apple A18 Pro · 6-core CPU',
+      '256GB SSD · 16GB memoria unificada',
+      'Pantalla Liquid Retina 13" · 500 nits',
+      'Hasta 16 horas de batería',
+      'Envío gratis a todo el Perú',
+    ],
+    ahorroText: '',
+    colorAccent: '#B8B8B8',
   },
   {
-    id: '512',
-    nombre: 'MacBook Neo 512GB',
-    descripcion: 'Equipo 512GB',
+    id: 'avanzado',
+    nombre: 'Avanzado',
+    subtitulo: 'Pack media-alta',
+    descripcion: 'MacBook Neo 512GB',
     cuotaMensual: 249,
     plazoMeses: 24,
     cuotaInicial: 0,
+    icono: 'Star',
+    imagen: '',
+    items: [
+      'Chip Apple A18 Pro · 6-core CPU + 5-core GPU',
+      '512GB SSD · 16GB memoria unificada',
+      'Touch ID · Apple Intelligence',
+      'Cámara FaceTime HD 1080p',
+      'Envío gratis a todo el Perú',
+    ],
+    ahorroText: '',
+    colorAccent: '#4654CD',
     destacado: true,
   },
   {
-    id: '512-premium',
-    nombre: 'MacBook Neo 512GB Premium',
-    descripcion: 'Equipo 512GB Premium + AirPods',
+    id: 'premium',
+    nombre: 'Premium',
+    subtitulo: 'Pack premium',
+    descripcion: 'MacBook Neo 512GB + AirPods',
     cuotaMensual: 299,
     plazoMeses: 24,
     cuotaInicial: 0,
+    icono: 'Crown',
+    imagen: '',
+    items: [
+      'Chip Apple A18 Pro · Máximo rendimiento',
+      '512GB SSD · 24GB memoria unificada',
+      'Audio espacial Dolby Atmos',
+      'AirPods 4 incluidos',
+      'Envío prioritario gratis',
+    ],
+    ahorroText: '',
+    colorAccent: '#D4AF37',
   },
 ];
 
@@ -108,7 +144,7 @@ export const financingPlans: V5FinancingPlan[] = [
 // ============================================================
 export const performanceData: V5PerformanceData = {
   eyebrow: 'Potencia',
-  headline: 'La potencia para tu día a día.',
+  headline: 'La potencia para tu día a día',
   description:
     'Videollamadas, trabajos de investigación, presentaciones y tus juegos favoritos. MacBook Neo lo maneja todo sin despeinarse.',
   chapters: [
@@ -176,7 +212,7 @@ export const dcaChapters: V5DCAChapter[] = [
 // S8: Product Viewer
 // ============================================================
 export const productViewerData: V5ProductViewerData = {
-  headline: 'Mira de cerca.',
+  headline: 'Mira de cerca',
   items: [
     {
       id: 'colors',
@@ -338,5 +374,5 @@ export const navLinks: V5NavLink[] = [
   { label: 'Planes', sectionId: 'financing' },
   { label: 'Rendimiento', sectionId: 'performance' },
   { label: 'Producto', sectionId: 'product-viewer' },
-  { label: 'Testimonios', sectionId: 'social-proof' },
+  // { label: 'Testimonios', sectionId: 'social-proof' },
 ];

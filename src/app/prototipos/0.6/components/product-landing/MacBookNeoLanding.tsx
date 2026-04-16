@@ -15,7 +15,7 @@ const FinancingPlans = lazy(() => import('./FinancingPlans'));
 const PerformanceSection = lazy(() => import('./PerformanceSection'));
 const DisplayCameraAudio = lazy(() => import('./DisplayCameraAudio'));
 const ProductViewer = lazy(() => import('./ProductViewer'));
-const SocialProof = lazy(() => import('./SocialProof'));
+// const SocialProof = lazy(() => import('./SocialProof'));
 
 // Load section when it's near the viewport
 function LazySection({ children, fallbackHeight = 400 }: { children: ReactNode; fallbackHeight?: number }) {
@@ -88,7 +88,7 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
       </LazySection>
 
       {/* S5: Financing Plans */}
-      <LazySection fallbackHeight={800}>
+      <LazySection fallbackHeight={900}>
         <FinancingPlans tier={tier} landing={landing} />
       </LazySection>
 
@@ -103,14 +103,16 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
       </LazySection>
 
       {/* S8: Product Viewer */}
-      <LazySection fallbackHeight={900}>
-        <ProductViewer />
-      </LazySection>
+      <div id="product-viewer">
+        <LazySection fallbackHeight={900}>
+          <ProductViewer />
+        </LazySection>
+      </div>
 
-      {/* S9: Social Proof */}
-      <LazySection fallbackHeight={500}>
+      {/* S9: Social Proof — oculto temporalmente */}
+      {/* <LazySection fallbackHeight={500}>
         <SocialProof />
-      </LazySection>
+      </LazySection> */}
 
       {/* S10: Footer */}
       <Footer data={footerData} landing={landing} />

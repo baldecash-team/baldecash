@@ -21,7 +21,7 @@ export default function BenefitsBar() {
             return (
               <div key={benefit.id} className="flex items-center gap-2">
                 {Icon && <Icon className="w-5 h-5 flex-shrink-0" style={{ color: BC.secondary }} />}
-                <span className="text-sm text-[#f5f5f7] whitespace-nowrap">{benefit.texto}</span>
+                <span className="text-xs text-[#f5f5f7] whitespace-nowrap">{benefit.texto}</span>
               </div>
             );
           })}

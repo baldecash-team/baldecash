@@ -59,16 +59,16 @@ export default function DisplayCameraAudio() {
         {/* Header */}
         <RevealOnScroll>
           <div className="md:text-center mb-12 sm:mb-20">
-            <p className="text-[#86868b] text-sm font-semibold mb-2 uppercase tracking-wider">
+            <p className="text-[#86868b] text-xs font-semibold mb-2 uppercase tracking-wider">
               Pantalla, Cámara y Audio
             </p>
             <h2
-              className="text-[32px] sm:text-[48px] md:text-[72px] lg:text-[96px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
+              className="text-[27px] sm:text-[40px] md:text-[61px] lg:text-[82px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
-              Un festín para tus sentidos.
+              Un festín para tus sentidos
             </h2>
-            <p className="text-[15px] sm:text-[17px] md:text-[21px] text-[#86868b] max-w-[680px] md:mx-auto leading-[1.47]">
+            <p className="text-[13px] sm:text-[15px] md:text-[18px] text-[#86868b] max-w-[680px] md:mx-auto leading-[1.47]">
               Fotos y videos con contraste vibrante y detalle nítido. Texto legible para
               estudiar sin cansarte. Y altavoces laterales con sonido envolvente.
             </p>
@@ -93,12 +93,12 @@ export default function DisplayCameraAudio() {
             {/* Text + stats below image */}
             <div className="p-5 sm:p-8 md:p-10">
               <h3
-                className="text-2xl md:text-3xl font-semibold mb-2 m-0"
+                className="text-xl md:text-2xl font-semibold mb-2 m-0"
                 style={{ letterSpacing: '-0.01em' }}
               >
                 {displayChapter.title}
               </h3>
-              <p className="text-[15px] md:text-[17px] text-[#86868b] leading-relaxed m-0 max-w-[520px]">
+              <p className="text-[13px] md:text-[15px] text-[#86868b] leading-relaxed m-0 max-w-[520px]">
                 {displayChapter.description}
               </p>
               {displayChapter.stats && (
@@ -106,12 +106,12 @@ export default function DisplayCameraAudio() {
                   {displayChapter.stats.map((stat) => (
                     <div key={stat.label}>
                       <p
-                        className="text-[28px] sm:text-[36px] md:text-[48px] font-semibold m-0"
+                        className="text-2xl sm:text-[31px] md:text-[40px] font-semibold m-0"
                         style={{ fontFamily: "'Baloo 2', cursive", lineHeight: 1.1 }}
                       >
                         <AnimatedNumber value={stat.value} />
                       </p>
-                      <p className="text-sm text-[#86868b] mt-1 m-0">{stat.label}</p>
+                      <p className="text-xs text-[#86868b] mt-1 m-0">{stat.label}</p>
                     </div>
                   ))}
                 </div>
@@ -146,7 +146,7 @@ export default function DisplayCameraAudio() {
                   {/* Text */}
                   <div className="p-6 md:p-8 flex-1">
                     <h3
-                      className="text-xl md:text-2xl font-semibold mb-2 m-0"
+                      className="text-[17px] md:text-xl font-semibold mb-2 m-0"
                       style={{
                         color: isLight ? '#1d1d1f' : '#f5f5f7',
                         letterSpacing: '-0.01em',
@@ -155,7 +155,7 @@ export default function DisplayCameraAudio() {
                       {chapter.title}
                     </h3>
                     <p
-                      className="text-[14px] md:text-[15px] leading-relaxed m-0"
+                      className="text-[12px] md:text-[13px] leading-relaxed m-0"
                       style={{ color: isLight ? '#6e6e73' : '#86868b' }}
                     >
                       {chapter.description}
@@ -165,7 +165,7 @@ export default function DisplayCameraAudio() {
                         {chapter.stats.map((stat) => (
                           <div key={stat.label}>
                             <p
-                              className="text-[28px] md:text-[36px] font-semibold m-0"
+                              className="text-2xl md:text-[31px] font-semibold m-0"
                               style={{
                                 fontFamily: "'Baloo 2', cursive",
                                 lineHeight: 1.1,
@@ -175,7 +175,7 @@ export default function DisplayCameraAudio() {
                               <AnimatedNumber value={stat.value} />
                             </p>
                             <p
-                              className="text-xs mt-1 m-0"
+                              className="text-[10px] mt-1 m-0"
                               style={{ color: isLight ? '#6e6e73' : '#86868b' }}
                             >
                               {stat.label}

@@ -140,12 +140,12 @@ export default function ProductViewer() {
   }, [expandedIndex]);
 
   return (
-    <section id="product-viewer" className="bg-white text-[#1d1d1f]" ref={sectionRef}>
+    <section className="bg-white text-[#1d1d1f]" ref={sectionRef}>
       <div className="max-w-[980px] mx-auto px-4 sm:px-6 py-12 sm:py-20">
         {/* Headline */}
         <div className="flex items-end justify-between mb-6 sm:mb-8">
           <h2
-            className="text-[32px] sm:text-[48px] md:text-[72px] lg:text-[96px] font-semibold tracking-[-0.015em] leading-[1.05] m-0"
+            className="text-[27px] sm:text-[40px] md:text-[61px] lg:text-[82px] font-semibold tracking-[-0.015em] leading-[1.05] m-0"
             style={{ fontFamily: "'Baloo 2', cursive" }}
           >
             {productViewerData.headline}
@@ -346,7 +346,7 @@ export default function ProductViewer() {
                       style={{ padding: '10px 14px', background: 'none', height: PILL_HEIGHT }}
                     >
                       <PillIcon />
-                      <span className="text-sm font-medium whitespace-nowrap" style={{ color: '#1d1d1f', letterSpacing: '-0.016em' }}>
+                      <span className="text-xs font-medium whitespace-nowrap" style={{ color: '#1d1d1f', letterSpacing: '-0.016em' }}>
                         {item.label}
                       </span>
                     </button>
@@ -355,8 +355,8 @@ export default function ProductViewer() {
                   {isItemExpanded && (
                     <div className="relative" style={{ width: EXPANDED_WIDTH, animation: 'pvContentFadeIn 0.42s ease-out' }}>
                       <div style={{ padding: 20 }}>
-                        <p className="text-sm leading-relaxed m-0 text-[#1d1d1f]">
-                          <strong className="block mb-1" style={{ fontSize: 16, fontWeight: 600, letterSpacing: '-0.016em' }}>
+                        <p className="text-xs leading-relaxed m-0 text-[#1d1d1f]">
+                          <strong className="block mb-1" style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.016em' }}>
                             {item.title}
                           </strong>
                           {item.description}
@@ -397,7 +397,7 @@ export default function ProductViewer() {
                     padding: '8px 14px',
                     backgroundColor: isItemExpanded ? '#1d1d1f' : '#f0f0f0',
                     color: isItemExpanded ? '#f5f5f7' : '#1d1d1f',
-                    fontSize: 13,
+                    fontSize: 11,
                     fontWeight: 500,
                     transition: 'background-color 0.25s ease, color 0.25s ease',
                   }}
@@ -419,8 +419,8 @@ export default function ProductViewer() {
             >
               <div className="p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-sm leading-relaxed m-0 text-[#1d1d1f] flex-1">
-                    <strong className="block mb-1" style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.016em' }}>
+                  <p className="text-xs leading-relaxed m-0 text-[#1d1d1f] flex-1">
+                    <strong className="block mb-1" style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.016em' }}>
                       {activeItem.title}
                     </strong>
                     {activeItem.description}
@@ -441,16 +441,16 @@ export default function ProductViewer() {
                   <button
                     onClick={goPrev}
                     disabled={expandedIndex === 0}
-                    className="flex items-center gap-1 text-sm font-medium border-none cursor-pointer bg-transparent disabled:opacity-30 disabled:cursor-default"
+                    className="flex items-center gap-1 text-xs font-medium border-none cursor-pointer bg-transparent disabled:opacity-30 disabled:cursor-default"
                     style={{ color: '#1d1d1f' }}
                   >
                     <ChevronLeft className="w-4 h-4" /> Anterior
                   </button>
-                  <span className="text-xs text-[#86868b]">{expandedIndex + 1} / {items.length}</span>
+                  <span className="text-[10px] text-[#86868b]">{expandedIndex + 1} / {items.length}</span>
                   <button
                     onClick={goNext}
                     disabled={expandedIndex === items.length - 1}
-                    className="flex items-center gap-1 text-sm font-medium border-none cursor-pointer bg-transparent disabled:opacity-30 disabled:cursor-default"
+                    className="flex items-center gap-1 text-xs font-medium border-none cursor-pointer bg-transparent disabled:opacity-30 disabled:cursor-default"
                     style={{ color: '#1d1d1f' }}
                   >
                     Siguiente <ChevronRight className="w-4 h-4" />

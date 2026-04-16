@@ -46,10 +46,16 @@ export interface V5DesignData {
 export interface V5FinancingPlan {
   id: string;
   nombre: string;
+  subtitulo: string;
   descripcion: string;
   cuotaMensual: number;
   plazoMeses: number;
   cuotaInicial: number;
+  icono: 'Zap' | 'Star' | 'Crown';
+  imagen: string;
+  items: string[];
+  ahorroText: string;
+  colorAccent: string;
   destacado?: boolean;
 }
 

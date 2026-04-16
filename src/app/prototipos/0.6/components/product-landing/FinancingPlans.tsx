@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Clock, Truck, Shield, Check, ArrowRight } from 'lucide-react';
+import { Check, ArrowRight, Zap, Star, Crown, type LucideIcon } from 'lucide-react';
 import { financingPlans } from './data/v5Data';
 import { BC } from './lib/constants';
 import { useReducedMotion } from './shared/hooks/useReducedMotion';
@@ -11,9 +11,11 @@ interface FinancingPlansV5Props {
   landing?: string;
 }
 
+const ICON_MAP: Record<string, LucideIcon> = { Zap, Star, Crown };
+
 export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo' }: FinancingPlansV5Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const priceRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
@@ -23,11 +25,10 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
   useEffect(() => {
     if (!isEnhanced) return;
 
-    const container = containerRef.current;
-    const price = priceRef.current;
+    const header = headerRef.current;
     const cards = cardsRef.current;
     const cta = ctaRef.current;
-    if (!container || !price || !cards || !cta) return;
+    if (!header || !cards || !cta) return;
 
     let ctx: ReturnType<typeof import('gsap')['gsap']['context']> | null = null;
 
@@ -40,22 +41,22 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
       const { ScrollTrigger } = stMod;
       gsap.registerPlugin(ScrollTrigger);
 
-      gsap.set(price, { opacity: 0, y: 40 });
+      gsap.set(header, { opacity: 0, y: 30 });
       gsap.set(cards!.children, { opacity: 0, y: 40 });
       gsap.set(cta, { opacity: 0, y: 20 });
 
       ctx = gsap.context(() => {
-        gsap.to(price, {
-          opacity: 1, y: 0, ease: 'power2.out',
-          scrollTrigger: { trigger: container, start: 'top bottom', end: '25% bottom', scrub: true },
+        gsap.to(header, {
+          opacity: 1, y: 0, duration: 0.7, ease: 'power2.out',
+          scrollTrigger: { trigger: header, start: 'top 85%', toggleActions: 'play none none none' },
         });
         gsap.to(cards!.children, {
-          opacity: 1, y: 0, stagger: 0.1, ease: 'power2.out',
-          scrollTrigger: { trigger: container, start: '20% bottom', end: '50% bottom', scrub: true },
+          opacity: 1, y: 0, duration: 0.7, stagger: 0.12, ease: 'power2.out',
+          scrollTrigger: { trigger: cards, start: 'top 80%', toggleActions: 'play none none none' },
         });
         gsap.to(cta, {
-          opacity: 1, y: 0, ease: 'power2.out',
-          scrollTrigger: { trigger: container, start: '40% bottom', end: '60% bottom', scrub: true },
+          opacity: 1, y: 0, duration: 0.5, ease: 'power2.out',
+          scrollTrigger: { trigger: cta, start: 'top 90%', toggleActions: 'play none none none' },
         });
       });
     }
@@ -64,152 +65,206 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
     return () => { ctx?.revert(); };
   }, [isEnhanced]);
 
-  const useStaticLayout = tier === 'base' || reducedMotion;
-
-  const handleScrollToFinancing = () => {
-    const el = document.getElementById('financing');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
-    <section id="financing" className="bg-black">
-      <div ref={containerRef} style={{ height: useStaticLayout ? 'auto' : '150vh' }}>
-        <div
-          className={`flex items-center justify-center ${
-            useStaticLayout ? 'py-24' : 'sticky top-0 h-screen'
-          }`}
-        >
-          <div className="max-w-[1040px] w-full mx-auto px-5 sm:px-6 md:px-4 text-center">
-            {/* Price headline */}
-            <div ref={priceRef}>
-              <p className="text-lg text-[#a1a1a6] m-0">Desde</p>
-              <p
-                className="font-bold m-0 mt-1"
+    <section id="financing" ref={sectionRef} className="bg-black py-20 sm:py-28">
+      <div className="max-w-[1100px] w-full mx-auto px-5 sm:px-6">
+        {/* Header */}
+        <div ref={headerRef} className="text-center mb-12 sm:mb-16">
+          <p className="text-[#86868b] text-xs font-semibold mb-2 uppercase tracking-wider">
+            Planes y precios
+          </p>
+          <h2
+            className="text-[27px] sm:text-[40px] md:text-[54px] font-semibold tracking-[-0.015em] leading-[1.05] text-[#f5f5f7] mb-4"
+            style={{ fontFamily: "'Baloo 2', cursive" }}
+          >
+            Tu MacBook, a tu ritmo
+          </h2>
+          <p className="text-[13px] sm:text-[15px] text-[#86868b] max-w-[540px] mx-auto leading-[1.5]">
+            Desde <span className="text-[#f5f5f7] font-semibold">S/199/mes</span>. Sin inicial. Sin tarjeta de crédito.
+          </p>
+        </div>
+
+        {/* Plan cards */}
+        <div ref={cardsRef} className="flex flex-col md:flex-row gap-5 md:gap-4 items-stretch justify-center">
+          {financingPlans.map((plan) => {
+            const Icon = ICON_MAP[plan.icono] || Zap;
+            const accent = plan.colorAccent;
+            const isDestacado = plan.destacado;
+            const isPremium = plan.id === 'premium';
+
+            return (
+              <div
+                key={plan.id}
+                className="rounded-2xl flex-1 w-full md:max-w-[360px] relative flex flex-col overflow-visible"
                 style={{
-                  fontSize: 'clamp(3rem, 8vw, 5.5rem)',
-                  fontFamily: "'Baloo 2', cursive",
-                  lineHeight: 1.05,
+                  backgroundColor: '#161617',
+                  border: `2px solid ${isDestacado ? accent : 'rgba(255,255,255,0.06)'}`,
+                  transform: isDestacado ? 'scale(1.03)' : 'scale(1)',
+                  boxShadow: isDestacado
+                    ? `0 0 40px ${accent}26, 0 0 80px ${accent}14`
+                    : 'none',
+                  transition: 'border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease',
                 }}
               >
-                <span className="text-[#f5f5f7]">S/</span>
-                <span style={{ color: BC.primary }}>199</span>
-                <span className="text-[#f5f5f7]">/mes</span>
-              </p>
-              <p className="text-lg mt-3 text-[#a1a1a6] m-0">
-                Sin historial crediticio. Sin tarjeta de crédito.
-              </p>
-            </div>
+                {/* Popular badge */}
+                {isDestacado && (
+                  <div
+                    className="absolute text-[10px] font-semibold text-white uppercase tracking-wider px-3 py-1 rounded-full z-10"
+                    style={{
+                      backgroundColor: accent,
+                      top: 12,
+                      right: 12,
+                      boxShadow: `0 0 20px ${accent}66`,
+                    }}
+                  >
+                    Más elegido
+                  </div>
+                )}
 
-            {/* Plan cards */}
-            <div ref={cardsRef} className="flex flex-col md:flex-row gap-4 mt-10 sm:mt-14 justify-center">
-              {financingPlans.map((plan) => (
-                <a
-                  key={plan.id}
-                  href={`/prototipos/0.6/${landing}/solicitar?plan=${plan.id}`}
-                  className="rounded-2xl flex-1 w-full md:max-w-[340px] md:mx-0 relative overflow-hidden block no-underline group active:scale-[0.98]"
-                  style={{
-                    backgroundColor: '#161617',
-                    border: plan.destacado
-                      ? `2px solid ${BC.primary}`
-                      : '2px solid transparent',
-                    transform: plan.destacado ? 'scale(1.04)' : 'scale(1)',
-                    boxShadow: plan.destacado
-                      ? `0 0 40px rgba(70, 84, 205, 0.15), 0 0 80px rgba(70, 84, 205, 0.06)`
-                      : 'none',
-                    transition: 'border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!plan.destacado) {
-                      e.currentTarget.style.borderColor = BC.primary;
-                      e.currentTarget.style.boxShadow = `0 0 40px rgba(70, 84, 205, 0.15), 0 0 80px rgba(70, 84, 205, 0.06)`;
-                      e.currentTarget.style.transform = 'scale(1.04)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!plan.destacado) {
-                      e.currentTarget.style.borderColor = 'transparent';
-                      e.currentTarget.style.boxShadow = 'none';
-                      e.currentTarget.style.transform = 'scale(1)';
-                    }
-                  }}
-                >
-                  {/* Popular badge */}
-                  {plan.destacado && (
+                <div className="p-6 sm:p-7 flex flex-col flex-1">
+                  {/* Image placeholder */}
+                  <div
+                    className="w-full rounded-xl mb-5 flex items-center justify-center"
+                    style={{
+                      aspectRatio: '16 / 10',
+                      backgroundColor: 'rgba(255,255,255,0.03)',
+                      border: `1px solid rgba(255,255,255,0.06)`,
+                    }}
+                  >
+                    <span className="text-[10px] uppercase tracking-wider text-[#424245]">
+                      Imagen del pack
+                    </span>
+                  </div>
+
+                  {/* Icon */}
+                  <div className="flex justify-center mb-3">
                     <div
-                      className="text-xs font-semibold text-white text-center py-1.5"
-                      style={{ backgroundColor: BC.primary }}
+                      className="w-11 h-11 rounded-full flex items-center justify-center"
+                      style={{
+                        backgroundColor: `${accent}14`,
+                        border: `1.5px solid ${accent}`,
+                        boxShadow: isPremium ? `0 0 20px ${accent}4D` : undefined,
+                      }}
                     >
-                      Más popular
-                    </div>
-                  )}
-
-                  <div className="p-5 sm:p-7">
-                    <p className="text-sm font-medium text-[#a1a1a6] m-0 uppercase tracking-wider">
-                      {plan.nombre}
-                    </p>
-
-                    <p className="font-bold text-[#f5f5f7] m-0 mt-3">
-                      <span className="text-3xl sm:text-4xl" style={{ fontFamily: "'Baloo 2', cursive" }}>
-                        S/{plan.cuotaMensual}
-                      </span>
-                      <span className="text-base text-[#a1a1a6] ml-1">/mes</span>
-                    </p>
-
-                    <p className="text-sm mt-1 text-[#6e6e73] m-0">
-                      {plan.plazoMeses} meses &middot; {plan.descripcion}
-                    </p>
-
-                    {/* Benefits checklist */}
-                    <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="flex items-center gap-2.5 text-sm text-[#a1a1a6]">
-                        <Check className="w-4 h-4 flex-shrink-0" style={{ color: BC.secondary }} />
-                        <span>Cuota inicial S/0</span>
-                      </div>
-                      <div className="flex items-center gap-2.5 text-sm text-[#a1a1a6] mt-2.5">
-                        <Check className="w-4 h-4 flex-shrink-0" style={{ color: BC.secondary }} />
-                        <span>Aprobación en 24 horas</span>
-                      </div>
-                      <div className="flex items-center gap-2.5 text-sm text-[#a1a1a6] mt-2.5">
-                        <Check className="w-4 h-4 flex-shrink-0" style={{ color: BC.secondary }} />
-                        <span>Envío gratis a todo el Perú</span>
-                      </div>
+                      <Icon className="w-5 h-5" style={{ color: accent }} />
                     </div>
                   </div>
-                </a>
-              ))}
-            </div>
 
-            {/* Trust badges */}
-            <div className="flex flex-wrap justify-center gap-4 sm:gap-8 mt-8 sm:mt-10">
-              <div className="flex items-center gap-2 text-sm text-[#86868b]">
-                <Clock className="w-4 h-4" style={{ color: BC.secondary }} />
-                Aprobación en 24h
-              </div>
-              <div className="flex items-center gap-2 text-sm text-[#86868b]">
-                <Truck className="w-4 h-4" style={{ color: BC.secondary }} />
-                Envío gratis
-              </div>
-              <div className="flex items-center gap-2 text-sm text-[#86868b]">
-                <Shield className="w-4 h-4" style={{ color: BC.secondary }} />
-                Garantía 12 meses
-              </div>
-            </div>
+                  {/* Name */}
+                  <p
+                    className="text-center text-xl sm:text-2xl font-bold text-[#f5f5f7] m-0"
+                    style={{ fontFamily: "'Baloo 2', cursive", letterSpacing: '0.02em' }}
+                  >
+                    {plan.nombre}
+                  </p>
 
-            {/* CTA */}
-            <div ref={ctaRef} className="mt-10">
-              <a
-                href={`/prototipos/0.6/${landing}/solicitar`}
-                className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-white hover:opacity-90 transition-all no-underline cursor-pointer rounded-lg shadow-sm active:scale-[0.97]"
-                style={{ backgroundColor: BC.primary }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = BC.primaryHover)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = BC.primary)}
-              >
-                Solicitar ahora
-                <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
+                  {/* Subtitle */}
+                  <p className="text-center text-[10px] font-semibold text-[#86868b] uppercase tracking-[0.15em] m-0 mt-1">
+                    {plan.subtitulo}
+                  </p>
+
+                  {/* Price */}
+                  <p className="text-center font-bold m-0 mt-5">
+                    <span
+                      className="text-4xl sm:text-5xl"
+                      style={{
+                        fontFamily: "'Baloo 2', cursive",
+                        color: accent,
+                        textShadow: isPremium ? `0 0 20px ${accent}4D` : undefined,
+                      }}
+                    >
+                      S/{plan.cuotaMensual}
+                    </span>
+                    <span className="text-sm text-[#86868b] ml-1">/mes</span>
+                  </p>
+
+                  {/* Items */}
+                  <div className="mt-6 pt-5 flex-1" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <ul className="space-y-2.5 m-0 p-0 list-none">
+                      {plan.items.map((item) => (
+                        <li key={item} className="flex items-start gap-2.5 text-xs text-[#d1d1d6]">
+                          <Check className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: accent }} />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* CTA button */}
+                  <a
+                    href="#"
+                    className="mt-6 inline-flex items-center justify-center gap-2 w-full py-3 text-xs font-semibold no-underline rounded-xl transition-all active:scale-[0.97]"
+                    style={
+                      isDestacado
+                        ? {
+                            color: '#ffffff',
+                            background: `linear-gradient(135deg, ${BC.primary}, #6B4EE6)`,
+                            border: 'none',
+                          }
+                        : isPremium
+                        ? {
+                            color: '#1a1a1a',
+                            background: `linear-gradient(135deg, #B8891C, #E5C870)`,
+                            border: 'none',
+                          }
+                        : {
+                            color: accent,
+                            backgroundColor: 'transparent',
+                            border: `1.5px solid ${accent}66`,
+                          }
+                    }
+                    onMouseEnter={(e) => {
+                      if (isDestacado || isPremium) {
+                        e.currentTarget.style.filter = 'brightness(1.1)';
+                      } else {
+                        e.currentTarget.style.backgroundColor = `${accent}14`;
+                        e.currentTarget.style.borderColor = accent;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isDestacado || isPremium) {
+                        e.currentTarget.style.filter = 'brightness(1)';
+                      } else {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.borderColor = `${accent}66`;
+                      }
+                    }}
+                  >
+                    Lo quiero
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+
+                  {/* Savings footer */}
+                  {plan.ahorroText && (
+                    <div
+                      className="mt-3 text-center text-[10px] font-semibold py-2 px-3 rounded-lg"
+                      style={{
+                        color: accent,
+                        backgroundColor: `${accent}14`,
+                        border: `1px solid ${accent}33`,
+                      }}
+                    >
+                      {plan.ahorroText}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bottom CTA */}
+        <div ref={ctaRef} className="mt-12 sm:mt-14 text-center">
+          <a
+            href={`/prototipos/0.6/${landing}/solicitar`}
+            className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold text-white hover:opacity-90 transition-all no-underline cursor-pointer rounded-lg shadow-sm active:scale-[0.97]"
+            style={{ backgroundColor: BC.primary }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = BC.primaryHover)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = BC.primary)}
+          >
+            Solicitar ahora
+            <ArrowRight className="w-4 h-4" />
+          </a>
         </div>
       </div>
     </section>

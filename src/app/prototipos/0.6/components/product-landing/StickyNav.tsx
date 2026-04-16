@@ -1,6 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, User } from 'lucide-react';
 import { navLinks } from './data/v5Data';
 import { BC } from './lib/constants';
 
@@ -10,10 +12,13 @@ interface StickyNavV5Props {
 }
 
 const LOGO_WHITE = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
+const LOGO_DARK = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
 export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo' }: StickyNavV5Props) {
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('hero');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const observersRef = useRef<IntersectionObserver[]>([]);
 
   useEffect(() => {
@@ -21,9 +26,18 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
       const threshold = window.innerHeight * 0.85;
       setScrolledPastHero(window.scrollY > threshold);
     };
+    const handleResizeMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) setMobileMenuOpen(false);
+    };
+    handleResizeMobile();
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleResizeMobile);
     handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResizeMobile);
+    };
   }, []);
 
   useEffect(() => {
@@ -51,31 +65,144 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
 
   const handleNavClick = useCallback((sectionId: string) => {
     const el = document.getElementById(sectionId);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (!el) return;
+    const mobile = window.innerWidth < 768;
+    const offset = mobile ? 72 : 68;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
   }, []);
 
   const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Close mobile menu on section click
   const handleMobileNavClick = useCallback((sectionId: string) => {
     setMobileMenuOpen(false);
-    handleNavClick(sectionId);
+    setTimeout(() => handleNavClick(sectionId), 200);
   }, [handleNavClick]);
 
-  // Close mobile menu on resize to desktop
-  useEffect(() => {
-    const handleResize = () => { if (window.innerWidth > 768) setMobileMenuOpen(false); };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // ═══════════════════════════════════════════════════════════
+  // MOBILE: Navbar blanco estilo home (siempre visible)
+  // ═══════════════════════════════════════════════════════════
+  if (isMobile) {
+    return (
+      <>
+        {/* Backdrop tap-outside-to-close */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 z-40 bg-black/30"
+              aria-hidden="true"
+            />
+          )}
+        </AnimatePresence>
 
+        <nav
+          className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
+          style={{ top: 0 }}
+        >
+          <div className="px-4">
+            <div className="flex items-center justify-between h-16">
+              {/* Logo */}
+              <button
+                onClick={scrollToTop}
+                className="flex items-center gap-3 bg-transparent border-0 cursor-pointer p-0"
+              >
+                <img src={LOGO_DARK} alt="BaldeCash" className="h-8 object-contain" />
+              </button>
+
+              {/* Hamburger */}
+              <button
+                className="p-2 rounded-lg hover:bg-neutral-100 cursor-pointer border-0 bg-transparent"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Menú"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6 text-neutral-600" />
+                ) : (
+                  <Menu className="w-6 h-6 text-neutral-600" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile dropdown */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.div
+                className="bg-white border-t border-neutral-100 overflow-hidden"
+                initial={{ height: 0 }}
+                animate={{ height: 'auto' }}
+                exit={{ height: 0 }}
+                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+              >
+                <motion.div
+                  className="px-4 py-4 space-y-1"
+                  initial="closed"
+                  animate="open"
+                  exit="closed"
+                  variants={{
+                    open: { transition: { staggerChildren: 0.06, delayChildren: 0.15 } },
+                    closed: { transition: { staggerChildren: 0.03, staggerDirection: -1 } },
+                  }}
+                >
+                  {navLinks.map((link) => (
+                    <motion.button
+                      key={link.sectionId}
+                      onClick={() => handleMobileNavClick(link.sectionId)}
+                      className="block w-full text-left py-3 text-neutral-600 font-medium bg-transparent border-0 cursor-pointer"
+                      style={{ transition: 'color 0.2s ease' }}
+                      variants={{
+                        open: { opacity: 1, y: 0 },
+                        closed: { opacity: 0, y: -8 },
+                      }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                    >
+                      {link.label}
+                    </motion.button>
+                  ))}
+                  <motion.div
+                    className="pt-4 border-t border-neutral-100"
+                    variants={{
+                      open: { opacity: 1, y: 0 },
+                      closed: { opacity: 0, y: -8 },
+                    }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                  >
+                    <a
+                      href={`/prototipos/0.6/${landing}/solicitar`}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center gap-2 w-full font-medium rounded-lg py-3 px-4 transition-colors no-underline"
+                      style={{
+                        border: `2px solid ${BC.primary}`,
+                        color: BC.primary,
+                        backgroundColor: 'transparent',
+                      }}
+                    >
+                      <User className="w-4 h-4" />
+                      Solicitar
+                    </a>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </nav>
+      </>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DESKTOP: Nav original (oscuro + blur, aparece al scrollear)
+  // ═══════════════════════════════════════════════════════════
   return (
     <>
-      {/* ── Initial header: logo only, visible on hero ── */}
+      {/* Initial header: logo centrado sobre hero */}
       <div
         style={{
           position: 'fixed',
@@ -104,15 +231,11 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
             alignItems: 'center',
           }}
         >
-          <img
-            src={BC.logo}
-            alt="BaldeCash"
-            style={{ height: 44, objectFit: 'contain' }}
-          />
+          <img src={BC.logo} alt="BaldeCash" style={{ height: 44, objectFit: 'contain' }} />
         </button>
       </div>
 
-      {/* ── Sticky nav: single bar, appears after scrolling past hero ── */}
+      {/* Sticky nav desktop */}
       <nav
         style={{
           position: 'fixed',
@@ -143,7 +266,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
             justifyContent: 'space-between',
           }}
         >
-          {/* Left: Logo */}
+          {/* Logo */}
           <button
             onClick={scrollToTop}
             style={{
@@ -156,14 +279,10 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
               flexShrink: 0,
             }}
           >
-            <img
-              src={LOGO_WHITE}
-              alt="BaldeCash"
-              style={{ height: 34, objectFit: 'contain' }}
-            />
+            <img src={LOGO_WHITE} alt="BaldeCash" style={{ height: 34, objectFit: 'contain' }} />
           </button>
 
-          {/* Center: Section links (desktop only) */}
+          {/* Section links */}
           <div
             style={{
               display: 'flex',
@@ -172,7 +291,6 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
               justifyContent: 'center',
               flex: 1,
             }}
-            className="v5-nav-links"
           >
             {navLinks.map((link) => {
               const isActive = activeSection === link.sectionId;
@@ -184,7 +302,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    fontSize: 15,
+                    fontSize: 13,
                     fontWeight: isActive ? 600 : 400,
                     color: isActive ? '#f5f5f7' : 'rgba(245, 245, 247, 0.5)',
                     padding: '4px 0',
@@ -214,7 +332,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
             })}
           </div>
 
-          {/* Right: CTA + Mobile hamburger */}
+          {/* CTA Solicitar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <a
               href={`/prototipos/0.6/${landing}/solicitar`}
@@ -222,7 +340,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: 500,
                 color: '#f5f5f7',
                 backgroundColor: 'transparent',
@@ -233,113 +351,21 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
                 whiteSpace: 'nowrap',
                 transition: 'background-color 0.2s ease, color 0.2s ease',
                 lineHeight: '18px',
+                textDecoration: 'none',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(245, 245, 247, 0.1)'; e.currentTarget.style.borderColor = '#f5f5f7'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = 'rgba(245, 245, 247, 0.5)'; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(245, 245, 247, 0.1)';
+                e.currentTarget.style.borderColor = '#f5f5f7';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.borderColor = 'rgba(245, 245, 247, 0.5)';
+              }}
             >
               Solicitar
             </a>
-
-            {/* Hamburger button (mobile only) */}
-            <button
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="v5-hamburger"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 8,
-                display: 'none',
-              }}
-              aria-label="Menú"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <rect
-                  y={mobileMenuOpen ? 9 : 3}
-                  width="20"
-                  height="1.5"
-                  rx="0.75"
-                  fill="#f5f5f7"
-                  style={{
-                    transition: 'transform 0.3s ease, y 0.3s ease',
-                    transformOrigin: 'center',
-                    transform: mobileMenuOpen ? 'rotate(45deg)' : 'rotate(0)',
-                  }}
-                />
-                <rect
-                  y={mobileMenuOpen ? 9 : 15.5}
-                  width="20"
-                  height="1.5"
-                  rx="0.75"
-                  fill="#f5f5f7"
-                  style={{
-                    transition: 'transform 0.3s ease, y 0.3s ease',
-                    transformOrigin: 'center',
-                    transform: mobileMenuOpen ? 'rotate(-45deg)' : 'rotate(0)',
-                  }}
-                />
-              </svg>
-            </button>
           </div>
         </div>
-
-        {/* Mobile menu dropdown */}
-        <div
-          className="v5-mobile-menu"
-          style={{
-            maxHeight: mobileMenuOpen ? 400 : 0,
-            opacity: mobileMenuOpen ? 1 : 0,
-            overflow: 'hidden',
-            transition: 'max-height 0.35s ease, opacity 0.3s ease',
-            backgroundColor: 'rgba(29, 29, 31, 0.95)',
-            backdropFilter: 'saturate(180%) blur(20px)',
-            WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-          }}
-        >
-          <div style={{ padding: '8px 16px 16px' }}>
-            {navLinks.map((link) => {
-              const isActive = activeSection === link.sectionId;
-              return (
-                <button
-                  key={link.sectionId}
-                  onClick={() => handleMobileNavClick(link.sectionId)}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    background: 'none',
-                    border: 'none',
-                    borderBottom: '0.5px solid rgba(255,255,255,0.08)',
-                    cursor: 'pointer',
-                    fontSize: 16,
-                    fontWeight: isActive ? 600 : 400,
-                    color: isActive ? '#f5f5f7' : 'rgba(245, 245, 247, 0.6)',
-                    padding: '14px 0',
-                    textAlign: 'left',
-                    transition: 'color 0.2s ease',
-                  }}
-                >
-                  {link.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <style>{`
-          @media (max-width: 768px) {
-            .v5-nav-links {
-              display: none !important;
-            }
-            .v5-hamburger {
-              display: flex !important;
-            }
-          }
-          @media (min-width: 769px) {
-            .v5-mobile-menu {
-              display: none !important;
-            }
-          }
-        `}</style>
       </nav>
     </>
   );

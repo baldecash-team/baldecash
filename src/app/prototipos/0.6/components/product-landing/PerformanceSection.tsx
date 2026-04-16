@@ -72,12 +72,12 @@ function ChapterCard({ chapter, imageLeft }: { chapter: { id: string; title: str
         className="w-full md:w-1/2 flex flex-col justify-center gap-3 py-4 md:px-6"
       >
         <h3
-          className="text-3xl md:text-4xl font-bold m-0 text-[#f5f5f7]"
+          className="text-2xl md:text-3xl font-bold m-0 text-[#f5f5f7]"
           style={{ fontFamily: "'Baloo 2', cursive", letterSpacing: '-0.01em' }}
         >
           {chapter.title}
         </h3>
-        <p className="text-[17px] md:text-[19px] text-[#86868b] leading-relaxed m-0">
+        <p className="text-[15px] md:text-[16px] text-[#86868b] leading-relaxed m-0">
           {chapter.description}
         </p>
       </div>
@@ -97,16 +97,16 @@ export default function PerformanceSection() {
         {/* Header */}
         <RevealOnScroll>
           <div className="md:text-center mb-12 sm:mb-20">
-            <p className="text-[#86868b] text-sm font-semibold mb-2 uppercase tracking-wider">
+            <p className="text-[#86868b] text-xs font-semibold mb-2 uppercase tracking-wider">
               {performanceData.eyebrow}
             </p>
             <h2
-              className="text-[32px] sm:text-[48px] md:text-[72px] lg:text-[96px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
+              className="text-[27px] sm:text-[40px] md:text-[61px] lg:text-[82px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               {performanceData.headline}
             </h2>
-            <p className="text-[15px] sm:text-[17px] md:text-[21px] text-[#86868b] max-w-[680px] md:mx-auto leading-[1.47]">
+            <p className="text-[13px] sm:text-[15px] md:text-[18px] text-[#86868b] max-w-[680px] md:mx-auto leading-[1.47]">
               {performanceData.description}
             </p>
           </div>
@@ -129,13 +129,13 @@ export default function PerformanceSection() {
         {/* Battery stat */}
         <RevealOnScroll>
           <div className="text-center py-12 sm:py-20 mt-10 sm:mt-16">
-            <p className="text-sm text-[#86868b] mb-3 uppercase tracking-wider font-medium m-0">
+            <p className="text-xs text-[#86868b] mb-3 uppercase tracking-wider font-medium m-0">
               {performanceData.batteryLabel}
             </p>
             <p
               className="font-bold text-[#f5f5f7] m-0"
               style={{
-                fontSize: 'clamp(80px, 15vw, 140px)',
+                fontSize: 'clamp(68px, 12.75vw, 119px)',
                 fontFamily: "'Baloo 2', cursive",
                 lineHeight: 1,
                 letterSpacing: '-0.02em',
@@ -143,7 +143,7 @@ export default function PerformanceSection() {
             >
               16<span className="text-[#86868b]">h</span>
             </p>
-            <p className="text-[17px] md:text-[21px] text-[#86868b] mt-4 m-0">
+            <p className="text-[15px] md:text-[18px] text-[#86868b] mt-4 m-0">
               de batería con una sola carga
             </p>
           </div>
@@ -152,7 +152,7 @@ export default function PerformanceSection() {
         {/* Mini CTA */}
         <RevealOnScroll>
           <div className="text-center mt-4">
-            <p className="text-xl sm:text-2xl md:text-3xl text-[#f5f5f7] m-0 mb-4">
+            <p className="text-[17px] sm:text-xl md:text-2xl text-[#f5f5f7] m-0 mb-4">
               Desde{' '}
               <span className="font-bold" style={{ color: BC.primary, fontFamily: "'Baloo 2', cursive" }}>
                 S/199
@@ -161,7 +161,7 @@ export default function PerformanceSection() {
             </p>
             <button
               onClick={handleScrollToPlans}
-              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-sm sm:text-base font-semibold text-white border-none cursor-pointer rounded-xl transition-opacity hover:opacity-90 active:scale-[0.97]"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold text-white border-none cursor-pointer rounded-xl transition-opacity hover:opacity-90 active:scale-[0.97]"
               style={{ backgroundColor: BC.primary }}
             >
               Ver planes

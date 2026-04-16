@@ -102,11 +102,11 @@ export default function SocialProof() {
       <div className="max-w-[980px] mx-auto px-6">
         <RevealOnScroll>
           <div className="text-center mb-10 sm:mb-16">
-            <p className="text-[#6e6e73] text-sm font-semibold mb-2 uppercase tracking-wider">
+            <p className="text-[#6e6e73] text-xs font-semibold mb-2 uppercase tracking-wider">
               Testimonios
             </p>
             <h2
-              className="text-[28px] sm:text-[40px] md:text-[56px] lg:text-[64px] font-semibold tracking-[-0.009em] leading-[1.06]"
+              className="text-2xl sm:text-[34px] md:text-[48px] lg:text-[54px] font-semibold tracking-[-0.009em] leading-[1.06]"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               Estudiantes como tú ya tienen su MacBook Neo
@@ -144,7 +144,7 @@ export default function SocialProof() {
                   data-quote-mark
                   className="block leading-none select-none"
                   style={{
-                    fontSize: 'clamp(40px, 10vw, 64px)',
+                    fontSize: 'clamp(34px, 8.5vw, 54px)',
                     fontFamily: 'Georgia, serif',
                     color: BC.primary,
                     opacity: 0,
@@ -157,7 +157,7 @@ export default function SocialProof() {
                 </span>
 
                 {/* Quote */}
-                <p className="text-[15px] md:text-[16px] leading-[1.6] text-[#1d1d1f] mb-8 flex-1">
+                <p className="text-[13px] md:text-[14px] leading-[1.6] text-[#1d1d1f] mb-8 flex-1">
                   {t.quote}
                 </p>
 
@@ -166,14 +166,14 @@ export default function SocialProof() {
                   {/* Avatar circle with initials */}
                   <div
                     data-avatar
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold text-white"
+                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold text-white"
                     style={{ backgroundColor: BC.primary }}
                   >
                     {initials}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-[#1d1d1f] m-0">{t.nombre}</p>
-                    <p className="text-xs text-[#6e6e73] m-0">{fullUni}</p>
+                    <p className="text-xs font-semibold text-[#1d1d1f] m-0">{t.nombre}</p>
+                    <p className="text-[10px] text-[#6e6e73] m-0">{fullUni}</p>
                   </div>
                 </div>
               </div>

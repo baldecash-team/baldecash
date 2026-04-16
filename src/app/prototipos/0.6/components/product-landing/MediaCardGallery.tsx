@@ -46,10 +46,10 @@ export default function MediaCardGallery() {
     >
       <div className="mb-8 sm:mb-10" style={{ paddingLeft: 'max(16px, calc((100vw - 980px) / 2))' }}>
         <h2
-          className="text-[28px] sm:text-[40px] md:text-[56px] lg:text-[72px] font-bold tracking-[-0.015em] leading-[1.05]"
+          className="text-2xl sm:text-[34px] md:text-[48px] lg:text-[61px] font-bold tracking-[-0.015em] leading-[1.05]"
           style={{ fontFamily: "'Asap', sans-serif" }}
         >
-          Lo mejor de un vistazo.
+          Lo mejor de un vistazo
         </h2>
       </div>
 
@@ -62,7 +62,10 @@ export default function MediaCardGallery() {
         <div
           className="flex gap-5"
           style={{
-            animation: isVisible ? 'marquee-scroll 25s linear infinite' : 'none',
+            animationName: isVisible ? 'marquee-scroll' : 'none',
+            animationDuration: '25s',
+            animationTimingFunction: 'linear',
+            animationIterationCount: 'infinite',
             animationPlayState: isPlaying ? 'running' : 'paused',
             width: 'max-content',
             paddingLeft: 20,
@@ -99,7 +102,7 @@ export default function MediaCardGallery() {
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 z-10 p-4 sm:p-6 md:p-8">
                   <p
-                    className="text-[16px] sm:text-[20px] md:text-[28px] font-semibold leading-[1.14] tracking-[0.007em] m-0"
+                    className="text-[14px] sm:text-[17px] md:text-2xl font-semibold leading-[1.14] tracking-[0.007em] m-0"
                     style={{ color: isDark ? '#f5f5f7' : '#1d1d1f' }}
                   >
                     {card.caption}
