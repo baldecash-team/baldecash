@@ -79,7 +79,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
         body: JSON.stringify({
           code: couponCode.trim(),
           product_id: productId,
-          landing_id: config?.landing_id,
+          landing_id: config?.landing?.id ?? config?.landing_id,
         }),
       });
 

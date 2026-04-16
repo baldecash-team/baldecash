@@ -81,15 +81,17 @@ function createStep(overrides: Partial<WizardStep> = {}): WizardStep {
 }
 
 function createConfig(overrides: Partial<WizardConfig> = {}): WizardConfig {
+  const steps = overrides.steps ?? [
+    createStep({ id: 1, code: 'personal', url_slug: 'datos-personales', order: 1 }),
+    createStep({ id: 2, code: 'economic', url_slug: 'datos-economicos', order: 2 }),
+    createStep({ id: 3, code: 'documents', url_slug: 'documentos', order: 3 }),
+  ];
   return {
     landing_id: 1,
     landing_slug: 'test-landing',
     landing_name: 'Test Landing',
-    steps: [
-      createStep({ id: 1, code: 'personal', url_slug: 'datos-personales', order: 1 }),
-      createStep({ id: 2, code: 'economic', url_slug: 'datos-economicos', order: 2 }),
-      createStep({ id: 3, code: 'documents', url_slug: 'documentos', order: 3 }),
-    ],
+    steps,
+    total_steps: steps.filter(s => !s.is_summary_step).length,
     ...overrides,
   };
 }
