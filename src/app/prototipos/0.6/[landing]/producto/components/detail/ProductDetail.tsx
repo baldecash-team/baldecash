@@ -237,9 +237,12 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   // Derived section flags (single source of truth for nav + DOM sections)
   const GENERIC_TIERS = new Set(['Básica', 'Intermedia', 'Potente', 'medio']);
-  const displayShortDesc = product.shortDescription && !GENERIC_TIERS.has(product.shortDescription.trim())
-    ? product.shortDescription
-    : null;
+  const shortDesc = product.shortDescription?.trim();
+  const longDesc = product.description?.trim();
+  const displayShortDesc =
+    shortDesc && !GENERIC_TIERS.has(shortDesc) && shortDesc !== longDesc
+      ? product.shortDescription
+      : null;
   const hasDescription = !!(product.description || displayShortDesc);
   const hasSimilar = similarProducts.length > 0;
   const hasLimitations = limitations.length > 0;
