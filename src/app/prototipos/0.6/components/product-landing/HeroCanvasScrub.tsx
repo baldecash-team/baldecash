@@ -148,7 +148,7 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
 
               {/* Headline */}
               <h1
-                className="text-2xl sm:text-3xl md:text-5xl lg:text-[68px] font-bold leading-[1.05] m-0"
+                className="text-[28px] sm:text-[40px] md:text-[52px] lg:text-[64px] font-semibold tracking-[-0.015em] leading-[1.05] m-0"
                 style={{ fontFamily: "'Baloo 2', sans-serif", color: isMobile ? '#f5f5f7' : '#1d1d1f', ...staggerStyle(STAGGER.headline) }}
               >
                 MacBook Neo{isMobile ? <br /> : ' '}llegó a BaldeCash

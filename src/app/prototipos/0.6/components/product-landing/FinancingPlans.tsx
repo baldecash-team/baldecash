@@ -74,7 +74,7 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
             Planes y precios
           </p>
           <h2
-            className="text-[27px] sm:text-[40px] md:text-[54px] font-semibold tracking-[-0.015em] leading-[1.05] text-[#f5f5f7] mb-4"
+            className="text-[28px] sm:text-[40px] md:text-[52px] lg:text-[64px] font-semibold tracking-[-0.015em] leading-[1.05] text-[#f5f5f7] mb-4"
             style={{ fontFamily: "'Baloo 2', cursive" }}
           >
             Tu MacBook, a tu ritmo

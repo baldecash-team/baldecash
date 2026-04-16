@@ -43,7 +43,7 @@ export default function TextOverMediaDesign() {
     >
       <div className="flex flex-col items-center gap-3 sm:gap-4 px-4">
         <span
-          className="text-[27px] sm:text-[48px] md:text-[61px] lg:text-[82px] font-semibold tracking-[-0.015em] leading-[1.05] text-white whitespace-pre-line"
+          className="text-[28px] sm:text-[40px] md:text-[52px] lg:text-[64px] font-semibold tracking-[-0.015em] leading-[1.05] text-white whitespace-pre-line"
           style={{ fontFamily: "'Baloo 2', cursive" }}
         >
           {designData.headline}
@@ -221,7 +221,7 @@ function MobileDesignSection({ onCta }: { onCta: () => void }) {
             Diseño
           </span>
           <h2
-            className="text-[32px] font-semibold tracking-[-0.015em] leading-[1.02] text-white m-0 whitespace-pre-line"
+            className="text-[28px] font-semibold tracking-[-0.015em] leading-[1.05] text-white m-0 whitespace-pre-line"
             style={{ fontFamily: "'Baloo 2', cursive" }}
           >
             {designData.headline}

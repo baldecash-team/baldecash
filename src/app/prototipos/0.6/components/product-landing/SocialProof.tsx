@@ -106,7 +106,7 @@ export default function SocialProof() {
               Testimonios
             </p>
             <h2
-              className="text-2xl sm:text-[34px] md:text-[48px] lg:text-[54px] font-semibold tracking-[-0.009em] leading-[1.06]"
+              className="text-[28px] sm:text-[40px] md:text-[52px] lg:text-[64px] font-semibold tracking-[-0.015em] leading-[1.05]"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               Estudiantes como tú ya tienen su MacBook Neo

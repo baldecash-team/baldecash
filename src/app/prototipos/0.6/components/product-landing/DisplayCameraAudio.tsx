@@ -63,7 +63,7 @@ export default function DisplayCameraAudio() {
               Pantalla, Cámara y Audio
             </p>
             <h2
-              className="text-[27px] sm:text-[40px] md:text-[61px] lg:text-[82px] font-semibold tracking-[-0.015em] leading-[1.04] mb-4"
+              className="text-[28px] sm:text-[40px] md:text-[52px] lg:text-[64px] font-semibold tracking-[-0.015em] leading-[1.05] mb-4"
               style={{ fontFamily: "'Baloo 2', cursive" }}
             >
               Un festín para tus sentidos

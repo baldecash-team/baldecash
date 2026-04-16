@@ -46,8 +46,8 @@ export default function MediaCardGallery() {
     >
       <div className="mb-8 sm:mb-10" style={{ paddingLeft: 'max(16px, calc((100vw - 980px) / 2))' }}>
         <h2
-          className="text-2xl sm:text-[34px] md:text-[48px] lg:text-[61px] font-bold tracking-[-0.015em] leading-[1.05]"
-          style={{ fontFamily: "'Asap', sans-serif" }}
+          className="text-[28px] sm:text-[40px] md:text-[52px] lg:text-[64px] font-semibold tracking-[-0.015em] leading-[1.05]"
+          style={{ fontFamily: "'Baloo 2', sans-serif" }}
         >
           Lo mejor de un vistazo
         </h2>

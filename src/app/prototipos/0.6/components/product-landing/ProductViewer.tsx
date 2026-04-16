@@ -145,7 +145,7 @@ export default function ProductViewer() {
         {/* Headline */}
         <div className="flex items-end justify-between mb-6 sm:mb-8">
           <h2
-            className="text-[27px] sm:text-[40px] md:text-[61px] lg:text-[82px] font-semibold tracking-[-0.015em] leading-[1.05] m-0"
+            className="text-[28px] sm:text-[40px] md:text-[52px] lg:text-[64px] font-semibold tracking-[-0.015em] leading-[1.05] m-0"
             style={{ fontFamily: "'Baloo 2', cursive" }}
           >
             {productViewerData.headline}
