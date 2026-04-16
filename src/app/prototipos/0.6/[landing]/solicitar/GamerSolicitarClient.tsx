@@ -14,7 +14,7 @@ import { useWizardConfig } from './context/WizardConfigContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
-import { useScrollToTop } from '@/app/prototipos/_shared';
+import { useScrollToTop, CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
@@ -62,7 +62,7 @@ const ACC_PAGE_SIZE = 6;
 // ── Main export ──
 export function GamerSolicitarClient() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#ffffff' }} />}>
+    <Suspense fallback={<div className="gamer-loading-fallback"><CubeGridSpinner /></div>}>
       <SolicitarContent />
     </Suspense>
   );
@@ -296,7 +296,7 @@ function SolicitarContent() {
   }, [product, selectedMonths]);
 
   if (!themeHydrated) {
-    return <div style={{ minHeight: '100vh', background: '#fff' }} />;
+    return <div className="gamer-theme-bg" style={{ minHeight: '100vh' }} />;
   }
 
   return (

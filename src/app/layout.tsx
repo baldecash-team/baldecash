@@ -96,10 +96,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Tema gamer: (1) aplicar data-bc-theme ANTES del primer paint leyendo localStorage.
+            (2) wrappear localStorage.setItem para que cualquier cambio de tema sincronice el atributo en <html>.
+            Así las pantallas de carga siempre heredan el tema actual aun cuando el user haya toggleado mid-flow. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var apply=function(v){if(!v){document.documentElement.removeAttribute('data-bc-theme');return;}document.documentElement.setAttribute('data-bc-theme',v==='light'?'light':'dark');};apply(localStorage.getItem('baldecash-theme'));var orig=localStorage.setItem.bind(localStorage);localStorage.setItem=function(k,v){orig(k,v);if(k==='baldecash-theme')apply(v);};window.addEventListener('storage',function(e){if(e.key==='baldecash-theme')apply(e.newValue);});}catch(e){}})();`,
+          }}
+        />
         {GA_MEASUREMENT_ID && (
           <>
             <Script

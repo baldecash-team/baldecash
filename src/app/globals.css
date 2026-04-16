@@ -1,6 +1,40 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Gamer loading fallback — fondo según data-bc-theme del <html> (seteado por script inline en layout) */
+.gamer-loading-fallback {
+  min-height: 100vh !important;
+  width: 100%;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #0e0e0e !important;
+  position: relative;
+  z-index: 10;
+}
+html[data-bc-theme="light"] .gamer-loading-fallback {
+  background: #f5f5f5 !important;
+}
+
+/* Evitar flash blanco entre pantallas al navegar en dark mode.
+   Aplicamos el bg oscuro al html + body + wrappers para cubrir todas las transiciones. */
+html[data-bc-theme="dark"],
+html[data-bc-theme="dark"] body {
+  background-color: #0e0e0e !important;
+}
+html[data-bc-theme="light"],
+html[data-bc-theme="light"] body {
+  background-color: #f5f5f5;
+}
+
+/* Placeholder theme-aware (sin spinner) para transiciones breves / hidratación. */
+.gamer-theme-bg {
+  background-color: #0e0e0e;
+}
+html[data-bc-theme="light"] .gamer-theme-bg {
+  background-color: #f5f5f5;
+}
+
 @plugin "daisyui" {
   exclude: radialprogress, properties;
 }

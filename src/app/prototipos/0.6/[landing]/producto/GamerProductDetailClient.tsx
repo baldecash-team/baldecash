@@ -9,7 +9,7 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, useSyncExternalStore, Suspense } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Maximize2, Minus, Network, Package, Percent, Plus, Puzzle, Scale, Sparkles, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
+import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Sparkles, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -82,28 +82,12 @@ export function GamerProductDetailClient() {
 }
 
 function LoadingFallback() {
-  const [isDark, setIsDark] = useState(true);
-  // useLayoutEffect corre antes del paint: sincroniza el tema antes de que el browser pinte el primer frame.
-  useIsomorphicLayoutEffect(() => {
-    setIsDark(localStorage.getItem('baldecash-theme') !== 'light');
-  }, []);
   return (
-    <div
-      suppressHydrationWarning
-      style={{
-        minHeight: '100vh',
-        background: isDark ? '#0e0e0e' : '#f5f5f5',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <div className="gamer-loading-fallback">
       <CubeGridSpinner />
     </div>
   );
 }
-
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // ============================================
 // Content
@@ -588,51 +572,66 @@ function DetailContent() {
               )}
             </div>
 
-            {/* Main image viewer — square aspect with cursor-guided zoom */}
+            {/* Main image/video viewer — square aspect with cursor-guided zoom (imagen) o controles nativos (video) */}
             <div
               className="gallery-img-wrap"
-              style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', cursor: 'zoom-in' }}
-              onMouseEnter={() => setZoom((z) => ({ ...z, active: true }))}
-              onMouseLeave={() => setZoom({ active: false, x: 50, y: 50 })}
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                setZoom({ active: true, x, y });
-              }}
-              onClick={() => { setLightboxZoom(100); setLightboxOpen(true); }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setLightboxZoom(100); setLightboxOpen(true); } }}
+              style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', cursor: currentImage.type === 'video' ? 'default' : 'zoom-in', background: currentImage.type === 'video' ? '#000' : undefined }}
+              {...(currentImage.type !== 'video' && {
+                onMouseEnter: () => setZoom((z) => ({ ...z, active: true })),
+                onMouseLeave: () => setZoom({ active: false, x: 50, y: 50 }),
+                onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = ((e.clientX - rect.left) / rect.width) * 100;
+                  const y = ((e.clientY - rect.top) / rect.height) * 100;
+                  setZoom({ active: true, x, y });
+                },
+                onClick: () => { setLightboxZoom(100); setLightboxOpen(true); },
+                role: 'button',
+                tabIndex: 0,
+                onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Enter' || e.key === ' ') { setLightboxZoom(100); setLightboxOpen(true); } },
+              })}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={currentImage.url}
-                alt={currentImage.alt || product.name}
-                draggable={false}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  padding: 'clamp(16px, 6vw, 32px)',
-                  transform: zoom.active ? 'scale(2.5)' : 'scale(1)',
-                  transformOrigin: `${zoom.x}% ${zoom.y}%`,
-                  transition: 'transform 0.1s ease-out',
-                  pointerEvents: 'none',
-                  userSelect: 'none',
-                }}
-              />
-              {/* Zoom hint (hover only) */}
-              <div className="gallery-zoom-hint">
-                <Maximize2 size={14} />
-                <span>Pasa el cursor para ampliar</span>
-              </div>
-              {/* Imagen referencial label */}
-              <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '4px 10px' }}>
-                <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,0.8)' }}>Imagen referencial</span>
-              </div>
+              {currentImage.type === 'video' ? (
+                <video
+                  key={currentImage.url}
+                  src={currentImage.url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
+                />
+              ) : (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentImage.url}
+                    alt={currentImage.alt || product.name}
+                    draggable={false}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      padding: 'clamp(16px, 6vw, 32px)',
+                      transform: zoom.active ? 'scale(2.5)' : 'scale(1)',
+                      transformOrigin: `${zoom.x}% ${zoom.y}%`,
+                      transition: 'transform 0.1s ease-out',
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                    }}
+                  />
+                  {/* Zoom hint (hover only) */}
+                  <div className="gallery-zoom-hint">
+                    <Maximize2 size={14} />
+                    <span>Pasa el cursor para ampliar</span>
+                  </div>
+                  {/* Imagen referencial label */}
+                  <div style={{ position: 'absolute', bottom: 12, left: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '4px 10px' }}>
+                    <span style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,0.8)' }}>Imagen referencial</span>
+                  </div>
+                </>
+              )}
               {/* Image counter */}
-              <div style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '4px 10px' }}>
+              <div style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '4px 10px', zIndex: 2 }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{selectedImage + 1} / {images.length}</span>
               </div>
             </div>
@@ -661,7 +660,22 @@ function DetailContent() {
                           background: isDark ? T.bgSurface : '#fff',
                         }}
                       >
-                        <Image src={img.url} alt={img.alt || `Vista ${idx + 1}`} fill style={{ objectFit: 'contain', padding: 6 }} />
+                        {img.type === 'video' ? (
+                          <>
+                            <video
+                              src={`${img.url}#t=0.1`}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', padding: 6, pointerEvents: 'none', background: '#000' }}
+                            />
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                              <Play size={16} color="#fff" fill="#fff" style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.8))' }} />
+                            </div>
+                          </>
+                        ) : (
+                          <Image src={img.url} alt={img.alt || `Vista ${idx + 1}`} fill style={{ objectFit: 'contain', padding: 6 }} />
+                        )}
                       </div>
                     );
                   })}
@@ -985,26 +999,37 @@ function DetailContent() {
             </button>
           </div>
 
-          {/* Main image */}
+          {/* Main image/video */}
           <div
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflow: 'auto' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={currentImage.url}
-              alt={currentImage.alt || product.name}
-              draggable={false}
-              style={{
-                maxWidth: '90%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                transform: `scale(${lightboxZoom / 100})`,
-                transformOrigin: 'center',
-                transition: 'transform 0.2s ease-out',
-                userSelect: 'none',
-              }}
-            />
+            {currentImage.type === 'video' ? (
+              <video
+                key={currentImage.url}
+                src={currentImage.url}
+                controls
+                autoPlay
+                playsInline
+                style={{ maxWidth: '90%', maxHeight: '100%', objectFit: 'contain', background: '#000' }}
+              />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={currentImage.url}
+                alt={currentImage.alt || product.name}
+                draggable={false}
+                style={{
+                  maxWidth: '90%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  transform: `scale(${lightboxZoom / 100})`,
+                  transformOrigin: 'center',
+                  transition: 'transform 0.2s ease-out',
+                  userSelect: 'none',
+                }}
+              />
+            )}
           </div>
 
           {/* Bottom: thumbnails + counter */}
@@ -1032,8 +1057,23 @@ function DetailContent() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.url} alt={img.alt || `Vista ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      {img.type === 'video' ? (
+                        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                          <video
+                            src={`${img.url}#t=0.1`}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000', pointerEvents: 'none' }}
+                          />
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                            <Play size={14} color="#fff" fill="#fff" style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.8))' }} />
+                          </div>
+                        </div>
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={img.url} alt={img.alt || `Vista ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      )}
                     </div>
                   );
                 })}

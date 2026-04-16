@@ -90,7 +90,7 @@ import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNav
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
 import type { OnboardingStep } from './types/catalog';
-import { Toast, useToast, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { Toast, useToast, CubeGridSpinner, useIsMobile } from '@/app/prototipos/_shared';
 
 // ============================================
 // Theme helpers
@@ -142,30 +142,14 @@ export function GamerCatalogoClient() {
 }
 
 function GamerLoadingFallback() {
-  const [isDark, setIsDark] = useState(true);
-  // useLayoutEffect corre antes del paint: actualiza el tema antes de que el browser pinte
-  // el primer frame, eliminando el flash de fondo incorrecto al navegar client-side.
-  useIsomorphicLayoutEffect(() => {
-    setIsDark(localStorage.getItem('baldecash-theme') !== 'light');
-  }, []);
+  // Fondo y centrado provisto por .gamer-loading-fallback en globals.css.
+  // El <html data-bc-theme="..."> lo setea el script inline en el root layout.
   return (
-    <div
-      suppressHydrationWarning
-      style={{
-        minHeight: '100vh',
-        background: isDark ? '#0e0e0e' : '#f5f5f5',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
+    <div className="gamer-loading-fallback">
       <CubeGridSpinner />
     </div>
   );
 }
-
-// useLayoutEffect solo en browser; useEffect fallback en SSR para evitar warnings.
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // ============================================
 // Content
@@ -399,6 +383,20 @@ function GamerCatalogoContent() {
 
   // Wishlist drawer
   const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
+  const wishlistCatalogDropdownRef = useRef<HTMLDivElement | null>(null);
+  const isMobileViewport = useIsMobile();
+
+  // Cerrar dropdown desktop al hacer clic fuera
+  useEffect(() => {
+    if (!isWishlistDrawerOpen || isMobileViewport) return;
+    const handleClick = (e: MouseEvent) => {
+      if (wishlistCatalogDropdownRef.current && !wishlistCatalogDropdownRef.current.contains(e.target as Node)) {
+        setIsWishlistDrawerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isWishlistDrawerOpen, isMobileViewport]);
 
   // Compare
   const [compareList, setCompareList] = useState<CatalogProduct[]>([]);
@@ -840,33 +838,112 @@ function GamerCatalogoContent() {
 
           {/* Actions: favorites + cart */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Favorites button — drawer renderizado en el footer */}
-            <button
-              id="onboarding-wishlist"
-              onClick={() => setIsWishlistDrawerOpen(true)}
-              style={{
-                width: 40, height: 40, borderRadius: 12,
-                background: T.bgSurface, border: `1px solid ${T.border}`,
-                color: isDark ? '#fff' : '#555', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.3s', position: 'relative',
-              }}
-              title="Favoritos"
-            >
-              <Heart className="w-5 h-5" />
-              {wishlistCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -5, right: -5,
-                  minWidth: 18, height: 18, borderRadius: '50%',
-                  background: '#ff0055', color: '#fff',
-                  fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
+            {/* Favorites button — dropdown desktop / bottom-sheet mobile */}
+            <div ref={wishlistCatalogDropdownRef} style={{ position: 'relative' }}>
+              <button
+                id="onboarding-wishlist"
+                onClick={() => setIsWishlistDrawerOpen(prev => !prev)}
+                style={{
+                  width: 40, height: 40, borderRadius: 12,
+                  background: T.bgSurface, border: `1px solid ${T.border}`,
+                  color: isDark ? '#fff' : '#555', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
-                }}>
-                  {wishlistCount}
-                </span>
+                  transition: 'all 0.3s', position: 'relative',
+                }}
+                title="Favoritos"
+              >
+                <Heart className="w-5 h-5" />
+                {wishlistCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -5, right: -5,
+                    minWidth: 18, height: 18, borderRadius: '50%',
+                    background: '#ff0055', color: '#fff',
+                    fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
+                  }}>
+                    {wishlistCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Desktop dropdown */}
+              {isWishlistDrawerOpen && !isMobileViewport && (
+                <div
+                  className="hidden md:block absolute top-full right-0 mt-2 w-80 rounded-xl overflow-hidden z-50"
+                  style={{
+                    background: isDark ? '#1a1a1a' : '#fff',
+                    border: `1px solid ${T.border}`,
+                    boxShadow: isDark ? '0 12px 40px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${isDark ? '#2a2a2a' : '#f0f0f0'}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Heart className="w-4 h-4" style={{ color: T.neonCyan, fill: T.neonCyan }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
+                        Mis favoritos ({wishlistCount})
+                      </span>
+                    </div>
+                    {wishlistCount > 0 && (
+                      <button
+                        onClick={() => clearWishlist()}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: T.textMuted, fontFamily: "'Rajdhani', sans-serif" }}
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+                  {wishlistCount === 0 ? (
+                    <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                      <Heart className="w-10 h-10 mx-auto mb-2" style={{ color: isDark ? '#3a3a3a' : '#d4d4d4' }} />
+                      <p style={{ fontSize: 13, color: T.textMuted, margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>Sin favoritos aún</p>
+                    </div>
+                  ) : (
+                    <div style={{ maxHeight: 340, overflowY: 'auto', padding: 10 }}>
+                      {wishlist.map((item) => (
+                        <div
+                          key={item.productId}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, background: isDark ? '#222' : '#fafafa', marginBottom: 6 }}
+                        >
+                          <div
+                            onClick={() => {
+                              setIsWishlistDrawerOpen(false);
+                              if (item.slug) router.push(routes.producto(landing, item.slug));
+                            }}
+                            style={{ width: 44, height: 44, borderRadius: 8, flexShrink: 0, background: isDark ? '#2a2a2a' : '#fff', border: `1px solid ${isDark ? '#333' : '#e5e5e5'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 11, color: T.textMuted, margin: 0, textTransform: 'uppercase' }}>{item.brand}</p>
+                            <p
+                              onClick={() => {
+                                setIsWishlistDrawerOpen(false);
+                                if (item.slug) router.push(routes.producto(landing, item.slug));
+                              }}
+                              style={{ fontSize: 12, fontWeight: 600, color: T.textPrimary, margin: 0, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Rajdhani', sans-serif" }}
+                            >
+                              {item.name}
+                            </p>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: T.neonCyan, margin: '2px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>
+                              S/{Math.floor(item.monthlyPayment)}/mes
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeFromWishlist(item.productId)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: T.textMuted, display: 'flex' }}
+                            title="Quitar"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
-            </button>
+            </div>
 
           </div>
         </div>
@@ -1015,7 +1092,7 @@ function GamerCatalogoContent() {
         </aside>
 
         {/* ====== PRODUCT GRID ====== */}
-        <main style={{ flex: 1, minWidth: 0 }}>
+        <main className="lg:pt-5" style={{ flex: 1, minWidth: 0 }}>
           {/* Mobile filter panel - fullscreen overlay */}
           {showMobileFilters && (
             <div className="lg:hidden fixed inset-0 z-[100] flex flex-col" style={{ background: isDark ? '#0e0e0e' : '#fff' }}>
@@ -1069,22 +1146,6 @@ function GamerCatalogoContent() {
               </div>
             </div>
           )}
-
-          {/* Sort dropdown (desktop) */}
-          <div className="flex items-center justify-between mb-4">
-            <p style={{ color: T.textMuted, fontSize: 13 }}>
-              {isLoading ? 'Cargando...' : `${displayTotal} producto${displayTotal !== 1 ? 's' : ''}`}
-            </p>
-            <div id="onboarding-sort" className="hidden lg:block">
-              <SortDropdown
-                isDark={isDark}
-                T={T}
-                sort={sort}
-                onSortChange={setSort}
-                options={catalogFilters.sortOptions}
-              />
-            </div>
-          </div>
 
           {/* Active filters bar */}
           {activeFilterCount > 0 && (
@@ -1709,9 +1770,9 @@ function GamerCatalogoContent() {
         />
       )}
 
-      {/* ====== Wishlist Drawer (shared component) ====== */}
+      {/* ====== Wishlist Drawer — sólo bottom-sheet mobile. En desktop usamos el dropdown inline arriba. ====== */}
       <WishlistDrawer
-        isOpen={isWishlistDrawerOpen}
+        isOpen={isWishlistDrawerOpen && isMobileViewport}
         onClose={() => setIsWishlistDrawerOpen(false)}
         products={wishlist}
         onRemoveProduct={(productId) => removeFromWishlist(productId)}

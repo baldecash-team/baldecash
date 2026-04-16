@@ -10,6 +10,8 @@ import { fetchCatalogData } from '@/app/prototipos/0.6/services/catalogApi';
 import { WishlistDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/wishlist/WishlistDrawer';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { useIsMobile } from '@/app/prototipos/_shared';
+import { formatMoneyNoDecimals } from '@/app/prototipos/0.6/[landing]/catalogo/utils/formatMoney';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
@@ -63,9 +65,23 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
   const mobileSearchInputRef = useRef<HTMLInputElement | null>(null);
   const searchDragControls = useDragControls();
   const [isWishlistDrawerOpen, setIsWishlistDrawerOpen] = useState(false);
+  const wishlistDropdownRef = useRef<HTMLDivElement | null>(null);
+  const isMobileViewport = useIsMobile();
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(LANDING_SLUG) ? preview.previewKey : null;
   const { wishlist, wishlistCount, removeFromWishlist, clearWishlist } = useCatalogSharedState(LANDING_SLUG, previewKey);
+
+  // Cerrar dropdown desktop al hacer clic fuera
+  useEffect(() => {
+    if (!isWishlistDrawerOpen || isMobileViewport) return;
+    const handleClick = (e: MouseEvent) => {
+      if (wishlistDropdownRef.current && !wishlistDropdownRef.current.contains(e.target as Node)) {
+        setIsWishlistDrawerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isWishlistDrawerOpen, isMobileViewport]);
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -479,30 +495,119 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              onClick={() => setIsWishlistDrawerOpen(true)}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5] relative"
-              style={{
-                background: V.bgSurface,
-                borderColor: V.border,
-                color: isDark ? '#fff' : '#555',
-              }}
-              title="Favoritos"
-            >
-              <Heart className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
-              {wishlistCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -5, right: -5,
-                  minWidth: 18, height: 18, borderRadius: '50%',
-                  background: '#ff0055', color: '#fff',
-                  fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
-                }}>
-                  {wishlistCount}
-                </span>
+            <div ref={wishlistDropdownRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setIsWishlistDrawerOpen(prev => !prev)}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5] relative"
+                style={{
+                  background: V.bgSurface,
+                  borderColor: V.border,
+                  color: isDark ? '#fff' : '#555',
+                }}
+                title="Favoritos"
+              >
+                <Heart className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
+                {wishlistCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -5, right: -5,
+                    minWidth: 18, height: 18, borderRadius: '50%',
+                    background: '#ff0055', color: '#fff',
+                    fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 0 8px rgba(255,0,85,0.5)', padding: '0 4px', lineHeight: 1,
+                  }}>
+                    {wishlistCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Desktop dropdown — sólo en md+ */}
+              {isWishlistDrawerOpen && !isMobileViewport && (
+                <div
+                  className="hidden md:block absolute top-full right-0 mt-2 w-80 rounded-xl overflow-hidden z-50"
+                  style={{
+                    background: isDark ? '#1a1a1a' : '#fff',
+                    border: `1px solid ${V.border}`,
+                    boxShadow: isDark ? '0 12px 40px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.12)',
+                    animation: 'fadeInWishlistDropdown 0.15s ease-out',
+                  }}
+                >
+                  <style>{`
+                    @keyframes fadeInWishlistDropdown {
+                      from { opacity: 0; transform: translateY(-6px); }
+                      to { opacity: 1; transform: translateY(0); }
+                    }
+                  `}</style>
+                  {/* Header */}
+                  <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${isDark ? '#2a2a2a' : '#f0f0f0'}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Heart className="w-4 h-4" style={{ color: V.neonCyan, fill: V.neonCyan }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: V.textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
+                        Mis favoritos ({wishlistCount})
+                      </span>
+                    </div>
+                    {wishlistCount > 0 && (
+                      <button
+                        onClick={() => clearWishlist()}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: V.textMuted, fontFamily: "'Rajdhani', sans-serif" }}
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Body */}
+                  {wishlistCount === 0 ? (
+                    <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                      <Heart className="w-10 h-10 mx-auto mb-2" style={{ color: isDark ? '#3a3a3a' : '#d4d4d4' }} />
+                      <p style={{ fontSize: 13, color: V.textMuted, margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>Sin favoritos aún</p>
+                    </div>
+                  ) : (
+                    <div style={{ maxHeight: 340, overflowY: 'auto', padding: 10 }}>
+                      {wishlist.map((item) => (
+                        <div
+                          key={item.productId}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, background: isDark ? '#222' : '#fafafa', marginBottom: 6 }}
+                        >
+                          <div
+                            onClick={() => {
+                              setIsWishlistDrawerOpen(false);
+                              if (item.slug) router.push(routes.producto(LANDING_SLUG, item.slug));
+                            }}
+                            style={{ width: 44, height: 44, borderRadius: 8, flexShrink: 0, background: isDark ? '#2a2a2a' : '#fff', border: `1px solid ${isDark ? '#333' : '#e5e5e5'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontSize: 11, color: V.textMuted, margin: 0, textTransform: 'uppercase' }}>{item.brand}</p>
+                            <p
+                              onClick={() => {
+                                setIsWishlistDrawerOpen(false);
+                                if (item.slug) router.push(routes.producto(LANDING_SLUG, item.slug));
+                              }}
+                              style={{ fontSize: 12, fontWeight: 600, color: V.textPrimary, margin: 0, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Rajdhani', sans-serif" }}
+                            >
+                              {item.name}
+                            </p>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: V.neonCyan, margin: '2px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>
+                              S/{formatMoneyNoDecimals(Math.floor(item.monthlyPayment))}/mes
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => removeFromWishlist(item.productId)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: V.textMuted, display: 'flex' }}
+                            title="Quitar"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
       </div>}
@@ -802,9 +907,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         )}
       </AnimatePresence>
 
-      {/* Wishlist Drawer — gamer-themed, accessible from any gamer page */}
+      {/* Wishlist Drawer — sólo bottom-sheet mobile. En desktop usamos el dropdown inline arriba. */}
       <WishlistDrawer
-        isOpen={isWishlistDrawerOpen}
+        isOpen={isWishlistDrawerOpen && isMobileViewport}
         onClose={() => setIsWishlistDrawerOpen(false)}
         products={wishlist}
         onRemoveProduct={(productId) => removeFromWishlist(productId)}

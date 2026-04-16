@@ -364,23 +364,10 @@ function LoadingFallback() {
   const params = useParams();
   const isGamer = (params?.landing as string) === 'zona-gamer';
 
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    if (!isGamer) return;
-    const savedTheme = localStorage.getItem('baldecash-theme');
-    setIsDark(savedTheme !== 'light');
-  }, [isGamer]);
-
   if (isGamer) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f5f5f5' }}>
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-12 h-12">
-            <div className="absolute inset-0 rounded-full animate-spin" style={{ border: `3px solid ${isDark ? '#2a2a2a' : '#e0e0e0'}`, borderTopColor: '#00ffd5' }} />
-          </div>
-          <p style={{ color: isDark ? '#555' : '#999', fontFamily: 'Rajdhani, sans-serif', fontSize: 14 }}>Cargando...</p>
-        </div>
+      <div className="gamer-loading-fallback">
+        <CubeGridSpinner />
       </div>
     );
   }
@@ -412,7 +399,7 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
   const isDark = theme === 'dark';
 
   if (!hydrated) {
-    return <div style={{ minHeight: '100vh', background: '#fff' }} />;
+    return <div className="gamer-theme-bg" style={{ minHeight: '100vh' }} />;
   }
 
   return (
