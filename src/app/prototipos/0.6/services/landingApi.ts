@@ -437,28 +437,16 @@ export function transformLandingData(data: LandingHeroResponse): {
   const navbarConfig = (navbarComponent?.content_config || {}) as Record<string, unknown>;
   const rawNavbarItems = (navbarConfig.items as Array<NavbarItemData & { megamenu_items?: MegaMenuItemData[] }>) || [];
 
-  const navbarItems: NavbarItemData[] = [
-    ...rawNavbarItems.map(item => ({
-      label: item.label || '',
-      href: item.href || '',
-      section: item.section,
-      has_megamenu: item.has_megamenu,
-      badge_text: item.badge_text,
-      badge_color: item.badge_color,
-      megamenu_items: item.megamenu_items, // Pasar megamenu_items individuales
-      is_visible: item.is_visible,
-    })),
-    {
-      label: 'Colegios',
-      href: 'https://pidetuprestamo.baldecash.com/#/colegios',
-      section: null,
-      has_megamenu: false,
-      badge_text: null,
-      badge_color: null,
-      megamenu_items: [],
-      is_visible: true,
-    },
-  ];
+  const navbarItems: NavbarItemData[] = rawNavbarItems.map(item => ({
+    label: item.label || '',
+    href: item.href || '',
+    section: item.section,
+    has_megamenu: item.has_megamenu,
+    badge_text: item.badge_text,
+    badge_color: item.badge_color,
+    megamenu_items: item.megamenu_items,
+    is_visible: item.is_visible,
+  }));
 
   // Extraer megamenu items del primer item que tenga has_megamenu (para compatibilidad)
   // Ahora cada item puede tener su propio megamenu_items
