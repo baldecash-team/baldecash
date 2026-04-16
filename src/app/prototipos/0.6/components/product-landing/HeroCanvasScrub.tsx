@@ -48,8 +48,9 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
   const shouldRenderVideo = mounted && !skipVideo;
 
   useEffect(() => {
+    if (!shouldRenderVideo) return;
     const video = videoRef.current;
-    if (!video || skipVideo) return;
+    if (!video) return;
 
     const handleEnded = () => { setVideoEnded(true); onVideoEnd?.(); };
 
@@ -63,7 +64,7 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
     return () => {
       video.removeEventListener('ended', handleEnded);
     };
-  }, [tier, skipVideo]);
+  }, [shouldRenderVideo]);
 
   const handleReplay = useCallback(() => {
     const video = videoRef.current;
