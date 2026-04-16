@@ -28,6 +28,9 @@ import { useWizardConfig } from './context/WizardConfigContext';
 // Solicitar flow configuration
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 
+// Landing config (to check has_catalog)
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+
 // Preview context
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 
@@ -95,7 +98,16 @@ function WizardPreviewContent() {
   // Scroll to top on page load
   useScrollToTop();
 
+  // Check if this landing has a catalog (for redirect fallback)
+  const [hasCatalog, setHasCatalog] = useState(true);
+  useEffect(() => {
+    fetchLandingConfig(landing).then(cfg => setHasCatalog(cfg.layout.has_catalog));
+  }, [landing]);
+
   const { selectedProduct, setSelectedProduct, cartProducts, setCartProducts, selectedAccessories, selectedInsurances, clearAccessories, isHydrated, isOverQuotaLimit, maxMonthlyQuota, getTotalMonthlyPayment, appliedCoupon, hasUnifiedTerms, getAvailableTerms, updateAllProductsToTerm, updateProductInitial, getInitialOptionsForProduct, unavailableProductIds, removeUnavailableProducts, isValidatingAvailability, setIsProductBarExpanded } = useProduct();
+
+  // Fallback route: catalog if available, otherwise landing home
+  const fallbackRoute = hasCatalog ? routes.catalogo(landing) : routes.landingHome(landing);
 
   // Remove product from cart (or clear selectedProduct if single)
   const handleRemoveProduct = useCallback((productId: string) => {
@@ -106,16 +118,16 @@ function WizardPreviewContent() {
       // Also update selectedProduct to first remaining
       setSelectedProduct(updated[0]);
     } else if (cartProducts.length === 1) {
-      // Last cart product - clear and go to catalog
+      // Last cart product - clear and go back
       setCartProducts([]);
       setSelectedProduct(null);
-      router.replace(routes.catalogo(landing));
+      router.replace(fallbackRoute);
     } else if (selectedProduct?.id === productId) {
-      // Single product mode - clear and go to catalog
+      // Single product mode - clear and go back
       setSelectedProduct(null);
-      router.replace(routes.catalogo(landing));
+      router.replace(fallbackRoute);
     }
-  }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct, router, landing]);
+  }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct, router, fallbackRoute]);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [acceptPromos, setAcceptPromos] = useState(true);
@@ -194,16 +206,16 @@ function WizardPreviewContent() {
     } catch {}
   }, [acceptPromos, isTermsHydrated, landing]);
 
-  // Redirect to catalog if no product was selected
+  // Redirect if no product was selected
   useEffect(() => {
     // Wait for hydration from localStorage before deciding
     if (!isHydrated) return;
 
-    // If no product was selected, redirect to catalog
+    // If no product was selected, redirect to catalog (or landing home if no catalog)
     if (!selectedProduct) {
-      router.replace(routes.catalogo(landing));
+      router.replace(fallbackRoute);
     }
-  }, [isHydrated, selectedProduct, router, landing]);
+  }, [isHydrated, selectedProduct, router, fallbackRoute]);
 
 
   // Check if terms need to be unified (multiple products with different terms)
@@ -721,11 +733,11 @@ function WizardPreviewContent() {
 
         {/* Back to catalog link */}
         <button
-          onClick={() => router.push(routes.catalogo(landing))}
+          onClick={() => router.push(fallbackRoute)}
           className="w-full flex items-center justify-center gap-2 mt-4 py-3 text-neutral-500 hover:text-[var(--color-primary)] transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Volver al catálogo</span>
+          <span className="text-sm">{hasCatalog ? 'Volver al catálogo' : 'Volver al inicio'}</span>
         </button>
       </div>
     </div>

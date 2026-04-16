@@ -11,6 +11,7 @@
 import { notFound } from 'next/navigation';
 import { LandingPageClient } from './LandingPageClient';
 import { getLandingMeta, fetchHeroData, getActiveLandingSlugs } from '../services/landingApi';
+import { fetchLandingConfig } from '../services/landingConfigApi';
 
 interface PageProps {
   params: Promise<{
@@ -32,10 +33,19 @@ export default async function LandingPage({ params }: PageProps) {
 
   const slug = slugArray[0] || 'home';
 
-  // Fetch hero data server-side para eliminar el round-trip extra del client
-  const initialData = await fetchHeroData(slug);
+  // Fetch hero data + landing config in parallel (server-side, SSR-friendly)
+  const [initialData, landingConfig] = await Promise.all([
+    fetchHeroData(slug),
+    fetchLandingConfig(slug),
+  ]);
 
-  return <LandingPageClient slug={slug} initialData={initialData} />;
+  return (
+    <LandingPageClient
+      slug={slug}
+      initialData={initialData}
+      landingConfig={landingConfig}
+    />
+  );
 }
 
 export async function generateStaticParams() {

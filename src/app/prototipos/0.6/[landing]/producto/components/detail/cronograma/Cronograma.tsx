@@ -65,6 +65,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   selectedTerm: externalSelectedTerm,
   selectedInitialPercent: externalInitialPercent,
   financialData: externalFinancialData,
+  showPlatformCommission = false,
 }) => {
   const isMobile = useIsMobile();
   const dragControls = useDragControls();
@@ -146,7 +147,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const adjustedQuota = currentOption?.monthlyQuota || 0;
   const initialAmount = currentOption?.initialAmount || 0;
   const commissionAmount = currentOption?.commissionAmount ?? null;
-  const isLiderman = landing === 'liderman-baldecash';
+  // showPlatformCommission is driven by landing config ingredient (platform-commission-on)
 
   // Calcular amortización para versión detallada
   const amortizationSchedule = useMemo(() => {
@@ -674,7 +675,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                           {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
                         </span>
                       </div>
-                      {isLiderman && commissionAmount != null && commissionAmount > 0 && (
+                      {showPlatformCommission && commissionAmount != null && commissionAmount > 0 && (
                         <div className="flex justify-between py-2 border-b border-neutral-100">
                           <span className="text-sm text-neutral-600">Comisión de plataformas digitales</span>
                           <span className="text-sm font-medium text-neutral-900">S/{commissionAmount}</span>
@@ -832,7 +833,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
                     </span>
                   </div>
-                  {isLiderman && commissionAmount != null && commissionAmount > 0 && (
+                  {showPlatformCommission && commissionAmount != null && commissionAmount > 0 && (
                     <div className="flex justify-between py-2 border-b border-neutral-100">
                       <span className="text-sm text-neutral-600">Comisión de plataformas digitales</span>
                       <span className="text-sm font-medium text-neutral-900">S/{commissionAmount}</span>

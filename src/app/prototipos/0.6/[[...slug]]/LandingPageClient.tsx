@@ -20,19 +20,16 @@ import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
+import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '../types/landingConfig';
 
 // Product landing pages (lazy-loaded to avoid bundling when not needed)
 const MacBookNeoLanding = lazy(() => import('../components/product-landing/MacBookNeoLanding'));
 
-// Slugs that render a product-specific landing instead of the standard HeroSection
-const PRODUCT_LANDING_SLUGS = ['baldecash-macbook-neo'];
-
-// Slugs que activan el modal de DNI al cargar la landing
-const DNI_MODAL_SLUGS = ['liderman-baldecash', 'renueva-tu-laptop'];
-
 interface LandingPageClientProps {
   slug: string;
   initialData?: HeroData | null;
+  /** Resolved landing config preset (layout/features flags). Server-side fetched. */
+  landingConfig?: LandingConfig;
 }
 
 interface HeroData {
@@ -60,7 +57,7 @@ interface HeroData {
 }
 
 // Wrapper component to handle Suspense for useSearchParams
-function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
+function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LANDING_CONFIG }: LandingPageClientProps) {
   const searchParams = useSearchParams();
   const [heroData, setHeroData] = useState<HeroData | null>(initialData ?? null);
   const [isLoading, setIsLoading] = useState(!initialData);
@@ -282,12 +279,12 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
     }
   }, [isLoading, heroData]);
 
-  // DNI modal state - solo para slugs configurados y si no hay DNI guardado
-  const showDniFeature = DNI_MODAL_SLUGS.includes(slug);
+  // DNI modal state - driven by landing config preset (features.has_dni_modal / dni_required)
+  const showDniFeature = landingConfig.features.has_dni_modal;
   const [isDniModalOpen, setIsDniModalOpen] = useState(false);
 
-  // Slugs donde el DNI es obligatorio (siempre aparece el modal)
-  const dniRequired = slug === 'renueva-tu-laptop';
+  // DNI obligatorio (siempre aparece el modal, sin opción de cerrar sin DNI)
+  const dniRequired = landingConfig.features.dni_required;
 
   useEffect(() => {
     if (showDniFeature && !isLoading && heroData) {
@@ -317,7 +314,9 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
     }
   }, [heroData]);
 
-  const isProductLanding = PRODUCT_LANDING_SLUGS.includes(slug);
+  // MacBook Neo has its own specialized landing component.
+  // If more product-specific landings appear, add them here as explicit slugs.
+  const isProductLanding = slug === 'baldecash-macbook-neo';
 
   // Loading state
   if (isLoading) {
@@ -389,7 +388,7 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
           landingSlug={slug}
           isOpen={isDniModalOpen}
           onClose={handleDniModalClose}
-          allowSkip={slug !== 'renueva-tu-laptop'}
+          allowSkip={!dniRequired}
         />
       )}
     </div>
@@ -397,12 +396,12 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
 }
 
 // Main export with Suspense wrapper + tracking providers
-export function LandingPageClient({ slug, initialData }: LandingPageClientProps) {
+export function LandingPageClient({ slug, initialData, landingConfig }: LandingPageClientProps) {
   return (
     <SessionProvider landingSlug={slug}>
       <EventTrackerProvider>
         <Suspense fallback={<HomeSkeleton />}>
-          <LandingPageClientInner slug={slug} initialData={initialData} />
+          <LandingPageClientInner slug={slug} initialData={initialData} landingConfig={landingConfig} />
         </Suspense>
       </EventTrackerProvider>
     </SessionProvider>

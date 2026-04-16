@@ -74,6 +74,8 @@ interface ProductDetailProps {
   defaultInitialPercent?: number;
   // Payment frequencies (e.g. ['quincenal', 'semanal'] for celulares)
   paymentFrequencies?: string[];
+  // Landing config flags
+  showPlatformCommission?: boolean;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -102,6 +104,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   defaultTerm,
   defaultInitialPercent,
   paymentFrequencies,
+  showPlatformCommission = false,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -562,6 +565,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             selectedTerm={pricingSelection?.term}
             selectedInitialPercent={pricingSelection?.initialPercent}
             financialData={product.tea != null && product.tcea != null ? { tea: product.tea, tcea: product.tcea } : undefined}
+            showPlatformCommission={showPlatformCommission}
           />
         </div>
 

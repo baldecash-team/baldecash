@@ -335,6 +335,8 @@ export interface CronogramaProps {
     tea: number;
     tcea: number;
   };
+  /** Whether to show the "Comisión de plataformas digitales" row. From landing config. */
+  showPlatformCommission?: boolean;
 }
 
 export interface PortsDisplayProps {
