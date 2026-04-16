@@ -113,7 +113,7 @@ export function middleware(request: NextRequest) {
     if (
       pathname.startsWith('/_next') ||
       pathname.startsWith('/api') ||
-      pathname.startsWith('/monitoring') ||
+      // pathname.startsWith('/monitoring') || // tunnel Sentry desactivado
       pathname.startsWith('/prototipos') ||
       pathname.startsWith('/sentry-example-page') ||
       pathname === '/robots.txt' ||
