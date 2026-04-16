@@ -79,6 +79,7 @@ import type {
   WishlistItem,
 } from './types/catalog';
 import { defaultFilterState } from './types/catalog';
+import { fetchCatalogData } from '../../services/catalogApi';
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../services/catalogApi';
 
 // Zona Gamer components
@@ -87,7 +88,7 @@ import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNav
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
 import type { OnboardingStep } from './types/catalog';
-import { useToast, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { Toast, useToast, CubeGridSpinner } from '@/app/prototipos/_shared';
 
 // ============================================
 // Theme helpers
@@ -266,6 +267,12 @@ function GamerCatalogoContent() {
 
   // Mobile filters
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [wishlistToast, setWishlistToast] = useState<string | null>(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
+  const [mobileSearchResults, setMobileSearchResults] = useState<{ id: string; slug: string; name: string; displayName: string; brand: string; thumbnail: string; quotaMonthly: number; maxTermMonths: number }[]>([]);
+  const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
+  const mobileSearchDebounce = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Scroll to top button
@@ -553,6 +560,7 @@ function GamerCatalogoContent() {
   }, []);
 
   const handleWishlistToggle = useCallback((product: CatalogProduct) => {
+    const wasInWishlist = isInWishlist(product.id);
     const item: WishlistItem = {
       productId: product.id,
       slug: product.slug,
@@ -570,7 +578,9 @@ function GamerCatalogoContent() {
       addedAt: Date.now(),
     };
     toggleWishlist(item);
-  }, [toggleWishlist]);
+    setWishlistToast(wasInWishlist ? 'Eliminado de favoritos' : 'Agregado a favoritos');
+    setTimeout(() => setWishlistToast(null), 2500);
+  }, [toggleWishlist, isInWishlist]);
 
   const handleProductDetail = useCallback((product: CatalogProduct) => {
     router.push(routes.producto(landing, product.slug));
@@ -692,6 +702,7 @@ function GamerCatalogoContent() {
           {/* Mobile search button */}
           <div className="md:hidden">
             <button
+              onClick={() => { setShowMobileSearch(true); setMobileSearchQuery(searchQuery); }}
               style={{
                 width: 40, height: 40, borderRadius: 12,
                 background: T.bgSurface, border: `1px solid ${T.border}`,
@@ -1020,6 +1031,49 @@ function GamerCatalogoContent() {
           </p>
         </div>
       </section>
+
+      {/* ====== FIND YOUR DEVICE CARD ====== */}
+      <div className="w-full" style={{ padding: '0 24px 16px' }}>
+        <div style={{
+          background: isDark ? T.bgCard : '#fff',
+          border: `1px solid ${isDark ? T.border : 'rgba(0,0,0,0.08)'}`,
+          borderRadius: 16,
+          padding: 'clamp(16px, 4vw, 24px)',
+          boxShadow: isDark ? 'none' : '0 2px 12px rgba(0,0,0,0.06)',
+        }}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: `${T.neonCyan}15`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Search className="w-5 h-5" style={{ color: T.neonCyan }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: 'clamp(14px, 3.5vw, 18px)', fontWeight: 700, color: T.textPrimary, margin: 0, fontFamily: "'Rajdhani', sans-serif", lineHeight: 1.3 }}>
+                  Encuentra tu equipo ideal
+                </h2>
+                <p style={{ fontSize: 'clamp(11px, 2.5vw, 14px)', color: T.textMuted, margin: 0 }}>
+                  Selecciona según tu necesidad principal
+                </p>
+              </div>
+            </div>
+            <div id="onboarding-sort" className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <span style={{ fontSize: 13, color: T.textMuted, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <span style={{ fontWeight: 600, color: T.textPrimary }}>{displayTotal}</span> equipos
+              </span>
+              <SortDropdown
+                isDark={isDark}
+                T={T}
+                sort={sort}
+                onSortChange={setSort}
+                options={catalogFilters.sortOptions}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ====== MAIN CONTENT ====== */}
       <div
@@ -1501,6 +1555,173 @@ function GamerCatalogoContent() {
         </div>
       )}
 
+      {/* ====== MOBILE SEARCH BOTTOM SHEET ====== */}
+      {showMobileSearch && (
+        <div className="md:hidden fixed inset-0 z-[9999]">
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowMobileSearch(false)}
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }}
+          />
+          {/* Bottom sheet */}
+          <div
+            style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: isDark ? '#1a1a1a' : '#fff',
+              borderRadius: '24px 24px 0 0',
+              display: 'flex', flexDirection: 'column',
+              maxHeight: 'calc(100vh - 6rem)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+              animation: 'gamerSlideUp 0.25s ease-out',
+            }}
+          >
+            <style>{`
+              @keyframes gamerSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+              @keyframes spin { to { transform: rotate(360deg); } }
+            `}</style>
+            {/* Drag handle */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
+              <div style={{ width: 40, height: 6, background: isDark ? '#444' : '#d4d4d4', borderRadius: 3 }} />
+            </div>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 12, background: `${T.neonCyan}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Search className="w-4 h-4" style={{ color: T.neonCyan }} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>Buscar equipos</h2>
+                  <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>Encuentra tu equipo ideal</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowMobileSearch(false)}
+                style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: T.textMuted, cursor: 'pointer' }}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {/* Search input */}
+            <div style={{ padding: '0 16px 12px' }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', width: '100%',
+                background: isDark ? '#111' : '#f5f5f5',
+                borderRadius: 12, border: `2px solid transparent`,
+                transition: 'all 0.2s',
+              }}>
+                {mobileSearchLoading ? (
+                  <div className="w-5 h-5 ml-4 shrink-0" style={{ border: `2px solid ${T.border}`, borderTopColor: T.neonCyan, borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                ) : (
+                  <Search className="w-5 h-5 ml-4 shrink-0" style={{ color: T.textMuted }} />
+                )}
+                <input
+                  type="text"
+                  placeholder="Buscar por marca, modelo..."
+                  value={mobileSearchQuery}
+                  onChange={(e) => {
+                    const q = e.target.value;
+                    setMobileSearchQuery(q);
+                    if (mobileSearchDebounce.current) clearTimeout(mobileSearchDebounce.current);
+                    if (!q.trim()) { setMobileSearchResults([]); return; }
+                    setMobileSearchLoading(true);
+                    mobileSearchDebounce.current = setTimeout(async () => {
+                      try {
+                        const data = await fetchCatalogData(landing, { filters: { q: q.trim() }, limit: 8 });
+                        if (data) {
+                          setMobileSearchResults(data.products.map((p) => ({
+                            id: p.id, slug: p.slug, name: p.name, displayName: p.displayName,
+                            brand: p.brand, thumbnail: p.thumbnail, quotaMonthly: p.quotaMonthly,
+                            maxTermMonths: p.maxTermMonths,
+                          })));
+                        } else { setMobileSearchResults([]); }
+                      } catch { setMobileSearchResults([]); }
+                      setMobileSearchLoading(false);
+                    }, 300);
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { handleSearch(mobileSearchQuery); setShowMobileSearch(false); } }}
+                  autoFocus
+                  style={{
+                    flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                    padding: '14px 12px', fontSize: 16, color: T.textPrimary,
+                    fontFamily: "'Rajdhani', sans-serif",
+                  }}
+                />
+                {mobileSearchQuery && (
+                  <button onClick={() => { setMobileSearchQuery(''); setMobileSearchResults([]); }} style={{ background: 'none', border: 'none', color: T.textMuted, padding: 8, marginRight: 4, cursor: 'pointer', borderRadius: 8 }}>
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+            {/* Results list */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 8px' }}>
+              {!mobileSearchLoading && mobileSearchQuery.trim() && mobileSearchResults.length === 0 && (
+                <p style={{ textAlign: 'center', color: T.textMuted, fontSize: 13, padding: 16, fontFamily: "'Rajdhani', sans-serif" }}>No se encontraron equipos</p>
+              )}
+              {!mobileSearchLoading && mobileSearchResults.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {mobileSearchResults.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => { setShowMobileSearch(false); router.push(routes.producto(landing, p.slug)); }}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '10px 12px', borderRadius: 12, textAlign: 'left',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
+                        background: isDark ? '#111' : '#f5f5f5',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Image src={p.thumbnail} alt={p.name} width={44} height={44} style={{ objectFit: 'contain', width: '100%', height: '100%' }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', margin: 0 }}>{p.brand}</p>
+                        <p style={{ fontSize: 14, fontWeight: 500, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Rajdhani', sans-serif" }}>{p.displayName || p.name}</p>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: T.neonCyan, margin: 0, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(p.quotaMonthly)}/mes</p>
+                        <p style={{ fontSize: 10, color: T.textMuted, margin: 0 }}>x {p.maxTermMonths} meses</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Footer */}
+            <div style={{ borderTop: `1px solid ${T.border}`, padding: 16, display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => { setMobileSearchQuery(''); setMobileSearchResults([]); handleSearch(''); }}
+                style={{
+                  padding: '10px 16px', borderRadius: 12, border: 'none',
+                  background: 'none', color: T.textMuted,
+                  fontSize: 14, fontWeight: 500, fontFamily: "'Rajdhani', sans-serif",
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+                Limpiar
+              </button>
+              <button
+                onClick={() => { handleSearch(mobileSearchQuery); setShowMobileSearch(false); }}
+                style={{
+                  flex: 1, padding: '10px 16px', borderRadius: 12, border: 'none',
+                  background: T.neonCyan, color: isDark ? '#0a0a0a' : '#fff',
+                  fontSize: 14, fontWeight: 600, fontFamily: "'Rajdhani', sans-serif",
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}
+              >
+                <Search className="w-4 h-4" />
+                Ver resultados
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ====== MOBILE FILTERS FAB ====== */}
       <div className="lg:hidden" style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 90 }}>
         <button
@@ -1594,6 +1815,22 @@ function GamerCatalogoContent() {
       )}
 
       {/* ====== FOOTER ====== */}
+      {/* Wishlist toast */}
+      {wishlistToast && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+          display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', borderRadius: 12,
+          background: isDark ? '#1a1a1a' : '#fff', border: `1px solid ${T.border}`,
+          boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
+          fontSize: 13, fontWeight: 500, color: T.textPrimary,
+          fontFamily: "'Rajdhani', sans-serif", animation: 'fadeIn 0.25s ease-out',
+        }}>
+          <style>{`@keyframes fadeIn { from { opacity:0; transform:translateX(-50%) translateY(12px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`}</style>
+          <Heart size={16} style={{ color: T.neonCyan, fill: wishlistToast.includes('Agregado') ? T.neonCyan : 'none' }} />
+          {wishlistToast}
+        </div>
+      )}
+
       <GamerFooter theme={theme} />
 
       {/* Blip Chat (hidden button, opened from help menu) */}
@@ -2670,28 +2907,77 @@ function SortDropdown({
   onSortChange: (s: SortOption) => void;
   options: { value: string; label: string }[];
 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const selectedLabel = options.find(o => o.value === sort)?.label || 'Recomendados';
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
   return (
-    <select
-      value={sort}
-      onChange={(e) => onSortChange(e.target.value as SortOption)}
-      style={{
-        padding: '6px 12px',
-        background: T.bgCard,
-        border: `1px solid ${T.border}`,
-        borderRadius: 8,
-        color: T.textPrimary,
-        fontSize: 13,
-        fontFamily: "'Rajdhani', sans-serif",
-        outline: 'none',
-        cursor: 'pointer',
-      }}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
+    <div ref={ref} style={{ position: 'relative', minWidth: 200 }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+          padding: '8px 12px', borderRadius: 10,
+          background: isDark ? T.bgSurface : '#fff',
+          border: `1px solid ${open ? T.neonCyan : T.border}`,
+          color: T.textPrimary, fontSize: 13,
+          fontFamily: "'Rajdhani', sans-serif",
+          cursor: 'pointer', transition: 'border-color 0.2s',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <ArrowRight className="w-4 h-4 shrink-0" style={{ color: T.textMuted, transform: 'rotate(-90deg)' }} />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13 }}>{selectedLabel}</span>
+        </div>
+        <ChevronDown className="w-4 h-4 shrink-0" style={{ color: T.textMuted, transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }} />
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, zIndex: 200,
+          background: isDark ? '#1a1a1a' : '#fff',
+          border: `1px solid ${T.border}`,
+          borderRadius: 12, padding: 4,
+          boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
+        }}>
+          {options.map((opt) => {
+            const isSelected = opt.value === sort;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => { onSortChange(opt.value as SortOption); setOpen(false); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 12px', borderRadius: 8, border: 'none',
+                  fontSize: 13, fontFamily: "'Rajdhani', sans-serif",
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  background: isSelected ? T.neonCyan : 'transparent',
+                  color: isSelected ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary,
+                  fontWeight: isSelected ? 600 : 400,
+                }}
+                onMouseEnter={(e) => { if (!isSelected) { e.currentTarget.style.background = `${T.neonCyan}15`; e.currentTarget.style.color = T.neonCyan; } }}
+                onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.textPrimary; } }}
+              >
+                <span>{opt.label}</span>
+                {isSelected && (
+                  <svg width="14" height="14" viewBox="0 0 17 18" fill="none">
+                    <polyline points="1 9 7 14 15 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -2955,10 +3241,16 @@ function GamerProductCard({
               width: 38,
               height: 38,
               borderRadius: '50%',
-              background: isDark ? 'rgba(10,10,20,0.6)' : 'rgba(255,255,255,0.9)',
+              background: isWishlisted
+                ? (isDark ? 'rgba(255,0,85,0.15)' : 'rgba(255,0,85,0.1)')
+                : (isDark ? 'rgba(10,10,20,0.6)' : 'rgba(255,255,255,0.9)'),
               backdropFilter: 'blur(8px)',
-              border: isDark ? 'none' : '1.5px solid rgba(0,0,0,0.15)',
-              boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
+              border: isWishlisted
+                ? `1.5px solid ${isDark ? 'rgba(255,0,85,0.3)' : 'rgba(255,0,85,0.3)'}`
+                : (isDark ? 'none' : '1.5px solid rgba(0,0,0,0.15)'),
+              boxShadow: isWishlisted
+                ? '0 0 12px rgba(255,0,85,0.2)'
+                : (isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)'),
               cursor: 'pointer',
               color: isWishlisted ? '#ff0055' : (isDark ? 'rgba(255,255,255,0.4)' : '#555'),
             }}
