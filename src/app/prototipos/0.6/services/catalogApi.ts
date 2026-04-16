@@ -639,8 +639,22 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
   // Automatic search correction (fuzzy search)
   searchCorrected: SearchCorrected | null;
 } {
+  const allProducts = response.items.map(mapApiProductToCatalogProduct);
+
+  // Deduplicate color siblings: keep only the first representative per family.
+  // Each product that has color siblings already contains all siblings in its
+  // `colors` array, so subsequent siblings in the list are redundant cards.
+  const seenSiblingIds = new Set<string>();
+  const products = allProducts.filter(p => {
+    if (seenSiblingIds.has(p.id)) return false;
+    if (p.colors && p.colors.length > 0) {
+      p.colors.forEach(c => { if (c.productId) seenSiblingIds.add(c.productId); });
+    }
+    return true;
+  });
+
   return {
-    products: response.items.map(mapApiProductToCatalogProduct),
+    products,
     total: response.total,
     page: response.page,
     pageSize: response.page_size,

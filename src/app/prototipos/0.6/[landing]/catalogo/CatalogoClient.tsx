@@ -1639,7 +1639,7 @@ function CatalogoContent() {
                 key={product.landingProductId ?? product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
-                hideColors
+                hideColors={!product.colors || product.colors.length === 0}
                 needsPromoSpacer={promoSpacerFlags[index]}
                 onAddToCart={(cartItem: CartItem) => {
                   if (!ALLOW_MULTI_PRODUCT) {
