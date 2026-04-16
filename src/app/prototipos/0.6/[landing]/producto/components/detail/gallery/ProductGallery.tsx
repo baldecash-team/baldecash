@@ -8,7 +8,7 @@
  * Las imágenes se FILTRAN por el color seleccionado (via variantId)
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomIn, ZoomOut, Star, X, ChevronLeft, ChevronRight, Maximize2, Play } from 'lucide-react';
 import { ProductGalleryProps } from '../../../types/detail';
@@ -40,6 +40,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   const [selectedImage, setSelectedImage] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const hasMouseMoved = useRef(false);
 
   // Lightbox state
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -76,6 +77,10 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   }, [selectedColorId]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!hasMouseMoved.current) {
+      hasMouseMoved.current = true;
+      setIsZoomed(true);
+    }
     if (!isZoomed) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -255,7 +260,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
         <motion.div
           className="relative aspect-square cursor-zoom-in group overflow-hidden touch-pan-y"
           onClick={openLightbox}
-          onMouseEnter={() => setIsZoomed(true)}
+          onMouseEnter={() => { if (hasMouseMoved.current) setIsZoomed(true); }}
           onMouseLeave={() => setIsZoomed(false)}
           onMouseMove={handleMouseMove}
           drag="x"
