@@ -23,6 +23,7 @@ import {
   evaluateFieldVisibility,
   getStepSlug,
   fetchOptionById,
+  getPrefillTargetFieldCodes,
 } from '../../../../../services/wizardApi';
 
 interface WizardSummaryProps {
@@ -254,14 +255,13 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
     return steps.filter((step) => !step.is_summary_step);
   }, [steps]);
 
-  // Identify prefill target fields (any field listed in `fields_to_fill` of a
-  // prefill-enabled field). Hidden prefill targets are treated as internal.
+  // Identify prefill target fields (supports both legacy and new prefill_config shapes).
+  // Hidden prefill targets are treated as internal.
   const prefillTargetFields = useMemo(() => {
     const targets = new Set<string>();
     for (const s of regularSteps) {
       for (const f of s.fields) {
-        if (!f.prefill_config?.fields_to_fill) continue;
-        for (const code of f.prefill_config.fields_to_fill) {
+        for (const code of getPrefillTargetFieldCodes(f.prefill_config)) {
           targets.add(code);
         }
       }

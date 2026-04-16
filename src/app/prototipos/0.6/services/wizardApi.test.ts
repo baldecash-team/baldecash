@@ -87,11 +87,11 @@ function createConfig(overrides: Partial<WizardConfig> = {}): WizardConfig {
     createStep({ id: 3, code: 'documents', url_slug: 'documentos', order: 3 }),
   ];
   return {
-    landing: { id: 1, slug: 'test-landing', name: 'Test Landing' },
-    form: { id: 1, code: 'test_form', name: 'Test Form', estimated_time_minutes: 5 },
+    landing_id: 1,
+    landing_slug: 'test-landing',
+    landing_name: 'Test Landing',
     steps,
     total_steps: steps.filter(s => !s.is_summary_step).length,
-    estimated_time_minutes: 5,
     ...overrides,
   };
 }

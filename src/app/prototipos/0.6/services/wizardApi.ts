@@ -111,14 +111,35 @@ export interface WizardField {
     show_use_location?: boolean;       // Show "Use my location" button
     require_selection?: boolean;       // Must select from suggestions
   } | null;
-  // Prefill configuration: generic lookup that autocompletes other fields.
-  // When `trigger` fires on this field, the frontend calls `lookup_endpoint`
-  // and fills each code in `fields_to_fill` with the matching key from the response.
+  // Prefill configuration. Two shapes coexist during the backend migration:
+  // - Legacy: { prefill_fields: Record<target, source | source[]>, document_type_field }
+  //   where the value is the API response key (or an array to concatenate).
+  // - New:    { lookup_endpoint, fields_to_fill: string[], trigger }
+  //   where each entry in fields_to_fill is both the target field code and the
+  //   response key. Helpers below read whichever shape is present.
   prefill_config?: {
-    lookup_endpoint: string;
-    fields_to_fill: string[];
-    trigger: 'on_blur' | 'on_change';
+    // Legacy
+    prefill_fields?: Record<string, string | string[]>;
+    document_type_field?: string;
+    // New
+    lookup_endpoint?: string;
+    fields_to_fill?: string[];
+    trigger?: 'on_blur' | 'on_change';
   } | null;
+}
+
+/**
+ * Returns the set of form field codes that a prefill_config will autocomplete,
+ * regardless of whether the payload uses the legacy `prefill_fields` Record or
+ * the new `fields_to_fill` array.
+ */
+export function getPrefillTargetFieldCodes(
+  prefillConfig: WizardField['prefill_config']
+): string[] {
+  if (!prefillConfig) return [];
+  if (prefillConfig.fields_to_fill?.length) return prefillConfig.fields_to_fill;
+  if (prefillConfig.prefill_fields) return Object.keys(prefillConfig.prefill_fields);
+  return [];
 }
 
 export interface WizardStep {
@@ -152,12 +173,31 @@ export interface WizardConfigForm {
   estimated_time_minutes: number;
 }
 
+/**
+ * WizardConfig supports two coexisting shapes from the backend during migration:
+ * - Legacy flat: `landing_id`, `landing_slug`, `landing_name`, `display_steps_count`,
+ *   `display_estimated_minutes`, `badge_text`.
+ * - Nested: `landing: {...}`, `form: {...}`, `estimated_time_minutes` at root.
+ * Both are optional; consumers should prefer nested values and fall back to flat.
+ */
 export interface WizardConfig {
-  landing: WizardConfigLanding;
-  form: WizardConfigForm;
+  // Nested shape (new)
+  landing?: WizardConfigLanding;
+  form?: WizardConfigForm;
+  estimated_time_minutes?: number;
+
+  // Flat shape (legacy)
+  landing_id?: number;
+  landing_slug?: string;
+  landing_name?: string;
+  display_steps_count?: number;
+  display_estimated_minutes?: number;
+  badge_text?: string | null;
+  total_fields?: number;
+
+  // Shared
   steps: WizardStep[];
-  total_steps: number;
-  estimated_time_minutes: number;
+  total_steps?: number;
 }
 
 // ============================================================================
@@ -755,14 +795,12 @@ export function validateStep(
   let firstErrorField: string | null = null;
 
   // Map prefill target fields to their trigger field code (the field that runs the lookup).
-  // Any field can be a prefill trigger via `prefill_config`; we use this map to
-  // drive conditional visibility for hidden fields that depend on the lookup result.
+  // Works for both legacy (prefill_fields Record) and new (fields_to_fill array) shapes.
   const prefillFieldToDocField: Record<string, string> = {};
   for (const field of step.fields) {
-    if (field.prefill_config?.fields_to_fill) {
-      for (const code of field.prefill_config.fields_to_fill) {
-        prefillFieldToDocField[code] = field.code;
-      }
+    const targets = getPrefillTargetFieldCodes(field.prefill_config);
+    for (const code of targets) {
+      prefillFieldToDocField[code] = field.code;
     }
   }
 

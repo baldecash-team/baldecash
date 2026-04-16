@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { WizardStep, evaluateFieldVisibility } from '../../../../../services/wizardApi';
+import { WizardStep, evaluateFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
 
@@ -81,12 +81,11 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
   }, [formData]);
 
   // Map each prefill target field to the code of the field that triggers the lookup.
-  // Any field can host a prefill_config (DNI, RUC, etc.), so we iterate all of them.
+  // Works for both legacy (prefill_fields Record) and new (fields_to_fill array) shapes.
   const prefillFieldToDocField = useMemo(() => {
     const map: Record<string, string> = {};
     for (const field of step.fields) {
-      const targets = field.prefill_config?.fields_to_fill;
-      if (!targets) continue;
+      const targets = getPrefillTargetFieldCodes(field.prefill_config);
       for (const code of targets) {
         map[code] = field.code;
       }

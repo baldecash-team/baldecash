@@ -43,6 +43,7 @@ import {
   getStepSlug,
   validateStep as validateStepFields,
   evaluateFieldVisibility,
+  getPrefillTargetFieldCodes,
 } from '../../../services/wizardApi';
 
 // Event tracking
@@ -365,14 +366,12 @@ function StepContent() {
     return displayValue;
   };
 
-  // Identify prefill target fields (e.g., supporter_full_name, first_name).
-  // Any field with prefill_config declares its targets in `fields_to_fill`.
+  // Identify prefill target fields across both legacy and new prefill_config shapes.
   const prefillTargetFields = useMemo(() => {
     const targets = new Set<string>();
     for (const s of regularSteps) {
       for (const f of s.fields) {
-        if (!f.prefill_config?.fields_to_fill) continue;
-        for (const code of f.prefill_config.fields_to_fill) {
+        for (const code of getPrefillTargetFieldCodes(f.prefill_config)) {
           targets.add(code);
         }
       }
