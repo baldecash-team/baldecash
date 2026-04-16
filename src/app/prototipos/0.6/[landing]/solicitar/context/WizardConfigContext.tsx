@@ -153,24 +153,28 @@ export const WizardConfigProvider: React.FC<WizardConfigProviderProps> = ({ chil
     return [...config.steps].sort((a, b) => a.order - b.order);
   }, [config]);
 
-  // Display values from admin config (fallback to calculated if not set)
+  // Display values come from the API root (total_steps / estimated_time_minutes).
+  // Fallback to computed values when the API payload omits them.
   const displayStepsCount = useMemo(() => {
-    if (config?.display_steps_count !== undefined) {
-      return config.display_steps_count;
+    if (typeof config?.total_steps === 'number') {
+      return config.total_steps;
     }
-    // Fallback: count non-summary steps
     return steps.filter(s => !s.is_summary_step).length;
   }, [config, steps]);
 
   const displayEstimatedMinutes = useMemo(() => {
-    if (config?.display_estimated_minutes !== undefined) {
-      return config.display_estimated_minutes;
+    if (typeof config?.estimated_time_minutes === 'number') {
+      return config.estimated_time_minutes;
     }
-    // Fallback: sum estimated times
+    if (typeof config?.form?.estimated_time_minutes === 'number') {
+      return config.form.estimated_time_minutes;
+    }
     return steps.reduce((sum, s) => sum + (s.estimated_time_minutes || 0), 0);
   }, [config, steps]);
 
-  const badgeText = config?.badge_text || null;
+  // badge_text is no longer part of the wizard payload. Kept for compatibility
+  // with upsell sections that accept an optional badge string.
+  const badgeText: string | null = null;
 
   const value = useMemo(
     () => ({

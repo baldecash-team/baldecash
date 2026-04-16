@@ -175,7 +175,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
           </span>
 
           <div className="flex items-center gap-1">
-            {value && !disabled && (
+            {value && !disabled && options.length > 1 && (
               <button
                 type="button"
                 onClick={(e) => {

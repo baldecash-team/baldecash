@@ -254,16 +254,15 @@ export const WizardSummary: React.FC<WizardSummaryProps> = ({
     return steps.filter((step) => !step.is_summary_step);
   }, [steps]);
 
-  // Identify prefill target fields (e.g., supporter_full_name filled by check-person API)
-  // These are internal fields that should never appear in the summary
+  // Identify prefill target fields (any field listed in `fields_to_fill` of a
+  // prefill-enabled field). Hidden prefill targets are treated as internal.
   const prefillTargetFields = useMemo(() => {
     const targets = new Set<string>();
     for (const s of regularSteps) {
       for (const f of s.fields) {
-        if (f.type === 'document_number' && f.prefill_config?.prefill_fields) {
-          for (const code of Object.keys(f.prefill_config.prefill_fields)) {
-            targets.add(code);
-          }
+        if (!f.prefill_config?.fields_to_fill) continue;
+        for (const code of f.prefill_config.fields_to_fill) {
+          targets.add(code);
         }
       }
     }

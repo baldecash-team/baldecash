@@ -300,10 +300,10 @@ function PreviewContent({ pathId, stepSlug }: WizardPreviewClientProps) {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-neutral-800 mb-2">
-            Preview del Wizard: {wizardConfig.landing_name}
+            Preview del Wizard: {wizardConfig.landing.name}
           </h1>
           <p className="text-neutral-600">
-            Landing: <code className="bg-neutral-100 px-2 py-1 rounded text-sm">{wizardConfig.landing_slug}</code>
+            Landing: <code className="bg-neutral-100 px-2 py-1 rounded text-sm">{wizardConfig.landing.slug}</code>
             {' '}&middot;{' '}
             {regularSteps.length} pasos regulares
             {summarySteps.length > 0 && `, ${summarySteps.length} pasos de resumen`}

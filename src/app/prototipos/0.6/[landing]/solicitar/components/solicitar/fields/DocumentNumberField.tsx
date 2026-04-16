@@ -42,9 +42,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   // Get prefill config from field configuration
   const prefillConfig = field.prefill_config;
 
-  // Get the document_type value (usually from another field)
-  const documentTypeField = prefillConfig?.document_type_field || 'document_type';
-  const documentType = (getFieldValue(documentTypeField) as string) || 'dni';
+  // Document type comes from a sibling `document_type` field when present.
+  // (The field name is no longer part of prefill_config in the new API shape;
+  // the convention 'document_type' covers all existing forms.)
+  const documentType = (getFieldValue('document_type') as string) || 'dni';
 
   // Get current value and error
   const value = getFieldValue(field.code) as string;
@@ -55,23 +56,13 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     // Set prefill status FIRST so visibility evaluates before cleanup runs
     updateField(`_prefill_status_${field.code}`, 'found');
 
-    if (prefillConfig?.prefill_fields) {
-      // Dynamic mode: use prefill_config from form builder
-      for (const [formFieldCode, apiSource] of Object.entries(prefillConfig.prefill_fields)) {
-        if (Array.isArray(apiSource)) {
-          // Concatenate multiple API fields (e.g., full_name from first_name + paternal_surname + maternal_surname)
-          const parts = apiSource.map(key => data[key as keyof PrefillData]).filter(Boolean);
-          const joined = parts.join(' ');
-          updateField(formFieldCode, joined);
-          // Mark whether this field received a null/empty value from the API
-          updateField(`_prefill_empty_${formFieldCode}`, joined ? '' : 'true');
-        } else {
-          // Direct 1:1 mapping
-          const value = data[apiSource as keyof PrefillData];
-          updateField(formFieldCode, value ? String(value) : '');
-          // Mark whether this field received a null/empty value from the API
-          updateField(`_prefill_empty_${formFieldCode}`, value ? '' : 'true');
-        }
+    if (prefillConfig?.fields_to_fill) {
+      // Dynamic mode: each target code in fields_to_fill is also the key in the
+      // lookup response that provides its value (identity mapping).
+      for (const formFieldCode of prefillConfig.fields_to_fill) {
+        const value = data[formFieldCode as keyof PrefillData];
+        updateField(formFieldCode, value ? String(value) : '');
+        updateField(`_prefill_empty_${formFieldCode}`, value ? '' : 'true');
       }
     } else {
       // Legacy mode: use DEFAULT_PREFILL_MAP for backward compatibility
@@ -110,9 +101,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
     if (!prefilledRef.current) return; // Don't clear manually entered data
 
-    if (prefillConfig?.prefill_fields) {
+    if (prefillConfig?.fields_to_fill) {
       // Dynamic mode: clear fields and their empty markers from config
-      for (const formFieldCode of Object.keys(prefillConfig.prefill_fields)) {
+      for (const formFieldCode of prefillConfig.fields_to_fill) {
         updateField(formFieldCode, '');
         updateField(`_prefill_empty_${formFieldCode}`, '');
       }

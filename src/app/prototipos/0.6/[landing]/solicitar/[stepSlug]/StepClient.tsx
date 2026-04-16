@@ -365,16 +365,15 @@ function StepContent() {
     return displayValue;
   };
 
-  // Identify prefill target fields (e.g., supporter_full_name is a prefill target of supporter_document_number)
-  // These are hidden fields auto-filled by check-person API and should never appear in the summary
+  // Identify prefill target fields (e.g., supporter_full_name, first_name).
+  // Any field with prefill_config declares its targets in `fields_to_fill`.
   const prefillTargetFields = useMemo(() => {
     const targets = new Set<string>();
     for (const s of regularSteps) {
       for (const f of s.fields) {
-        if (f.type === 'document_number' && f.prefill_config?.prefill_fields) {
-          for (const code of Object.keys(f.prefill_config.prefill_fields)) {
-            targets.add(code);
-          }
+        if (!f.prefill_config?.fields_to_fill) continue;
+        for (const code of f.prefill_config.fields_to_fill) {
+          targets.add(code);
         }
       }
     }

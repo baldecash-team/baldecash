@@ -80,15 +80,15 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     return values;
   }, [formData]);
 
-  // Map each prefill target field to its source document_number field code.
-  // e.g., { "supporter_full_name": "supporter_document_number", "first_name": "document_number" }
+  // Map each prefill target field to the code of the field that triggers the lookup.
+  // Any field can host a prefill_config (DNI, RUC, etc.), so we iterate all of them.
   const prefillFieldToDocField = useMemo(() => {
     const map: Record<string, string> = {};
     for (const field of step.fields) {
-      if (field.type === 'document_number' && field.prefill_config?.prefill_fields) {
-        for (const code of Object.keys(field.prefill_config.prefill_fields)) {
-          map[code] = field.code;
-        }
+      const targets = field.prefill_config?.fields_to_fill;
+      if (!targets) continue;
+      for (const code of targets) {
+        map[code] = field.code;
       }
     }
     return map;

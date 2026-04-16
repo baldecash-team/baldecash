@@ -6,7 +6,7 @@
  */
 
 import React, { useMemo, useCallback, useEffect } from 'react';
-import { WizardField, WizardFieldOption, filterFieldOptions } from '../../../../../services/wizardApi';
+import { WizardField, WizardFieldOption, filterFieldOptions, getForcedValue } from '../../../../../services/wizardApi';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { TextInput } from './TextInput';
@@ -48,46 +48,30 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
   }, [formData]);
 
 
-  // Minor detection: if birth_date indicates < 18, lock income_source to "familiar"
-  const isMinor = useMemo(() => {
-    const birthDateValue = formData['birth_date']?.value as string | undefined;
-    if (!birthDateValue) return false;
-    const birth = new Date(birthDateValue + 'T12:00:00');
-    if (isNaN(birth.getTime())) return false;
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age < 18;
-  }, [formData]);
+  // Dynamic field lock: when a `set_value` dependency group is satisfied,
+  // the backend forces this field to a specific value and we disable input.
+  // Generalises the previous hardcoded "minor → income_source=familiar" rule.
+  const forcedValue = useMemo(
+    () => getForcedValue(field, formValues),
+    [field, formValues]
+  );
 
-  // Auto-select "familiar" option and set flag when minor + income_source field
-  const familiarOption = useMemo(() => {
-    if (!isMinor || field.code !== 'income_source') return null;
-    const options = filterFieldOptions(field, formValues);
-    return options.find(opt =>
-      /familiar/i.test(opt.value) || /familiar/i.test(opt.label)
-    ) ?? null;
-  }, [isMinor, field, formValues]);
-
+  // Apply the forced value and mirror it to the legacy submit flag used by
+  // useSubmitApplication to tag auto-filled income_source as `llenada_manualmente`.
   useEffect(() => {
-    if (familiarOption && field.code === 'income_source') {
-      if (value !== familiarOption.value) {
-        updateField(field.code, familiarOption.value);
+    if (forcedValue != null) {
+      if (value !== forcedValue) {
+        updateField(field.code, forcedValue);
       }
-      // Set internal flag so submit knows this was auto-filled
-      if (formData['_income_source_auto']?.value !== 'true') {
+      if (field.code === 'income_source' && formData['_income_source_auto']?.value !== 'true') {
         updateField('_income_source_auto', 'true');
       }
-    } else if (!isMinor && field.code === 'income_source' && formData['_income_source_auto']?.value === 'true') {
-      // User changed birth_date to adult — remove lock
+    } else if (field.code === 'income_source' && formData['_income_source_auto']?.value === 'true') {
       updateField('_income_source_auto', '');
     }
-  }, [familiarOption, isMinor, field.code, value, updateField, formData]);
+  }, [forcedValue, value, field.code, updateField, formData]);
 
-  const isLockedByMinor = field.code === 'income_source' && isMinor && !!familiarOption;
+  const isLockedByMinor = forcedValue != null;
 
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
@@ -96,8 +80,13 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     if (field.code === 'institution_type') {
       options = options.filter(opt => opt.value !== 'other');
     }
+    // When a set_value rule is active, restrict the dropdown to only the forced
+    // option so the UI visibly shows a single enabled choice.
+    if (forcedValue != null) {
+      options = options.filter(opt => String(opt.value) === forcedValue);
+    }
     return options;
-  }, [field, formValues]);
+  }, [field, formValues, forcedValue]);
 
   // Build tooltip from API help_text (100% from BD)
   // NOTE: Must be before conditional return to maintain hooks order

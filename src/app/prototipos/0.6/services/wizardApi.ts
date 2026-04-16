@@ -27,14 +27,22 @@ export interface WizardFieldValidation {
 export interface DependencyGroupCondition {
   depends_on_field: string;
   operator: 'equals' | 'not_equals' | 'in' | 'not_in' | 'is_empty' | 'is_not_empty'
-    | 'greater_than' | 'less_than' | 'contains' | 'not_contains';
+    | 'greater_than' | 'less_than' | 'contains' | 'not_contains'
+    | 'age_greater_than' | 'age_less_than';
   value: string | string[] | null;
 }
 
+export interface DependencyGroupActionParams {
+  max_value?: number;
+  min_value?: number;
+  value?: string;
+}
+
 export interface DependencyGroup {
-  action: 'show' | 'hide';
+  action: 'show' | 'hide' | 'set_max' | 'set_min' | 'set_value';
   logic: 'and' | 'or';
   conditions: DependencyGroupCondition[];
+  action_params?: DependencyGroupActionParams | null;
 }
 
 export interface WizardMotivational {
@@ -80,7 +88,7 @@ export interface WizardField {
   dependency_groups: DependencyGroup[];
   accepted_file_types?: string | null;
   max_file_size_mb?: number | null;
-  max_files: number;
+  max_files: number | null;
   // Cascading selects (department → province → district)
   cascade_from?: string | null;    // Parent field code (e.g., "department")
   cascade_param?: string | null;   // Query param for API (e.g., "parent_id")
@@ -103,10 +111,13 @@ export interface WizardField {
     show_use_location?: boolean;       // Show "Use my location" button
     require_selection?: boolean;       // Must select from suggestions
   } | null;
-  // Prefill configuration for document number lookup
+  // Prefill configuration: generic lookup that autocompletes other fields.
+  // When `trigger` fires on this field, the frontend calls `lookup_endpoint`
+  // and fills each code in `fields_to_fill` with the matching key from the response.
   prefill_config?: {
-    document_type_field: string;
-    prefill_fields: Record<string, string | string[]>;
+    lookup_endpoint: string;
+    fields_to_fill: string[];
+    trigger: 'on_blur' | 'on_change';
   } | null;
 }
 
@@ -127,15 +138,26 @@ export interface WizardStep {
   fields: WizardField[];
 }
 
+export interface WizardConfigLanding {
+  id: number;
+  slug: string;
+  name: string;
+  logo_url?: string | null;
+}
+
+export interface WizardConfigForm {
+  id: number;
+  code: string;
+  name: string;
+  estimated_time_minutes: number;
+}
+
 export interface WizardConfig {
-  landing_id: number;
-  landing_slug: string;
-  landing_name: string;
+  landing: WizardConfigLanding;
+  form: WizardConfigForm;
   steps: WizardStep[];
-  // Display values for intro page (configured in admin)
-  display_steps_count?: number;
-  display_estimated_minutes?: number;
-  badge_text?: string | null;
+  total_steps: number;
+  estimated_time_minutes: number;
 }
 
 // ============================================================================
@@ -330,6 +352,23 @@ function evaluateGroup(
     : group.conditions.some(c => evaluateCondition(c, formValues));
 }
 
+/**
+ * Computes age in years from an ISO date string (YYYY-MM-DD).
+ * Returns NaN if the input is empty or invalid.
+ */
+export function calculateAge(dateString: string): number {
+  if (!dateString) return NaN;
+  const birth = new Date(dateString + 'T12:00:00');
+  if (isNaN(birth.getTime())) return NaN;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 function evaluateCondition(
   cond: DependencyGroupCondition,
   formValues: Record<string, string | string[]>
@@ -361,9 +400,74 @@ function evaluateCondition(
       return parseFloat(fieldValue) > parseFloat(depValue);
     case 'less_than':
       return parseFloat(fieldValue) < parseFloat(depValue);
+    case 'age_greater_than': {
+      const age = calculateAge(String(raw ?? ''));
+      return !isNaN(age) && age > parseFloat(depValue);
+    }
+    case 'age_less_than': {
+      const age = calculateAge(String(raw ?? ''));
+      return !isNaN(age) && age < parseFloat(depValue);
+    }
     default:
       return false;
   }
+}
+
+/**
+ * Returns the effective max_value for a numeric field, applying any
+ * dependency_groups with action=set_max whose conditions are currently met.
+ * When multiple set_max groups fire, the strictest (lowest) max wins.
+ */
+export function getEffectiveMaxValue(
+  field: WizardField,
+  formValues: Record<string, string | string[]>
+): number | null {
+  let effective: number | null = field.max_value ?? null;
+  for (const group of field.dependency_groups || []) {
+    if (group.action !== 'set_max') continue;
+    if (!evaluateGroup(group, formValues)) continue;
+    const newMax = group.action_params?.max_value;
+    if (newMax == null) continue;
+    effective = effective != null ? Math.min(effective, newMax) : newMax;
+  }
+  return effective;
+}
+
+/**
+ * Returns the effective min_value for a numeric field, applying set_min groups.
+ * When multiple set_min groups fire, the strictest (highest) min wins.
+ */
+export function getEffectiveMinValue(
+  field: WizardField,
+  formValues: Record<string, string | string[]>
+): number | null {
+  let effective: number | null = field.min_value ?? null;
+  for (const group of field.dependency_groups || []) {
+    if (group.action !== 'set_min') continue;
+    if (!evaluateGroup(group, formValues)) continue;
+    const newMin = group.action_params?.min_value;
+    if (newMin == null) continue;
+    effective = effective != null ? Math.max(effective, newMin) : newMin;
+  }
+  return effective;
+}
+
+/**
+ * Returns the value this field must be locked to when any set_value
+ * dependency group is currently satisfied, or null when the field is free.
+ * The first matching group wins.
+ */
+export function getForcedValue(
+  field: WizardField,
+  formValues: Record<string, string | string[]>
+): string | null {
+  for (const group of field.dependency_groups || []) {
+    if (group.action !== 'set_value') continue;
+    if (!evaluateGroup(group, formValues)) continue;
+    const forced = group.action_params?.value;
+    if (forced != null) return String(forced);
+  }
+  return null;
 }
 
 /**
@@ -500,11 +604,13 @@ export function validateField(
     if (isNaN(numValue)) {
       return { isValid: false, error: 'Ingresa un valor numérico válido' };
     }
-    if (field.min_value !== null && field.min_value !== undefined && numValue < field.min_value) {
-      return { isValid: false, error: `El valor mínimo es ${field.min_value}` };
+    const effectiveMin = getEffectiveMinValue(field, formValues);
+    const effectiveMax = getEffectiveMaxValue(field, formValues);
+    if (effectiveMin !== null && numValue < effectiveMin) {
+      return { isValid: false, error: `El valor mínimo es ${effectiveMin}` };
     }
-    if (field.max_value !== null && field.max_value !== undefined && numValue > field.max_value) {
-      return { isValid: false, error: `El valor máximo es ${field.max_value}` };
+    if (effectiveMax !== null && numValue > effectiveMax) {
+      return { isValid: false, error: `El valor máximo es ${effectiveMax}` };
     }
   }
 
@@ -520,22 +626,34 @@ export function validateField(
     }
   }
 
-  // 5. Validación de edad mínima para fecha de nacimiento
-  if (field.type === 'date' && field.code === 'birth_date' && trimmedValue) {
-    const birthDate = new Date(trimmedValue + 'T12:00:00');
-    const today = new Date();
-    const minAgeCutoff = new Date(today.getFullYear() - 17, today.getMonth(), today.getDate());
-    if (birthDate > minAgeCutoff) {
-      return { isValid: false, error: 'Debes tener al menos 17 años' };
-    }
-  }
-
-  // 6. Validaciones del array validations[] del API
+  // 5. Validaciones del array validations[] del API
   for (const validation of field.validations) {
     let hasError = false;
     let errorMessage = validation.message;
 
     switch (validation.type) {
+      case 'required':
+        // Already enforced by `field.required` above when the value is empty.
+        break;
+
+      case 'age_greater_than':
+        if (validation.value) {
+          const age = calculateAge(trimmedValue);
+          if (!isNaN(age) && age <= parseFloat(validation.value)) {
+            hasError = true;
+          }
+        }
+        break;
+
+      case 'age_less_than':
+        if (validation.value) {
+          const age = calculateAge(trimmedValue);
+          if (!isNaN(age) && age >= parseFloat(validation.value)) {
+            hasError = true;
+          }
+        }
+        break;
+
       case 'email':
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
           hasError = true;
@@ -636,11 +754,13 @@ export function validateStep(
 ): string | null {
   let firstErrorField: string | null = null;
 
-  // Map prefill target fields to their source document_number field code
+  // Map prefill target fields to their trigger field code (the field that runs the lookup).
+  // Any field can be a prefill trigger via `prefill_config`; we use this map to
+  // drive conditional visibility for hidden fields that depend on the lookup result.
   const prefillFieldToDocField: Record<string, string> = {};
   for (const field of step.fields) {
-    if (field.type === 'document_number' && field.prefill_config?.prefill_fields) {
-      for (const code of Object.keys(field.prefill_config.prefill_fields)) {
+    if (field.prefill_config?.fields_to_fill) {
+      for (const code of field.prefill_config.fields_to_fill) {
         prefillFieldToDocField[code] = field.code;
       }
     }
