@@ -1,6 +1,5 @@
 const S3 = 'https://baldecash.s3.amazonaws.com';
 const IMG = `${S3}/images/macbook-neo`;
-const IMG_V3 = `${S3}/images/macbook-neo-v3`;
 
 const VID = `${S3}/videos/macbook-neo`;
 
@@ -9,12 +8,9 @@ export const ASSETS = {
     video: `${VID}/hero-banner-uhd.mp4`,
     poster: `${IMG}/hero-banner-uhd-poster.jpg`,
     posterMobile: `${IMG}/hero-mobile.jpg`,
-    endframe: `${IMG}/hero-banner-uhd-endframe.jpg`,
-    fallback: `${IMG}/hero_endframe_2x.jpg`,
   },
   design: `${IMG}/design_endframe_2x.png`,
   display: `${IMG}/dca_display_2x.png`,
-  lifestyle: `${IMG}/performance_lifestyle_2x.jpg`,
   colors: {
     silver: `${IMG}/pv_colors_silver_large_2x.jpg`,
     blush: `${IMG}/pv_colors_blush_large_2x.jpg`,
@@ -29,14 +25,8 @@ export const ASSETS = {
   performance: [
     `${IMG}/performance_hero_1_2x.jpg`,
     `${IMG}/performance_hero_2_2x.jpg`,
-    `${IMG}/performance_hero_3_2x.jpg`,
     `${IMG}/performance_hero_4_2x.jpg`,
   ],
-  productViews: {
-    display: `${IMG}/pv_display_large_2x.jpg`,
-    keyboard: `${IMG}/pv_keyboard_large_2x.jpg`,
-    hero: `${IMG}/pv_hero_2x.jpg`,
-  },
   productViewerHD: {
     colors: {
       silver: `${IMG}/pv_colors_silver_large_2x.jpg`,
@@ -52,19 +42,7 @@ export const ASSETS = {
     audio: `${IMG}/pv_audio_large_2x.jpg`,
     connectivity: `${IMG}/pv_connectivity_large_2x.jpg`,
   },
-  dca: {
-    display: `${IMG}/dca_display_2x.png`,
-    camera: `${IMG}/dca_camera_2x.png`,
-    audio: `${IMG}/dca_audio_2x.jpg`,
-  },
 } as const;
-
-export function generateFrameUrls(folder: string, count: number): string[] {
-  return Array.from({ length: count }, (_, i) => {
-    const num = String(i + 1).padStart(4, '0');
-    return `${IMG_V3}/sequences/${folder}/frame_${num}.webp`;
-  });
-}
 
 // BaldeCash brand
 export const BC = {
@@ -73,7 +51,6 @@ export const BC = {
   secondary: '#03DBD0',
   secondaryHover: '#02c4ba',
   logo: 'https://baldecash.s3.amazonaws.com/company/logo.png',
-  logoLight: 'https://baldecash.s3.amazonaws.com/company/logo.png',
 } as const;
 
 // Shared design tokens

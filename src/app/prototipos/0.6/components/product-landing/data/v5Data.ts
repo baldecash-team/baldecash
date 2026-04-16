@@ -169,7 +169,7 @@ export const performanceData: V5PerformanceData = {
       title: 'Diversión asegurada',
       description:
         'Gráficos increíbles y la pantalla Liquid Retina dan vida a tus juegos favoritos.',
-      image: ASSETS.performance[3],
+      image: ASSETS.performance[2],
     },
   ],
   batteryLabel: 'Hasta',

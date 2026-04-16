@@ -1,1 +1,0 @@
-export { FinancingSection } from './FinancingSection';
