@@ -628,7 +628,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 </div>
 
                 {/* Device Type Filter - hide if empty */}
-                {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length === 0) && (
+                {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length <= 1) && (
                 <FilterSection title="Tipo de equipo" defaultExpanded={true}>
                   <div className="grid grid-cols-3 gap-2">
                     {dynamicDeviceTypeOptions === null ? (
@@ -696,7 +696,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 />
 
                 {/* Brand Filter - hide if empty */}
-                {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length === 0) && (
+                {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
                 <FilterSection title="Marca" defaultExpanded={true}>
                   {renderBrandFilter()}
                 </FilterSection>
@@ -861,7 +861,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
           <ModalBody className="px-4 py-6 overflow-y-auto">
             {/* Device Type Filter - hide if empty */}
-            {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length === 0) && (
+            {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length <= 1) && (
             <FilterSection title="Tipo de equipo" defaultExpanded={true}>
               <div className="grid grid-cols-3 gap-2">
                 {dynamicDeviceTypeOptions === null ? (
@@ -928,7 +928,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             />
 
             {/* Brand Filter - hide if empty */}
-            {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length === 0) && (
+            {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
             <FilterSection title="Marca" defaultExpanded={true}>
               {renderBrandFilter()}
             </FilterSection>

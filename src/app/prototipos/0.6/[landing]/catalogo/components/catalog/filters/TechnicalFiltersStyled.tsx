@@ -120,7 +120,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
   return (
     <div className="space-y-0 bg-white">
       {/* Main Filters: Usage & Condition */}
-      {showMain && usageOptions.length > 0 && onUsageChange && (
+      {showMain && usageOptions.length > 1 && onUsageChange && (
         <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>
           <div className="space-y-2">
             {usageOptions.map((opt) => (
@@ -144,7 +144,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
 
-      {showMain && conditionOptions.length > 0 && onConditionChange && (
+      {showMain && conditionOptions.length > 1 && onConditionChange && (
         <FilterSection title="Condición" tooltip={filterTooltips.condition} defaultExpanded={false}>
           <div className="space-y-2">
             {conditionOptions.map((opt) => (
@@ -169,7 +169,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
       )}
 
       {/* Advanced Filters */}
-      {showAdvanced && ramOptions.length > 0 && onRamChange && (
+      {showAdvanced && ramOptions.length > 1 && onRamChange && (
         <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
           <div className="space-y-2">
             {ramOptions.map((opt) => (
@@ -193,7 +193,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
 
-      {showAdvanced && storageOptions.length > 0 && onStorageChange && (
+      {showAdvanced && storageOptions.length > 1 && onStorageChange && (
         <FilterSection title="Almacenamiento" tooltip={filterTooltips.ssd} defaultExpanded={false}>
           <div className="space-y-2">
             {storageOptions.map((opt) => (
@@ -217,7 +217,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
 
-      {showAdvanced && displaySizeOptions.length > 0 && onDisplaySizeChange && (
+      {showAdvanced && displaySizeOptions.length > 1 && onDisplaySizeChange && (
         <FilterSection title="Tamaño de pantalla" tooltip={filterTooltips.display} defaultExpanded={false}>
           <div className="space-y-2">
             {displaySizeOptions.map((opt) => (
@@ -241,7 +241,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
 
-      {showAdvanced && resolutionOptions.length > 0 && onResolutionChange && (
+      {showAdvanced && resolutionOptions.length > 1 && onResolutionChange && (
         <FilterSection title="Resolución" tooltip={filterTooltips.resolution} defaultExpanded={false}>
           <div className="space-y-2">
             {resolutionOptions.map((opt) => (
@@ -265,7 +265,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
 
-      {showAdvanced && displayTypeOptions.length > 0 && onDisplayTypeChange && (
+      {showAdvanced && displayTypeOptions.length > 1 && onDisplayTypeChange && (
         <FilterSection title="Tipo de pantalla" tooltip={filterTooltips.displayType} defaultExpanded={false}>
           <div className="space-y-2">
             {displayTypeOptions.map((opt) => (
@@ -289,7 +289,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
 
-      {showAdvanced && processorOptions.length > 0 && onProcessorChange && (
+      {showAdvanced && processorOptions.length > 1 && onProcessorChange && (
         <FilterSection title="Procesador" tooltip={filterTooltips.processor} defaultExpanded={false}>
           <div className="space-y-2">
             {processorOptions.map((opt) => (
@@ -390,7 +390,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
   return (
     <div className="space-y-0 bg-white">
       {/* Main Filters */}
-      {showMain && usageOptions.length > 0 && onUsageChange && (
+      {showMain && usageOptions.length > 1 && onUsageChange && (
         <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>
           <ChipFilterContent
             options={usageOptions}
@@ -401,7 +401,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showMain && conditionOptions.length > 0 && onConditionChange && (
+      {showMain && conditionOptions.length > 1 && onConditionChange && (
         <FilterSection title="Condición" tooltip={filterTooltips.condition} defaultExpanded={false}>
           <ChipFilterContent
             options={conditionOptions}
@@ -413,7 +413,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
       {/* Advanced Filters */}
-      {showAdvanced && ramOptions.length > 0 && onRamChange && (
+      {showAdvanced && ramOptions.length > 1 && onRamChange && (
         <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
           <ChipFilterContent
             options={ramOptions}
@@ -424,7 +424,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && storageOptions.length > 0 && onStorageChange && (
+      {showAdvanced && storageOptions.length > 1 && onStorageChange && (
         <FilterSection title="Almacenamiento" tooltip={filterTooltips.ssd} defaultExpanded={false}>
           <ChipFilterContent
             options={storageOptions}
@@ -435,7 +435,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && displaySizeOptions.length > 0 && onDisplaySizeChange && (
+      {showAdvanced && displaySizeOptions.length > 1 && onDisplaySizeChange && (
         <FilterSection title="Tamaño de pantalla" tooltip={filterTooltips.display} defaultExpanded={false}>
           <ChipFilterContent
             options={displaySizeOptions}
@@ -446,7 +446,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && resolutionOptions.length > 0 && onResolutionChange && (
+      {showAdvanced && resolutionOptions.length > 1 && onResolutionChange && (
         <FilterSection title="Resolución" tooltip={filterTooltips.resolution} defaultExpanded={false}>
           <ChipFilterContent
             options={resolutionOptions}
@@ -457,7 +457,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && displayTypeOptions.length > 0 && onDisplayTypeChange && (
+      {showAdvanced && displayTypeOptions.length > 1 && onDisplayTypeChange && (
         <FilterSection title="Tipo de pantalla" tooltip={filterTooltips.displayType} defaultExpanded={false}>
           <ChipFilterContent
             options={displayTypeOptions.map(o => ({ ...o, label: o.label.toUpperCase() }))}
@@ -468,7 +468,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && processorOptions.length > 0 && onProcessorChange && (
+      {showAdvanced && processorOptions.length > 1 && onProcessorChange && (
         <FilterSection title="Procesador" tooltip={filterTooltips.processor} defaultExpanded={false}>
           <ChipFilterContent
             options={processorOptions}
@@ -607,7 +607,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
   return (
     <div className="space-y-0 bg-white">
       {/* Main Filters */}
-      {showMain && usageOptions.length > 0 && onUsageChange && (
+      {showMain && usageOptions.length > 1 && onUsageChange && (
         <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>
           <IconCardFilterWithMappingContent
             iconMap={usageIconMap}
@@ -621,7 +621,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showMain && conditionOptions.length > 0 && onConditionChange && (
+      {showMain && conditionOptions.length > 1 && onConditionChange && (
         <FilterSection title="Condición" tooltip={filterTooltips.condition} defaultExpanded={false}>
           <IconCardFilterWithMappingContent
             iconMap={conditionIconMap}
@@ -636,7 +636,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
       {/* Advanced Filters */}
-      {showAdvanced && ramOptions.length > 0 && onRamChange && (
+      {showAdvanced && ramOptions.length > 1 && onRamChange && (
         <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
           <IconCardFilterContent
             icon={MemoryStick}
@@ -649,7 +649,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && storageOptions.length > 0 && onStorageChange && (
+      {showAdvanced && storageOptions.length > 1 && onStorageChange && (
         <FilterSection title="Almacenamiento" tooltip={filterTooltips.ssd} defaultExpanded={false}>
           <IconCardFilterContent
             icon={HardDrive}
@@ -662,7 +662,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && displaySizeOptions.length > 0 && onDisplaySizeChange && (
+      {showAdvanced && displaySizeOptions.length > 1 && onDisplaySizeChange && (
         <FilterSection title="Tamaño de pantalla" tooltip={filterTooltips.display} defaultExpanded={false}>
           <IconCardFilterContent
             icon={Monitor}
@@ -675,7 +675,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && resolutionOptions.length > 0 && onResolutionChange && (
+      {showAdvanced && resolutionOptions.length > 1 && onResolutionChange && (
         <FilterSection title="Resolución" tooltip={filterTooltips.resolution} defaultExpanded={false}>
           <IconCardFilterContent
             icon={Maximize}
@@ -688,7 +688,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && displayTypeOptions.length > 0 && onDisplayTypeChange && (
+      {showAdvanced && displayTypeOptions.length > 1 && onDisplayTypeChange && (
         <FilterSection title="Tipo de pantalla" tooltip={filterTooltips.displayType} defaultExpanded={false}>
           <IconCardFilterContent
             icon={Layers}
@@ -701,7 +701,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
           />
         </FilterSection>
       )}
-      {showAdvanced && processorOptions.length > 0 && onProcessorChange && (
+      {showAdvanced && processorOptions.length > 1 && onProcessorChange && (
         <FilterSection title="Procesador" tooltip={filterTooltips.processor} defaultExpanded={false}>
           <IconCardFilterContent
             icon={Cpu}
