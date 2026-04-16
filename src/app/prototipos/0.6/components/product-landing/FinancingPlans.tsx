@@ -8,16 +8,14 @@ import { useReducedMotion } from './shared/hooks/useReducedMotion';
 
 interface FinancingPlansV5Props {
   tier: string;
-  landing?: string;
 }
 
 const ICON_MAP: Record<string, LucideIcon> = { Zap, Star, Crown };
 
-export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo' }: FinancingPlansV5Props) {
+export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
   const isEnhanced = tier === 'enhanced' && !reducedMotion;
@@ -27,8 +25,7 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
 
     const header = headerRef.current;
     const cards = cardsRef.current;
-    const cta = ctaRef.current;
-    if (!header || !cards || !cta) return;
+    if (!header || !cards) return;
 
     let ctx: ReturnType<typeof import('gsap')['gsap']['context']> | null = null;
 
@@ -43,7 +40,6 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
 
       gsap.set(header, { opacity: 0, y: 30 });
       gsap.set(cards!.children, { opacity: 0, y: 40 });
-      gsap.set(cta, { opacity: 0, y: 20 });
 
       ctx = gsap.context(() => {
         gsap.to(header, {
@@ -53,10 +49,6 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
         gsap.to(cards!.children, {
           opacity: 1, y: 0, duration: 0.7, stagger: 0.12, ease: 'power2.out',
           scrollTrigger: { trigger: cards, start: 'top 80%', toggleActions: 'play none none none' },
-        });
-        gsap.to(cta, {
-          opacity: 1, y: 0, duration: 0.5, ease: 'power2.out',
-          scrollTrigger: { trigger: cta, start: 'top 90%', toggleActions: 'play none none none' },
         });
       });
     }
@@ -253,19 +245,6 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
           })}
         </div>
 
-        {/* Bottom CTA */}
-        <div ref={ctaRef} className="mt-12 sm:mt-14 text-center">
-          <a
-            href={`/prototipos/0.6/${landing}/solicitar`}
-            className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold text-white hover:opacity-90 transition-all no-underline cursor-pointer rounded-lg shadow-sm active:scale-[0.97]"
-            style={{ backgroundColor: BC.primary }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = BC.primaryHover)}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = BC.primary)}
-          >
-            Solicitar ahora
-            <ArrowRight className="w-4 h-4" />
-          </a>
-        </div>
       </div>
     </section>
   );

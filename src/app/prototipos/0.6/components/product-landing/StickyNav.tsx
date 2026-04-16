@@ -174,10 +174,12 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
                     }}
                     transition={{ duration: 0.25, ease: 'easeOut' }}
                   >
-                    <a
-                      href={`/prototipos/0.6/${landing}/solicitar`}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center justify-center gap-2 w-full font-medium rounded-lg py-3 px-4 transition-colors no-underline"
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        document.getElementById('financing')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="flex items-center justify-center gap-2 w-full font-medium rounded-lg py-3 px-4 transition-colors cursor-pointer"
                       style={{
                         border: `2px solid ${BC.primary}`,
                         color: BC.primary,
@@ -186,7 +188,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
                     >
                       <User className="w-4 h-4" />
                       Solicitar
-                    </a>
+                    </button>
                   </motion.div>
                 </motion.div>
               </motion.div>
@@ -334,8 +336,8 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
 
           {/* CTA Solicitar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <a
-              href={`/prototipos/0.6/${landing}/solicitar`}
+            <button
+              onClick={() => document.getElementById('financing')?.scrollIntoView({ behavior: 'smooth' })}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -351,7 +353,6 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
                 whiteSpace: 'nowrap',
                 transition: 'background-color 0.2s ease, color 0.2s ease',
                 lineHeight: '18px',
-                textDecoration: 'none',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = 'rgba(245, 245, 247, 0.1)';
@@ -363,7 +364,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
               }}
             >
               Solicitar
-            </a>
+            </button>
           </div>
         </div>
       </nav>

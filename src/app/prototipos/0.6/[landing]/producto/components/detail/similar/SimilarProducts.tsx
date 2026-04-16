@@ -38,6 +38,7 @@ interface SimilarProductsExtendedProps extends SimilarProductsProps {
 export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
   products,
   currentQuota,
+  landing: landingProp,
   onAddToCart,
   cartItems = [],
 }) => {
@@ -115,11 +116,8 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
   };
 
   const handleProductClick = (slug: string) => {
-    // Navigate to product detail page
     if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      const landingMatch = currentPath.match(/\/prototipos\/0\.6\/([^/]+)/);
-      const landing = landingMatch ? landingMatch[1] : 'home';
+      const landing = landingProp || 'home';
       window.location.href = routes.producto(landing, slug);
     }
   };
@@ -127,9 +125,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
   const handleAddToCart = (product: SimilarProduct) => {
     // Save product to localStorage before navigating
     if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      const landingMatch = currentPath.match(/\/prototipos\/0\.6\/([^/]+)/);
-      const landing = landingMatch ? landingMatch[1] : 'home';
+      const landing = landingProp || 'home';
 
       // Build SelectedProduct from SimilarProduct
       // Note: SimilarProduct doesn't have price, so we estimate it from monthlyQuota

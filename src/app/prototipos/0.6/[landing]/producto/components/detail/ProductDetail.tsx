@@ -575,6 +575,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <SimilarProducts
               products={similarProducts}
               currentQuota={product.lowestQuota}
+              landing={landing}
               onAddToCart={onSimilarAddToCart}
               cartItems={cartItems}
             />

@@ -89,7 +89,7 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
 
       {/* S5: Financing Plans */}
       <LazySection fallbackHeight={900}>
-        <FinancingPlans tier={tier} landing={landing} />
+        <FinancingPlans tier={tier} />
       </LazySection>
 
       {/* S6: Performance */}

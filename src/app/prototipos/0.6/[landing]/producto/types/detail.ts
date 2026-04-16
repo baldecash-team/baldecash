@@ -307,6 +307,7 @@ export interface PricingCalculatorProps {
 export interface SimilarProductsProps {
   products: SimilarProduct[];
   currentQuota: number;
+  landing?: string;
 }
 
 export interface ProductLimitationsProps {
