@@ -192,7 +192,7 @@ export default function FinancingPlans({ tier, landing = 'baldecash-macbook-neo'
 
                   {/* CTA button */}
                   <a
-                    href="#"
+                    href={plan.productUrl ?? '#'}
                     className="mt-6 inline-flex items-center justify-center gap-2 w-full py-3 text-xs font-semibold no-underline rounded-xl transition-all active:scale-[0.97]"
                     style={
                       isDestacado
