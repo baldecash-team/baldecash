@@ -1868,7 +1868,7 @@ function GamerCatalogoContent() {
       `}</style>
 
       {/* Help button */}
-      {!showMobileFilters && <GamerHelpButton isDark={isDark} T={T} onOpenChat={() => blipChat.openChat()} onStartTour={handleStartTour} />}
+      {!showMobileFilters && !showCompareModal && <GamerHelpButton isDark={isDark} T={T} onOpenChat={() => blipChat.openChat()} onStartTour={handleStartTour} />}
 
       {/* Onboarding Tour */}
       <GamerOnboardingTour
@@ -4364,7 +4364,7 @@ function GamerCompareModal({
                 style={{
                   width: '100%',
                   borderCollapse: 'collapse',
-                  minWidth: products.length > 2 ? 600 : 400,
+                  tableLayout: 'fixed',
                 }}
               >
                 {/* Product header row */}
@@ -4372,8 +4372,8 @@ function GamerCompareModal({
                   <tr>
                     <th
                       style={{
-                        width: 120,
-                        padding: '16px 12px 12px',
+                        width: 'clamp(80px, 22vw, 120px)',
+                        padding: 'clamp(8px, 2vw, 16px) clamp(6px, 1.5vw, 12px) 12px',
                         textAlign: 'left',
                         fontFamily: "'Rajdhani', sans-serif",
                         fontSize: 11,
@@ -4391,10 +4391,9 @@ function GamerCompareModal({
                       <th
                         key={p.id}
                         style={{
-                          padding: '16px 10px 12px',
+                          padding: 'clamp(8px, 2vw, 16px) clamp(4px, 1vw, 10px) 12px',
                           textAlign: 'center',
                           verticalAlign: 'bottom',
-                          minWidth: 150,
                           borderBottom: `1px solid ${isDark ? T.border : '#f0f0f0'}`,
                           background: colIdx % 2 === 1 ? colTint : 'transparent',
                           ...fadeIn(0.1 + colIdx * 0.1, 0.3),
@@ -4404,8 +4403,8 @@ function GamerCompareModal({
                           {/* Thumbnail */}
                           <div
                             style={{
-                              width: 56,
-                              height: 56,
+                              width: 48,
+                              height: 48,
                               borderRadius: 10,
                               background: isDark ? 'rgba(255,255,255,0.05)' : '#f5f5f5',
                               display: 'flex',
@@ -4440,11 +4439,11 @@ function GamerCompareModal({
                           <span
                             style={{
                               fontFamily: "'Rajdhani', sans-serif",
-                              fontSize: 13,
+                              fontSize: 'clamp(11px, 2.8vw, 13px)',
                               fontWeight: 600,
                               color: isDark ? T.textPrimary : '#171717',
                               lineHeight: 1.2,
-                              maxWidth: 140,
+                              maxWidth: 'clamp(80px, 25vw, 140px)',
                               textAlign: 'center',
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
@@ -4574,215 +4573,109 @@ function GamerCompareModal({
         {/* ====== FOOTER ====== */}
         <footer
           style={{
-            padding: '16px 24px',
+            padding: '16px 20px',
             borderTop: `1px solid ${isDark ? T.border : '#e5e5e5'}`,
             background: isDark ? T.bgCard : '#ffffff',
             flexShrink: 0,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
           }}
         >
           {!showBestOption ? (
-            <>
-              {/* Trash button (desktop) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Limpiar comparación */}
               <button
                 onClick={onClearAll}
-                className="hidden md:flex"
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: 'transparent',
-                  border: 'none',
-                  color: isDark ? T.textMuted : '#525252',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  width: '100%', padding: '8px 0',
+                  background: 'none', border: 'none',
+                  color: isDark ? T.textMuted : '#a3a3a3',
+                  fontSize: 13, fontFamily: "'Rajdhani', sans-serif",
                   cursor: 'pointer',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'color 0.2s',
-                }}
-                title="Limpiar comparación"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-
-              {/* Action buttons */}
-              <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-full md:w-auto">
-                {/* Ver mejor opción */}
-                <button
-                  onClick={() => setShowBestOption(true)}
-                  className="flex items-center justify-center gap-2 w-full md:w-auto"
-                  style={{
-                    height: 40,
-                    padding: '0 16px',
-                    background: primaryColor,
-                    border: 'none',
-                    borderRadius: 10,
-                    color: isDark ? '#000' : '#fff',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: "'Rajdhani', sans-serif",
-                    whiteSpace: 'nowrap',
-                    order: window?.innerWidth >= 768 ? 2 : 1,
-                  }}
-                >
-                  <Trophy className="w-4 h-4" />
-                  Ver mejor opción
-                </button>
-
-                {/* Cerrar */}
-                <button
-                  onClick={onClose}
-                  className="flex items-center justify-center w-full md:w-auto"
-                  style={{
-                    height: 40,
-                    padding: '0 16px',
-                    background: 'transparent',
-                    border: `1.5px solid ${isDark ? T.border : '#e5e5e5'}`,
-                    borderRadius: 10,
-                    color: isDark ? T.textPrimary : '#171717',
-                    fontSize: 14,
-                    fontWeight: 400,
-                    cursor: 'pointer',
-                    fontFamily: "'Rajdhani', sans-serif",
-                    whiteSpace: 'nowrap',
-                    order: window?.innerWidth >= 768 ? 1 : 3,
-                  }}
-                >
-                  Cerrar
-                </button>
-              </div>
-
-              {/* Trash button (mobile) */}
-              <button
-                onClick={onClearAll}
-                className="flex md:hidden items-center justify-center gap-2 w-full"
-                style={{
-                  height: 40,
-                  padding: '0 16px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: isDark ? T.textMuted : '#525252',
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  fontFamily: "'Rajdhani', sans-serif",
                 }}
               >
                 <Trash2 className="w-4 h-4" />
                 Limpiar comparación
               </button>
-            </>
-          ) : (
-            <>
-              {/* Best option footer */}
-              {/* Trash button (desktop) */}
+
+              {/* Ver mejor opción */}
               <button
-                onClick={onClearAll}
-                className="hidden md:flex"
+                onClick={() => setShowBestOption(true)}
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: 'transparent',
-                  border: 'none',
-                  color: isDark ? T.textMuted : '#525252',
-                  cursor: 'pointer',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: 'color 0.2s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  width: '100%', height: 44, borderRadius: 12, border: 'none',
+                  background: primaryColor, color: isDark ? '#000' : '#fff',
+                  fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                  fontFamily: "'Rajdhani', sans-serif",
                 }}
-                title="Limpiar comparación"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trophy className="w-4 h-4" />
+                Ver mejor opción
               </button>
 
-              <div className="flex flex-col md:flex-row gap-2 md:gap-3 w-full md:w-auto">
+              {/* Cerrar */}
+              <button
+                onClick={onClose}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '100%', padding: '10px 0',
+                  background: 'none', border: 'none',
+                  color: isDark ? T.textPrimary : '#171717',
+                  fontSize: 14, fontWeight: 500, cursor: 'pointer',
+                  fontFamily: "'Rajdhani', sans-serif",
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Limpiar */}
+                <button
+                  onClick={onClearAll}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    width: '100%', padding: '8px 0',
+                    background: 'none', border: 'none',
+                    color: isDark ? T.textMuted : '#a3a3a3',
+                    fontSize: 13, fontFamily: "'Rajdhani', sans-serif",
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Limpiar comparación
+                </button>
+
                 {/* Elegir ganador */}
                 <button
                   onClick={() => onSelectProduct(bestProduct)}
-                  className="flex items-center justify-center gap-2 w-full md:w-auto"
                   style={{
-                    height: 40,
-                    padding: '0 16px',
-                    background: '#00ffd5',
-                    border: 'none',
-                    borderRadius: 10,
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    width: '100%', height: 44, borderRadius: 12, border: 'none',
+                    background: primaryColor, color: isDark ? '#000' : '#fff',
+                    fontSize: 15, fontWeight: 700, cursor: 'pointer',
                     fontFamily: "'Rajdhani', sans-serif",
-                    whiteSpace: 'nowrap',
                   }}
                 >
                   Elegir ganador
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
-                {/* Al carrito */}
-                <button
-                  onClick={() => {/* no-op for now */}}
-                  className="flex items-center justify-center gap-2 w-full md:w-auto"
-                  style={{
-                    height: 40,
-                    padding: '0 16px',
-                    background: isDark ? 'rgba(0,255,213,0.1)' : 'rgba(70,84,205,0.08)',
-                    border: `1.5px solid ${primaryColor}`,
-                    borderRadius: 10,
-                    color: primaryColor,
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontFamily: "'Rajdhani', sans-serif",
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Al carrito
-                </button>
-
                 {/* Cerrar */}
                 <button
                   onClick={onClose}
-                  className="flex items-center justify-center w-full md:w-auto"
                   style={{
-                    height: 40,
-                    padding: '0 16px',
-                    background: 'transparent',
-                    border: `1.5px solid ${isDark ? T.border : '#e5e5e5'}`,
-                    borderRadius: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '100%', padding: '10px 0',
+                    background: 'none', border: 'none',
                     color: isDark ? T.textPrimary : '#171717',
-                    fontSize: 14,
-                    fontWeight: 400,
-                    cursor: 'pointer',
+                    fontSize: 14, fontWeight: 500, cursor: 'pointer',
                     fontFamily: "'Rajdhani', sans-serif",
-                    whiteSpace: 'nowrap',
                   }}
                 >
                   Cerrar
                 </button>
               </div>
-
-              {/* Trash button (mobile) */}
-              <button
-                onClick={onClearAll}
-                className="flex md:hidden items-center justify-center gap-2 w-full"
-                style={{
-                  height: 40,
-                  padding: '0 16px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: isDark ? T.textMuted : '#525252',
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  fontFamily: "'Rajdhani', sans-serif",
-                }}
-              >
-                <Trash2 className="w-4 h-4" />
-                Limpiar comparación
-              </button>
             </>
           )}
         </footer>

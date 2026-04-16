@@ -18,6 +18,7 @@ import { useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
+import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import type { Accessory } from './types/upsell';
 
 // API base URL for coupon validation
@@ -321,6 +322,44 @@ function SolicitarContent() {
           <p style={{ fontSize: 18, color: T.textSecondary }}>Completa el formulario para solicitar tu equipo tecnológico</p>
         </div>
 
+        {/* Info cards — mobile first (before product) */}
+        <div className="flex flex-col sm:hidden gap-0 mb-0">
+          <div className="grid grid-cols-1 gap-3 mb-6">
+            {[
+              { icon: <Clock size={24} />, title: `~${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
+              { icon: <FileText size={24} />, title: `${displayStepsCount || steps.length || 4} pasos`, sub: 'Proceso simple' },
+              { icon: <Shield size={24} />, title: '100% Seguro', sub: 'Datos protegidos' },
+            ].map((card, i) => (
+              <div key={i} style={{ background: T.bgCard, borderRadius: 12, padding: '16px 20px', border: `1px solid ${T.border}`, textAlign: 'center' }}>
+                <div style={{ color: T.neonCyan, marginBottom: 8, display: 'flex', justifyContent: 'center' }}>{card.icon}</div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, margin: 0 }}>{card.title}</p>
+                <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{card.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: T.bgCard, borderRadius: 12, padding: 16, border: `1px solid ${T.border}`, marginBottom: 24 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 12 }}>Lo que necesitarás</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { num: '1', title: 'Documento de identidad', sub: 'DNI, CE o Pasaporte vigente' },
+                { num: '2', title: 'Constancia de estudios', sub: 'Matrícula vigente' },
+                { num: '3', title: 'Información de contacto', sub: 'Teléfono y correo activos' },
+              ].map((item) => (
+                <div key={item.num} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: cyanAlpha(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: T.neonCyan }}>{item.num}</span>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: T.textPrimary, margin: 0 }}>{item.title}</p>
+                    <p style={{ fontSize: 11, color: T.textMuted, margin: 0 }}>{item.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Product summary */}
         {product && (
           <div style={{ background: T.bgCard, borderRadius: 12, border: `1px solid ${T.border}`, marginBottom: 32, overflow: 'hidden' }}>
@@ -400,23 +439,23 @@ function SolicitarContent() {
           </div>
         )}
 
-        {/* Info cards — steps y minutos vienen del wizard config (BD) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 40 }}>
+        {/* Info cards — desktop only (mobile shown above product) */}
+        <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 40 }}>
           {[
-            { icon: <Clock size={24} />, title: `${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
+            { icon: <Clock size={24} />, title: `~${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
             { icon: <FileText size={24} />, title: `${displayStepsCount || steps.length || 4} pasos`, sub: 'Proceso simple' },
             { icon: <Shield size={24} />, title: '100% Seguro', sub: 'Datos protegidos' },
           ].map((card, i) => (
-            <div key={i} style={{ background: T.bgCard, borderRadius: 12, padding: 16, border: `1px solid ${T.border}`, textAlign: 'center' }}>
+            <div key={i} style={{ background: T.bgCard, borderRadius: 12, padding: '16px 20px', border: `1px solid ${T.border}`, textAlign: 'center' }}>
               <div style={{ color: T.neonCyan, marginBottom: 8, display: 'flex', justifyContent: 'center' }}>{card.icon}</div>
-              <p style={{ fontSize: 14, fontWeight: 500, color: T.textPrimary }}>{card.title}</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>{card.title}</p>
               <p style={{ fontSize: 12, color: T.textMuted }}>{card.sub}</p>
             </div>
           ))}
         </div>
 
-        {/* Lo que necesitarás */}
-        <div style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${T.border}`, marginBottom: 32 }}>
+        {/* Lo que necesitarás — desktop only */}
+        <div className="hidden sm:block" style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${T.border}`, marginBottom: 32 }}>
           <h2 style={{ fontSize: 18, fontWeight: 600, color: T.textPrimary, fontFamily: F.raj, marginBottom: 16 }}>Lo que necesitarás</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
@@ -732,6 +771,7 @@ function SolicitarContent() {
         );
       })()}
 
+      <GamerNewsletter theme={theme} />
       <GamerFooter theme={theme} />
     </div>
   );
