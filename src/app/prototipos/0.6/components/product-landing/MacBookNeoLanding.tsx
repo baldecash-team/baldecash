@@ -59,6 +59,9 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
 
   // Always scroll to top on mount (page refresh)
   useEffect(() => {
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
     window.scrollTo(0, 0);
   }, []);
 
