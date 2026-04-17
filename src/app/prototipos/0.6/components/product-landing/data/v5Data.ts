@@ -138,6 +138,7 @@ export const financingPlans: V5FinancingPlan[] = [
     ],
     ahorroText: '',
     colorAccent: '#D4AF37',
+    productUrl: '/prototipos/0.6/baldecash-macbook-neo/producto/laptop-macbook-neo-silver-combo-lpappr0001367/',
   },
 ];
 
