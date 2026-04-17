@@ -8,23 +8,14 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 gsap.registerPlugin(ScrollTrigger);
 
 interface TextOverMediaProps {
-  /** The media element (Image, video, canvas, etc.) */
   media: ReactNode;
-  /** Text content to overlay */
   children: ReactNode;
-  /** Total scroll height for the section */
   height?: string;
-  /** Scrim color (gradient overlay) */
   scrimColor?: string;
-  /** Text alignment */
   align?: 'left' | 'center';
   className?: string;
 }
 
-/**
- * Apple-inspired TextOverMedia component.
- * Zoom-through effect on media + staggered text reveal on scroll.
- */
 export function TextOverMedia({
   media,
   children,
@@ -56,10 +47,10 @@ export function TextOverMedia({
     container.style.height = height;
 
     const copyInner = copy.querySelector('[data-copy-inner]');
-    const copyChildren = copyInner?.children;
+    const copyChildren = copyInner ? Array.from(copyInner.children) : [];
 
     const ctx = gsap.context(() => {
-      // ── Media zoom: scale 1.0 → 1.18 across the full scroll ──
+      // ── Media zoom: continuous across full scroll ──
       gsap.fromTo(
         mediaEl,
         { scale: 1 },
@@ -75,22 +66,23 @@ export function TextOverMedia({
         },
       );
 
-      // ── Scrim fade in (0% → 25%) ──
+      // ── Scrim: scrub in from 0% → 20%, then stays at opacity 1 ──
       gsap.fromTo(
         scrim,
         { opacity: 0 },
         {
           opacity: 1,
+          ease: 'none',
           scrollTrigger: {
             trigger: container,
             start: 'top top',
-            end: '25% top',
+            end: '20% top',
             scrub: true,
           },
         },
       );
 
-      // ── Copy wrapper fade in (18% → 38%) ──
+      // ── Copy: scrub in from 22% → 35%, stays visible ──
       gsap.fromTo(
         copy,
         { opacity: 0 },
@@ -99,72 +91,34 @@ export function TextOverMedia({
           ease: 'none',
           scrollTrigger: {
             trigger: container,
-            start: '18% top',
-            end: '38% top',
+            start: '22% top',
+            end: '35% top',
             scrub: true,
           },
         },
       );
 
-      // ── Stagger children in: translateY + opacity (20% → 42%) ──
-      if (copyChildren && copyChildren.length > 0) {
+      // ── Children stagger in: 24% → 40%, stay visible ──
+      if (copyChildren.length > 0) {
         gsap.fromTo(
           copyChildren,
           { opacity: 0, y: 40 },
           {
             opacity: 1,
             y: 0,
-            stagger: 0.06,
+            stagger: 0.02,
             ease: 'none',
             scrollTrigger: {
               trigger: container,
-              start: '20% top',
-              end: '42% top',
+              start: '24% top',
+              end: '40% top',
               scrub: true,
             },
           },
         );
       }
 
-      // ── Copy wrapper fade out (68% → 88%) ──
-      gsap.to(copy, {
-        opacity: 0,
-        y: -25,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: container,
-          start: '68% top',
-          end: '88% top',
-          scrub: true,
-        },
-      });
-
-      // ── Stagger children out (66% → 85%) ──
-      if (copyChildren && copyChildren.length > 0) {
-        gsap.to(copyChildren, {
-          opacity: 0,
-          y: -20,
-          stagger: 0.04,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: container,
-            start: '66% top',
-            end: '85% top',
-            scrub: true,
-          },
-        });
-      }
-
-      // ── Scrim fade out (78% → 100%) ──
-      gsap.to(scrim, {
-        opacity: 0,
-        scrollTrigger: {
-          trigger: container,
-          start: '78% top',
-          end: 'bottom bottom',
-          scrub: true,
-        },
-      });
+      // No fade out — text and scrim stay visible
     });
 
     return () => ctx.revert();
@@ -173,7 +127,6 @@ export function TextOverMedia({
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <div className="sticky top-0 h-screen overflow-hidden">
-        {/* Media layer — zoom target */}
         <div
           ref={mediaRef}
           className="absolute inset-0"
@@ -182,7 +135,6 @@ export function TextOverMedia({
           {media}
         </div>
 
-        {/* Scrim layer */}
         <div
           ref={scrimRef}
           className="absolute inset-0"
@@ -192,7 +144,6 @@ export function TextOverMedia({
           }}
         />
 
-        {/* Text layer */}
         <div
           ref={copyRef}
           className={`absolute inset-0 z-10 flex items-center ${
