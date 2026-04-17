@@ -100,8 +100,8 @@ export const CatalogSecondaryNavbar: React.FC<CatalogSecondaryNavbarProps> = ({
   // by the Navbar component (preview banner + promo banner + main navbar).
   // If `hidePromoBanner` is true, subtract the promo banner height manually.
   const topPosition = hidePromoBanner
-    ? `calc(var(--header-total-height, 4rem) - var(--promo-banner-height, 0px))`
-    : `var(--header-total-height, 4rem)`;
+    ? `calc(var(--header-total-height, 6.5rem) - var(--promo-banner-height, 0px))`
+    : `var(--header-total-height, 6.5rem)`;
 
   // Expose this navbar's own height as a CSS variable so downstream layouts
   // (sticky sidebar, main content padding) can compensate for it dynamically.

@@ -205,7 +205,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}
-      <main className="flex-1" style={{ paddingTop: 'var(--header-total-height, 4rem)' }}>
+      <main className="flex-1" style={{ paddingTop: 'var(--header-total-height, 6.5rem)' }}>
         {/* ======= CONVENIO LAYOUT ======= */}
         {isConvenio ? (
           <>
