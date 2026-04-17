@@ -43,6 +43,7 @@ export interface SubmitApplicationRequest {
       accessory_id: number;
     }[];
     insurance_id?: number;
+    insurance_ids?: number[];
   };
   /** Optional coupon code for discount */
   coupon_code?: string;
@@ -282,6 +283,12 @@ export interface ApplicationStatusResponse {
     name: string;
     monthly_price: number;
   } | null;
+
+  /** Multiple insurances support */
+  insurances?: Array<{
+    name: string;
+    monthly_price: number;
+  }> | null;
 
   coupon?: {
     code: string;

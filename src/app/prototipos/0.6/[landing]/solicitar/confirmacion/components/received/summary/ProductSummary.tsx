@@ -43,13 +43,17 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
   );
 
   const hasAccessories = data.accessories && data.accessories.length > 0;
-  const hasInsurance = !!data.insurance;
+  const allInsurances = data.insurances?.length ? data.insurances : data.insurance ? [data.insurance] : [];
+  const hasInsurance = allInsurances.length > 0;
   const hasCoupon = !!data.coupon;
+
+  // Calcular total de seguros
+  const insuranceSubtotal = allInsurances.reduce((sum, ins) => sum + ins.monthlyPrice, 0);
 
   // Calcular total sin descuento (para mostrar tachado)
   const totalWithoutDiscount = Math.floor(productsSubtotal) +
     Math.floor(accessoriesSubtotal) +
-    (data.insurance?.monthlyPrice || 0);
+    insuranceSubtotal;
 
   return (
     <motion.div
@@ -172,9 +176,9 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
         </CardBody>
       </Card>
 
-      {/* Insurance Card - Separate */}
-      {hasInsurance && data.insurance && (
-        <div className="bg-[var(--color-secondary)]/5 rounded-xl border border-[var(--color-secondary)]/10 p-4">
+      {/* Insurance Card(s) - Separate */}
+      {hasInsurance && allInsurances.map((ins, idx) => (
+        <div key={idx} className="bg-[var(--color-secondary)]/5 rounded-xl border border-[var(--color-secondary)]/10 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-[var(--color-secondary)]" />
@@ -183,14 +187,14 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
               </p>
             </div>
             <span className="text-sm font-medium text-[var(--color-secondary)]">
-              +{formatPrice(data.insurance.monthlyPrice)}/mes
+              +{formatPrice(ins.monthlyPrice)}/mes
             </span>
           </div>
           <p className="text-xs text-neutral-600 mt-1 ml-6">
-            {data.insurance.name}
+            {ins.name}
           </p>
         </div>
-      )}
+      ))}
 
       {/* Accessories Card with Accordion */}
       {hasAccessories && data.accessories && (
