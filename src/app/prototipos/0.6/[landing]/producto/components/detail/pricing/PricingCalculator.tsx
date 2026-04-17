@@ -33,13 +33,14 @@ export interface PricingSelection {
   initialPercent: InitialPaymentPercentage;
   monthlyQuota: number;
   initialAmount: number;
+  paymentFrequency: string;
 }
 
 /** Labels for each payment frequency (cuota suffix) */
-const FREQ_LABELS: Record<string, { short: string; title: string }> = {
-  semanal:   { short: '/sem', title: 'a la semana' },
-  quincenal: { short: '/qcn', title: 'quincenal' },
-  mensual:   { short: '/mes', title: 'al mes' },
+const FREQ_LABELS: Record<string, { short: string; title: string; summary: string }> = {
+  semanal:   { short: '/sem', title: 'a la semana',   summary: 'Tu cuota semanal' },
+  quincenal: { short: '/qcn', title: 'a la quincena', summary: 'Tu cuota quincenal' },
+  mensual:   { short: '/mes', title: 'al mes',        summary: 'Tu cuota mensual' },
 };
 
 const FREQ_DISPLAY: Record<string, string> = {
@@ -69,6 +70,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   paymentFrequencies,
   landing,
   productSlug,
+  onPlansChange,
   onSelectionChange,
 }) => {
   // Active plans (may change when frequency is switched)
@@ -110,6 +112,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       const result = await fetchProductDetail(landing, productSlug, freq);
       if (result?.paymentPlans && result.paymentPlans.length > 0) {
         setPaymentPlans(result.paymentPlans);
+        onPlansChange?.(result.paymentPlans);
         // Default to longest term for new frequency
         const maxTerm = Math.max(...result.paymentPlans.map(p => p.term));
         setSelectedTerm(maxTerm);
@@ -119,7 +122,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
     } finally {
       setIsLoadingPlans(false);
     }
-  }, [selectedFrequency, landing, productSlug]);
+  }, [selectedFrequency, landing, productSlug, onPlansChange]);
 
   // Obtener opciones de pago inicial del primer plan (son iguales para todos los plazos)
   const initialPaymentOptions = useMemo(() => {
@@ -156,6 +159,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         initialPercent: selectedInitialPercent,
         monthlyQuota: selectedOption.monthlyQuota,
         initialAmount: selectedOption.initialAmount,
+        paymentFrequency: selectedFrequency,
       });
     }
   }, [selectedTerm, selectedInitialPercent, selectedOption, onSelectionChange]);
@@ -200,7 +204,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       {/* Initial Payment Selection */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-neutral-700 mb-3">
-          Cuota inicial (opcional)
+          Cuota inicial{initialPaymentOptions.length > 1 ? ' (opcional)' : ''}
         </label>
         <div className="flex flex-wrap gap-2">
           {initialPaymentOptions.map((option) => (
@@ -263,7 +267,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                       isSelected ? 'text-white/80' : 'text-neutral-500'
                     }`}
                   >
-                    {termToMonths(plan.term, selectedFrequency)}<br />meses
+                    {plan.termMonths ?? termToMonths(plan.term, selectedFrequency)}<br />meses
                   </p>
 
                   {option.originalQuota && (
@@ -301,7 +305,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       {/* Selected Quote Summary */}
       <div className="mt-6 p-5 bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/15 rounded-xl">
         <div className="text-center">
-          <p className="text-sm text-neutral-500 mb-1">Tu cuota mensual</p>
+          <p className="text-sm text-neutral-500 mb-1">{freqLabel.summary}</p>
           {selectedOption?.originalQuota && (
             <p className="line-through text-neutral-400 text-xl mb-1">
               S/{formatMoneyNoDecimals(Math.floor(selectedOption.originalQuota))}{freqLabel.short}
@@ -311,7 +315,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
             S/{formatMoneyNoDecimals(Math.floor(selectedOption?.monthlyQuota || 0))}{freqLabel.short}
           </p>
           <p className="text-sm text-neutral-500 mt-2">
-            durante {termToMonths(selectedTerm, selectedFrequency)} meses
+            durante {(paymentPlans.find(p => p.term === selectedTerm)?.termMonths ?? termToMonths(selectedTerm, selectedFrequency))} meses
             {selectedInitialPercent > 0 && selectedOption && (
               <span className="block text-xs text-neutral-400 mt-1">
                 + S/{formatMoneyNoDecimals(Math.floor(selectedOption.initialAmount))} de inicial

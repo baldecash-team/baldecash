@@ -115,7 +115,7 @@ export function calculateQuotaWithInitial(
   initialPercent: InitialPaymentPercent,
   tea: number = DEFAULT_TEA
 ): { quota: number; initialAmount: number; financedAmount: number } {
-  const initialAmount = Math.floor(price * (initialPercent / 100));
+  const initialAmount = Math.ceil(price * (initialPercent / 100));
   const financedAmount = price - initialAmount;
   const quota = calculateQuotaForTerm(financedAmount, term, tea);
 
@@ -692,6 +692,7 @@ export interface CatalogProduct {
   paymentFrequency?: string; // Frecuencia de la cuota hook: 'mensual' | 'semanal' | 'quincenal'
   paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
   paymentHooks?: Record<string, number>; // Cuota hook por frecuencia: {semanal: 15, quincenal: 26}
+  hookInitialPercent?: number; // % de inicial del hook (ej: 20 para celulares)
   gama: GamaTier;
   condition: ProductCondition;
   stock: StockStatus;
@@ -965,7 +966,8 @@ export interface CartPaymentPlanOption {
 }
 
 export interface CartPaymentPlan {
-  term: number;  // 12, 18, 24, 36
+  term: number;           // raw period count (weeks for semanal, fortnights for quincenal, months for mensual)
+  termMonths?: number | null; // month equivalent — use this for display and matching
   options: CartPaymentPlanOption[];
 }
 

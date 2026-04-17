@@ -198,8 +198,9 @@ export interface InitialPaymentOption {
 /** Plan de pago con opciones precalculadas para cada % de inicial */
 export interface PaymentPlan {
   term: number;
-  tea?: number | null;   // TEA applied for this term (from backend 3-level pricing system)
-  tcea?: number | null;  // TCEA calculated by backend (includes commissions + insurance)
+  termMonths?: number | null; // month equivalent for semanal/quincenal (e.g. term=48 → 12)
+  tea?: number | null;
+  tcea?: number | null;
   options: InitialPaymentOption[];
 }
 
@@ -302,6 +303,7 @@ export interface PricingCalculatorProps {
   paymentFrequencies?: string[]; // Available frequencies (e.g. ['quincenal', 'semanal'])
   landing?: string;              // Landing slug — needed to re-fetch plans on frequency change
   productSlug?: string;          // Product slug — needed to re-fetch plans on frequency change
+  onPlansChange?: (plans: PaymentPlan[]) => void; // Called when plans update after frequency switch
 }
 
 export interface SimilarProductsProps {
@@ -331,6 +333,7 @@ export interface CronogramaProps {
   // Sincronización con PricingCalculator
   selectedTerm?: number;
   selectedInitialPercent?: InitialPaymentPercentage;
+  paymentFrequency?: string;
   // Datos financieros del backend (opcional, si no se pasan usa valores por defecto)
   financialData?: {
     tea: number;

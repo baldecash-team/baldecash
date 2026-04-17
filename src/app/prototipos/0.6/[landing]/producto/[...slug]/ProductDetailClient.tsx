@@ -376,8 +376,8 @@ function ProductDetailContent() {
           deviceType={config.deviceType}
           cronogramaVersion={config.cronogramaVersion}
           isAvailable={isAvailable}
-          defaultTerm={defaultTerm}
-          defaultInitialPercent={defaultInitialPercent}
+          defaultTerm={defaultTerm ?? apiData.defaultTerm}
+          defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
           paymentFrequencies={apiData.paymentFrequencies}
           showPlatformCommission={landingConfig.features.show_platform_commission}
           onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}

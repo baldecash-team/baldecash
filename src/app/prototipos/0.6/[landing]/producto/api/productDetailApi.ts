@@ -144,6 +144,7 @@ interface ApiInitialPaymentOption {
 
 interface ApiPaymentPlan {
   term: number;
+  term_months?: number | null;
   tea?: number | null;
   tcea?: number | null;
   options: ApiInitialPaymentOption[];
@@ -223,6 +224,8 @@ interface ApiProductDetailResponse {
   certifications: ApiCertification[];
   is_available: boolean;
   payment_frequencies?: string[] | null;
+  default_term?: number | null;
+  default_initial?: number | null;
 }
 
 // ============================================
@@ -316,6 +319,7 @@ function transformFeature(apiFeature: ApiProductFeature): ProductFeature {
 function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
   return {
     term: apiPlan.term,
+    termMonths: apiPlan.term_months ?? null,
     tea: apiPlan.tea ?? null,
     tcea: apiPlan.tcea ?? null,
     options: apiPlan.options.map((opt): InitialPaymentOption => ({
@@ -457,6 +461,8 @@ export interface ProductDetailResult {
   product: ProductDetail;
   combo?: ComboInfo;
   paymentPlans: PaymentPlan[];
+  defaultTerm?: number;
+  defaultInitial?: number;
   similarProducts: SimilarProduct[];
   limitations: ProductLimitation[];
   certifications: Certification[];
@@ -513,6 +519,8 @@ export async function fetchProductDetail(landing: string, slug: string, paymentF
       certifications: data.certifications.map(transformCertification),
       isAvailable: data.is_available,
       paymentFrequencies: data.payment_frequencies ?? undefined,
+      defaultTerm: data.default_term ?? undefined,
+      defaultInitial: data.default_initial ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching product detail:', error);

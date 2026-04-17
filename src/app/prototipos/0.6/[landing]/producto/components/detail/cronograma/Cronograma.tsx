@@ -64,6 +64,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   // Sincronización con PricingCalculator
   selectedTerm: externalSelectedTerm,
   selectedInitialPercent: externalInitialPercent,
+  paymentFrequency = 'mensual',
   financialData: externalFinancialData,
   showPlatformCommission = false,
 }) => {
@@ -162,11 +163,26 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     return calculateAmortization(principal, FINANCIAL_DATA.tea, n);
   }, [adjustedQuota, selectedTerm, commissionAmount, FINANCIAL_DATA.tea]);
 
-  const getMonthDate = (monthIndex: number) => {
+  const getPaymentDate = (index: number) => {
     const date = new Date(startDate);
-    date.setMonth(date.getMonth() + monthIndex);
-    return date.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
+    if (paymentFrequency === 'semanal') {
+      date.setDate(date.getDate() + index * 7);
+      return date.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
+    } else if (paymentFrequency === 'quincenal') {
+      date.setDate(date.getDate() + index * 15);
+      return date.toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' });
+    } else {
+      date.setMonth(date.getMonth() + index);
+      return date.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
+    }
   };
+
+  const freqLabel = paymentFrequency === 'semanal' ? 'semanal'
+    : paymentFrequency === 'quincenal' ? 'quincenal'
+    : 'mensual';
+  const freqLabelPlural = paymentFrequency === 'semanal' ? 'semanales'
+    : paymentFrequency === 'quincenal' ? 'quincenales'
+    : 'mensuales';
 
   const visibleMonths = showAll ? selectedTerm : Math.min(6, selectedTerm);
   const hasMore = selectedTerm > 6;
@@ -182,7 +198,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
       // Generar datos para el PDF
       const pdfSchedule = amortizationSchedule.map((row, index) => ({
         month: row.month,
-        date: getMonthDate(index),
+        date: getPaymentDate(index),
         capital: row.capital,
         interest: row.interest,
         quota: adjustedQuota,
@@ -225,7 +241,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-bold text-neutral-900">Detalle de Cuotas</h3>
-              <p className="text-sm text-neutral-500">{selectedTerm} pagos mensuales</p>
+              <p className="text-sm text-neutral-500">{selectedTerm} pagos {freqLabelPlural}</p>
             </div>
           </div>
 
@@ -275,7 +291,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-neutral-500 capitalize">Cuota {i + 1}</p>
-                      <p className="text-sm text-neutral-600 capitalize truncate">{getMonthDate(i)}</p>
+                      <p className="text-sm text-neutral-600 capitalize truncate">{getPaymentDate(i)}</p>
                     </div>
                     <span className="text-sm font-semibold text-neutral-900 flex-shrink-0">
                       S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
@@ -313,7 +329,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm text-neutral-600 capitalize">
-                      {getMonthDate(i)}
+                      {getPaymentDate(i)}
                     </td>
                     <td className="py-3 px-4 text-right">
                       <span className="text-sm font-semibold text-neutral-900">
@@ -360,7 +376,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         }`}>
                           {i + 1}
                         </div>
-                        <p className="text-xs text-neutral-500 capitalize truncate">{getMonthDate(i)}</p>
+                        <p className="text-xs text-neutral-500 capitalize truncate">{getPaymentDate(i)}</p>
                       </div>
                       <span className="text-sm font-semibold text-neutral-900">
                         S/{formatMoneyNoDecimals(monto)}
@@ -425,7 +441,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         </div>
                       </td>
                       <td className="py-3 px-3 text-sm text-neutral-600 capitalize">
-                        {getMonthDate(i)}
+                        {getPaymentDate(i)}
                       </td>
                       {(() => {
                         const monto = Math.floor(adjustedQuota);
@@ -492,7 +508,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     {isLast && <Check className="w-4 h-4 text-green-500" />}
                   </div>
                   <p className="text-xs text-neutral-500 capitalize mb-1">
-                    {getMonthDate(i)}
+                    {getPaymentDate(i)}
                   </p>
                   <p className="text-sm font-bold text-neutral-900">
                     S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}
@@ -636,12 +652,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       </div>
                     )}
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-neutral-600">Cuota mensual</span>
+                      <span className="text-neutral-600">Cuota {freqLabel}</span>
                       <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-neutral-600">Plazo</span>
-                      <span className="font-semibold text-neutral-900">{selectedTerm} meses</span>
+                      <span className="font-semibold text-neutral-900">{currentPlan?.termMonths ?? selectedTerm} meses</span>
                     </div>
                   </div>
 
@@ -862,8 +878,8 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       <p className="text-sm text-neutral-600">Monto total a pagar</p>
                       <p className="text-xs text-neutral-500">
                         {selectedInitialPercent > 0
-                          ? `S/${formatMoneyNoDecimals(Math.floor(initialAmount))} inicial + ${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
-                          : `${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
+                          ? `S/${formatMoneyNoDecimals(Math.floor(initialAmount))} inicial + ${selectedTerm} cuotas ${freqLabelPlural} de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
+                          : `${selectedTerm} cuotas ${freqLabelPlural} de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
                         }
                       </p>
                     </div>
