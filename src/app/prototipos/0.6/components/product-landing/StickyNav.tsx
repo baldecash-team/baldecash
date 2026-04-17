@@ -70,6 +70,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
     const offset = mobile ? 72 : 68;
     const top = el.getBoundingClientRect().top + window.scrollY - offset;
     window.scrollTo({ top, behavior: 'smooth' });
+    history.replaceState(null, '', `#${sectionId}`);
   }, []);
 
   const scrollToTop = useCallback(() => {
