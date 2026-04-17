@@ -66,59 +66,32 @@ export function TextOverMedia({
         },
       );
 
-      // ── Scrim: scrub in from 0% → 20%, then stays at opacity 1 ──
-      gsap.fromTo(
-        scrim,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: container,
-            start: 'top top',
-            end: '20% top',
-            scrub: true,
-          },
-        },
-      );
-
-      // ── Copy: scrub in from 22% → 35%, stays visible ──
-      gsap.fromTo(
-        copy,
-        { opacity: 0 },
-        {
-          opacity: 1,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: container,
-            start: '22% top',
-            end: '35% top',
-            scrub: true,
-          },
-        },
-      );
-
-      // ── Children stagger in: 24% → 40%, stay visible ──
+      // ── Scrim + text: trigger once, not tied to scroll ──
+      gsap.set(scrim, { opacity: 0 });
+      gsap.set(copy, { opacity: 0 });
       if (copyChildren.length > 0) {
-        gsap.fromTo(
-          copyChildren,
-          { opacity: 0, y: 40 },
-          {
-            opacity: 1,
-            y: 0,
-            stagger: 0.02,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: container,
-              start: '24% top',
-              end: '40% top',
-              scrub: true,
-            },
-          },
-        );
+        gsap.set(copyChildren, { opacity: 0, y: 30 });
       }
 
-      // No fade out — text and scrim stay visible
+      ScrollTrigger.create({
+        trigger: container,
+        start: 'top 60%',
+        once: true,
+        onEnter: () => {
+          gsap.to(scrim, { opacity: 1, duration: 0.8, ease: 'power2.out' });
+          gsap.to(copy, { opacity: 1, duration: 0.8, delay: 0.15, ease: 'power2.out' });
+          if (copyChildren.length > 0) {
+            gsap.to(copyChildren, {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              stagger: 0.12,
+              delay: 0.25,
+              ease: 'power2.out',
+            });
+          }
+        },
+      });
     });
 
     return () => ctx.revert();
