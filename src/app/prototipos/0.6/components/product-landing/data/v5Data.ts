@@ -116,7 +116,6 @@ export const financingPlans: V5FinancingPlan[] = [
       'Procesador A18 Pro · 6-core CPU + 5-core GPU',
       '512GB SSD',
       'Touch ID',
-      'Cámara FaceTime HD 1080p',
       'Apple Intelligence',
       'Envío gratis a todo el Perú',
     ],
@@ -141,7 +140,6 @@ export const financingPlans: V5FinancingPlan[] = [
     items: [
       'Procesador A18 Pro · Máximo rendimiento',
       '256GB SSD',
-      'Audio espacial Dolby Atmos',
       'AirPods 4ta generación incluidos',
       'Apple Intelligence',
       'Envío gratis a todo el Perú',
