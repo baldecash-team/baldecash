@@ -34,7 +34,8 @@ export interface PaymentPlanOption {
 
 // Payment plan for a specific term
 export interface PaymentPlan {
-  term: number;  // 12, 18, 24, 36
+  term: number;           // raw period count (weeks for semanal, fortnights for quincenal, months for mensual)
+  termMonths?: number | null; // month equivalent — use for display and matching
   options: PaymentPlanOption[];
 }
 
@@ -62,6 +63,8 @@ export interface SelectedProduct {
   colorHex?: string;
   // Payment plans from API (for term standardization)
   paymentPlans?: PaymentPlan[];
+  // Payment frequency selected by user (e.g. 'semanal', 'quincenal', 'mensual')
+  paymentFrequency?: string;
 }
 
 export type { Accessory, InsurancePlan };
@@ -460,10 +463,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     const products = getAllProducts();
     if (products.length === 0) return [12, 18, 24, 36]; // Default terms
 
-    // Get terms for each product
+    // Get terms for each product (in months — use termMonths when available)
     const termsPerProduct = products.map(p => {
       if (p.paymentPlans && p.paymentPlans.length > 0) {
-        return p.paymentPlans.map(plan => plan.term);
+        return p.paymentPlans.map(plan => plan.termMonths ?? plan.term);
       }
       // Fallback: if no plans, assume all standard terms are available
       return [12, 18, 24, 36];
@@ -487,8 +490,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     if (products.length === 0) return;
 
     const updatedProducts = products.map(p => {
-      // Find the payment plan for this term
-      const plan = p.paymentPlans?.find(pl => pl.term === term);
+      // Find the payment plan for this term (term is in months; match by termMonths first, then raw term)
+      const plan = p.paymentPlans?.find(pl => (pl.termMonths ?? pl.term) === term);
 
       if (plan) {
         // Use real API data
@@ -676,8 +679,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
 
         if (!plans && !slug) return product;
 
-        // Find the option for current term and initial percent
-        const plan = plans?.find(p => p.term === product.months);
+        // Find the option for current term and initial percent (months stored, term may be in weeks/fortnights)
+        const plan = plans?.find(p => (p.termMonths ?? p.term) === product.months);
         const option = plan?.options.find(o => o.initialPercent === product.initialPercent)
           || plan?.options[0];
 

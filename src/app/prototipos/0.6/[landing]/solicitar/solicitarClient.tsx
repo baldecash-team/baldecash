@@ -490,7 +490,7 @@ function WizardPreviewContent() {
                       ) : (
                         <>
                           <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
-                            S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}/mes
+                            S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}{product.paymentFrequency === 'semanal' ? '/sem' : product.paymentFrequency === 'quincenal' ? '/qcn' : '/mes'}
                             <span className="text-xs text-neutral-500 font-normal ml-1">
                               x {product.months} meses
                             </span>

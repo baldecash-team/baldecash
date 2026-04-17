@@ -586,6 +586,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     paymentFrequency: hook.payment_frequency || undefined,
     paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
     paymentHooks: pricing.payment_hooks ?? undefined,
+    hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
     stock: 'available' as StockStatus, // Default - not in API response

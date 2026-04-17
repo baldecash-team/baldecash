@@ -157,9 +157,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const selectedImages = getImagesForSelectedColor();
 
-  // Financiamiento: plazo más alto del producto, sin inicial
+  // Financiamiento: plazo más alto del producto, inicial según hook del producto
   const selectedTerm = product.maxTermMonths as TermMonths;
-  const selectedInitial = 0 as const;
+  const selectedInitial = (product.hookInitialPercent ?? 0) as InitialPaymentPercent;
   const quota = displayQuota;
   const { initialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, selectedInitial);
 
