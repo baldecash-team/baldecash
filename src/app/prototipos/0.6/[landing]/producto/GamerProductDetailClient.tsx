@@ -125,7 +125,7 @@ function DetailContent() {
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<number>(0);
 
   // Accessories
-  const [accessories, setAccessories] = useState<{ id: string; name: string; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]>([]);
+  const [accessories, setAccessories] = useState<{ id: string; name: string; description: string; price: number; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]>([]);
 
   const catalogState = useCatalogSharedState(landing, previewKey);
 
@@ -169,6 +169,8 @@ function DetailContent() {
       setAccessories(items.map((a) => ({
         id: a.id,
         name: a.name,
+        description: a.description || '',
+        price: a.price || 0,
         image: a.thumbnail_url || a.image,
         monthlyQuota: a.monthlyQuota,
         term: a.term,
@@ -1594,10 +1596,11 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
 // Accessories Carousel
 // ============================================
 
-function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Theme; isDark: boolean; accessories: { id: string; name: string; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]; selectedTerm: number }) {
+function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Theme; isDark: boolean; accessories: { id: string; name: string; description: string; price: number; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]; selectedTerm: number }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [accDetailId, setAccDetailId] = useState<string | null>(null);
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -1688,6 +1691,24 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Them
                   {acc.term && (
                     <span style={{ fontSize: 10, color: isDark ? '#555' : '#999' }}>en {acc.term} meses</span>
                   )}
+
+                  {/* Ver detalles */}
+                  {acc.description && (
+                    <div
+                      onClick={(e) => { e.stopPropagation(); setAccDetailId(acc.id); }}
+                      role="button"
+                      tabIndex={0}
+                      style={{
+                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        fontSize: 11, color: T.neonCyan, background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)',
+                        fontWeight: 500, padding: '6px 10px', borderRadius: 8, marginTop: 8, cursor: 'pointer',
+                        transition: 'background 0.2s', fontFamily: "'Rajdhani', sans-serif",
+                      }}
+                    >
+                      <Info size={12} />
+                      Ver detalles
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1699,6 +1720,54 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Them
           Desliza para ver más
         </p>
       </div>
+
+      {/* Accessory Detail Modal */}
+      {accDetailId && (() => {
+        const acc = accessories.find((a) => a.id === accDetailId);
+        if (!acc) return null;
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setAccDetailId(null)}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} />
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 448, maxHeight: 'calc(100vh - 8rem)', display: 'flex', flexDirection: 'column', background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
+              {/* Header */}
+              <div style={{
+                background: isDark ? '#1e1e1e' : '#f5f5f5',
+                borderBottom: `1px solid ${T.border}`,
+                padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: isDark ? 'rgba(0,255,213,0.12)' : 'rgba(0,137,122,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Package size={20} style={{ color: T.neonCyan }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</h2>
+                  <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{acc.category || acc.brand || 'Accesorio'}</p>
+                </div>
+                <button onClick={() => setAccDetailId(null)} style={{ width: 28, height: 28, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                  <X size={16} style={{ color: T.textSecondary }} />
+                </button>
+              </div>
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+                  <Image src={acc.image} alt={acc.name} width={112} height={112} style={{ objectFit: 'contain', maxHeight: 112 }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, justifyContent: 'center' }}>
+                  <span style={{ fontSize: 28, fontWeight: 800, color: T.neonCyan, fontFamily: "'Rajdhani', sans-serif" }}>+S/{Math.round(acc.monthlyQuota)}</span>
+                  <span style={{ fontSize: 14, color: T.textMuted }}>/mes</span>
+                </div>
+                {acc.price > 0 && (
+                  <p style={{ textAlign: 'center', fontSize: 12, color: T.textMuted, margin: 0 }}>Precio: S/{Math.round(acc.price)} {acc.term ? `en ${acc.term} cuotas` : ''}</p>
+                )}
+                {acc.description && (
+                  <div style={{ fontSize: 13, lineHeight: 1.6, color: T.textSecondary, whiteSpace: 'pre-line' }}>
+                    {acc.description}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }

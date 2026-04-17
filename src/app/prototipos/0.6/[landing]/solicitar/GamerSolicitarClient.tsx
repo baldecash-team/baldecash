@@ -718,16 +718,21 @@ function SolicitarContent() {
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
             <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 448, maxHeight: 'calc(100vh - 8rem)', display: 'flex', flexDirection: 'column', background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
               {/* Header */}
-              <div style={{ background: `linear-gradient(135deg, ${T.neonPurple}, ${T.neonCyan})`, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Package size={20} style={{ color: '#fff' }} />
+              <div style={{
+                background: isDark ? '#1e1e1e' : '#f5f5f5',
+                borderBottom: `1px solid ${T.border}`,
+                padding: '16px 20px',
+                display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: 12, background: isDark ? 'rgba(0,255,213,0.12)' : 'rgba(0,137,122,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Package size={20} style={{ color: T.neonCyan }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</h2>
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>{categoryLabel}</p>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</h2>
+                  <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{categoryLabel}</p>
                 </div>
-                <button onClick={() => setAccDetailId(null)} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                  <X size={16} style={{ color: '#fff' }} />
+                <button onClick={() => setAccDetailId(null)} style={{ width: 28, height: 28, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                  <X size={16} style={{ color: T.textSecondary }} />
                 </button>
               </div>
               {/* Body */}
