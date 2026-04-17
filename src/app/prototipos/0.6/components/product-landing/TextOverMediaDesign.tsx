@@ -20,7 +20,12 @@ export default function TextOverMediaDesign() {
 
   const handleScrollTo = () => {
     const el = document.getElementById(designData.ctaScrollTo);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (!el) return;
+    const mobile = window.innerWidth < 768;
+    const offset = mobile ? 72 : 68;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+    history.replaceState(null, '', `#${designData.ctaScrollTo}`);
   };
 
   if (isMobile) {
@@ -41,7 +46,7 @@ export default function TextOverMediaDesign() {
         />
       }
     >
-      <div className="flex flex-col items-center gap-3 sm:gap-4 px-4">
+      <div className="flex flex-col items-center gap-3 sm:gap-4 px-4 text-center">
         <span
           className="text-[28px] sm:text-[40px] md:text-[52px] lg:text-[64px] font-semibold tracking-[-0.015em] leading-[1.05] text-white whitespace-pre-line"
           style={{ fontFamily: "'Baloo 2', cursive" }}

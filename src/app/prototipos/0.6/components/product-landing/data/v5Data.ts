@@ -64,7 +64,7 @@ export const highlightCards: V5HighlightCard[] = [
 // S4: Design - TextOverMedia
 // ============================================================
 export const designData: V5DesignData = {
-  headline: 'Cuatro colores.\nUno para ti.',
+  headline: 'Cuatro colores.\nUno para ti',
   description:
     'Silver, Blush, Citrus e Indigo. Elige el que refleja tu estilo y financialo con BaldeCash.',
   ctaLabel: 'Conoce los planes',
