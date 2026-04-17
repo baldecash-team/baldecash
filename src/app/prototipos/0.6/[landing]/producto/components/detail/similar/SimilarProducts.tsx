@@ -9,7 +9,7 @@
  * v0.6.2: Alturas fijas para consistencia visual, removido selector de colores
  */
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody } from '@nextui-org/react';
 import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, ShoppingCart, X } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -33,6 +33,39 @@ interface ProductCardState {
 interface SimilarProductsExtendedProps extends SimilarProductsProps {
   onAddToCart?: (product: SimilarProduct) => void;
   cartItems?: string[];
+}
+
+/** Título con line-clamp-2 y tooltip CSS cuando el texto está truncado */
+function TruncatedTitle({ text, onClick }: { text: string; onClick?: () => void }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const check = useCallback(() => {
+    const el = ref.current;
+    if (el) setIsTruncated(el.scrollHeight > el.clientHeight);
+  }, []);
+  useEffect(() => {
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [text, check]);
+
+  return (
+    <div className="relative group/title min-h-[3.5rem] mb-3">
+      <h3
+        ref={ref}
+        className="font-bold text-neutral-800 text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
+        onClick={onClick}
+      >
+        {text}
+      </h3>
+      {isTruncated && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-3 py-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg max-w-sm whitespace-normal opacity-0 invisible group-hover/title:opacity-100 group-hover/title:visible transition-opacity duration-200 z-50 pointer-events-none">
+          {text}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-neutral-800" />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
@@ -332,10 +365,11 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       {product.brand}
                     </p>
 
-                    {/* Title - Altura fija para 2 líneas (igual que catálogo) */}
-                    <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3 min-h-[3.5rem]">
-                      {product.displayName}
-                    </h3>
+                    {/* Title - Altura fija para 2 líneas, tooltip si truncado */}
+                    <TruncatedTitle
+                      text={product.displayName}
+                      onClick={() => handleProductClick(product.slug)}
+                    />
 
                     {/* Differentiator Tags - Vertical list, height based on max across all cards */}
                     {maxDiffCount > 0 && (
