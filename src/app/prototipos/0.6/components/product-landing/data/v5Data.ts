@@ -95,11 +95,11 @@ export const financingPlans: V5FinancingPlan[] = [
     ],
     ahorroText: '',
     colorAccent: '#B8B8B8',
-    productUrl: 'https://demo.baldecash.com/baldecash-macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/',
+    productUrl: '/macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/',
     colorOptions: [
-      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-sola.jpg' },
-      { id: 'blush', label: 'Blush', hex: '#F2A7B0', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-blush-lpappr0001353/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-sola.jpg' },
-      { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/baldecash-macbook-neo/producto/macbook-neo-indigo-256/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-sola.jpg' },
+      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-sola.jpg' },
+      { id: 'blush', label: 'Blush', hex: '#F2A7B0', productUrl: '/macbook-neo/producto/laptop-macbook-neo-blush-lpappr0001353/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-sola.jpg' },
+      { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/macbook-neo/producto/macbook-neo-indigo-256/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-sola.jpg' },
     ],
   },
   {
@@ -122,9 +122,9 @@ export const financingPlans: V5FinancingPlan[] = [
     ahorroText: '',
     colorAccent: '#4654CD',
     destacado: true,
-    productUrl: 'https://demo.baldecash.com/baldecash-macbook-neo/producto/laptop-macbook-neo-lpappr0001351/',
+    productUrl: '/macbook-neo/producto/laptop-macbook-neo-lpappr0001351/',
     colorOptions: [
-      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-lpappr0001351/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-touchid.jpg' },
+      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/macbook-neo/producto/laptop-macbook-neo-lpappr0001351/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-touchid.jpg' },
     ],
   },
   {
@@ -146,11 +146,11 @@ export const financingPlans: V5FinancingPlan[] = [
     ],
     ahorroText: '',
     colorAccent: '#D4AF37',
-    productUrl: 'https://demo.baldecash.com/baldecash-macbook-neo/producto/laptop-macbook-neo-silver-combo-lpappr0001367/',
+    productUrl: '/macbook-neo/producto/laptop-macbook-neo-silver-combo-lpappr0001367/',
     colorOptions: [
-      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-silver-combo-lpappr0001367/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-combo.jpg' },
-      { id: 'blush', label: 'Blush', hex: '#F2A7B0', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-blush-512/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-combo.jpg' },
-      { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-indigo-512/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-combo.jpg' },
+      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/macbook-neo/producto/laptop-macbook-neo-silver-combo-lpappr0001367/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-combo.jpg' },
+      { id: 'blush', label: 'Blush', hex: '#F2A7B0', productUrl: '/macbook-neo/producto/laptop-macbook-neo-blush-combo-lpappr0001368/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-combo.jpg' },
+      { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/macbook-neo/producto/laptop-macbook-neo-indigo-combo-lpappr0001369/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-combo.jpg' },
     ],
   },
 ];

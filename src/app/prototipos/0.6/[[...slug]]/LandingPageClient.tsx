@@ -316,7 +316,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
 
   // MacBook Neo has its own specialized landing component.
   // If more product-specific landings appear, add them here as explicit slugs.
-  const isProductLanding = slug === 'baldecash-macbook-neo';
+  const isProductLanding = slug === 'macbook-neo';
 
   // Product landing: render immediately without waiting for API
   if (isProductLanding) {
