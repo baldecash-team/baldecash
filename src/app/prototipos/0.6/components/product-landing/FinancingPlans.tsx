@@ -114,18 +114,27 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                 )}
 
                 <div className="p-6 sm:p-7 flex flex-col flex-1">
-                  {/* Image placeholder */}
+                  {/* Image */}
                   <div
-                    className="w-full rounded-xl mb-5 flex items-center justify-center"
+                    className="w-full rounded-xl mb-5 overflow-hidden flex items-center justify-center"
                     style={{
                       aspectRatio: '16 / 10',
-                      backgroundColor: 'rgba(255,255,255,0.03)',
+                      backgroundColor: '#000000',
                       border: `1px solid rgba(255,255,255,0.06)`,
                     }}
                   >
-                    <span className="text-[10px] uppercase tracking-wider text-[#424245]">
-                      Imagen del pack
-                    </span>
+                    {plan.imagen ? (
+                      <img
+                        src={plan.imagen}
+                        alt={plan.descripcion}
+                        className="w-full h-full object-contain"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-wider text-[#424245]">
+                        Imagen del pack
+                      </span>
+                    )}
                   </div>
 
                   {/* Icon */}

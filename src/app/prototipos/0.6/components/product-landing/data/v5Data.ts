@@ -85,7 +85,7 @@ export const financingPlans: V5FinancingPlan[] = [
     plazoMeses: 24,
     cuotaInicial: 0,
     icono: 'Zap',
-    imagen: '',
+    imagen: 'https://baldecash.s3.amazonaws.com/images/macbook-neo/plan-esencial.jpeg',
     items: [
       'Chip Apple A18 Pro · 6-core CPU',
       '256GB SSD · 16GB memoria unificada',
@@ -106,7 +106,7 @@ export const financingPlans: V5FinancingPlan[] = [
     plazoMeses: 24,
     cuotaInicial: 0,
     icono: 'Star',
-    imagen: '',
+    imagen: 'https://baldecash.s3.amazonaws.com/images/macbook-neo/plan-avanzado.jpeg',
     items: [
       'Chip Apple A18 Pro · 6-core CPU + 5-core GPU',
       '512GB SSD · 16GB memoria unificada',
@@ -128,7 +128,7 @@ export const financingPlans: V5FinancingPlan[] = [
     plazoMeses: 24,
     cuotaInicial: 0,
     icono: 'Crown',
-    imagen: '',
+    imagen: 'https://baldecash.s3.amazonaws.com/images/macbook-neo/plan-premium.jpeg',
     items: [
       'Chip Apple A18 Pro · Máximo rendimiento',
       '512GB SSD · 24GB memoria unificada',
