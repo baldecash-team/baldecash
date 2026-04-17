@@ -132,7 +132,7 @@ export const financingPlans: V5FinancingPlan[] = [
     nombre: 'Combo Apple',
     subtitulo: 'Pack premium',
     descripcion: 'MacBook Neo 256GB + AirPods',
-    cuotaMensual: 299,
+    cuotaMensual: 279,
     plazoMeses: 24,
     cuotaInicial: 0,
     icono: 'Crown',
