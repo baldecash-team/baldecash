@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, ArrowRight, Zap, Star, Crown, type LucideIcon } from 'lucide-react';
 import { financingPlans } from './data/v5Data';
 import { BC } from './lib/constants';
@@ -17,6 +17,17 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+
+  // Track selected color per plan
+  const [selectedColors, setSelectedColors] = useState<Record<string, string>>(() => {
+    const defaults: Record<string, string> = {};
+    financingPlans.forEach((plan) => {
+      if (plan.colorOptions?.length) {
+        defaults[plan.id] = plan.colorOptions[0].id;
+      }
+    });
+    return defaults;
+  });
 
   const isEnhanced = tier === 'enhanced' && !reducedMotion;
 
@@ -72,7 +83,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             Tu MacBook, a tu ritmo
           </h2>
           <p className="text-[13px] sm:text-[15px] text-[#86868b] max-w-[540px] mx-auto leading-[1.5]">
-            Desde <span className="text-[#f5f5f7] font-semibold">S/199/mes</span>. Sin inicial. Sin tarjeta de crédito.
+            Desde <span className="text-[#f5f5f7] font-semibold">S/199/mes</span>. Sin inicial.
           </p>
         </div>
 
@@ -82,7 +93,11 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             const Icon = ICON_MAP[plan.icono] || Zap;
             const accent = plan.colorAccent;
             const isDestacado = plan.destacado;
-            const isPremium = plan.id === 'premium';
+            const isCombo = plan.id === 'combo-apple';
+            const hasColors = plan.colorOptions && plan.colorOptions.length > 0;
+            const selectedColorId = selectedColors[plan.id];
+            const selectedColorOption = plan.colorOptions?.find(c => c.id === selectedColorId);
+            const ctaUrl = selectedColorOption?.productUrl ?? plan.productUrl ?? '#';
 
             return (
               <div
@@ -137,6 +152,33 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                     )}
                   </div>
 
+                  {/* Color selector */}
+                  {hasColors && (
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      {plan.colorOptions!.map((color) => {
+                        const isSelected = selectedColorId === color.id;
+                        return (
+                          <button
+                            key={color.id}
+                            onClick={() => setSelectedColors(prev => ({ ...prev, [plan.id]: color.id }))}
+                            className="w-6 h-6 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center"
+                            style={{
+                              backgroundColor: color.hex,
+                              borderColor: isSelected ? '#f5f5f7' : 'rgba(255,255,255,0.15)',
+                              boxShadow: isSelected ? `0 0 8px ${color.hex}88` : 'none',
+                            }}
+                            aria-label={`Color ${color.label}`}
+                            title={color.label}
+                          >
+                            {isSelected && (
+                              <Check className="w-3 h-3" style={{ color: isColorDark(color.hex) ? '#fff' : '#1a1a1a' }} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Icon */}
                   <div className="flex justify-center mb-3">
                     <div
@@ -144,7 +186,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                       style={{
                         backgroundColor: `${accent}14`,
                         border: `1.5px solid ${accent}`,
-                        boxShadow: isPremium ? `0 0 20px ${accent}4D` : undefined,
+                        boxShadow: isCombo ? `0 0 20px ${accent}4D` : undefined,
                       }}
                     >
                       <Icon className="w-5 h-5" style={{ color: accent }} />
@@ -171,7 +213,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                       style={{
                         fontFamily: "'Baloo 2', cursive",
                         color: accent,
-                        textShadow: isPremium ? `0 0 20px ${accent}4D` : undefined,
+                        textShadow: isCombo ? `0 0 20px ${accent}4D` : undefined,
                       }}
                     >
                       S/{plan.cuotaMensual}
@@ -193,16 +235,16 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
 
                   {/* CTA button */}
                   <a
-                    href={plan.productUrl ?? '#'}
+                    href={ctaUrl}
                     className="mt-6 inline-flex items-center justify-center gap-2 w-full py-3 text-xs font-semibold no-underline rounded-xl transition-all active:scale-[0.97]"
                     style={
                       isDestacado
                         ? {
-                            color: '#ffffff',
-                            background: `linear-gradient(135deg, ${BC.primary}, #6B4EE6)`,
+                            color: '#1a1a1a',
+                            background: `linear-gradient(135deg, #B8891C, #E5C870)`,
                             border: 'none',
                           }
-                        : isPremium
+                        : isCombo
                         ? {
                             color: '#1a1a1a',
                             background: `linear-gradient(135deg, #B8891C, #E5C870)`,
@@ -215,7 +257,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                           }
                     }
                     onMouseEnter={(e) => {
-                      if (isDestacado || isPremium) {
+                      if (isDestacado || isCombo) {
                         e.currentTarget.style.filter = 'brightness(1.1)';
                       } else {
                         e.currentTarget.style.backgroundColor = `${accent}14`;
@@ -223,7 +265,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (isDestacado || isPremium) {
+                      if (isDestacado || isCombo) {
                         e.currentTarget.style.filter = 'brightness(1)';
                       } else {
                         e.currentTarget.style.backgroundColor = 'transparent';
@@ -257,4 +299,12 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
       </div>
     </section>
   );
+}
+
+function isColorDark(hex: string): boolean {
+  const c = hex.replace('#', '');
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.5;
 }

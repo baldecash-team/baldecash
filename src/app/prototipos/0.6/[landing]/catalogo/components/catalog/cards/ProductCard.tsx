@@ -20,6 +20,7 @@ import {
   CartItem,
   WishlistItem,
   TermMonths,
+  InitialPaymentPercent,
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
 

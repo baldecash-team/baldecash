@@ -93,7 +93,12 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
 
   const handleFinanciar = () => {
     const el = document.getElementById('financing');
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (!el) return;
+    const mobile = window.innerWidth < 768;
+    const offset = mobile ? 72 : 68;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: 'smooth' });
+    history.replaceState(null, '', '#financing');
   };
 
   return (

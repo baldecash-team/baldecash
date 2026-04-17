@@ -7,7 +7,7 @@
  * Soporta preview mode via postMessage desde el admin
  */
 
-import { useEffect, useState, useMemo, useCallback, Suspense, useRef, lazy } from 'react';
+import { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
 import { DniModal, hasSavedDni } from '../components/hero/DniModal';
@@ -22,8 +22,8 @@ import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTracke
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
 import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '../types/landingConfig';
 
-// Product landing pages (lazy-loaded to avoid bundling when not needed)
-const MacBookNeoLanding = lazy(() => import('../components/product-landing/MacBookNeoLanding'));
+// Product landing pages (imported directly for instant render)
+import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
 
 interface LandingPageClientProps {
   slug: string;
@@ -318,6 +318,20 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   // If more product-specific landings appear, add them here as explicit slugs.
   const isProductLanding = slug === 'baldecash-macbook-neo';
 
+  // Product landing: render immediately without waiting for API
+  if (isProductLanding) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData?.primaryColor || '#4654CD',
+          '--color-secondary': heroData?.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        <MacBookNeoLanding footerData={mergedFooterData} landing={slug} />
+      </div>
+    );
+  }
+
   // Loading state
   if (isLoading) {
     return <HomeSkeleton />;
@@ -326,22 +340,6 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   // Error state - usar componente 404 con branding
   if (error || !heroData) {
     return <NotFoundContent homeUrl={routes.home()} />;
-  }
-
-  // Product landing: render specialized component with footer from DB
-  if (isProductLanding) {
-    return (
-      <div
-        style={{
-          '--color-primary': heroData.primaryColor || '#4654CD',
-          '--color-secondary': heroData.secondaryColor || '#03DBD0',
-        } as React.CSSProperties}
-      >
-        <Suspense fallback={<HomeSkeleton />}>
-          <MacBookNeoLanding footerData={mergedFooterData} landing={slug} />
-        </Suspense>
-      </div>
-    );
   }
 
   // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)

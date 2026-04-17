@@ -42,6 +42,14 @@ export interface V5DesignData {
   image: string;
 }
 
+// Financing plan color option
+export interface V5PlanColorOption {
+  id: string;
+  label: string;
+  hex: string;
+  productUrl: string;
+}
+
 // Financing plans
 export interface V5FinancingPlan {
   id: string;
@@ -58,6 +66,7 @@ export interface V5FinancingPlan {
   colorAccent: string;
   destacado?: boolean;
   productUrl?: string;
+  colorOptions?: V5PlanColorOption[];
 }
 
 // Performance chapters

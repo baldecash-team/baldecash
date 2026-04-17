@@ -55,10 +55,28 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
       { rootMargin: '-50% 0px -50% 0px' }
     );
 
-    navLinks.forEach((link) => {
-      const el = document.getElementById(link.sectionId);
-      if (el) observer.observe(el);
-    });
+    // Sections are lazy-loaded, so retry observing until all are found
+    const observedIds = new Set<string>();
+    const tryObserve = () => {
+      navLinks.forEach((link) => {
+        if (observedIds.has(link.sectionId)) return;
+        const el = document.getElementById(link.sectionId);
+        if (el) {
+          observer.observe(el);
+          observedIds.add(link.sectionId);
+        }
+      });
+      return observedIds.size === navLinks.length;
+    };
+
+    if (!tryObserve()) {
+      const interval = setInterval(() => {
+        if (tryObserve()) clearInterval(interval);
+      }, 500);
+      observersRef.current.push(observer);
+      return () => { clearInterval(interval); observer.disconnect(); };
+    }
+
     observersRef.current.push(observer);
     return () => observer.disconnect();
   }, []);
@@ -178,7 +196,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
                     <button
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        document.getElementById('financing')?.scrollIntoView({ behavior: 'smooth' });
+                        handleMobileNavClick('financing');
                       }}
                       className="flex items-center justify-center gap-2 w-full font-medium rounded-lg py-3 px-4 transition-colors cursor-pointer"
                       style={{
@@ -338,7 +356,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
           {/* CTA Solicitar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <button
-              onClick={() => document.getElementById('financing')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => handleNavClick('financing')}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

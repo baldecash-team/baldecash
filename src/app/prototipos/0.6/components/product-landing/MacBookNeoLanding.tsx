@@ -57,12 +57,15 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
   const { tier } = useDeviceCapabilities();
   const [videoEnded, setVideoEnded] = useState(tier === 'base');
 
-  // Always scroll to top on mount (page refresh)
+  // Always scroll to top on mount (page refresh) and clear hash
   useEffect(() => {
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
     window.scrollTo(0, 0);
+    if (window.location.hash) {
+      history.replaceState(null, '', window.location.pathname);
+    }
   }, []);
 
   return (
@@ -87,10 +90,8 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
         <TextOverMediaDesign />
       </LazySection>
 
-      {/* S5: Financing Plans */}
-      <LazySection fallbackHeight={900}>
-        <FinancingPlans tier={tier} />
-      </LazySection>
+      {/* S5: Financing Plans — no lazy, target de scroll desde hero */}
+      <FinancingPlans tier={tier} />
 
       {/* S6: Performance */}
       <LazySection fallbackHeight={900}>
