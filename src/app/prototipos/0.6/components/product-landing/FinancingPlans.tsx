@@ -97,7 +97,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             const hasColors = plan.colorOptions && plan.colorOptions.length > 0;
             const selectedColorId = selectedColors[plan.id];
             const selectedColorOption = plan.colorOptions?.find(c => c.id === selectedColorId);
-            const ctaUrl = selectedColorOption?.productUrl ?? plan.productUrl ?? '#';
+            const ctaUrl = selectedColorOption?.productUrl ?? plan.colorOptions?.[0]?.productUrl ?? '#';
 
             return (
               <div

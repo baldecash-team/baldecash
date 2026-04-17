@@ -65,7 +65,6 @@ export interface V5FinancingPlan {
   ahorroText: string;
   colorAccent: string;
   destacado?: boolean;
-  productUrl?: string;
   colorOptions?: V5PlanColorOption[];
 }
 
