@@ -147,7 +147,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       style={{
         // Fill the viewport minus the total fixed header height (preview + promo + navbar).
         // min 520px for landscape phones, no max cap.
-        height: 'max(520px, calc(100vh - var(--header-total-height, 4rem)))',
+        height: 'max(520px, calc(100vh - var(--header-total-height, 6.5rem)))',
       }}
     >
       {/* Background Image - next/image with priority for LCP optimization */}

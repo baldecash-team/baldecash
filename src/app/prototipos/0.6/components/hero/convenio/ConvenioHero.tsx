@@ -90,7 +90,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
       className="relative overflow-hidden"
       style={{
         // Fill viewport minus header. min 520px for landscape phones, no max cap.
-        height: 'max(520px, calc(100svh - var(--header-total-height, 4rem)))',
+        height: 'max(520px, calc(100svh - var(--header-total-height, 6.5rem)))',
       }}
     >
       {/* Background image - next/image with priority for LCP optimization */}
