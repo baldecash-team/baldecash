@@ -93,11 +93,12 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             const Icon = ICON_MAP[plan.icono] || Zap;
             const accent = plan.colorAccent;
             const isDestacado = plan.destacado;
-            const isCombo = plan.id === 'combo-apple';
+            const isCombo = plan.id === 'premium';
             const hasColors = plan.colorOptions && plan.colorOptions.length > 0;
             const selectedColorId = selectedColors[plan.id];
             const selectedColorOption = plan.colorOptions?.find(c => c.id === selectedColorId);
             const ctaUrl = selectedColorOption?.productUrl ?? plan.colorOptions?.[0]?.productUrl ?? '#';
+            const displayImage = selectedColorOption?.image ?? plan.imagen;
 
             return (
               <div
@@ -138,12 +139,13 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                       border: `1px solid rgba(255,255,255,0.06)`,
                     }}
                   >
-                    {plan.imagen ? (
+                    {displayImage ? (
                       <img
-                        src={plan.imagen}
+                        src={displayImage}
                         alt={plan.descripcion}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-contain transition-opacity duration-300"
                         loading="lazy"
+                        key={displayImage}
                       />
                     ) : (
                       <span className="text-[10px] uppercase tracking-wider text-[#424245]">

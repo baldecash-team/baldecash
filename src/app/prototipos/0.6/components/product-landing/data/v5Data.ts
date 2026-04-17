@@ -96,6 +96,11 @@ export const financingPlans: V5FinancingPlan[] = [
     ahorroText: '',
     colorAccent: '#B8B8B8',
     productUrl: 'https://demo.baldecash.com/baldecash-macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/',
+    colorOptions: [
+      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-sola.jpg' },
+      { id: 'blush', label: 'Blush', hex: '#F2A7B0', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-blush-lpappr0001353/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-sola.jpg' },
+      { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/baldecash-macbook-neo/producto/macbook-neo-indigo-256/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-sola.jpg' },
+    ],
   },
   {
     id: 'avanzado',
@@ -118,12 +123,15 @@ export const financingPlans: V5FinancingPlan[] = [
     colorAccent: '#4654CD',
     destacado: true,
     productUrl: 'https://demo.baldecash.com/baldecash-macbook-neo/producto/laptop-macbook-neo-lpappr0001351/',
+    colorOptions: [
+      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-lpappr0001351/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-touchid.jpg' },
+    ],
   },
   {
     id: 'premium',
-    nombre: 'Premium',
+    nombre: 'Combo Apple',
     subtitulo: 'Pack premium',
-    descripcion: 'MacBook Neo 512GB + AirPods',
+    descripcion: 'MacBook Neo 256GB + AirPods',
     cuotaMensual: 299,
     plazoMeses: 24,
     cuotaInicial: 0,
@@ -131,7 +139,7 @@ export const financingPlans: V5FinancingPlan[] = [
     imagen: 'https://baldecash.s3.amazonaws.com/images/macbook-neo/plan-premium.jpeg',
     items: [
       'Chip Apple A18 Pro · Máximo rendimiento',
-      '512GB SSD · 24GB memoria unificada',
+      '256GB SSD · 24GB memoria unificada',
       'Audio espacial Dolby Atmos',
       'AirPods 4 incluidos',
       'Envío prioritario gratis',
@@ -139,6 +147,11 @@ export const financingPlans: V5FinancingPlan[] = [
     ahorroText: '',
     colorAccent: '#D4AF37',
     productUrl: 'https://demo.baldecash.com/baldecash-macbook-neo/producto/laptop-macbook-neo-silver-combo-lpappr0001367/',
+    colorOptions: [
+      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-silver-combo-lpappr0001367/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-combo.jpg' },
+      { id: 'blush', label: 'Blush', hex: '#F2A7B0', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-blush-512/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-combo.jpg' },
+      { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/baldecash-macbook-neo/producto/laptop-macbook-neo-indigo-512/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-combo.jpg' },
+    ],
   },
 ];
 

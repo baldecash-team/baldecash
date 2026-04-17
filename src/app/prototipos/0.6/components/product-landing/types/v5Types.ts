@@ -48,6 +48,7 @@ export interface V5PlanColorOption {
   label: string;
   hex: string;
   productUrl: string;
+  image?: string;
 }
 
 // Financing plans
@@ -65,6 +66,7 @@ export interface V5FinancingPlan {
   ahorroText: string;
   colorAccent: string;
   destacado?: boolean;
+  productUrl?: string;
   colorOptions?: V5PlanColorOption[];
 }
 
