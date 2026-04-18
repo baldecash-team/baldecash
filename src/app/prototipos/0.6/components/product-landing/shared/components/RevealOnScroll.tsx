@@ -44,7 +44,7 @@ export function RevealOnScroll({
 
     const safetyTimer = setTimeout(() => {
       gsap.set(targets, { opacity: 1, y: 0 });
-    }, 3000);
+    }, 1000);
 
     const tween = gsap.to(targets, {
       opacity: 1,

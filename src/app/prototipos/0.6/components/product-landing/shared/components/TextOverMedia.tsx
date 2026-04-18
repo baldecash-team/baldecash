@@ -93,7 +93,7 @@ export function TextOverMedia({
       };
 
       // Safety: guarantee visibility after 3s no matter what
-      const safetyTimer = setTimeout(revealContent, 3000);
+      const safetyTimer = setTimeout(revealContent, 1000);
 
       ScrollTrigger.create({
         trigger: container,

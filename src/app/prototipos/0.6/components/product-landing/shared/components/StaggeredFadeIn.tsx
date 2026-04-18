@@ -50,7 +50,7 @@ export function StaggeredFadeIn({
 
     const safetyTimer = setTimeout(() => {
       gsap.set(children, { opacity: 1, y: 0 });
-    }, 3000);
+    }, 1000);
 
     const tween = gsap.to(children, {
       opacity: 1,

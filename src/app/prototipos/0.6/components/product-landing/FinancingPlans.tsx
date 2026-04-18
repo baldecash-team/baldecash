@@ -56,7 +56,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
       const safetyTimer = setTimeout(() => {
         gsap.set(header, { opacity: 1, y: 0 });
         gsap.set(cards!.children, { opacity: 1, y: 0 });
-      }, 3000);
+      }, 1000);
 
       ctx = gsap.context(() => {
         gsap.to(header, {
