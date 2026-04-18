@@ -48,6 +48,10 @@ export function StaggeredFadeIn({
 
     gsap.set(children, { opacity: 0, y });
 
+    const safetyTimer = setTimeout(() => {
+      gsap.set(children, { opacity: 1, y: 0 });
+    }, 3000);
+
     const tween = gsap.to(children, {
       opacity: 1,
       y: 0,
@@ -58,13 +62,18 @@ export function StaggeredFadeIn({
         trigger: el,
         start,
         toggleActions: 'play none none none',
+        onEnter: () => clearTimeout(safetyTimer),
         onRefresh: (self) => {
-          if (self.progress > 0) gsap.set(children, { opacity: 1, y: 0 });
+          if (self.progress > 0) {
+            clearTimeout(safetyTimer);
+            gsap.set(children, { opacity: 1, y: 0 });
+          }
         },
       },
     });
 
     return () => {
+      clearTimeout(safetyTimer);
       tween.scrollTrigger?.kill();
       tween.kill();
     };

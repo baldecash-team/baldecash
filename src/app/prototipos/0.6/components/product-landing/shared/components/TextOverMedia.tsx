@@ -66,14 +66,18 @@ export function TextOverMedia({
         },
       );
 
-      // ── Scrim + text: trigger once, with fallback for fast scroll ──
+      // ── Scrim + text: trigger once, with safety fallback ──
       gsap.set(scrim, { opacity: 0 });
       gsap.set(copy, { opacity: 0 });
       if (copyChildren.length > 0) {
         gsap.set(copyChildren, { opacity: 0, y: 30 });
       }
 
+      let revealed = false;
       const revealContent = () => {
+        if (revealed) return;
+        revealed = true;
+        clearTimeout(safetyTimer);
         gsap.to(scrim, { opacity: 1, duration: 0.8, ease: 'power2.out' });
         gsap.to(copy, { opacity: 1, duration: 0.8, delay: 0.15, ease: 'power2.out' });
         if (copyChildren.length > 0) {
@@ -88,13 +92,15 @@ export function TextOverMedia({
         }
       };
 
+      // Safety: guarantee visibility after 3s no matter what
+      const safetyTimer = setTimeout(revealContent, 3000);
+
       ScrollTrigger.create({
         trigger: container,
         start: 'top 60%',
         once: true,
         onEnter: revealContent,
         onRefresh: (self) => {
-          // If user already scrolled past trigger on load/reload, reveal immediately
           if (self.progress > 0) revealContent();
         },
       });

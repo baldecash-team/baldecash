@@ -52,6 +52,12 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
       gsap.set(header, { opacity: 0, y: 30 });
       gsap.set(cards!.children, { opacity: 0, y: 40 });
 
+      // Safety: guarantee visibility after 3s no matter what
+      const safetyTimer = setTimeout(() => {
+        gsap.set(header, { opacity: 1, y: 0 });
+        gsap.set(cards!.children, { opacity: 1, y: 0 });
+      }, 3000);
+
       ctx = gsap.context(() => {
         gsap.to(header, {
           opacity: 1, y: 0, duration: 0.7, ease: 'power2.out',
@@ -59,8 +65,12 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             trigger: header,
             start: 'top 85%',
             toggleActions: 'play none none none',
+            onEnter: () => clearTimeout(safetyTimer),
             onRefresh: (self) => {
-              if (self.progress > 0) gsap.set(header, { opacity: 1, y: 0 });
+              if (self.progress > 0) {
+                clearTimeout(safetyTimer);
+                gsap.set(header, { opacity: 1, y: 0 });
+              }
             },
           },
         });
@@ -70,8 +80,12 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             trigger: cards,
             start: 'top 80%',
             toggleActions: 'play none none none',
+            onEnter: () => clearTimeout(safetyTimer),
             onRefresh: (self) => {
-              if (self.progress > 0) gsap.set(cards!.children, { opacity: 1, y: 0 });
+              if (self.progress > 0) {
+                clearTimeout(safetyTimer);
+                gsap.set(cards!.children, { opacity: 1, y: 0 });
+              }
             },
           },
         });

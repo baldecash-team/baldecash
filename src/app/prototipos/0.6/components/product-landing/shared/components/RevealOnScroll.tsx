@@ -42,6 +42,10 @@ export function RevealOnScroll({
 
     gsap.set(targets, { opacity: 0, y });
 
+    const safetyTimer = setTimeout(() => {
+      gsap.set(targets, { opacity: 1, y: 0 });
+    }, 3000);
+
     const tween = gsap.to(targets, {
       opacity: 1,
       y: 0,
@@ -53,13 +57,18 @@ export function RevealOnScroll({
         trigger: el,
         start: 'top 85%',
         toggleActions: 'play none none none',
+        onEnter: () => clearTimeout(safetyTimer),
         onRefresh: (self) => {
-          if (self.progress > 0) gsap.set(targets, { opacity: 1, y: 0 });
+          if (self.progress > 0) {
+            clearTimeout(safetyTimer);
+            gsap.set(targets, { opacity: 1, y: 0 });
+          }
         },
       },
     });
 
     return () => {
+      clearTimeout(safetyTimer);
       tween.scrollTrigger?.kill();
       tween.kill();
     };
