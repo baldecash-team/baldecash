@@ -310,6 +310,15 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
                 </a>
               )}
               <a
+                href="https://wa.me/51959324808"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-neutral-400 hover:text-[#25D366] transition-colors"
+              >
+                <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
+                <span>+51 959 324 808 · Soporte al Estudiante</span>
+              </a>
+              <a
                 href="https://wa.me/51934240164"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -317,15 +326,6 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
               >
                 <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
                 <span>+51 934 240 164 · Cobranzas</span>
-              </a>
-              <a
-                href="https://wa.me/51959324808"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-neutral-400 hover:text-[#25D366] transition-colors"
-              >
-                <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
-                <span>+51 959 324 808 · Soporte Estudiantil</span>
               </a>
             </div>
           </div>
