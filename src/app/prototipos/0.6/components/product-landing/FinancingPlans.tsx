@@ -55,11 +55,25 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
       ctx = gsap.context(() => {
         gsap.to(header, {
           opacity: 1, y: 0, duration: 0.7, ease: 'power2.out',
-          scrollTrigger: { trigger: header, start: 'top 85%', toggleActions: 'play none none none' },
+          scrollTrigger: {
+            trigger: header,
+            start: 'top 85%',
+            toggleActions: 'play none none none',
+            onRefresh: (self) => {
+              if (self.progress > 0) gsap.set(header, { opacity: 1, y: 0 });
+            },
+          },
         });
         gsap.to(cards!.children, {
           opacity: 1, y: 0, duration: 0.7, stagger: 0.12, ease: 'power2.out',
-          scrollTrigger: { trigger: cards, start: 'top 80%', toggleActions: 'play none none none' },
+          scrollTrigger: {
+            trigger: cards,
+            start: 'top 80%',
+            toggleActions: 'play none none none',
+            onRefresh: (self) => {
+              if (self.progress > 0) gsap.set(cards!.children, { opacity: 1, y: 0 });
+            },
+          },
         });
       });
     }

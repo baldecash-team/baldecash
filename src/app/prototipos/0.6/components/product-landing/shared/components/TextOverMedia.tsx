@@ -66,30 +66,36 @@ export function TextOverMedia({
         },
       );
 
-      // ── Scrim + text: trigger once, not tied to scroll ──
+      // ── Scrim + text: trigger once, with fallback for fast scroll ──
       gsap.set(scrim, { opacity: 0 });
       gsap.set(copy, { opacity: 0 });
       if (copyChildren.length > 0) {
         gsap.set(copyChildren, { opacity: 0, y: 30 });
       }
 
+      const revealContent = () => {
+        gsap.to(scrim, { opacity: 1, duration: 0.8, ease: 'power2.out' });
+        gsap.to(copy, { opacity: 1, duration: 0.8, delay: 0.15, ease: 'power2.out' });
+        if (copyChildren.length > 0) {
+          gsap.to(copyChildren, {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+            stagger: 0.12,
+            delay: 0.25,
+            ease: 'power2.out',
+          });
+        }
+      };
+
       ScrollTrigger.create({
         trigger: container,
         start: 'top 60%',
         once: true,
-        onEnter: () => {
-          gsap.to(scrim, { opacity: 1, duration: 0.8, ease: 'power2.out' });
-          gsap.to(copy, { opacity: 1, duration: 0.8, delay: 0.15, ease: 'power2.out' });
-          if (copyChildren.length > 0) {
-            gsap.to(copyChildren, {
-              opacity: 1,
-              y: 0,
-              duration: 0.7,
-              stagger: 0.12,
-              delay: 0.25,
-              ease: 'power2.out',
-            });
-          }
+        onEnter: revealContent,
+        onRefresh: (self) => {
+          // If user already scrolled past trigger on load/reload, reveal immediately
+          if (self.progress > 0) revealContent();
         },
       });
     });

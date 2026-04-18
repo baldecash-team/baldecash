@@ -45,6 +45,10 @@ export default function SocialProof() {
       gsap.set(cards, { opacity: 0, y: isMobile ? 30 : 40, scale: 0.92 });
 
       ctx = gsap.context(() => {
+        const refreshFallback = (self: ScrollTrigger, elements: Element | Element[] | NodeListOf<Element> | HTMLCollection, props: Record<string, unknown>) => {
+          if (self.progress > 0) gsap.set(elements, props);
+        };
+
         if (isMobile) {
           // Mobile: each card triggers individually when it enters viewport
           cards.forEach((card) => {
@@ -55,18 +59,21 @@ export default function SocialProof() {
 
             gsap.to(card, {
               opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'power2.out',
-              scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none' },
+              scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none',
+                onRefresh: (self) => refreshFallback(self, card, { opacity: 1, y: 0, scale: 1 }) },
             });
             if (avatar) {
               gsap.to(avatar, {
                 scale: 1, duration: 0.4, ease: 'back.out(1.7)', delay: 0.3,
-                scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none' },
+                scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none',
+                  onRefresh: (self) => refreshFallback(self, avatar, { scale: 1 }) },
               });
             }
             if (quote) {
               gsap.to(quote, {
                 opacity: 0.3, y: 0, duration: 0.4, ease: 'power2.out', delay: 0.2,
-                scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none' },
+                scrollTrigger: { trigger: card, start: 'top 85%', toggleActions: 'play none none none',
+                  onRefresh: (self) => refreshFallback(self, quote, { opacity: 0.3, y: 0 }) },
               });
             }
           });
@@ -79,15 +86,18 @@ export default function SocialProof() {
 
           gsap.to(cards, {
             opacity: 1, y: 0, scale: 1, duration: 0.7, stagger: 0.15, ease: 'power2.out',
-            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none' },
+            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none',
+              onRefresh: (self) => refreshFallback(self, cards, { opacity: 1, y: 0, scale: 1 }) },
           });
           gsap.to(avatars, {
             scale: 1, duration: 0.4, stagger: 0.15, ease: 'back.out(1.7)', delay: 0.5,
-            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none' },
+            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none',
+              onRefresh: (self) => refreshFallback(self, avatars, { scale: 1 }) },
           });
           gsap.to(quotes, {
             opacity: 0.3, y: 0, duration: 0.5, stagger: 0.15, ease: 'power2.out', delay: 0.3,
-            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none' },
+            scrollTrigger: { trigger: grid, start: 'top 80%', toggleActions: 'play none none none',
+              onRefresh: (self) => refreshFallback(self, quotes, { opacity: 0.3, y: 0 }) },
           });
         }
       });

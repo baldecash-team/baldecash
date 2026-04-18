@@ -38,6 +38,12 @@ function ChapterCard({ chapter, imageLeft }: { chapter: { id: string; title: str
             trigger: el,
             start: 'top 85%',
             toggleActions: 'play none none none',
+            onRefresh: (self) => {
+              if (self.progress > 0) {
+                gsap.set(imgEl, { opacity: 1, y: 0 });
+                gsap.set(txtEl, { opacity: 1, y: 0 });
+              }
+            },
           },
         });
         tl.to(imgEl, { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' })

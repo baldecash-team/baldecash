@@ -58,6 +58,9 @@ export function StaggeredFadeIn({
         trigger: el,
         start,
         toggleActions: 'play none none none',
+        onRefresh: (self) => {
+          if (self.progress > 0) gsap.set(children, { opacity: 1, y: 0 });
+        },
       },
     });
 

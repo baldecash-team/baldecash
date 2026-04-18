@@ -53,6 +53,9 @@ export function RevealOnScroll({
         trigger: el,
         start: 'top 85%',
         toggleActions: 'play none none none',
+        onRefresh: (self) => {
+          if (self.progress > 0) gsap.set(targets, { opacity: 1, y: 0 });
+        },
       },
     });
 
