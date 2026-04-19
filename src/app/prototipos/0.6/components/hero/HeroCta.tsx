@@ -11,6 +11,7 @@ import { Laptop, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { HeroCtaProps } from '../../types/hero';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 const WhatsAppIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -20,6 +21,7 @@ const WhatsAppIcon = () => (
 
 export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, landing = 'home', hasQuiz = true }) => {
   const router = useRouter();
+  const analytics = useAnalytics();
 
   // Normalize landing to remove trailing slashes
   const normalizedLanding = landing.replace(/\/+$/, '');
@@ -62,6 +64,11 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
   const whatsappUrl = data?.buttons.whatsapp.url || '';
 
   const handleWhatsApp = () => {
+    analytics.trackHeroCtaClick({
+      landing_slug: landing,
+      cta_id: 'whatsapp',
+      variant: 'secondary',
+    });
     if (whatsappUrl) {
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     }
@@ -69,6 +76,11 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
   };
 
   const handleCatalogo = () => {
+    analytics.trackHeroCtaClick({
+      landing_slug: landing,
+      cta_id: 'catalog',
+      variant: 'primary',
+    });
     onCtaClick?.();
 
     if (isExternalLink(catalogUrl)) {
@@ -102,6 +114,11 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
   };
 
   const handleQuiz = () => {
+    analytics.trackHeroCtaClick({
+      landing_slug: landing,
+      cta_id: 'quiz',
+      variant: 'help',
+    });
     onCtaClick?.();
     onQuizOpen?.();
   };

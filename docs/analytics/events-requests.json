@@ -1,0 +1,823 @@
+{
+  "description": "Ejemplos concretos de request por cada evento nuevo agregado en v0.6. Cada evento se envía dentro de un batch a POST /api/v1/public/events/batch. El endpoint recibe { session_id, events[] } y `properties` puede contener cualquier shape listado aquí.",
+  "endpoint": {
+    "method": "POST",
+    "url": "/api/v1/public/events/batch",
+    "headers": { "Content-Type": "application/json" },
+    "body_shape": {
+      "session_id": "UUID v4",
+      "events": "TrackingEvent[]"
+    }
+  },
+  "singleEventShape": {
+    "event_type": "enum string",
+    "client_ts": "epoch ms",
+    "page_url": "pathname",
+    "element_id": "string | null",
+    "properties": "object | undefined"
+  },
+  "newEventsByPhase": {
+    "catalog_filters_sort_search_banner": [
+      {
+        "event_type": "filter_toggle",
+        "client_ts": 1776902400000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "ucv",
+          "filter_code": "brand",
+          "value": "apple",
+          "active": true,
+          "section": "catalog"
+        }
+      },
+      {
+        "event_type": "filter_toggle",
+        "client_ts": 1776902405000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "ucv",
+          "filter_code": "brand",
+          "value": "apple",
+          "active": false,
+          "section": "catalog"
+        }
+      },
+      {
+        "event_type": "filter_clear_single",
+        "client_ts": 1776902410000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "ucv",
+          "filter_code": "ram",
+          "value": null
+        }
+      },
+      {
+        "event_type": "filter_clear_all",
+        "client_ts": 1776902415000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "ucv",
+          "source": "empty_state"
+        }
+      },
+      {
+        "event_type": "filter_range_change",
+        "client_ts": 1776902420000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "filter_code": "quota_range",
+          "min": 100,
+          "max": 250,
+          "is_full_range": false
+        }
+      },
+      {
+        "event_type": "filter_section_toggle",
+        "client_ts": 1776902425000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "filter_code": "gama",
+          "expanded": true
+        }
+      },
+      {
+        "event_type": "sort_change",
+        "client_ts": 1776902430000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "from": "recommended",
+          "to": "price_asc"
+        }
+      },
+      {
+        "event_type": "catalog_load_more",
+        "client_ts": 1776902435000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "visible_count": 16,
+          "total_count": 84,
+          "page": null
+        }
+      },
+      {
+        "event_type": "view_mode_change",
+        "client_ts": 1776902440000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "from": "all",
+          "to": "favorites"
+        }
+      },
+      {
+        "event_type": "search_focus",
+        "client_ts": 1776902445000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "location": "navbar"
+        }
+      },
+      {
+        "event_type": "search_submit",
+        "client_ts": 1776902450000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "query_length": 8,
+          "has_results": true,
+          "location": "navbar"
+        }
+      },
+      {
+        "event_type": "search_clear",
+        "client_ts": 1776902455000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "location": "navbar" }
+      },
+      {
+        "event_type": "search_suggestion_click",
+        "client_ts": 1776902460000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "original": "lenobo",
+          "suggested": "lenovo"
+        }
+      },
+      {
+        "event_type": "search_drawer_open",
+        "client_ts": 1776902465000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home" }
+      },
+      {
+        "event_type": "search_drawer_close",
+        "client_ts": 1776902470000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home" }
+      },
+      {
+        "event_type": "banner_click",
+        "client_ts": 1776902475000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "banner_id": "catalog-promo-42",
+          "location": "catalog_top",
+          "href": null,
+          "variant": null
+        }
+      },
+      {
+        "event_type": "banner_hover",
+        "client_ts": 1776902476000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "banner_id": "catalog-promo-42",
+          "location": "catalog_top",
+          "variant": null
+        }
+      }
+    ],
+    "product_detail": [
+      {
+        "event_type": "cronograma_download",
+        "client_ts": 1776902500000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "term": 24,
+          "initial_percent": 10
+        }
+      },
+      {
+        "event_type": "cronograma_modal_open",
+        "client_ts": 1776902505000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": { "landing": "home", "product_id": "42" }
+      },
+      {
+        "event_type": "cronograma_modal_close",
+        "client_ts": 1776902510000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": { "landing": "home", "product_id": "42" }
+      },
+      {
+        "event_type": "cronograma_expand",
+        "client_ts": 1776902515000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "expanded": true,
+          "term": 36
+        }
+      },
+      {
+        "event_type": "gallery_image_change",
+        "client_ts": 1776902520000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "index": 3,
+          "total": 6,
+          "method": "thumb"
+        }
+      },
+      {
+        "event_type": "gallery_image_change",
+        "client_ts": 1776902522000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "index": 4,
+          "total": 6,
+          "method": "swipe"
+        }
+      },
+      {
+        "event_type": "gallery_lightbox_open",
+        "client_ts": 1776902525000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": { "landing": "home", "product_id": "42", "index": 2 }
+      },
+      {
+        "event_type": "gallery_lightbox_close",
+        "client_ts": 1776902530000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": { "landing": "home", "product_id": "42", "index": null }
+      },
+      {
+        "event_type": "gallery_zoom",
+        "client_ts": 1776902535000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "direction": "in",
+          "level": 2
+        }
+      },
+      {
+        "event_type": "color_select",
+        "client_ts": 1776902540000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "color_id": "variant-77",
+          "color_name": "Silver",
+          "navigates_to_sibling": false
+        }
+      },
+      {
+        "event_type": "color_select",
+        "client_ts": 1776902542000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "color_id": "55",
+          "color_name": "Gold",
+          "navigates_to_sibling": true
+        }
+      },
+      {
+        "event_type": "detail_tab_click",
+        "client_ts": 1776902545000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "section": "section-specs"
+        }
+      },
+      {
+        "event_type": "similar_product_click",
+        "client_ts": 1776902550000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "source_product_id": "42",
+          "target_product_id": "81",
+          "position": 2
+        }
+      },
+      {
+        "event_type": "similar_product_add_to_cart",
+        "client_ts": 1776902555000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "source_product_id": "42",
+          "target_product_id": "81"
+        }
+      },
+      {
+        "event_type": "spec_sheet_download",
+        "client_ts": 1776902560000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": { "landing": "home", "product_id": "42", "format": "pdf" }
+      },
+      {
+        "event_type": "pricing_term_change",
+        "client_ts": 1776902565000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "from": 24,
+          "to": 36
+        }
+      },
+      {
+        "event_type": "pricing_initial_change",
+        "client_ts": 1776902570000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "from": 0,
+          "to": 10
+        }
+      }
+    ],
+    "comparator_drawers_cart": [
+      {
+        "event_type": "compare_clear",
+        "client_ts": 1776902600000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home" }
+      },
+      {
+        "event_type": "compare_close",
+        "client_ts": 1776902605000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home" }
+      },
+      {
+        "event_type": "compare_best_shown",
+        "client_ts": 1776902610000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "81",
+          "product_count": 3
+        }
+      },
+      {
+        "event_type": "compare_best_add_to_cart",
+        "client_ts": 1776902615000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "product_id": "81" }
+      },
+      {
+        "event_type": "wishlist_drawer_open",
+        "client_ts": 1776902620000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "item_count": 4 }
+      },
+      {
+        "event_type": "wishlist_drawer_close",
+        "client_ts": 1776902625000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "item_count": 4 }
+      },
+      {
+        "event_type": "wishlist_move_to_cart",
+        "client_ts": 1776902630000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "product_id": "91" }
+      },
+      {
+        "event_type": "cart_drawer_open",
+        "client_ts": 1776902635000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "item_count": 2 }
+      },
+      {
+        "event_type": "cart_drawer_close",
+        "client_ts": 1776902640000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "item_count": 2 }
+      },
+      {
+        "event_type": "cart_continue",
+        "client_ts": 1776902645000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "item_count": 2,
+          "total_monthly_quota": 417
+        }
+      },
+      {
+        "event_type": "cart_update",
+        "client_ts": 1776902650000,
+        "page_url": "/producto/macbook-air-m2",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_id": "42",
+          "months": 36,
+          "initial_percent": 20
+        }
+      }
+    ],
+    "quiz_tour_webchat_welcome": [
+      {
+        "event_type": "quiz_start",
+        "client_ts": 1776902700000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "context": "catalog",
+          "question_count": 7
+        }
+      },
+      {
+        "event_type": "quiz_answer",
+        "client_ts": 1776902705000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "question_id": "q_usage",
+          "option_id": "opt_study",
+          "step": 1,
+          "total": 7
+        }
+      },
+      {
+        "event_type": "quiz_finish",
+        "client_ts": 1776902760000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "context": "catalog",
+          "result_count": 3,
+          "duration_ms": 56000
+        }
+      },
+      {
+        "event_type": "quiz_abandon",
+        "client_ts": 1776902765000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "context": "catalog",
+          "step": 4,
+          "total": 7
+        }
+      },
+      {
+        "event_type": "quiz_result_click",
+        "client_ts": 1776902770000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "product_id": "42", "position": 1 }
+      },
+      {
+        "event_type": "tour_start",
+        "client_ts": 1776902775000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "step_count": 5, "style": "spotlight" }
+      },
+      {
+        "event_type": "tour_step_view",
+        "client_ts": 1776902780000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "step": 3,
+          "step_id": "filters",
+          "total": 5
+        }
+      },
+      {
+        "event_type": "tour_finish",
+        "client_ts": 1776902800000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "total": 5, "duration_ms": 25000 }
+      },
+      {
+        "event_type": "tour_skip",
+        "client_ts": 1776902805000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "step": 2, "total": 5 }
+      },
+      {
+        "event_type": "welcome_modal_shown",
+        "client_ts": 1776902810000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "action": null }
+      },
+      {
+        "event_type": "welcome_modal_dismiss",
+        "client_ts": 1776902815000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "action": "start_tour" }
+      },
+      {
+        "event_type": "webchat_open",
+        "client_ts": 1776902820000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "source": "help_popover" }
+      },
+      {
+        "event_type": "webchat_close",
+        "client_ts": 1776902830000,
+        "page_url": "/catalogo",
+        "element_id": null,
+        "properties": { "landing": "home", "source": null }
+      }
+    ],
+    "solicitar_wizard_accessories_insurance_summary": [
+      {
+        "event_type": "accessory_add",
+        "client_ts": 1776902900000,
+        "page_url": "/solicitar",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "accessory_id": "15",
+          "accessory_name": "Mouse Logitech MX",
+          "price": 120,
+          "source_product_id": "42"
+        }
+      },
+      {
+        "event_type": "accessory_remove",
+        "client_ts": 1776902905000,
+        "page_url": "/solicitar",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "accessory_id": "15",
+          "source_product_id": "42"
+        }
+      },
+      {
+        "event_type": "accessory_view",
+        "client_ts": 1776902910000,
+        "page_url": "/solicitar",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "accessory_id": "15",
+          "accessory_name": "Mouse Logitech MX"
+        }
+      },
+      {
+        "event_type": "accessory_impression",
+        "client_ts": 1776902915000,
+        "page_url": "/solicitar",
+        "element_id": null,
+        "properties": { "landing": "home", "accessory_id": "15", "position": 3 }
+      },
+      {
+        "event_type": "insurance_toggle",
+        "client_ts": 1776902920000,
+        "page_url": "/solicitar",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "insurance_id": "7",
+          "insurance_name": "Protección total 12 meses",
+          "active": true,
+          "monthly_price": 19.9
+        }
+      },
+      {
+        "event_type": "insurance_view_terms",
+        "client_ts": 1776902925000,
+        "page_url": "/solicitar",
+        "element_id": null,
+        "properties": { "landing": "home", "insurance_id": "7" }
+      },
+      {
+        "event_type": "summary_edit_click",
+        "client_ts": 1776902930000,
+        "page_url": "/solicitar/resumen",
+        "element_id": null,
+        "properties": { "landing": "home", "section": "datos_academicos" }
+      },
+      {
+        "event_type": "summary_submit",
+        "client_ts": 1776902935000,
+        "page_url": "/solicitar/resumen",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "product_count": 2,
+          "accessory_count": 1,
+          "insurance_selected": true,
+          "total_monthly": 417
+        }
+      }
+    ],
+    "home_landing_sections": [
+      {
+        "event_type": "hero_cta_click",
+        "client_ts": 1776903000000,
+        "page_url": "/home",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "landing_slug": "home",
+          "cta_id": "catalog",
+          "variant": "primary"
+        }
+      },
+      {
+        "event_type": "hero_cta_click",
+        "client_ts": 1776903005000,
+        "page_url": "/home",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "landing_slug": "home",
+          "cta_id": "whatsapp",
+          "variant": "secondary"
+        }
+      },
+      {
+        "event_type": "hero_cta_click",
+        "client_ts": 1776903010000,
+        "page_url": "/home",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "landing_slug": "home",
+          "cta_id": "quiz",
+          "variant": "help"
+        }
+      },
+      {
+        "event_type": "section_cta_click",
+        "client_ts": 1776903015000,
+        "page_url": "/home",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "section_name": "benefits",
+          "cta_id": "learn_more",
+          "href": "/home/sobre-nosotros"
+        }
+      },
+      {
+        "event_type": "section_view",
+        "client_ts": 1776903020000,
+        "page_url": "/home",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "section_name": "how_it_works",
+          "position": 3
+        }
+      },
+      {
+        "event_type": "promo_card_click",
+        "client_ts": 1776903025000,
+        "page_url": "/home",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "promo_id": "promo-verano-2026",
+          "title": "Laptops Gamer desde S/180/mes",
+          "href": "/home/catalogo?tag=gaming"
+        }
+      },
+      {
+        "event_type": "testimonial_view",
+        "client_ts": 1776903030000,
+        "page_url": "/home",
+        "element_id": null,
+        "properties": {
+          "landing": "home",
+          "testimonial_id": "t-12",
+          "author": "María Pérez"
+        }
+      }
+    ]
+  },
+  "batchExample": {
+    "description": "Ejemplo de cómo se envían 3 eventos juntos en un batch. El cliente acumula eventos y los flushea cada 5s (o al ocultar la pestaña).",
+    "request": {
+      "method": "POST",
+      "url": "/api/v1/public/events/batch",
+      "body": {
+        "session_id": "7c3a4e12-9b45-4f82-b9e1-4d2a8f3c1e27",
+        "events": [
+          {
+            "event_type": "filter_toggle",
+            "client_ts": 1776902400000,
+            "page_url": "/catalogo",
+            "element_id": null,
+            "properties": {
+              "landing": "ucv",
+              "filter_code": "brand",
+              "value": "apple",
+              "active": true,
+              "section": "catalog"
+            }
+          },
+          {
+            "event_type": "product_click",
+            "client_ts": 1776902410000,
+            "page_url": "/catalogo",
+            "element_id": null,
+            "properties": {
+              "landing": "ucv",
+              "product_id": "42",
+              "product_name": "MacBook Air M2",
+              "brand": "Apple",
+              "slug": "macbook-air-m2"
+            }
+          },
+          {
+            "event_type": "gallery_image_change",
+            "client_ts": 1776902430000,
+            "page_url": "/producto/macbook-air-m2",
+            "element_id": null,
+            "properties": {
+              "landing": "ucv",
+              "product_id": "42",
+              "index": 3,
+              "total": 6,
+              "method": "thumb"
+            }
+          }
+        ]
+      }
+    },
+    "expectedResponse": {
+      "status": 200,
+      "body": { "accepted": 3, "rejected": 0 }
+    }
+  }
+}

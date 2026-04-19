@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomIn, ZoomOut, Star, X, ChevronLeft, ChevronRight, Maximize2, Play } from 'lucide-react';
 import { ProductGalleryProps } from '../../../types/detail';
 import { ColorSelector } from '../color-selector/ColorSelector';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface ExtendedProductGalleryProps extends ProductGalleryProps {
   // Product info
@@ -29,6 +30,7 @@ interface ExtendedProductGalleryProps extends ProductGalleryProps {
 export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   images,
   productName,
+  productId = '',
   brand,
   rating,
   reviewCount,
@@ -37,6 +39,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   selectedColorId,
   onColorSelect,
 }) => {
+  const analytics = useAnalytics();
   const [selectedImage, setSelectedImage] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -98,38 +101,67 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
     setLightboxZoom(1);
     setLightboxPosition({ x: 0, y: 0 });
     document.body.style.overflow = 'hidden';
-  }, []);
+    analytics.trackGalleryLightbox({ open: true, product_id: productId, index: selectedImage });
+  }, [analytics, productId, selectedImage]);
 
   const closeLightbox = useCallback(() => {
     setIsLightboxOpen(false);
     setLightboxZoom(1);
     setLightboxPosition({ x: 0, y: 0 });
     document.body.style.overflow = '';
-  }, []);
+    analytics.trackGalleryLightbox({ open: false, product_id: productId });
+  }, [analytics, productId]);
 
   const handleLightboxPrev = useCallback(() => {
-    setSelectedImage((prev) => (prev === 0 ? filteredImages.length - 1 : prev - 1));
+    setSelectedImage((prev) => {
+      const next = prev === 0 ? filteredImages.length - 1 : prev - 1;
+      analytics.trackGalleryImageChange({
+        product_id: productId,
+        index: next,
+        total: filteredImages.length,
+        method: 'arrow',
+      });
+      return next;
+    });
     setLightboxZoom(1);
     setLightboxPosition({ x: 0, y: 0 });
-  }, [filteredImages.length]);
+  }, [filteredImages.length, analytics, productId]);
 
   const handleLightboxNext = useCallback(() => {
-    setSelectedImage((prev) => (prev === filteredImages.length - 1 ? 0 : prev + 1));
+    setSelectedImage((prev) => {
+      const next = prev === filteredImages.length - 1 ? 0 : prev + 1;
+      analytics.trackGalleryImageChange({
+        product_id: productId,
+        index: next,
+        total: filteredImages.length,
+        method: 'arrow',
+      });
+      return next;
+    });
     setLightboxZoom(1);
     setLightboxPosition({ x: 0, y: 0 });
-  }, [filteredImages.length]);
+  }, [filteredImages.length, analytics, productId]);
 
   const handleZoomIn = useCallback(() => {
-    setLightboxZoom((prev) => Math.min(prev + 0.5, 3));
-  }, []);
+    setLightboxZoom((prev) => {
+      const next = Math.min(prev + 0.5, 3);
+      if (next !== prev) {
+        analytics.trackGalleryZoom({ product_id: productId, direction: 'in', level: next });
+      }
+      return next;
+    });
+  }, [analytics, productId]);
 
   const handleZoomOut = useCallback(() => {
     setLightboxZoom((prev) => {
       const newZoom = Math.max(prev - 0.5, 1);
       if (newZoom === 1) setLightboxPosition({ x: 0, y: 0 });
+      if (newZoom !== prev) {
+        analytics.trackGalleryZoom({ product_id: productId, direction: 'out', level: newZoom });
+      }
       return newZoom;
     });
-  }, []);
+  }, [analytics, productId]);
 
   const handleDoubleClick = useCallback(() => {
     if (lightboxZoom > 1) {
@@ -269,9 +301,23 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
           onDragEnd={(_, info) => {
             const threshold = 50;
             if (info.offset.x < -threshold && selectedImage < filteredImages.length - 1) {
-              setSelectedImage((i) => i + 1);
+              const next = selectedImage + 1;
+              setSelectedImage(next);
+              analytics.trackGalleryImageChange({
+                product_id: productId,
+                index: next,
+                total: filteredImages.length,
+                method: 'swipe',
+              });
             } else if (info.offset.x > threshold && selectedImage > 0) {
-              setSelectedImage((i) => i - 1);
+              const next = selectedImage - 1;
+              setSelectedImage(next);
+              analytics.trackGalleryImageChange({
+                product_id: productId,
+                index: next,
+                total: filteredImages.length,
+                method: 'swipe',
+              });
             }
           }}
         >
@@ -338,7 +384,15 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
                   ? 'border-[var(--color-primary)] ring-2 ring-[rgba(var(--color-primary-rgb),0.20)]'
                   : 'border-neutral-200 hover:border-neutral-300'
               }`}
-              onClick={() => setSelectedImage(index)}
+              onClick={() => {
+                setSelectedImage(index);
+                analytics.trackGalleryImageChange({
+                  product_id: productId,
+                  index,
+                  total: filteredImages.length,
+                  method: 'thumb',
+                });
+              }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -492,6 +546,12 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
                       setSelectedImage(index);
                       setLightboxZoom(1);
                       setLightboxPosition({ x: 0, y: 0 });
+                      analytics.trackGalleryImageChange({
+                        product_id: productId,
+                        index,
+                        total: filteredImages.length,
+                        method: 'thumb',
+                      });
                     }}
                     className={`relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all cursor-pointer ${
                       selectedImage === index

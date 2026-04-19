@@ -92,7 +92,10 @@ import {
 
 // Import the shared state hook for cart/wishlist
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
+import { useCatalogStatePersistence } from './hooks/useCatalogStatePersistence';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { useAnalytics, type FilterCode } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { diffAndEmitFilterChanges } from '@/app/prototipos/0.6/analytics/catalogFilterDiff';
 
 
 // API Hooks for loading products and filters
@@ -295,6 +298,8 @@ function CatalogoContent() {
   const isMobile = useIsMobile();
   const { setSelectedProduct, setCartProducts: setContextCartProducts, clearCartProducts, clearAccessories } = useProduct();
   const tracker = useEventTrackerOptional();
+  const analytics = useAnalytics();
+
 
   // Get layout data from context (fetched once at [landing] level)
   const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner } = useLayout();
@@ -313,6 +318,10 @@ function CatalogoContent() {
     });
   }, [landing]);
 
+  // Persistencia del catálogo: se declara aquí (después de previewKey) para
+  // que el seed esté disponible cuando useCatalogProducts monte.
+  const catalogPersistence = useCatalogStatePersistence(landing, previewKey);
+
   // Blip Chat control
   const blipChat = useBlipChat();
 
@@ -323,7 +332,7 @@ function CatalogoContent() {
   const [filters, setFilters] = useState<FilterState>(() =>
     mergeFiltersWithDefaults(initialUrlFilters)
   );
-  const [sort, setSort] = useState<SortOption>(() =>
+  const [sort, setSortRaw] = useState<SortOption>(() =>
     initialUrlFilters.sort || 'recommended'
   );
 
@@ -347,6 +356,36 @@ function CatalogoContent() {
   );
   // State mirror of apiQuotaRangeRef for reactive dependencies (memos, chips)
   const [apiQuotaRangeState, setApiQuotaRangeState] = useState<[number, number]>(apiQuotaRangeRef.current);
+
+  // Tracked filter setter: diffs old vs new and emits analytics events per change.
+  // Used instead of raw `setFilters` where the change comes from user intent
+  // (UI toggles, Quiz apply, Clear all). Ref-driven rehydration keeps using
+  // `setFilters` to avoid false-positive events during initial load.
+  const setFiltersTracked = useCallback<typeof setFilters>(
+    (next) => {
+      setFilters((prev) => {
+        const applied = typeof next === 'function'
+          ? (next as (p: FilterState) => FilterState)(prev)
+          : next;
+        diffAndEmitFilterChanges(prev, applied, analytics, apiQuotaRangeRef.current);
+        return applied;
+      });
+    },
+    [analytics]
+  );
+
+  // Tracked sort setter
+  const setSort = useCallback(
+    (value: SortOption) => {
+      setSortRaw((prev) => {
+        if (prev !== value) {
+          analytics.trackSortChange({ from: prev, to: value });
+        }
+        return value;
+      });
+    },
+    [analytics]
+  );
 
   // Build API filters from frontend FilterState
   const apiFiltersForProducts = useMemo((): ApiCatalogFilters => {
@@ -590,6 +629,14 @@ function CatalogoContent() {
     enabled: isReadyToFetchProducts,
     previewKey,
     gridColumns,
+    initialSeed: catalogPersistence.snapshot
+      ? {
+          products: catalogPersistence.snapshot.products,
+          total: catalogPersistence.snapshot.total,
+          offset: catalogPersistence.snapshot.offset,
+          hasMore: catalogPersistence.snapshot.hasMore,
+        }
+      : null,
   });
 
 
@@ -818,7 +865,20 @@ function CatalogoContent() {
     unavailableWishlistIds,
   } = useCatalogSharedState(landing, previewKey);
 
-  const [viewMode, setViewMode] = useState<CatalogViewMode>('all');
+  const [viewMode, setViewModeRaw] = useState<CatalogViewMode>(
+    () => catalogPersistence.snapshot?.viewMode ?? 'all'
+  );
+  const setViewMode = useCallback(
+    (next: CatalogViewMode) => {
+      setViewModeRaw((prev) => {
+        if (prev !== next) {
+          analytics.trackViewModeChange({ from: prev, to: next });
+        }
+        return next;
+      });
+    },
+    [analytics]
+  );
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   // Search drawer state
@@ -1180,12 +1240,12 @@ function CatalogoContent() {
       // Also set the first product as selectedProduct for backwards compatibility
       setSelectedProduct(productsForContext[0]);
     }
-    tracker?.track('cta_click', {
-      cta_name: 'cart_continue',
-      cart_count: cartItems.length,
+    analytics.trackCartContinue({
+      item_count: cartItems.length,
+      total_monthly_quota: totalMonthlyQuota,
     });
     router.push(getWizardUrl(landing));
-  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, setContextCartProducts, setSelectedProduct, landing, tracker]);
+  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, setContextCartProducts, setSelectedProduct, landing, analytics]);
 
   // wishlistProducts is now a state loaded from API via useEffect (see above)
 
@@ -1205,8 +1265,11 @@ function CatalogoContent() {
 
   // Handler to clear search
   const handleSearchClear = useCallback(() => {
+    if (searchQuery) {
+      analytics.trackSearchClear({ location: 'navbar' });
+    }
     setSearchQuery('');
-  }, []);
+  }, [analytics, searchQuery]);
 
   // Update URL when filters, sort, searchQuery, colorSelectorVersion, or onboarding config change
   useEffect(() => {
@@ -1283,8 +1346,75 @@ function CatalogoContent() {
 
   // Load more products from API
   const handleLoadMore = useCallback(() => {
+    analytics.trackLoadMore({
+      visible_count: catalogProducts.length,
+      total_count: totalProducts,
+    });
     loadMoreFromApi();
-  }, [loadMoreFromApi]);
+  }, [loadMoreFromApi, analytics, catalogProducts.length, totalProducts]);
+
+  // Snapshot del catálogo para restaurar al volver del detalle sin refetch.
+  // Se captura scrollY en el momento de la llamada, no al renderizar.
+  const saveCatalogSnapshot = useCallback(() => {
+    if (catalogProducts.length === 0) return; // nada que guardar
+    catalogPersistence.save({
+      scrollY: typeof window !== 'undefined' ? window.scrollY : 0,
+      viewMode,
+      products: catalogProducts,
+      total: totalProducts,
+      offset: catalogProducts.length,
+      hasMore: hasMoreFromApi,
+    });
+  }, [catalogPersistence, catalogProducts, totalProducts, hasMoreFromApi, viewMode]);
+
+  // Guardar snapshot cuando el usuario cierra la pestaña o navega hacia atrás.
+  // `pagehide` cubre ambos casos en browsers modernos (incluye bfcache).
+  useEffect(() => {
+    const handler = () => saveCatalogSnapshot();
+    window.addEventListener('pagehide', handler);
+    return () => window.removeEventListener('pagehide', handler);
+  }, [saveCatalogSnapshot]);
+
+  // Restaurar scroll después de que los productos seedados estén pintados.
+  // Usamos rAF para asegurar que el layout ya midió la altura del grid.
+  const restoredScrollRef = useRef(false);
+  useEffect(() => {
+    if (restoredScrollRef.current) return;
+    const snap = catalogPersistence.snapshot;
+    if (!snap || catalogPersistence.isConsumed()) return;
+    if (isProductsLoading) return;
+    if (catalogProducts.length === 0) return;
+
+    restoredScrollRef.current = true;
+    catalogPersistence.markConsumed();
+
+    // Doble rAF para esperar a que el browser calcule alturas después del
+    // mount inicial. Evita el "salto" cuando los cards aún no han medido.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: snap.scrollY, left: 0, behavior: 'auto' });
+      });
+    });
+  }, [isProductsLoading, catalogProducts.length, catalogPersistence]);
+
+  // Invalidar el snapshot cuando el usuario cambia filtros/sort/search.
+  // La URL ya rehidrata esos valores; el snapshot de productos quedaría obsoleto.
+  const snapshotInvalidateKey = useMemo(
+    () => JSON.stringify({ f: apiFiltersForProducts, s: apiSortBy }),
+    [apiFiltersForProducts, apiSortBy]
+  );
+  const lastInvalidateKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    // En el primer mount no limpiamos — el seed depende del snapshot guardado.
+    if (lastInvalidateKeyRef.current === null) {
+      lastInvalidateKeyRef.current = snapshotInvalidateKey;
+      return;
+    }
+    if (lastInvalidateKeyRef.current !== snapshotInvalidateKey) {
+      lastInvalidateKeyRef.current = snapshotInvalidateKey;
+      catalogPersistence.clear();
+    }
+  }, [snapshotInvalidateKey, catalogPersistence]);
 
   // Applied filters for EmptyState
   const appliedFilters = useMemo((): AppliedFilter[] => {
@@ -1314,7 +1444,7 @@ function CatalogoContent() {
   }, [filters, apiQuotaRangeState]);
 
   const handleRemoveFilter = useCallback((key: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const newFilters = { ...prev };
       if (key === 'brand') newFilters.brands = [];
       if (key === 'quota') newFilters.quotaRange = [...apiQuotaRangeRef.current];
@@ -1322,7 +1452,15 @@ function CatalogoContent() {
       if (key === 'gama') newFilters.gama = [];
       return newFilters;
     });
-  }, []);
+    const codeMap: Record<string, FilterCode> = {
+      brand: 'brand',
+      quota: 'quota_range',
+      ram: 'ram',
+      gama: 'gama',
+    };
+    const code = codeMap[key];
+    if (code) analytics.trackFilterClearSingle({ filter_code: code });
+  }, [setFiltersTracked, analytics]);
 
   // Helper: find product by ID in catalogProducts, or build from sibling color data
   const findProductOrSibling = useCallback((productId: string): CatalogProduct | null => {
@@ -1550,6 +1688,7 @@ function CatalogoContent() {
         onWishlistViewProduct={(productId) => {
           const item = wishlistItems.find((w) => w.productId === productId);
           const product = findProductOrSibling(productId);
+          saveCatalogSnapshot();
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
           } else if (item?.slug) {
@@ -1564,6 +1703,7 @@ function CatalogoContent() {
         onCartViewProduct={(productId) => {
           const item = cartItems.find((c) => c.productId === productId);
           const product = findProductOrSibling(productId);
+          saveCatalogSnapshot();
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
           } else if (item?.slug) {
@@ -1677,6 +1817,8 @@ function CatalogoContent() {
                     brand: product.brand,
                     slug: siblingSlug || product.slug,
                   });
+                  // Guardar snapshot ANTES de navegar para restaurar al volver.
+                  saveCatalogSnapshot();
                   router.push(getDetailUrl(landing, siblingSlug || product.slug));
                 }}
                 onMouseEnter={() => {
@@ -1744,7 +1886,10 @@ function CatalogoContent() {
                   {wishlist.length > 0 && appliedFilters.length > 0 && (
                     <Button
                       variant="light"
-                      onPress={() => setFilters(defaultFilterState)}
+                      onPress={() => {
+                        setFiltersTracked(defaultFilterState);
+                        analytics.trackFilterClearAll({ source: 'favorites_empty_state' });
+                      }}
                       className="cursor-pointer text-neutral-600"
                     >
                       Limpiar filtros
@@ -1763,7 +1908,13 @@ function CatalogoContent() {
                         {searchSuggestions.map((suggestion, index) => (
                           <span key={suggestion.suggested}>
                             <button
-                              onClick={() => setSearchQuery(suggestion.suggested)}
+                              onClick={() => {
+                                analytics.trackSearchSuggestionClick({
+                                  original: searchQuery,
+                                  suggested: suggestion.suggested,
+                                });
+                                setSearchQuery(suggestion.suggested);
+                              }}
                               className="text-[var(--color-primary)] font-semibold hover:underline cursor-pointer"
                             >
                               {suggestion.suggested}
@@ -1780,8 +1931,12 @@ function CatalogoContent() {
                 <EmptyState
                   appliedFilters={appliedFilters}
                   onClearFilters={() => {
-                    setFilters(defaultFilterState);
+                    setFiltersTracked(defaultFilterState);
+                    if (searchQuery) {
+                      analytics.trackSearchClear({ location: 'empty_state' });
+                    }
                     setSearchQuery('');
+                    analytics.trackFilterClearAll({ source: 'empty_state' });
                   }}
                   onRemoveFilter={handleRemoveFilter}
                   totalProductsIfExpanded={catalogProducts.length}
@@ -1877,6 +2032,7 @@ function CatalogoContent() {
             setIsCartDrawerOpen(false);
             const item = cartItems.find((c) => c.productId === productId);
             const product = findProductOrSibling(productId);
+            saveCatalogSnapshot();
             if (product) {
               router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
             } else if (item?.slug) {
@@ -1909,6 +2065,7 @@ function CatalogoContent() {
           setIsWishlistDrawerOpen(false);
           const item = wishlistItems.find((w) => w.productId === productId);
           const product = findProductOrSibling(productId);
+          saveCatalogSnapshot();
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
           } else if (item?.slug) {
@@ -2148,7 +2305,7 @@ function CatalogoContent() {
             // Aplicar filtros basados en las respuestas del quiz
             if (answers && answers.length > 0 && questions && questions.length > 0) {
               const quizFilters = mapQuizAnswersToFilters(answers, questions, filters);
-              setFilters((prev) => ({
+              setFiltersTracked((prev) => ({
                 ...prev,
                 ...quizFilters,
               }));

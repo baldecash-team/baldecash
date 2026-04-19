@@ -16,6 +16,7 @@ import { CatalogProduct, CartItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // Configuración fija para legacy CatalogProduct path
 const SELECTED_INITIAL = 0;
@@ -76,6 +77,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const { settings } = useLayout();
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
   const dragControls = useDragControls();
+  const analytics = useAnalytics();
+
+  // Emit open/close drawer events when visibility toggles.
+  useEffect(() => {
+    analytics.trackCartDrawer({ open: isOpen, item_count: items.length });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // v0.6.1: Normalize items to unified format for display
   const normalizedItems = useMemo((): NormalizedCartItem[] => {

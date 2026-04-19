@@ -17,6 +17,7 @@ import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // Configuración fija para sugerencias: plazo más alto del producto, sin inicial
 const SELECTED_INITIAL = 0;
@@ -52,6 +53,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const analytics = useAnalytics();
 
   // Debounced search - uses landing-specific endpoint
   const searchProducts = useCallback(async (query: string) => {
@@ -108,6 +110,11 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
         handleSelectSuggestion(suggestions[selectedIndex]);
       } else if (value.trim()) {
         setShowSuggestions(false);
+        analytics.trackSearchSubmit({
+          query_length: value.length,
+          has_results: suggestions.length > 0,
+          location: 'navbar',
+        });
         onSubmit?.();
       }
     } else if (e.key === 'ArrowDown') {
@@ -165,6 +172,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={() => {
             setIsFocused(true);
+            analytics.trackSearchFocus({ location: 'navbar' });
             if (suggestions.length > 0) setShowSuggestions(true);
           }}
           onBlur={() => setIsFocused(false)}
@@ -177,6 +185,7 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
         {value && (
           <button
             onClick={() => {
+              analytics.trackSearchClear({ location: 'navbar' });
               onClear();
               setSuggestions([]);
               setShowSuggestions(false);
@@ -260,6 +269,11 @@ export const NavbarSearch: React.FC<NavbarSearchProps> = ({
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setShowSuggestions(false);
+                    analytics.trackSearchSubmit({
+                      query_length: value.length,
+                      has_results: suggestions.length > 0,
+                      location: 'navbar_view_all',
+                    });
                     onSubmit?.();
                   }}
                   className="w-full flex items-center justify-center gap-2 text-sm text-[var(--color-primary)] font-medium hover:underline cursor-pointer py-1"

@@ -1,0 +1,649 @@
+{
+  "version": 1,
+  "generated": "2026-04-19",
+  "description": "Contrato de eventos de analytics para BaldeCash v0.6. Todos los eventos se envían al endpoint POST /api/v1/public/events/batch como parte de un batch. Campos comunes enviados en TODO evento: event_type, client_ts (epoch ms), page_url, element_id (nullable), properties (object). El hook useAnalytics() agrega `landing` dentro de properties automáticamente.",
+  "envelope": {
+    "method": "POST",
+    "path": "/api/v1/public/events/batch",
+    "body": {
+      "session_id": "string (UUID v4)",
+      "events": "TrackingEvent[]"
+    },
+    "trackingEvent": {
+      "event_type": "string (enum, ver lista)",
+      "client_ts": "number (epoch ms)",
+      "page_url": "string (pathname)",
+      "element_id": "string | null",
+      "properties": "object | undefined"
+    },
+    "privacy": {
+      "blocked_property_keys": [
+        "value",
+        "field_value",
+        "input_value",
+        "text_value",
+        "password",
+        "dni",
+        "email_value",
+        "phone_value",
+        "nombre",
+        "name_value",
+        "document_number"
+      ],
+      "note": "Cualquier key bloqueado se elimina client-side antes de enviar."
+    }
+  },
+  "commonProperties": {
+    "landing": "string — slug de landing (ej. 'home', 'ucv', 'wiener'). Lo agrega useAnalytics automáticamente."
+  },
+  "events": {
+    "session_start": {
+      "description": "Auto: se emite una sola vez al iniciar sesión.",
+      "properties": {
+        "viewport_w": "number",
+        "viewport_h": "number",
+        "device_type": "'mobile' | 'tablet' | 'desktop'",
+        "user_agent": "string",
+        "referrer": "string (optional)",
+        "language": "string"
+      }
+    },
+    "page_enter": {
+      "description": "Auto: al entrar a una ruta.",
+      "properties": { "url": "string" }
+    },
+    "page_exit": {
+      "description": "Auto: al salir de una ruta o cerrar pestaña.",
+      "properties": {
+        "exit_method": "'navigation' | 'close'",
+        "time_on_page_ms": "number"
+      }
+    },
+    "form_start": {
+      "description": "Primera interacción con un formulario del wizard.",
+      "properties": { "form_step": "string", "field": "string" }
+    },
+    "form_abandon": {
+      "description": "Usuario abandonó el formulario sin completar.",
+      "properties": { "form_step": "string", "last_field": "string" }
+    },
+    "input_focus": {
+      "description": "Un campo del form recibe foco.",
+      "properties": { "field": "string", "form_step": "string" }
+    },
+    "input_blur": {
+      "description": "Un campo del form pierde foco.",
+      "properties": { "field": "string", "form_step": "string", "filled": "boolean" }
+    },
+    "scroll_depth": {
+      "description": "Auto: usuario llegó a 25/50/75/100% de la página.",
+      "properties": {
+        "depth_pct": "25 | 50 | 75 | 100",
+        "time_to_reach_ms": "number",
+        "viewport_w": "number",
+        "doc_height": "number"
+      }
+    },
+    "tab_hidden": {
+      "description": "Auto: pestaña ocultada.",
+      "properties": { "time_on_page_ms": "number" }
+    },
+    "tab_visible": {
+      "description": "Auto: pestaña vuelve a primer plano.",
+      "properties": { "time_on_page_ms": "number" }
+    },
+    "outbound_click": {
+      "description": "Auto: click en link a dominio externo.",
+      "properties": { "url": "string", "domain": "string", "text": "string (max 100)" }
+    },
+    "cta_click": {
+      "description": "Click genérico en un CTA.",
+      "properties": {
+        "cta_name": "string",
+        "location": "string",
+        "text": "string (optional)",
+        "href": "string (optional)"
+      }
+    },
+    "nav_click": {
+      "description": "Click en item de navegación.",
+      "properties": { "label": "string", "href": "string (optional)", "location": "string" }
+    },
+    "nav_hover": {
+      "description": "Hover sobre item de navegación con megamenu.",
+      "properties": { "label": "string", "href": "string (optional)", "has_megamenu": "boolean" }
+    },
+    "product_view": {
+      "description": "Vista de detalle de producto cargada.",
+      "properties": {
+        "product_id": "string",
+        "product_name": "string",
+        "brand": "string",
+        "slug": "string"
+      }
+    },
+    "product_click": {
+      "description": "Click en card de producto en catálogo/similares.",
+      "properties": {
+        "product_id": "string",
+        "product_name": "string",
+        "brand": "string",
+        "slug": "string"
+      }
+    },
+    "product_hover": {
+      "description": "Hover sobre card de producto.",
+      "properties": { "product_id": "string", "product_name": "string", "brand": "string" }
+    },
+    "cart_add": {
+      "description": "Producto agregado al carrito.",
+      "properties": {
+        "product_id": "string",
+        "product_name": "string",
+        "brand": "string",
+        "months": "number",
+        "monthly_payment": "number",
+        "initial_percent": "number",
+        "source": "string (optional, ej 'wishlist')"
+      }
+    },
+    "cart_remove": {
+      "description": "Producto retirado del carrito.",
+      "properties": { "product_id": "string" }
+    },
+    "cart_clear": {
+      "description": "Carrito vaciado completamente.",
+      "properties": {}
+    },
+    "cart_update": {
+      "description": "Usuario cambió plazo o inicial de un item ya en carrito.",
+      "properties": {
+        "product_id": "string",
+        "months": "number | null",
+        "initial_percent": "number | null"
+      }
+    },
+    "cart_drawer_open": {
+      "description": "Se abrió el drawer del carrito (mobile y desktop).",
+      "properties": { "item_count": "number" }
+    },
+    "cart_drawer_close": {
+      "description": "Se cerró el drawer del carrito.",
+      "properties": { "item_count": "number" }
+    },
+    "cart_continue": {
+      "description": "Usuario pulsó 'Continuar' en el carrito, va al wizard.",
+      "properties": {
+        "item_count": "number",
+        "total_monthly_quota": "number | null"
+      }
+    },
+    "wishlist_add": {
+      "description": "Producto agregado a favoritos.",
+      "properties": { "product_id": "string", "product_name": "string", "brand": "string" }
+    },
+    "wishlist_remove": {
+      "description": "Producto quitado de favoritos.",
+      "properties": { "product_id": "string" }
+    },
+    "wishlist_clear": {
+      "description": "Favoritos vaciados.",
+      "properties": {}
+    },
+    "wishlist_drawer_open": {
+      "description": "Se abrió el drawer de favoritos.",
+      "properties": { "item_count": "number" }
+    },
+    "wishlist_drawer_close": {
+      "description": "Se cerró el drawer de favoritos.",
+      "properties": { "item_count": "number" }
+    },
+    "wishlist_move_to_cart": {
+      "description": "Usuario movió un item de favoritos al carrito.",
+      "properties": { "product_id": "string" }
+    },
+    "compare_add": {
+      "description": "Producto agregado al comparador.",
+      "properties": { "product_id": "string" }
+    },
+    "compare_remove": {
+      "description": "Producto quitado del comparador.",
+      "properties": { "product_id": "string" }
+    },
+    "compare_open": {
+      "description": "Usuario abrió la vista del comparador.",
+      "properties": { "product_count": "number" }
+    },
+    "compare_close": {
+      "description": "Usuario cerró la vista del comparador.",
+      "properties": {}
+    },
+    "compare_clear": {
+      "description": "Comparador vaciado.",
+      "properties": {}
+    },
+    "compare_best_shown": {
+      "description": "Usuario pulsó 'Ver mejor opción' en el comparador.",
+      "properties": { "product_id": "string", "product_count": "number" }
+    },
+    "compare_best_add_to_cart": {
+      "description": "Usuario agregó al carrito la mejor opción sugerida por el comparador.",
+      "properties": { "product_id": "string" }
+    },
+    "filter_toggle": {
+      "description": "Un valor de filtro se activó/desactivó.",
+      "properties": {
+        "filter_code": "FilterCode (ver enum abajo)",
+        "value": "string | number | boolean",
+        "active": "boolean",
+        "section": "string (default: 'catalog')"
+      }
+    },
+    "filter_clear_single": {
+      "description": "Usuario limpió un solo filtro (ej. quita solo 'Marca').",
+      "properties": {
+        "filter_code": "FilterCode",
+        "value": "string | number | null"
+      }
+    },
+    "filter_clear_all": {
+      "description": "Usuario limpió todos los filtros.",
+      "properties": {
+        "source": "string (ej. 'empty_state', 'favorites_empty_state')"
+      }
+    },
+    "filter_range_change": {
+      "description": "Slider de rango (cuota mensual) cambió. Debounce 400ms.",
+      "properties": {
+        "filter_code": "'quota_range'",
+        "min": "number",
+        "max": "number",
+        "is_full_range": "boolean"
+      }
+    },
+    "filter_section_toggle": {
+      "description": "Usuario expandió/colapsó una sección de filtros.",
+      "properties": {
+        "filter_code": "FilterCode",
+        "expanded": "boolean"
+      }
+    },
+    "sort_change": {
+      "description": "Usuario cambió el orden del listado.",
+      "properties": { "from": "string", "to": "string" }
+    },
+    "catalog_load_more": {
+      "description": "Click en 'Cargar más'.",
+      "properties": {
+        "visible_count": "number",
+        "total_count": "number",
+        "page": "number | null"
+      }
+    },
+    "view_mode_change": {
+      "description": "Usuario cambió entre 'Todos' y 'Favoritos' en el catálogo.",
+      "properties": { "from": "string", "to": "string" }
+    },
+    "search_focus": {
+      "description": "Input de búsqueda recibe foco.",
+      "properties": { "location": "'navbar' | 'search_drawer'" }
+    },
+    "search_submit": {
+      "description": "Usuario ejecuta búsqueda (enter / 'Ver resultados').",
+      "properties": {
+        "query_length": "number",
+        "has_results": "boolean | null",
+        "location": "'navbar' | 'search_drawer' | 'navbar_view_all'"
+      }
+    },
+    "search_clear": {
+      "description": "Usuario limpió el search.",
+      "properties": { "location": "string" }
+    },
+    "search_suggestion_click": {
+      "description": "Click en sugerencia '¿Quisiste decir?'.",
+      "properties": { "original": "string", "suggested": "string" }
+    },
+    "search_drawer_open": {
+      "description": "Drawer mobile de búsqueda abierto.",
+      "properties": {}
+    },
+    "search_drawer_close": {
+      "description": "Drawer mobile de búsqueda cerrado.",
+      "properties": {}
+    },
+    "banner_click": {
+      "description": "Click en banner promocional.",
+      "properties": {
+        "banner_id": "string | null",
+        "location": "string (ej. 'catalog_top')",
+        "href": "string | null",
+        "variant": "string | null"
+      }
+    },
+    "banner_hover": {
+      "description": "Hover sobre banner (debounced 500ms).",
+      "properties": {
+        "banner_id": "string | null",
+        "location": "string",
+        "variant": "string | null"
+      }
+    },
+    "cronograma_download": {
+      "description": "Descarga PDF del cronograma de cuotas.",
+      "properties": {
+        "product_id": "string",
+        "term": "number",
+        "initial_percent": "number"
+      }
+    },
+    "cronograma_modal_open": {
+      "description": "Modal de detalle de cuotas abierto.",
+      "properties": { "product_id": "string" }
+    },
+    "cronograma_modal_close": {
+      "description": "Modal de detalle de cuotas cerrado.",
+      "properties": { "product_id": "string" }
+    },
+    "cronograma_expand": {
+      "description": "Click en 'Ver más cuotas' dentro del cronograma.",
+      "properties": {
+        "product_id": "string",
+        "expanded": "boolean",
+        "term": "number"
+      }
+    },
+    "gallery_image_change": {
+      "description": "Usuario cambia la imagen principal de la galería.",
+      "properties": {
+        "product_id": "string",
+        "index": "number",
+        "total": "number",
+        "method": "'thumb' | 'arrow' | 'keyboard' | 'swipe' | 'auto'"
+      }
+    },
+    "gallery_lightbox_open": {
+      "description": "Lightbox abierto (zoom fullscreen).",
+      "properties": { "product_id": "string", "index": "number | null" }
+    },
+    "gallery_lightbox_close": {
+      "description": "Lightbox cerrado.",
+      "properties": { "product_id": "string", "index": "number | null" }
+    },
+    "gallery_zoom": {
+      "description": "Zoom dentro del lightbox.",
+      "properties": {
+        "product_id": "string",
+        "direction": "'in' | 'out'",
+        "level": "number | null"
+      }
+    },
+    "color_select": {
+      "description": "Usuario selecciona un color del producto.",
+      "properties": {
+        "product_id": "string",
+        "color_id": "string",
+        "color_name": "string | null",
+        "navigates_to_sibling": "boolean (true si redirige a otro producto de la familia)"
+      }
+    },
+    "detail_tab_click": {
+      "description": "Click en tab lateral del detalle (scroll-to).",
+      "properties": { "product_id": "string", "section": "string (ej. 'section-specs')" }
+    },
+    "similar_product_click": {
+      "description": "Click en card de producto similar.",
+      "properties": {
+        "source_product_id": "string",
+        "target_product_id": "string",
+        "position": "number"
+      }
+    },
+    "similar_product_add_to_cart": {
+      "description": "Add-to-cart desde sección de similares.",
+      "properties": { "source_product_id": "string", "target_product_id": "string" }
+    },
+    "spec_sheet_download": {
+      "description": "Descarga de ficha técnica PDF.",
+      "properties": { "product_id": "string", "format": "string (default 'pdf')" }
+    },
+    "pricing_term_change": {
+      "description": "Usuario cambió el plazo (meses) en la calculadora de cuotas.",
+      "properties": { "product_id": "string", "from": "number", "to": "number" }
+    },
+    "pricing_initial_change": {
+      "description": "Usuario cambió el % de cuota inicial.",
+      "properties": { "product_id": "string", "from": "number", "to": "number" }
+    },
+    "quiz_start": {
+      "description": "Usuario abrió el quiz de ayuda.",
+      "properties": {
+        "context": "'catalog' | 'hero' | 'landing'",
+        "question_count": "number | null"
+      }
+    },
+    "quiz_answer": {
+      "description": "Usuario respondió una pregunta.",
+      "properties": {
+        "question_id": "string | number",
+        "option_id": "string | number | null",
+        "step": "number (1-based)",
+        "total": "number"
+      }
+    },
+    "quiz_finish": {
+      "description": "Quiz completado (llegó a resultados).",
+      "properties": {
+        "context": "string",
+        "result_count": "number | null",
+        "duration_ms": "number | null"
+      }
+    },
+    "quiz_abandon": {
+      "description": "Usuario cerró el quiz sin completar.",
+      "properties": {
+        "context": "string",
+        "step": "number",
+        "total": "number"
+      }
+    },
+    "quiz_result_click": {
+      "description": "Click en un producto recomendado por el quiz.",
+      "properties": { "product_id": "string", "position": "number" }
+    },
+    "tour_start": {
+      "description": "Tour guiado iniciado.",
+      "properties": { "step_count": "number", "style": "string | null" }
+    },
+    "tour_step_view": {
+      "description": "Usuario llegó a un paso del tour.",
+      "properties": {
+        "step": "number (1-based)",
+        "step_id": "string | null",
+        "total": "number"
+      }
+    },
+    "tour_finish": {
+      "description": "Tour completado hasta el final.",
+      "properties": {
+        "total": "number",
+        "duration_ms": "number | null"
+      }
+    },
+    "tour_skip": {
+      "description": "Tour saltado (Escape, click backdrop, botón 'saltar').",
+      "properties": { "step": "number", "total": "number" }
+    },
+    "welcome_modal_shown": {
+      "description": "Modal de bienvenida apareció.",
+      "properties": { "action": "null" }
+    },
+    "welcome_modal_dismiss": {
+      "description": "Usuario cerró el modal de bienvenida (por dismiss o por start_tour).",
+      "properties": { "action": "'dismiss' | 'start_tour' | 'take_quiz' | null" }
+    },
+    "webchat_open": {
+      "description": "Chat (Blip/webchat) abierto.",
+      "properties": { "source": "string | null" }
+    },
+    "webchat_close": {
+      "description": "Chat cerrado.",
+      "properties": { "source": "string | null" }
+    },
+    "accessory_add": {
+      "description": "Accesorio agregado en el wizard de solicitud.",
+      "properties": {
+        "accessory_id": "string",
+        "accessory_name": "string",
+        "price": "number | null",
+        "source_product_id": "string | null"
+      }
+    },
+    "accessory_remove": {
+      "description": "Accesorio quitado del pedido.",
+      "properties": {
+        "accessory_id": "string",
+        "source_product_id": "string | null"
+      }
+    },
+    "accessory_view": {
+      "description": "Click en 'ver detalle' de accesorio.",
+      "properties": { "accessory_id": "string", "accessory_name": "string" }
+    },
+    "accessory_impression": {
+      "description": "Accesorio visible en pantalla (throttled por accesorio).",
+      "properties": { "accessory_id": "string", "position": "number" }
+    },
+    "insurance_toggle": {
+      "description": "Usuario activó/desactivó un seguro.",
+      "properties": {
+        "insurance_id": "string",
+        "insurance_name": "string",
+        "active": "boolean",
+        "monthly_price": "number | null"
+      }
+    },
+    "insurance_view_terms": {
+      "description": "Click en 'ver términos' del seguro.",
+      "properties": { "insurance_id": "string" }
+    },
+    "summary_edit_click": {
+      "description": "Usuario pulsó 'editar' en una sección del resumen.",
+      "properties": { "section": "string (ej. 'datos_personales', 'datos_academicos')" }
+    },
+    "summary_submit": {
+      "description": "Envío final del formulario desde el resumen.",
+      "properties": {
+        "product_count": "number",
+        "accessory_count": "number",
+        "insurance_selected": "boolean",
+        "total_monthly": "number | null"
+      }
+    },
+    "hero_cta_click": {
+      "description": "CTA principal del hero de una landing.",
+      "properties": {
+        "landing_slug": "string",
+        "cta_id": "string | null",
+        "variant": "string | null"
+      }
+    },
+    "section_cta_click": {
+      "description": "Click en CTA dentro de una sección de landing.",
+      "properties": {
+        "section_name": "string",
+        "cta_id": "string | null",
+        "href": "string | null"
+      }
+    },
+    "section_view": {
+      "description": "Sección entra en viewport por primera vez.",
+      "properties": { "section_name": "string", "position": "number" }
+    },
+    "promo_card_click": {
+      "description": "Click en card promocional del grid/banner.",
+      "properties": {
+        "promo_id": "string | null",
+        "title": "string | null",
+        "href": "string | null"
+      }
+    },
+    "testimonial_view": {
+      "description": "Usuario vio un testimonio (throttled).",
+      "properties": { "testimonial_id": "string", "author": "string | null" }
+    },
+    "error": {
+      "description": "Error capturado client-side (opcional, no usado en la app aún).",
+      "properties": { "message": "string", "code": "string | null" }
+    }
+  },
+  "enums": {
+    "FilterCode": [
+      "brand",
+      "gama",
+      "ram",
+      "storage",
+      "usage",
+      "tags",
+      "condition",
+      "device_types",
+      "display_size",
+      "gpu_type",
+      "stock",
+      "price_range",
+      "quota_range"
+    ],
+    "DeviceType": ["mobile", "tablet", "desktop"]
+  },
+  "examples": [
+    {
+      "event_type": "filter_toggle",
+      "client_ts": 1776902400000,
+      "page_url": "/catalogo",
+      "element_id": null,
+      "properties": {
+        "landing": "ucv",
+        "filter_code": "brand",
+        "value": "apple",
+        "active": true,
+        "section": "catalog"
+      }
+    },
+    {
+      "event_type": "gallery_image_change",
+      "client_ts": 1776902430000,
+      "page_url": "/producto/macbook-air-m2",
+      "element_id": null,
+      "properties": {
+        "landing": "home",
+        "product_id": "42",
+        "index": 3,
+        "total": 6,
+        "method": "thumb"
+      }
+    },
+    {
+      "event_type": "cart_continue",
+      "client_ts": 1776902500000,
+      "page_url": "/catalogo",
+      "element_id": null,
+      "properties": {
+        "landing": "home",
+        "item_count": 2,
+        "total_monthly_quota": 417
+      }
+    },
+    {
+      "event_type": "tour_step_view",
+      "client_ts": 1776902600000,
+      "page_url": "/catalogo",
+      "element_id": null,
+      "properties": {
+        "landing": "home",
+        "step": 3,
+        "step_id": "filters",
+        "total": 5
+      }
+    }
+  ]
+}

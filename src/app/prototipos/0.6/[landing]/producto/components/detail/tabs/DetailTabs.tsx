@@ -16,6 +16,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { DetailTabsProps } from '../../../types/detail';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface NavItem {
   id: string;
@@ -24,10 +25,11 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export const DetailTabs: React.FC<DetailTabsProps> = ({ hasLimitations = false, hasDescription = false, hasSimilar = false }) => {
+export const DetailTabs: React.FC<DetailTabsProps> = ({ product, hasLimitations = false, hasDescription = false, hasSimilar = false }) => {
   const [activeSection, setActiveSection] = useState('section-gallery');
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const analytics = useAnalytics();
 
   const navItems: NavItem[] = useMemo(() => [
     { id: 'section-gallery', label: 'Galería', icon: Image },
@@ -83,6 +85,10 @@ export const DetailTabs: React.FC<DetailTabsProps> = ({ hasLimitations = false, 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
+      analytics.trackDetailTabClick({
+        product_id: product?.id || '',
+        section: sectionId,
+      });
       setActiveSection(sectionId);
       isScrollingRef.current = true;
 

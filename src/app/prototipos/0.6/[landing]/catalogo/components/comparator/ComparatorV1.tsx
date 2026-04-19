@@ -10,6 +10,7 @@ import { DesignStyleB } from './DesignStyleB';
 import { DesignStyleC } from './DesignStyleC';
 import { useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 import type { TermMonths } from '../../types/catalog';
 
@@ -37,6 +38,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   const specs = compareSpecs(products);
   const priceDiff = calculatePriceDifference(products);
   const [showBestOption, setShowBestOption] = useState(false);
+  const analytics = useAnalytics();
 
   // Helper to save product to context - usar cuota precalculada del backend
   const selectProductForWizard = useCallback((product: ComparisonProduct) => {
@@ -108,6 +110,12 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
 
   const handleShowBestOption = () => {
     setShowBestOption(true);
+    if (bestProduct) {
+      analytics.trackCompareBestShown({
+        product_id: bestProduct.id,
+        product_count: products.length,
+      });
+    }
   };
 
   const handleContinueWithBest = () => {
@@ -247,7 +255,10 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           <Button
             variant="light"
             isIconOnly
-            onPress={onClearAll}
+            onPress={() => {
+              analytics.trackCompareClear();
+              onClearAll();
+            }}
             className="cursor-pointer text-neutral-600 hover:text-red-500 hidden md:flex"
           >
             <Trash2 className="w-4 h-4" />
@@ -274,7 +285,12 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                   variant="bordered"
                   className="cursor-pointer border-[var(--color-primary)] text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] font-semibold w-full md:w-auto order-2 md:order-3"
                   startContent={<ShoppingCart className="w-4 h-4" />}
-                  onPress={() => bestProduct && onAddToCart?.(bestProduct.id)}
+                  onPress={() => {
+                    if (bestProduct) {
+                      analytics.trackCompareBestAddToCart({ product_id: bestProduct.id });
+                      onAddToCart?.(bestProduct.id);
+                    }
+                  }}
                 >
                   Al carrito
                 </Button>
@@ -282,7 +298,10 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
             )}
             <Button
               variant="bordered"
-              onPress={onClose}
+              onPress={() => {
+                analytics.trackCompareClose();
+                onClose();
+              }}
               className="cursor-pointer border-neutral-200 w-full md:w-auto order-3 md:order-1"
             >
               Cerrar
@@ -292,7 +311,10 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           <Button
             variant="light"
             startContent={<Trash2 className="w-4 h-4" />}
-            onPress={onClearAll}
+            onPress={() => {
+              analytics.trackCompareClear();
+              onClearAll();
+            }}
             className="cursor-pointer text-neutral-600 hover:text-red-500 md:hidden w-full"
           >
             Limpiar comparación

@@ -17,6 +17,7 @@ import {
   type UploadedFileData,
 } from '../../../services/applicationApi';
 import { resetFormStartTracking } from './useFieldTracking';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 interface UseSubmitApplicationOptions {
   /**
    * Callback for showing toast notifications
@@ -94,6 +95,7 @@ export function useSubmitApplication(
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const keepData = typeof window !== 'undefined' && sessionStorage.getItem('keepData') === 'true';
+  const analytics = useAnalytics();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
@@ -216,6 +218,20 @@ export function useSubmitApplication(
       let succeeded = false;
       setIsSubmitting(true);
       setSubmitStage('validating');
+
+      // Emit summary_submit right at the start of the submission flow.
+      // Incluye totales calculables desde los datos ya disponibles.
+      try {
+        const totalMonthly = allProducts.reduce((sum, p) => sum + (p.monthlyPayment || 0), 0);
+        analytics.trackSummarySubmit({
+          product_count: allProducts.length,
+          accessory_count: selectedAccessories.length,
+          insurance_selected: (insuranceIds && insuranceIds.length > 0) || !!insuranceId,
+          total_monthly: totalMonthly || null,
+        });
+      } catch {
+        // Nunca bloquear el submit por analytics
+      }
 
       // Iniciar timeout para mensaje "slow" después de 15 segundos
       slowTimeoutRef.current = setTimeout(() => {

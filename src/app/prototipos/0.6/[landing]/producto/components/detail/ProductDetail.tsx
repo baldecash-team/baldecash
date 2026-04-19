@@ -12,6 +12,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ShoppingCart, Check, Heart, Package, Gift } from 'lucide-react';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
   DeviceType,
   CronogramaVersion,
@@ -109,6 +110,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const router = useRouter();
   const params = useParams();
   const landing = params.landing as string || 'home';
+  const analytics = useAnalytics();
 
   // Color siblings: use family siblings if available, otherwise variant colors
   const hasSiblings = product.colorSiblings && product.colorSiblings.length > 1;
@@ -145,12 +147,25 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     if (hasSiblings) {
       const sibling = product.colorSiblings.find(sib => String(sib.productId) === colorId);
       if (sibling && sibling.slug !== product.slug) {
+        analytics.trackColorSelect({
+          product_id: product.id,
+          color_id: colorId,
+          color_name: sibling.color,
+          navigates_to_sibling: true,
+        });
         router.push(routes.producto(landing, sibling.slug));
         return;
       }
     }
+    const selectedColor = product.colors?.find(c => c.id === colorId);
+    analytics.trackColorSelect({
+      product_id: product.id,
+      color_id: colorId,
+      color_name: selectedColor?.name,
+      navigates_to_sibling: false,
+    });
     setSelectedColorId(colorId);
-  }, [hasSiblings, product.colorSiblings, product.slug, landing, router]);
+  }, [hasSiblings, product.colorSiblings, product.colors, product.slug, product.id, landing, router, analytics]);
 
   // Pricing selection state (from PricingCalculator)
   const [pricingSelection, setPricingSelection] = useState<PricingSelection | null>(null);
@@ -167,8 +182,26 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   // Handle pricing selection changes from PricingCalculator
   const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
-    setPricingSelection(selection);
-  }, []);
+    setPricingSelection((prev) => {
+      if (prev) {
+        if (prev.term !== selection.term) {
+          analytics.trackPricingTermChange({
+            product_id: product.id,
+            from: prev.term,
+            to: selection.term,
+          });
+        }
+        if (prev.initialPercent !== selection.initialPercent) {
+          analytics.trackPricingInitialChange({
+            product_id: product.id,
+            from: prev.initialPercent,
+            to: selection.initialPercent,
+          });
+        }
+      }
+      return selection;
+    });
+  }, [analytics, product.id]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
@@ -330,6 +363,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <ProductGallery
               images={product.images}
               productName={product.displayName}
+              productId={product.id}
               brand={product.brand}
               rating={product.rating}
               reviewCount={product.reviewCount}
@@ -556,6 +590,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           <SpecSheetDownload
             specs={product.specs}
             ports={product.ports}
+            productId={product.id}
             productName={product.displayName}
             productBrand={product.brand}
             productImage={productThumbnail}
@@ -571,6 +606,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             term={36}
             startDate={new Date()}
             version={cronogramaVersion}
+            productId={product.id}
             productName={product.displayName}
             productBrand={product.brand}
             productPrice={product.price}
@@ -590,6 +626,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               products={similarProducts}
               currentQuota={product.lowestQuota}
               landing={landing}
+              sourceProductId={product.id}
               onAddToCart={onSimilarAddToCart}
               cartItems={cartItems}
             />
