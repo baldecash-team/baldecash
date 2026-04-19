@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, ArrowRight, Zap, Star, Crown, type LucideIcon } from 'lucide-react';
 import { financingPlans } from './data/v5Data';
 import { BC } from './lib/constants';
+import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { useReducedMotion } from './shared/hooks/useReducedMotion';
 
 interface FinancingPlansV5Props {
@@ -125,7 +126,8 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             const hasColors = plan.colorOptions && plan.colorOptions.length > 0;
             const selectedColorId = selectedColors[plan.id];
             const selectedColorOption = plan.colorOptions?.find(c => c.id === selectedColorId);
-            const ctaUrl = selectedColorOption?.productUrl ?? plan.colorOptions?.[0]?.productUrl ?? '#';
+            const rawUrl = selectedColorOption?.productUrl ?? plan.colorOptions?.[0]?.productUrl ?? '#';
+            const ctaUrl = rawUrl.startsWith('/') ? `${BASE_PATH}${rawUrl}` : rawUrl;
             const displayImage = selectedColorOption?.image ?? plan.imagen;
 
             return (

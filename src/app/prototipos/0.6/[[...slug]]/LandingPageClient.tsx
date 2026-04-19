@@ -15,6 +15,7 @@ import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
 import { usePreview } from '../context/PreviewContext';
 import { NotFoundContent } from '../components/NotFoundContent';
+import { PreviewBanner } from '../components/PreviewBanner';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
@@ -33,6 +34,7 @@ interface LandingPageClientProps {
 }
 
 interface HeroData {
+  landingId: number;
   heroContent: HeroContent | null;
   socialProof: SocialProofData | null;
   howItWorksData: HowItWorksData | null;
@@ -314,9 +316,14 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     }
   }, [heroData]);
 
-  // MacBook Neo has its own specialized landing component.
-  // If more product-specific landings appear, add them here as explicit slugs.
-  const isProductLanding = slug === 'macbook-neo';
+  // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)
+  const showPreviewBanner = isPreviewMode || isPreviewParam || !!previewKey;
+  // Preview banner height in pixels (py-1 = 4px top + 4px bottom + ~16px text = ~24px)
+  const previewBannerHeight = 24;
+
+  // MacBook Neo (ID 150) has its own specialized landing component.
+  // Uses ID instead of slug because slugs are editable and unreliable.
+  const isProductLanding = heroData?.landingId === 150;
 
   // Product landing: render immediately without waiting for API
   if (isProductLanding) {
@@ -327,7 +334,8 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
           '--color-secondary': heroData?.secondaryColor || '#03DBD0',
         } as React.CSSProperties}
       >
-        <MacBookNeoLanding footerData={mergedFooterData} landing={slug} />
+        {showPreviewBanner && <PreviewBanner landingSlug={slug} />}
+        <MacBookNeoLanding footerData={mergedFooterData} landing={slug} previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0} />
       </div>
     );
   }
@@ -341,11 +349,6 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   if (error || !heroData) {
     return <NotFoundContent homeUrl={routes.home()} />;
   }
-
-  // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)
-  const showPreviewBanner = isPreviewMode || isPreviewParam || !!previewKey;
-  // Preview banner height in pixels (py-1 = 4px top + 4px bottom + ~16px text = ~24px)
-  const previewBannerHeight = 24;
 
   return (
     <div

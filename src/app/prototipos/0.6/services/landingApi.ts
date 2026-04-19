@@ -383,6 +383,7 @@ export async function getLandingLayoutById(landingId: number, previewKey: string
  * Transforma los datos de la API al formato esperado por los componentes
  */
 export function transformLandingData(data: LandingHeroResponse): {
+  landingId: number;
   heroContent: HeroContent | null;
   socialProof: SocialProofData | null;
   howItWorksData: HowItWorksData | null;
@@ -848,6 +849,7 @@ export function transformLandingData(data: LandingHeroResponse): {
   }
 
   return {
+    landingId: data.landing.id,
     heroContent,
     socialProof,
     howItWorksData,

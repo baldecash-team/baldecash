@@ -12,6 +12,8 @@ import { getLandingHeroDataById, transformLandingData } from '../../services/lan
 import { usePreviewListener } from '../../hooks/usePreviewListener';
 import { usePreview } from '../../context/PreviewContext';
 import { NotFoundContent } from '../../components/NotFoundContent';
+import { PreviewBanner } from '../../components/PreviewBanner';
+import MacBookNeoLanding from '../../components/product-landing/MacBookNeoLanding';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../../types/hero';
@@ -29,6 +31,7 @@ interface PreviewPageClientProps {
 }
 
 interface HeroData {
+  landingId: number;
   heroContent: HeroContent | null;
   socialProof: SocialProofData | null;
   howItWorksData: HowItWorksData | null;
@@ -309,6 +312,23 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
 
   if (error || !heroData || !isValidId) {
     return <NotFoundContent homeUrl={routes.home()} />;
+  }
+
+  // MacBook Neo (ID 150) has its own specialized landing component.
+  const isProductLanding = heroData.landingId === 150;
+
+  if (isProductLanding) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData.primaryColor || '#4654CD',
+          '--color-secondary': heroData.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        <PreviewBanner landingSlug={landingSlug} landingId={heroData.landingId} />
+        <MacBookNeoLanding footerData={mergedFooterData} landing={landingSlug} previewBannerOffset={24} />
+      </div>
+    );
   }
 
   const showPreviewBanner = isPreviewMode || hasPreviewKey;

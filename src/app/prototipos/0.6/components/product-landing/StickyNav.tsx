@@ -5,16 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, User } from 'lucide-react';
 import { navLinks } from './data/v5Data';
 import { BC } from './lib/constants';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 interface StickyNavV5Props {
   videoEnded: boolean;
   landing?: string;
+  previewBannerOffset?: number;
 }
 
 const LOGO_WHITE = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
 const LOGO_DARK = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
-export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo' }: StickyNavV5Props) {
+export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo', previewBannerOffset = 0 }: StickyNavV5Props) {
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('hero');
@@ -91,6 +93,8 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
     history.replaceState(null, '', `#${sectionId}`);
   }, []);
 
+  const heroUrl = routes.landingHome(landing);
+
   const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
@@ -123,17 +127,17 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
 
         <nav
           className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
-          style={{ top: 0 }}
+          style={{ top: previewBannerOffset }}
         >
           <div className="px-4">
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
-              <button
-                onClick={scrollToTop}
-                className="flex items-center gap-3 bg-transparent border-0 cursor-pointer p-0"
+              <a
+                href={heroUrl}
+                className="flex items-center gap-3 p-0"
               >
                 <img src={LOGO_DARK} alt="BaldeCash" className="h-8 object-contain" />
-              </button>
+              </a>
 
               {/* Hamburger */}
               <button
@@ -227,7 +231,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
       <div
         style={{
           position: 'fixed',
-          top: 0,
+          top: previewBannerOffset,
           left: 0,
           right: 0,
           zIndex: 9998,
@@ -241,26 +245,23 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
           pointerEvents: videoEnded && !scrolledPastHero ? 'auto' : 'none',
         }}
       >
-        <button
-          onClick={scrollToTop}
+        <a
+          href={heroUrl}
           style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
             padding: 0,
             display: 'flex',
             alignItems: 'center',
           }}
         >
           <img src={BC.logo} alt="BaldeCash" style={{ height: 44, objectFit: 'contain' }} />
-        </button>
+        </a>
       </div>
 
       {/* Sticky nav desktop */}
       <nav
         style={{
           position: 'fixed',
-          top: 0,
+          top: previewBannerOffset,
           left: 0,
           right: 0,
           zIndex: 9999,
@@ -288,12 +289,9 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
           }}
         >
           {/* Logo */}
-          <button
-            onClick={scrollToTop}
+          <a
+            href={heroUrl}
             style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
               padding: 0,
               display: 'flex',
               alignItems: 'center',
@@ -301,7 +299,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
             }}
           >
             <img src={LOGO_WHITE} alt="BaldeCash" style={{ height: 34, objectFit: 'contain' }} />
-          </button>
+          </a>
 
           {/* Section links */}
           <div

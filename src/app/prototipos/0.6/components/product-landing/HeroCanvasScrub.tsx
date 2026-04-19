@@ -29,6 +29,9 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
   // mounted: gate para no renderizar el <video> antes de saber si es mobile
   const [mounted, setMounted] = useState(false);
 
+  // Track whether the video has started playing (prevents content flash before playback)
+  const [videoStarted, setVideoStarted] = useState(false);
+
   // Detect mobile en cliente + marcar como mounted
   useEffect(() => {
     const mobile = window.innerWidth < 768;
@@ -53,13 +56,24 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
     if (!video) return;
 
     const handleEnded = () => { setVideoEnded(true); onVideoEnd?.(); };
-
     video.addEventListener('ended', handleEnded);
 
-    video.play().catch(() => {
-      setVideoEnded(true);
-      onVideoEnd?.();
-    });
+    const tryPlay = () => {
+      video.play().then(() => {
+        setVideoStarted(true);
+      }).catch(() => {
+        // Autoplay blocked (e.g. tab not focused) — retry when tab regains focus
+        const onVisible = () => {
+          if (document.visibilityState === 'visible') {
+            document.removeEventListener('visibilitychange', onVisible);
+            tryPlay();
+          }
+        };
+        document.addEventListener('visibilitychange', onVisible);
+      });
+    };
+
+    tryPlay();
 
     return () => {
       video.removeEventListener('ended', handleEnded);
@@ -81,7 +95,9 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
     }, FADE_OUT_MS);
   }, [onVideoReplay, isReplaying]);
 
-  const showContent = (videoEnded || skipVideo) && !isReplaying;
+  // Show content only after video ends (or is skipped). On desktop with video,
+  // hide content until the video has actually started playing to prevent flash.
+  const showContent = (videoEnded || skipVideo) && !isReplaying && (skipVideo || videoStarted || videoEnded);
 
   const staggerStyle = (delayMs: number): React.CSSProperties => ({
     opacity: showContent ? 1 : 0,

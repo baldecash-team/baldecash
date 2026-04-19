@@ -50,9 +50,10 @@ interface MacBookNeoLandingProps {
   footerData?: FooterData | null;
   heroContent?: HeroContent | null;
   landing?: string;
+  previewBannerOffset?: number;
 }
 
-export default function MacBookNeoLanding({ footerData, heroContent, landing = 'baldecash-macbook-neo' }: MacBookNeoLandingProps) {
+export default function MacBookNeoLanding({ footerData, heroContent, landing = 'baldecash-macbook-neo', previewBannerOffset = 0 }: MacBookNeoLandingProps) {
   useLenis();
   const { tier } = useDeviceCapabilities();
   const [videoEnded, setVideoEnded] = useState(tier === 'base');
@@ -77,7 +78,7 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
       <link rel="preconnect" href="https://baldecash.s3.amazonaws.com" />
       <link rel="dns-prefetch" href="https://baldecash.s3.amazonaws.com" />
 
-      <StickyNav videoEnded={videoEnded} landing={landing} />
+      <StickyNav videoEnded={videoEnded} landing={landing} previewBannerOffset={previewBannerOffset} />
 
       {/* S1: Hero — loads immediately */}
       <HeroCanvasScrub tier={tier} onVideoEnd={() => setVideoEnded(true)} onVideoReplay={() => setVideoEnded(false)} />
