@@ -176,6 +176,22 @@ interface ApiSimilarProduct {
   differentiators: string[];
   slug: string;
   specs: null;
+  promotion?: {
+    discount_value: number;
+    template: {
+      code: string;
+      bannerText: string;
+      bannerStyle: string;
+      borderColor: string | null;
+      bannerBgColor: string | null;
+      bannerTextColor: string;
+      bannerIcon: string | null;
+      ctaText: string;
+      ctaStyle: string;
+      showSpecs: boolean;
+      showLinks: boolean;
+    } | null;
+  } | null;
 }
 
 interface ApiLimitation {
@@ -364,6 +380,7 @@ function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct 
     differentiators: apiProduct.differentiators,
     slug: apiProduct.slug,
     specs: undefined,
+    promotion: apiProduct.promotion ?? undefined,
   };
 }
 

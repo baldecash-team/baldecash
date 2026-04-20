@@ -8,9 +8,9 @@
  */
 
 import { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
-import { DniModal, hasSavedDni } from '../components/hero/DniModal';
+import { DniModal, hasSavedDni, type WhitelistValidationResult } from '../components/hero/DniModal';
 import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
 import { usePreview } from '../context/PreviewContext';
@@ -25,6 +25,7 @@ import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '../types/landingConf
 
 // Product landing pages (imported directly for instant render)
 import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
+import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 
 interface LandingPageClientProps {
   slug: string;
@@ -61,6 +62,7 @@ interface HeroData {
 // Wrapper component to handle Suspense for useSearchParams
 function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LANDING_CONFIG }: LandingPageClientProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [heroData, setHeroData] = useState<HeroData | null>(initialData ?? null);
   const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
@@ -281,6 +283,11 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     }
   }, [isLoading, heroData]);
 
+  // VIP Countdown overlay - driven by landing config preset (features.vip_countdown)
+  const isVipLanding = !!landingConfig.features.vip_countdown;
+  const hasWhitelist = landingConfig.features.has_dni_whitelist;
+  const [countdownActive, setCountdownActive] = useState(isVipLanding);
+
   // DNI modal state - driven by landing config preset (features.has_dni_modal / dni_required)
   const showDniFeature = landingConfig.features.has_dni_modal;
   const [isDniModalOpen, setIsDniModalOpen] = useState(false);
@@ -289,16 +296,29 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   const dniRequired = landingConfig.features.dni_required;
 
   useEffect(() => {
-    if (showDniFeature && !isLoading && heroData) {
-      if (dniRequired || !hasSavedDni(slug)) {
-        setIsDniModalOpen(true);
+    // VIP landing: don't auto-open DNI modal, it's triggered by the countdown overlay button
+    if (isVipLanding) return;
+
+    if (showDniFeature && !isLoading) {
+      // Whitelist without countdown: open modal even without heroData (403 expected)
+      if (heroData || hasWhitelist) {
+        if (dniRequired || !hasSavedDni(slug)) {
+          setIsDniModalOpen(true);
+        }
       }
     }
-  }, [showDniFeature, slug, isLoading, heroData, dniRequired]);
+  }, [showDniFeature, slug, isLoading, heroData, dniRequired, isVipLanding, hasWhitelist]);
 
   const handleDniModalClose = useCallback(() => {
     setIsDniModalOpen(false);
   }, []);
+
+  const handleWhitelistValidated = useCallback((_result: WhitelistValidationResult) => {
+    setIsDniModalOpen(false);
+    // Name is already saved in localStorage by DniModal (saveVipName).
+    // Redirect to catalog where the welcome overlay will show.
+    router.push(routes.catalogo(slug));
+  }, [router, slug]);
 
   // Set CSS variables on :root so they're available to portals (modals, drawers)
   useEffect(() => {
@@ -340,24 +360,29 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     );
   }
 
-  // Loading state
-  if (isLoading) {
+  // For whitelist landings, heroData is null (server got 403) — that's expected.
+  // The user sees the countdown overlay or DNI modal, then gets redirected to catalog.
+  const whitelistPending = hasWhitelist && !heroData;
+
+  // Loading state (skip skeleton when countdown or whitelist modal is covering the page)
+  if (isLoading && !countdownActive && !whitelistPending) {
     return <HomeSkeleton />;
   }
 
   // Error state - usar componente 404 con branding
-  if (error || !heroData) {
+  if ((error || !heroData) && !countdownActive && !whitelistPending) {
     return <NotFoundContent homeUrl={routes.home()} />;
   }
 
   return (
     <div
       style={{
-        '--color-primary': heroData.primaryColor || '#4654CD',
-        '--color-secondary': heroData.secondaryColor || '#03DBD0',
+        '--color-primary': heroData?.primaryColor || '#4654CD',
+        '--color-secondary': heroData?.secondaryColor || '#03DBD0',
       } as React.CSSProperties}
     >
-      <HeroSection
+      <div style={countdownActive ? { display: 'none' } : undefined}>
+      {heroData && <HeroSection
         heroContent={mergedHeroContent}
         socialProof={mergedSocialProof}
         howItWorksData={mergedHowItWorks}
@@ -381,7 +406,9 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
         previewKey={previewKey}
         primaryColor={heroData.primaryColor}
-      />
+      />}
+
+      </div>
 
       {/* Modal DNI - Feature personalizado para landings configuradas */}
       {showDniFeature && (
@@ -390,6 +417,17 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
           isOpen={isDniModalOpen}
           onClose={handleDniModalClose}
           allowSkip={!dniRequired}
+          validateWhitelist={landingConfig.features.has_dni_whitelist}
+          onWhitelistValidated={hasWhitelist ? handleWhitelistValidated : undefined}
+        />
+      )}
+
+      {/* VIP Countdown overlay - blocks page until countdown expires */}
+      {isVipLanding && (
+        <VipCountdownOverlay
+          onOpenDniModal={() => setIsDniModalOpen(true)}
+          endDate={landingConfig.features.vip_countdown}
+          onExpired={() => setCountdownActive(false)}
         />
       )}
     </div>

@@ -847,6 +847,8 @@ export interface CatalogLayoutProps {
   gridRef?: React.RefObject<HTMLDivElement | null>;
   // Catalog banner configuration from layout
   catalogBanner?: Record<string, unknown> | null;
+  // VIP countdown date (ISO string) — shows VIP banner when set and not expired
+  vipCountdownDate?: string | null;
 }
 
 export interface BrandFilterProps {

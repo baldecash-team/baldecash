@@ -122,7 +122,15 @@ function StepContent() {
   const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
-  const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+
+  // Redirect to /solicitar if no product selected (e.g. direct URL access)
+  useEffect(() => {
+    if (!isProductHydrated) return;
+    if (!selectedProduct && cartProducts.length === 0) {
+      router.replace(routes.solicitar(landing));
+    }
+  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router]);
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {

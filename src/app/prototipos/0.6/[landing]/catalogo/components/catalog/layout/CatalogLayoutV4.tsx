@@ -14,6 +14,7 @@ import { TagsFilter } from '../filters/TagsFilter';
 import { SortDropdown } from '../sorting/SortDropdown';
 import { QuickUsageCards } from '../QuickUsageCards';
 import CatalogBanner from '../CatalogBanner';
+import VipCountdownBanner from '../VipCountdownBanner';
 import {
   BrandFilterV1,
   BrandFilterV2,
@@ -58,6 +59,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   totalProducts,
   gridRef,
   catalogBanner,
+  vipCountdownDate,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -581,8 +583,15 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </Card>
         </div>
 
-        {/* Banner Promocional del Catálogo */}
-        {catalogBanner && (
+        {/* VIP Countdown Banner */}
+        {vipCountdownDate && (
+          <div className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
+            <VipCountdownBanner endDate={vipCountdownDate} />
+          </div>
+        )}
+
+        {/* Banner Promocional del Catálogo — solo si NO hay VIP countdown (espera a que cargue config) */}
+        {vipCountdownDate !== null && !vipCountdownDate && catalogBanner && (
           <div className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
             <CatalogBanner
               desktopImageUrl={catalogBanner.desktop_image_url as string}

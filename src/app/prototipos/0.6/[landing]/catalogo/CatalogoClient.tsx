@@ -62,6 +62,7 @@ import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import type { LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 
@@ -303,6 +304,14 @@ function CatalogoContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const previewBannerOffset = previewKey ? 24 : 0;
+
+  // VIP countdown banner - fetch landing config for vip_countdown date
+  const [vipCountdownDate, setVipCountdownDate] = useState<string | null>(null);
+  useEffect(() => {
+    fetchLandingConfig(landing).then((cfg) => {
+      setVipCountdownDate(cfg.features.vip_countdown || '');
+    });
+  }, [landing]);
 
   // Blip Chat control
   const blipChat = useBlipChat();
@@ -1612,6 +1621,7 @@ function CatalogoContent() {
         onSearchClear={handleSearchClear}
         gridRef={gridRef}
         catalogBanner={catalogBanner}
+        vipCountdownDate={vipCountdownDate}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
         {searchCorrected && !isProductsLoading && (

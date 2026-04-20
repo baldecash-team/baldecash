@@ -3,8 +3,18 @@
  * Servicio para consumir configuración de formularios dinámicos desde el backend
  */
 
+import { getVipToken } from '../components/hero/DniModal';
+
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+
+function appendVipToken(url: string, slug: string): string {
+  if (typeof window === 'undefined') return url;
+  const token = getVipToken(slug);
+  if (!token) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}vip_token=${encodeURIComponent(token)}`;
+}
 
 // ============================================================================
 // TIPOS - Mapean la respuesta del endpoint /wizard
@@ -209,15 +219,16 @@ export interface WizardConfig {
  */
 export async function getWizardConfig(slug: string, previewKey?: string | null): Promise<WizardConfig | null> {
   try {
-    const url = previewKey
+    let url = previewKey
       ? `${API_BASE_URL}/public/landing/${slug}/wizard?preview_key=${encodeURIComponent(previewKey)}`
       : `${API_BASE_URL}/public/landing/${slug}/wizard`;
+    url = appendVipToken(url, slug);
     const response = await fetch(url, {
       ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);
@@ -247,7 +258,7 @@ export async function getWizardConfigById(landingId: number, previewKey: string 
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);

@@ -273,6 +273,8 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
           const imageUrls = getImageUrls(product.images, product.thumbnail);
           const currentImage = imageUrls[state.selectedImageIndex] || product.thumbnail;
 
+          const discountValue = product.promotion?.discount_value ?? 0;
+
           return (
             <motion.div
               key={`${product.id}-${index}`}
@@ -282,7 +284,9 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
             >
-              <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white">
+              <Card
+                className="h-full shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white"
+              >
                 <CardBody className="p-0 flex flex-col">
                   {/* Image Gallery - Estilo catálogo */}
                   <div className="relative bg-gradient-to-b from-neutral-50 to-white p-4">
@@ -394,7 +398,21 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                         ? 'bg-emerald-50'
                         : 'bg-[rgba(var(--color-primary-rgb),0.05)]'
                     }`}>
-                      <p className="text-xs text-neutral-500 mb-1">Cuota mensual</p>
+                      {/* Precio anterior tachado + badge descuento (igual que catálogo) */}
+                      <div className="h-5 flex items-center justify-center gap-1.5 mb-1">
+                        {discountValue > 0 ? (
+                          <>
+                            <span className="text-xs text-neutral-400 line-through">
+                              S/{formatMoneyNoDecimals(Math.round(product.monthlyQuota / (1 - discountValue / 100)))}
+                            </span>
+                            <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
+                              -{Math.round(discountValue)}%
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-neutral-500">Cuota mensual</span>
+                        )}
+                      </div>
                       <div className="flex items-baseline justify-center gap-1">
                         <span className={`text-3xl font-black ${
                           isCheaper ? 'text-emerald-600' : 'text-[var(--color-primary)]'

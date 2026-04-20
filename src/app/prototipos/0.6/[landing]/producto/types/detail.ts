@@ -220,6 +220,23 @@ export interface SimilarProductImage {
   variantId?: number;  // Para filtrar imágenes por color seleccionado
 }
 
+export interface SimilarProductPromotion {
+  discount_value: number;
+  template: {
+    code: string;
+    bannerText: string;
+    bannerStyle: 'top_bar' | 'ribbon_corner';
+    borderColor: string | null;
+    bannerBgColor: string | null;
+    bannerTextColor: string;
+    bannerIcon: string | null;
+    ctaText: string;
+    ctaStyle: 'golden' | 'primary';
+    showSpecs: boolean;
+    showLinks: boolean;
+  } | null;
+}
+
 export interface SimilarProduct {
   id: string;
   name: string;  // Nombre corto (ej: "Dell 14"")
@@ -233,6 +250,7 @@ export interface SimilarProduct {
   matchScore: number;
   differentiators: string[];
   slug: string;
+  promotion?: SimilarProductPromotion | null;
   // Specs para mostrar en card estilo catálogo
   specs?: {
     processor: string;

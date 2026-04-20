@@ -18,6 +18,10 @@ export interface LandingConfigFeatures {
   dni_required: boolean;
   /** Whether to show the "Comisión de plataformas digitales" row in cronograma. */
   show_platform_commission: boolean;
+  /** ISO date for VIP countdown end (e.g. "2026-04-25T05:00:00.000Z"). Empty string = no countdown. */
+  vip_countdown: string;
+  /** Whether to validate DNI against a whitelist before accepting. */
+  has_dni_whitelist: boolean;
 }
 
 /**
@@ -54,5 +58,7 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     has_dni_modal: false,
     dni_required: false,
     show_platform_commission: false,
+    vip_countdown: '',
+    has_dni_whitelist: false,
   },
 };
