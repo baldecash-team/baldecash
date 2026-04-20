@@ -149,6 +149,8 @@ export interface ProductDetail {
   stock: number;
   rating: number;
   reviewCount: number;
+  tea?: number;
+  tcea?: number;
 }
 
 // ============================================
@@ -189,13 +191,16 @@ export interface InitialPaymentOption {
   monthlyQuota: number;
   originalQuota?: number;
   commissionAmount?: number | null;
+  tea?: number | null;
+  tcea?: number | null;
 }
 
 /** Plan de pago con opciones precalculadas para cada % de inicial */
 export interface PaymentPlan {
   term: number;
-  tea?: number | null;   // TEA applied for this term (from backend 3-level pricing system)
-  tcea?: number | null;  // TCEA calculated by backend (includes commissions + insurance)
+  termMonths?: number | null; // month equivalent for semanal/quincenal (e.g. term=48 → 12)
+  tea?: number | null;
+  tcea?: number | null;
   options: InitialPaymentOption[];
 }
 
@@ -215,6 +220,23 @@ export interface SimilarProductImage {
   variantId?: number;  // Para filtrar imágenes por color seleccionado
 }
 
+export interface SimilarProductPromotion {
+  discount_value: number;
+  template: {
+    code: string;
+    bannerText: string;
+    bannerStyle: 'top_bar' | 'ribbon_corner';
+    borderColor: string | null;
+    bannerBgColor: string | null;
+    bannerTextColor: string;
+    bannerIcon: string | null;
+    ctaText: string;
+    ctaStyle: 'golden' | 'primary';
+    showSpecs: boolean;
+    showLinks: boolean;
+  } | null;
+}
+
 export interface SimilarProduct {
   id: string;
   name: string;  // Nombre corto (ej: "Dell 14"")
@@ -228,6 +250,7 @@ export interface SimilarProduct {
   matchScore: number;
   differentiators: string[];
   slug: string;
+  promotion?: SimilarProductPromotion | null;
   // Specs para mostrar en card estilo catálogo
   specs?: {
     processor: string;
@@ -295,11 +318,16 @@ export interface PricingCalculatorProps {
   defaultTerm?: number;
   defaultInitialPercent?: number;
   productPrice?: number;
+  paymentFrequencies?: string[]; // Available frequencies (e.g. ['quincenal', 'semanal'])
+  landing?: string;              // Landing slug — needed to re-fetch plans on frequency change
+  productSlug?: string;          // Product slug — needed to re-fetch plans on frequency change
+  onPlansChange?: (plans: PaymentPlan[]) => void; // Called when plans update after frequency switch
 }
 
 export interface SimilarProductsProps {
   products: SimilarProduct[];
   currentQuota: number;
+  landing?: string;
 }
 
 export interface ProductLimitationsProps {
@@ -323,11 +351,14 @@ export interface CronogramaProps {
   // Sincronización con PricingCalculator
   selectedTerm?: number;
   selectedInitialPercent?: InitialPaymentPercentage;
+  paymentFrequency?: string;
   // Datos financieros del backend (opcional, si no se pasan usa valores por defecto)
   financialData?: {
     tea: number;
     tcea: number;
   };
+  /** Whether to show the "Comisión de plataformas digitales" row. From landing config. */
+  showPlatformCommission?: boolean;
 }
 
 export interface PortsDisplayProps {

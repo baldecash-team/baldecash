@@ -13,6 +13,8 @@ import { FilterChips } from '../filters/FilterChips';
 import { TagsFilter } from '../filters/TagsFilter';
 import { SortDropdown } from '../sorting/SortDropdown';
 import { QuickUsageCards } from '../QuickUsageCards';
+import CatalogBanner from '../CatalogBanner';
+import VipCountdownBanner from '../VipCountdownBanner';
 import {
   BrandFilterV1,
   BrandFilterV2,
@@ -56,6 +58,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   isApiFiltersLoading,
   totalProducts,
   gridRef,
+  catalogBanner,
+  vipCountdownDate,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -579,6 +583,23 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </Card>
         </div>
 
+        {/* VIP Countdown Banner */}
+        {vipCountdownDate && (
+          <div className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
+            <VipCountdownBanner endDate={vipCountdownDate} />
+          </div>
+        )}
+
+        {/* Banner Promocional del Catálogo — solo si NO hay VIP countdown (espera a que cargue config) */}
+        {vipCountdownDate !== null && !vipCountdownDate && catalogBanner && (
+          <div className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
+            <CatalogBanner
+              desktopImageUrl={catalogBanner.desktop_image_url as string}
+              mobileImageUrl={catalogBanner.mobile_image_url as string}
+            />
+          </div>
+        )}
+
         {/* Content with Sidebar and Products */}
         <div className="flex items-start">
           {/* Floating Filter Card - Sticky — top offset follows the dynamic
@@ -615,8 +636,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   )}
                 </div>
 
-                {/* Device Type Filter - hide if empty */}
-                {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length === 0) && (
+                {/* Device Type Filter - hide if 1 or fewer options */}
+                {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length <= 1) && (
                 <FilterSection title="Tipo de equipo" defaultExpanded={true}>
                   <div className="grid grid-cols-3 gap-2">
                     {dynamicDeviceTypeOptions === null ? (
@@ -683,8 +704,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   showCounts={config.showFilterCounts}
                 />
 
-                {/* Brand Filter - hide if empty */}
-                {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length === 0) && (
+                {/* Brand Filter - hide if 1 or fewer options */}
+                {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
                 <FilterSection title="Marca" defaultExpanded={true}>
                   {renderBrandFilter()}
                 </FilterSection>
@@ -848,8 +869,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </ModalHeader>
 
           <ModalBody className="px-4 py-6 overflow-y-auto">
-            {/* Device Type Filter - hide if empty */}
-            {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length === 0) && (
+            {/* Device Type Filter - hide if 1 or fewer options */}
+            {!(Array.isArray(dynamicDeviceTypeOptions) && dynamicDeviceTypeOptions.length <= 1) && (
             <FilterSection title="Tipo de equipo" defaultExpanded={true}>
               <div className="grid grid-cols-3 gap-2">
                 {dynamicDeviceTypeOptions === null ? (
@@ -915,8 +936,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               showCounts={config.showFilterCounts}
             />
 
-            {/* Brand Filter - hide if empty */}
-            {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length === 0) && (
+            {/* Brand Filter - hide if 1 or fewer options */}
+            {!(Array.isArray(dynamicBrandOptions) && dynamicBrandOptions.length <= 1) && (
             <FilterSection title="Marca" defaultExpanded={true}>
               {renderBrandFilter()}
             </FilterSection>

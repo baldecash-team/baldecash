@@ -76,6 +76,11 @@ interface ApplicationStatusData {
     monthly_price: number;
   } | null;
 
+  insurances?: Array<{
+    name: string;
+    monthly_price: number;
+  }> | null;
+
   coupon?: {
     code: string;
     discount_amount: number;
@@ -163,13 +168,21 @@ function buildReceivedData(
     monthlyQuota: acc.monthly_quota,
   }));
 
-  // Mapear seguro desde API
-  const insurance = applicationData?.insurance
-    ? {
+  // Mapear seguro(s) desde API — soporta array (insurances) y singular (insurance)
+  const insurancesArray = applicationData?.insurances?.map((ins) => ({
+    name: ins.name,
+    monthlyPrice: ins.monthly_price,
+  }));
+
+  const insuranceSingle = applicationData?.insurance
+    ? [{
         name: applicationData.insurance.name,
         monthlyPrice: applicationData.insurance.monthly_price,
-      }
+      }]
     : undefined;
+
+  const allInsurances = insurancesArray?.length ? insurancesArray : insuranceSingle;
+  const insurance = allInsurances?.[0];
 
   // Mapear cupón desde API
   const coupon = applicationData?.coupon
@@ -193,6 +206,7 @@ function buildReceivedData(
     initialPayment: applicationData?.initial_payment || 0,
     accessories,
     insurance,
+    insurances: allInsurances,
     coupon,
     totalMonthlyQuota: applicationData?.total_monthly_payment || 0,
     notificationChannels: ['whatsapp', 'email'],

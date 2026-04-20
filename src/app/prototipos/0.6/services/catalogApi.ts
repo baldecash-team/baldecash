@@ -40,6 +40,7 @@ export interface ApiPricingHook {
   term_months: number;
   initial_percent: number;
   tea: number;
+  payment_frequency?: string; // 'mensual' | 'semanal' | 'quincenal'
 }
 
 export interface ApiProductPricing {
@@ -50,6 +51,8 @@ export interface ApiProductPricing {
   hook: ApiPricingHook;
   available_terms: number[];
   available_initials: number[];
+  payment_frequencies?: string[]; // e.g. ['quincenal', 'semanal'] for celulares
+  payment_hooks?: Record<string, number>; // e.g. {semanal: 15, quincenal: 26}
 }
 
 export interface ApiBrand {
@@ -117,6 +120,31 @@ export interface ApiCatalogProduct {
   images?: string[];
   colors?: ApiProductColor[];
   color_siblings?: ApiColorSibling[];
+  promotion?: ApiProductPromotion | null;
+}
+
+export interface ApiPromotionTemplate {
+  code: string;
+  banner_text: string;
+  banner_style: string;
+  border_color: string | null;
+  banner_bg_color: string | null;
+  banner_text_color: string;
+  banner_icon: string | null;
+  cta_text: string;
+  cta_style: string;
+  show_specs: boolean;
+  show_links: boolean;
+}
+
+export interface ApiProductPromotion {
+  id: number;
+  name: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  valid_until: string | null;
+  template: ApiPromotionTemplate | null;
 }
 
 export interface SearchSuggestion {
@@ -555,6 +583,10 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     quotaWeekly,
     originalQuotaMonthly: hook.original_monthly_price ?? undefined,
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
+    paymentFrequency: hook.payment_frequency || undefined,
+    paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
+    paymentHooks: pricing.payment_hooks ?? undefined,
+    hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
     stock: 'available' as StockStatus, // Default - not in API response
@@ -566,6 +598,27 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     specs: productSpecs,
     rawSpecs: specs || undefined,
     createdAt: new Date().toISOString(),
+    promotion: apiProduct.promotion ? {
+      id: apiProduct.promotion.id,
+      name: apiProduct.promotion.name,
+      code: apiProduct.promotion.code,
+      discountType: apiProduct.promotion.discount_type,
+      discountValue: apiProduct.promotion.discount_value,
+      validUntil: apiProduct.promotion.valid_until ?? undefined,
+      template: apiProduct.promotion.template ? {
+        code: apiProduct.promotion.template.code,
+        bannerText: apiProduct.promotion.template.banner_text,
+        bannerStyle: apiProduct.promotion.template.banner_style as 'top_bar' | 'ribbon_corner',
+        borderColor: apiProduct.promotion.template.border_color,
+        bannerBgColor: apiProduct.promotion.template.banner_bg_color,
+        bannerTextColor: apiProduct.promotion.template.banner_text_color,
+        bannerIcon: apiProduct.promotion.template.banner_icon,
+        ctaText: apiProduct.promotion.template.cta_text,
+        ctaStyle: apiProduct.promotion.template.cta_style as 'golden' | 'primary',
+        showSpecs: apiProduct.promotion.template.show_specs,
+        showLinks: apiProduct.promotion.template.show_links,
+      } : null,
+    } : null,
   };
 }
 
@@ -587,8 +640,22 @@ export function mapApiCatalogResponse(response: ApiCatalogResponse): {
   // Automatic search correction (fuzzy search)
   searchCorrected: SearchCorrected | null;
 } {
+  const allProducts = response.items.map(mapApiProductToCatalogProduct);
+
+  // Deduplicate color siblings: keep only the first representative per family.
+  // Each product that has color siblings already contains all siblings in its
+  // `colors` array, so subsequent siblings in the list are redundant cards.
+  const seenSiblingIds = new Set<string>();
+  const products = allProducts.filter(p => {
+    if (seenSiblingIds.has(p.id)) return false;
+    if (p.colors && p.colors.length > 0) {
+      p.colors.forEach(c => { if (c.productId) seenSiblingIds.add(c.productId); });
+    }
+    return true;
+  });
+
   return {
-    products: response.items.map(mapApiProductToCatalogProduct),
+    products,
     total: response.total,
     page: response.page,
     pageSize: response.page_size,

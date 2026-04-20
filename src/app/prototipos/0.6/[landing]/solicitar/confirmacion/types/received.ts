@@ -65,8 +65,9 @@ export interface ReceivedData {
   // Accesorios
   accessories?: AccessoryItem[];
 
-  // Seguro
+  // Seguro(s)
   insurance?: InsuranceData;
+  insurances?: InsuranceData[];
 
   // Cupón
   coupon?: CouponData;

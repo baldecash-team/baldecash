@@ -15,26 +15,93 @@
  */
 
 import React from 'react';
+import { useParams } from 'next/navigation';
 import { WizardStepId } from '../../../types/solicitar';
 import { WizardMotivational } from '../../../../../services/wizardApi';
+import { getVipToken } from '../../../../../components/hero/DniModal';
 
 interface MotivationalCardProps {
   currentStep: WizardStepId;
   /** Contenido motivacional desde API (100% desde BD) */
   motivational?: WizardMotivational | null;
+  /** Nombre del usuario (from form data) para personalización VIP */
+  firstName?: string;
 }
 
-export const MotivationalCard: React.FC<MotivationalCardProps> = ({ motivational }) => {
+export const MotivationalCard: React.FC<MotivationalCardProps> = ({ motivational, firstName }) => {
+  const params = useParams();
+  const landing = (params.landing as string) || 'home';
+  const isVip = !!getVipToken(landing);
+
   // Si no hay contenido motivacional desde la API, no renderizar
   if (!motivational) return null;
 
-  // Procesar el título para convertir .highlight a color primario
+  // Procesar el título para convertir .highlight a color primario (or white for VIP)
   const processTitle = (html: string) => {
+    const highlightColor = isVip ? '#E5A823' : 'var(--color-primary)';
     return html.replace(
       /<span class="highlight">(.*?)<\/span>/g,
-      '<span class="text-[var(--color-primary)]">$1</span>'
+      `<span style="color: ${highlightColor}">$1</span>`
     );
   };
+
+  // Build VIP greeting prefix
+  const vipName = firstName
+    ? firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase()
+    : null;
+
+  if (isVip) {
+    return (
+      <div
+        className="rounded-xl overflow-hidden shadow-sm"
+        style={{
+          borderTop: '8px solid #3ECDC6',
+        }}
+      >
+        <div
+          className="p-8 lg:p-10"
+          style={{
+            background: `
+              radial-gradient(circle at 50% 30%, rgba(255,255,255,0.12) 0%, transparent 60%),
+              radial-gradient(circle, rgba(255,255,255,0.12) 1.5px, transparent 1.5px)
+            `,
+            backgroundSize: '100% 100%, 18px 18px',
+            backgroundColor: '#4654CD',
+          }}
+        >
+          {/* Contenido de texto */}
+          <div className={motivational.illustration ? 'mb-6' : ''}>
+            {vipName && (
+              <p className="text-2xl lg:text-3xl font-bold text-white mb-2 leading-tight font-['Baloo_2',_sans-serif]" style={{ color: '#E5A823' }}>
+                Hola, {vipName}
+              </p>
+            )}
+            <h2
+              className="text-2xl lg:text-3xl font-bold text-white leading-tight font-['Baloo_2',_sans-serif]"
+              dangerouslySetInnerHTML={{ __html: processTitle(motivational.title || '') }}
+            />
+            {motivational.subtitle && (
+              <p className="text-white/70 text-base italic mt-4">
+                {motivational.subtitle}
+              </p>
+            )}
+          </div>
+
+          {/* Ilustración */}
+          {motivational.illustration && (
+            <div className="flex justify-center mt-8">
+              <img
+                src={motivational.illustration}
+                alt="Ilustración motivacional"
+                className="w-full max-w-[260px] h-auto object-contain"
+                loading="lazy"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     // sticky positioning is handled by the parent WizardLayout wrapper so

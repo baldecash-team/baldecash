@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';
-import { WizardStep, evaluateFieldVisibility } from '../../../../../services/wizardApi';
+import { WizardStep, evaluateFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
 
@@ -80,15 +80,14 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     return values;
   }, [formData]);
 
-  // Map each prefill target field to its source document_number field code.
-  // e.g., { "supporter_full_name": "supporter_document_number", "first_name": "document_number" }
+  // Map each prefill target field to the code of the field that triggers the lookup.
+  // Works for both legacy (prefill_fields Record) and new (fields_to_fill array) shapes.
   const prefillFieldToDocField = useMemo(() => {
     const map: Record<string, string> = {};
     for (const field of step.fields) {
-      if (field.type === 'document_number' && field.prefill_config?.prefill_fields) {
-        for (const code of Object.keys(field.prefill_config.prefill_fields)) {
-          map[code] = field.code;
-        }
+      const targets = getPrefillTargetFieldCodes(field.prefill_config);
+      for (const code of targets) {
+        map[code] = field.code;
       }
     }
     return map;
@@ -155,7 +154,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
 
   // Fields come already ordered by display_order from the API
   return (
-    <div className="grid grid-cols-12 gap-4">
+    <div className="grid grid-cols-12 gap-x-4 gap-y-1">
       {step.fields.map((field) => {
         // Hide wrapper for invisible fields so grid gap doesn't create empty space
         if (!fieldVisibility[field.code]) return null;

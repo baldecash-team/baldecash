@@ -47,6 +47,7 @@ import {
   getStepSlug,
   validateStep as validateStepFields,
   evaluateFieldVisibility,
+  getPrefillTargetFieldCodes,
 } from '../../../services/wizardApi';
 
 // Event tracking
@@ -54,6 +55,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 
 // Route builder
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 
 
 // Helper function to get Lucide icon by name
@@ -125,7 +127,15 @@ function StepContent() {
   const { shouldShowComplementos, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   // Get applied coupon and term validation from product context
-  const { appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+
+  // Redirect to /solicitar if no product selected (e.g. direct URL access)
+  useEffect(() => {
+    if (!isProductHydrated) return;
+    if (!selectedProduct && cartProducts.length === 0) {
+      router.replace(routes.solicitar(landing));
+    }
+  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router]);
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
@@ -200,8 +210,14 @@ function StepContent() {
   }, [formData]);
 
   // Override motivational when check-person finds data (personalized greeting)
+  // For VIP landings, the MotivationalCard handles the "Hola, [Nombre]" greeting,
+  // so we skip this override to keep the original BD text.
+  const isVipLanding = !!(() => { try { return localStorage.getItem(`baldecash-vip-token-${landing}`); } catch { return null; } })();
+
   const stepMotivational = useMemo((): WizardMotivational | null => {
     if (!step) return null;
+    if (isVipLanding) return step.motivational;
+
     const prefillStatus = formData['_prefill_status_document_number']?.value as string | undefined;
     if (prefillStatus !== 'found') return step.motivational;
 
@@ -219,7 +235,7 @@ function StepContent() {
       subtitle: 'Ya casi terminamos este paso, sigue adelante.',
       illustration: step.motivational?.illustration || '',
     };
-  }, [step, formData]);
+  }, [step, formData, isVipLanding]);
 
   // Track form_abandon on beforeunload (when user closes/reloads mid-form)
   useEffect(() => {
@@ -369,16 +385,13 @@ function StepContent() {
     return displayValue;
   };
 
-  // Identify prefill target fields (e.g., supporter_full_name is a prefill target of supporter_document_number)
-  // These are hidden fields auto-filled by check-person API and should never appear in the summary
+  // Identify prefill target fields across both legacy and new prefill_config shapes.
   const prefillTargetFields = useMemo(() => {
     const targets = new Set<string>();
     for (const s of regularSteps) {
       for (const f of s.fields) {
-        if (f.type === 'document_number' && f.prefill_config?.prefill_fields) {
-          for (const code of Object.keys(f.prefill_config.prefill_fields)) {
-            targets.add(code);
-          }
+        for (const code of getPrefillTargetFieldCodes(f.prefill_config)) {
+          targets.add(code);
         }
       }
     }
@@ -632,6 +645,7 @@ function StepContent() {
         hideNavbar={landing === 'zona-gamer'}
         navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
         motivational={step.motivational}
+        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
       >
         <div className="space-y-4">
           {/* Dynamic sections from regular API steps */}
@@ -789,6 +803,7 @@ function StepContent() {
         hideNavbar={landing === 'zona-gamer'}
         navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
         motivational={stepMotivational}
+        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
       >
         <DynamicWizardStep
           step={step}

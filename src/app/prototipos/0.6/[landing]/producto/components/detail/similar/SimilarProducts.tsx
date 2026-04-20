@@ -9,7 +9,7 @@
  * v0.6.2: Alturas fijas para consistencia visual, removido selector de colores
  */
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Card, CardBody, Button, Modal, ModalContent, ModalHeader, ModalBody } from '@nextui-org/react';
 import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Eye, ArrowRight, ShoppingCart, X } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
@@ -35,9 +35,43 @@ interface SimilarProductsExtendedProps extends SimilarProductsProps {
   cartItems?: string[];
 }
 
+/** Título con line-clamp-2 y tooltip CSS cuando el texto está truncado */
+function TruncatedTitle({ text, onClick }: { text: string; onClick?: () => void }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const check = useCallback(() => {
+    const el = ref.current;
+    if (el) setIsTruncated(el.scrollHeight > el.clientHeight);
+  }, []);
+  useEffect(() => {
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [text, check]);
+
+  return (
+    <div className="relative group/title min-h-[3.5rem] mb-3">
+      <h3
+        ref={ref}
+        className="font-bold text-neutral-800 text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
+        onClick={onClick}
+      >
+        {text}
+      </h3>
+      {isTruncated && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-3 py-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg max-w-sm whitespace-normal opacity-0 invisible group-hover/title:opacity-100 group-hover/title:visible transition-opacity duration-200 z-50 pointer-events-none">
+          {text}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-neutral-800" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
   products,
   currentQuota,
+  landing: landingProp,
   onAddToCart,
   cartItems = [],
 }) => {
@@ -115,11 +149,8 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
   };
 
   const handleProductClick = (slug: string) => {
-    // Navigate to product detail page
     if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      const landingMatch = currentPath.match(/\/prototipos\/0\.6\/([^/]+)/);
-      const landing = landingMatch ? landingMatch[1] : 'home';
+      const landing = landingProp || 'home';
       window.location.href = routes.producto(landing, slug);
     }
   };
@@ -127,9 +158,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
   const handleAddToCart = (product: SimilarProduct) => {
     // Save product to localStorage before navigating
     if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname;
-      const landingMatch = currentPath.match(/\/prototipos\/0\.6\/([^/]+)/);
-      const landing = landingMatch ? landingMatch[1] : 'home';
+      const landing = landingProp || 'home';
 
       // Build SelectedProduct from SimilarProduct
       // Note: SimilarProduct doesn't have price, so we estimate it from monthlyQuota
@@ -244,6 +273,8 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
           const imageUrls = getImageUrls(product.images, product.thumbnail);
           const currentImage = imageUrls[state.selectedImageIndex] || product.thumbnail;
 
+          const discountValue = product.promotion?.discount_value ?? 0;
+
           return (
             <motion.div
               key={`${product.id}-${index}`}
@@ -253,7 +284,9 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
             >
-              <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white">
+              <Card
+                className="h-full shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white"
+              >
                 <CardBody className="p-0 flex flex-col">
                   {/* Image Gallery - Estilo catálogo */}
                   <div className="relative bg-gradient-to-b from-neutral-50 to-white p-4">
@@ -336,10 +369,11 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       {product.brand}
                     </p>
 
-                    {/* Title - Altura fija para 2 líneas (igual que catálogo) */}
-                    <h3 className="font-bold text-neutral-800 text-lg line-clamp-2 mb-3 min-h-[3.5rem]">
-                      {product.displayName}
-                    </h3>
+                    {/* Title - Altura fija para 2 líneas, tooltip si truncado */}
+                    <TruncatedTitle
+                      text={product.displayName}
+                      onClick={() => handleProductClick(product.slug)}
+                    />
 
                     {/* Differentiator Tags - Vertical list, height based on max across all cards */}
                     {maxDiffCount > 0 && (
@@ -364,7 +398,21 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                         ? 'bg-emerald-50'
                         : 'bg-[rgba(var(--color-primary-rgb),0.05)]'
                     }`}>
-                      <p className="text-xs text-neutral-500 mb-1">Cuota mensual</p>
+                      {/* Precio anterior tachado + badge descuento (igual que catálogo) */}
+                      <div className="h-5 flex items-center justify-center gap-1.5 mb-1">
+                        {discountValue > 0 ? (
+                          <>
+                            <span className="text-xs text-neutral-400 line-through">
+                              S/{formatMoneyNoDecimals(Math.round(product.monthlyQuota / (1 - discountValue / 100)))}
+                            </span>
+                            <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
+                              -{Math.round(discountValue)}%
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-neutral-500">Cuota mensual</span>
+                        )}
+                      </div>
                       <div className="flex items-baseline justify-center gap-1">
                         <span className={`text-3xl font-black ${
                           isCheaper ? 'text-emerald-600' : 'text-[var(--color-primary)]'

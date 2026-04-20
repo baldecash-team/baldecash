@@ -19,6 +19,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   headline,
   subheadline,
   minQuota,
+  quotaSuffix = '/mes',
   imageSrc,
   imagePositionX = 50,
   imagePositionY = 50,
@@ -145,9 +146,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       className="relative overflow-hidden"
       style={{
         // Fill the viewport minus the total fixed header height (preview + promo + navbar).
-        // `clamp` keeps a sensible minimum on very short viewports (landscape phones)
-        // without forcing an oversize banner on tall ones (tablets, 4K).
-        height: 'clamp(520px, calc(100vh - var(--header-total-height, 4rem)), 900px)',
+        // min 520px for landscape phones, no max cap.
+        height: 'max(520px, calc(100vh - var(--header-total-height, 6.5rem)))',
       }}
     >
       {/* Background Image - next/image with priority for LCP optimization */}
@@ -202,7 +202,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
           <div className="inline-flex items-baseline gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 sm:px-6 sm:py-4 mb-6 sm:mb-8">
             <span className="text-white/70 text-sm sm:text-lg">Desde</span>
             <span className="text-3xl sm:text-4xl md:text-5xl font-bold text-white">S/{formatMoney(minQuota)}</span>
-            <span className="text-white/70 text-sm sm:text-lg">/mes</span>
+            <span className="text-white/70 text-sm sm:text-lg">{quotaSuffix}</span>
           </div>
 
           {/* CTAs */}

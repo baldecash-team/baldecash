@@ -24,8 +24,22 @@ import type {
   CtaQuickLink,
 } from '../types/hero';
 
+import { getVipToken } from '../components/hero/DniModal';
+
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+
+/**
+ * Append vip_token query param to a URL if one exists for the slug.
+ * Only runs client-side (localStorage); on server, returns url unchanged.
+ */
+function appendVipToken(url: string, slug: string): string {
+  if (typeof window === 'undefined') return url;
+  const token = getVipToken(slug);
+  if (!token) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}vip_token=${encodeURIComponent(token)}`;
+}
 
 // Slugs conocidos para pre-generar como páginas estáticas (fallback si el API no responde)
 const KNOWN_LANDING_SLUGS = [
@@ -198,7 +212,7 @@ export async function getLandingBySlug(slug: string): Promise<LandingResponse | 
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);
@@ -226,6 +240,7 @@ export async function getLandingHeroData(slug: string, preview: boolean = false,
     } else if (preview) {
       url += '?preview=true';
     }
+    url = appendVipToken(url, slug);
 
     const response = await fetch(url, {
       cache: isPreview ? 'no-store' : undefined, // No cache en preview para ver cambios inmediatos
@@ -233,7 +248,7 @@ export async function getLandingHeroData(slug: string, preview: boolean = false,
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);
@@ -263,7 +278,7 @@ export async function getLandingHeroDataById(landingId: number, previewKey: stri
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);
@@ -284,6 +299,7 @@ export interface LandingLayoutResponse {
   footer: HomeComponentResponse | null;
   promo_banner: HomeComponentResponse | null;
   catalog_secondary_navbar: HomeComponentResponse | null;
+  catalog_banner: HomeComponentResponse | null;
   company: {
     name?: string;
     legal_name?: string;
@@ -327,15 +343,16 @@ export interface LandingLayoutResponse {
  */
 export async function getLandingLayout(slug: string, previewKey?: string | null): Promise<LandingLayoutResponse | null> {
   try {
-    const url = previewKey
+    let url = previewKey
       ? `${API_BASE_URL}/public/landing/${slug}/layout?preview_key=${encodeURIComponent(previewKey)}`
       : `${API_BASE_URL}/public/landing/${slug}/layout`;
+    url = appendVipToken(url, slug);
     const response = await fetch(url, {
       ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);
@@ -365,7 +382,7 @@ export async function getLandingLayoutById(landingId: number, previewKey: string
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);
@@ -382,6 +399,7 @@ export async function getLandingLayoutById(landingId: number, previewKey: string
  * Transforma los datos de la API al formato esperado por los componentes
  */
 export function transformLandingData(data: LandingHeroResponse): {
+  landingId: number;
   heroContent: HeroContent | null;
   socialProof: SocialProofData | null;
   howItWorksData: HowItWorksData | null;
@@ -392,6 +410,7 @@ export function transformLandingData(data: LandingHeroResponse): {
   megamenuItems: MegaMenuItemData[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
+  testimonialsSubtitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;
@@ -442,7 +461,7 @@ export function transformLandingData(data: LandingHeroResponse): {
     has_megamenu: item.has_megamenu,
     badge_text: item.badge_text,
     badge_color: item.badge_color,
-    megamenu_items: item.megamenu_items, // Pasar megamenu_items individuales
+    megamenu_items: item.megamenu_items,
     is_visible: item.is_visible,
   }));
 
@@ -509,6 +528,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       headline: data.landing.hero_title || '',
       subheadline: data.landing.hero_subtitle || '',
       minQuota: (heroConfig.minQuota ?? heroConfig.min_quota ?? 0) as number,
+      quotaSuffix: (heroConfig.quotaSuffix ?? heroConfig.quota_suffix ?? '/mes') as string,
       primaryCta: {
         text: data.landing.hero_cta_text || ctaPrimary?.text || '',
         href: fullHeroCtaUrl,
@@ -679,9 +699,12 @@ export function transformLandingData(data: LandingHeroResponse): {
       }))
     : [];
 
-  // Extraer título de testimonios desde el componente (solo si visible)
+  // Extraer título y subtítulo de testimonios desde el config del componente
   const testimonialsTitle = isTestimonialsVisible
-    ? testimonialsComponent?.component_name || undefined
+    ? (testimonialsConfig.title as string) || undefined
+    : undefined;
+  const rawTestimonialsSubtitle = isTestimonialsVisible
+    ? (testimonialsConfig.subtitle_template as string) || undefined
     : undefined;
 
   // Extraer datos de CTA (null si el componente no existe)
@@ -842,6 +865,7 @@ export function transformLandingData(data: LandingHeroResponse): {
   }
 
   return {
+    landingId: data.landing.id,
     heroContent,
     socialProof,
     howItWorksData,
@@ -852,6 +876,8 @@ export function transformLandingData(data: LandingHeroResponse): {
     megamenuItems,
     testimonials,
     testimonialsTitle,
+    testimonialsSubtitle: rawTestimonialsSubtitle
+      ?.replace('{studentCount}', (socialProof?.studentCount || 0).toLocaleString('es-PE')),
     activeSections,
     hasCta,
     logoUrl: data.landing.logo_url || undefined,
@@ -872,6 +898,7 @@ export function transformLandingData(data: LandingHeroResponse): {
  * @param preview - Si true, devuelve datos aunque la landing esté en draft (para admin preview)
  */
 export async function fetchHeroData(slug: string, preview: boolean = false, previewKey?: string | null): Promise<{
+  landingId: number;
   heroContent: HeroContent | null;
   socialProof: SocialProofData | null;
   howItWorksData: HowItWorksData | null;
@@ -882,6 +909,7 @@ export async function fetchHeroData(slug: string, preview: boolean = false, prev
   megamenuItems: MegaMenuItemData[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
+  testimonialsSubtitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;
@@ -965,7 +993,8 @@ export async function getLandingAccessories(
     }
     const params = queryParams.toString() ? `?${queryParams.toString()}` : '';
 
-    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/accessories${params}`, {
+    const accessoriesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/accessories${params}`, slug);
+    const response = await fetch(accessoriesUrl, {
       ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
@@ -1053,7 +1082,8 @@ export async function getLandingInsurances(
     if (previewKey) {
       params.set('preview_key', previewKey);
     }
-    const response = await fetch(`${API_BASE_URL}/public/landing/${slug}/insurances?${params}`, {
+    const insurancesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/insurances?${params}`, slug);
+    const response = await fetch(insurancesUrl, {
       ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
@@ -1169,8 +1199,12 @@ export async function getSolicitarConfig(
     const params = previewKey
       ? `?preview_key=${encodeURIComponent(previewKey)}`
       : '';
-    const response = await fetch(
+    const solicitarUrl = appendVipToken(
       `${API_BASE_URL}/public/landing/${slug}/solicitar-config${params}`,
+      slug,
+    );
+    const response = await fetch(
+      solicitarUrl,
       {
         next: { revalidate: 60 },
       }

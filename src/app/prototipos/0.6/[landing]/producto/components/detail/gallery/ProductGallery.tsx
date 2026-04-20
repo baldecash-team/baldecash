@@ -8,9 +8,9 @@
  * Las imágenes se FILTRAN por el color seleccionado (via variantId)
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ZoomIn, ZoomOut, Star, X, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Star, X, ChevronLeft, ChevronRight, Maximize2, Play } from 'lucide-react';
 import { ProductGalleryProps } from '../../../types/detail';
 import { ColorSelector } from '../color-selector/ColorSelector';
 
@@ -40,6 +40,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   const [selectedImage, setSelectedImage] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const hasMouseMoved = useRef(false);
 
   // Lightbox state
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -47,6 +48,11 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   const [lightboxPosition, setLightboxPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // Helper: detect video items by type or file extension
+  const isVideo = useCallback((item: { type: string; url: string }) => {
+    return item.type === 'video' || /\.(mp4|webm|ogg)(\?|$)/i.test(item.url);
+  }, []);
 
   // Extraer el variant_id numérico del selectedColorId (formato "variant-{id}")
   const selectedVariantId = useMemo(() => {
@@ -71,6 +77,10 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   }, [selectedColorId]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!hasMouseMoved.current) {
+      hasMouseMoved.current = true;
+      setIsZoomed(true);
+    }
     if (!isZoomed) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -79,7 +89,7 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    e.currentTarget.src = 'https://via.placeholder.com/600x600?text=Imagen+no+disponible';
+    e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' fill='%23f5f5f5'%3E%3Crect width='600' height='600'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23a3a3a3' font-family='sans-serif' font-size='16'%3EImagen no disponible%3C/text%3E%3C/svg%3E";
   };
 
   // Lightbox handlers
@@ -223,76 +233,99 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
         </div>
       )}
 
-      {/* Main Image — swipe to change on touch devices (framer-motion drag).
+      {/* Main Image/Video — swipe to change on touch devices (framer-motion drag).
           Click/tap still opens the lightbox when drag distance is negligible. */}
-      <motion.div
-        className="relative aspect-square cursor-zoom-in group overflow-hidden touch-pan-y"
-        onClick={openLightbox}
-        onMouseEnter={() => setIsZoomed(true)}
-        onMouseLeave={() => setIsZoomed(false)}
-        onMouseMove={handleMouseMove}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.2}
-        onDragEnd={(_, info) => {
-          const threshold = 50;
-          if (info.offset.x < -threshold && selectedImage < filteredImages.length - 1) {
-            setSelectedImage((i) => i + 1);
-          } else if (info.offset.x > threshold && selectedImage > 0) {
-            setSelectedImage((i) => i - 1);
-          }
-        }}
-      >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={selectedImage}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="relative w-full h-full pointer-events-none"
-          >
-            <img
-              src={filteredImages[selectedImage]?.url || undefined}
-              alt={filteredImages[selectedImage]?.alt || productName}
-              className="w-full h-full object-contain p-8 transition-transform duration-200 pointer-events-none"
-              style={
-                isZoomed
-                  ? {
-                      transform: 'scale(2)',
-                      transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
-                    }
-                  : {}
-              }
-              loading="lazy"
-              onError={handleImageError}
-              draggable={false}
-            />
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Zoom Indicator */}
-        {!isZoomed && (
-          <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Maximize2 className="w-4 h-4 text-neutral-600" />
-            <span className="text-xs font-medium text-neutral-700">Click para ampliar</span>
+      {filteredImages[selectedImage] && isVideo(filteredImages[selectedImage]) ? (
+        /* Video player — no lightbox, no zoom */
+        <div className="relative aspect-video bg-black">
+          <video
+            key={filteredImages[selectedImage].id}
+            src={filteredImages[selectedImage].url}
+            controls
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            className="w-full h-full object-contain"
+            poster={filteredImages.find(img => !isVideo(img))?.url}
+          />
+          {/* Image Counter */}
+          <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 pointer-events-none">
+            <span className="text-xs font-medium text-white">
+              {selectedImage + 1} / {filteredImages.length}
+            </span>
           </div>
-        )}
-
-        {/* Imagen referencial */}
-        <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center">
-          <span className="text-[10px] uppercase tracking-wider text-white/80 leading-none">
-            Imagen referencial
-          </span>
         </div>
+      ) : (
+        <motion.div
+          className="relative aspect-square cursor-zoom-in group overflow-hidden touch-pan-y"
+          onClick={openLightbox}
+          onMouseEnter={() => { if (hasMouseMoved.current) setIsZoomed(true); }}
+          onMouseLeave={() => setIsZoomed(false)}
+          onMouseMove={handleMouseMove}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={(_, info) => {
+            const threshold = 50;
+            if (info.offset.x < -threshold && selectedImage < filteredImages.length - 1) {
+              setSelectedImage((i) => i + 1);
+            } else if (info.offset.x > threshold && selectedImage > 0) {
+              setSelectedImage((i) => i - 1);
+            }
+          }}
+        >
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedImage}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="relative w-full h-full pointer-events-none"
+            >
+              <img
+                src={filteredImages[selectedImage]?.url || undefined}
+                alt={filteredImages[selectedImage]?.alt || productName}
+                className="w-full h-full object-contain p-8 transition-transform duration-200 pointer-events-none"
+                style={
+                  isZoomed
+                    ? {
+                        transform: 'scale(2)',
+                        transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`,
+                      }
+                    : {}
+                }
+                loading="lazy"
+                onError={handleImageError}
+                draggable={false}
+              />
+            </motion.div>
+          </AnimatePresence>
 
-        {/* Image Counter */}
-        <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5">
-          <span className="text-xs font-medium text-white">
-            {selectedImage + 1} / {filteredImages.length}
-          </span>
-        </div>
-      </motion.div>
+          {/* Zoom Indicator */}
+          {!isZoomed && (
+            <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-lg px-3 py-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Maximize2 className="w-4 h-4 text-neutral-600" />
+              <span className="text-xs font-medium text-neutral-700">Click para ampliar</span>
+            </div>
+          )}
+
+          {/* Imagen referencial */}
+          <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center">
+            <span className="text-[10px] uppercase tracking-wider text-white/80 leading-none">
+              Imagen referencial
+            </span>
+          </div>
+
+          {/* Image Counter */}
+          <div className="absolute bottom-4 right-4 bg-black/60 backdrop-blur-sm rounded-lg px-3 py-1.5">
+            <span className="text-xs font-medium text-white">
+              {selectedImage + 1} / {filteredImages.length}
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Thumbnails */}
       <div className="px-4 py-3 border-t border-neutral-100">
@@ -309,13 +342,20 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <img
-                src={image.url || undefined}
-                alt={image.alt}
-                className="w-full h-full object-contain p-1.5 bg-white"
-                loading="lazy"
-                onError={handleImageError}
-              />
+              {isVideo(image) ? (
+                /* Video thumbnail: dark bg + play icon */
+                <div className="w-full h-full flex items-center justify-center bg-neutral-900">
+                  <Play className="w-5 h-5 text-white fill-white" />
+                </div>
+              ) : (
+                <img
+                  src={image.url || undefined}
+                  alt={image.alt}
+                  className="w-full h-full object-contain p-1.5 bg-white"
+                  loading="lazy"
+                  onError={handleImageError}
+                />
+              )}
             </motion.div>
           ))}
         </div>
@@ -341,28 +381,30 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
               <X className="w-6 h-6 text-white" />
             </button>
 
-            {/* Zoom controls */}
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-white/10 rounded-full px-3 py-2">
-              <button
-                onClick={handleZoomOut}
-                disabled={lightboxZoom <= 1}
-                className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-                aria-label="Reducir zoom"
-              >
-                <ZoomOut className="w-5 h-5 text-white" />
-              </button>
-              <span className="text-white text-sm font-medium min-w-[3rem] text-center">
-                {Math.round(lightboxZoom * 100)}%
-              </span>
-              <button
-                onClick={handleZoomIn}
-                disabled={lightboxZoom >= 3}
-                className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
-                aria-label="Aumentar zoom"
-              >
-                <ZoomIn className="w-5 h-5 text-white" />
-              </button>
-            </div>
+            {/* Zoom controls — hide for videos */}
+            {!(filteredImages[selectedImage] && isVideo(filteredImages[selectedImage])) && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-white/10 rounded-full px-3 py-2">
+                <button
+                  onClick={handleZoomOut}
+                  disabled={lightboxZoom <= 1}
+                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                  aria-label="Reducir zoom"
+                >
+                  <ZoomOut className="w-5 h-5 text-white" />
+                </button>
+                <span className="text-white text-sm font-medium min-w-[3rem] text-center">
+                  {Math.round(lightboxZoom * 100)}%
+                </span>
+                <button
+                  onClick={handleZoomIn}
+                  disabled={lightboxZoom >= 3}
+                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                  aria-label="Aumentar zoom"
+                >
+                  <ZoomIn className="w-5 h-5 text-white" />
+                </button>
+              </div>
+            )}
 
             {/* Navigation arrows */}
             {filteredImages.length > 1 && (
@@ -384,36 +426,54 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
               </>
             )}
 
-            {/* Main image */}
-            <motion.div
-              className="relative max-w-[90vw] max-h-[80vh] overflow-hidden"
-              style={{
-                cursor: lightboxZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in',
-              }}
-              onMouseDown={handleDragStart}
-              onMouseMove={handleDragMove}
-              onMouseUp={handleDragEnd}
-              onMouseLeave={handleDragEnd}
-              onTouchStart={handleDragStart}
-              onTouchMove={handleDragMove}
-              onTouchEnd={handleDragEnd}
-              onDoubleClick={handleDoubleClick}
-            >
-              <motion.img
-                key={selectedImage}
-                src={filteredImages[selectedImage]?.url || undefined}
-                alt={filteredImages[selectedImage]?.alt || productName}
-                className="max-w-full max-h-[80vh] object-contain select-none"
-                style={{
-                  transform: `scale(${lightboxZoom}) translate(${lightboxPosition.x / lightboxZoom}px, ${lightboxPosition.y / lightboxZoom}px)`,
-                }}
+            {/* Main image or video */}
+            {filteredImages[selectedImage] && isVideo(filteredImages[selectedImage]) ? (
+              <motion.div
+                className="relative max-w-[90vw] max-h-[80vh]"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.2 }}
-                draggable={false}
-                onError={handleImageError}
-              />
-            </motion.div>
+              >
+                <video
+                  key={selectedImage}
+                  src={filteredImages[selectedImage].url}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="max-w-full max-h-[80vh] object-contain"
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                className="relative max-w-[90vw] max-h-[80vh] overflow-hidden"
+                style={{
+                  cursor: lightboxZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in',
+                }}
+                onMouseDown={handleDragStart}
+                onMouseMove={handleDragMove}
+                onMouseUp={handleDragEnd}
+                onMouseLeave={handleDragEnd}
+                onTouchStart={handleDragStart}
+                onTouchMove={handleDragMove}
+                onTouchEnd={handleDragEnd}
+                onDoubleClick={handleDoubleClick}
+              >
+                <motion.img
+                  key={selectedImage}
+                  src={filteredImages[selectedImage]?.url || undefined}
+                  alt={filteredImages[selectedImage]?.alt || productName}
+                  className="max-w-full max-h-[80vh] object-contain select-none"
+                  style={{
+                    transform: `scale(${lightboxZoom}) translate(${lightboxPosition.x / lightboxZoom}px, ${lightboxPosition.y / lightboxZoom}px)`,
+                  }}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                  draggable={false}
+                  onError={handleImageError}
+                />
+              </motion.div>
+            )}
 
             {/* Image counter */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/10 rounded-full px-4 py-2">
@@ -439,12 +499,18 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
                         : 'border-transparent opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img
-                      src={image.url || undefined}
-                      alt={image.alt}
-                      className="w-full h-full object-contain bg-white/10"
-                      onError={handleImageError}
-                    />
+                    {isVideo(image) ? (
+                      <div className="w-full h-full flex items-center justify-center bg-white/10">
+                        <Play className="w-4 h-4 text-white fill-white" />
+                      </div>
+                    ) : (
+                      <img
+                        src={image.url || undefined}
+                        alt={image.alt}
+                        className="w-full h-full object-contain bg-white/10"
+                        onError={handleImageError}
+                      />
+                    )}
                   </button>
                 ))}
               </div>

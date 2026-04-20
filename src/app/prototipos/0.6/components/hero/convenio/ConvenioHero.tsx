@@ -89,9 +89,8 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
     <div
       className="relative overflow-hidden"
       style={{
-        // Match HeroBanner: clamp keeps a sensible minimum on short landscape
-        // viewports and avoids oversized banners on very tall screens.
-        height: 'clamp(520px, calc(100svh - var(--header-total-height, 4rem)), 900px)',
+        // Fill viewport minus header. min 520px for landscape phones, no max cap.
+        height: 'max(520px, calc(100svh - var(--header-total-height, 6.5rem)))',
       }}
     >
       {/* Background image - next/image with priority for LCP optimization */}
@@ -145,7 +144,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
               <p className="text-white/60 text-xs sm:text-sm mb-1">Cuotas desde</p>
               <p className="text-3xl sm:text-4xl font-bold text-white font-['Baloo_2',_sans-serif]">
                 S/{formatMoney(heroContent.minQuota)}
-                <span className="text-base sm:text-lg font-normal text-white/70">/mes</span>
+                <span className="text-base sm:text-lg font-normal text-white/70">{heroContent.quotaSuffix || '/mes'}</span>
               </p>
             </div>
           )}

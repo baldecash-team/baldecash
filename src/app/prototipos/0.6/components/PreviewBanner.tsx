@@ -43,7 +43,7 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
   if (!shouldShow) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white text-xs text-center py-1 font-medium flex items-center justify-center gap-2">
+    <div className="fixed top-0 left-0 right-0 z-[10000] bg-amber-500 text-white text-xs text-center py-1 font-medium flex items-center justify-center gap-2">
       <Eye className="w-3.5 h-3.5" />
       <span>
         Modo Preview (Landing: {displayLandingName})

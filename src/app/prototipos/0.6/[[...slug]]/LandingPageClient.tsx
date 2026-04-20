@@ -8,29 +8,35 @@
  */
 
 import { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
-import { DniModal, hasSavedDni } from '../components/hero/DniModal';
+import { DniModal, hasSavedDni, type WhitelistValidationResult } from '../components/hero/DniModal';
 import { ZonaGamerLanding } from '../components/zona-gamer/ZonaGamerLanding';
 import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
 import { usePreview } from '../context/PreviewContext';
 import { NotFoundContent } from '../components/NotFoundContent';
+import { PreviewBanner } from '../components/PreviewBanner';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
+import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '../types/landingConfig';
 
-// Slugs que activan el modal de DNI al cargar la landing
-const DNI_MODAL_SLUGS = ['liderman-baldecash'];
+// Product landing pages (imported directly for instant render)
+import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
+import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 
 interface LandingPageClientProps {
   slug: string;
   initialData?: HeroData | null;
+  /** Resolved landing config preset (layout/features flags). Server-side fetched. */
+  landingConfig?: LandingConfig;
 }
 
 interface HeroData {
+  landingId: number;
   heroContent: HeroContent | null;
   socialProof: SocialProofData | null;
   howItWorksData: HowItWorksData | null;
@@ -41,6 +47,7 @@ interface HeroData {
   megamenuItems: { label: string; href: string; icon: string; description: string }[];
   testimonials: Testimonial[];
   testimonialsTitle?: string;
+  testimonialsSubtitle?: string;
   activeSections: string[];
   hasCta: boolean;
   logoUrl?: string;
@@ -54,13 +61,10 @@ interface HeroData {
 }
 
 // Wrapper component to handle Suspense for useSearchParams
-function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
-  // Zona Gamer: landing 100% estática, sin fetch a la API
-  if (slug === 'zona-gamer') {
-    return <ZonaGamerLanding />;
-  }
+function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LANDING_CONFIG }: LandingPageClientProps) {
 
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [heroData, setHeroData] = useState<HeroData | null>(initialData ?? null);
   const [isLoading, setIsLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
@@ -281,22 +285,47 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
     }
   }, [isLoading, heroData]);
 
-  // DNI modal state - solo para slugs configurados y si no hay DNI guardado
-  const showDniFeature = DNI_MODAL_SLUGS.includes(slug);
+  // VIP Countdown overlay - driven by landing config preset (features.vip_countdown)
+  const isVipLanding = !!landingConfig.features.vip_countdown;
+  const hasWhitelist = landingConfig.features.has_dni_whitelist;
+  const [countdownActive, setCountdownActive] = useState(isVipLanding);
+  const [vipExpired, setVipExpired] = useState(() => {
+    if (!isVipLanding) return false;
+    const end = new Date(landingConfig.features.vip_countdown);
+    return new Date().getTime() >= end.getTime();
+  });
+
+  // DNI modal state - driven by landing config preset (features.has_dni_modal / dni_required)
+  const showDniFeature = landingConfig.features.has_dni_modal;
   const [isDniModalOpen, setIsDniModalOpen] = useState(false);
 
+  // DNI obligatorio (siempre aparece el modal, sin opción de cerrar sin DNI)
+  const dniRequired = landingConfig.features.dni_required;
+
   useEffect(() => {
-    if (showDniFeature && !isLoading && heroData) {
-      // Verificar si ya tiene DNI guardado (solo en cliente)
-      if (!hasSavedDni(slug)) {
-        setIsDniModalOpen(true);
+    // VIP landing: don't auto-open DNI modal, it's triggered by the countdown overlay button
+    if (isVipLanding) return;
+
+    if (showDniFeature && !isLoading) {
+      // Whitelist without countdown: open modal even without heroData (403 expected)
+      if (heroData || hasWhitelist) {
+        if (dniRequired || !hasSavedDni(slug)) {
+          setIsDniModalOpen(true);
+        }
       }
     }
-  }, [showDniFeature, slug, isLoading, heroData]);
+  }, [showDniFeature, slug, isLoading, heroData, dniRequired, isVipLanding, hasWhitelist]);
 
   const handleDniModalClose = useCallback(() => {
     setIsDniModalOpen(false);
   }, []);
+
+  const handleWhitelistValidated = useCallback((_result: WhitelistValidationResult) => {
+    setIsDniModalOpen(false);
+    // Name is already saved in localStorage by DniModal (saveVipName).
+    // Redirect to catalog where the welcome overlay will show.
+    router.push(routes.catalogo(slug));
+  }, [router, slug]);
 
   // Set CSS variables on :root so they're available to portals (modals, drawers)
   useEffect(() => {
@@ -314,72 +343,127 @@ function LandingPageClientInner({ slug, initialData }: LandingPageClientProps) {
     }
   }, [heroData]);
 
-  // Loading state
-  if (isLoading) {
-    return <HomeSkeleton />;
-  }
-
-  // Error state - usar componente 404 con branding
-  if (error || !heroData) {
-    return <NotFoundContent homeUrl={routes.home()} />;
-  }
-
   // Show preview banner if in preview mode (postMessage, query param, or sessionStorage)
   const showPreviewBanner = isPreviewMode || isPreviewParam || !!previewKey;
   // Preview banner height in pixels (py-1 = 4px top + 4px bottom + ~16px text = ~24px)
   const previewBannerHeight = 24;
 
+  // Zona Gamer: landing 100% estática, sin fetch a la API
+  if (slug === 'zona-gamer') {
+    return <ZonaGamerLanding />;
+  }
+
+  // MacBook Neo (ID 150) has its own specialized landing component.
+  // Uses ID instead of slug because slugs are editable and unreliable.
+  const isProductLanding = heroData?.landingId === 150;
+
+  // Product landing: render immediately without waiting for API
+  if (isProductLanding) {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData?.primaryColor || '#4654CD',
+          '--color-secondary': heroData?.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        {showPreviewBanner && <PreviewBanner landingSlug={slug} />}
+        <MacBookNeoLanding footerData={mergedFooterData} landing={slug} previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0} />
+      </div>
+    );
+  }
+
+  // For whitelist landings, heroData is null (server got 403) — that's expected.
+  // The user sees the countdown overlay or DNI modal, then gets redirected to catalog.
+  const whitelistPending = hasWhitelist && !heroData;
+
+  // Loading state (skip skeleton when countdown or whitelist modal is covering the page)
+  if (isLoading && !countdownActive && !whitelistPending) {
+    return <HomeSkeleton />;
+  }
+
+  // Error state - usar componente 404 con branding
+  if ((error || !heroData) && !countdownActive && !whitelistPending) {
+    return <NotFoundContent homeUrl={routes.home()} />;
+  }
+
   return (
     <div
       style={{
-        '--color-primary': heroData.primaryColor || '#4654CD',
-        '--color-secondary': heroData.secondaryColor || '#03DBD0',
+        '--color-primary': heroData?.primaryColor || '#4654CD',
+        '--color-secondary': heroData?.secondaryColor || '#03DBD0',
       } as React.CSSProperties}
     >
-      <HeroSection
-        heroContent={mergedHeroContent}
-        socialProof={mergedSocialProof}
-        howItWorksData={mergedHowItWorks}
-        faqData={mergedFaq}
-        ctaData={mergedCta}
-        promoBannerData={heroData.promoBannerData}
-        navbarItems={mergedNavbarItems}
-        megamenuItems={heroData.megamenuItems}
-        testimonials={heroData.testimonials}
-        testimonialsTitle={heroData.testimonialsTitle}
-        activeSections={heroData.activeSections}
-        hasCta={heroData.hasCta}
-        logoUrl={heroData.logoUrl}
-        customerPortalUrl={heroData.customerPortalUrl}
-        portalButtonText={heroData.portalButtonText}
-        footerData={mergedFooterData}
-        benefitsData={heroData.benefitsData}
-        agreementData={heroData.agreementData}
-        landing={slug}
-        previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
-        previewKey={previewKey}
-        primaryColor={heroData.primaryColor}
-      />
-
-      {/* Modal DNI - Feature personalizado para landings configuradas */}
-      {showDniFeature && (
-        <DniModal
-          landingSlug={slug}
-          isOpen={isDniModalOpen}
-          onClose={handleDniModalClose}
+      {/* VIP expired: only overlay, no content */}
+      {vipExpired ? (
+        <VipCountdownOverlay
+          onOpenDniModal={() => {}}
+          endDate={landingConfig.features.vip_countdown}
+          catalogSlug={slug}
         />
+      ) : (
+        <>
+          <div style={countdownActive ? { display: 'none' } : undefined}>
+          {heroData && <HeroSection
+            heroContent={mergedHeroContent}
+            socialProof={mergedSocialProof}
+            howItWorksData={mergedHowItWorks}
+            faqData={mergedFaq}
+            ctaData={mergedCta}
+            promoBannerData={heroData.promoBannerData}
+            navbarItems={mergedNavbarItems}
+            megamenuItems={heroData.megamenuItems}
+            testimonials={heroData.testimonials}
+            testimonialsTitle={heroData.testimonialsTitle}
+            testimonialsSubtitle={heroData.testimonialsSubtitle}
+            activeSections={heroData.activeSections}
+            hasCta={heroData.hasCta}
+            logoUrl={heroData.logoUrl}
+            customerPortalUrl={heroData.customerPortalUrl}
+            portalButtonText={heroData.portalButtonText}
+            footerData={mergedFooterData}
+            benefitsData={heroData.benefitsData}
+            agreementData={heroData.agreementData}
+            landing={slug}
+            previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
+            previewKey={previewKey}
+            primaryColor={heroData.primaryColor}
+          />}
+
+          </div>
+
+          {/* Modal DNI - Feature personalizado para landings configuradas */}
+          {showDniFeature && (
+            <DniModal
+              landingSlug={slug}
+              isOpen={isDniModalOpen}
+              onClose={handleDniModalClose}
+              allowSkip={!dniRequired}
+              validateWhitelist={landingConfig.features.has_dni_whitelist}
+              onWhitelistValidated={hasWhitelist ? handleWhitelistValidated : undefined}
+            />
+          )}
+
+          {/* VIP Countdown overlay - blocks page until countdown expires */}
+          {isVipLanding && (
+            <VipCountdownOverlay
+              onOpenDniModal={() => setIsDniModalOpen(true)}
+              endDate={landingConfig.features.vip_countdown}
+              onExpired={() => { setCountdownActive(false); setVipExpired(true); }}
+            />
+          )}
+        </>
       )}
     </div>
   );
 }
 
 // Main export with Suspense wrapper + tracking providers
-export function LandingPageClient({ slug, initialData }: LandingPageClientProps) {
+export function LandingPageClient({ slug, initialData, landingConfig }: LandingPageClientProps) {
   return (
     <SessionProvider landingSlug={slug}>
       <EventTrackerProvider>
         <Suspense fallback={<HomeSkeleton />}>
-          <LandingPageClientInner slug={slug} initialData={initialData} />
+          <LandingPageClientInner slug={slug} initialData={initialData} landingConfig={landingConfig} />
         </Suspense>
       </EventTrackerProvider>
     </SessionProvider>

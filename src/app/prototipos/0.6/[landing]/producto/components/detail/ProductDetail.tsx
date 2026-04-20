@@ -72,6 +72,10 @@ interface ProductDetailProps {
   // Default pricing from catalog card
   defaultTerm?: number;
   defaultInitialPercent?: number;
+  // Payment frequencies (e.g. ['quincenal', 'semanal'] for celulares)
+  paymentFrequencies?: string[];
+  // Landing config flags
+  showPlatformCommission?: boolean;
 }
 
 export const ProductDetail: React.FC<ProductDetailProps> = ({
@@ -99,6 +103,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   isAvailable = true,
   defaultTerm,
   defaultInitialPercent,
+  paymentFrequencies,
+  showPlatformCommission = false,
 }) => {
   const router = useRouter();
   const params = useParams();
@@ -148,16 +154,27 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   // Pricing selection state (from PricingCalculator)
   const [pricingSelection, setPricingSelection] = useState<PricingSelection | null>(null);
+  // Active payment plans — updated when user switches frequency
+  const [activePlans, setActivePlans] = useState(paymentPlans);
+
+  // Month-equivalent of selected term (for semanal term=48 → 12 months)
+  // Must search activePlans because frequency switches replace the plan set
+  const selectedTermMonths = useMemo(() => {
+    if (!pricingSelection) return null;
+    const plan = activePlans.find(p => p.term === pricingSelection.term);
+    return plan?.termMonths ?? pricingSelection.term;
+  }, [pricingSelection, activePlans]);
 
   // Handle pricing selection changes from PricingCalculator
   const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
     setPricingSelection(selection);
   }, []);
 
-  // Transform PaymentPlan[] to CartPaymentPlan[] format
+  // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
-    return paymentPlans.map(plan => ({
+    return activePlans.map(plan => ({
       term: plan.term,
+      termMonths: plan.termMonths ?? null,
       options: plan.options.map(opt => ({
         initialPercent: opt.initialPercent,
         initialAmount: opt.initialAmount,
@@ -165,7 +182,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         originalQuota: opt.originalQuota,
       })),
     }));
-  }, [paymentPlans]);
+  }, [activePlans]);
 
   // v0.6.1: Build CartItem with full product config and call onAddToCart
   const handleAddToCart = useCallback(() => {
@@ -182,9 +199,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       shortName: product.name,    // Short name for compact views
       brand: product.brand,
       price: product.price,
-      image: product.images[0]?.url || '',
+      image: productThumbnail,
       type: product.deviceType as CartItem['type'],  // Product type for accessory/insurance compatibility
-      months: pricingSelection.term as TermMonths,
+      months: (selectedTermMonths ?? pricingSelection.term) as TermMonths,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
       monthlyPayment: pricingSelection.monthlyQuota,
@@ -213,10 +230,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       shortName: product.name,
       brand: product.brand,
       price: product.price,
-      image: product.images[0]?.url || '',
+      image: productThumbnail,
       lowestQuota: pricingSelection.monthlyQuota,
       type: product.deviceType as WishlistItem['type'],
-      months: pricingSelection.term as TermMonths,
+      months: (selectedTermMonths ?? pricingSelection.term) as TermMonths,
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
       monthlyPayment: pricingSelection.monthlyQuota,
@@ -234,12 +251,21 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
 
   // Derived section flags (single source of truth for nav + DOM sections)
   const GENERIC_TIERS = new Set(['Básica', 'Intermedia', 'Potente', 'medio']);
-  const displayShortDesc = product.shortDescription && !GENERIC_TIERS.has(product.shortDescription.trim())
-    ? product.shortDescription
-    : null;
+  const shortDesc = product.shortDescription?.trim();
+  const longDesc = product.description?.trim();
+  const displayShortDesc =
+    shortDesc && !GENERIC_TIERS.has(shortDesc) && shortDesc !== longDesc
+      ? product.shortDescription
+      : null;
   const hasDescription = !!(product.description || displayShortDesc);
   const hasSimilar = similarProducts.length > 0;
   const hasLimitations = limitations.length > 0;
+
+  // First non-video image URL (for thumbnails in cart, solicitar, spec-sheet, etc.)
+  const productThumbnail = useMemo(() => {
+    const img = product.images.find(i => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
+    return img?.url || product.images[0]?.url || '';
+  }, [product.images]);
 
   // Helper to extract spec value
   const getSpecValue = (category: string, label: string): string | undefined => {
@@ -253,7 +279,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     // Use the user's selection from PricingCalculator, or fallback to defaults
     // Round to whole numbers to match the display format
     const monthlyQuota = Math.floor(pricingSelection?.monthlyQuota ?? product.lowestQuota);
-    const months = pricingSelection?.term ?? 24;
+    const months = selectedTermMonths ?? pricingSelection?.term ?? 24;
     const initialPercent = pricingSelection?.initialPercent ?? 0; // Default 0% (Sin inicial)
     const initialAmount = Math.floor(pricingSelection?.initialAmount ?? (product.price * initialPercent / 100));
 
@@ -269,7 +295,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       months: months,
       initialPercent: initialPercent,
       initialAmount: initialAmount,
-      image: product.images[0]?.url || '',
+      image: productThumbnail,
       specs: {
         processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model') || '',
         ram: getSpecValue('memoria', 'capacidad') || getSpecValue('ram', 'size') || '',
@@ -277,6 +303,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       },
       // Payment plans for term standardization
       paymentPlans: cartPaymentPlans,
+      paymentFrequency: pricingSelection?.paymentFrequency,
     };
 
     // Save to localStorage
@@ -377,6 +404,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 defaultTerm={defaultTerm}
                 defaultInitialPercent={defaultInitialPercent ?? 0}
                 productPrice={product.price}
+                paymentFrequencies={paymentFrequencies}
+                landing={landing}
+                productSlug={product.slug}
+                onPlansChange={setActivePlans}
                 onSelectionChange={handlePricingSelectionChange}
               />
               {/* CTA Buttons or Unavailable banner */}
@@ -401,7 +432,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 {onAddToCart && (() => {
                   // Determine cart button state
                   const configChanged = isInCart && cartItem && pricingSelection && (
-                    cartItem.months !== pricingSelection.term ||
+                    cartItem.months !== (selectedTermMonths ?? pricingSelection.term) ||
                     cartItem.initialPercent !== pricingSelection.initialPercent
                   );
 
@@ -410,7 +441,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                       handleAddToCart();
                     } else if (configChanged && onUpdateCart && pricingSelection) {
                       onUpdateCart(product.id, {
-                        months: pricingSelection.term as TermMonths,
+                        months: (selectedTermMonths ?? pricingSelection.term) as TermMonths,
                         initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
                         initialAmount: pricingSelection.initialAmount,
                         monthlyPayment: pricingSelection.monthlyQuota,
@@ -527,7 +558,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             ports={product.ports}
             productName={product.displayName}
             productBrand={product.brand}
-            productImage={product.images[0]?.url}
+            productImage={productThumbnail}
             description={product.description || undefined}
             shortDescription={displayShortDesc || undefined}
           />
@@ -536,7 +567,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
         {/* Cronograma Section - Full Width */}
         <div id="section-cronograma" className="mt-12">
           <Cronograma
-            paymentPlans={paymentPlans}
+            paymentPlans={activePlans}
             term={36}
             startDate={new Date()}
             version={cronogramaVersion}
@@ -546,6 +577,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             // Sincronizar con PricingCalculator
             selectedTerm={pricingSelection?.term}
             selectedInitialPercent={pricingSelection?.initialPercent}
+            paymentFrequency={pricingSelection?.paymentFrequency}
+            financialData={product.tea != null && product.tcea != null ? { tea: product.tea, tcea: product.tcea } : undefined}
+            showPlatformCommission={showPlatformCommission}
           />
         </div>
 
@@ -555,6 +589,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <SimilarProducts
               products={similarProducts}
               currentQuota={product.lowestQuota}
+              landing={landing}
               onAddToCart={onSimilarAddToCart}
               cartItems={cartItems}
             />

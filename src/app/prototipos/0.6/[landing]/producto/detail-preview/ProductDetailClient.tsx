@@ -8,12 +8,13 @@
  * Recibe productId via query param ?id=XX
  */
 
-import React, { Suspense, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 
 // Hero components
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
@@ -35,6 +36,12 @@ function ProductDetailContent() {
   const searchParams = useSearchParams();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  // Check if this landing has a catalog
+  const [hasCatalog, setHasCatalog] = useState(true);
+  useEffect(() => {
+    fetchLandingConfig(landing).then(cfg => setHasCatalog(cfg.layout.has_catalog));
+  }, [landing]);
 
   // Get product ID from URL
   const productId = searchParams.get('id');
@@ -76,8 +83,8 @@ function ProductDetailContent() {
 
   // Handle back navigation
   const handleBack = () => {
-    const catalogUrl = routes.catalogo(landing);
-    router.push(catalogUrl);
+    const backUrl = hasCatalog ? routes.catalogo(landing) : routes.landingHome(landing);
+    router.push(backUrl);
   };
 
   // Loading state
@@ -114,7 +121,7 @@ function ProductDetailContent() {
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#4654CD] text-white rounded-xl font-medium hover:bg-[#3a47b3] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            Volver al catalogo
+            {hasCatalog ? 'Volver al catálogo' : 'Volver al inicio'}
           </button>
         </div>
         {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}

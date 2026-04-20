@@ -10,9 +10,9 @@
  * para mantener coherencia de datos en todo el flujo.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, type LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
@@ -20,8 +20,17 @@ import {
   CartItem,
   WishlistItem,
   TermMonths,
+  InitialPaymentPercent,
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
+
+const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
+  fire: Flame,
+  siren: Siren,
+  lightning: Zap,
+  star: Star,
+  gift: Gift,
+};
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { ColorSelector } from '../color-selector';
@@ -53,6 +62,8 @@ interface ProductCardProps {
   addToCartButtonId?: string;
   /** Ocultar selector de colores (ej: landing sin variantes de color) */
   hideColors?: boolean;
+  /** Agregar spacer arriba cuando otra card en la misma fila tiene banner promo */
+  needsPromoSpacer?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -74,7 +85,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   compareButtonId,
   detailButtonId,
   addToCartButtonId,
-  hideColors = false,
+  hideColors = true,
+  needsPromoSpacer = false,
 }) => {
   // Color selector state — default to current product's ID if it's in the siblings
   const currentProductColor = product.colors?.find(c => c.productId === product.id);
@@ -115,6 +127,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const displayDiscount = selectedColor?.discount ?? product.discount;
   const displaySpecs = product.specs; // Specs fijos del producto base, no varían por color
 
+  // Detect if title is truncated (line-clamp-2) to show tooltip on hover
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const [isTitleTruncated, setIsTitleTruncated] = useState(false);
+  const checkTruncation = useCallback(() => {
+    const el = titleRef.current;
+    if (el) setIsTitleTruncated(el.scrollHeight > el.clientHeight);
+  }, []);
+  useEffect(() => {
+    checkTruncation();
+    window.addEventListener('resize', checkTruncation);
+    return () => window.removeEventListener('resize', checkTruncation);
+  }, [displayName, checkTruncation]);
+
   // Obtener imágenes según color seleccionado (para carousel)
   const getImagesForSelectedColor = (): string[] => {
     if (!selectedColorId || !product.colors) {
@@ -133,11 +158,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const selectedImages = getImagesForSelectedColor();
 
-  // Financiamiento: plazo más alto del producto, sin inicial
+  // Financiamiento: plazo más alto del producto, inicial según hook del producto
   const selectedTerm = product.maxTermMonths as TermMonths;
-  const selectedInitial = 0 as const;
+  const selectedInitial = (product.hookInitialPercent ?? 0) as InitialPaymentPercent;
   const quota = displayQuota;
   const { initialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, selectedInitial);
+
+  // Payment frequency selector (for celulares: semanal/quincenal)
+  const hookFrequency = product.paymentFrequency || 'mensual';
+  const [selectedFrequency, setSelectedFrequency] = useState(hookFrequency);
+
+  // Cuota para la frecuencia seleccionada (desde payment_hooks, fallback al hook principal)
+  const displayQuotaForFreq = (product.paymentHooks && product.paymentHooks[selectedFrequency] != null)
+    ? product.paymentHooks[selectedFrequency]
+    : displayQuota;
+
+  const freqShort = selectedFrequency === 'semanal' ? '/sem' : selectedFrequency === 'quincenal' ? '/qcn' : '/mes';
+  // Plazo máximo en meses: semanal ÷4, quincenal ÷2
+  const displayTermMonths = hookFrequency === 'semanal'
+    ? Math.round(selectedTerm / 4)
+    : hookFrequency === 'quincenal'
+      ? Math.round(selectedTerm / 2)
+      : selectedTerm;
 
   const originalQuota = displayOriginalQuota;
 
@@ -191,6 +233,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     addedAt: Date.now(),
   });
 
+  // Promotion template data
+  const promoTemplate = product.promotion?.template;
+  const promoBorderColor = promoTemplate?.borderColor || 'var(--color-primary)';
+  const promoBannerBg = promoTemplate?.bannerBgColor || 'var(--color-primary)';
+  const promoBannerTextColor = promoTemplate?.bannerTextColor || '#FFFFFF';
+  const PromoBannerIcon = promoTemplate?.bannerIcon ? PROMO_BANNER_ICONS[promoTemplate.bannerIcon] : null;
+  const isTopBarBanner = promoTemplate?.bannerStyle === 'top_bar' || !promoTemplate?.bannerStyle;
+
   return (
     <motion.div
       className="h-full w-full min-w-[min(280px,100%)] max-w-[398px]"
@@ -200,8 +250,75 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       transition={{ duration: 0.2 }}
       onMouseEnter={onMouseEnter}
     >
-      <Card className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white">
+      <Card
+        className="h-full border-0 shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white"
+        style={promoTemplate ? {
+          border: `3px solid ${promoBorderColor}`,
+          boxShadow: `0 0 20px 4px ${promoBorderColor}55, 0 4px 12px ${promoBorderColor}33`,
+        } : undefined}
+      >
         <CardBody className="p-0 flex flex-col">
+          {/* Spacer for non-promo cards in rows that have promo cards */}
+          {needsPromoSpacer && !(promoTemplate && isTopBarBanner) && (
+            <div className="h-[44px] shrink-0" />
+          )}
+          {/* Promotion Banner */}
+          {promoTemplate && isTopBarBanner && (
+            <div
+              className="w-full px-4 py-2.5 flex items-center justify-center gap-2.5"
+              style={{
+                background: `linear-gradient(135deg, ${promoBannerBg} 0%, ${promoBannerBg}cc 50%, ${promoBannerBg} 100%)`,
+                backgroundColor: promoBannerBg,
+              }}
+            >
+              {PromoBannerIcon && (
+                <motion.div
+                  animate={{ scale: [1, 1.25, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <PromoBannerIcon className="w-5 h-5" color={promoBannerTextColor} />
+                </motion.div>
+              )}
+              <span
+                className="text-base font-black tracking-widest uppercase"
+                style={{ color: promoBannerTextColor, textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
+              >
+                {promoTemplate.bannerText}
+              </span>
+              {PromoBannerIcon && (
+                <motion.div
+                  animate={{ scale: [1, 1.25, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <PromoBannerIcon className="w-5 h-5" color={promoBannerTextColor} />
+                </motion.div>
+              )}
+            </div>
+          )}
+          {promoTemplate && !isTopBarBanner && (
+            <div className="absolute top-0 left-0 z-20">
+              <div
+                className="px-4 py-1.5 text-sm font-black rounded-br-xl"
+                style={{
+                  backgroundColor: promoBannerBg,
+                  color: promoBannerTextColor,
+                  textShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                  boxShadow: `0 3px 10px ${promoBannerBg}66`,
+                }}
+              >
+                {PromoBannerIcon && (
+                  <motion.span
+                    className="inline-block mr-1 align-middle"
+                    animate={{ scale: [1, 1.25, 1] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <PromoBannerIcon className="w-4 h-4 inline" />
+                  </motion.span>
+                )}
+                {promoTemplate.bannerText}
+              </div>
+            </div>
+          )}
           {/* Image - Altura fija para consistencia */}
           <div className="relative bg-white p-6 h-[220px] flex items-center justify-center">
             <ImageGallery
@@ -282,13 +399,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {product.brand}
             </p>
 
-            {/* Title - Altura fija para 2 líneas */}
-            <h3
-              className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 mb-3 min-h-[3rem] sm:min-h-[3.5rem] cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
-              onClick={() => onViewDetail?.(selectedColor?.slug)}
-            >
-              {displayName}
-            </h3>
+            {/* Title - Altura fija para 2 líneas, tooltip CSS si está truncado */}
+            <div className="relative group/title min-h-[3rem] sm:min-h-[3.5rem] mb-3">
+              <h3
+                ref={titleRef}
+                className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
+                onClick={() => onViewDetail?.(selectedColor?.slug)}
+              >
+                {displayName}
+              </h3>
+              {isTitleTruncated && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-3 py-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg max-w-sm whitespace-normal opacity-0 invisible group-hover/title:opacity-100 group-hover/title:visible transition-opacity duration-200 z-50 pointer-events-none">
+                  {displayName}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-neutral-800" />
+                </div>
+              )}
+            </div>
 
             {/* Color Selector - solo visible en cards de familia (colors.length > 1) */}
             {!hideColors && product.colors && product.colors.length > 1 && (
@@ -340,29 +466,47 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* Pricing - Altura fija para consistencia entre cards */}
             <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 mb-4">
+              {/* Frequency chips — shown when product has semanal/quincenal options */}
+              {product.paymentFrequencies && product.paymentFrequencies.length > 1 && (
+                <div className="flex justify-center gap-1.5 mb-2">
+                  {product.paymentFrequencies.map((freq) => (
+                    <button
+                      key={freq}
+                      onClick={(e) => { e.stopPropagation(); setSelectedFrequency(freq); }}
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all cursor-pointer ${
+                        freq === selectedFrequency
+                          ? 'bg-[var(--color-primary)] text-white'
+                          : 'bg-neutral-200 text-neutral-500 hover:bg-neutral-300'
+                      }`}
+                    >
+                      {freq === 'semanal' ? 'Semanal' : freq === 'quincenal' ? 'Quincenal' : freq}
+                    </button>
+                  ))}
+                </div>
+              )}
               {/* Precio anterior + descuento (altura reservada siempre) */}
               <div className="h-5 flex items-center justify-center gap-1.5">
                 {originalQuota && originalQuota > quota ? (
                   <>
-                    <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}/mes</span>
+                    <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
                     {displayDiscount && displayDiscount > 0 && (
-                      <span className="text-xs font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
-                        -{displayDiscount}%
+                      <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
+                        -{Math.round(displayDiscount)}%
                       </span>
                     )}
                   </>
                 ) : (
-                  <span className="text-xs text-neutral-400">Cuota mensual</span>
+                  <span className="text-xs text-neutral-400">Cuota {selectedFrequency !== 'mensual' ? selectedFrequency : 'mensual'}</span>
                 )}
               </div>
               {/* Precio actual — graduado para cards estrechas */}
               <div className="flex items-baseline justify-center gap-0.5 mt-1 min-w-0">
-                <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">S/{formatMoneyNoDecimals(Math.floor(quota))}</span>
-                <span className="text-base sm:text-lg text-neutral-400">/mes</span>
+                <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">S/{formatMoneyNoDecimals(Math.floor(displayQuotaForFreq))}</span>
+                <span className="text-base sm:text-lg text-neutral-400">{freqShort}</span>
               </div>
               {/* Info adicional */}
               <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words">
-                en {selectedTerm} meses{initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(initialAmount))}` : ' · sin inicial'}
+                en {displayTermMonths} meses{initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(initialAmount))}` : ' · sin inicial'}
               </p>
             </div>
 
@@ -373,7 +517,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 size="lg"
                 variant="bordered"
                 className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
-                startContent={<Eye className="w-5 h-5" />}
+                startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
                 onPress={() => onViewDetail?.(selectedColor?.slug)}
               >
                 Detalle

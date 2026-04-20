@@ -48,6 +48,9 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
     return `S/${Math.floor(price).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
+  const freqSuffix = (freq?: string) =>
+    freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
+
   const totalPrice = getTotalPrice();
   const totalMonthlyPayment = getTotalMonthlyPayment();
   const hasAccessories = selectedAccessories.length > 0;
@@ -219,7 +222,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           })()}
 
                           <p className="text-sm font-bold text-[var(--color-primary)] mt-1">
-                            {formatPrice(product.monthlyPayment)}/mes
+                            {formatPrice(product.monthlyPayment)}{freqSuffix(product.paymentFrequency)}
                           </p>
                           {product.initialAmount > 0 && (
                             <p className="text-xs text-neutral-400">
@@ -418,7 +421,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 {/* Pricing - Monthly + Initial */}
                 <div className="text-right flex-shrink-0">
                   <p className="text-lg font-bold text-[var(--color-primary)]">
-                    {formatPrice(product.monthlyPayment)}/mes
+                    {formatPrice(product.monthlyPayment)}{freqSuffix(product.paymentFrequency)}
                   </p>
                   <p className="text-sm text-neutral-500">
                     {product.months} meses

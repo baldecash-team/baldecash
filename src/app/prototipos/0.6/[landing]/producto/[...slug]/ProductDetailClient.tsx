@@ -45,6 +45,8 @@ import {
   CronogramaVersion,
   defaultDetalleConfig,
 } from '../types/detail';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
 
 function ProductDetailContent() {
   const router = useRouter();
@@ -68,6 +70,12 @@ function ProductDetailContent() {
   useScrollToTop();
 
   const [isPageLoading, setIsPageLoading] = useState(true);
+
+  // Landing config (for features like show_platform_commission)
+  const [landingConfig, setLandingConfig] = useState<LandingConfig>(DEFAULT_LANDING_CONFIG);
+  useEffect(() => {
+    fetchLandingConfig(landing).then(setLandingConfig);
+  }, [landing]);
 
   // API data state
   const [apiData, setApiData] = useState<ProductDetailResult | null>(null);
@@ -168,8 +176,11 @@ function ProductDetailContent() {
     router.push(routes.solicitar(landing));
   }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
 
-  // Build catalog URL helper
+  const hasCatalog = landingConfig.layout.has_catalog;
+
+  // Build catalog URL helper (falls back to landing home if no catalog)
   const getCatalogUrl = (queryParams?: Record<string, string>) => {
+    if (!hasCatalog) return routes.landingHome(landing);
     const urlParams = new URLSearchParams();
     if (queryParams) {
       Object.entries(queryParams).forEach(([key, value]) => urlParams.set(key, value));
@@ -281,8 +292,8 @@ function ProductDetailContent() {
   if (apiError || !apiData) {
     return (
       <NotFoundContent
-        homeUrl={routes.catalogo(landing)}
-        homeLabel="Ir al catálogo"
+        homeUrl={hasCatalog ? routes.catalogo(landing) : routes.landingHome(landing)}
+        homeLabel={hasCatalog ? 'Ir al catálogo' : 'Volver al inicio'}
       />
     );
   }
@@ -365,8 +376,10 @@ function ProductDetailContent() {
           deviceType={config.deviceType}
           cronogramaVersion={config.cronogramaVersion}
           isAvailable={isAvailable}
-          defaultTerm={defaultTerm}
-          defaultInitialPercent={defaultInitialPercent}
+          defaultTerm={defaultTerm ?? apiData.defaultTerm}
+          defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
+          paymentFrequencies={apiData.paymentFrequencies}
+          showPlatformCommission={landingConfig.features.show_platform_commission}
           onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}
           onRemoveFromCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.removeFromCart : undefined}
           onUpdateCart={isAvailable && ALLOW_MULTI_PRODUCT ? catalogState.updateCartItem : undefined}

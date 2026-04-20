@@ -3,8 +3,18 @@
  * Servicio para consumir configuración de formularios dinámicos desde el backend
  */
 
+import { getVipToken } from '../components/hero/DniModal';
+
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+
+function appendVipToken(url: string, slug: string): string {
+  if (typeof window === 'undefined') return url;
+  const token = getVipToken(slug);
+  if (!token) return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}vip_token=${encodeURIComponent(token)}`;
+}
 
 // ============================================================================
 // TIPOS - Mapean la respuesta del endpoint /wizard
@@ -27,14 +37,22 @@ export interface WizardFieldValidation {
 export interface DependencyGroupCondition {
   depends_on_field: string;
   operator: 'equals' | 'not_equals' | 'in' | 'not_in' | 'is_empty' | 'is_not_empty'
-    | 'greater_than' | 'less_than' | 'contains' | 'not_contains';
+    | 'greater_than' | 'less_than' | 'contains' | 'not_contains'
+    | 'age_greater_than' | 'age_less_than';
   value: string | string[] | null;
 }
 
+export interface DependencyGroupActionParams {
+  max_value?: number;
+  min_value?: number;
+  value?: string;
+}
+
 export interface DependencyGroup {
-  action: 'show' | 'hide';
+  action: 'show' | 'hide' | 'set_max' | 'set_min' | 'set_value';
   logic: 'and' | 'or';
   conditions: DependencyGroupCondition[];
+  action_params?: DependencyGroupActionParams | null;
 }
 
 export interface WizardMotivational {
@@ -80,7 +98,7 @@ export interface WizardField {
   dependency_groups: DependencyGroup[];
   accepted_file_types?: string | null;
   max_file_size_mb?: number | null;
-  max_files: number;
+  max_files: number | null;
   // Cascading selects (department → province → district)
   cascade_from?: string | null;    // Parent field code (e.g., "department")
   cascade_param?: string | null;   // Query param for API (e.g., "parent_id")
@@ -103,11 +121,35 @@ export interface WizardField {
     show_use_location?: boolean;       // Show "Use my location" button
     require_selection?: boolean;       // Must select from suggestions
   } | null;
-  // Prefill configuration for document number lookup
+  // Prefill configuration. Two shapes coexist during the backend migration:
+  // - Legacy: { prefill_fields: Record<target, source | source[]>, document_type_field }
+  //   where the value is the API response key (or an array to concatenate).
+  // - New:    { lookup_endpoint, fields_to_fill: string[], trigger }
+  //   where each entry in fields_to_fill is both the target field code and the
+  //   response key. Helpers below read whichever shape is present.
   prefill_config?: {
-    document_type_field: string;
-    prefill_fields: Record<string, string | string[]>;
+    // Legacy
+    prefill_fields?: Record<string, string | string[]>;
+    document_type_field?: string;
+    // New
+    lookup_endpoint?: string;
+    fields_to_fill?: string[];
+    trigger?: 'on_blur' | 'on_change';
   } | null;
+}
+
+/**
+ * Returns the set of form field codes that a prefill_config will autocomplete,
+ * regardless of whether the payload uses the legacy `prefill_fields` Record or
+ * the new `fields_to_fill` array.
+ */
+export function getPrefillTargetFieldCodes(
+  prefillConfig: WizardField['prefill_config']
+): string[] {
+  if (!prefillConfig) return [];
+  if (prefillConfig.fields_to_fill?.length) return prefillConfig.fields_to_fill;
+  if (prefillConfig.prefill_fields) return Object.keys(prefillConfig.prefill_fields);
+  return [];
 }
 
 export interface WizardStep {
@@ -127,15 +169,45 @@ export interface WizardStep {
   fields: WizardField[];
 }
 
+export interface WizardConfigLanding {
+  id: number;
+  slug: string;
+  name: string;
+  logo_url?: string | null;
+}
+
+export interface WizardConfigForm {
+  id: number;
+  code: string;
+  name: string;
+  estimated_time_minutes: number;
+}
+
+/**
+ * WizardConfig supports two coexisting shapes from the backend during migration:
+ * - Legacy flat: `landing_id`, `landing_slug`, `landing_name`, `display_steps_count`,
+ *   `display_estimated_minutes`, `badge_text`.
+ * - Nested: `landing: {...}`, `form: {...}`, `estimated_time_minutes` at root.
+ * Both are optional; consumers should prefer nested values and fall back to flat.
+ */
 export interface WizardConfig {
-  landing_id: number;
-  landing_slug: string;
-  landing_name: string;
-  steps: WizardStep[];
-  // Display values for intro page (configured in admin)
+  // Nested shape (new)
+  landing?: WizardConfigLanding;
+  form?: WizardConfigForm;
+  estimated_time_minutes?: number;
+
+  // Flat shape (legacy)
+  landing_id?: number;
+  landing_slug?: string;
+  landing_name?: string;
   display_steps_count?: number;
   display_estimated_minutes?: number;
   badge_text?: string | null;
+  total_fields?: number;
+
+  // Shared
+  steps: WizardStep[];
+  total_steps?: number;
 }
 
 // ============================================================================
@@ -147,15 +219,16 @@ export interface WizardConfig {
  */
 export async function getWizardConfig(slug: string, previewKey?: string | null): Promise<WizardConfig | null> {
   try {
-    const url = previewKey
+    let url = previewKey
       ? `${API_BASE_URL}/public/landing/${slug}/wizard?preview_key=${encodeURIComponent(previewKey)}`
       : `${API_BASE_URL}/public/landing/${slug}/wizard`;
+    url = appendVipToken(url, slug);
     const response = await fetch(url, {
       ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);
@@ -185,7 +258,7 @@ export async function getWizardConfigById(landingId: number, previewKey: string 
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
+      if (response.status === 404 || response.status === 403) {
         return null;
       }
       throw new Error(`API error: ${response.status}`);
@@ -330,6 +403,23 @@ function evaluateGroup(
     : group.conditions.some(c => evaluateCondition(c, formValues));
 }
 
+/**
+ * Computes age in years from an ISO date string (YYYY-MM-DD).
+ * Returns NaN if the input is empty or invalid.
+ */
+export function calculateAge(dateString: string): number {
+  if (!dateString) return NaN;
+  const birth = new Date(dateString + 'T12:00:00');
+  if (isNaN(birth.getTime())) return NaN;
+  const now = new Date();
+  let age = now.getFullYear() - birth.getFullYear();
+  const monthDiff = now.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 function evaluateCondition(
   cond: DependencyGroupCondition,
   formValues: Record<string, string | string[]>
@@ -361,9 +451,74 @@ function evaluateCondition(
       return parseFloat(fieldValue) > parseFloat(depValue);
     case 'less_than':
       return parseFloat(fieldValue) < parseFloat(depValue);
+    case 'age_greater_than': {
+      const age = calculateAge(String(raw ?? ''));
+      return !isNaN(age) && age > parseFloat(depValue);
+    }
+    case 'age_less_than': {
+      const age = calculateAge(String(raw ?? ''));
+      return !isNaN(age) && age < parseFloat(depValue);
+    }
     default:
       return false;
   }
+}
+
+/**
+ * Returns the effective max_value for a numeric field, applying any
+ * dependency_groups with action=set_max whose conditions are currently met.
+ * When multiple set_max groups fire, the strictest (lowest) max wins.
+ */
+export function getEffectiveMaxValue(
+  field: WizardField,
+  formValues: Record<string, string | string[]>
+): number | null {
+  let effective: number | null = field.max_value ?? null;
+  for (const group of field.dependency_groups || []) {
+    if (group.action !== 'set_max') continue;
+    if (!evaluateGroup(group, formValues)) continue;
+    const newMax = group.action_params?.max_value;
+    if (newMax == null) continue;
+    effective = effective != null ? Math.min(effective, newMax) : newMax;
+  }
+  return effective;
+}
+
+/**
+ * Returns the effective min_value for a numeric field, applying set_min groups.
+ * When multiple set_min groups fire, the strictest (highest) min wins.
+ */
+export function getEffectiveMinValue(
+  field: WizardField,
+  formValues: Record<string, string | string[]>
+): number | null {
+  let effective: number | null = field.min_value ?? null;
+  for (const group of field.dependency_groups || []) {
+    if (group.action !== 'set_min') continue;
+    if (!evaluateGroup(group, formValues)) continue;
+    const newMin = group.action_params?.min_value;
+    if (newMin == null) continue;
+    effective = effective != null ? Math.max(effective, newMin) : newMin;
+  }
+  return effective;
+}
+
+/**
+ * Returns the value this field must be locked to when any set_value
+ * dependency group is currently satisfied, or null when the field is free.
+ * The first matching group wins.
+ */
+export function getForcedValue(
+  field: WizardField,
+  formValues: Record<string, string | string[]>
+): string | null {
+  for (const group of field.dependency_groups || []) {
+    if (group.action !== 'set_value') continue;
+    if (!evaluateGroup(group, formValues)) continue;
+    const forced = group.action_params?.value;
+    if (forced != null) return String(forced);
+  }
+  return null;
 }
 
 /**
@@ -500,11 +655,13 @@ export function validateField(
     if (isNaN(numValue)) {
       return { isValid: false, error: 'Ingresa un valor numérico válido' };
     }
-    if (field.min_value !== null && field.min_value !== undefined && numValue < field.min_value) {
-      return { isValid: false, error: `El valor mínimo es ${field.min_value}` };
+    const effectiveMin = getEffectiveMinValue(field, formValues);
+    const effectiveMax = getEffectiveMaxValue(field, formValues);
+    if (effectiveMin !== null && numValue < effectiveMin) {
+      return { isValid: false, error: `El valor mínimo es ${effectiveMin}` };
     }
-    if (field.max_value !== null && field.max_value !== undefined && numValue > field.max_value) {
-      return { isValid: false, error: `El valor máximo es ${field.max_value}` };
+    if (effectiveMax !== null && numValue > effectiveMax) {
+      return { isValid: false, error: `El valor máximo es ${effectiveMax}` };
     }
   }
 
@@ -526,6 +683,28 @@ export function validateField(
     let errorMessage = validation.message;
 
     switch (validation.type) {
+      case 'required':
+        // Already enforced by `field.required` above when the value is empty.
+        break;
+
+      case 'age_greater_than':
+        if (validation.value) {
+          const age = calculateAge(trimmedValue);
+          if (!isNaN(age) && age <= parseFloat(validation.value)) {
+            hasError = true;
+          }
+        }
+        break;
+
+      case 'age_less_than':
+        if (validation.value) {
+          const age = calculateAge(trimmedValue);
+          if (!isNaN(age) && age >= parseFloat(validation.value)) {
+            hasError = true;
+          }
+        }
+        break;
+
       case 'email':
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
           hasError = true;
@@ -626,13 +805,13 @@ export function validateStep(
 ): string | null {
   let firstErrorField: string | null = null;
 
-  // Map prefill target fields to their source document_number field code
+  // Map prefill target fields to their trigger field code (the field that runs the lookup).
+  // Works for both legacy (prefill_fields Record) and new (fields_to_fill array) shapes.
   const prefillFieldToDocField: Record<string, string> = {};
   for (const field of step.fields) {
-    if (field.type === 'document_number' && field.prefill_config?.prefill_fields) {
-      for (const code of Object.keys(field.prefill_config.prefill_fields)) {
-        prefillFieldToDocField[code] = field.code;
-      }
+    const targets = getPrefillTargetFieldCodes(field.prefill_config);
+    for (const code of targets) {
+      prefillFieldToDocField[code] = field.code;
     }
   }
 

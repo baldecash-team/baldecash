@@ -43,7 +43,15 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { getTotalMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+
+  // Redirect to /solicitar if no product selected (e.g. direct URL access)
+  useEffect(() => {
+    if (!isProductHydrated) return;
+    if (!selectedProduct && cartProducts.length === 0) {
+      router.replace(routes.solicitar(landing));
+    }
+  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router]);
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);

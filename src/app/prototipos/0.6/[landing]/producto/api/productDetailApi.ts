@@ -128,6 +128,8 @@ interface ApiProductData {
   stock: number;
   rating: number | null;
   review_count: number;
+  tea?: number;
+  tcea?: number;
 }
 
 interface ApiInitialPaymentOption {
@@ -136,10 +138,13 @@ interface ApiInitialPaymentOption {
   monthly_quota: string;
   original_quota: string | null;
   commission_amount: string | null;
+  tea?: number | null;
+  tcea?: number | null;
 }
 
 interface ApiPaymentPlan {
   term: number;
+  term_months?: number | null;
   tea?: number | null;
   tcea?: number | null;
   options: ApiInitialPaymentOption[];
@@ -171,6 +176,22 @@ interface ApiSimilarProduct {
   differentiators: string[];
   slug: string;
   specs: null;
+  promotion?: {
+    discount_value: number;
+    template: {
+      code: string;
+      bannerText: string;
+      bannerStyle: string;
+      borderColor: string | null;
+      bannerBgColor: string | null;
+      bannerTextColor: string;
+      bannerIcon: string | null;
+      ctaText: string;
+      ctaStyle: string;
+      showSpecs: boolean;
+      showLinks: boolean;
+    } | null;
+  } | null;
 }
 
 interface ApiLimitation {
@@ -218,6 +239,9 @@ interface ApiProductDetailResponse {
   limitations: ApiLimitation[];
   certifications: ApiCertification[];
   is_available: boolean;
+  payment_frequencies?: string[] | null;
+  default_term?: number | null;
+  default_initial?: number | null;
 }
 
 // ============================================
@@ -311,6 +335,7 @@ function transformFeature(apiFeature: ApiProductFeature): ProductFeature {
 function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
   return {
     term: apiPlan.term,
+    termMonths: apiPlan.term_months ?? null,
     tea: apiPlan.tea ?? null,
     tcea: apiPlan.tcea ?? null,
     options: apiPlan.options.map((opt): InitialPaymentOption => ({
@@ -319,6 +344,8 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       monthlyQuota: parseFloat(opt.monthly_quota),
       originalQuota: opt.original_quota ? parseFloat(opt.original_quota) : undefined,
       commissionAmount: opt.commission_amount ? parseFloat(opt.commission_amount) : null,
+      tea: opt.tea ?? null,
+      tcea: opt.tcea ?? null,
     })),
   };
 }
@@ -353,6 +380,7 @@ function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct 
     differentiators: apiProduct.differentiators,
     slug: apiProduct.slug,
     specs: undefined,
+    promotion: apiProduct.promotion as SimilarProduct['promotion'] ?? undefined,
   };
 }
 
@@ -437,6 +465,8 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     stock: apiProduct.stock,
     rating: apiProduct.rating || 0,
     reviewCount: apiProduct.review_count,
+    tea: apiProduct.tea,
+    tcea: apiProduct.tcea,
   };
 }
 
@@ -448,10 +478,13 @@ export interface ProductDetailResult {
   product: ProductDetail;
   combo?: ComboInfo;
   paymentPlans: PaymentPlan[];
+  defaultTerm?: number;
+  defaultInitial?: number;
   similarProducts: SimilarProduct[];
   limitations: ProductLimitation[];
   certifications: Certification[];
   isAvailable: boolean;
+  paymentFrequencies?: string[];
 }
 
 export interface FetchError {
@@ -474,9 +507,10 @@ export interface FetchError {
  * - Product is within availability dates
  * - Landing and product are active
  */
-export async function fetchProductDetail(landing: string, slug: string): Promise<ProductDetailResult | null> {
+export async function fetchProductDetail(landing: string, slug: string, paymentFrequency?: string): Promise<ProductDetailResult | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${slug}/detail`, {
+    const params = paymentFrequency ? `?payment_frequency=${encodeURIComponent(paymentFrequency)}` : '';
+    const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${slug}/detail${params}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -501,6 +535,9 @@ export async function fetchProductDetail(landing: string, slug: string): Promise
       limitations: data.limitations.map(transformLimitation),
       certifications: data.certifications.map(transformCertification),
       isAvailable: data.is_available,
+      paymentFrequencies: data.payment_frequencies ?? undefined,
+      defaultTerm: data.default_term ?? undefined,
+      defaultInitial: data.default_initial ?? undefined,
     };
   } catch (error) {
     console.error('Error fetching product detail:', error);
@@ -511,12 +548,12 @@ export async function fetchProductDetail(landing: string, slug: string): Promise
 /**
  * Hook-friendly fetch with loading/error states
  */
-export async function getProductDetail(landing: string, slug: string): Promise<{
+export async function getProductDetail(landing: string, slug: string, paymentFrequency?: string): Promise<{
   data: ProductDetailResult | null;
   error: FetchError | null;
 }> {
   try {
-    const data = await fetchProductDetail(landing, slug);
+    const data = await fetchProductDetail(landing, slug, paymentFrequency);
     return { data, error: null };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

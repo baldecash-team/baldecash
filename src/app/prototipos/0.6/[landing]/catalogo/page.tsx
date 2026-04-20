@@ -1,19 +1,28 @@
 /**
  * Catálogo v0.6 - Server Component Wrapper
  * Renderiza el cliente y genera rutas estáticas para output: export
+ *
+ * Redirects to landing root if has_catalog=false (driven by landing config ingredient).
  */
 
+import { redirect } from 'next/navigation';
 import { CatalogoClient } from './CatalogoClient';
 import { GamerCatalogoClient } from './GamerCatalogoClient';
 import { getLandingMeta } from '../../services/landingApi';
+import { fetchLandingConfig } from '../../services/landingConfigApi';
+import { routes } from '../../utils/routes';
 
 export default async function CatalogoPage({
   params,
 }: {
   params: Promise<{ landing: string }>;
 }) {
-  const resolvedParams = await params;
-  const landing = resolvedParams.landing || 'home';
+  const { landing } = await params;
+  const landingConfig = await fetchLandingConfig(landing);
+
+  if (!landingConfig.layout.has_catalog) {
+    redirect(routes.landingHome(landing));
+  }
 
   if (landing === 'zona-gamer') {
     return <GamerCatalogoClient />;

@@ -61,6 +61,7 @@ interface HeroSectionProps {
   megamenuItems?: { label: string; href: string; icon: string; description: string }[];
   testimonials?: Testimonial[];
   testimonialsTitle?: string;
+  testimonialsSubtitle?: string;
   activeSections?: string[];
   hasCta?: boolean;
   logoUrl?: string;
@@ -90,6 +91,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   megamenuItems = [],
   testimonials = [],
   testimonialsTitle,
+  testimonialsSubtitle,
   activeSections = [],
   hasCta = true,
   logoUrl,
@@ -203,7 +205,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}
-      <main className="flex-1" style={{ paddingTop: 'var(--header-total-height, 4rem)' }}>
+      <main className="flex-1" style={{ paddingTop: 'var(--header-total-height, 6.5rem)' }}>
         {/* ======= CONVENIO LAYOUT ======= */}
         {isConvenio ? (
           <>
@@ -224,7 +226,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {/* Convenio Testimonials - 3-col card grid */}
             {testimonials.length > 0 && (
               <section id="testimonios" className="scroll-mt-24">
-                <ConvenioTestimonials testimonials={testimonials} title={testimonialsTitle} agreementData={agreementData} />
+                <ConvenioTestimonials testimonials={testimonials} title={testimonialsTitle} subtitle={testimonialsSubtitle} agreementData={agreementData} />
               </section>
             )}
 
@@ -259,6 +261,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   headline={heroContent.headline}
                   subheadline={heroContent.subheadline}
                   minQuota={heroContent.minQuota}
+                  quotaSuffix={heroContent.quotaSuffix}
                   imageSrc={heroContent.backgroundImage}
                   imagePositionX={heroContent.backgroundPositionX}
                   imagePositionY={heroContent.backgroundPositionY}

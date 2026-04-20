@@ -5,13 +5,20 @@
  * Provides shared layout data (navbar, footer, company) to all pages under [landing]
  * Also wraps with SessionProvider + EventTrackerProvider so behavioral tracking
  * starts from the first page the user visits (home, catálogo, producto, etc.)
+ *
+ * VipAccessGuard: redirects to landing home if whitelist is enabled but no VIP token.
+ * Protects /catalogo, /producto, /solicitar and all sub-routes.
  */
 
-import { Suspense, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
+import { getVipToken, getVipName } from '../components/hero/DniModal';
+import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
+import { fetchLandingConfig } from '../services/landingConfigApi';
+import { routes } from '../utils/routes';
 
 /**
  * Persists ?keepData=true from URL to sessionStorage.
@@ -30,6 +37,91 @@ function KeepDataFlag() {
   return null;
 }
 
+/**
+ * VipGate - Combined access guard + welcome overlay.
+ * 1. Fetches landing config once.
+ * 2. If whitelist is enabled and no token → redirects to landing home (blocks render).
+ * 3. If user just validated (name in localStorage) → shows welcome overlay on top of children.
+ * 4. Otherwise → renders children normally.
+ */
+function VipGate({ landing, children }: { landing: string; children: React.ReactNode }) {
+  const router = useRouter();
+  const [status, setStatus] = useState<'loading' | 'allowed' | 'redirecting'>('loading');
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeName, setWelcomeName] = useState<{ firstName: string } | null>(null);
+  const [countdownDate, setCountdownDate] = useState('');
+  const [vipExpired, setVipExpired] = useState(false);
+
+  useEffect(() => {
+    fetchLandingConfig(landing).then((cfg) => {
+      const hasWhitelist = cfg.features.has_dni_whitelist;
+      const vipCountdown = cfg.features.vip_countdown;
+
+      if (hasWhitelist && !getVipToken(landing)) {
+        setStatus('redirecting');
+        router.replace(routes.landingHome(landing));
+        return;
+      }
+
+      // Check if VIP countdown already expired — block content entirely
+      if (hasWhitelist && vipCountdown) {
+        const endDate = new Date(vipCountdown);
+        if (new Date().getTime() >= endDate.getTime()) {
+          setVipExpired(true);
+          setCountdownDate(vipCountdown);
+          setStatus('allowed');
+          return;
+        }
+      }
+
+      // Check if welcome overlay should show (user just validated)
+      if (hasWhitelist) {
+        const name = getVipName(landing);
+        if (name) {
+          setWelcomeName(name);
+          setShowWelcome(true);
+          setCountdownDate(vipCountdown);
+        }
+      }
+
+      setStatus('allowed');
+    });
+  }, [landing, router]);
+
+  const handleDismiss = () => {
+    setShowWelcome(false);
+    // Keep vip-name in localStorage so MotivationalCard can use it as fallback
+  };
+
+  // Block render while checking access or redirecting
+  if (status !== 'allowed') return null;
+
+  // VIP expired: only show overlay, NO children (catalog/product not rendered)
+  if (vipExpired && countdownDate) {
+    return (
+      <VipCountdownOverlay
+        onOpenDniModal={() => {}}
+        endDate={countdownDate}
+        catalogSlug={landing}
+      />
+    );
+  }
+
+  return (
+    <>
+      {children}
+      {showWelcome && countdownDate && (
+        <VipCountdownOverlay
+          onOpenDniModal={() => {}}
+          endDate={countdownDate}
+          onExpired={handleDismiss}
+          welcomeData={welcomeName}
+        />
+      )}
+    </>
+  );
+}
+
 export default function LandingLayout({
   children,
 }: {
@@ -45,7 +137,9 @@ export default function LandingLayout({
           <Suspense>
             <KeepDataFlag />
           </Suspense>
-          {children}
+          <VipGate landing={landing}>
+            {children}
+          </VipGate>
         </EventTrackerProvider>
       </SessionProvider>
     </LayoutProvider>

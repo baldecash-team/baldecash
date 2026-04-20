@@ -62,6 +62,7 @@ import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import type { LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
 import type { CatalogSecondaryNavbarData } from '@/app/prototipos/0.6/types/hero';
 
@@ -296,13 +297,21 @@ function CatalogoContent() {
   const tracker = useEventTrackerOptional();
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
   // Preview mode support
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const previewBannerOffset = previewKey ? 24 : 0;
+
+  // VIP countdown banner - fetch landing config for vip_countdown date
+  const [vipCountdownDate, setVipCountdownDate] = useState<string | null>(null);
+  useEffect(() => {
+    fetchLandingConfig(landing).then((cfg) => {
+      setVipCountdownDate(cfg.features.vip_countdown || '');
+    });
+  }, [landing]);
 
   // Blip Chat control
   const blipChat = useBlipChat();
@@ -1250,6 +1259,28 @@ function CatalogoContent() {
   const hasMoreProducts = hasMoreFromApi; // API indicates if there are more to fetch
   const remainingProducts = totalProducts - catalogProducts.length; // Remaining in API
 
+  // Detect which rows have at least one promo card (for spacer alignment)
+  const promoSpacerFlags = useMemo(() => {
+    const cols = gridColumns || 1;
+    const flags = new Array(visibleProducts.length).fill(false);
+    for (let i = 0; i < visibleProducts.length; i += cols) {
+      const rowEnd = Math.min(i + cols, visibleProducts.length);
+      let rowHasPromo = false;
+      for (let j = i; j < rowEnd; j++) {
+        if (visibleProducts[j].promotion?.template) {
+          rowHasPromo = true;
+          break;
+        }
+      }
+      if (rowHasPromo) {
+        for (let j = i; j < rowEnd; j++) {
+          flags[j] = true;
+        }
+      }
+    }
+    return flags;
+  }, [visibleProducts, gridColumns]);
+
   // Load more products from API
   const handleLoadMore = useCallback(() => {
     loadMoreFromApi();
@@ -1589,6 +1620,8 @@ function CatalogoContent() {
         searchQuery={searchQuery}
         onSearchClear={handleSearchClear}
         gridRef={gridRef}
+        catalogBanner={catalogBanner}
+        vipCountdownDate={vipCountdownDate}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
         {searchCorrected && !isProductsLoading && (
@@ -1616,9 +1649,8 @@ function CatalogoContent() {
                 key={product.landingProductId ?? product.id}
                 product={product}
                 colorSelectorVersion={config.colorSelectorVersion}
-                // TODO: Quitar este hardcode cuando el migrador llene variant.color en la BD.
-                // Hoy los productos de Liderman tienen color solo en specs, no en product_variant.
-                hideColors={landing === 'liderman-baldecash'}
+                hideColors
+                needsPromoSpacer={promoSpacerFlags[index]}
                 onAddToCart={(cartItem: CartItem) => {
                   if (!ALLOW_MULTI_PRODUCT) {
                     // Single-product mode: go directly to solicitar

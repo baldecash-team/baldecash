@@ -5,8 +5,8 @@
  * Maps WizardField type to the appropriate UI component
  */
 
-import React, { useMemo, useCallback } from 'react';
-import { WizardField, WizardFieldOption, filterFieldOptions } from '../../../../../services/wizardApi';
+import React, { useMemo, useCallback, useEffect } from 'react';
+import { WizardField, WizardFieldOption, filterFieldOptions, getForcedValue } from '../../../../../services/wizardApi';
 import { useWizard, FILE_PENDING_REUPLOAD } from '../../../context/WizardContext';
 import { useFieldTracking } from '../../../hooks/useFieldTracking';
 import { TextInput } from './TextInput';
@@ -48,6 +48,31 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
   }, [formData]);
 
 
+  // Dynamic field lock: when a `set_value` dependency group is satisfied,
+  // the backend forces this field to a specific value and we disable input.
+  // Generalises the previous hardcoded "minor → income_source=familiar" rule.
+  const forcedValue = useMemo(
+    () => getForcedValue(field, formValues),
+    [field, formValues]
+  );
+
+  // Apply the forced value and mirror it to the legacy submit flag used by
+  // useSubmitApplication to tag auto-filled income_source as `llenada_manualmente`.
+  useEffect(() => {
+    if (forcedValue != null) {
+      if (value !== forcedValue) {
+        updateField(field.code, forcedValue);
+      }
+      if (field.code === 'income_source' && formData['_income_source_auto']?.value !== 'true') {
+        updateField('_income_source_auto', 'true');
+      }
+    } else if (field.code === 'income_source' && formData['_income_source_auto']?.value === 'true') {
+      updateField('_income_source_auto', '');
+    }
+  }, [forcedValue, value, field.code, updateField, formData]);
+
+  const isLockedByMinor = forcedValue != null;
+
   // Filter options based on visibility conditions
   const filteredOptions = useMemo(() => {
     let options = filterFieldOptions(field, formValues);
@@ -55,8 +80,13 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     if (field.code === 'institution_type') {
       options = options.filter(opt => opt.value !== 'other');
     }
+    // When a set_value rule is active, restrict the dropdown to only the forced
+    // option so the UI visibly shows a single enabled choice.
+    if (forcedValue != null) {
+      options = options.filter(opt => String(opt.value) === forcedValue);
+    }
     return options;
-  }, [field, formValues]);
+  }, [field, formValues, forcedValue]);
 
   // Build tooltip from API help_text (100% from BD)
   // NOTE: Must be before conditional return to maintain hooks order
@@ -95,7 +125,7 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
     onBlur: handleBlur,
     error,
     required: field.required,
-    disabled: field.readonly,
+    disabled: field.readonly || isLockedByMinor,
     tooltip,
     helpText: undefined as string | undefined,
   };
@@ -194,12 +224,14 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       // birth_date: -20 años (para personas ~20 años)
       // work_start_date y otros: 0 (año actual)
       const dateYearOffset = field.code === 'birth_date' ? -20 : 0;
+      const dateMinAge = field.code === 'birth_date' ? 17 : 0;
       return (
         <DateInput
           {...commonProps}
           placeholder={field.placeholder || 'Selecciona una fecha'}
           success={!error && !!value}
           defaultYearOffset={dateYearOffset}
+          minAge={dateMinAge}
         />
       );
 
