@@ -22,6 +22,7 @@ import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNav
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { ReceivedScreen } from './components/received';
 import type { ReceivedData } from './types/received';
@@ -327,7 +328,7 @@ function ConfirmacionContent() {
   useScrollToTop();
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Fetch application status when code is present
   useEffect(() => {
@@ -358,7 +359,7 @@ function ConfirmacionContent() {
     router.push(routes.landingHome(landing));
   };
 
-  const isGamer = landing === 'zona-gamer';
+  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
 
   // Zona Gamer: wrap antes de checks de layout para asegurar tema dark siempre
   if (isGamer) {

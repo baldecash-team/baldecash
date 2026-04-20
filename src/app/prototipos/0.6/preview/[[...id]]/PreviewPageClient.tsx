@@ -16,6 +16,7 @@ import { PreviewBanner } from '../../components/PreviewBanner';
 import MacBookNeoLanding from '../../components/product-landing/MacBookNeoLanding';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../../types/hero';
 
 function LoadingFallback() {
@@ -315,7 +316,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   }
 
   // MacBook Neo (ID 150) has its own specialized landing component.
-  const isProductLanding = heroData.landingId === 150;
+  const isProductLanding = heroData.landingId === LANDING_IDS.MACBOOK_NEO;
 
   if (isProductLanding) {
     return (

@@ -15,6 +15,7 @@ import { getLandingAccessories, getLandingInsurances } from '@/app/prototipos/0.
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 
 // Dynamic storage keys based on landing slug
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -153,7 +154,7 @@ interface ProductProviderProps {
 export const ProductProvider: React.FC<ProductProviderProps> = ({ children, landingSlug }) => {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landingSlug) ? preview.previewKey : null;
-  const { settings } = useLayout();
+  const { settings, landingId } = useLayout();
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
   const [selectedProduct, setSelectedProductState] = useState<SelectedProduct | null>(null);
@@ -461,7 +462,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    */
   const getAvailableTerms = useCallback((): number[] => {
     // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
-    const defaultTerms = landingSlug === 'zona-gamer' ? [6, 12, 18, 24] : [12, 18, 24, 36];
+    const defaultTerms = landingId === LANDING_IDS.ZONA_GAMER ? [6, 12, 18, 24] : [12, 18, 24, 36];
 
     const products = getAllProducts();
     if (products.length === 0) return defaultTerms;
@@ -481,7 +482,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     });
 
     return intersection.sort((a, b) => a - b);
-  }, [getAllProducts]);
+  }, [getAllProducts, landingId]);
 
   /**
    * Update all products to use the same term
@@ -621,7 +622,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
 
     // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
     // Fallback: generate mock initial options based on product price (for gamer mock products)
-    if (landingSlug === 'zona-gamer' && product.price > 0) {
+    if (landingId === LANDING_IDS.ZONA_GAMER && product.price > 0) {
       const price = product.price;
       return [
         { percent: 0, amount: 0, label: 'Sin inicial' },
@@ -632,7 +633,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
 
     // No paymentPlans - return empty (sync should fetch them)
     return [];
-  }, [getAllProducts, landingSlug]);
+  }, [getAllProducts, landingId]);
 
   /**
    * Sync missing payment plans from API

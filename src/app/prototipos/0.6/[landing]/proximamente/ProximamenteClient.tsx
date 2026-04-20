@@ -38,6 +38,7 @@ import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/Game
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { useLayout } from '../context/LayoutContext';
 import { getComingSoonContent, ComingSoonSection } from '@/app/prototipos/0.6/services/landingApi';
 
@@ -82,8 +83,8 @@ function LoadingFallback() {
 function ProximamenteContent() {
   const searchParams = useSearchParams();
   const seccion = searchParams.get('seccion') || '';
-  const { navbarProps, footerData, agreementData, isLoading, hasError, landing } = useLayout();
-  const isGamer = landing === 'zona-gamer';
+  const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing } = useLayout();
+  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
 
   // Gamer theme
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');

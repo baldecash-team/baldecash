@@ -18,6 +18,7 @@ import { usePreview } from '../context/PreviewContext';
 import { NotFoundContent } from '../components/NotFoundContent';
 import { PreviewBanner } from '../components/PreviewBanner';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
@@ -349,13 +350,14 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   const previewBannerHeight = 24;
 
   // Zona Gamer: landing 100% estática, sin fetch a la API
+  // Uses slug here (not landingId) because it renders before any API fetch
   if (slug === 'zona-gamer') {
     return <ZonaGamerLanding />;
   }
 
-  // MacBook Neo (ID 150) has its own specialized landing component.
+  // MacBook Neo has its own specialized landing component.
   // Uses ID instead of slug because slugs are editable and unreliable.
-  const isProductLanding = heroData?.landingId === 150;
+  const isProductLanding = heroData?.landingId === LANDING_IDS.MACBOOK_NEO;
 
   // Product landing: render immediately without waiting for API
   if (isProductLanding) {

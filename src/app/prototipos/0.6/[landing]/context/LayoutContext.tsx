@@ -35,6 +35,8 @@ interface LayoutContextValue {
   isLoading: boolean;
   hasError: boolean; // true when landing not found or API error (for 404 display)
   landing: string;
+  /** Stable numeric landing ID for feature detection (null while loading) */
+  landingId: number | null;
   primaryColor: string;
   secondaryColor: string;
   primaryColorRgb: string;
@@ -212,6 +214,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     };
   }, [layoutData]);
 
+  // Extract landing ID for feature detection
+  const landingId = layoutData?.landing_id ?? null;
+
   // Extract colors from layout data
   const primaryColor = layoutData?.primary_color || '#4654CD';
   const secondaryColor = layoutData?.secondary_color || '#03DBD0';
@@ -255,6 +260,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     hasError,
     landing,
+    landingId,
     primaryColor,
     secondaryColor,
     primaryColorRgb,
@@ -263,7 +269,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     previewLandingId,
     settings,
     catalogBanner,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner]);
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner]);
 
   return (
     <LayoutContext.Provider value={value}>

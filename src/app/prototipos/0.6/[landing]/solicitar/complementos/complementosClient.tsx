@@ -33,6 +33,7 @@ import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 
 function ComplementosContent() {
   const router = useRouter();
@@ -62,7 +63,7 @@ function ComplementosContent() {
   });
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config for back navigation and cross-step validation
   const { steps } = useWizardConfig();
@@ -72,7 +73,7 @@ function ComplementosContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
-  const isGamer = landing === 'zona-gamer';
+  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
 
   // Get solicitar flow configuration
   const {

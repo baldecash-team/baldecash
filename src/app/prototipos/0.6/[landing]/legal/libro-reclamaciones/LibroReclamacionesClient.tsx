@@ -18,6 +18,7 @@ import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNav
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CubeGridSpinner, useScrollToTop, Toast } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { useLayout } from '../../context/LayoutContext';
 
 interface FormData {
@@ -70,9 +71,9 @@ function LoadingFallback() {
 }
 
 export function LibroReclamacionesClient() {
-  const { navbarProps, footerData, agreementData, isLoading, hasError, landing } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing } = useLayout();
   const isConvenio = !!agreementData;
-  const isGamer = landing === 'zona-gamer';
+  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);

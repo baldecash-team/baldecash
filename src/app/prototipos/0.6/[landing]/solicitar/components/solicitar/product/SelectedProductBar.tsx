@@ -9,10 +9,11 @@
  */
 
 import React, { useState } from 'react';
-import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { TermSelect } from './TermSelect';
 import Image from 'next/image';
 
@@ -24,11 +25,10 @@ interface SelectedProductBarProps {
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
   const { selectedProduct, selectedAccessories, selectedInsurance, selectedInsurances, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
+  const { landingId } = useLayout();
 
-
-  const params = useParams();
   // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
-  const isGamer = (params?.landing as string) === 'zona-gamer';
+  const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
 
   // Usar el estado del contexto para la expansión
   const isExpanded = isProductBarExpanded;

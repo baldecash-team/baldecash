@@ -295,6 +295,7 @@ export async function getLandingHeroDataById(landingId: number, previewKey: stri
  * Respuesta del endpoint /layout (navbar + footer + promo_banner + catalog_secondary_navbar + company)
  */
 export interface LandingLayoutResponse {
+  landing_id: number;
   navbar: HomeComponentResponse | null;
   footer: HomeComponentResponse | null;
   promo_banner: HomeComponentResponse | null;

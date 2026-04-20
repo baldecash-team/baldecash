@@ -55,6 +55,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 
 // Route builder
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 
 
@@ -95,7 +96,7 @@ function StepContent() {
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // Get wizard config from API
   const {
@@ -642,8 +643,8 @@ function StepContent() {
         isSubmitting={isSubmitting || isAppSubmitting}
         submitMessage={submitMessage}
         canProceed={true}
-        hideNavbar={landing === 'zona-gamer'}
-        navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
+        hideNavbar={landingId === LANDING_IDS.ZONA_GAMER}
+        navbarProps={landingId === LANDING_IDS.ZONA_GAMER ? undefined : (navbarProps || undefined)}
         motivational={step.motivational}
         firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
       >
@@ -746,7 +747,7 @@ function StepContent() {
     );
 
     // Zona Gamer: wrap summary with dark theme, gamer navbar and footer
-    if (landing === 'zona-gamer') {
+    if (landingId === LANDING_IDS.ZONA_GAMER) {
       return (
         <GamerWizardWrapper>
           {pageContent}
@@ -772,7 +773,7 @@ function StepContent() {
     <>
       <AnimatePresence>
         {showCelebration && (
-          landing === 'zona-gamer' ? (
+          landingId === LANDING_IDS.ZONA_GAMER ? (
             <GamerStepSuccess
               stepName={step.title}
               stepNumber={step.order + 1}
@@ -800,8 +801,8 @@ function StepContent() {
         isFirstStep={navigation.isFirst}
         isLastStep={isActuallyLastRegularStep}
         canProceed={true}
-        hideNavbar={landing === 'zona-gamer'}
-        navbarProps={landing === 'zona-gamer' ? undefined : (navbarProps || undefined)}
+        hideNavbar={landingId === LANDING_IDS.ZONA_GAMER}
+        navbarProps={landingId === LANDING_IDS.ZONA_GAMER ? undefined : (navbarProps || undefined)}
         motivational={stepMotivational}
         firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
       >
@@ -815,7 +816,7 @@ function StepContent() {
   );
 
   // Zona Gamer: wrap with dark theme, gamer navbar and footer
-  if (landing === 'zona-gamer') {
+  if (landingId === LANDING_IDS.ZONA_GAMER) {
     return (
       <GamerWizardWrapper>
         {pageContent}
