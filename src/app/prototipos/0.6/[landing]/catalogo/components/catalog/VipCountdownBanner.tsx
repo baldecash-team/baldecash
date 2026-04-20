@@ -105,9 +105,9 @@ export default function VipCountdownBanner({ endDate }: VipCountdownBannerProps)
           {/* Logo + pill row on mobile, just logo on desktop */}
           <div className="flex-shrink-0 flex md:block items-center gap-3">
             <img
-              src="https://baldecash.s3.amazonaws.com/company/logo-vip.png"
+              src="https://baldecash.s3.amazonaws.com/company/logo-vip-v2.png"
               alt="BaldeCash VIP"
-              className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto"
+              className="h-14 sm:h-18 md:h-20 lg:h-24 w-auto"
             />
             {/* Pill badge — inline on mobile, overlapping card on desktop */}
             <div

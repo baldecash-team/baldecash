@@ -380,7 +380,7 @@ function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct 
     differentiators: apiProduct.differentiators,
     slug: apiProduct.slug,
     specs: undefined,
-    promotion: apiProduct.promotion ?? undefined,
+    promotion: apiProduct.promotion as SimilarProduct['promotion'] ?? undefined,
   };
 }
 
