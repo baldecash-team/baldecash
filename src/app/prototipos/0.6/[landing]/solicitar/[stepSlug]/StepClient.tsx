@@ -205,8 +205,14 @@ function StepContent() {
   }, [formData]);
 
   // Override motivational when check-person finds data (personalized greeting)
+  // For VIP landings, the MotivationalCard handles the "Hola, [Nombre]" greeting,
+  // so we skip this override to keep the original BD text.
+  const isVipLanding = !!(() => { try { return localStorage.getItem(`baldecash-vip-token-${landing}`); } catch { return null; } })();
+
   const stepMotivational = useMemo((): WizardMotivational | null => {
     if (!step) return null;
+    if (isVipLanding) return step.motivational;
+
     const prefillStatus = formData['_prefill_status_document_number']?.value as string | undefined;
     if (prefillStatus !== 'found') return step.motivational;
 
@@ -224,7 +230,7 @@ function StepContent() {
       subtitle: 'Ya casi terminamos este paso, sigue adelante.',
       illustration: step.motivational?.illustration || '',
     };
-  }, [step, formData]);
+  }, [step, formData, isVipLanding]);
 
   // Track form_abandon on beforeunload (when user closes/reloads mid-form)
   useEffect(() => {
@@ -633,6 +639,7 @@ function StepContent() {
         canProceed={true}
         navbarProps={navbarProps || undefined}
         motivational={step.motivational}
+        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : ''}
       >
         <div className="space-y-4">
           {/* Dynamic sections from regular API steps */}
@@ -770,6 +777,7 @@ function StepContent() {
         canProceed={true}
         navbarProps={navbarProps || undefined}
         motivational={stepMotivational}
+        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : ''}
       >
         <DynamicWizardStep
           step={step}

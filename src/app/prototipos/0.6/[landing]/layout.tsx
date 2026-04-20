@@ -50,6 +50,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeName, setWelcomeName] = useState<{ firstName: string } | null>(null);
   const [countdownDate, setCountdownDate] = useState('');
+  const [vipExpired, setVipExpired] = useState(false);
 
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
@@ -60,6 +61,17 @@ function VipGate({ landing, children }: { landing: string; children: React.React
         setStatus('redirecting');
         router.replace(routes.landingHome(landing));
         return;
+      }
+
+      // Check if VIP countdown already expired — block content entirely
+      if (hasWhitelist && vipCountdown) {
+        const endDate = new Date(vipCountdown);
+        if (new Date().getTime() >= endDate.getTime()) {
+          setVipExpired(true);
+          setCountdownDate(vipCountdown);
+          setStatus('allowed');
+          return;
+        }
       }
 
       // Check if welcome overlay should show (user just validated)
@@ -85,6 +97,17 @@ function VipGate({ landing, children }: { landing: string; children: React.React
 
   // Block render while checking access or redirecting
   if (status !== 'allowed') return null;
+
+  // VIP expired: only show overlay, NO children (catalog/product not rendered)
+  if (vipExpired && countdownDate) {
+    return (
+      <VipCountdownOverlay
+        onOpenDniModal={() => {}}
+        endDate={countdownDate}
+        catalogSlug={landing}
+      />
+    );
+  }
 
   return (
     <>

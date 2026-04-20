@@ -46,6 +46,8 @@ interface WizardLayoutProps {
   navbarProps?: NavbarProps;
   /** Contenido motivacional desde API */
   motivational?: WizardMotivational | null;
+  /** Nombre del usuario para personalización VIP */
+  firstName?: string;
 }
 
 export const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -64,6 +66,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   submitMessage,
   navbarProps,
   motivational,
+  firstName,
 }) => {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
@@ -127,7 +130,7 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
               className="sticky"
               style={{ top: 'calc(var(--header-total-height, 6.5rem) + 1rem)' }}
             >
-              <MotivationalCard currentStep={currentStep} motivational={motivational} />
+              <MotivationalCard currentStep={currentStep} motivational={motivational} firstName={firstName} />
             </div>
           </div>
         </div>

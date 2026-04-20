@@ -281,9 +281,9 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
                   )}
 
                   <p
-                    className={`text-lg sm:text-xl font-bold break-words ${
-                      isSelected ? 'text-white' : 'text-[var(--color-primary)]'
-                    }`}
+                    className={`font-bold whitespace-nowrap ${
+                      option.monthlyQuota >= 1000 ? 'text-sm sm:text-base' : 'text-lg sm:text-xl'
+                    } ${isSelected ? 'text-white' : 'text-[var(--color-primary)]'}`}
                   >
                     S/{formatMoneyNoDecimals(Math.floor(option.monthlyQuota))}
                   </p>
