@@ -90,9 +90,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
 
   const handleDismiss = () => {
     setShowWelcome(false);
-    try {
-      localStorage.removeItem(`baldecash-vip-name-${landing}`);
-    } catch {}
+    // Keep vip-name in localStorage so MotivationalCard can use it as fallback
   };
 
   // Block render while checking access or redirecting

@@ -51,6 +51,7 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 
 // Route builder
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
 
 
 // Helper function to get Lucide icon by name
@@ -639,7 +640,7 @@ function StepContent() {
         canProceed={true}
         navbarProps={navbarProps || undefined}
         motivational={step.motivational}
-        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : ''}
+        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
       >
         <div className="space-y-4">
           {/* Dynamic sections from regular API steps */}
@@ -777,7 +778,7 @@ function StepContent() {
         canProceed={true}
         navbarProps={navbarProps || undefined}
         motivational={stepMotivational}
-        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : ''}
+        firstName={formData['_prefill_status_document_number']?.value === 'found' ? (formData['first_name']?.value as string) || '' : (getVipName(landing)?.firstName || '')}
       >
         <DynamicWizardStep
           step={step}

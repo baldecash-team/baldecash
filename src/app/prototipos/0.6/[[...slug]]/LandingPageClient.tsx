@@ -287,6 +287,11 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   const isVipLanding = !!landingConfig.features.vip_countdown;
   const hasWhitelist = landingConfig.features.has_dni_whitelist;
   const [countdownActive, setCountdownActive] = useState(isVipLanding);
+  const [vipExpired, setVipExpired] = useState(() => {
+    if (!isVipLanding) return false;
+    const end = new Date(landingConfig.features.vip_countdown);
+    return new Date().getTime() >= end.getTime();
+  });
 
   // DNI modal state - driven by landing config preset (features.has_dni_modal / dni_required)
   const showDniFeature = landingConfig.features.has_dni_modal;
@@ -381,54 +386,65 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         '--color-secondary': heroData?.secondaryColor || '#03DBD0',
       } as React.CSSProperties}
     >
-      <div style={countdownActive ? { display: 'none' } : undefined}>
-      {heroData && <HeroSection
-        heroContent={mergedHeroContent}
-        socialProof={mergedSocialProof}
-        howItWorksData={mergedHowItWorks}
-        faqData={mergedFaq}
-        ctaData={mergedCta}
-        promoBannerData={heroData.promoBannerData}
-        navbarItems={mergedNavbarItems}
-        megamenuItems={heroData.megamenuItems}
-        testimonials={heroData.testimonials}
-        testimonialsTitle={heroData.testimonialsTitle}
-        testimonialsSubtitle={heroData.testimonialsSubtitle}
-        activeSections={heroData.activeSections}
-        hasCta={heroData.hasCta}
-        logoUrl={heroData.logoUrl}
-        customerPortalUrl={heroData.customerPortalUrl}
-        portalButtonText={heroData.portalButtonText}
-        footerData={mergedFooterData}
-        benefitsData={heroData.benefitsData}
-        agreementData={heroData.agreementData}
-        landing={slug}
-        previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
-        previewKey={previewKey}
-        primaryColor={heroData.primaryColor}
-      />}
-
-      </div>
-
-      {/* Modal DNI - Feature personalizado para landings configuradas */}
-      {showDniFeature && (
-        <DniModal
-          landingSlug={slug}
-          isOpen={isDniModalOpen}
-          onClose={handleDniModalClose}
-          allowSkip={!dniRequired}
-          validateWhitelist={landingConfig.features.has_dni_whitelist}
-          onWhitelistValidated={hasWhitelist ? handleWhitelistValidated : undefined}
-        />
-      )}
-
-      {/* VIP Countdown overlay - blocks page until countdown expires */}
-      {isVipLanding && (
+      {/* VIP expired: only overlay, no content */}
+      {vipExpired ? (
         <VipCountdownOverlay
-          onOpenDniModal={() => setIsDniModalOpen(true)}
+          onOpenDniModal={() => {}}
           endDate={landingConfig.features.vip_countdown}
-          onExpired={() => setCountdownActive(false)}
+          catalogSlug={slug}
         />
+      ) : (
+        <>
+          <div style={countdownActive ? { display: 'none' } : undefined}>
+          {heroData && <HeroSection
+            heroContent={mergedHeroContent}
+            socialProof={mergedSocialProof}
+            howItWorksData={mergedHowItWorks}
+            faqData={mergedFaq}
+            ctaData={mergedCta}
+            promoBannerData={heroData.promoBannerData}
+            navbarItems={mergedNavbarItems}
+            megamenuItems={heroData.megamenuItems}
+            testimonials={heroData.testimonials}
+            testimonialsTitle={heroData.testimonialsTitle}
+            testimonialsSubtitle={heroData.testimonialsSubtitle}
+            activeSections={heroData.activeSections}
+            hasCta={heroData.hasCta}
+            logoUrl={heroData.logoUrl}
+            customerPortalUrl={heroData.customerPortalUrl}
+            portalButtonText={heroData.portalButtonText}
+            footerData={mergedFooterData}
+            benefitsData={heroData.benefitsData}
+            agreementData={heroData.agreementData}
+            landing={slug}
+            previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
+            previewKey={previewKey}
+            primaryColor={heroData.primaryColor}
+          />}
+
+          </div>
+
+          {/* Modal DNI - Feature personalizado para landings configuradas */}
+          {showDniFeature && (
+            <DniModal
+              landingSlug={slug}
+              isOpen={isDniModalOpen}
+              onClose={handleDniModalClose}
+              allowSkip={!dniRequired}
+              validateWhitelist={landingConfig.features.has_dni_whitelist}
+              onWhitelistValidated={hasWhitelist ? handleWhitelistValidated : undefined}
+            />
+          )}
+
+          {/* VIP Countdown overlay - blocks page until countdown expires */}
+          {isVipLanding && (
+            <VipCountdownOverlay
+              onOpenDniModal={() => setIsDniModalOpen(true)}
+              endDate={landingConfig.features.vip_countdown}
+              onExpired={() => { setCountdownActive(false); setVipExpired(true); }}
+            />
+          )}
+        </>
       )}
     </div>
   );
