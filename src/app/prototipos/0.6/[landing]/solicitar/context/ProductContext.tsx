@@ -602,7 +602,10 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
    */
   const getInitialOptionsForProduct = useCallback((productId: string): { percent: number; amount: number; label: string }[] => {
     const products = getAllProducts();
-    const product = products.find(p => p.id === productId);
+    // Search in getAllProducts first, then fall back to selectedProduct directly
+    // (getAllProducts prioritizes cartProducts which may contain stale/different products)
+    const product = products.find(p => p.id === productId)
+      || (selectedProduct?.id === productId ? selectedProduct : null);
     if (!product) return [];
 
     // Use paymentPlans from API - source of truth from database
@@ -633,7 +636,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
 
     // No paymentPlans - return empty (sync should fetch them)
     return [];
-  }, [getAllProducts, landingId]);
+  }, [getAllProducts, selectedProduct, landingId]);
 
   /**
    * Sync missing payment plans from API

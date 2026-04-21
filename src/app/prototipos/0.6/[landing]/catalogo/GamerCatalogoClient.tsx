@@ -29,6 +29,10 @@ import {
 } from 'lucide-react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 
+// localStorage keys — must match ProductContext keys exactly
+const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
+const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
+
 // Hooks de datos (los mismos que CatalogoClient)
 import { useCatalogProducts, useCatalogFilters } from './hooks/useCatalogProducts';
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
@@ -119,7 +123,9 @@ function GamerCatalogoContent() {
   const searchParams = useSearchParams();
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
-  const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
+  // Note: we don't use ProductContext setters here — we write directly to localStorage
+  // because each page has its own ProductProvider instance
+  useProduct(); // keep the hook call to ensure context exists
 
   // Theme - persist to localStorage (SSR-safe: always start dark, hydrate from localStorage)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -632,7 +638,7 @@ function GamerCatalogoContent() {
 
   // "Lo quiero" handler — respects ALLOW_MULTI_PRODUCT
   const selectProductForWizard = useCallback((product: CatalogProduct) => {
-    setSelectedProduct({
+    const selectedProductData = {
       id: product.id,
       slug: product.slug,
       name: product.displayName || product.name,
@@ -650,8 +656,15 @@ function GamerCatalogoContent() {
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
         storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
       },
-    });
-  }, [setSelectedProduct]);
+    };
+    // Write directly to localStorage (each page has its own ProductProvider instance)
+    try {
+      localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProductData));
+      localStorage.removeItem(getCartProductsKey(landing));
+    } catch {
+      // localStorage not available
+    }
+  }, [landing]);
 
   const handleOpenCartModal = useCallback((product: CatalogProduct) => {
     setSelectedProductForCart(product);
@@ -739,12 +752,17 @@ function GamerCatalogoContent() {
         };
       });
 
-      setContextCartProducts(productsForContext);
-      setSelectedProduct(productsForContext[0]);
+      // Write directly to localStorage (each page has its own ProductProvider instance)
+      try {
+        localStorage.setItem(getStorageKey(landing), JSON.stringify(productsForContext[0]));
+        localStorage.setItem(getCartProductsKey(landing), JSON.stringify(productsForContext));
+      } catch {
+        // localStorage not available
+      }
     }
 
     router.push(routes.solicitar(landing));
-  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, setContextCartProducts, setSelectedProduct, landing]);
+  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, landing]);
 
   // Active filters count
   const activeFilterCount = useMemo(() => {
@@ -2046,7 +2064,8 @@ function GamerCatalogoContent() {
           onRemove={(id) => setCompareList(prev => prev.filter(p => p.id !== id))}
           onClearAll={() => { setCompareList([]); setShowCompareModal(false); }}
           onSelectProduct={(product) => {
-            router.push(`${routes.solicitar(landing)}?product=${product.slug}`);
+            selectProductForWizard(product);
+            router.push(routes.solicitar(landing));
             setShowCompareModal(false);
           }}
           showCart={ALLOW_MULTI_PRODUCT}

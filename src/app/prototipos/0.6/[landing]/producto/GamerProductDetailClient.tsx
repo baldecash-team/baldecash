@@ -23,10 +23,15 @@ import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNav
 import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
 import type { CartItem, TermMonths } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import type { ProductSpec, ProductPort, SimilarProduct } from './types/detail';
+
+// localStorage keys — must match ProductContext keys exactly
+const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
+const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
 import { generateSpecSheetPDF } from './utils/generateSpecSheetPDF';
 import { generateCronogramaPDF } from './utils/generateCronogramaPDF';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
 import { CubeGridSpinner, Toast, useToast } from '@/app/prototipos/_shared';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 // Theme helper (same as GamerCatalogoClient)
@@ -104,11 +109,14 @@ function DetailContent() {
   const landing = (params.landing as string) || 'zona-gamer';
   const slugArray = params.slug as string[] | undefined;
   const slug = slugArray?.join('/') || '';
-  const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
+  // Note: we write directly to localStorage instead of using context setters
+  // because each page has its own ProductProvider instance
+  useProduct(); // keep the hook call to ensure context exists
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const { settings } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
+  const tracker = useEventTrackerOptional();
 
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [themeHydrated, setThemeHydrated] = useState(false);
@@ -153,7 +161,7 @@ function DetailContent() {
     }
   }, [catalogState, showToast]);
 
-  // Cart continue — save products to context before navigating
+  // Cart continue — save products directly to localStorage before navigating
   const handleCartContinue = useCallback(() => {
     if (catalogState.cart.length === 0) return;
     const productsForContext = catalogState.cart.map((item) => ({
@@ -175,10 +183,15 @@ function DetailContent() {
       specs: item.specs,
       paymentPlans: item.paymentPlans,
     }));
-    setContextCartProducts(productsForContext);
-    setSelectedProduct(productsForContext[0]);
+    // Write directly to localStorage (each page has its own ProductProvider instance)
+    try {
+      localStorage.setItem(getStorageKey(landing), JSON.stringify(productsForContext[0]));
+      localStorage.setItem(getCartProductsKey(landing), JSON.stringify(productsForContext));
+    } catch {
+      // localStorage not available
+    }
     router.push(routes.solicitar(landing));
-  }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
+  }, [catalogState.cart, router, landing]);
 
   // Fetch product data desde el endpoint real de zona-gamer — sin fallback a mocks
   useEffect(() => {
@@ -191,6 +204,12 @@ function DetailContent() {
         if (cancelled) return;
         if (result) {
           setData(result);
+          tracker?.track('product_view', {
+            product_id: result.product.id,
+            product_name: result.product.name,
+            brand: result.product.brand,
+            slug,
+          });
         } else {
           setError('Producto no encontrado');
         }
@@ -337,23 +356,37 @@ function DetailContent() {
       return;
     }
 
-    // Single-product mode: go directly to solicitar
-    setSelectedProduct({
+    // Single-product mode: save directly to localStorage (like normal landing)
+    // This ensures data persists across page navigation since each page has its own ProductProvider
+    const selectedProductData = {
       id: String(product.id),
       slug: product.slug,
       name: product.displayName || product.name,
       shortName: product.name,
       brand: product.brand,
-      price: product.price,
+      price: Math.floor(product.price),
       monthlyPayment: lowestOption?.monthlyQuota || 0,
       months: selectedTerm || 24,
       initialPercent: selectedInitialPercent || 0,
-      initialAmount: Math.round((product.price * (selectedInitialPercent || 0)) / 100),
+      initialAmount: lowestOption?.initialAmount || Math.round((product.price * (selectedInitialPercent || 0)) / 100),
       image: product.images?.[0]?.url || '',
       type: product.deviceType,
-    });
+      specs: product.specs ? {
+        processor: product.specs.processor?.model || '',
+        ram: product.specs.ram ? `${product.specs.ram.size}GB` : '',
+        storage: product.specs.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type || ''}`.trim() : '',
+      } : undefined,
+      paymentPlans: paymentPlans.length > 0 ? paymentPlans : undefined,
+    };
+    try {
+      localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProductData));
+      // Clear cart products since this is a single product selection
+      localStorage.removeItem(getCartProductsKey(landing));
+    } catch {
+      // localStorage not available
+    }
     router.push(routes.solicitar(landing));
-  }, [product, landing, router, setSelectedProduct, lowestOption, selectedTerm, selectedInitialPercent, ALLOW_MULTI_PRODUCT, catalogState, handleAddToCart]);
+  }, [product, landing, router, lowestOption, selectedTerm, selectedInitialPercent, ALLOW_MULTI_PRODUCT, catalogState, handleAddToCart, paymentPlans]);
 
   if (isLoading) return <LoadingFallback />;
 

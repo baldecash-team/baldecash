@@ -55,7 +55,7 @@ export function GamerCompareModal({
       case 'Memoria RAM':
         return product.specs?.ram ? `${product.specs.ram.size}GB DDR${product.specs.ram.type?.includes('5') ? '5' : '4'}` : '-';
       case 'Gráficos (GPU)':
-        return product.specs?.gpu ? `${product.specs.gpu.model}${product.specs.gpu.vram ? ` ${product.specs.gpu.vram}GB` : ''}` : '-';
+        return (product.specs?.gpu?.model && product.specs.gpu.model !== 'null') ? `${product.specs.gpu.model}${product.specs.gpu.vram ? ` ${product.specs.gpu.vram}GB` : ''}` : '-';
       case 'Almacenamiento':
         return product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type.toUpperCase()}` : '-';
       case 'Tamaño de Pantalla':
@@ -906,7 +906,7 @@ export function GamerCompareModal({
                           {/* Action buttons */}
                           <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
                             <button
-                              onClick={onClose}
+                              onClick={() => onSelectProduct(p)}
                               style={{
                                 height: 28,
                                 padding: '0 12px',

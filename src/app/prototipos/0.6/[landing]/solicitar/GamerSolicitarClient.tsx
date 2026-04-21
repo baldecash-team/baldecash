@@ -89,6 +89,7 @@ function SolicitarContent() {
   const {
     selectedProduct,
     selectedAccessories,
+    selectedInsurances,
     toggleAccessory,
     appliedCoupon,
     setAppliedCoupon,
@@ -97,9 +98,14 @@ function SolicitarContent() {
     getAllProducts,
     isHydrated,
     isOverQuotaLimit,
+    maxMonthlyQuota,
     unavailableProductIds,
     removeUnavailableProducts,
     isValidatingAvailability,
+    getAvailableTerms,
+    updateAllProductsToTerm,
+    getInitialOptionsForProduct,
+    updateProductInitial,
   } = useProduct();
   const product = selectedProduct;
   const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes, config: wizardConfigData } = useWizardConfig();
@@ -352,22 +358,11 @@ function SolicitarContent() {
 
   const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,179,150,${a})`;
 
-  // Plazos disponibles vienen del producto (backend paymentPlans) no hardcoded
-  const availableTerms = useMemo<number[]>(() => {
-    const plans = product?.paymentPlans;
-    if (plans && plans.length > 0) {
-      return plans.map((p: { term: number }) => p.term);
-    }
-    return [];
-  }, [product]);
+  // Plazos disponibles — del ProductContext (con fallback a defaults para zona-gamer)
+  const availableTerms = getAvailableTerms();
 
-  // Opciones de inicial para el plazo actual (backend)
-  const currentPlanOptions = useMemo(() => {
-    const plans = product?.paymentPlans;
-    if (!plans) return [];
-    const plan = plans.find((p: { term: number }) => p.term === selectedMonths) || plans[0];
-    return plan?.options || [];
-  }, [product, selectedMonths]);
+  // Opciones de inicial para el producto actual — del ProductContext
+  const currentPlanOptions = product ? getInitialOptionsForProduct(product.id) : [];
 
   // Show loading while hydrating or waiting for essential data
   if (!themeHydrated || !isHydrated || !selectedProduct || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {
@@ -463,7 +458,7 @@ function SolicitarContent() {
                   {termDropdownOpen && availableTerms.length > 0 && (
                     <div style={{ position: 'absolute', zIndex: 50, top: '100%', right: 0, marginTop: 4, minWidth: 140, background: isDark ? T.bgCard : '#fff', border: `1px solid ${T.border}`, borderRadius: 8, boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden', padding: 4 }}>
                       {availableTerms.map((m) => (
-                        <button key={m} type="button" onClick={() => { setSelectedMonths(m); setTermDropdownOpen(false); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', fontSize: 14, borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}>
+                        <button key={m} type="button" onClick={() => { updateAllProductsToTerm(m); setSelectedMonths(m); setTermDropdownOpen(false); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', fontSize: 14, borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}>
                           <span>{m} meses</span>
                           {m === selectedMonths && <Check size={14} />}
                         </button>
@@ -482,23 +477,36 @@ function SolicitarContent() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 12, color: T.neonCyan, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{product.brand}</p>
                   <h3 style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, marginTop: 2 }}>{product.name}</h3>
-                  {/* Initial payment pills — desde el backend (paymentPlans[].options[].initialAmount) */}
+                  {/* Specs pills */}
+                  {product.specs && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                      {product.specs.processor && (
+                        <span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{product.specs.processor}</span>
+                      )}
+                      {product.specs.ram && (
+                        <span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{product.specs.ram}</span>
+                      )}
+                      {product.specs.storage && (
+                        <span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{product.specs.storage}</span>
+                      )}
+                    </div>
+                  )}
+                  {/* Initial payment pills — del ProductContext */}
                   {currentPlanOptions.length > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <p style={{ fontSize: 11, color: T.textMuted, marginBottom: 4 }}>Inicial:</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {currentPlanOptions.map((opt: { initialPercent: number; initialAmount: number }) => {
-                          const isActive = opt.initialPercent === (product.initialPercent || 0);
-                          const label = opt.initialPercent === 0 ? 'Sin inicial' : `S/${Math.round(opt.initialAmount)}`;
+                        {currentPlanOptions.map((opt) => {
+                          const isActive = opt.percent === (product.initialPercent || 0);
                           return (
-                            <span key={opt.initialPercent} style={{
-                              fontSize: 11, padding: '4px 8px', borderRadius: 999,
+                            <button key={opt.percent} type="button" onClick={() => updateProductInitial(product.id, opt.percent)} style={{
+                              fontSize: 11, padding: '4px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                               background: isActive ? T.neonCyan : T.bgSurface,
                               color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
                               fontWeight: isActive ? 500 : 400,
                             }}>
-                              {label}
-                            </span>
+                              {opt.label}
+                            </button>
                           );
                         })}
                       </div>
@@ -508,6 +516,11 @@ function SolicitarContent() {
                     S/{Math.round(product.monthlyPayment)}/mes
                     <span style={{ fontSize: 12, color: T.textMuted, fontWeight: 400, marginLeft: 4 }}>x {product.months} meses</span>
                   </p>
+                  {product.initialAmount > 0 && (
+                    <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
+                      + S/{Math.round(product.initialAmount)} inicial
+                    </p>
+                  )}
                 </div>
                 {/* Remove button */}
                 <button onClick={() => router.push(routes.catalogo(landing))} style={{ padding: 6, borderRadius: '50%', border: 'none', background: 'transparent', color: T.textMuted, cursor: 'pointer', flexShrink: 0 }} title="Quitar producto">
@@ -515,11 +528,58 @@ function SolicitarContent() {
                 </button>
               </div>
             </div>
+            {/* Accessories summary */}
+            {selectedAccessories.length > 0 && (
+              <div style={{ padding: '12px 20px', borderTop: `1px solid ${T.border}` }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Accesorios seleccionados</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {selectedAccessories.map((acc) => (
+                    <div key={acc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: T.textSecondary }}>{acc.name}</span>
+                      <span style={{ color: T.neonCyan, fontWeight: 500 }}>+S/{Math.round(acc.monthlyQuota)}/mes</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Insurances summary */}
+            {selectedInsurances.length > 0 && (
+              <div style={{ padding: '12px 20px', borderTop: `1px solid ${T.border}` }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Seguros seleccionados</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {selectedInsurances.map((ins) => (
+                    <div key={ins.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: T.textSecondary }}>{ins.name}</span>
+                      <span style={{ color: T.neonCyan, fontWeight: 500 }}>+S/{Math.round(ins.monthlyPrice)}/mes</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Footer: total */}
             <div style={{ padding: '12px 20px', borderTop: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>Cuota total</span>
-              <span style={{ fontSize: 18, fontWeight: 700, color: T.neonCyan }}>S/{Math.round(product.monthlyPayment)}/mes</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan }}>
+                S/{Math.round(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0))}/mes
+              </span>
             </div>
+
+            {/* Quota limit warning */}
+            {isOverQuotaLimit && (
+              <div style={{ padding: '12px 20px', borderTop: `1px solid ${T.border}`, background: isDark ? 'rgba(202,138,4,0.1)' : '#fefce8' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <AlertTriangle size={16} style={{ color: isDark ? '#eab308' : '#d97706', flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#eab308' : '#92400e', margin: 0 }}>Cuota mensual excedida</p>
+                    <p style={{ fontSize: 12, color: isDark ? '#ca8a04' : '#a16207', margin: '2px 0 0' }}>
+                      La cuota mensual supera el límite de S/{maxMonthlyQuota}/mes.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -945,7 +1005,7 @@ function SolicitarContent() {
               <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{selectedMonths} meses</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(product.monthlyPayment)}/mes</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0))}/mes</span>
               <ChevronUp size={20} style={{ color: T.textMuted, transition: 'transform 0.2s', transform: mobileProductExpanded ? 'rotate(180deg)' : 'none' }} />
             </div>
           </button>
@@ -969,23 +1029,36 @@ function SolicitarContent() {
                       {product.shortName !== product.name ? product.shortName : ''}
                     </p>
                   )}
+                  {/* Specs pills */}
+                  {product.specs && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                      {product.specs.processor && (
+                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{product.specs.processor}</span>
+                      )}
+                      {product.specs.ram && (
+                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{product.specs.ram}</span>
+                      )}
+                      {product.specs.storage && (
+                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{product.specs.storage}</span>
+                      )}
+                    </div>
+                  )}
                   {/* Initial payment pills */}
                   {currentPlanOptions.length > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <p style={{ fontSize: 10, color: T.textMuted, marginBottom: 4 }}>Inicial:</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {currentPlanOptions.map((opt: { initialPercent: number; initialAmount: number }) => {
-                          const isActive = opt.initialPercent === (product.initialPercent || 0);
-                          const label = opt.initialPercent === 0 ? 'Sin inicial' : `S/${Math.round(opt.initialAmount)}`;
+                        {currentPlanOptions.map((opt) => {
+                          const isActive = opt.percent === (product.initialPercent || 0);
                           return (
-                            <span key={opt.initialPercent} style={{
-                              fontSize: 10, padding: '3px 8px', borderRadius: 999,
+                            <button key={opt.percent} type="button" onClick={() => updateProductInitial(product.id, opt.percent)} style={{
+                              fontSize: 10, padding: '3px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                               background: isActive ? T.neonCyan : T.bgSurface,
                               color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
                               fontWeight: isActive ? 600 : 400,
                             }}>
-                              {label}
-                            </span>
+                              {opt.label}
+                            </button>
                           );
                         })}
                       </div>
@@ -1008,11 +1081,24 @@ function SolicitarContent() {
                 </div>
               )}
 
+              {/* Insurances summary */}
+              {selectedInsurances.length > 0 && (
+                <div style={{ marginTop: selectedAccessories.length > 0 ? 4 : 12 }}>
+                  {selectedInsurances.map((ins) => (
+                    <div key={ins.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.textSecondary, padding: '4px 0' }}>
+                      <Shield size={12} style={{ color: T.neonCyan }} />
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ins.name}</span>
+                      <span style={{ color: T.neonCyan, fontWeight: 600 }}>+S/{Math.round(ins.monthlyPrice)}/mes</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Total + term */}
               <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: cyanAlpha(0.05) }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>Cuota mensual total</span>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(product.monthlyPayment)}/mes</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0))}/mes</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
                   <span style={{ fontSize: 12, color: T.textMuted }}>Plazo:</span>
@@ -1029,7 +1115,7 @@ function SolicitarContent() {
                     {termDropdownOpen && availableTerms.length > 0 && (
                       <div style={{ position: 'absolute', zIndex: 50, bottom: '100%', right: 0, marginBottom: 4, minWidth: 120, background: isDark ? T.bgCard : '#fff', border: `1px solid ${T.border}`, borderRadius: 8, boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.12)', padding: 4 }}>
                         {availableTerms.map((m) => (
-                          <button key={m} type="button" onClick={() => { setSelectedMonths(m); setTermDropdownOpen(false); }} style={{ width: '100%', padding: '6px 10px', textAlign: 'left', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}>
+                          <button key={m} type="button" onClick={() => { updateAllProductsToTerm(m); setSelectedMonths(m); setTermDropdownOpen(false); }} style={{ width: '100%', padding: '6px 10px', textAlign: 'left', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}>
                             {m} meses
                           </button>
                         ))}
