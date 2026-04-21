@@ -82,38 +82,9 @@ export const NotFoundContent: React.FC<NotFoundContentProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white flex flex-col overflow-hidden" style={{ ['--tw-gradient-to' as string]: 'color-mix(in srgb, var(--color-primary, #4654CD) 5%, transparent)' }}>
+    <div className="min-h-screen bg-neutral-50 flex flex-col overflow-hidden">
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-12 relative">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <motion.div
-            className="absolute top-20 left-10 w-72 h-72 rounded-full blur-3xl"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary, #4654CD) 10%, transparent)' }}
-            animate={{
-              x: [0, 30, 0],
-              y: [0, -20, 0],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: 'easeInOut' as const,
-            }}
-          />
-          <motion.div
-            className="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl"
-            style={{ backgroundColor: 'color-mix(in srgb, var(--color-secondary, #03DBD0) 10%, transparent)' }}
-            animate={{
-              x: [0, -40, 0],
-              y: [0, 30, 0],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: 'easeInOut' as const,
-            }}
-          />
-        </div>
 
         <motion.div
           className="relative z-10 text-center max-w-lg mx-auto"

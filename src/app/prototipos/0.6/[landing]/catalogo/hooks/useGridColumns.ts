@@ -2,27 +2,35 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// Grid CSS: grid-cols-[repeat(auto-fill,minmax(min(305px,100%),1fr))]
-// Sidebar: 320px on lg+ screens, padding ~48px (p-6 on each side)
-const CARD_MIN_WIDTH = 280;
-const SIDEBAR_WIDTH = 320;
-const GRID_GAP = 24; // gap-6 = 1.5rem = 24px
-const LAYOUT_PADDING = 48; // p-6 on each side of main area
+// Default grid parameters (normal catalog)
+const DEFAULT_CARD_MIN_WIDTH = 280;
+const DEFAULT_SIDEBAR_WIDTH = 320;
+const DEFAULT_GRID_GAP = 24; // gap-6 = 1.5rem = 24px
+const DEFAULT_LAYOUT_PADDING = 48; // p-6 on each side of main area
+
+interface GridConfig {
+  cardMinWidth?: number;
+  sidebarWidth?: number;
+  gridGap?: number;
+  layoutPadding?: number;
+}
 
 /**
  * Calculates how many columns fit based on available width.
- * Matches the CSS: repeat(auto-fill, minmax(min(305px, 100%), 1fr))
  */
-function calcColumns(viewportWidth: number): number {
+function calcColumns(viewportWidth: number, config?: GridConfig): number {
+  const cardMinWidth = config?.cardMinWidth ?? DEFAULT_CARD_MIN_WIDTH;
+  const sidebarWidth = config?.sidebarWidth ?? DEFAULT_SIDEBAR_WIDTH;
+  const gridGap = config?.gridGap ?? DEFAULT_GRID_GAP;
+  const layoutPadding = config?.layoutPadding ?? DEFAULT_LAYOUT_PADDING;
+
   // On lg+ (>=1024px), sidebar is visible
   const hasSidebar = viewportWidth >= 1024;
-  const availableWidth = viewportWidth - (hasSidebar ? SIDEBAR_WIDTH : 0) - LAYOUT_PADDING;
+  const availableWidth = viewportWidth - (hasSidebar ? sidebarWidth : 0) - layoutPadding;
 
-  if (availableWidth <= CARD_MIN_WIDTH) return 1;
+  if (availableWidth <= cardMinWidth) return 1;
 
-  // auto-fill: as many columns of min 305px as fit, accounting for gaps
-  // Available = n * 305 + (n-1) * 24 → n * (305 + 24) - 24 ≤ available
-  const cols = Math.floor((availableWidth + GRID_GAP) / (CARD_MIN_WIDTH + GRID_GAP));
+  const cols = Math.floor((availableWidth + gridGap) / (cardMinWidth + gridGap));
   return Math.max(1, cols);
 }
 
@@ -35,12 +43,12 @@ function calcColumns(viewportWidth: number): number {
  *
  * This ensures the initial API fetch uses the correct column count.
  */
-export function useGridColumns() {
+export function useGridColumns(config?: GridConfig) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [columns, setColumns] = useState<number>(() => {
     // SSR-safe: calculate from viewport width if available
     if (typeof window !== 'undefined') {
-      return calcColumns(window.innerWidth);
+      return calcColumns(window.innerWidth, config);
     }
     return 3; // SSR default
   });
@@ -66,7 +74,7 @@ export function useGridColumns() {
       if (el && el.children.length > 0) {
         detectFromGrid();
       } else {
-        setColumns(calcColumns(window.innerWidth));
+        setColumns(calcColumns(window.innerWidth, config));
       }
     };
 
@@ -88,7 +96,7 @@ export function useGridColumns() {
       window.removeEventListener('resize', handleResize);
       observer?.disconnect();
     };
-  }, [detectFromGrid]);
+  }, [detectFromGrid, config]);
 
   return { gridRef, columns };
 }
