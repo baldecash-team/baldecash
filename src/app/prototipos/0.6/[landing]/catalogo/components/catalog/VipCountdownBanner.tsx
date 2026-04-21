@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 
 interface TimeLeft {
   days: number;
@@ -69,10 +70,10 @@ export default function VipCountdownBanner({ endDate }: VipCountdownBannerProps)
 
   return (
     <>
-      <style jsx global>{`
+      <style>{`
         @font-face {
           font-family: 'DSEG7';
-          src: url('/prototipos/0.6/fonts/DSEG7Classic-Bold.woff2') format('woff2');
+          src: url('${BASE_PATH}/fonts/DSEG7Classic-Bold.woff2') format('woff2');
           font-weight: bold;
           font-style: normal;
           font-display: swap;
