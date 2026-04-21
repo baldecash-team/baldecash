@@ -162,6 +162,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                           >
                             Elegir
                           </Button>
+                          {onAddToCart && (
                           <Button
                             size="sm"
                             variant="bordered"
@@ -176,6 +177,7 @@ export const DesignStyleA: React.FC<DesignStyleAProps> = ({
                           >
                             {cartItems.includes(product.id) ? 'Añadido' : 'Carrito'}
                           </Button>
+                          )}
                         </div>
                       </div>
                     </th>

@@ -66,7 +66,8 @@ export function useOnboarding(
   initialConfig: OnboardingConfig = defaultOnboardingConfig,
   questionCount: number = 7,
   hasQuiz: boolean = true,
-  landingSlug: string = 'home'
+  landingSlug: string = 'home',
+  allowMultiProduct: boolean = false
 ): UseOnboardingReturn {
   const [state, setState] = useState<OnboardingState>(defaultState);
   const [config, setConfigState] = useState<OnboardingConfig>(initialConfig);
@@ -79,8 +80,8 @@ export function useOnboarding(
 
   // Get steps based on config
   const steps = config.stepCount === 'complete'
-    ? getOnboardingStepsComplete(questionCount, hasQuiz)
-    : getOnboardingStepsMinimal(questionCount, hasQuiz);
+    ? getOnboardingStepsComplete(questionCount, hasQuiz, allowMultiProduct)
+    : getOnboardingStepsMinimal(questionCount, hasQuiz, allowMultiProduct);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -119,12 +120,12 @@ export function useOnboarding(
     setConfigState(newConfig);
     // Reset step if changing step count and current step is out of bounds
     const newSteps = newConfig.stepCount === 'complete'
-      ? getOnboardingStepsComplete(questionCount, hasQuiz)
-      : getOnboardingStepsMinimal(questionCount, hasQuiz);
+      ? getOnboardingStepsComplete(questionCount, hasQuiz, allowMultiProduct)
+      : getOnboardingStepsMinimal(questionCount, hasQuiz, allowMultiProduct);
     if (state.currentStep >= newSteps.length) {
       setState(prev => ({ ...prev, currentStep: 0 }));
     }
-  }, [state.currentStep, questionCount, hasQuiz]);
+  }, [state.currentStep, questionCount, hasQuiz, allowMultiProduct]);
 
   const startTour = useCallback(() => {
     setState(prev => ({

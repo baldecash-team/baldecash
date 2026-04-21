@@ -741,7 +741,7 @@ function CatalogoContent() {
   const { hasQuiz, questions: quizQuestions } = useQuiz({ landingSlug: landing });
   const questionCount = quizQuestions.length;
 
-  const onboarding = useOnboarding(onboardingInitialConfig, questionCount || 7, hasQuiz, landing);
+  const onboarding = useOnboarding(onboardingInitialConfig, questionCount || 7, hasQuiz, landing, ALLOW_MULTI_PRODUCT);
 
   // No artificial delay — render as soon as data is ready
   useEffect(() => {
@@ -2014,14 +2014,13 @@ function CatalogoContent() {
           onClearAll={handleClearCompare}
           comparisonState={comparisonState}
           onStateChange={setComparisonState}
-          onAddToCart={(productId) => {
-            // v0.6.2: Find product in compareProducts and pass to handleAddToCart
+          onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
             const product = compareProducts.find(p => p.id === productId);
             if (product) {
               handleAddToCart(productId, product);
             }
-          }}
-          cartItems={cart}
+          } : undefined}
+          cartItems={ALLOW_MULTI_PRODUCT ? cart : []}
         />
       )}
 

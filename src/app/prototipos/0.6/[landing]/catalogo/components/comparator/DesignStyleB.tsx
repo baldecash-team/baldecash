@@ -243,6 +243,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               >
                 {isBest ? 'Elegir ganador' : 'Seleccionar'}
               </Button>
+              {onAddToCart && (
               <Button
                 fullWidth
                 variant="bordered"
@@ -257,6 +258,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               >
                 {cartItems.includes(product.id) ? 'Añadido al carrito' : 'Añadir al carrito'}
               </Button>
+              )}
             </CardFooter>
           </Card>
         );
