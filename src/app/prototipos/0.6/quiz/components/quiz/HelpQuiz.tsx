@@ -168,25 +168,6 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     }
   }, [results, currentStep]);
 
-  // Emit quiz_start / quiz_abandon based on modal visibility.
-  // El start se dispara solo la primera vez que se abre con preguntas cargadas.
-  useEffect(() => {
-    if (isOpen && questions.length > 0 && quizStartTsRef.current === null) {
-      quizStartTsRef.current = Date.now();
-      analytics.trackQuizStart({ context, question_count: questions.length });
-    }
-    if (!isOpen && quizStartTsRef.current !== null && !results) {
-      // Cerró antes de terminar
-      analytics.trackQuizAbandon({
-        context,
-        step: currentStep,
-        total: questions.length,
-      });
-      quizStartTsRef.current = null;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, questions.length]);
-
   // Fetch quiz data from API
   const {
     questions: apiQuestions,
@@ -247,6 +228,25 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
 
   const totalSteps = questions.length;
   const currentQuestion = questions[currentStep];
+
+  // Emit quiz_start / quiz_abandon based on modal visibility.
+  // El start se dispara solo la primera vez que se abre con preguntas cargadas.
+  useEffect(() => {
+    if (isOpen && questions.length > 0 && quizStartTsRef.current === null) {
+      quizStartTsRef.current = Date.now();
+      analytics.trackQuizStart({ context, question_count: questions.length });
+    }
+    if (!isOpen && quizStartTsRef.current !== null && !results) {
+      // Cerró antes de terminar
+      analytics.trackQuizAbandon({
+        context,
+        step: currentStep,
+        total: questions.length,
+      });
+      quizStartTsRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, questions.length]);
 
   // Get layout component based on device (mobile: V4 bottom sheet, desktop: V5 modal)
   const LayoutComponent = isMobile ? QuizLayoutV4 : QuizLayoutV5;
