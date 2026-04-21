@@ -2046,7 +2046,7 @@ function GamerCatalogoContent() {
           onRemove={(id) => setCompareList(prev => prev.filter(p => p.id !== id))}
           onClearAll={() => { setCompareList([]); setShowCompareModal(false); }}
           onSelectProduct={(product) => {
-            router.push(`/prototipos/0.6/${landing}/solicitar/?product=${product.slug}`);
+            router.push(`${routes.solicitar(landing)}?product=${product.slug}`);
             setShowCompareModal(false);
           }}
           showCart={ALLOW_MULTI_PRODUCT}

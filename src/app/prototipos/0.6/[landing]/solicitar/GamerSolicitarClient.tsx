@@ -8,7 +8,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import { useRouter, useParams } from 'next/navigation';
-import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Loader2, Package, Plus, Search, ShoppingCart, Tag, Users, X } from 'lucide-react';
+import { AlertTriangle, FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Loader2, Package, Plus, Search, ShoppingCart, Tag, Users, X } from 'lucide-react';
 import { useProduct } from './context/ProductContext';
 import { useWizardConfig } from './context/WizardConfigContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -95,16 +95,21 @@ function SolicitarContent() {
     clearCoupon,
     cartProducts,
     getAllProducts,
+    isHydrated,
+    isOverQuotaLimit,
+    unavailableProductIds,
+    removeUnavailableProducts,
+    isValidatingAvailability,
   } = useProduct();
   const product = selectedProduct;
-  const { steps, displayStepsCount, displayEstimatedMinutes, config: wizardConfigData } = useWizardConfig();
+  const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes, config: wizardConfigData } = useWizardConfig();
 
   // ── Preview mode for API calls ──
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // ── Solicitar flow config (BD) ──
-  const { isCouponRequired } = useSolicitarFlow({ slug: landing, previewKey });
+  const { isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   const firstStepSlug = (() => {
     const regularSteps = steps.filter((s: { is_summary_step?: boolean }) => !s.is_summary_step);
@@ -116,7 +121,8 @@ function SolicitarContent() {
   // ── Local UI state ──
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [acceptPromos, setAcceptPromos] = useState(false);
+  const [acceptPromos, setAcceptPromos] = useState(true);
+  const [isTermsHydrated, setIsTermsHydrated] = useState(false);
   const [accFilter, setAccFilter] = useState<string>('Todos');
   const [accSearch, setAccSearch] = useState('');
   const [accPage, setAccPage] = useState(0);
@@ -125,12 +131,56 @@ function SolicitarContent() {
   const [mobileProductExpanded, setMobileProductExpanded] = useState(false);
   const [selectedMonths, setSelectedMonths] = useState(product?.months || 12);
   const [termsError, setTermsError] = useState(false);
+  const [privacyError, setPrivacyError] = useState(false);
   const termsRef = useRef<HTMLDivElement>(null);
 
   // ── Coupon state (validates via POST /public/coupons/validate) ──
   const [couponCode, setCouponCode] = useState('');
   const [couponState, setCouponState] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [couponError, setCouponError] = useState('');
+
+  // ── Persist terms in localStorage (same as normal landing) ──
+  useEffect(() => {
+    try {
+      const savedTerms = localStorage.getItem(`baldecash-${landing}-wizard-acceptTerms`);
+      const savedPrivacy = localStorage.getItem(`baldecash-${landing}-wizard-acceptPrivacy`);
+      const savedPromos = localStorage.getItem(`baldecash-${landing}-wizard-acceptPromos`);
+      if (savedTerms !== null) setAcceptTerms(savedTerms === 'true');
+      if (savedPrivacy !== null) setAcceptPrivacy(savedPrivacy === 'true');
+      if (savedPromos !== null) setAcceptPromos(savedPromos === 'true');
+    } catch {}
+    setIsTermsHydrated(true);
+  }, [landing]);
+
+  useEffect(() => {
+    if (!isTermsHydrated) return;
+    try { localStorage.setItem(`baldecash-${landing}-wizard-acceptTerms`, String(acceptTerms)); } catch {}
+  }, [acceptTerms, isTermsHydrated, landing]);
+
+  useEffect(() => {
+    if (!isTermsHydrated) return;
+    try { localStorage.setItem(`baldecash-${landing}-wizard-acceptPrivacy`, String(acceptPrivacy)); } catch {}
+  }, [acceptPrivacy, isTermsHydrated, landing]);
+
+  useEffect(() => {
+    if (!isTermsHydrated) return;
+    try { localStorage.setItem(`baldecash-${landing}-wizard-acceptPromos`, String(acceptPromos)); } catch {}
+  }, [acceptPromos, isTermsHydrated, landing]);
+
+  // ── Redirect if no product selected (same as normal landing) ──
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (!selectedProduct) {
+      router.replace(routes.catalogo(landing));
+    }
+  }, [isHydrated, selectedProduct, router, landing]);
+
+  // ── Unavailable products ──
+  const currentProductIds = new Set(
+    (cartProducts.length > 0 ? cartProducts : selectedProduct ? [selectedProduct] : []).map(p => p.id)
+  );
+  const activeUnavailableIds = (unavailableProductIds || []).filter(id => currentProductIds.has(id));
+  const hasUnavailableProducts = activeUnavailableIds.length > 0;
 
   // ── Accessories from backend ──
   const [accessories, setAccessories] = useState<Accessory[]>([]);
@@ -260,21 +310,45 @@ function SolicitarContent() {
   }, [clearCoupon]);
 
   const handleStart = useCallback(() => {
-    console.log('[GamerSolicitar] handleStart called', { acceptTerms, firstStepSlug, steps: steps?.length, landing });
+    // Block if unavailable products
+    if (hasUnavailableProducts) {
+      termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Block if over quota limit
+    if (isOverQuotaLimit) return;
+
+    // Validate terms
     if (!acceptTerms) {
       setTermsError(true);
       termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    // Validate privacy
+    if (!acceptPrivacy) {
+      setPrivacyError(true);
+      termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Validate coupon if required
+    if (isCouponRequired && !appliedCoupon) {
+      setCouponError('Debes ingresar un cupón válido para continuar');
+      setCouponState('error');
+      setTimeout(() => setCouponState('idle'), 2000);
+      return;
+    }
+
     setTermsError(false);
+    setPrivacyError(false);
     if (firstStepSlug) {
-      const url = routes.solicitarStep(landing, firstStepSlug);
-      console.log('[GamerSolicitar] Navigating to:', url);
-      router.push(url);
+      router.push(routes.solicitarStep(landing, firstStepSlug));
     } else {
       console.error('[GamerSolicitar] No hay pasos configurados. steps:', steps);
     }
-  }, [router, landing, acceptTerms, firstStepSlug, steps]);
+  }, [router, landing, acceptTerms, acceptPrivacy, firstStepSlug, steps, hasUnavailableProducts, isOverQuotaLimit, isCouponRequired, appliedCoupon]);
 
   const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,179,150,${a})`;
 
@@ -295,8 +369,13 @@ function SolicitarContent() {
     return plan?.options || [];
   }, [product, selectedMonths]);
 
-  if (!themeHydrated) {
-    return <div className="gamer-theme-bg" style={{ minHeight: '100vh' }} />;
+  // Show loading while hydrating or waiting for essential data
+  if (!themeHydrated || !isHydrated || !selectedProduct || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {
+    return (
+      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CubeGridSpinner />
+      </div>
+    );
   }
 
   return (
@@ -598,7 +677,7 @@ function SolicitarContent() {
         </div>
 
         {/* Términos */}
-        <div ref={termsRef} style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${termsError && !acceptTerms ? T.neonCyan : T.border}`, marginBottom: 32, transition: 'all 0.3s', boxShadow: termsError && !acceptTerms ? `0 0 0 3px ${cyanAlpha(0.3)}` : 'none' }}>
+        <div ref={termsRef} style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${(termsError && !acceptTerms) || (privacyError && !acceptPrivacy) ? T.neonCyan : T.border}`, marginBottom: 32, transition: 'all 0.3s', boxShadow: (termsError && !acceptTerms) || (privacyError && !acceptPrivacy) ? `0 0 0 3px ${cyanAlpha(0.3)}` : 'none' }}>
           <h3 style={{ fontWeight: 600, color: T.textPrimary, marginBottom: 16 }}>Términos y Condiciones</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Términos - obligatorio */}
@@ -616,16 +695,21 @@ function SolicitarContent() {
                 <p style={{ fontSize: 12, color: T.neonCyan, marginTop: 8, marginLeft: 36 }}>Debes aceptar los términos y condiciones para continuar</p>
               )}
             </div>
-            {/* Privacidad */}
-            <button type="button" onClick={() => setAcceptPrivacy(!acceptPrivacy)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
-              <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${acceptPrivacy ? T.neonCyan : (isDark ? T.border : '#d1d5db')}`, background: acceptPrivacy ? T.neonCyan : (isDark ? T.bgCard : '#fff'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'all 0.2s' }}>
-                {acceptPrivacy && <Check size={14} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />}
-              </div>
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 500, color: T.textPrimary }}>Acepto la política de privacidad</p>
-                <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>He leído y acepto cómo se usan y protegen mis datos personales</p>
-              </div>
-            </button>
+            {/* Privacidad - obligatorio */}
+            <div>
+              <button type="button" onClick={() => { setAcceptPrivacy(!acceptPrivacy); if (!acceptPrivacy) setPrivacyError(false); }} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
+                <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${privacyError && !acceptPrivacy ? T.neonCyan : (acceptPrivacy ? T.neonCyan : (isDark ? T.border : '#d1d5db'))}`, background: acceptPrivacy ? T.neonCyan : (isDark ? T.bgCard : '#fff'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'all 0.2s', boxShadow: privacyError && !acceptPrivacy ? `0 0 0 2px ${cyanAlpha(0.3)}` : 'none' }}>
+                  {acceptPrivacy && <Check size={14} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />}
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: privacyError && !acceptPrivacy ? T.neonCyan : T.textPrimary }}>Acepto la política de privacidad</p>
+                  <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>He leído y acepto cómo se usan y protegen mis datos personales</p>
+                </div>
+              </button>
+              {privacyError && !acceptPrivacy && (
+                <p style={{ fontSize: 12, color: T.neonCyan, marginTop: 8, marginLeft: 36 }}>Debes aceptar la política de privacidad para continuar</p>
+              )}
+            </div>
             {/* Promos */}
             <button type="button" onClick={() => setAcceptPromos(!acceptPromos)} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', width: '100%' }}>
               <div style={{ width: 24, height: 24, borderRadius: 6, border: `2px solid ${acceptPromos ? T.neonCyan : (isDark ? T.border : '#d1d5db')}`, background: acceptPromos ? T.neonCyan : (isDark ? T.bgCard : '#fff'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'all 0.2s' }}>
@@ -694,8 +778,45 @@ function SolicitarContent() {
           </div>
         </div>
 
+        {/* Unavailable products banner */}
+        {hasUnavailableProducts && (
+          <div style={{ marginBottom: 24, background: isDark ? 'rgba(202,138,4,0.1)' : '#fefce8', border: `1px solid ${isDark ? 'rgba(202,138,4,0.3)' : '#fde68a'}`, borderRadius: 12, padding: '12px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <AlertTriangle size={20} style={{ color: isDark ? '#eab308' : '#d97706', flexShrink: 0, marginTop: 2 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: isDark ? '#eab308' : '#92400e', margin: 0 }}>
+                  {activeUnavailableIds.length === 1
+                    ? 'Un producto de tu selección ya no está disponible'
+                    : `${activeUnavailableIds.length} productos de tu selección ya no están disponibles`}
+                </p>
+                <p style={{ fontSize: 12, color: isDark ? 'rgba(202,138,4,0.8)' : '#b45309', margin: '4px 0 0' }}>
+                  Debes quitar los productos no disponibles para continuar con tu solicitud.
+                </p>
+                <button
+                  type="button"
+                  onClick={removeUnavailableProducts}
+                  style={{ marginTop: 8, padding: '6px 12px', fontSize: 12, fontWeight: 500, background: isDark ? 'rgba(202,138,4,0.2)' : '#fef3c7', color: isDark ? '#eab308' : '#92400e', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                >
+                  Quitar productos no disponibles
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* CTA */}
-        <button onClick={handleStart} className="btn-loquiero-detalle" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '16px 24px', fontSize: 18, boxShadow: '0 0 20px rgba(0,255,213,0.2), 0 0 40px rgba(99,102,241,0.15)' }}>
+        <button
+          onClick={handleStart}
+          disabled={isOverQuotaLimit || hasUnavailableProducts}
+          className="btn-loquiero-detalle"
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '16px 24px', fontSize: 18,
+            boxShadow: isOverQuotaLimit || hasUnavailableProducts ? 'none' : '0 0 20px rgba(0,255,213,0.2), 0 0 40px rgba(99,102,241,0.15)',
+            opacity: isOverQuotaLimit || hasUnavailableProducts ? 0.5 : 1,
+            cursor: isOverQuotaLimit || hasUnavailableProducts ? 'not-allowed' : 'pointer',
+          }}
+        >
           <span>Comenzar Solicitud</span>
           <ArrowRight size={20} />
         </button>

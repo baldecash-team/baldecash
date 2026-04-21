@@ -168,34 +168,81 @@ function ProximamenteContent() {
 
   if (isGamer) {
     const neonCyan = isDark ? '#00ffd5' : '#00897a';
+    const neonPurple = isDark ? '#a855f7' : '#7c3aed';
     const border = isDark ? '#2a2a2a' : '#e0e0e0';
     const bgCard = isDark ? '#1a1a1a' : '#ffffff';
+    const textPrimary = isDark ? '#f0f0f0' : '#1a1a1a';
     const textMuted = isDark ? '#707070' : '#888';
+    const btnText = isDark ? '#0a0a0a' : '#ffffff';
+    const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,137,122,${a})`;
     const IconComponent = getIconComponent(contenido.icon);
 
     return (
-      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: isDark ? '#f0f0f0' : '#1a1a1a', fontFamily: "'Rajdhani', sans-serif" }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');`}</style>
+      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+          @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px ${cyanAlpha(0.15)}, 0 0 60px ${cyanAlpha(0.05)}; } 50% { box-shadow: 0 0 30px ${cyanAlpha(0.25)}, 0 0 80px ${cyanAlpha(0.1)}; } }
+          @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        `}</style>
         <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
         <main style={{ paddingTop: 24 }}>
           <div className="max-w-lg mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-            {/* Icon */}
-            <div style={{ width: 72, height: 72, borderRadius: 16, background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
-              <IconComponent size={36} style={{ color: neonCyan }} />
+
+            {/* Icon — animated floating with glow */}
+            <div style={{
+              width: 88, height: 88, borderRadius: 20,
+              background: isDark
+                ? 'linear-gradient(135deg, rgba(0,255,213,0.12) 0%, rgba(168,85,247,0.08) 100%)'
+                : 'linear-gradient(135deg, rgba(0,137,122,0.1) 0%, rgba(124,58,237,0.06) 100%)',
+              border: `1px solid ${cyanAlpha(0.2)}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 28px',
+              animation: 'pulse-glow 3s ease-in-out infinite, float 4s ease-in-out infinite',
+            }}>
+              <IconComponent size={40} style={{ color: neonCyan }} />
+            </div>
+
+            {/* Tag */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 12px', borderRadius: 4, marginBottom: 16,
+              fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 3, textTransform: 'uppercase',
+              color: neonCyan,
+              background: cyanAlpha(0.06),
+              border: `1px solid ${cyanAlpha(0.15)}`,
+            }}>
+              <Construction size={12} />
+              EN DESARROLLO
             </div>
 
             {/* Title */}
-            <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 12 }}>
+            <h1 style={{
+              fontFamily: "'Bebas Neue', sans-serif",
+              fontSize: 'clamp(32px, 6vw, 48px)',
+              lineHeight: 1.05, letterSpacing: 1, marginBottom: 12,
+              backgroundImage: isDark
+                ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
+                : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+            }}>
               Estamos trabajando en esto
             </h1>
 
             {/* Section badge */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px', borderRadius: 999, background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)', marginBottom: 16 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: neonCyan }}>{contenido.titulo}</span>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '6px 18px', borderRadius: 999,
+              background: cyanAlpha(0.08),
+              border: `1px solid ${cyanAlpha(0.15)}`,
+              marginBottom: 16,
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: neonCyan, fontFamily: "'Rajdhani', sans-serif" }}>
+                {contenido.titulo}
+              </span>
             </div>
 
             {/* Description */}
-            <p style={{ fontSize: 15, color: isDark ? '#a0a0a0' : '#555', maxWidth: 420, margin: '0 auto 32px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 15, color: textMuted, maxWidth: 420, margin: '0 auto 36px', lineHeight: 1.7 }}>
               {contenido.descripcion}
             </p>
 
@@ -203,51 +250,75 @@ function ProximamenteContent() {
             <a
               href={routes.landingHome(landing)}
               style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', borderRadius: 10,
-                background: neonCyan, color: '#0a0a0a', fontSize: 15, fontWeight: 700,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '13px 32px', borderRadius: 12,
+                background: neonCyan, color: btnText,
+                fontSize: 15, fontWeight: 700,
                 textDecoration: 'none', fontFamily: "'Rajdhani', sans-serif",
+                boxShadow: `0 0 20px ${cyanAlpha(0.3)}, 0 4px 12px ${cyanAlpha(0.2)}`,
+                transition: 'all 0.2s',
               }}
             >
               <ArrowLeft size={16} />
               Volver al inicio
             </a>
 
-            {/* WhatsApp card */}
-            <div style={{ marginTop: 40, padding: 16, background: bgCard, borderRadius: 14, border: `1px solid ${border}`, textAlign: 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(37,211,102,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <MessageCircle size={20} style={{ color: '#25D366' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 4px' }}>¿Tienes alguna consulta?</p>
-                  <p style={{ fontSize: 13, color: textMuted, margin: '0 0 12px' }}>Nuestro equipo está disponible para ayudarte.</p>
-                  <a
-                    href="https://wa.me/51999999999"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
-                      background: '#25D366', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none',
-                    }}
-                  >
-                    <MessageCircle size={14} />
-                    Escríbenos por WhatsApp
-                  </a>
+            {/* Cards container */}
+            <div style={{ marginTop: 48, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* WhatsApp card */}
+              <div style={{
+                padding: 18, background: bgCard, borderRadius: 14,
+                border: `1px solid ${border}`, textAlign: 'left',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 12,
+                    background: isDark ? 'rgba(37,211,102,0.1)' : 'rgba(37,211,102,0.08)',
+                    border: `1px solid ${isDark ? 'rgba(37,211,102,0.15)' : 'rgba(37,211,102,0.12)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <MessageCircle size={20} style={{ color: '#25D366' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 4px', color: textPrimary }}>¿Tienes alguna consulta?</p>
+                    <p style={{ fontSize: 13, color: textMuted, margin: '0 0 12px' }}>Nuestro equipo está disponible para ayudarte.</p>
+                    <a
+                      href="https://wa.link/osgxjf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 10,
+                        background: '#25D366', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+                        fontFamily: "'Rajdhani', sans-serif",
+                      }}
+                    >
+                      <MessageCircle size={14} />
+                      Escríbenos por WhatsApp
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Email card */}
-            <div style={{ marginTop: 12, padding: 16, background: bgCard, borderRadius: 14, border: `1px solid ${border}`, textAlign: 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: isDark ? 'rgba(245,158,11,0.1)' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Bell size={20} style={{ color: '#d97706' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 4px' }}>También puedes escribirnos</p>
-                  <a href="mailto:prestamos@baldecash.com" style={{ fontSize: 13, color: neonCyan, textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                    prestamos@baldecash.com
-                  </a>
+              {/* Email card */}
+              <div style={{
+                padding: 18, background: bgCard, borderRadius: 14,
+                border: `1px solid ${border}`, textAlign: 'left',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{
+                    width: 42, height: 42, borderRadius: 12,
+                    background: cyanAlpha(0.08),
+                    border: `1px solid ${cyanAlpha(0.15)}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <Mail size={20} style={{ color: neonCyan }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, margin: '0 0 4px', color: textPrimary }}>También puedes escribirnos</p>
+                    <a href="mailto:prestamos@baldecash.com" style={{ fontSize: 13, color: neonCyan, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                      prestamos@baldecash.com
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

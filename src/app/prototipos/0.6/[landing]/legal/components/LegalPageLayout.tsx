@@ -146,7 +146,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
             .gamer-legal-content .text-neutral-500 { color: ${textMuted} !important; }
             .gamer-legal-content .border-neutral-200 { border-color: ${border} !important; }
           `}</style>
-          <div className="gamer-legal-content max-w-none">
+          <div className="gamer-legal-content max-w-none" style={{ '--color-primary': neonCyan } as React.CSSProperties}>
             {children}
           </div>
         </main>
