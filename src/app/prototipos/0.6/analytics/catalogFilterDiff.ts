@@ -14,9 +14,15 @@
 import type { FilterState } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import type { FilterCode, UseAnalyticsReturn } from './useAnalytics';
 
-type ArrayFilterKey = {
-  [K in keyof FilterState]: FilterState[K] extends (string | number)[] ? K : never;
-}[keyof FilterState];
+// Campos de FilterState que son arrays de opciones. Se excluye `quotaRange`
+// porque, aunque es asignable a `(string | number)[]`, es una tupla de rango
+// que se emite como `filter_range_change` (sección 4), no como toggle.
+type ArrayFilterKey = Exclude<
+  {
+    [K in keyof FilterState]: FilterState[K] extends (string | number)[] ? K : never;
+  }[keyof FilterState],
+  'quotaRange'
+>;
 
 type BoolTriKey = {
   [K in keyof FilterState]: FilterState[K] extends boolean | null ? K : never;
