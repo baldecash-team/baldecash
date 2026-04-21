@@ -389,7 +389,9 @@ export function GamerSidebar({
 
       {/* Filter skeletons while API loads */}
       {isFiltersLoading && !apiFilters && (() => {
-        const shimmerBg = 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)';
+        const shimmerBg = isDark
+          ? 'linear-gradient(90deg, #1a1a1a 25%, #252525 50%, #1a1a1a 75%)'
+          : 'linear-gradient(90deg, #e5e5e5 25%, #f0f0f0 50%, #e5e5e5 75%)';
         const shimmerStyle = { backgroundImage: shimmerBg, backgroundSize: '200% 100%', animation: 'shimmer 1.5s ease-in-out infinite' };
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

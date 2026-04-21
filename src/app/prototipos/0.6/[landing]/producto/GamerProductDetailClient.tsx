@@ -6,10 +6,10 @@
  * Tema: neon cyan (#00ffd5), neon purple (#6366f1), fondo oscuro (#0e0e0e)
  */
 
-import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef, useSyncExternalStore, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { Award, Calculator, Calendar, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Sparkles, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, ShoppingCart, CircleAlert } from 'lucide-react';
+import { Award, Calculator, Calendar, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Loader2, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, CircleAlert } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -27,6 +27,7 @@ import { generateSpecSheetPDF } from './utils/generateSpecSheetPDF';
 import { generateCronogramaPDF } from './utils/generateCronogramaPDF';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
 import { CubeGridSpinner, Toast, useToast } from '@/app/prototipos/_shared';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 // Theme helper (same as GamerCatalogoClient)
 function gamerTheme(isDark: boolean) {
@@ -125,6 +126,7 @@ function DetailContent() {
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoom, setZoom] = useState<{ active: boolean; x: number; y: number }>({ active: false, x: 50, y: 50 });
+  const touchStartX = useRef<number | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxZoom, setLightboxZoom] = useState(100);
   const [selectedTerm, setSelectedTerm] = useState(12);
@@ -138,6 +140,10 @@ function DetailContent() {
   // Cart UI state
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Download loading states
+  const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
+  const [specDownloadSuccess, setSpecDownloadSuccess] = useState(false);
 
   // Add to cart handler
   const handleAddToCart = useCallback((cartItem: CartItem) => {
@@ -198,9 +204,21 @@ function DetailContent() {
     return () => { cancelled = true; };
   }, [landing, slug]);
 
-  // Set default term from payment plans
+  // Set default term and initial from API response
   useEffect(() => {
-    if (data?.paymentPlans?.length) setSelectedTerm(data.paymentPlans[0].term);
+    if (!data?.paymentPlans?.length) return;
+    const plans = data.paymentPlans;
+    // Use API defaultTerm if available and valid, otherwise use max term, fallback to first
+    const apiDefault = data.defaultTerm;
+    if (apiDefault != null && plans.some((p) => p.term === apiDefault)) {
+      setSelectedTerm(apiDefault);
+    } else {
+      setSelectedTerm(Math.max(...plans.map((p) => p.term)));
+    }
+    // Use API defaultInitial if available
+    if (data.defaultInitial != null) {
+      setSelectedInitialPercent(data.defaultInitial);
+    }
   }, [data]);
 
   // Fetch accessories
@@ -231,18 +249,42 @@ function DetailContent() {
   const similarProducts = data?.similarProducts || [];
   const limitations = data?.limitations || [];
   const certifications = data?.certifications || [];
+  const combo = data?.combo;
   const isAvailable = data?.isAvailable !== false;
   const activePlan = paymentPlans.find((p) => p.term === selectedTerm) || paymentPlans[0];
   const lowestOption = activePlan?.options?.find((o) => o.initialPercent === selectedInitialPercent) || activePlan?.options?.[0];
-  const isWishlisted = product ? catalogState.isInWishlist(product.id) : false;
+  const isWishlisted = product ? catalogState.isInWishlist(String(product.id)) : false;
+
+  // Color siblings (other color variants of the same product)
+  const hasSiblings = (product?.colorSiblings?.length ?? 0) > 1;
+  const siblingColors = hasSiblings
+    ? product!.colorSiblings.map((sib) => ({ id: String(sib.productId), name: sib.color, hex: sib.colorHex }))
+    : null;
+  const displayColors = siblingColors || product?.colors || [];
+  const defaultColorId = hasSiblings
+    ? String(product!.colorSiblings.find((s) => s.slug === product!.slug)?.productId || displayColors[0]?.id)
+    : displayColors[0]?.id || '';
+  const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
+
+  const handleColorSelect = useCallback((colorId: string) => {
+    if (hasSiblings && product?.colorSiblings) {
+      const sibling = product.colorSiblings.find((s) => String(s.productId) === colorId);
+      if (sibling && sibling.slug !== product.slug) {
+        router.push(routes.producto(landing, sibling.slug));
+        return;
+      }
+    }
+    setSelectedColorId(colorId);
+  }, [hasSiblings, product, router, landing]);
 
   const [wishlistToast, setWishlistToast] = useState<string | null>(null);
 
-  const handleToggleWishlist = useCallback(() => {
+  const handleToggleWishlist = () => {
     if (!product) return;
-    const wasWishlisted = catalogState.isInWishlist(product.id);
+    const pid = String(product.id);
+    const wasWishlisted = catalogState.isInWishlist(pid);
     catalogState.toggleWishlist({
-      productId: product.id,
+      productId: pid,
       name: product.displayName || product.name,
       shortName: product.name,
       image: product.images?.[0]?.url || '',
@@ -250,15 +292,16 @@ function DetailContent() {
       lowestQuota: lowestOption?.monthlyQuota || 0,
       brand: product.brand,
       slug: product.slug,
-      months: (selectedTerm || 24) as 6 | 12 | 18 | 24,
-      initialPercent: 0,
-      initialAmount: 0,
+      type: product.deviceType as 'laptop' | 'tablet' | 'celular' | 'accesorio',
+      months: (selectedTerm || 24) as TermMonths,
+      initialPercent: (selectedInitialPercent || 0) as 0 | 10 | 20,
+      initialAmount: Math.round((product.price * (selectedInitialPercent || 0)) / 100),
       monthlyPayment: lowestOption?.monthlyQuota || 0,
       addedAt: Date.now(),
     });
     setWishlistToast(wasWishlisted ? 'Eliminado de favoritos' : 'Agregado a favoritos');
     setTimeout(() => setWishlistToast(null), 2500);
-  }, [product, catalogState, lowestOption, selectedTerm]);
+  };
 
   const handleSolicitar = useCallback(() => {
     if (!product) return;
@@ -266,7 +309,7 @@ function DetailContent() {
     if (ALLOW_MULTI_PRODUCT) {
       // Multi-product mode: add to cart
       const cartItem: CartItem = {
-        productId: product.id,
+        productId: String(product.id),
         slug: product.slug,
         name: product.displayName || product.name,
         shortName: product.name,
@@ -285,7 +328,7 @@ function DetailContent() {
           storage: product.specs.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type || ''}`.trim() : '',
         } : undefined,
       };
-      if (catalogState.isInCart(product.id)) {
+      if (catalogState.isInCart(String(product.id))) {
         // Already in cart — open cart drawer
         setIsCartDrawerOpen(true);
       } else {
@@ -296,7 +339,7 @@ function DetailContent() {
 
     // Single-product mode: go directly to solicitar
     setSelectedProduct({
-      id: product.id,
+      id: String(product.id),
       slug: product.slug,
       name: product.displayName || product.name,
       shortName: product.name,
@@ -333,7 +376,7 @@ function DetailContent() {
 
   const images = product.images?.length
     ? product.images
-    : [{ id: '0', url: '/images/zona-gamer/placeholder-product.png', alt: product.name, type: 'main' as const }];
+    : [{ id: '0', url: `${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`, alt: product.name, type: 'main' as const }];
   const currentImage = images[selectedImage] || images[0];
 
   const quickSpecs = product.specs?.slice(0, 5).map((s) => ({ label: s.category, value: s.specs?.[0]?.value || '' })).filter((s) => s.value) || [];
@@ -630,8 +673,23 @@ function DetailContent() {
           <div style={{ background: T.bgCard, borderRadius: 16, border: `1px solid ${T.border}`, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column' }}>
             {/* Gallery header: brand + rating + title + specs line */}
             <div style={{ padding: 'clamp(10px, 2.5vw, 20px) clamp(10px, 2.5vw, 20px) 0', position: 'relative', zIndex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                 <span style={{ padding: '4px 10px', background: T.neonPurple, color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 6 }}>{product.brand}</span>
+                {/* Badges from backend */}
+                {product.badges?.map((badge, i) => {
+                  const badgeColors: Record<string, { bg: string; color: string }> = {
+                    success: { bg: isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7', color: '#16a34a' },
+                    warning: { bg: isDark ? 'rgba(234,179,8,0.15)' : '#fef9c3', color: '#ca8a04' },
+                    info: { bg: isDark ? 'rgba(59,130,246,0.15)' : '#dbeafe', color: '#2563eb' },
+                    primary: { bg: isDark ? 'rgba(99,102,241,0.15)' : '#e0e7ff', color: T.neonPurple },
+                  };
+                  const style = badgeColors[badge.variant || 'primary'] || badgeColors.primary;
+                  return (
+                    <span key={i} style={{ padding: '4px 10px', background: style.bg, color: style.color, fontSize: 11, fontWeight: 600, borderRadius: 6, fontFamily: F.mono, letterSpacing: 0.5 }}>
+                      {badge.text}
+                    </span>
+                  );
+                })}
                 {/* Rating solo si el backend trae reviews reales */}
                 {product.rating != null && product.reviewCount > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -650,12 +708,42 @@ function DetailContent() {
                   {quickSpecs.map((s) => s.value).join(' | ')}
                 </p>
               )}
+              {/* Color selector */}
+              {displayColors.length > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
+                  <span style={{ fontSize: 12, color: T.textMuted, fontFamily: F.mono }}>Color:</span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {displayColors.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => handleColorSelect(c.id)}
+                        title={c.name}
+                        style={{
+                          width: 28, height: 28, borderRadius: '50%', border: c.id === selectedColorId ? `2px solid ${T.neonCyan}` : `2px solid ${T.border}`,
+                          background: c.hex || '#888', cursor: 'pointer', padding: 0,
+                          boxShadow: c.id === selectedColorId ? `0 0 8px ${T.neonCyan}40` : 'none',
+                          transition: 'all 0.2s',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Main image/video viewer — square aspect with cursor-guided zoom (imagen) o controles nativos (video) */}
             <div
               className="gallery-img-wrap"
               style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', cursor: currentImage.type === 'video' ? 'default' : 'zoom-in', background: currentImage.type === 'video' ? '#000' : undefined }}
+              onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+              onTouchEnd={(e) => {
+                if (touchStartX.current === null || images.length <= 1) return;
+                const dx = e.changedTouches[0].clientX - touchStartX.current;
+                touchStartX.current = null;
+                if (Math.abs(dx) < 50) return;
+                if (dx < 0 && selectedImage < images.length - 1) setSelectedImage(selectedImage + 1);
+                else if (dx > 0 && selectedImage > 0) setSelectedImage(selectedImage - 1);
+              }}
               {...(currentImage.type !== 'video' && {
                 onMouseEnter: () => setZoom((z) => ({ ...z, active: true })),
                 onMouseLeave: () => setZoom({ active: false, x: 50, y: 50 }),
@@ -768,6 +856,37 @@ function DetailContent() {
         {/* RIGHT: Pricing (sticky on desktop) */}
         <div id="section-pricing" className="gamer-detail-pricing-order" style={{ position: 'sticky', top: 168, alignSelf: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(10px, 2.5vw, 24px)' }}>
+            {/* Combo banner */}
+            {combo && combo.accessories.length > 0 && (
+              <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(0,255,213,0.05))' : 'linear-gradient(135deg, rgba(79,70,229,0.06), rgba(0,137,122,0.04))', borderRadius: 16, border: `1px solid ${isDark ? 'rgba(99,102,241,0.2)' : 'rgba(79,70,229,0.15)'}`, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Package size={18} style={{ color: T.neonPurple }} />
+                  <span style={{ fontFamily: F.raj, fontWeight: 700, fontSize: 15, color: T.textPrimary }}>
+                    {combo.displayName || 'Combo incluye'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {combo.accessories.map((acc) => (
+                    <div key={acc.productId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderRadius: 10 }}>
+                      {acc.imageUrl && (
+                        <Image src={acc.imageUrl} alt={acc.productName} width={36} height={36} style={{ borderRadius: 6, objectFit: 'contain' }} />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.productName}</p>
+                      </div>
+                      {acc.isIncludedFree ? (
+                        <div style={{ textAlign: 'right' }}>
+                          {acc.unitPrice > 0 && <span style={{ fontSize: 11, textDecoration: 'line-through', color: T.textMuted }}>S/{Math.round(acc.unitPrice)}</span>}
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', display: 'block' }}>Gratis</span>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 13, fontWeight: 600, color: T.neonCyan }}>+S/{Math.round(acc.unitPrice)}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Pricing card */}
             <div style={{ background: T.bgCard, borderRadius: 16, border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : T.border}`, padding: 24, boxShadow: isDark ? '0 0 32px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.3)' : '0 4px 24px rgba(0,0,0,0.08)' }}>
               <h3 style={{ fontFamily: F.raj, fontSize: 20, fontWeight: 700, color: T.textPrimary, letterSpacing: 0, margin: '0 0 8px' }}>Calcula tu cuota mensual</h3>
@@ -855,34 +974,44 @@ function DetailContent() {
             </div>
 
             {/* Action buttons — fixed at bottom on mobile, inline on desktop */}
-            <div className="gamer-detail-cta-bar">
-              {ALLOW_MULTI_PRODUCT && product && catalogState.isInCart(product.id) ? (
+            {!isAvailable ? (
+              <div style={{ background: isDark ? 'rgba(202,138,4,0.1)' : '#fefce8', border: `1px solid ${isDark ? 'rgba(202,138,4,0.3)' : '#fde68a'}`, borderRadius: 12, padding: '12px 16px', textAlign: 'center' }}>
+                <p style={{ color: isDark ? '#eab308' : '#92400e', fontWeight: 600, fontSize: 14, margin: 0, fontFamily: F.raj }}>Este producto no se encuentra disponible actualmente</p>
+              </div>
+            ) : (
+              <div className="gamer-detail-cta-bar">
+                {ALLOW_MULTI_PRODUCT && product && catalogState.isInCart(String(product.id)) ? (
+                  <button
+                    onClick={() => setIsCartDrawerOpen(true)}
+                    className="btn-loquiero-detalle"
+                    style={{
+                      flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)',
+                      background: isDark ? '#1a3a35' : '#e6faf7',
+                      border: `2px solid ${T.neonCyan}60`,
+                      color: T.neonCyan,
+                    }}
+                  >
+                    <CheckCircle size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
+                    En carrito
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSolicitar}
+                    className="btn-loquiero-detalle"
+                    style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}
+                  >
+                    {ALLOW_MULTI_PRODUCT ? 'Agregar al carrito' : '¡Lo quiero!'}
+                  </button>
+                )}
                 <button
-                  onClick={() => setIsCartDrawerOpen(true)}
-                  className="btn-loquiero-detalle"
-                  style={{
-                    flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)',
-                    background: isDark ? '#1a3a35' : '#e6faf7',
-                    border: `2px solid ${T.neonCyan}60`,
-                    color: T.neonCyan,
-                  }}
+                  onClick={handleToggleWishlist}
+                  className={`gamer-detail-cta-heart${isWishlisted ? ' is-wishlisted' : ''}`}
+                  aria-label={isWishlisted ? 'Quitar de favoritos' : 'Agregar a favoritos'}
                 >
-                  <CheckCircle size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
-                  En carrito
+                  <Heart size={20} style={{ fill: isWishlisted ? T.neonCyan : 'none' }} />
                 </button>
-              ) : (
-                <button onClick={handleSolicitar} className="btn-loquiero-detalle" style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}>
-                  {ALLOW_MULTI_PRODUCT ? 'Agregar al carrito' : '¡Lo quiero!'}
-                </button>
-              )}
-              <button
-                onClick={handleToggleWishlist}
-                className={`gamer-detail-cta-heart${isWishlisted ? ' is-wishlisted' : ''}`}
-                aria-label={isWishlisted ? 'Quitar de favoritos' : 'Agregar a favoritos'}
-              >
-                <Heart size={20} style={{ fill: isWishlisted ? T.neonCyan : 'none' }} />
-              </button>
-            </div>
+              </div>
+            )}
 
             {/* Certifications — replica el comportamiento del home: muestra el header
                 aunque data.certifications esté vacío, con los chips reales del backend */}
@@ -967,29 +1096,47 @@ function DetailContent() {
               </div>
             </div>
             <button
-              onClick={() => generateSpecSheetPDF({
-                productName: product.displayName || product.name,
-                productBrand: product.brand,
-                productImage: product.images?.[0]?.url,
-                productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
-                specs: product.specs || [],
-                ports: product.ports,
-                description: product.description,
-                shortDescription: product.shortDescription,
-                generatedDate: new Date(),
-                // Gamer cyan — neón en dark, teal en light
-                primaryColor: isDark ? [0, 255, 213] : [0, 137, 122],
-                logoUrl: '/images/zona-gamer/logo baldecash/LOGO OFI.png',
-                darkMode: isDark,
-              })}
+              onClick={async () => {
+                if (isGeneratingSpec) return;
+                setIsGeneratingSpec(true);
+                try {
+                  await generateSpecSheetPDF({
+                    productName: product.displayName || product.name,
+                    productBrand: product.brand,
+                    productImage: product.images?.[0]?.url,
+                    productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+                    specs: product.specs || [],
+                    ports: product.ports,
+                    description: product.description,
+                    shortDescription: product.shortDescription,
+                    generatedDate: new Date(),
+                    primaryColor: isDark ? [0, 255, 213] : [0, 137, 122],
+                    logoUrl: `${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`,
+                    darkMode: isDark,
+                  });
+                  setSpecDownloadSuccess(true);
+                  setTimeout(() => setSpecDownloadSuccess(false), 3000);
+                } catch (e) {
+                  console.error('Error generando PDF:', e);
+                } finally {
+                  setIsGeneratingSpec(false);
+                }
+              }}
               className="gamer-ficha-btn"
+              disabled={isGeneratingSpec}
               style={{
-                background: T.neonCyan,
+                background: specDownloadSuccess ? '#22c55e' : T.neonCyan,
                 color: isDark ? '#0a0a0a' : '#fff',
+                opacity: isGeneratingSpec ? 0.7 : 1,
+                cursor: isGeneratingSpec ? 'not-allowed' : 'pointer',
               }}
             >
-              <Download size={16} />
-              Descargar PDF
+              {isGeneratingSpec
+                ? <><Loader2 size={16} className="animate-spin" /> Generando...</>
+                : specDownloadSuccess
+                ? <><Check size={16} /> Descargado</>
+                : <><Download size={16} /> Descargar PDF</>
+              }
             </button>
           </div>
         </div>
@@ -997,7 +1144,7 @@ function DetailContent() {
 
       {/* CRONOGRAMA / DETALLE DE CUOTAS */}
       <div id="cronograma">
-        <CronogramaSection T={T} isDark={isDark} selectedTerm={selectedTerm} monthlyQuota={lowestOption?.monthlyQuota || product.lowestQuota} price={product.price} commission={lowestOption?.commissionAmount || null} productName={product.displayName || product.name} productBrand={product.brand} tea={activePlan?.tea} tcea={activePlan?.tcea} />
+        <CronogramaSection T={T} isDark={isDark} selectedTerm={selectedTerm} monthlyQuota={lowestOption?.monthlyQuota || product.lowestQuota} price={product.price} commission={lowestOption?.commissionAmount || null} productName={product.displayName || product.name} productBrand={product.brand} tea={activePlan?.tea ?? lowestOption?.tea} tcea={activePlan?.tcea ?? lowestOption?.tcea} />
       </div>
 
       {/* ACCESSORIES */}
@@ -1022,6 +1169,31 @@ function DetailContent() {
           />
         )}
       </div>
+
+      {/* LIMITATIONS */}
+      {limitations.length > 0 && (
+        <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
+          <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: isDark ? 'rgba(234,179,8,0.1)' : '#fef9c3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CircleAlert size={18} style={{ color: '#ca8a04' }} />
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, fontFamily: F.raj }}>Información importante</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {limitations.map((lim, i) => (
+                <div key={i} style={{ padding: '12px 16px', borderRadius: 10, background: isDark ? (lim.severity === 'warning' ? 'rgba(234,179,8,0.06)' : 'rgba(59,130,246,0.06)') : (lim.severity === 'warning' ? '#fffbeb' : '#eff6ff'), border: `1px solid ${isDark ? (lim.severity === 'warning' ? 'rgba(234,179,8,0.12)' : 'rgba(59,130,246,0.12)') : (lim.severity === 'warning' ? '#fef3c7' : '#dbeafe')}` }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: T.textPrimary, margin: '0 0 4px' }}>{lim.category}</p>
+                  <p style={{ fontSize: 13, color: T.textSecondary, margin: 0 }}>{lim.description}</p>
+                  {lim.alternative && (
+                    <p style={{ fontSize: 12, color: T.neonCyan, margin: '6px 0 0', fontWeight: 500 }}>Alternativa: {lim.alternative}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Wishlist toast — aparece arriba del CTA bar fijo en mobile */}
       {wishlistToast && (
@@ -1257,7 +1429,7 @@ function PortsSection({ T, isDark, ports }: { T: Theme; isDark: boolean; ports: 
       <div style={{ background: isDark ? T.bgCard : '#fff', borderRadius: 16, padding: 'clamp(16px, 4vw, 24px)', boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.06)', border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 'clamp(16px, 4vw, 24px)' }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: cyanAlphaStatic(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: cyanAlphaFn(isDark)(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Usb size={20} style={{ color: T.neonCyan }} />
           </div>
           <div>
@@ -1302,7 +1474,7 @@ function PortsSection({ T, isDark, ports }: { T: Theme; isDark: boolean; ports: 
 
         {/* Footer badges */}
         <div style={{ marginTop: 24, paddingTop: 16, borderTop: `1px solid ${isDark ? T.border : '#e5e7eb'}`, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-          <span style={{ padding: '4px 12px', background: cyanAlphaStatic(0.1), color: T.neonCyan, borderRadius: 999, fontSize: 12, fontWeight: 500 }}>{totalPorts} puertos totales</span>
+          <span style={{ padding: '4px 12px', background: cyanAlphaFn(isDark)(0.1), color: T.neonCyan, borderRadius: 999, fontSize: 12, fontWeight: 500 }}>{totalPorts} puertos totales</span>
           <span style={{ padding: '4px 12px', background: isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5', color: isDark ? '#a0a0a0' : '#525252', borderRadius: 999, fontSize: 12, fontWeight: 500 }}>{leftPorts.length} izquierda • {rightPorts.length} derecha</span>
         </div>
       </div>
@@ -1310,8 +1482,8 @@ function PortsSection({ T, isDark, ports }: { T: Theme; isDark: boolean; ports: 
   );
 }
 
-function cyanAlphaStatic(a: number) {
-  return `rgba(0,255,213,${a})`;
+function cyanAlphaFn(isDark: boolean) {
+  return (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,179,150,${a})`;
 }
 
 // ============================================
@@ -1415,7 +1587,7 @@ function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
 // Financiamiento Modal
 // ============================================
 
-function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, totalPagar, tea, tcea, commission, onClose, onDownloadPdf }: { T: Theme; isDark: boolean; price: number; monthlyQuota: number; selectedTerm: number; totalPagar: number; tea?: number | null; tcea?: number | null; commission?: number | null; onClose: () => void; onDownloadPdf: () => void }) {
+function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, totalPagar, tea, tcea, commission, onClose, onDownloadPdf, isDownloading }: { T: Theme; isDark: boolean; price: number; monthlyQuota: number; selectedTerm: number; totalPagar: number; tea?: number | null; tcea?: number | null; commission?: number | null; onClose: () => void; onDownloadPdf: () => void; isDownloading?: boolean }) {
   // Block body scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -1531,9 +1703,9 @@ function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, tot
         {/* Footer */}
         <div style={{ display: 'flex', gap: 8, padding: '16px 20px', borderTop: `1px solid ${border}`, justifyContent: 'flex-end', flexShrink: 0 }}>
           <button onClick={onClose} style={{ padding: '10px 16px', borderRadius: 10, border: `2px solid ${isDark ? T.border : '#d4d4d4'}`, background: 'transparent', color: textMain, fontSize: 14, cursor: 'pointer' }}>Cerrar</button>
-          <button onClick={onDownloadPdf} style={{ padding: '10px 16px', borderRadius: 10, border: `2px solid ${accent}`, background: 'transparent', color: accent, fontSize: 14, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Download size={16} />
-            Descargar PDF
+          <button onClick={onDownloadPdf} disabled={isDownloading} style={{ padding: '10px 16px', borderRadius: 10, border: `2px solid ${accent}`, background: 'transparent', color: accent, fontSize: 14, fontWeight: 500, cursor: isDownloading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: isDownloading ? 0.6 : 1 }}>
+            {isDownloading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {isDownloading ? 'Generando...' : 'Descargar PDF'}
           </button>
         </div>
       </div>
@@ -1550,6 +1722,7 @@ const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'jul
 function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commission, productName, productBrand, tea, tcea }: { T: Theme; isDark: boolean; selectedTerm: number; monthlyQuota: number; price: number; commission: number | null; productName: string; productBrand: string; tea?: number | null; tcea?: number | null }) {
   const [expanded, setExpanded] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [isGeneratingCronoPDF, setIsGeneratingCronoPDF] = useState(false);
   // TEA viene del plan activo (backend). Sin TEA no mostramos cronograma.
   const effectiveTea = tea ?? null;
   const comisionMensual = commission != null ? commission : 0;
@@ -1610,37 +1783,45 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
   const visibleRows = expanded ? rows : rows.slice(0, 6);
   const totalPagar = rows.length * Math.round(monthlyQuota);
 
-  const handleDownloadCronograma = useCallback(() => {
-    generateCronogramaPDF({
-      productName,
-      productBrand,
-      productPrice: price,
-      productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
-      term: selectedTerm,
-      monthlyQuota: Math.round(monthlyQuota),
-      totalPayment: totalPagar,
-      amortizationSchedule: rows.map((r) => ({
-        month: r.num,
-        date: r.fecha,
-        capital: r.capital,
-        interest: r.interes,
-        quota: r.monto,
-        balance: r.saldo,
-      })),
-      financialData: {
-        tea: tea ?? 0,
-        tcea: tcea ?? 0,
-        comisionDesembolso: 0,
-        seguroDesgravamen: 0,
-        seguroMultiriesgo: 0,
-        gastoNotarial: 0,
-      },
-      generatedDate: new Date(),
-      primaryColor: isDark ? [0, 255, 213] : [0, 137, 122],
-      logoUrl: '/images/zona-gamer/logo baldecash/LOGO OFI.png',
-      darkMode: isDark,
-    });
-  }, [price, selectedTerm, monthlyQuota, productName, productBrand, tea, tcea, rows, totalPagar, isDark]);
+  const handleDownloadCronograma = useCallback(async () => {
+    if (isGeneratingCronoPDF) return;
+    setIsGeneratingCronoPDF(true);
+    try {
+      await generateCronogramaPDF({
+        productName,
+        productBrand,
+        productPrice: price,
+        productUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+        term: selectedTerm,
+        monthlyQuota: Math.round(monthlyQuota),
+        totalPayment: totalPagar,
+        amortizationSchedule: rows.map((r) => ({
+          month: r.num,
+          date: r.fecha,
+          capital: r.capital,
+          interest: r.interes,
+          quota: r.monto,
+          balance: r.saldo,
+        })),
+        financialData: {
+          tea: tea ?? 0,
+          tcea: tcea ?? 0,
+          comisionDesembolso: 0,
+          seguroDesgravamen: 0,
+          seguroMultiriesgo: 0,
+          gastoNotarial: 0,
+        },
+        generatedDate: new Date(),
+        primaryColor: isDark ? [0, 255, 213] : [0, 137, 122],
+        logoUrl: `${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`,
+        darkMode: isDark,
+      });
+    } catch (e) {
+      console.error('Error generando cronograma PDF:', e);
+    } finally {
+      setIsGeneratingCronoPDF(false);
+    }
+  }, [price, selectedTerm, monthlyQuota, productName, productBrand, tea, tcea, rows, totalPagar, isDark, isGeneratingCronoPDF]);
 
   return (
     <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
@@ -1648,7 +1829,7 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
         {/* Header */}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 'clamp(16px, 4vw, 24px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: cyanAlphaStatic(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: cyanAlphaFn(isDark)(0.1), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Calendar size={18} style={{ color: T.neonCyan }} />
             </div>
             <div>
@@ -1672,7 +1853,7 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
               {visibleRows.map((row) => (
                 <tr key={row.num} style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5'}` }}>
                   <td style={{ padding: 12 }}>
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: row.isLast ? (isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7') : cyanAlphaStatic(0.1), color: row.isLast ? '#16a34a' : T.neonCyan }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: row.isLast ? (isDark ? 'rgba(34,197,94,0.15)' : '#dcfce7') : cyanAlphaFn(isDark)(0.1), color: row.isLast ? '#16a34a' : T.neonCyan }}>
                       {row.num}
                     </div>
                   </td>
@@ -1702,15 +1883,15 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
             <Info size={16} />
             Ver detalle de pago
           </button>
-          <button onClick={handleDownloadCronograma} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', borderRadius: 10, border: `2px solid ${isDark ? T.border : '#d4d4d4'}`, background: 'transparent', color: isDark ? '#d4d4d4' : '#404040', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
-            <Download size={16} />
-            Descargar PDF
+          <button onClick={handleDownloadCronograma} disabled={isGeneratingCronoPDF} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', borderRadius: 10, border: `2px solid ${isDark ? T.border : '#d4d4d4'}`, background: 'transparent', color: isDark ? '#d4d4d4' : '#404040', fontSize: 14, fontWeight: 500, cursor: isGeneratingCronoPDF ? 'not-allowed' : 'pointer', opacity: isGeneratingCronoPDF ? 0.6 : 1 }}>
+            {isGeneratingCronoPDF ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {isGeneratingCronoPDF ? 'Generando...' : 'Descargar PDF'}
           </button>
         </div>
       </div>
 
       {/* Modal: Detalle del Financiamiento */}
-      {showDetail && <FinanciamientoModal T={T} isDark={isDark} price={price} monthlyQuota={monthlyQuota} selectedTerm={selectedTerm} totalPagar={totalPagar} tea={tea} tcea={tcea} commission={commission} onClose={() => setShowDetail(false)} onDownloadPdf={handleDownloadCronograma} />}
+      {showDetail && <FinanciamientoModal T={T} isDark={isDark} price={price} monthlyQuota={monthlyQuota} selectedTerm={selectedTerm} totalPagar={totalPagar} tea={tea} tcea={tcea} commission={commission} onClose={() => setShowDetail(false)} onDownloadPdf={handleDownloadCronograma} isDownloading={isGeneratingCronoPDF} />}
     </section>
   );
 }
@@ -1911,6 +2092,10 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
 
   // Similares vienen directo del backend (data.similarProducts)
   const products = similarProducts;
+  // Per-product selected image index
+  const [imgIdx, setImgIdx] = useState<Record<string, number>>({});
+  // Modal state for multi-product cart selection
+  const [modalProd, setModalProd] = useState<SimilarProduct | null>(null);
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -1947,16 +2132,35 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
           {products.map((prod) => {
             // quotaDifference viene del backend; si no, calculamos vs la cuota actual
             const diff = prod.quotaDifference != null ? prod.quotaDifference : Math.round(prod.monthlyQuota) - Math.round(currentQuota);
+            const isCheaper = diff < 0;
             const displayName = prod.displayName || prod.name;
+            const diffTags = prod.differentiators?.filter((d) => d.toLowerCase() !== prod.brand.toLowerCase()).slice(0, 3) || [];
+            const imageUrls = prod.images && prod.images.length > 0 ? prod.images.map((img) => img.url) : [prod.thumbnail];
+            const currentImg = imageUrls[imgIdx[prod.id] || 0] || prod.thumbnail;
             return (
               <div key={prod.id} style={{ width: 300, minWidth: 300, flexShrink: 0, scrollSnapAlign: 'start' }}>
                 <div style={{ height: '100%', borderRadius: 16, overflow: 'hidden', background: isDark ? T.bgSurface : '#fff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.08)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column' }}>
                   {/* Image */}
                   <div style={{ position: 'relative', padding: 16, background: isDark ? 'linear-gradient(to bottom, #1e1e1e, #1a1a1a)' : 'linear-gradient(to bottom, #fafafa, #fff)' }}>
                     <div style={{ aspectRatio: '4/3', overflow: 'hidden', borderRadius: 12, marginBottom: 8 }}>
-                      <Image src={prod.thumbnail} alt={displayName} width={268} height={200} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={currentImg || prod.thumbnail} alt={displayName} className="w-full h-full object-contain" onError={(e) => { const el = e.target as HTMLImageElement; if (el.src !== prod.thumbnail) { el.src = prod.thumbnail; } }} />
                     </div>
                     <p style={{ fontSize: 10, color: isDark ? '#555' : '#a3a3a3', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', marginBottom: 8 }}>Imagen referencial</p>
+                    {/* Mini thumbnails */}
+                    {imageUrls.length > 1 && (
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 4 }}>
+                        {imageUrls.map((imgUrl, idx) => {
+                          const sel = (imgIdx[prod.id] || 0) === idx;
+                          return (
+                            <button key={idx} onClick={() => setImgIdx((prev) => ({ ...prev, [prod.id]: idx }))} style={{ width: 36, height: 36, borderRadius: 8, overflow: 'hidden', border: `2px solid ${sel ? T.neonCyan : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`, cursor: 'pointer', padding: 2, background: isDark ? T.bgSurface : '#fff', opacity: sel ? 1 : 0.6, transition: 'all 0.2s' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={imgUrl} alt={`${displayName} ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                     {/* Match badge — solo si el backend lo trae */}
                     {prod.matchScore > 0 && (
                       <div style={{ position: 'absolute', top: 12, left: 12, padding: '6px 12px', background: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderRadius: 999, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1965,26 +2169,35 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
                       </div>
                     )}
                     {/* Price diff badge */}
-                    <div style={{ position: 'absolute', top: 12, right: 12, padding: '6px 12px', borderRadius: 999, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: 4, background: T.neonPurple, color: '#fff' }}>
-                      <TrendingUp size={14} />
-                      <span style={{ fontSize: 12, fontWeight: 700 }}>{diff >= 0 ? '+' : ''}S/{diff}</span>
+                    <div style={{ position: 'absolute', top: 12, right: 12, padding: '6px 12px', borderRadius: 999, boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: 4, background: isCheaper ? '#10b981' : T.neonPurple, color: '#fff' }}>
+                      {isCheaper ? <TrendingUp size={14} style={{ transform: 'scaleY(-1)' }} /> : <TrendingUp size={14} />}
+                      <span style={{ fontSize: 12, fontWeight: 700 }}>{isCheaper ? '-' : '+'}S/{Math.abs(diff)}</span>
                     </div>
                   </div>
 
                   {/* Content */}
                   <div style={{ padding: 20, textAlign: 'center', display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <p style={{ fontSize: 12, color: T.neonCyan, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{prod.brand}</p>
-                    <h3 style={{ fontWeight: 700, color: isDark ? '#fff' : '#262626', fontSize: 18, marginBottom: 12, minHeight: '3.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{displayName}</h3>
+                    <h3 title={displayName} style={{ fontWeight: 700, color: isDark ? '#fff' : '#262626', fontSize: 18, marginBottom: 12, minHeight: '3.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', cursor: 'pointer' }} onClick={() => router.push(routes.producto(landing, prod.slug))}>{displayName}</h3>
+
+                    {/* Differentiator tags */}
+                    {diffTags.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                        {diffTags.map((tag, idx) => (
+                          <span key={idx} style={{ padding: '4px 10px', background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(99,102,241,0.1)', color: T.neonCyan, fontSize: 12, fontWeight: 500, borderRadius: 999 }}>{tag}</span>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Quota box */}
-                    <div style={{ borderRadius: 16, padding: '16px 24px', marginBottom: 12, background: isDark ? 'rgba(0,255,213,0.04)' : 'rgba(70,84,205,0.05)' }}>
+                    <div style={{ borderRadius: 16, padding: '16px 24px', marginBottom: 12, background: isCheaper ? (isDark ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.05)') : (isDark ? 'rgba(0,255,213,0.04)' : 'rgba(70,84,205,0.05)') }}>
                       <p style={{ fontSize: 12, color: isDark ? '#707070' : '#737373', marginBottom: 4 }}>Cuota mensual</p>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 30, fontWeight: 900, color: T.neonCyan }}>S/{Math.round(prod.monthlyQuota)}</span>
+                        <span style={{ fontSize: 30, fontWeight: 900, color: isCheaper ? '#10b981' : T.neonCyan }}>S/{Math.round(prod.monthlyQuota)}</span>
                         <span style={{ fontSize: 16, color: isDark ? '#555' : '#a3a3a3' }}>/mes</span>
                       </div>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, marginTop: 4, color: T.neonPurple }}>
-                        <TrendingUp size={12} />
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 500, marginTop: 4, color: isCheaper ? '#10b981' : T.neonPurple }}>
+                        {isCheaper ? <TrendingUp size={12} style={{ transform: 'scaleY(-1)' }} /> : <TrendingUp size={12} />}
                         <span>vs S/{Math.round(currentQuota)}/mes actual</span>
                       </div>
                     </div>
@@ -1999,24 +2212,12 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
                       </button>
                       <button
                         onClick={() => {
+                          if (allowMultiProduct && isInCart?.(prod.id)) return;
                           if (allowMultiProduct && onAddToCart) {
-                            const estimatedPrice = Math.floor(prod.monthlyQuota * 24);
-                            onAddToCart({
-                              productId: prod.id,
-                              slug: prod.slug,
-                              name: prod.displayName || prod.name,
-                              shortName: prod.name,
-                              brand: prod.brand,
-                              image: prod.thumbnail,
-                              price: estimatedPrice,
-                              months: 24 as TermMonths,
-                              initialPercent: 0,
-                              initialAmount: 0,
-                              monthlyPayment: prod.monthlyQuota,
-                              addedAt: Date.now(),
-                            });
+                            setModalProd(prod);
                           } else {
-                            router.push(routes.solicitar(landing));
+                            // Single mode: navigate to product detail so user can configure term/initial
+                            router.push(routes.producto(landing, prod.slug));
                           }
                         }}
                         className="btn-loquiero-detalle"
@@ -2029,7 +2230,7 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
                           } : {}),
                         }}
                       >
-                        {allowMultiProduct && isInCart?.(prod.id) ? '✓ En carrito' : 'Lo quiero'}
+                        {allowMultiProduct && isInCart?.(prod.id) ? '✓ En carrito' : isCheaper ? 'Ahorrar' : 'Lo quiero'}
                       </button>
                     </div>
                   </div>
@@ -2042,6 +2243,70 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
         {/* Mobile hint */}
         <p className="md:hidden" style={{ textAlign: 'center', fontSize: 12, color: isDark ? '#555' : '#a3a3a3', marginTop: 0 }}>Desliza para ver más →</p>
       </div>
+
+      {/* Cart selection modal for multi-product */}
+      {allowMultiProduct && modalProd && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setModalProd(null)}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} />
+          <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 400, background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
+            {/* Product preview */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, background: isDark ? '#1e1e1e' : '#f5f5f5', borderBottom: `1px solid ${T.border}` }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={modalProd.thumbnail} alt={modalProd.displayName} style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 8, background: isDark ? T.bgSurface : '#fff', border: `1px solid ${T.border}` }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 11, color: T.neonCyan, fontWeight: 600, textTransform: 'uppercase', margin: 0 }}>{modalProd.brand}</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{modalProd.displayName}</p>
+                <p style={{ fontSize: 15, fontWeight: 800, color: T.neonCyan, margin: 0 }}>S/{Math.round(modalProd.monthlyQuota)}/mes</p>
+              </div>
+              <button onClick={() => setModalProd(null)} style={{ width: 28, height: 28, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <X size={16} style={{ color: T.textSecondary }} />
+              </button>
+            </div>
+            {/* Options */}
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={() => { router.push(routes.producto(landing, modalProd.slug)); setModalProd(null); }}
+                style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: `2px solid ${T.neonCyan}`, background: 'transparent', color: T.neonCyan, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}
+              >
+                <Eye size={20} />
+                <div style={{ textAlign: 'left' }}>
+                  <div>Solicitar equipo</div>
+                  <div style={{ fontSize: 12, fontWeight: 400, opacity: 0.7 }}>Iniciar proceso de solicitud</div>
+                </div>
+              </button>
+              <button
+                onClick={() => {
+                  if (onAddToCart) {
+                    onAddToCart({
+                      productId: modalProd.id,
+                      slug: modalProd.slug,
+                      name: modalProd.displayName || modalProd.name,
+                      shortName: modalProd.name,
+                      brand: modalProd.brand,
+                      image: modalProd.thumbnail,
+                      price: Math.floor(modalProd.monthlyQuota * 24),
+                      months: 24 as TermMonths,
+                      initialPercent: 0,
+                      initialAmount: 0,
+                      monthlyPayment: modalProd.monthlyQuota,
+                      addedAt: Date.now(),
+                    });
+                  }
+                  setModalProd(null);
+                }}
+                className="btn-loquiero-detalle"
+                style={{ width: '100%', padding: '14px 16px', fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-start' }}
+              >
+                <Plus size={20} />
+                <div style={{ textAlign: 'left' }}>
+                  <div>Agregar al carrito</div>
+                  <div style={{ fontSize: 12, fontWeight: 400, opacity: 0.7 }}>Seguir comparando equipos</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -2062,7 +2327,7 @@ function SpecCard({ spec }: { spec: ProductSpec }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {spec.specs.map((item, i) => (
           <div key={i} className="spec-row">
-            <span className="spec-row-label">{item.label}</span>
+            <span className="spec-row-label" title={item.tooltip || undefined} style={item.tooltip ? { cursor: 'help', borderBottom: '1px dotted currentColor' } : undefined}>{item.label}</span>
             <span className={`spec-row-value${item.highlight ? ' primary' : ''}`}>{item.value}</span>
           </div>
         ))}

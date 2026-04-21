@@ -119,7 +119,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             name: p.name,
             displayName: p.displayName,
             brand: p.brand,
-            thumbnail: p.thumbnail,
+            thumbnail: p.images?.[0] || p.thumbnail,
             quotaMonthly: p.quotaMonthly,
             maxTermMonths: p.maxTermMonths || 24,
           })));

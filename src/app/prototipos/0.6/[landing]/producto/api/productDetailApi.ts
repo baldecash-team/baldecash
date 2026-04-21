@@ -363,7 +363,7 @@ function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct 
   });
 
   return {
-    id: apiProduct.id,
+    id: String(apiProduct.id),
     name: apiProduct.name,
     displayName: apiProduct.display_name || apiProduct.name,
     brand: apiProduct.brand,
@@ -427,7 +427,7 @@ function transformCombo(apiCombo: ApiCombo): ComboInfo {
 
 function transformProductData(apiProduct: ApiProductData): ProductDetail {
   return {
-    id: apiProduct.id,
+    id: String(apiProduct.id),
     slug: apiProduct.slug,
     name: apiProduct.name,
     displayName: apiProduct.display_name,
