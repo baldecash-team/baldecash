@@ -206,6 +206,8 @@ export interface FooterData {
   sbs_text?: string;
   copyright_text?: string;
   social_links?: { platform: string; url: string }[];
+  contact_title?: string;
+  libro_reclamaciones_label?: string;
   // From company_info
   company?: CompanyData;
 }

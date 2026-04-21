@@ -1,69 +1,134 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
-import { Facebook, Instagram } from 'lucide-react';
-import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { Facebook, Instagram, Linkedin, Twitter, Youtube, Phone } from 'lucide-react';
+import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
+import { getFooterData } from '@/app/prototipos/0.6/services/landingApi';
+import type { FooterData } from '@/app/prototipos/0.6/types/hero';
 
 interface GamerFooterProps {
   theme: 'dark' | 'light';
+  footerData?: FooterData | null;
 }
 
-const LANDING = 'zona-gamer';
+const LOGO_URL = `${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`;
+const LIBRO_RECLAMACIONES_IMG = 'https://baldecash.s3.amazonaws.com/company/libro-reclamaciones.png';
+const WHATSAPP_SOPORTE = {
+  number: '+51 959 324 808',
+  href: 'https://wa.me/51959324808',
+  label: 'Soporte al Estudiante',
+};
+const WHATSAPP_COBRANZAS = {
+  number: '+51 934 240 164',
+  href: 'https://wa.me/51934240164',
+  label: 'Cobranzas',
+};
 
-const FOOTER_COLS = [
-  {
-    title: 'Productos',
-    links: [
-      { label: 'Equipos', href: routes.catalogo(LANDING) },
-      { label: 'Accesorios', href: '#accessories' },
-      { label: 'Seguros', href: routes.proximamente(LANDING) + '?seccion=seguros' },
-      { label: 'Promociones', href: routes.proximamente(LANDING) + '?seccion=promociones' },
-    ],
-  },
-  {
-    title: 'Empresa',
-    links: [
-      { label: 'Sobre nosotros', href: routes.proximamente(LANDING) + '?seccion=nosotros' },
-      { label: 'Convenios', href: routes.proximamente(LANDING) + '?seccion=convenios' },
-      { label: 'Trabaja con nosotros', href: routes.proximamente(LANDING) + '?seccion=trabaja' },
-      { label: 'Blog', href: routes.proximamente(LANDING) + '?seccion=blog' },
-    ],
-  },
-  {
-    title: 'Soporte',
-    links: [
-      { label: 'Centro de ayuda', href: routes.proximamente(LANDING) + '?seccion=ayuda' },
-      { label: 'FAQ', href: routes.proximamente(LANDING) + '?seccion=faq' },
-      { label: 'Estado de solicitud', href: routes.proximamente(LANDING) + '?seccion=estado' },
-      { label: 'Contacto', href: routes.proximamente(LANDING) + '?seccion=contacto' },
-    ],
-  },
-  {
-    title: 'Legal',
-    links: [
-      { label: 'Términos y condiciones', href: routes.legal(LANDING, 'terminos-y-condiciones') },
-      { label: 'Política de privacidad', href: routes.legal(LANDING, 'politica-de-privacidad') },
-      { label: 'Libro de reclamaciones', href: routes.legal(LANDING, 'libro-reclamaciones') },
-    ],
-  },
-];
+const SOCIAL_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  facebook: Facebook,
+  instagram: Instagram,
+  twitter: Twitter,
+  x: Twitter,
+  linkedin: Linkedin,
+  youtube: Youtube,
+};
 
-const SOCIALS = [
-  { icon: Facebook, href: 'https://www.facebook.com/baldecash', label: 'Facebook' },
-  { icon: Instagram, href: 'https://www.instagram.com/baldecash/', label: 'Instagram' },
-];
-
-// TikTok icon (not in lucide-react)
-function TikTokIcon() {
+function TikTokIcon({ className }: { className?: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className={className}>
       <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V9.05a8.27 8.27 0 004.76 1.5V7.12a4.83 4.83 0 01-1-.43z" />
     </svg>
   );
 }
 
-export function GamerFooter({ theme }: GamerFooterProps) {
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  );
+}
+
+function getSocialIcon(platform: string) {
+  const key = platform.toLowerCase().trim();
+  if (key === 'tiktok') return TikTokIcon;
+  return SOCIAL_ICON_MAP[key] ?? null;
+}
+
+/**
+ * Normaliza hrefs del backend:
+ *  - externos / anchors / tel: / mailto: → tal cual
+ *  - con BASE_PATH ya aplicado → tal cual
+ *  - absolutos tipo "/home/catalogo" → reemplaza el landing y prefija BASE_PATH
+ *  - relativos → prefija BASE_PATH + landing
+ */
+function transformFooterHref(href: string | undefined | null, landing: string | undefined): string {
+  if (!href) return '#';
+  if (/^(https?:|mailto:|tel:|#)/i.test(href)) return href;
+  if (BASE_PATH && href.startsWith(`${BASE_PATH}/`)) return href;
+  if (!landing) return href;
+
+  const qIndex = href.indexOf('?');
+  const pathPart = qIndex >= 0 ? href.slice(0, qIndex) : href;
+  const queryPart = qIndex >= 0 ? href.slice(qIndex) : '';
+
+  if (pathPart.startsWith('/')) {
+    const segments = pathPart.split('/').filter(Boolean);
+    if (segments.length === 0) return `${BASE_PATH}/${landing}${queryPart}`;
+    const [, ...rest] = segments;
+    const newPath = rest.length > 0 ? `/${landing}/${rest.join('/')}` : `/${landing}`;
+    return `${BASE_PATH}${newPath}${queryPart}`;
+  }
+
+  return `${BASE_PATH}/${landing}/${href}${queryPart}`;
+}
+
+/**
+ * Normaliza social_links: prioriza array del footer component,
+ * fallback al objeto company.social_links.
+ */
+function resolveSocialLinks(data: FooterData | null): { platform: string; url: string }[] {
+  if (!data) return [];
+  if (data.social_links && data.social_links.length > 0) return data.social_links;
+
+  const fromCompany = data.company?.social_links;
+  if (!fromCompany) return [];
+
+  const list: { platform: string; url: string }[] = [];
+  (['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'] as const).forEach((platform) => {
+    const url = fromCompany[platform];
+    if (url) list.push({ platform, url });
+  });
+  return list;
+}
+
+export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterProps) {
+  const params = useParams();
+  const landingSlug =
+    (params?.landing as string | undefined) ||
+    (Array.isArray(params?.slug)
+      ? (params.slug[0] as string | undefined)
+      : (params?.slug as string | undefined));
+
+  const [fetchedFooter, setFetchedFooter] = useState<FooterData | null>(null);
+
+  useEffect(() => {
+    if (footerDataProp) return;
+    if (!landingSlug) return;
+    let cancelled = false;
+    getFooterData(landingSlug).then((data) => {
+      if (!cancelled) setFetchedFooter(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [landingSlug, footerDataProp]);
+
+  const footerData = footerDataProp ?? fetchedFooter;
+
   const isDark = theme === 'dark';
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#6366f1' : '#4f46e5';
@@ -74,18 +139,31 @@ export function GamerFooter({ theme }: GamerFooterProps) {
   const textMuted = isDark ? '#707070' : '#888';
   const gradient = `linear-gradient(135deg, ${neonPurple}, ${neonCyan})`;
 
+  const socials = resolveSocialLinks(footerData);
+  const columns = footerData?.columns ?? [];
+  const tagline = footerData?.tagline;
+  const sbsText = footerData?.sbs_text;
+  const copyrightText = footerData?.copyright_text;
+  const contactTitle = footerData?.contact_title;
+  const libroReclamacionesLabel = footerData?.libro_reclamaciones_label;
+  const mainPhone = footerData?.company?.main_phone;
+  const libroReclamacionesHref = landingSlug
+    ? routes.legal(landingSlug, 'libro-reclamaciones')
+    : undefined;
+
   return (
-    <footer className="relative" style={{ background: bgDark, borderTop: `1px solid ${border}`, padding: '0 clamp(16px, 4vw, 24px)' }}>
-      {/* Top accent */}
+    <footer
+      className="relative"
+      style={{ background: bgDark, borderTop: `1px solid ${border}`, padding: '0 clamp(16px, 4vw, 24px)' }}
+    >
       <div className="absolute top-0 left-0 right-0 h-px opacity-30" style={{ background: gradient }} />
 
       <div className="max-w-[1280px] mx-auto pt-12">
-        {/* Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8 mb-10">
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <Image
-              src={`${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`}
+              src={LOGO_URL}
               alt="BaldeCash"
               width={130}
               height={28}
@@ -93,49 +171,90 @@ export function GamerFooter({ theme }: GamerFooterProps) {
               className="object-contain mb-4"
               style={{ height: 32, width: 'auto' }}
             />
-            <p className="text-[13px] mb-4" style={{ color: textMuted }}>
-              Financiamiento para estudiantes
-            </p>
-            <div className="flex gap-2.5">
-              {SOCIALS.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-[40px] h-[40px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center no-underline transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
-                    style={{
-                      background: bgSurface,
-                      border: `1px solid ${border}`,
-                      color: textSecondary,
-                    }}
-                    title={s.label}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </a>
-                );
-              })}
+            {tagline && (
+              <p className="text-[13px] mb-4" style={{ color: textMuted }}>
+                {tagline}
+              </p>
+            )}
+
+            {socials.length > 0 && (
+              <div className="flex flex-wrap gap-2.5 mb-5">
+                {socials.map((s) => {
+                  const Icon = getSocialIcon(s.platform);
+                  if (!Icon) return null;
+                  return (
+                    <a
+                      key={s.platform}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-[40px] h-[40px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center no-underline transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                      style={{
+                        background: bgSurface,
+                        border: `1px solid ${border}`,
+                        color: textSecondary,
+                      }}
+                      title={s.platform}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Contáctanos */}
+            <div className="mt-4 flex flex-col gap-2">
+              {contactTitle && (
+                <p
+                  className="text-[11px] font-bold uppercase tracking-[2px]"
+                  style={{ fontFamily: "'Share Tech Mono', monospace", color: neonCyan }}
+                >
+                  {contactTitle}
+                </p>
+              )}
+
+              {mainPhone && (
+                <a
+                  href={`tel:${mainPhone.replace(/\s+/g, '')}`}
+                  className="flex items-center gap-2 text-[13px] no-underline transition-colors"
+                  style={{ color: textSecondary }}
+                >
+                  <Phone className="w-4 h-4 shrink-0" />
+                  <span>{mainPhone}</span>
+                </a>
+              )}
+
               <a
-                href="https://www.tiktok.com/@baldecash"
+                href={WHATSAPP_SOPORTE.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-[40px] h-[40px] sm:w-[34px] sm:h-[34px] rounded-full flex items-center justify-center no-underline transition-all hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]"
-                style={{
-                  background: bgSurface,
-                  border: `1px solid ${border}`,
-                  color: textSecondary,
-                }}
-                title="TikTok"
+                className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:text-[#25D366]"
+                style={{ color: textSecondary }}
               >
-                <TikTokIcon />
+                <WhatsAppIcon className="w-4 h-4 shrink-0" />
+                <span>
+                  {WHATSAPP_SOPORTE.number} · {WHATSAPP_SOPORTE.label}
+                </span>
+              </a>
+
+              <a
+                href={WHATSAPP_COBRANZAS.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:text-[#25D366]"
+                style={{ color: textSecondary }}
+              >
+                <WhatsAppIcon className="w-4 h-4 shrink-0" />
+                <span>
+                  {WHATSAPP_COBRANZAS.number} · {WHATSAPP_COBRANZAS.label}
+                </span>
               </a>
             </div>
           </div>
 
           {/* Link columns */}
-          {FOOTER_COLS.map((col) => (
+          {columns.map((col) => (
             <div key={col.title}>
               <h4
                 className="text-[11px] font-bold uppercase tracking-[2px] mb-4"
@@ -147,7 +266,7 @@ export function GamerFooter({ theme }: GamerFooterProps) {
                 {col.links.map((l) => (
                   <li key={l.label}>
                     <a
-                      href={l.href}
+                      href={transformFooterHref(l.href, landingSlug)}
                       className="text-[13px] no-underline transition-colors hover:text-[#00ffd5]"
                       style={{ color: textSecondary }}
                     >
@@ -165,12 +284,36 @@ export function GamerFooter({ theme }: GamerFooterProps) {
           className="flex items-center justify-between gap-4 flex-col sm:flex-row py-5"
           style={{ borderTop: `1px solid ${border}` }}
         >
-          <p className="text-xs" style={{ color: textMuted }}>
-            &copy; 2026 Balde K S.A.C. Todos los derechos reservados.
-          </p>
-          <p className="text-[11px]" style={{ color: 'rgba(85,85,119,0.6)' }}>
-            Empresa supervisada por la SBS
-          </p>
+          {copyrightText && (
+            <p className="text-xs" style={{ color: textMuted }}>
+              {copyrightText}
+            </p>
+          )}
+
+          <div className="flex items-center gap-4">
+            {sbsText && (
+              <p className="text-[11px]" style={{ color: 'rgba(85,85,119,0.6)' }}>
+                {sbsText}
+              </p>
+            )}
+            {libroReclamacionesHref && libroReclamacionesLabel && (
+              <a
+                href={libroReclamacionesHref}
+                title={libroReclamacionesLabel}
+                className="shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+              >
+                <Image
+                  src={LIBRO_RECLAMACIONES_IMG}
+                  alt={libroReclamacionesLabel}
+                  width={90}
+                  height={48}
+                  loading="lazy"
+                  className="w-auto max-w-[90px] object-contain"
+                  style={{ height: 'clamp(40px, 6vw, 48px)' }}
+                />
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </footer>
