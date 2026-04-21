@@ -400,9 +400,17 @@ function buildSpec(products: ComparisonProduct[], def: SpecDefinition): Comparab
   };
 }
 
+/** Check if a formatted spec value is empty/meaningless */
+function isEmptyValue(value: string | number): boolean {
+  const s = String(value).trim().toLowerCase();
+  return s === '' || s === 'n/a' || s === '0' || s === '0gb' || s === '0"' || s === '0kg' || s === '0gb n/a';
+}
+
 export function compareSpecs(products: ComparisonProduct[]): ComparableSpec[] {
   if (products.length < 2) return [];
-  return specDefinitions.map(def => buildSpec(products, def));
+  return specDefinitions
+    .map(def => buildSpec(products, def))
+    .filter(spec => !spec.values.every(v => isEmptyValue(v)));
 }
 
 /**

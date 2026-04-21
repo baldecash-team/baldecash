@@ -2,7 +2,6 @@
 
 import { ReactNode } from 'react';
 import type { CatalogFiltersResponse } from '../../../types/filters';
-import { ALLOW_MULTI_PRODUCT } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // ============================================
 // Enums y tipos base
@@ -510,7 +509,7 @@ export interface OnboardingStep {
   positionMobile?: 'top' | 'bottom' | 'center';
 }
 
-export const getOnboardingStepsMinimal = (questionCount: number = 7, hasQuiz: boolean = true): OnboardingStep[] => [
+export const getOnboardingStepsMinimal = (questionCount: number = 7, hasQuiz: boolean = true, allowMultiProduct: boolean = false): OnboardingStep[] => [
   // Solo incluir step de quiz si hay quiz asociado
   ...(hasQuiz ? [{
     id: 'help-button',
@@ -538,7 +537,7 @@ export const getOnboardingStepsMinimal = (questionCount: number = 7, hasQuiz: bo
     position: 'bottom',
     positionMobile: 'bottom',
   },
-  ...(ALLOW_MULTI_PRODUCT ? [{
+  ...(allowMultiProduct ? [{
     id: 'cart',
     targetId: 'onboarding-cart',
     targetIdMobile: 'onboarding-cart-mobile',
@@ -549,7 +548,7 @@ export const getOnboardingStepsMinimal = (questionCount: number = 7, hasQuiz: bo
   }] : []),
 ];
 
-export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: boolean = true): OnboardingStep[] => [
+export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: boolean = true, allowMultiProduct: boolean = false): OnboardingStep[] => [
   // Solo incluir step de quiz si hay quiz asociado
   ...(hasQuiz ? [{
     id: 'help-button',
@@ -612,7 +611,7 @@ export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: b
     id: 'card-add-to-cart',
     targetId: 'onboarding-card-add-to-cart',
     title: '¡Lo quiero!',
-    description: ALLOW_MULTI_PRODUCT
+    description: allowMultiProduct
       ? 'Agrega el equipo a tu carrito para iniciar tu solicitud de financiamiento.'
       : 'Solicita este equipo directamente para iniciar tu financiamiento.',
     position: 'top',
@@ -627,7 +626,7 @@ export const getOnboardingStepsComplete = (questionCount: number = 7, hasQuiz: b
     position: 'bottom',
     positionMobile: 'bottom',
   },
-  ...(ALLOW_MULTI_PRODUCT ? [{
+  ...(allowMultiProduct ? [{
     id: 'cart',
     targetId: 'onboarding-cart',
     targetIdMobile: 'onboarding-cart-mobile',
