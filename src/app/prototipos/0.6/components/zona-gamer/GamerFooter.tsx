@@ -89,6 +89,7 @@ export function GamerFooter({ theme }: GamerFooterProps) {
               alt="BaldeCash"
               width={130}
               height={28}
+              loading="lazy"
               className="object-contain mb-4"
               style={{ height: 32, width: 'auto' }}
             />

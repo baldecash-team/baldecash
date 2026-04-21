@@ -15,6 +15,9 @@ const BRANDS = [
   { name: 'ASUS', sub: 'ROG · TUF Gaming', logo: `${ZONA_GAMER_ASSETS}/marcas/asus.png`, height: 130 },
 ];
 
+// Duplicated brands for seamless marquee carousel
+const CAROUSEL_BRANDS = [...BRANDS, ...BRANDS, ...BRANDS, ...BRANDS];
+
 export function GamerBrands({ theme }: GamerBrandsProps) {
   const isDark = theme === 'dark';
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
@@ -22,9 +25,6 @@ export function GamerBrands({ theme }: GamerBrandsProps) {
   const gradient = isDark
     ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)'
     : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
-
-  // Duplicate brands for seamless carousel
-  const carouselBrands = [...BRANDS, ...BRANDS, ...BRANDS, ...BRANDS];
 
   return (
     <>
@@ -76,7 +76,7 @@ export function GamerBrands({ theme }: GamerBrandsProps) {
               className="flex gap-6 sm:gap-10 w-max hover:[animation-play-state:paused]"
               style={{ animation: 'brandsScroll 18s linear infinite' }}
             >
-              {carouselBrands.map((b, i) => (
+              {CAROUSEL_BRANDS.map((b, i) => (
                 <div
                   key={`${b.name}-${i}`}
                   className="flex flex-col items-center justify-center px-8 py-6 cursor-pointer transition-all duration-300 group"
@@ -90,6 +90,7 @@ export function GamerBrands({ theme }: GamerBrandsProps) {
                       alt={b.name}
                       width={220}
                       height={b.height}
+                      loading="lazy"
                       className="object-contain transition-all duration-300 group-hover:scale-105"
                       style={{
                         height: `clamp(${Math.round(b.height * 0.6)}px, 15vw, ${b.height}px)`,
