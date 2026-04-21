@@ -22,6 +22,14 @@ import { migrateCartData, migrateWishlistData } from '../types/catalog';
 const getWishlistKey = (landing: string) => `baldecash-${landing}-wishlist`;
 const getCartKey = (landing: string) => `baldecash-${landing}-cart`;
 
+// Custom event para sincronizar instancias dentro de la misma pestaña
+// (localStorage 'storage' event solo dispara cross-tab, no same-tab)
+const CATALOG_STATE_EVENT = 'baldecash-catalog-state-changed';
+interface CatalogStateChangeDetail {
+  key: string;
+  instanceId: string;
+}
+
 interface UseCatalogSharedStateReturn {
   // Wishlist - Estructura completa
   wishlist: WishlistItem[];
@@ -71,6 +79,17 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
   const wishlistKey = useMemo(() => getWishlistKey(landingSlug), [landingSlug]);
   const cartKey = useMemo(() => getCartKey(landingSlug), [landingSlug]);
 
+  // ID único de esta instancia para ignorar eventos propios
+  const instanceIdRef = useRef<string>('');
+  if (!instanceIdRef.current) {
+    instanceIdRef.current = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  // Refs para detectar si un cambio vino de afuera (otra instancia / otra tab)
+  // y evitar loops infinitos de persistencia
+  const lastSavedWishlistRef = useRef<string>('');
+  const lastSavedCartRef = useRef<string>('');
+
   // Load from localStorage on mount (with migration support)
   useEffect(() => {
     try {
@@ -78,20 +97,26 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
       if (savedWishlist) {
         const migrated = migrateWishlistData(savedWishlist);
         setWishlist(migrated);
+        lastSavedWishlistRef.current = JSON.stringify(migrated);
         // If migration cleared data (old format), remove from storage
         if (migrated.length === 0 && savedWishlist !== '[]') {
           localStorage.removeItem(wishlistKey);
         }
+      } else {
+        lastSavedWishlistRef.current = JSON.stringify([]);
       }
 
       const savedCart = localStorage.getItem(cartKey);
       if (savedCart) {
         const migrated = migrateCartData(savedCart);
         setCart(migrated);
+        lastSavedCartRef.current = JSON.stringify(migrated);
         // If migration cleared data (old format), remove from storage
         if (migrated.length === 0 && savedCart !== '[]') {
           localStorage.removeItem(cartKey);
         }
+      } else {
+        lastSavedCartRef.current = JSON.stringify([]);
       }
     } catch (e) {
       console.error('Error loading catalog state from localStorage:', e);
@@ -99,27 +124,86 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
     setIsHydrated(true);
   }, [wishlistKey, cartKey]);
 
-  // Persist wishlist to localStorage
+  // Persist wishlist to localStorage + notificar a otras instancias
   useEffect(() => {
-    if (isHydrated) {
-      try {
-        localStorage.setItem(wishlistKey, JSON.stringify(wishlist));
-      } catch (e) {
-        console.error('Error saving wishlist to localStorage:', e);
+    if (!isHydrated) return;
+    const serialized = JSON.stringify(wishlist);
+    if (serialized === lastSavedWishlistRef.current) return;
+    lastSavedWishlistRef.current = serialized;
+    try {
+      localStorage.setItem(wishlistKey, serialized);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent<CatalogStateChangeDetail>(CATALOG_STATE_EVENT, {
+            detail: { key: wishlistKey, instanceId: instanceIdRef.current },
+          })
+        );
       }
+    } catch (e) {
+      console.error('Error saving wishlist to localStorage:', e);
     }
   }, [wishlist, isHydrated, wishlistKey]);
 
-  // Persist cart to localStorage
+  // Persist cart to localStorage + notificar a otras instancias
   useEffect(() => {
-    if (isHydrated) {
-      try {
-        localStorage.setItem(cartKey, JSON.stringify(cart));
-      } catch (e) {
-        console.error('Error saving cart to localStorage:', e);
+    if (!isHydrated) return;
+    const serialized = JSON.stringify(cart);
+    if (serialized === lastSavedCartRef.current) return;
+    lastSavedCartRef.current = serialized;
+    try {
+      localStorage.setItem(cartKey, serialized);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent<CatalogStateChangeDetail>(CATALOG_STATE_EVENT, {
+            detail: { key: cartKey, instanceId: instanceIdRef.current },
+          })
+        );
       }
+    } catch (e) {
+      console.error('Error saving cart to localStorage:', e);
     }
   }, [cart, isHydrated, cartKey]);
+
+  // Listener: re-sincroniza desde localStorage cuando otra instancia
+  // (misma pestaña vía CustomEvent, o otra pestaña vía 'storage') lo modificó
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const applyWishlist = (raw: string | null) => {
+      const parsed = raw ? migrateWishlistData(raw) : [];
+      const serialized = JSON.stringify(parsed);
+      if (serialized === lastSavedWishlistRef.current) return;
+      lastSavedWishlistRef.current = serialized;
+      setWishlist(parsed);
+    };
+
+    const applyCart = (raw: string | null) => {
+      const parsed = raw ? migrateCartData(raw) : [];
+      const serialized = JSON.stringify(parsed);
+      if (serialized === lastSavedCartRef.current) return;
+      lastSavedCartRef.current = serialized;
+      setCart(parsed);
+    };
+
+    const onCustom = (e: Event) => {
+      const detail = (e as CustomEvent<CatalogStateChangeDetail>).detail;
+      if (!detail || detail.instanceId === instanceIdRef.current) return;
+      if (detail.key === wishlistKey) applyWishlist(localStorage.getItem(wishlistKey));
+      if (detail.key === cartKey) applyCart(localStorage.getItem(cartKey));
+    };
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === wishlistKey) applyWishlist(e.newValue);
+      if (e.key === cartKey) applyCart(e.newValue);
+    };
+
+    window.addEventListener(CATALOG_STATE_EVENT, onCustom);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener(CATALOG_STATE_EVENT, onCustom);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [isHydrated, wishlistKey, cartKey]);
 
   // ============================================
   // Wishlist actions
