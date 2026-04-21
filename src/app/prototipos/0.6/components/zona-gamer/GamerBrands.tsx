@@ -3,15 +3,16 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Layers } from 'lucide-react';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 interface GamerBrandsProps {
   theme: 'dark' | 'light';
 }
 
 const BRANDS = [
-  { name: 'LENOVO', sub: 'Legion · IdeaPad', logo: '/images/zona-gamer/logos marcas/lenovo.png', height: 130 },
-  { name: 'HP', sub: 'OMEN · Victus', logo: '/images/zona-gamer/logos marcas/hp.png', height: 70 },
-  { name: 'ASUS', sub: 'ROG · TUF Gaming', logo: '/images/zona-gamer/logos marcas/asus.png', height: 130 },
+  { name: 'LENOVO', sub: 'Legion · IdeaPad', logo: `${ZONA_GAMER_ASSETS}/marcas/lenovo.png`, height: 130 },
+  { name: 'HP', sub: 'OMEN · Victus', logo: `${ZONA_GAMER_ASSETS}/marcas/hp.png`, height: 70 },
+  { name: 'ASUS', sub: 'ROG · TUF Gaming', logo: `${ZONA_GAMER_ASSETS}/marcas/asus.png`, height: 130 },
 ];
 
 export function GamerBrands({ theme }: GamerBrandsProps) {

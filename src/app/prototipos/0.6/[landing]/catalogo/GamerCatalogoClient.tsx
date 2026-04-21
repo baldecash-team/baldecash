@@ -1005,8 +1005,13 @@ function GamerCatalogoContent() {
                               {product.brand}
                             </div>
                           </div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: T.neonCyan, fontFamily: "'Orbitron', sans-serif", whiteSpace: 'nowrap' }}>
-                            S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: T.textMuted }}>/mes</span>
+                          <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>
+                              S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: T.textMuted }}>/mes</span>
+                            </div>
+                            <div style={{ fontSize: 10, color: T.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
+                              x {product.maxTermMonths || 24} meses
+                            </div>
                           </div>
                         </button>
                       ))}

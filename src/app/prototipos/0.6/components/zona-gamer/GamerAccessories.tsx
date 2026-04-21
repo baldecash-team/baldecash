@@ -3,17 +3,18 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Sparkles } from 'lucide-react';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 interface GamerAccessoriesProps {
   theme: 'dark' | 'light';
 }
 
 const ACCESSORIES = [
-  { name: 'Razer Basilisk V3 Chroma', tag: 'Incluido en packs', imgDark: '/images/zona-gamer/acc/basilisk-dark.png', imgLight: '/images/zona-gamer/acc/basilisk-light.png' },
-  { name: 'Razer BlackWidow V3', tag: 'Incluido en packs', imgDark: '/images/zona-gamer/acc/blackwidow-dark.png', imgLight: '/images/zona-gamer/acc/blackwidow-light.png' },
-  { name: 'Razer Kraken V4', tag: 'Incluido en packs', imgDark: '/images/zona-gamer/acc/kraken-dark.png', imgLight: '/images/zona-gamer/acc/kraken-light.png' },
-  { name: 'Razer Firefly V2 Pro', tag: 'Incluido en packs', imgDark: '/images/zona-gamer/acc/firefly-dark.png', imgLight: '/images/zona-gamer/acc/firefly-light.png' },
-  { name: 'Corsair TC100', tag: 'Complemento', imgDark: '/images/zona-gamer/acc/corsair-dark.png', imgLight: '/images/zona-gamer/acc/corsair-light.png' },
+  { name: 'Razer Basilisk V3 Chroma', tag: 'Incluido en packs', imgDark: `${ZONA_GAMER_ASSETS}/acc/basilisk-dark.png`, imgLight: `${ZONA_GAMER_ASSETS}/acc/basilisk-light.png` },
+  { name: 'Razer BlackWidow V3', tag: 'Incluido en packs', imgDark: `${ZONA_GAMER_ASSETS}/acc/blackwidow-dark.png`, imgLight: `${ZONA_GAMER_ASSETS}/acc/blackwidow-light.png` },
+  { name: 'Razer Kraken V4', tag: 'Incluido en packs', imgDark: `${ZONA_GAMER_ASSETS}/acc/kraken-dark.png`, imgLight: `${ZONA_GAMER_ASSETS}/acc/kraken-light.png` },
+  { name: 'Razer Firefly V2 Pro', tag: 'Incluido en packs', imgDark: `${ZONA_GAMER_ASSETS}/acc/firefly-dark.png`, imgLight: `${ZONA_GAMER_ASSETS}/acc/firefly-light.png` },
+  { name: 'Corsair TC100', tag: 'Complemento', imgDark: `${ZONA_GAMER_ASSETS}/acc/corsair-dark.png`, imgLight: `${ZONA_GAMER_ASSETS}/acc/corsair-light.png` },
 ];
 
 export function GamerAccessories({ theme }: GamerAccessoriesProps) {

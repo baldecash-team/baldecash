@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { QuizResultsProps, QuizResult, QuizProduct } from '../../../types/quiz';
 import { useIsMobile } from '@/app/prototipos/_shared';
-import { ALLOW_MULTI_PRODUCT } from '@/app/prototipos/0.6/utils/featureFlags';
 
 export const QuizResultsV1: React.FC<QuizResultsProps> = ({
   results,
@@ -213,7 +212,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               {/* Actions */}
               <div className="flex gap-3">
                 {(() => {
-                  const isInCart = ALLOW_MULTI_PRODUCT && cartItems.includes(topResult.product.id);
+                  const isInCart = !!onAddToCart && cartItems.includes(topResult.product.id);
                   return (
                     <Button
                       className={`flex-1 font-semibold cursor-pointer ${
@@ -226,7 +225,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
                       endContent={isInCart ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
                       onPress={() => {
                         if (isInCart) return;
-                        if (ALLOW_MULTI_PRODUCT && onAddToCart) {
+                        if (onAddToCart) {
                           handleOpenModal(topResult.product);
                         } else {
                           onViewProduct(topResult.product.id);
@@ -260,9 +259,9 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               <SecondaryProductCard
                 key={result.product.id}
                 result={result}
-                onOpenModal={ALLOW_MULTI_PRODUCT && onAddToCart ? handleOpenModal : undefined}
-                onDirectSelect={!ALLOW_MULTI_PRODUCT || !onAddToCart ? onViewProduct : undefined}
-                isInCart={ALLOW_MULTI_PRODUCT && cartItems.includes(result.product.id)}
+                onOpenModal={onAddToCart ? handleOpenModal : undefined}
+                onDirectSelect={!onAddToCart ? onViewProduct : undefined}
+                isInCart={!!onAddToCart && cartItems.includes(result.product.id)}
                 delay={0.5 + index * 0.1}
               />
             ))}
@@ -289,7 +288,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
       </motion.div>
 
       {/* Cart Selection Modal — only when multi-product is enabled */}
-      {ALLOW_MULTI_PRODUCT && onAddToCart && selectedProductForModal && (
+      {onAddToCart && selectedProductForModal && (
         isMobile ? (
           <QuizProductMobileModal
             isOpen={isModalOpen}

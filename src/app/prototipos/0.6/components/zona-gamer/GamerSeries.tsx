@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 interface GamerSeriesProps {
   theme: 'dark' | 'light';
@@ -14,7 +15,7 @@ const SERIES = [
     brand: 'ASUS',
     color: '#ff0040',
     desc: 'La república de los gamers. Tecnología de élite.',
-    img: '/images/zona-gamer/series/rog-strix.png',
+    img: `${ZONA_GAMER_ASSETS}/series/rog-strix.png`,
     pos: 'center 50%',
   },
   {
@@ -22,7 +23,7 @@ const SERIES = [
     brand: 'ASUS',
     color: '#ff8800',
     desc: 'Durabilidad militar y rendimiento gaming accesible',
-    img: '/images/zona-gamer/series/tuf-gaming.png',
+    img: `${ZONA_GAMER_ASSETS}/series/tuf-gaming.png`,
     pos: 'center 45%',
   },
   {
@@ -30,7 +31,7 @@ const SERIES = [
     brand: 'LENOVO',
     color: '#00ff7f',
     desc: 'La puerta de entrada al gaming de verdad.',
-    img: '/images/zona-gamer/series/loq.png',
+    img: `${ZONA_GAMER_ASSETS}/series/loq.png`,
     pos: 'center 50%',
   },
   {
@@ -38,7 +39,7 @@ const SERIES = [
     brand: 'HP',
     color: '#00ffd5',
     desc: 'Gaming accesible con rendimiento real.',
-    img: '/images/zona-gamer/series/victus.png',
+    img: `${ZONA_GAMER_ASSETS}/series/victus.png`,
     pos: 'center 50%',
   },
   {
@@ -46,7 +47,7 @@ const SERIES = [
     brand: 'LENOVO',
     color: '#00ffd5',
     desc: 'Rendimiento sin compromisos para competir al más alto nivel',
-    img: '/images/zona-gamer/series/legion.png',
+    img: `${ZONA_GAMER_ASSETS}/series/legion.png`,
     pos: 'center 60%',
   },
   {
@@ -54,7 +55,7 @@ const SERIES = [
     brand: 'HP',
     color: '#b044ff',
     desc: 'Potencia diseñada para dominar cada partida',
-    img: '/images/zona-gamer/series/omen.png',
+    img: `${ZONA_GAMER_ASSETS}/series/omen.png`,
     pos: 'center 45%',
   },
 ];

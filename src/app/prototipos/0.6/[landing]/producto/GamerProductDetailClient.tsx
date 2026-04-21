@@ -15,14 +15,18 @@ import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/h
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
+import type { CartItem, TermMonths } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 import type { ProductSpec, ProductPort, SimilarProduct } from './types/detail';
 import { generateSpecSheetPDF } from './utils/generateSpecSheetPDF';
 import { generateCronogramaPDF } from './utils/generateCronogramaPDF';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
-import { CubeGridSpinner } from '@/app/prototipos/_shared';
+import { CubeGridSpinner, Toast, useToast } from '@/app/prototipos/_shared';
 
 // Theme helper (same as GamerCatalogoClient)
 function gamerTheme(isDark: boolean) {
@@ -99,9 +103,11 @@ function DetailContent() {
   const landing = (params.landing as string) || 'zona-gamer';
   const slugArray = params.slug as string[] | undefined;
   const slug = slugArray?.join('/') || '';
-  const { setSelectedProduct } = useProduct();
+  const { setSelectedProduct, setCartProducts: setContextCartProducts } = useProduct();
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+  const { settings } = useLayout();
+  const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
 
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [themeHydrated, setThemeHydrated] = useState(false);
@@ -128,6 +134,45 @@ function DetailContent() {
   const [accessories, setAccessories] = useState<{ id: string; name: string; description: string; price: number; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]>([]);
 
   const catalogState = useCatalogSharedState(landing, previewKey);
+
+  // Cart UI state
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Add to cart handler
+  const handleAddToCart = useCallback((cartItem: CartItem) => {
+    if (!catalogState.isInCart(cartItem.productId)) {
+      catalogState.addToCart(cartItem);
+      showToast('Producto añadido al carrito', 'success');
+    }
+  }, [catalogState, showToast]);
+
+  // Cart continue — save products to context before navigating
+  const handleCartContinue = useCallback(() => {
+    if (catalogState.cart.length === 0) return;
+    const productsForContext = catalogState.cart.map((item) => ({
+      id: item.productId,
+      slug: item.slug,
+      name: item.name,
+      shortName: item.shortName,
+      brand: item.brand,
+      price: item.price,
+      monthlyPayment: item.monthlyPayment,
+      months: item.months,
+      initialPercent: item.initialPercent,
+      initialAmount: item.initialAmount,
+      image: item.image,
+      type: item.type,
+      variantId: item.variantId,
+      colorName: item.colorName,
+      colorHex: item.colorHex,
+      specs: item.specs,
+      paymentPlans: item.paymentPlans,
+    }));
+    setContextCartProducts(productsForContext);
+    setSelectedProduct(productsForContext[0]);
+    router.push(routes.solicitar(landing));
+  }, [catalogState.cart, router, setContextCartProducts, setSelectedProduct, landing]);
 
   // Fetch product data desde el endpoint real de zona-gamer — sin fallback a mocks
   useEffect(() => {
@@ -217,6 +262,39 @@ function DetailContent() {
 
   const handleSolicitar = useCallback(() => {
     if (!product) return;
+
+    if (ALLOW_MULTI_PRODUCT) {
+      // Multi-product mode: add to cart
+      const cartItem: CartItem = {
+        productId: product.id,
+        slug: product.slug,
+        name: product.displayName || product.name,
+        shortName: product.name,
+        brand: product.brand,
+        image: product.images?.[0]?.url || '',
+        price: product.price,
+        months: (selectedTerm || 24) as TermMonths,
+        initialPercent: (selectedInitialPercent || 0) as 0 | 10 | 20 | 30,
+        initialAmount: Math.round((product.price * (selectedInitialPercent || 0)) / 100),
+        monthlyPayment: lowestOption?.monthlyQuota || 0,
+        type: product.deviceType,
+        addedAt: Date.now(),
+        specs: product.specs ? {
+          processor: product.specs.processor?.model || '',
+          ram: product.specs.ram ? `${product.specs.ram.size}GB` : '',
+          storage: product.specs.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type || ''}`.trim() : '',
+        } : undefined,
+      };
+      if (catalogState.isInCart(product.id)) {
+        // Already in cart — open cart drawer
+        setIsCartDrawerOpen(true);
+      } else {
+        handleAddToCart(cartItem);
+      }
+      return;
+    }
+
+    // Single-product mode: go directly to solicitar
     setSelectedProduct({
       id: product.id,
       slug: product.slug,
@@ -226,13 +304,13 @@ function DetailContent() {
       price: product.price,
       monthlyPayment: lowestOption?.monthlyQuota || 0,
       months: selectedTerm || 24,
-      initialPercent: 0,
-      initialAmount: 0,
+      initialPercent: selectedInitialPercent || 0,
+      initialAmount: Math.round((product.price * (selectedInitialPercent || 0)) / 100),
       image: product.images?.[0]?.url || '',
       type: product.deviceType,
     });
     router.push(routes.solicitar(landing));
-  }, [product, landing, router, setSelectedProduct, lowestOption, selectedTerm]);
+  }, [product, landing, router, setSelectedProduct, lowestOption, selectedTerm, selectedInitialPercent, ALLOW_MULTI_PRODUCT, catalogState, handleAddToCart]);
 
   if (isLoading) return <LoadingFallback />;
 
@@ -778,9 +856,25 @@ function DetailContent() {
 
             {/* Action buttons — fixed at bottom on mobile, inline on desktop */}
             <div className="gamer-detail-cta-bar">
-              <button onClick={handleSolicitar} className="btn-loquiero-detalle" style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}>
-                ¡Lo quiero!
-              </button>
+              {ALLOW_MULTI_PRODUCT && product && catalogState.isInCart(product.id) ? (
+                <button
+                  onClick={() => setIsCartDrawerOpen(true)}
+                  className="btn-loquiero-detalle"
+                  style={{
+                    flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)',
+                    background: isDark ? '#1a3a35' : '#e6faf7',
+                    border: `2px solid ${T.neonCyan}60`,
+                    color: T.neonCyan,
+                  }}
+                >
+                  <CheckCircle size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
+                  En carrito
+                </button>
+              ) : (
+                <button onClick={handleSolicitar} className="btn-loquiero-detalle" style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}>
+                  {ALLOW_MULTI_PRODUCT ? 'Agregar al carrito' : '¡Lo quiero!'}
+                </button>
+              )}
               <button
                 onClick={handleToggleWishlist}
                 className={`gamer-detail-cta-heart${isWishlisted ? ' is-wishlisted' : ''}`}
@@ -922,6 +1016,9 @@ function DetailContent() {
             similarProducts={similarProducts}
             currentQuota={lowestOption?.monthlyQuota || product.lowestQuota}
             landing={landing}
+            allowMultiProduct={ALLOW_MULTI_PRODUCT}
+            onAddToCart={handleAddToCart}
+            isInCart={(id) => catalogState.isInCart(id)}
           />
         )}
       </div>
@@ -939,6 +1036,36 @@ function DetailContent() {
           <Heart size={16} style={{ color: T.neonCyan, fill: wishlistToast.includes('Agregado') ? T.neonCyan : 'none' }} />
           {wishlistToast}
         </div>
+      )}
+
+      {/* Cart Drawer — only in multi-product mode */}
+      {ALLOW_MULTI_PRODUCT && (
+        <CartDrawer
+          isOpen={isCartDrawerOpen}
+          onClose={() => setIsCartDrawerOpen(false)}
+          items={catalogState.cart}
+          onRemoveItem={catalogState.removeFromCart}
+          onClearAll={() => { catalogState.clearCart(); setIsCartDrawerOpen(false); }}
+          onContinue={() => { handleCartContinue(); setIsCartDrawerOpen(false); }}
+          onViewProduct={(productId) => {
+            setIsCartDrawerOpen(false);
+            const item = catalogState.cart.find((c) => c.productId === productId);
+            if (item?.slug) router.push(routes.producto(landing, item.slug));
+          }}
+          unavailableIds={catalogState.unavailableCartIds}
+        />
+      )}
+
+      {/* Toast for cart feedback */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={isToastVisible}
+          onClose={hideToast}
+          duration={4000}
+          position="bottom"
+        />
       )}
 
       {/* Newsletter — before footer */}
@@ -1776,7 +1903,7 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Them
 // Similar Products Section
 // ============================================
 
-function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, landing }: { T: Theme; isDark: boolean; similarProducts: SimilarProduct[]; currentQuota: number; landing: string }) {
+function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, landing, allowMultiProduct = false, onAddToCart, isInCart }: { T: Theme; isDark: boolean; similarProducts: SimilarProduct[]; currentQuota: number; landing: string; allowMultiProduct?: boolean; onAddToCart?: (item: CartItem) => void; isInCart?: (id: string) => boolean }) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -1870,8 +1997,39 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
                         <Eye size={18} className="hidden md:block" />
                         Detalle
                       </button>
-                      <button onClick={() => router.push(routes.solicitar(landing))} className="btn-loquiero-detalle" style={{ flex: 1, padding: '12px 0', fontWeight: 700, fontSize: 14 }}>
-                        Lo quiero
+                      <button
+                        onClick={() => {
+                          if (allowMultiProduct && onAddToCart) {
+                            const estimatedPrice = Math.floor(prod.monthlyQuota * 24);
+                            onAddToCart({
+                              productId: prod.id,
+                              slug: prod.slug,
+                              name: prod.displayName || prod.name,
+                              shortName: prod.name,
+                              brand: prod.brand,
+                              image: prod.thumbnail,
+                              price: estimatedPrice,
+                              months: 24 as TermMonths,
+                              initialPercent: 0,
+                              initialAmount: 0,
+                              monthlyPayment: prod.monthlyQuota,
+                              addedAt: Date.now(),
+                            });
+                          } else {
+                            router.push(routes.solicitar(landing));
+                          }
+                        }}
+                        className="btn-loquiero-detalle"
+                        style={{
+                          flex: 1, padding: '12px 0', fontWeight: 700, fontSize: 14,
+                          ...(allowMultiProduct && isInCart?.(prod.id) ? {
+                            background: isDark ? '#1a3a35' : '#e6faf7',
+                            border: `2px solid ${T.neonCyan}60`,
+                            color: T.neonCyan,
+                          } : {}),
+                        }}
+                      >
+                        {allowMultiProduct && isInCart?.(prod.id) ? '✓ En carrito' : 'Lo quiero'}
                       </button>
                     </div>
                   </div>

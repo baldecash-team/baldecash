@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useContext } from 'react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useDragControls } from 'framer-motion';
@@ -8,10 +8,14 @@ import { Moon, Sun, Menu, X, Zap, Search, Heart, ShoppingCart, User, Laptop, Loa
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { fetchCatalogData } from '@/app/prototipos/0.6/services/catalogApi';
 import { WishlistDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/wishlist/WishlistDrawer';
+import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { formatMoneyNoDecimals } from '@/app/prototipos/0.6/[landing]/catalogo/utils/formatMoney';
+import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
+import LayoutContext from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
@@ -40,6 +44,7 @@ interface SearchResult {
   brand: string;
   thumbnail: string;
   quotaMonthly: number;
+  maxTermMonths: number;
 }
 
 export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth, onMobileMenuChange }: GamerNavbarProps) {
@@ -69,7 +74,10 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
   const isMobileViewport = useIsMobile();
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(LANDING_SLUG) ? preview.previewKey : null;
-  const { wishlist, wishlistCount, removeFromWishlist, clearWishlist } = useCatalogSharedState(LANDING_SLUG, previewKey);
+  const { wishlist, wishlistCount, removeFromWishlist, clearWishlist, cart, cartCount, addToCart, removeFromCart, clearCart, isInCart } = useCatalogSharedState(LANDING_SLUG, previewKey);
+  const layoutCtx = useContext(LayoutContext);
+  const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(layoutCtx?.settings);
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
 
   // Cerrar dropdown desktop al hacer clic fuera
   useEffect(() => {
@@ -113,6 +121,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             brand: p.brand,
             thumbnail: p.thumbnail,
             quotaMonthly: p.quotaMonthly,
+            maxTermMonths: p.maxTermMonths || 24,
           })));
         } else {
           setSearchResults([]);
@@ -187,7 +196,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         <div className="flex items-center">
           <a href={routes.landingHome('zona-gamer')} className="flex items-center gap-2 no-underline">
             <Image
-              src="/images/zona-gamer/logo baldecash/LOGO OFI.png"
+              src={`${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`}
               alt="BaldeCash"
               width={140}
               height={32}
@@ -460,11 +469,16 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                         </div>
 
                         {/* Price */}
-                        <div style={{
-                          fontSize: 13, fontWeight: 700, color: V.neonCyan,
-                          fontFamily: "'Orbitron', sans-serif", whiteSpace: 'nowrap',
-                        }}>
-                          S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
+                        <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <div style={{
+                            fontSize: 13, fontWeight: 700, color: V.neonCyan,
+                            fontFamily: "'Orbitron', sans-serif",
+                          }}>
+                            S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
+                          </div>
+                          <div style={{ fontSize: 10, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
+                            x {product.maxTermMonths} meses
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -495,6 +509,34 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Cart button — only when multi-product is enabled */}
+            {ALLOW_MULTI_PRODUCT && (
+              <button
+                onClick={() => setIsCartDrawerOpen(true)}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5] relative"
+                style={{
+                  background: V.bgSurface,
+                  borderColor: V.border,
+                  color: isDark ? '#fff' : '#555',
+                }}
+                title="Carrito"
+                id="onboarding-cart"
+              >
+                <ShoppingCart className="w-[18px] h-[18px] sm:w-5 sm:h-5" />
+                {cartCount > 0 && (
+                  <span style={{
+                    position: 'absolute', top: -5, right: -5,
+                    minWidth: 18, height: 18, borderRadius: '50%',
+                    background: '#00ffd5', color: '#000',
+                    fontSize: 10, fontWeight: 800, fontFamily: "'Bebas Neue', sans-serif",
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 0 8px rgba(0,255,213,0.5)', padding: '0 4px', lineHeight: 1,
+                  }}>
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            )}
             <div ref={wishlistDropdownRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => setIsWishlistDrawerOpen(prev => !prev)}
@@ -760,11 +802,16 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                             {product.brand}
                           </div>
                         </div>
-                        <div style={{
-                          fontSize: 13, fontWeight: 700, color: V.neonCyan,
-                          fontFamily: "'Orbitron', sans-serif", whiteSpace: 'nowrap',
-                        }}>
-                          S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
+                        <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <div style={{
+                            fontSize: 13, fontWeight: 700, color: V.neonCyan,
+                            fontFamily: "'Orbitron', sans-serif",
+                          }}>
+                            S/{Math.round(product.quotaMonthly)}<span style={{ fontSize: 10, color: V.textMuted }}>/mes</span>
+                          </div>
+                          <div style={{ fontSize: 10, color: V.textMuted, fontFamily: "'Share Tech Mono', monospace" }}>
+                            x {product.maxTermMonths} meses
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -921,8 +968,49 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             router.push(routes.producto(LANDING_SLUG, item.slug));
           }
         }}
+        onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
+          const item = wishlist.find((w) => w.productId === productId);
+          if (item) {
+            addToCart({
+              productId: item.productId,
+              slug: item.slug,
+              name: item.name,
+              shortName: item.shortName,
+              brand: item.brand,
+              price: item.price,
+              image: item.image,
+              months: item.months,
+              initialPercent: item.initialPercent,
+              initialAmount: item.initialAmount,
+              monthlyPayment: item.monthlyPayment,
+              addedAt: Date.now(),
+            });
+          }
+        } : undefined}
         themeClassName={isDark ? 'gamer-wishlist-dark' : 'gamer-wishlist-light'}
       />
+
+      {/* Cart Drawer — only when multi-product is enabled and LayoutProvider is available */}
+      {ALLOW_MULTI_PRODUCT && layoutCtx && (
+        <CartDrawer
+          isOpen={isCartDrawerOpen}
+          onClose={() => setIsCartDrawerOpen(false)}
+          items={cart}
+          onRemoveItem={(productId) => removeFromCart(productId)}
+          onClearAll={() => clearCart()}
+          onContinue={() => {
+            setIsCartDrawerOpen(false);
+            router.push(routes.solicitar(LANDING_SLUG));
+          }}
+          onViewProduct={(productId) => {
+            setIsCartDrawerOpen(false);
+            const item = cart.find((c) => c.productId === productId);
+            if (item?.slug) {
+              router.push(routes.producto(LANDING_SLUG, item.slug));
+            }
+          }}
+        />
+      )}
 
       {/* Gamer Wishlist Drawer theme overrides (usa primary cyan gamer) */}
       <style>{`

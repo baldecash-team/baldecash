@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { ArrowRight, Package, Gamepad2, Zap, Star, Check } from 'lucide-react';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 interface Pack {
   name: string;
@@ -26,8 +27,8 @@ const PACKS: Pack[] = [
     name: 'STARTER',
     tier: 'PACK ENTRADA',
     icon: <Gamepad2 className="w-11 h-11" />,
-    imgDark: '/images/zona-gamer/packs/starter-dark.png',
-    imgLight: '/images/zona-gamer/packs/starter-light.png',
+    imgDark: `${ZONA_GAMER_ASSETS}/packs/starter-dark.png`,
+    imgLight: `${ZONA_GAMER_ASSETS}/packs/starter-light.png`,
     items: [
       'Laptop HP Victus 15-fb3020la',
       'Mouse Razer DeathAdder Essential',
@@ -46,8 +47,8 @@ const PACKS: Pack[] = [
     name: 'PRO GAMER',
     tier: 'PACK MEDIA-ALTA',
     icon: <Zap className="w-11 h-11" />,
-    imgDark: '/images/zona-gamer/packs/pro-dark.png',
-    imgLight: '/images/zona-gamer/packs/pro-light.png',
+    imgDark: `${ZONA_GAMER_ASSETS}/packs/pro-dark.png`,
+    imgLight: `${ZONA_GAMER_ASSETS}/packs/pro-light.png`,
     items: [
       'Laptop ASUS TUF FX607VU-RL048',
       'Mouse Razer Basilisk V3 Chroma',
@@ -66,8 +67,8 @@ const PACKS: Pack[] = [
     name: 'ELITE',
     tier: 'PACK PREMIUM',
     icon: <Star className="w-11 h-11" />,
-    imgDark: '/images/zona-gamer/packs/elite-dark.png',
-    imgLight: '/images/zona-gamer/packs/elite-light.png',
+    imgDark: `${ZONA_GAMER_ASSETS}/packs/elite-dark.png`,
+    imgLight: `${ZONA_GAMER_ASSETS}/packs/elite-light.png`,
     items: [
       'Laptop ASUS ROG G614M-RV127W',
       'Mouse Razer Basilisk V3 Chroma',

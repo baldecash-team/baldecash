@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Facebook, Instagram } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 interface GamerFooterProps {
   theme: 'dark' | 'light';
@@ -84,7 +85,7 @@ export function GamerFooter({ theme }: GamerFooterProps) {
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-1">
             <Image
-              src="/images/zona-gamer/logo baldecash/LOGO OFI.png"
+              src={`${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`}
               alt="BaldeCash"
               width={130}
               height={28}

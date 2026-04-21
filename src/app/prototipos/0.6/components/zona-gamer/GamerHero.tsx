@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Zap, ArrowRight, ChevronDown } from 'lucide-react';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 interface GamerHeroProps {
   theme: 'dark' | 'light';
@@ -28,8 +29,8 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
           className="absolute inset-0"
           style={{
             backgroundImage: isDark
-              ? 'url(/images/zona-gamer/FONDO%20LANDING%20DARK.png)'
-              : 'url(/images/zona-gamer/FONDO%20LANDING%20LIGHT.png)',
+              ? `url(${ZONA_GAMER_ASSETS}/hero/fondo-dark.png)`
+              : `url(${ZONA_GAMER_ASSETS}/hero/fondo-light.png)`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
