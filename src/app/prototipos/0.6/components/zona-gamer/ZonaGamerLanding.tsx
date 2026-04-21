@@ -11,6 +11,7 @@ import { GamerStories } from './GamerStories';
 import { GamerCta } from './GamerCta';
 import { GamerNewsletter } from './GamerNewsletter';
 import { GamerFooter } from './GamerFooter';
+import { LazySection } from './LazySection';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 
 const LANDING_SLUG = 'zona-gamer';
@@ -57,7 +58,6 @@ export function ZonaGamerLanding() {
   return (
     <>
       <style>{`
-        @import url('${GOOGLE_FONTS_URL}');
         .zona-gamer-landing {
           font-family: 'Rajdhani', sans-serif;
         }
@@ -102,13 +102,29 @@ export function ZonaGamerLanding() {
         <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={catalogUrl} hideSecondaryBar />
         <GamerHero theme={theme} catalogUrl={catalogUrl} />
         <GamerPacks theme={theme} catalogUrl={catalogUrl} />
-        <GamerBrands theme={theme} />
-        <GamerSeries theme={theme} />
-        <GamerGamesRanking theme={theme} />
-        <GamerStories theme={theme} />
+
+        <LazySection minHeight={400}>
+          <GamerBrands theme={theme} />
+        </LazySection>
+
+        <LazySection minHeight={500}>
+          <GamerSeries theme={theme} />
+        </LazySection>
+
+        <LazySection minHeight={400}>
+          <GamerGamesRanking theme={theme} />
+        </LazySection>
+
+        <LazySection minHeight={400}>
+          <GamerStories theme={theme} />
+        </LazySection>
+
         <GamerCta theme={theme} catalogUrl={catalogUrl} />
         <GamerNewsletter theme={theme} />
-        <GamerFooter theme={theme} />
+
+        <LazySection minHeight={300}>
+          <GamerFooter theme={theme} />
+        </LazySection>
       </div>
     </>
   );

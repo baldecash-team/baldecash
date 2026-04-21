@@ -367,6 +367,74 @@ export async function getLandingLayout(slug: string, previewKey?: string | null)
 }
 
 /**
+ * Obtiene y transforma los datos del footer desde /layout
+ * Wrapper de getLandingLayout que ya aplica la transformación de columnas
+ * y combina con company_info para devolver un FooterData listo para usar.
+ */
+export async function getFooterData(slug: string, previewKey?: string | null): Promise<FooterData | null> {
+  const layout = await getLandingLayout(slug, previewKey);
+  if (!layout) return null;
+
+  const footerComponent = layout.footer;
+  const company = layout.company;
+  if (!footerComponent && !company) return null;
+
+  const footerConfig = (footerComponent?.content_config || {}) as Record<string, unknown>;
+
+  const companyData: CompanyData | undefined = company
+    ? {
+        name: company.name,
+        legal_name: company.legal_name,
+        logo_url: company.logo_url,
+        main_phone: company.main_phone,
+        main_email: company.main_email,
+        website_url: company.website_url,
+        customer_portal_url: company.customer_portal_url,
+        support_phone: company.support_phone,
+        support_email: company.support_email,
+        support_whatsapp: company.support_whatsapp,
+        support_hours: company.support_hours,
+        sbs_registration: company.sbs_registration,
+        social_links: (company.social_links ?? null) as CompanySocialLinks | null,
+      }
+    : undefined;
+
+  const rawColumns = footerConfig.columns as
+    | Array<{
+        title: string;
+        links: Array<{ label: string; url?: string; href?: string; url_params?: string; href_params?: string }>;
+      }>
+    | undefined;
+
+  const transformedColumns = rawColumns?.map((col) => ({
+    title: col.title,
+    links: col.links.map((link) => ({
+      label: link.label,
+      href: (link.href || link.url || '') + (link.href_params || link.url_params || ''),
+    })),
+  }));
+
+  return {
+    tagline: (footerConfig.tagline as string) || undefined,
+    columns: transformedColumns,
+    newsletter:
+      (footerConfig.newsletter as {
+        enabled?: boolean;
+        title: string;
+        description: string;
+        placeholder: string;
+        button_text: string;
+      }) || undefined,
+    sbs_text: (footerConfig.sbs_text as string) || undefined,
+    copyright_text: (footerConfig.copyright_text as string) || undefined,
+    social_links: (footerConfig.social_links as { platform: string; url: string }[]) || undefined,
+    contact_title: (footerConfig.contact_title as string) || undefined,
+    libro_reclamaciones_label: (footerConfig.libro_reclamaciones_label as string) || undefined,
+    company: companyData,
+  };
+}
+
+/**
  * Obtiene los datos de layout por ID (para modo preview)
  * Usado cuando se navega desde /preview con preview_key
  * @param landingId - Landing ID
@@ -826,6 +894,8 @@ export function transformLandingData(data: LandingHeroResponse): {
       sbs_text: (footerConfig.sbs_text as string) || undefined,
       copyright_text: (footerConfig.copyright_text as string) || undefined,
       social_links: (footerConfig.social_links as { platform: string; url: string }[]) || undefined,
+      contact_title: (footerConfig.contact_title as string) || undefined,
+      libro_reclamaciones_label: (footerConfig.libro_reclamaciones_label as string) || undefined,
       company: companyData,
     };
   }

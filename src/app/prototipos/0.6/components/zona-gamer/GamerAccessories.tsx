@@ -17,6 +17,9 @@ const ACCESSORIES = [
   { name: 'Corsair TC100', tag: 'Complemento', imgDark: `${ZONA_GAMER_ASSETS}/acc/corsair-dark.png`, imgLight: `${ZONA_GAMER_ASSETS}/acc/corsair-light.png` },
 ];
 
+// Duplicated for seamless marquee loop
+const CAROUSEL_ACCESSORIES = [...ACCESSORIES, ...ACCESSORIES];
+
 export function GamerAccessories({ theme }: GamerAccessoriesProps) {
   const isDark = theme === 'dark';
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
@@ -110,8 +113,7 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
               className="acc-carousel-track flex gap-5 py-4"
               style={{ width: 'max-content' }}
             >
-              {/* Duplicamos el array para efecto infinito */}
-              {[...ACCESSORIES, ...ACCESSORIES].map((acc, i) => (
+              {CAROUSEL_ACCESSORIES.map((acc, i) => (
                 <div
                   key={`${acc.name}-${i}`}
                   className="shrink-0 rounded-2xl border text-center cursor-default hover:-translate-y-1.5"
@@ -136,20 +138,13 @@ export function GamerAccessories({ theme }: GamerAccessoriesProps) {
                   }}
                 >
                   <Image
-                    src={acc.imgDark}
+                    src={isDark ? acc.imgDark : acc.imgLight}
                     alt={acc.name}
                     width={200}
                     height={120}
+                    loading="lazy"
                     className="w-full object-contain mb-3 rounded-lg"
-                    style={{ height: 'clamp(80px, 20vw, 120px)', display: isDark ? 'block' : 'none' }}
-                  />
-                  <Image
-                    src={acc.imgLight}
-                    alt={acc.name}
-                    width={200}
-                    height={120}
-                    className="w-full object-contain mb-3 rounded-lg"
-                    style={{ height: 'clamp(80px, 20vw, 120px)', display: isDark ? 'none' : 'block' }}
+                    style={{ height: 'clamp(80px, 20vw, 120px)' }}
                   />
                   <div
                     className="mb-1"

@@ -87,6 +87,16 @@ const PACKS: Pack[] = [
   },
 ];
 
+const CATALOG_PULSE_KEYFRAMES = `
+  @keyframes catalogPulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--catalog-pulse-from); }
+    50% {
+      box-shadow: 0 0 16px 4px var(--catalog-pulse-to);
+      border-color: var(--catalog-pulse-border);
+    }
+  }
+`;
+
 interface GamerPacksProps {
   theme: 'dark' | 'light';
   catalogUrl: string;
@@ -105,6 +115,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
 
   return (
     <section className="py-10 sm:py-[60px]" id="catalogo">
+      <style>{CATALOG_PULSE_KEYFRAMES}</style>
       <div className="max-w-[1280px] mx-auto px-6">
         {/* stag */}
         <motion.div
@@ -225,20 +236,13 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                 {/* pack-card-img-wrap */}
                 <div className="w-full overflow-hidden" style={{ borderRadius: '12px 12px 0 0', margin: '0 -24px 0', width: 'calc(100% + 48px)' }}>
                   <Image
-                    src={pack.imgDark}
+                    src={isDark ? pack.imgDark : pack.imgLight}
                     alt={pack.name}
                     width={400}
                     height={200}
+                    loading="lazy"
                     className="w-full block"
-                    style={{ height: 'auto', aspectRatio: '2/1', objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'block' : 'none' }}
-                  />
-                  <Image
-                    src={pack.imgLight}
-                    alt={pack.name}
-                    width={400}
-                    height={200}
-                    className="w-full block"
-                    style={{ height: 'auto', aspectRatio: '2/1', objectFit: 'cover', padding: pack.imgPad ?? 0, display: isDark ? 'none' : 'block' }}
+                    style={{ height: 'auto', aspectRatio: '2/1', objectFit: 'cover', padding: pack.imgPad ?? 0 }}
                   />
                 </div>
 
@@ -339,14 +343,11 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
               color: isDark ? '#a5b4fc' : '#4f46e5',
               border: `2px solid ${isDark ? '#818cf8' : '#6366f1'}`,
               animation: 'catalogPulse 2.5s ease-in-out infinite',
-            }}
+              ['--catalog-pulse-from' as string]: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(79,70,229,0.06)',
+              ['--catalog-pulse-to' as string]: isDark ? 'rgba(99,102,241,0.2)' : 'rgba(79,70,229,0.15)',
+              ['--catalog-pulse-border' as string]: isDark ? '#a5b4fc' : '#818cf8',
+            } as React.CSSProperties}
           >
-            <style>{`
-              @keyframes catalogPulse {
-                0%, 100% { box-shadow: 0 0 0 0 ${isDark ? 'rgba(99,102,241,0.1)' : 'rgba(79,70,229,0.06)'}; }
-                50% { box-shadow: 0 0 16px 4px ${isDark ? 'rgba(99,102,241,0.2)' : 'rgba(79,70,229,0.15)'}; border-color: ${isDark ? '#a5b4fc' : '#818cf8'}; }
-              }
-            `}</style>
             Ver catálogo completo
             <ArrowRight className="w-[18px] h-[18px] transition-transform duration-300 group-hover:translate-x-1" />
           </a>
