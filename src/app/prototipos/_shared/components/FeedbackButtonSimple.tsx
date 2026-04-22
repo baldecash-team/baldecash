@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { domToJpeg } from 'modern-screenshot';
 
 interface FeedbackButtonSimpleProps {
   /** Clases adicionales para el contenedor */
@@ -73,24 +72,30 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
         }
       });
 
-      // Detectar si es mobile para ajustar calidad
-      const isMobile = window.innerWidth < 768;
+      // Usar ApiFlash para capturar screenshot
+      const apiKey = '8ada1a5d9b8348c99b7ad1338351e032';
+      const currentUrl = window.location.href;
 
-      capturedDataUrl = await domToJpeg(document.body, {
-        scale: isMobile ? 0.75 : 1,
-        quality: isMobile ? 0.6 : 0.8,
-        width: window.innerWidth,
-        height: window.innerHeight,
-        style: {
-          transform: `translate(-${window.scrollX}px, -${window.scrollY}px)`,
-        },
-        filter: (node) => {
-          // Excluir el botón de feedback del screenshot
-          if (node instanceof HTMLElement && node.hasAttribute('data-feedback-simple')) {
-            return false;
-          }
-          return true;
-        },
+      const apiUrl = new URL('https://api.apiflash.com/v1/urltoimage');
+      apiUrl.searchParams.set('access_key', apiKey);
+      apiUrl.searchParams.set('url', currentUrl);
+      apiUrl.searchParams.set('wait_until', 'page_loaded');
+      apiUrl.searchParams.set('width', String(window.innerWidth));
+      apiUrl.searchParams.set('height', String(window.innerHeight));
+      apiUrl.searchParams.set('format', 'jpeg');
+      apiUrl.searchParams.set('quality', '80');
+      apiUrl.searchParams.set('response_type', 'image');
+
+      const response = await fetch(apiUrl.toString());
+      if (!response.ok) {
+        throw new Error('Error al capturar screenshot con ApiFlash');
+      }
+
+      const blob = await response.blob();
+      capturedDataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
       });
     } catch (error) {
       alert('Error al capturar la pantalla');
