@@ -132,6 +132,11 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
           {error}
         </p>
       )}
+
+      {/* Reserve space to match TextInput's character counter (visual alignment) */}
+      {!error && !showSuccess && !helpText && (
+        <div className="h-4" aria-hidden="true" />
+      )}
     </div>
   );
 };
