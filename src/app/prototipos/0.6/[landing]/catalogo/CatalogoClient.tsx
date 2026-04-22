@@ -910,13 +910,13 @@ function CatalogoContent() {
   const lastInteractionRef = useRef<number>(Date.now());
   const lastScrollYRef = useRef<number>(0);
 
-  // Quiz hint - show tour at help button after 1 minute of inactivity
+  // Quiz hint - show tour at help button after 5 minutes of inactivity
   useEffect(() => {
     const checkInactivity = () => {
       const timeSinceLastInteraction = Date.now() - lastInteractionRef.current;
-      const oneMinute = 60000;
+      const fiveMinutes = 300000;
 
-      // Show help tour if 1 minute passed without interaction and nothing else is open
+      // Show help tour if 5 minutes passed without interaction and nothing else is open
       const canShowHint =
         !isQuizOpen &&
         !isHelpPopoverOpen &&
@@ -932,7 +932,7 @@ function CatalogoContent() {
         !isPageLoading;
         // && !isWebchatOpen; // COMENTADO: Blip Chat
 
-      if (timeSinceLastInteraction >= oneMinute && canShowHint) {
+      if (timeSinceLastInteraction >= fiveMinutes && canShowHint) {
         if (hasQuiz) {
           onboarding.startTourAtHelpButton();  // Con quiz: solo paso del help button
         } else {
@@ -943,8 +943,8 @@ function CatalogoContent() {
       }
     };
 
-    // Check every 10 seconds
-    const interval = setInterval(checkInactivity, 10000);
+    // Check every 30 seconds
+    const interval = setInterval(checkInactivity, 30000);
 
     return () => clearInterval(interval);
   }, [
