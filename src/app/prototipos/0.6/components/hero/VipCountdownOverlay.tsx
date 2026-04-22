@@ -13,7 +13,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BASE_PATH, routes } from '@/app/prototipos/0.6/utils/routes';
+import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { saveVipToken, saveVipName } from './DniModal';
 
 interface TimeLeft {
@@ -423,25 +423,16 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
                   que no verás en ningún otro lugar y no volverán.
                 </p>
 
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => {
-                      setDismissed(true);
-                      onExpired?.();
-                    }}
-                    className="w-full py-3.5 bg-white rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
-                    style={{ color: '#4654CD' }}
-                  >
-                    ¡Empezar!
-                  </button>
-                  <a
-                    href={routes.catalogo(catalogSlug)}
-                    className="w-full py-3 rounded-xl text-base font-semibold text-center transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer block"
-                    style={{ backgroundColor: '#E5A823', color: '#4654CD' }}
-                  >
-                    Ver promociones
-                  </a>
-                </div>
+                <button
+                  onClick={() => {
+                    setDismissed(true);
+                    onExpired?.();
+                  }}
+                  className="w-full py-3.5 bg-white rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                  style={{ color: '#4654CD' }}
+                >
+                  ¡Empezar!
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
