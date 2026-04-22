@@ -21,6 +21,8 @@ export interface FloatingCtaConfig {
   url: string;
 }
 
+export type DniCaptureMode = 'modal' | 'inline';
+
 export interface LandingConfigFeatures {
   /** Whether to show the DNI modal on landing load. */
   has_dni_modal: boolean;
@@ -32,6 +34,8 @@ export interface LandingConfigFeatures {
   vip_countdown: string;
   /** Whether to validate DNI against a whitelist before accepting. */
   has_dni_whitelist: boolean;
+  /** How the DNI is captured: 'modal' (popup) or 'inline' (embedded in overlay). */
+  dni_capture_mode: DniCaptureMode;
   /** Floating CTA button config. null = no button. */
   floating_cta: FloatingCtaConfig | null;
 }
@@ -72,6 +76,7 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     show_platform_commission: false,
     vip_countdown: '',
     has_dni_whitelist: false,
+    dni_capture_mode: 'modal',
     floating_cta: null,
   },
 };

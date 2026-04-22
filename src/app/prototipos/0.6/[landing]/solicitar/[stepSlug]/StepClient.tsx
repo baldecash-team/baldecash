@@ -125,13 +125,21 @@ function StepContent() {
   // Get applied coupon and term validation from product context
   const { selectedProduct, isHydrated: isProductHydrated, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
 
+  // Toast notifications for submit
+  const { showToast } = useToast(4000);
+
+  // Submit application hook (used when insurance is disabled)
+  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
+    onToast: showToast,
+  });
+
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
     if (!isProductHydrated) return;
-    if (!selectedProduct && cartProducts.length === 0) {
+    if (!selectedProduct && cartProducts.length === 0 && !submitSucceeded) {
       router.replace(routes.solicitar(landing));
     }
-  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router]);
+  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded]);
 
   // Redirect to /solicitar if coupon is required but not applied
   useEffect(() => {
@@ -160,14 +168,6 @@ function StepContent() {
       router.push(routes.solicitar(landing));
     }
   }, [unavailableProductIds, landing, router]);
-
-  // Toast notifications for submit
-  const { showToast } = useToast(4000);
-
-  // Submit application hook (used when insurance is disabled)
-  const { submit: submitApplication, isSubmitting: isAppSubmitting, submitMessage, submitStage } = useSubmitApplication({
-    onToast: showToast,
-  });
 
   // Get step config from API using URL slug
   const step = getStepByUrlSlug(stepSlug);

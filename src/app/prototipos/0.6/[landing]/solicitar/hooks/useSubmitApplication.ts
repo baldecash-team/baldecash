@@ -80,6 +80,10 @@ interface UseSubmitApplicationResult {
    * Last error message (if any)
    */
   error: string | null;
+  /**
+   * Whether the submission succeeded (navigating to confirmation)
+   */
+  submitSucceeded: boolean;
 }
 
 /**
@@ -100,6 +104,7 @@ export function useSubmitApplication(
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [submitSucceeded, setSubmitSucceeded] = useState(false);
   const slowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Bloqueo de navegación durante el envío
@@ -312,6 +317,8 @@ export function useSubmitApplication(
           }
           setSubmitStage('success');
 
+          setSubmitSucceeded(true);
+
           // Clear all wizard state (skip if keepData param is set for testing)
           if (!keepData) {
             clearSession();
@@ -396,5 +403,6 @@ export function useSubmitApplication(
     submitStage,
     submitMessage: SUBMIT_STAGE_MESSAGES[submitStage],
     error,
+    submitSucceeded,
   };
 }
