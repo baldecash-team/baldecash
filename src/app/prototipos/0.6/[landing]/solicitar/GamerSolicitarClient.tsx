@@ -19,6 +19,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
+import { formatMoneyNoDecimals } from './utils/formatMoney';
 import type { Accessory } from './types/upsell';
 
 // API base URL for coupon validation
@@ -91,6 +92,7 @@ function SolicitarContent() {
     selectedAccessories,
     selectedInsurances,
     toggleAccessory,
+    clearAccessories,
     appliedCoupon,
     setAppliedCoupon,
     clearCoupon,
@@ -115,7 +117,7 @@ function SolicitarContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
   // ── Solicitar flow config (BD) ──
-  const { isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  const { isEnabled: isSectionEnabled, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
 
   const firstStepSlug = (() => {
     const regularSteps = steps.filter((s: { is_summary_step?: boolean }) => !s.is_summary_step);
@@ -180,6 +182,13 @@ function SolicitarContent() {
       router.replace(routes.catalogo(landing));
     }
   }, [isHydrated, selectedProduct, router, landing]);
+
+  // ── Clear accessories if section disabled (prevents orphaned selections) ──
+  useEffect(() => {
+    if (!isFlowConfigLoading && !isSectionEnabled('accessories') && selectedAccessories.length > 0) {
+      clearAccessories();
+    }
+  }, [isFlowConfigLoading, isSectionEnabled, selectedAccessories.length, clearAccessories]);
 
   // ── Unavailable products ──
   const currentProductIds = new Set(
@@ -357,6 +366,7 @@ function SolicitarContent() {
   }, [router, landing, acceptTerms, acceptPrivacy, firstStepSlug, steps, hasUnavailableProducts, isOverQuotaLimit, isCouponRequired, appliedCoupon]);
 
   const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,179,150,${a})`;
+  const freqLabel = product?.paymentFrequency === 'semanal' ? '/sem' : product?.paymentFrequency === 'quincenal' ? '/qcn' : '/mes';
 
   // Plazos disponibles — del ProductContext (con fallback a defaults para zona-gamer)
   const availableTerms = getAvailableTerms();
@@ -513,12 +523,12 @@ function SolicitarContent() {
                     </div>
                   )}
                   <p style={{ fontSize: 16, fontWeight: 700, color: T.neonCyan, marginTop: 8 }}>
-                    S/{Math.round(product.monthlyPayment)}/mes
+                    S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}{freqLabel}
                     <span style={{ fontSize: 12, color: T.textMuted, fontWeight: 400, marginLeft: 4 }}>x {product.months} meses</span>
                   </p>
                   {product.initialAmount > 0 && (
                     <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
-                      + S/{Math.round(product.initialAmount)} inicial
+                      + S/{formatMoneyNoDecimals(Math.floor(product.initialAmount))} inicial
                     </p>
                   )}
                 </div>
@@ -536,7 +546,7 @@ function SolicitarContent() {
                   {selectedAccessories.map((acc) => (
                     <div key={acc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
                       <span style={{ color: T.textSecondary }}>{acc.name}</span>
-                      <span style={{ color: T.neonCyan, fontWeight: 500 }}>+S/{Math.round(acc.monthlyQuota)}/mes</span>
+                      <span style={{ color: T.neonCyan, fontWeight: 500 }}>+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}/mes</span>
                     </div>
                   ))}
                 </div>
@@ -551,7 +561,7 @@ function SolicitarContent() {
                   {selectedInsurances.map((ins) => (
                     <div key={ins.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
                       <span style={{ color: T.textSecondary }}>{ins.name}</span>
-                      <span style={{ color: T.neonCyan, fontWeight: 500 }}>+S/{Math.round(ins.monthlyPrice)}/mes</span>
+                      <span style={{ color: T.neonCyan, fontWeight: 500 }}>+S/{formatMoneyNoDecimals(Math.floor(ins.monthlyPrice))}/mes</span>
                     </div>
                   ))}
                 </div>
@@ -562,7 +572,7 @@ function SolicitarContent() {
             <div style={{ padding: '12px 20px', borderTop: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>Cuota total</span>
               <span style={{ fontSize: 18, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan }}>
-                S/{Math.round(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0))}/mes
+                S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}{freqLabel}
               </span>
             </div>
 
@@ -700,8 +710,8 @@ function SolicitarContent() {
                       <button key={acc.id} onClick={() => toggleAcc(acc)} type="button" style={{ display: 'flex', flexDirection: 'column', background: T.bgCard, borderRadius: 12, border: `2px solid ${isSelected ? T.neonCyan : 'transparent'}`, boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)', padding: 16, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', height: '100%' }}>
                         {/* Check icon */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#00ffd5', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', opacity: isSelected ? 1 : 0, transform: isSelected ? 'scale(1)' : 'scale(0)' }}>
-                            <Check size={14} style={{ color: '#fff' }} />
+                          <div style={{ width: 24, height: 24, borderRadius: '50%', background: T.neonCyan, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', opacity: isSelected ? 1 : 0, transform: isSelected ? 'scale(1)' : 'scale(0)' }}>
+                            <Check size={14} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />
                           </div>
                         </div>
                         {/* Image */}
@@ -723,7 +733,7 @@ function SolicitarContent() {
                         {/* Price + plus */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                           <div>
-                            <span style={{ color: T.neonCyan, fontWeight: 700, fontSize: 14 }}>+S/{Math.round(acc.monthlyQuota)}/mes</span>
+                            <span style={{ color: T.neonCyan, fontWeight: 700, fontSize: 14 }}>+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}/mes</span>
                             <p style={{ fontSize: 10, color: T.textMuted }}>en {acc.term || currentTerm} meses</p>
                           </div>
                           <Plus size={20} style={{ color: T.textMuted, transition: 'all 0.2s', opacity: isSelected ? 0 : 1, transform: isSelected ? 'scale(0)' : 'scale(1)' }} />
@@ -887,6 +897,9 @@ function SolicitarContent() {
 
       </main>
 
+      {/* Mobile bottom bar spacer */}
+      {product && <div className="sm:hidden" style={{ height: 80 }} />}
+
       {/* Accessory detail modal — data real del backend */}
       {accDetailId && (() => {
         const acc = accessories.find((a) => a.id === accDetailId);
@@ -946,13 +959,13 @@ function SolicitarContent() {
                 {/* Price card — monthlyQuota + price totales del backend */}
                 <div style={{ background: cyanAlpha(0.06), borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: T.neonCyan }}>S/ {Math.round(acc.monthlyQuota)}</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: T.neonCyan }}>S/ {formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}</span>
                     <span style={{ fontSize: 14, color: T.textMuted, marginLeft: 4 }}>/mes</span>
                   </div>
-                  <span style={{ fontSize: 12, color: T.textMuted }}>S/ {Math.round(acc.price)} · {months} cuotas</span>
+                  <span style={{ fontSize: 12, color: T.textMuted }}>S/ {formatMoneyNoDecimals(Math.floor(acc.price))} · {months} cuotas</span>
                 </div>
                 {/* Add button */}
-                <button onClick={() => { toggleAcc(acc); setAccDetailId(null); }} style={{ width: '100%', height: 44, borderRadius: 10, border: 'none', background: isSelected ? '#00ffd5' : T.neonCyan, color: isSelected ? '#fff' : (isDark ? '#0a0a0a' : '#fff'), fontWeight: 500, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button onClick={() => { toggleAcc(acc); setAccDetailId(null); }} style={{ width: '100%', height: 44, borderRadius: 10, border: 'none', background: T.neonCyan, color: isDark ? '#0a0a0a' : '#fff', fontWeight: 500, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {isSelected ? <Check size={16} /> : <Plus size={16} />}
                   {isSelected ? 'Quitar accesorio' : 'Agregar accesorio'}
                 </button>
@@ -1005,7 +1018,7 @@ function SolicitarContent() {
               <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{selectedMonths} meses</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0))}/mes</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}{freqLabel}</span>
               <ChevronUp size={20} style={{ color: T.textMuted, transition: 'transform 0.2s', transform: mobileProductExpanded ? 'rotate(180deg)' : 'none' }} />
             </div>
           </button>
@@ -1064,7 +1077,12 @@ function SolicitarContent() {
                       </div>
                     </div>
                   )}
-                  <p style={{ fontSize: 14, fontWeight: 700, color: T.neonCyan, margin: '6px 0 0' }}>S/{Math.round(product.monthlyPayment)}/mes</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.neonCyan, margin: '6px 0 0' }}>S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}{freqLabel}</p>
+                  {product.initialAmount > 0 && (
+                    <p style={{ fontSize: 11, color: T.textMuted, margin: '2px 0 0' }}>
+                      + S/{formatMoneyNoDecimals(Math.floor(product.initialAmount))} inicial
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1075,7 +1093,7 @@ function SolicitarContent() {
                     <div key={acc.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.textSecondary, padding: '4px 0' }}>
                       <Plus size={12} style={{ color: T.neonCyan }} />
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</span>
-                      <span style={{ color: T.neonCyan, fontWeight: 600 }}>+S/{Math.round(acc.monthlyQuota)}/mes</span>
+                      <span style={{ color: T.neonCyan, fontWeight: 600 }}>+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}/mes</span>
                     </div>
                   ))}
                 </div>
@@ -1088,7 +1106,7 @@ function SolicitarContent() {
                     <div key={ins.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.textSecondary, padding: '4px 0' }}>
                       <Shield size={12} style={{ color: T.neonCyan }} />
                       <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ins.name}</span>
-                      <span style={{ color: T.neonCyan, fontWeight: 600 }}>+S/{Math.round(ins.monthlyPrice)}/mes</span>
+                      <span style={{ color: T.neonCyan, fontWeight: 600 }}>+S/{formatMoneyNoDecimals(Math.floor(ins.monthlyPrice))}/mes</span>
                     </div>
                   ))}
                 </div>
@@ -1098,7 +1116,7 @@ function SolicitarContent() {
               <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: cyanAlpha(0.05) }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>Cuota mensual total</span>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{Math.round(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0))}/mes</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}{freqLabel}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
                   <span style={{ fontSize: 12, color: T.textMuted }}>Plazo:</span>

@@ -259,11 +259,29 @@ function DetailContent() {
         category: a.category?.name || null,
         brand: a.brand?.name || null,
       })));
-    });
+    }).catch(() => { /* silently ignore — accessories are optional */ });
     return () => { cancelled = true; };
   }, [landing, data]);
 
   const product = data?.product;
+
+  // Helper to extract spec values from ProductSpec[] array (same pattern as normal landing)
+  const getSpecValue = useCallback((category: string, label: string): string => {
+    if (!product?.specs) return '';
+    const specCategory = (product.specs as Array<{ category: string; specs: Array<{ label: string; value: string }> }>)
+      .find((s) => s.category.toLowerCase() === category.toLowerCase());
+    if (!specCategory) return '';
+    const spec = specCategory.specs.find((s) => s.label.toLowerCase().includes(label.toLowerCase()));
+    return spec?.value || '';
+  }, [product?.specs]);
+
+  // Thumbnail: filter out video URLs (same as normal landing)
+  const productThumbnail = useMemo(() => {
+    if (!product?.images?.length) return '';
+    const img = product.images.find((i: { type?: string; url: string }) => i.type !== 'video' && !/\.(mp4|webm|ogg)(\?|$)/i.test(i.url));
+    return img?.url || product.images[0]?.url || '';
+  }, [product?.images]);
+
   const paymentPlans = data?.paymentPlans || [];
   const similarProducts = data?.similarProducts || [];
   const limitations = data?.limitations || [];
@@ -306,7 +324,7 @@ function DetailContent() {
       productId: pid,
       name: product.displayName || product.name,
       shortName: product.name,
-      image: product.images?.[0]?.url || '',
+      image: productThumbnail,
       price: product.price,
       lowestQuota: lowestOption?.monthlyQuota || 0,
       brand: product.brand,
@@ -316,6 +334,9 @@ function DetailContent() {
       initialPercent: (selectedInitialPercent || 0) as 0 | 10 | 20,
       initialAmount: Math.round((product.price * (selectedInitialPercent || 0)) / 100),
       monthlyPayment: lowestOption?.monthlyQuota || 0,
+      variantId: selectedColorId || undefined,
+      colorName: displayColors.find((c) => c.id === selectedColorId)?.name,
+      colorHex: displayColors.find((c) => c.id === selectedColorId)?.hex,
       addedAt: Date.now(),
     });
     setWishlistToast(wasWishlisted ? 'Eliminado de favoritos' : 'Agregado a favoritos');
@@ -333,7 +354,7 @@ function DetailContent() {
         name: product.displayName || product.name,
         shortName: product.name,
         brand: product.brand,
-        image: product.images?.[0]?.url || '',
+        image: productThumbnail,
         price: product.price,
         months: (selectedTerm || 24) as TermMonths,
         initialPercent: (selectedInitialPercent || 0) as 0 | 10 | 20 | 30,
@@ -341,10 +362,10 @@ function DetailContent() {
         monthlyPayment: lowestOption?.monthlyQuota || 0,
         type: product.deviceType,
         addedAt: Date.now(),
-        specs: product.specs ? {
-          processor: product.specs.processor?.model || '',
-          ram: product.specs.ram ? `${product.specs.ram.size}GB` : '',
-          storage: product.specs.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type || ''}`.trim() : '',
+        specs: product.specs?.length ? {
+          processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model'),
+          ram: getSpecValue('memoria', 'capacidad') || getSpecValue('ram', 'size'),
+          storage: getSpecValue('almacenamiento', 'capacidad') || getSpecValue('storage', 'size'),
         } : undefined,
       };
       if (catalogState.isInCart(String(product.id))) {
@@ -369,12 +390,12 @@ function DetailContent() {
       months: selectedTerm || 24,
       initialPercent: selectedInitialPercent || 0,
       initialAmount: lowestOption?.initialAmount || Math.round((product.price * (selectedInitialPercent || 0)) / 100),
-      image: product.images?.[0]?.url || '',
+      image: productThumbnail,
       type: product.deviceType,
-      specs: product.specs ? {
-        processor: product.specs.processor?.model || '',
-        ram: product.specs.ram ? `${product.specs.ram.size}GB` : '',
-        storage: product.specs.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type || ''}`.trim() : '',
+      specs: product.specs?.length ? {
+        processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model'),
+        ram: getSpecValue('memoria', 'capacidad') || getSpecValue('ram', 'size'),
+        storage: getSpecValue('almacenamiento', 'capacidad') || getSpecValue('storage', 'size'),
       } : undefined,
       paymentPlans: paymentPlans.length > 0 ? paymentPlans : undefined,
     };
@@ -726,7 +747,7 @@ function DetailContent() {
                 {/* Rating solo si el backend trae reviews reales */}
                 {product.rating != null && product.reviewCount > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Star size={20} style={{ color: '#00ffd5', fill: '#00ffd5' }} />
+                    <Star size={20} style={{ color: T.neonCyan, fill: T.neonCyan }} />
                     <span style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary }}>{product.rating}</span>
                     <span style={{ fontSize: 14, color: T.textMuted }}>({product.reviewCount})</span>
                   </div>

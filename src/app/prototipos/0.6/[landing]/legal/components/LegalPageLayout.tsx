@@ -8,7 +8,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
@@ -19,7 +18,7 @@ import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { useLayout } from '../../context/LayoutContext';
-import { ArrowLeft, Sun, Moon, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 interface LegalPageLayoutProps {
   children: React.ReactNode;
@@ -59,7 +58,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
   // Wait until theme is read from localStorage before rendering gamer layout
   if (isGamer && theme === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: typeof window !== 'undefined' && localStorage.getItem('baldecash-theme') === 'light' ? '#f2f2f2' : '#0e0e0e' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f2f2f2' }}>
         <CubeGridSpinner />
       </div>
     );
@@ -69,7 +68,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
   if (isLoading) {
     if (isGamer) {
       return (
-        <div className="min-h-screen flex items-center justify-center" style={{ background: typeof window !== 'undefined' && localStorage.getItem('baldecash-theme') === 'light' ? '#f2f2f2' : '#0e0e0e' }}>
+        <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f2f2f2' }}>
           <CubeGridSpinner />
         </div>
       );
@@ -106,7 +105,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         />
 
         {/* Main Content */}
-        <main style={{ maxWidth: 896, margin: '0 auto', padding: '40px 16px 64px' }}>
+        <main className="px-4 sm:px-6 pt-6 sm:pt-10 pb-12 sm:pb-16" style={{ maxWidth: 896, margin: '0 auto' }}>
           {/* Header */}
           <div style={{ marginBottom: 32, paddingBottom: 24, borderBottom: `1px solid ${border}` }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 16, padding: '5px 14px', borderRadius: 4, fontFamily: "'Share Tech Mono', monospace", fontSize: 11, letterSpacing: 3, textTransform: 'uppercase', color: neonCyan, background: isDark ? 'rgba(0,255,213,0.05)' : 'rgba(14,148,133,0.06)', border: `1px solid ${isDark ? 'rgba(0,255,213,0.12)' : 'rgba(14,148,133,0.15)'}` }}>
@@ -151,7 +150,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
           </div>
         </main>
 
-        <GamerFooter theme={theme || 'dark'} />
+        <GamerFooter theme={theme || 'dark'} footerData={footerData} />
       </div>
     );
   }

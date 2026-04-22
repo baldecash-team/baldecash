@@ -7,7 +7,7 @@
  * Contenido de secciones viene de la API (coming_soon_sections)
  */
 
-import React, { Suspense, useState, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import {
@@ -88,16 +88,17 @@ function ProximamenteContent() {
 
   // Gamer theme
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [themeHydrated, setThemeHydrated] = useState(false);
   useEffect(() => {
-    if (!isGamer) return;
+    if (!isGamer) { setThemeHydrated(true); return; }
     const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
+    setThemeHydrated(true);
   }, [isGamer]);
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    localStorage.setItem('baldecash-theme', next);
-  };
+  useEffect(() => {
+    if (themeHydrated && isGamer) localStorage.setItem('baldecash-theme', theme);
+  }, [theme, themeHydrated, isGamer]);
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   const isDark = theme === 'dark';
 
   const [sections, setSections] = useState<ComingSoonSection[]>([]);
@@ -175,7 +176,6 @@ function ProximamenteContent() {
     const textMuted = isDark ? '#707070' : '#888';
     const btnText = isDark ? '#0a0a0a' : '#ffffff';
     const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,137,122,${a})`;
-    const IconComponent = getIconComponent(contenido.icon);
 
     return (
       <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
@@ -247,21 +247,21 @@ function ProximamenteContent() {
             </p>
 
             {/* Back button */}
-            <a
-              href={routes.landingHome(landing)}
+            <button
+              onClick={() => window.location.href = routes.landingHome(landing)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '13px 32px', borderRadius: 12,
                 background: neonCyan, color: btnText,
-                fontSize: 15, fontWeight: 700,
-                textDecoration: 'none', fontFamily: "'Rajdhani', sans-serif",
+                fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer',
+                fontFamily: "'Rajdhani', sans-serif",
                 boxShadow: `0 0 20px ${cyanAlpha(0.3)}, 0 4px 12px ${cyanAlpha(0.2)}`,
                 transition: 'all 0.2s',
               }}
             >
               <ArrowLeft size={16} />
               Volver al inicio
-            </a>
+            </button>
 
             {/* Cards container */}
             <div style={{ marginTop: 48, display: 'flex', flexDirection: 'column', gap: 12 }}>

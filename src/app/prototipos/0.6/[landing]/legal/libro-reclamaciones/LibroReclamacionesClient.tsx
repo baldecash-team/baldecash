@@ -80,11 +80,11 @@ export function LibroReclamacionesClient() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   // Gamer theme
-  const [theme, setTheme] = useState<'dark' | 'light' | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   useEffect(() => {
     if (!isGamer) return;
     const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
-    setTheme(saved || 'dark');
+    if (saved) setTheme(saved);
   }, [isGamer]);
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -133,9 +133,9 @@ export function LibroReclamacionesClient() {
   };
 
   // Show loading spinner while fetching
-  if (isLoading || (isGamer && theme === null)) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: isGamer ? (typeof window !== 'undefined' && localStorage.getItem('baldecash-theme') === 'light' ? '#f2f2f2' : '#0e0e0e') : '#fafafa' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: isGamer ? (isDark ? '#0e0e0e' : '#f2f2f2') : '#fafafa' }}>
         <CubeGridSpinner />
       </div>
     );
@@ -302,9 +302,9 @@ export function LibroReclamacionesClient() {
               <div className="space-y-4">
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 12 }}>Tipo de reclamación *</label>
-                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <div role="radiogroup" aria-label="Tipo de reclamación" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                     {['reclamo', 'queja'].map((tipo) => (
-                      <button key={tipo} onClick={() => handleInputChange('tipoReclamo', tipo)} style={{
+                      <button key={tipo} role="radio" aria-checked={formData.tipoReclamo === tipo} onClick={() => handleInputChange('tipoReclamo', tipo)} style={{
                         flex: 1, minWidth: 140, padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
                         border: `2px solid ${formData.tipoReclamo === tipo ? neonCyan : border}`,
                         background: formData.tipoReclamo === tipo ? (isDark ? 'rgba(0,255,213,0.06)' : 'rgba(0,137,122,0.04)') : 'transparent',
@@ -358,7 +358,7 @@ export function LibroReclamacionesClient() {
           </div>
         </main>
 
-        <GamerFooter theme={theme!} />
+        <GamerFooter theme={theme} footerData={footerData} />
 
         {isSuccess && (
           <div style={{
@@ -369,7 +369,7 @@ export function LibroReclamacionesClient() {
             fontSize: 13, color: isDark ? '#e0e0e0' : '#333',
           }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,255,213,0.1)' : 'rgba(0,137,122,0.1)', color: neonCyan }}>✓</div>
-            Su reclamo ha sido registrado. Recibirá respuesta en 30 días calendario.
+            Su reclamo ha sido registrado exitosamente. Recibirá una respuesta en los próximos 30 días calendario.
           </div>
         )}
       </div>
