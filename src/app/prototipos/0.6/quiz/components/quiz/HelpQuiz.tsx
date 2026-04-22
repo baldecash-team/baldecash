@@ -50,6 +50,7 @@ import { QuizResultsV1 } from './results/QuizResultsV1';
 // Data and API
 import { useQuiz } from '../../hooks/useQuiz';
 import { submitQuizResponse, getQuizRecommendations, mapApiToQuizResults } from '../../../services/quizApi';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // URL helpers - updated for 0.6 dynamic routes
 const getWizardUrl = (landing?: string) => {
@@ -157,6 +158,8 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   const [results, setResults] = useState<QuizResult[] | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const analytics = useAnalytics();
+  const quizStartTsRef = useRef<number | null>(null);
 
   // Scroll al inicio cuando cambian los resultados o el paso
   useEffect(() => {
@@ -226,6 +229,25 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   const totalSteps = questions.length;
   const currentQuestion = questions[currentStep];
 
+  // Emit quiz_start / quiz_abandon based on modal visibility.
+  // El start se dispara solo la primera vez que se abre con preguntas cargadas.
+  useEffect(() => {
+    if (isOpen && questions.length > 0 && quizStartTsRef.current === null) {
+      quizStartTsRef.current = Date.now();
+      analytics.trackQuizStart({ context, question_count: questions.length });
+    }
+    if (!isOpen && quizStartTsRef.current !== null && !results) {
+      // Cerró antes de terminar
+      analytics.trackQuizAbandon({
+        context,
+        step: currentStep,
+        total: questions.length,
+      });
+      quizStartTsRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, questions.length]);
+
   // Get layout component based on device (mobile: V4 bottom sheet, desktop: V5 modal)
   const LayoutComponent = isMobile ? QuizLayoutV4 : QuizLayoutV5;
 
@@ -242,6 +264,13 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       questionId: currentQuestion.id,
       selectedOptions: [selectedOption],
     };
+
+    analytics.trackQuizAnswer({
+      question_id: currentQuestion.id,
+      option_id: selectedOption,
+      step: currentStep + 1,
+      total: totalSteps,
+    });
 
     const updatedAnswers = [...answers, newAnswer];
     setAnswers(updatedAnswers);
@@ -273,8 +302,18 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       }
 
       // Limit results to configured resultsCount
-      setResults(quizResults.slice(0, resultsCount));
+      const finalResults = quizResults.slice(0, resultsCount);
+      setResults(finalResults);
       setIsCalculating(false);
+
+      // Quiz finish analytics
+      const duration = quizStartTsRef.current ? Date.now() - quizStartTsRef.current : undefined;
+      analytics.trackQuizFinish({
+        context,
+        result_count: finalResults.length,
+        duration_ms: duration,
+      });
+      quizStartTsRef.current = null;
 
       // Submit analytics
       if (quizId && landingId) {

@@ -297,6 +297,8 @@ export interface ProductInfoHeaderProps {
 export interface ProductGalleryProps {
   images: ProductImage[];
   productName: string;
+  /** ID del producto para eventos de analytics. */
+  productId?: string;
 }
 
 export interface DetailTabsProps {
@@ -328,6 +330,8 @@ export interface SimilarProductsProps {
   products: SimilarProduct[];
   currentQuota: number;
   landing?: string;
+  /** ID del producto actual (para analítica de origen). */
+  sourceProductId?: string;
 }
 
 export interface ProductLimitationsProps {
@@ -343,7 +347,8 @@ export interface CronogramaProps {
   term?: number;
   startDate?: Date;
   version?: CronogramaVersion;
-  // Datos del producto para el PDF
+  // Datos del producto para el PDF y para analytics
+  productId?: string;
   productName?: string;
   productBrand?: string;
   productPrice?: number;
@@ -368,6 +373,7 @@ export interface PortsDisplayProps {
 export interface SpecSheetDownloadProps {
   specs?: ProductSpec[];
   ports?: ProductPort[];
+  productId?: string;
   productName?: string;
   productBrand?: string;
   productImage?: string;

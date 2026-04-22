@@ -13,6 +13,7 @@ import { Button } from '@nextui-org/react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { OnboardingStep, OnboardingHighlightStyle } from '../../types/catalog';
 import { useIsMobile } from '@/app/prototipos/_shared';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface OnboardingTourProps {
   isActive: boolean;
@@ -49,6 +50,46 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const isMobile = useIsMobile();
+  const analytics = useAnalytics();
+  const tourStartTsRef = React.useRef<number | null>(null);
+  const wasActiveRef = React.useRef(false);
+
+  // Wrap onSkip para emitir tour_skip con posición actual.
+  const onSkipTracked = useCallback(() => {
+    analytics.trackTourSkip({ step: currentStepIndex + 1, total: totalSteps });
+    onSkip();
+  }, [analytics, currentStepIndex, totalSteps, onSkip]);
+
+  // Fire tour_start when the tour becomes active for the first time.
+  // Fire tour_finish when it deactivates after reaching the last step.
+  useEffect(() => {
+    if (isActive && !wasActiveRef.current) {
+      wasActiveRef.current = true;
+      tourStartTsRef.current = Date.now();
+      analytics.trackTourStart({ step_count: totalSteps, style: highlightStyle });
+    }
+    if (!isActive && wasActiveRef.current) {
+      wasActiveRef.current = false;
+      const duration = tourStartTsRef.current ? Date.now() - tourStartTsRef.current : undefined;
+      // Si llegó al final, es finish; si saltó antes, handled in onSkip handler below.
+      if (currentStepIndex >= totalSteps - 1) {
+        analytics.trackTourFinish({ total: totalSteps, duration_ms: duration });
+      }
+      tourStartTsRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive]);
+
+  // Emit tour_step_view cuando cambia de paso (sólo si el tour está activo).
+  useEffect(() => {
+    if (!isActive || !currentStep) return;
+    analytics.trackTourStepView({
+      step: currentStepIndex + 1,
+      step_id: currentStep.id,
+      total: totalSteps,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, currentStepIndex]);
 
   // Mount check for portal
   useEffect(() => {
@@ -123,7 +164,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onSkip();
+        onSkipTracked();
       } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
         onNext();
       } else if (e.key === 'ArrowLeft') {
@@ -133,7 +174,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, onNext, onPrev, onSkip]);
+  }, [isActive, onNext, onPrev, onSkipTracked]);
 
   // Don't render until we have a valid target position (prevents flicker on start)
   if (!isMounted || !isActive || !currentStep || !targetRect) return null;
@@ -242,7 +283,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={onSkip}
+              onClick={onSkipTracked}
               style={{
                 background: targetRect
                   ? `radial-gradient(circle at ${targetRect.left + targetRect.width / 2}px ${targetRect.top + targetRect.height / 2}px, transparent ${Math.max(targetRect.width, targetRect.height) / 2 + 20}px, rgba(0,0,0,0.75) ${Math.max(targetRect.width, targetRect.height) / 2 + 60}px)`
@@ -260,7 +301,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={onSkip}
+                onClick={onSkipTracked}
               />
               {/* Pulse ring */}
               <motion.div
@@ -308,7 +349,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
           >
             {/* Skip button */}
             <button
-              onClick={onSkip}
+              onClick={onSkipTracked}
               className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4 text-neutral-400" />
@@ -378,7 +419,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
             {/* Skip link - hidden in help only mode */}
             {!isHelpOnlyMode && (
               <button
-                onClick={onSkip}
+                onClick={onSkipTracked}
                 className="w-full text-center text-xs text-neutral-400 hover:text-neutral-600 mt-3 cursor-pointer"
               >
                 Saltar tour

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -63,6 +64,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const analytics = useAnalytics();
 
   // Notify parent when drawer state changes
   const handleDrawerOpen = () => {
@@ -592,7 +594,21 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
 
         {/* Banner Promocional del Catálogo — solo si NO hay VIP countdown (espera a que cargue config) */}
         {vipCountdownDate !== null && !vipCountdownDate && catalogBanner && (
-          <div className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
+          <div
+            className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4"
+            onClick={() =>
+              analytics.trackBannerClick({
+                location: 'catalog_top',
+                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
+              })
+            }
+            onMouseEnter={() =>
+              analytics.trackBannerHover({
+                location: 'catalog_top',
+                banner_id: (catalogBanner as { id?: string | number })?.id?.toString(),
+              })
+            }
+          >
             <CatalogBanner
               desktopImageUrl={catalogBanner.desktop_image_url as string}
               mobileImageUrl={catalogBanner.mobile_image_url as string}

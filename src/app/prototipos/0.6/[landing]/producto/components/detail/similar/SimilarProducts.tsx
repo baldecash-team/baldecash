@@ -18,6 +18,7 @@ import { formatMoney, formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { useIsMobile } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // Dynamic storage keys based on landing slug (same pattern as ProductContext)
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -72,10 +73,12 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
   products,
   currentQuota,
   landing: landingProp,
+  sourceProductId = '',
   onAddToCart,
   cartItems = [],
 }) => {
   const isMobile = useIsMobile();
+  const analytics = useAnalytics();
 
   // Si no hay productos similares, no mostrar la sección
   if (!products || products.length === 0) {
@@ -92,6 +95,11 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
 
   // Open modal when clicking "Lo quiero"
   const handleOpenModal = (product: SimilarProduct) => {
+    analytics.trackSimilarProductClick({
+      source_product_id: sourceProductId,
+      target_product_id: product.id,
+      position: products.findIndex((p) => p.id === product.id),
+    });
     setSelectedProductForModal(product);
     setIsModalOpen(true);
   };
@@ -150,6 +158,14 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
 
   const handleProductClick = (slug: string) => {
     if (typeof window !== 'undefined') {
+      const clickedProduct = products.find((p) => p.slug === slug);
+      if (clickedProduct) {
+        analytics.trackSimilarProductClick({
+          source_product_id: sourceProductId,
+          target_product_id: clickedProduct.id,
+          position: products.findIndex((p) => p.id === clickedProduct.id),
+        });
+      }
       const landing = landingProp || 'home';
       window.location.href = routes.producto(landing, slug);
     }
@@ -492,6 +508,10 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
             product={selectedProductForModal}
             onRequestEquipment={() => handleAddToCart(selectedProductForModal)}
             onAddToCart={() => {
+              analytics.trackSimilarProductAddToCart({
+                source_product_id: sourceProductId,
+                target_product_id: selectedProductForModal.id,
+              });
               onAddToCart(selectedProductForModal);
               handleCloseModal();
             }}
@@ -503,6 +523,10 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
             product={selectedProductForModal}
             onRequestEquipment={() => handleAddToCart(selectedProductForModal)}
             onAddToCart={() => {
+              analytics.trackSimilarProductAddToCart({
+                source_product_id: sourceProductId,
+                target_product_id: selectedProductForModal.id,
+              });
               onAddToCart(selectedProductForModal);
               handleCloseModal();
             }}

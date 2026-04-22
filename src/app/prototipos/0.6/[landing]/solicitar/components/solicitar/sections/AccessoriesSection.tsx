@@ -21,6 +21,7 @@ import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi'
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import type { Accessory, AccessoryCategory } from '../../../types/upsell';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 /** Responsive page size: 2 mobile, 4 tablet, 6 desktop */
 function usePageSize() {
@@ -75,7 +76,28 @@ export function AccessoriesSection({
 
   const { badgeText } = useWizardConfig();
   const { selectedAccessories, toggleAccessory, setSelectedAccessories, selectedProduct, cartProducts, getAllProducts } = useProduct();
+  const analytics = useAnalytics();
   const [accessories, setAccessories] = useState<Accessory[]>([]);
+
+  // Wrapper con tracking. Diferencia add vs remove mirando si ya está en la lista.
+  const toggleAccessoryTracked = (accessory: Accessory) => {
+    const wasSelected = selectedAccessories.some((a) => a.id === accessory.id);
+    const sourceProductId = selectedProduct?.id ?? null;
+    if (wasSelected) {
+      analytics.trackAccessoryRemove({
+        accessory_id: String(accessory.id),
+        source_product_id: sourceProductId,
+      });
+    } else {
+      analytics.trackAccessoryAdd({
+        accessory_id: String(accessory.id),
+        accessory_name: accessory.name,
+        price: (accessory as { price?: number }).price ?? null,
+        source_product_id: sourceProductId,
+      });
+    }
+    toggleAccessory(accessory);
+  };
   const [isLoading, setIsLoading] = useState(true);
   const [detailAccessory, setDetailAccessory] = useState<Accessory | null>(null);
 
@@ -327,8 +349,14 @@ export function AccessoriesSection({
                     key={accessory.id}
                     accessory={accessory}
                     isSelected={selectedAccessories.some((a) => a.id === accessory.id)}
-                    onToggle={() => toggleAccessory(accessory)}
-                    onViewDetails={() => setDetailAccessory(accessory)}
+                    onToggle={() => toggleAccessoryTracked(accessory)}
+                    onViewDetails={() => {
+                      analytics.trackAccessoryView({
+                        accessory_id: String(accessory.id),
+                        accessory_name: accessory.name,
+                      });
+                      setDetailAccessory(accessory);
+                    }}
                   />
                 ))}
               </div>
@@ -346,7 +374,7 @@ export function AccessoriesSection({
         isSelected={detailAccessory ? selectedAccessories.some((a) => a.id === detailAccessory.id) : false}
         onToggle={() => {
           if (detailAccessory) {
-            toggleAccessory(detailAccessory);
+            toggleAccessoryTracked(detailAccessory);
           }
         }}
         badgeText={badgeText}

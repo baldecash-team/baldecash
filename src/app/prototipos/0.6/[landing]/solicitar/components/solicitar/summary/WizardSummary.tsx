@@ -17,6 +17,7 @@ import { Edit2 } from 'lucide-react';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useWizard } from '../../../context/WizardContext';
 import { FieldState } from '../../../types/solicitar';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
   WizardStep,
   WizardField,
@@ -162,6 +163,7 @@ const SummaryStepSection: React.FC<{
   onEdit?: () => void;
   showEditButton?: boolean;
 }> = ({ step, formValues, formData, resolvedLabels, prefillTargetFields, onEdit, showEditButton = true }) => {
+  const analytics = useAnalytics();
   // Filter visible fields
   const visibleFields = useMemo(() => {
     return step.fields.filter((field) => {
@@ -198,7 +200,10 @@ const SummaryStepSection: React.FC<{
         {showEditButton && onEdit && (
           <button
             type="button"
-            onClick={onEdit}
+            onClick={() => {
+              analytics.trackSummaryEditClick({ section: step.code });
+              onEdit();
+            }}
             className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
           >
             <Edit2 size={14} />
