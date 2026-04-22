@@ -2,18 +2,10 @@
 
 import { useState } from 'react';
 import { type FloatingCtaConfig } from '../types/landingConfig';
-import * as LucideIcons from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { GraduationCap, X, ArrowRight } from 'lucide-react';
 
 interface FloatingCtaButtonProps {
   config: FloatingCtaConfig | null;
-}
-
-function resolveIcon(name: string): LucideIcon {
-  const icon = (LucideIcons as Record<string, unknown>)[name];
-  if (icon && typeof icon === 'object' && '$$typeof' in icon) return icon as unknown as LucideIcon;
-  if (typeof icon === 'function') return icon as LucideIcon;
-  return LucideIcons.GraduationCap;
 }
 
 export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
@@ -21,7 +13,7 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
 
   if (!config) return null;
 
-  const Icon = resolveIcon(config.icon);
+  const Icon = GraduationCap;
 
   if (isExpanded) {
     return (
@@ -31,7 +23,7 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
           className="absolute top-3 right-3 text-white/50 hover:text-white transition-colors cursor-pointer bg-transparent border-none"
           aria-label="Cerrar"
         >
-          <LucideIcons.X className="h-4 w-4" />
+          <X className="h-4 w-4" />
         </button>
 
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4654CD]/20 mb-4">
@@ -48,7 +40,7 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
           className="flex items-center justify-center gap-2 w-full rounded-full bg-[#03DBD0] px-5 py-2.5 text-sm font-semibold text-[#1a1a2e] no-underline transition-all hover:brightness-110"
         >
           {config.cta_text}
-          <LucideIcons.ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" />
         </a>
       </div>
     );
