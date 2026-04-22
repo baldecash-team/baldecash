@@ -789,6 +789,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       legal_name: data.company.legal_name,
       logo_url: data.company.logo_url,
       main_phone: data.company.main_phone,
+      main_address: data.company.main_address,
       main_email: data.company.main_email,
       website_url: data.company.website_url,
       customer_portal_url: data.company.customer_portal_url,

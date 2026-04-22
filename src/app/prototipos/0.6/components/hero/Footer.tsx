@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
-import { Facebook, Instagram, Linkedin, Phone, Send, AlertCircle, Check, Twitter, Youtube } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Phone, Send, AlertCircle, Check, Twitter, Youtube, MapPin } from 'lucide-react';
 import { Toast } from '@/app/prototipos/_shared';
 import type { FooterData } from '../../types/hero';
 import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
@@ -297,37 +297,6 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
                 </a>
               ))}
             </div>
-            {/* Contacto */}
-            <div className="mt-4 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-300">Contáctanos</p>
-              {data?.company?.main_phone && (
-                <a
-                  href={`tel:${data.company.main_phone.replace(/\s/g, '')}`}
-                  className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
-                >
-                  <Phone className="w-4 h-4 flex-shrink-0" />
-                  <span>{data.company.main_phone}</span>
-                </a>
-              )}
-              <a
-                href="https://wa.me/51959324808"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-neutral-400 hover:text-[#25D366] transition-colors"
-              >
-                <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
-                <span>+51 959 324 808 · Soporte al Estudiante</span>
-              </a>
-              <a
-                href="https://wa.me/51934240164"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-neutral-400 hover:text-[#25D366] transition-colors"
-              >
-                <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
-                <span>+51 934 240 164 · Cobranzas</span>
-              </a>
-            </div>
           </div>
 
           {/* Link Columns - Only render if columns exist */}
@@ -356,8 +325,49 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
           ))}
         </div>
 
+        {/* Contacto - Fila completa */}
+        <div className="border-t border-neutral-800 pt-6 mb-6">
+          <p className="text-xs font-semibold uppercase tracking-wider text-neutral-300 mb-3">Contáctanos</p>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2">
+            {data?.company?.main_phone && (
+              <a
+                href={`tel:${data.company.main_phone.replace(/\s/g, '')}`}
+                className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
+              >
+                <Phone className="w-4 h-4 flex-shrink-0" />
+                <span>{data.company.main_phone}</span>
+              </a>
+            )}
+            <a
+              href="https://wa.me/51959324808"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-neutral-400 hover:text-[#25D366] transition-colors"
+            >
+              <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
+              <span>+51 959 324 808 · Soporte al Estudiante</span>
+            </a>
+            <a
+              href="https://wa.me/51934240164"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-neutral-400 hover:text-[#25D366] transition-colors"
+            >
+              <WhatsAppIcon className="w-4 h-4 flex-shrink-0" />
+              <span>+51 934 240 164 · Cobranzas</span>
+            </a>
+          </div>
+        </div>
+
         {/* Bottom Bar */}
-        <div className="border-t border-neutral-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="border-t border-neutral-800 pt-6 flex flex-col gap-4 mt-0">
+          {data?.company?.main_address && (
+            <div className="flex items-center gap-2 text-sm text-neutral-500">
+              <MapPin className="w-4 h-4 flex-shrink-0" />
+              <span>{data.company.main_address}</span>
+            </div>
+          )}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 w-full">
           <p className="text-sm text-neutral-500">
             {copyrightText}
           </p>
@@ -375,6 +385,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
                 className="h-10 sm:h-12 w-auto max-w-[90px] object-contain"
               />
             </a>
+          </div>
           </div>
         </div>
       </div>

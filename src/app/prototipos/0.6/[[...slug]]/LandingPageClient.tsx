@@ -22,6 +22,7 @@ import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
 import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '../types/landingConfig';
+import { FloatingCtaButton } from '../components/FloatingCtaButton';
 
 // Product landing pages (imported directly for instant render)
 import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
@@ -361,6 +362,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
       >
         {showPreviewBanner && <PreviewBanner landingSlug={slug} />}
         <MacBookNeoLanding footerData={mergedFooterData} landing={slug} previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0} />
+        <FloatingCtaButton config={landingConfig.features.floating_cta} />
       </div>
     );
   }
@@ -435,6 +437,8 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
               onWhitelistValidated={hasWhitelist ? handleWhitelistValidated : undefined}
             />
           )}
+
+          <FloatingCtaButton config={landingConfig.features.floating_cta} />
 
           {/* VIP Countdown overlay - blocks page until countdown expires */}
           {isVipLanding && (

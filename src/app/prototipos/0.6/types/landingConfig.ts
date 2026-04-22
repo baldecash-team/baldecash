@@ -11,6 +11,16 @@ export interface LandingConfigLayout {
   has_catalog: boolean;
 }
 
+export interface FloatingCtaConfig {
+  title: string;
+  subtitle: string;
+  icon: string;
+  expanded_title: string;
+  expanded_description: string;
+  cta_text: string;
+  url: string;
+}
+
 export interface LandingConfigFeatures {
   /** Whether to show the DNI modal on landing load. */
   has_dni_modal: boolean;
@@ -22,6 +32,8 @@ export interface LandingConfigFeatures {
   vip_countdown: string;
   /** Whether to validate DNI against a whitelist before accepting. */
   has_dni_whitelist: boolean;
+  /** Floating CTA button config. null = no button. */
+  floating_cta: FloatingCtaConfig | null;
 }
 
 /**
@@ -60,5 +72,6 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     show_platform_commission: false,
     vip_countdown: '',
     has_dni_whitelist: false,
+    floating_cta: null,
   },
 };
