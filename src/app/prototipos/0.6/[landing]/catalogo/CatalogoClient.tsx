@@ -92,7 +92,6 @@ import {
 
 // Import the shared state hook for cart/wishlist
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
-import { useCatalogStatePersistence } from './hooks/useCatalogStatePersistence';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { useAnalytics, type FilterCode } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { diffAndEmitFilterChanges } from '@/app/prototipos/0.6/analytics/catalogFilterDiff';
@@ -317,10 +316,6 @@ function CatalogoContent() {
       setVipCountdownDate(cfg.features.vip_countdown || '');
     });
   }, [landing]);
-
-  // Persistencia del catálogo: se declara aquí (después de previewKey) para
-  // que el seed esté disponible cuando useCatalogProducts monte.
-  const catalogPersistence = useCatalogStatePersistence(landing, previewKey);
 
   // Blip Chat control
   const blipChat = useBlipChat();
@@ -629,14 +624,6 @@ function CatalogoContent() {
     enabled: isReadyToFetchProducts,
     previewKey,
     gridColumns,
-    initialSeed: catalogPersistence.snapshot
-      ? {
-          products: catalogPersistence.snapshot.products,
-          total: catalogPersistence.snapshot.total,
-          offset: catalogPersistence.snapshot.offset,
-          hasMore: catalogPersistence.snapshot.hasMore,
-        }
-      : null,
   });
 
 
@@ -865,9 +852,7 @@ function CatalogoContent() {
     unavailableWishlistIds,
   } = useCatalogSharedState(landing, previewKey);
 
-  const [viewMode, setViewModeRaw] = useState<CatalogViewMode>(
-    () => catalogPersistence.snapshot?.viewMode ?? 'all'
-  );
+  const [viewMode, setViewModeRaw] = useState<CatalogViewMode>('all');
   const setViewMode = useCallback(
     (next: CatalogViewMode) => {
       setViewModeRaw((prev) => {
@@ -1353,69 +1338,6 @@ function CatalogoContent() {
     loadMoreFromApi();
   }, [loadMoreFromApi, analytics, catalogProducts.length, totalProducts]);
 
-  // Snapshot del catálogo para restaurar al volver del detalle sin refetch.
-  // Se captura scrollY en el momento de la llamada, no al renderizar.
-  const saveCatalogSnapshot = useCallback(() => {
-    if (catalogProducts.length === 0) return; // nada que guardar
-    catalogPersistence.save({
-      scrollY: typeof window !== 'undefined' ? window.scrollY : 0,
-      viewMode,
-      products: catalogProducts,
-      total: totalProducts,
-      offset: catalogProducts.length,
-      hasMore: hasMoreFromApi,
-    });
-  }, [catalogPersistence, catalogProducts, totalProducts, hasMoreFromApi, viewMode]);
-
-  // Guardar snapshot cuando el usuario cierra la pestaña o navega hacia atrás.
-  // `pagehide` cubre ambos casos en browsers modernos (incluye bfcache).
-  useEffect(() => {
-    const handler = () => saveCatalogSnapshot();
-    window.addEventListener('pagehide', handler);
-    return () => window.removeEventListener('pagehide', handler);
-  }, [saveCatalogSnapshot]);
-
-  // Restaurar scroll después de que los productos seedados estén pintados.
-  // Usamos rAF para asegurar que el layout ya midió la altura del grid.
-  const restoredScrollRef = useRef(false);
-  useEffect(() => {
-    if (restoredScrollRef.current) return;
-    const snap = catalogPersistence.snapshot;
-    if (!snap || catalogPersistence.isConsumed()) return;
-    if (isProductsLoading) return;
-    if (catalogProducts.length === 0) return;
-
-    restoredScrollRef.current = true;
-    catalogPersistence.markConsumed();
-
-    // Doble rAF para esperar a que el browser calcule alturas después del
-    // mount inicial. Evita el "salto" cuando los cards aún no han medido.
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: snap.scrollY, left: 0, behavior: 'auto' });
-      });
-    });
-  }, [isProductsLoading, catalogProducts.length, catalogPersistence]);
-
-  // Invalidar el snapshot cuando el usuario cambia filtros/sort/search.
-  // La URL ya rehidrata esos valores; el snapshot de productos quedaría obsoleto.
-  const snapshotInvalidateKey = useMemo(
-    () => JSON.stringify({ f: apiFiltersForProducts, s: apiSortBy }),
-    [apiFiltersForProducts, apiSortBy]
-  );
-  const lastInvalidateKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    // En el primer mount no limpiamos — el seed depende del snapshot guardado.
-    if (lastInvalidateKeyRef.current === null) {
-      lastInvalidateKeyRef.current = snapshotInvalidateKey;
-      return;
-    }
-    if (lastInvalidateKeyRef.current !== snapshotInvalidateKey) {
-      lastInvalidateKeyRef.current = snapshotInvalidateKey;
-      catalogPersistence.clear();
-    }
-  }, [snapshotInvalidateKey, catalogPersistence]);
-
   // Applied filters for EmptyState
   const appliedFilters = useMemo((): AppliedFilter[] => {
     const result: AppliedFilter[] = [];
@@ -1688,7 +1610,6 @@ function CatalogoContent() {
         onWishlistViewProduct={(productId) => {
           const item = wishlistItems.find((w) => w.productId === productId);
           const product = findProductOrSibling(productId);
-          saveCatalogSnapshot();
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
           } else if (item?.slug) {
@@ -1703,7 +1624,6 @@ function CatalogoContent() {
         onCartViewProduct={(productId) => {
           const item = cartItems.find((c) => c.productId === productId);
           const product = findProductOrSibling(productId);
-          saveCatalogSnapshot();
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
           } else if (item?.slug) {
@@ -1817,8 +1737,6 @@ function CatalogoContent() {
                     brand: product.brand,
                     slug: siblingSlug || product.slug,
                   });
-                  // Guardar snapshot ANTES de navegar para restaurar al volver.
-                  saveCatalogSnapshot();
                   router.push(getDetailUrl(landing, siblingSlug || product.slug));
                 }}
                 onMouseEnter={() => {
@@ -2032,7 +1950,6 @@ function CatalogoContent() {
             setIsCartDrawerOpen(false);
             const item = cartItems.find((c) => c.productId === productId);
             const product = findProductOrSibling(productId);
-            saveCatalogSnapshot();
             if (product) {
               router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
             } else if (item?.slug) {
@@ -2065,7 +1982,6 @@ function CatalogoContent() {
           setIsWishlistDrawerOpen(false);
           const item = wishlistItems.find((w) => w.productId === productId);
           const product = findProductOrSibling(productId);
-          saveCatalogSnapshot();
           if (product) {
             router.push(getDetailUrl(landing, product.slug, item ? { term: item.months, initial: item.initialPercent } : undefined));
           } else if (item?.slug) {

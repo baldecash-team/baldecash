@@ -35,17 +35,6 @@ export interface UseCatalogProductsOptions {
   previewKey?: string | null;
   /** Number of grid columns - used to round limits so rows are always complete */
   gridColumns?: number;
-  /**
-   * Seed inicial para restaurar desde sessionStorage al volver del detalle.
-   * Si se provee, el hook omite el fetch inicial y usa estos productos como
-   * punto de partida para "Load more". Solo se aplica una vez en el mount.
-   */
-  initialSeed?: {
-    products: CatalogProduct[];
-    total: number;
-    offset: number;
-    hasMore: boolean;
-  } | null;
 }
 
 export interface UseCatalogProductsResult {
@@ -92,30 +81,24 @@ export function useCatalogProducts({
   enabled = true,
   previewKey,
   gridColumns,
-  initialSeed,
 }: UseCatalogProductsOptions): UseCatalogProductsResult {
   // Round limits to fill complete rows
   const initialLimit = gridColumns ? roundToColumns(INITIAL_LOAD_LIMIT, gridColumns) : INITIAL_LOAD_LIMIT;
   const loadMoreLimit = gridColumns ? roundToColumns(LOAD_MORE_LIMIT, gridColumns) : LOAD_MORE_LIMIT;
 
-  // Capturar el seed en un ref para que no cambie de referencia y dispare re-hidratación.
-  const seedRef = useRef(initialSeed ?? null);
-  const hasSeed = seedRef.current !== null;
-
-  const [products, setProducts] = useState<CatalogProduct[]>(() => seedRef.current?.products ?? []);
-  const [total, setTotal] = useState(() => seedRef.current?.total ?? 0);
-  const [offset, setOffset] = useState(() => seedRef.current?.offset ?? 0);
-  const [hasMore, setHasMore] = useState(() => seedRef.current?.hasMore ?? false);
-  const [isLoading, setIsLoading] = useState(() => !hasSeed);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isFromApi, setIsFromApi] = useState(() => hasSeed);
+  const [isFromApi, setIsFromApi] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchCorrected, setSearchCorrected] = useState<SearchCorrected | null>(null);
 
-  // Track if we've already attempted to load. Si hay seed, considerar ya cargado
-  // para que el efecto inicial no vuelva a pegarle al backend.
-  const hasLoadedRef = useRef(hasSeed);
+  // Track if we've already attempted to load.
+  const hasLoadedRef = useRef(false);
   // Track if enabled changed from false to true
   const wasEnabledRef = useRef(enabled);
 
