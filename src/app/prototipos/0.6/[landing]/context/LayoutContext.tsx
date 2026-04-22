@@ -197,6 +197,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
         legal_name: layoutData.company.legal_name,
         logo_url: layoutData.company.logo_url,
         main_phone: layoutData.company.main_phone,
+        main_address: layoutData.company.main_address,
         main_email: layoutData.company.main_email,
         website_url: layoutData.company.website_url,
         customer_portal_url: layoutData.company.customer_portal_url,

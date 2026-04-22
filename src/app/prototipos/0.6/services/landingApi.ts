@@ -306,6 +306,7 @@ export interface LandingLayoutResponse {
     legal_name?: string;
     logo_url?: string;
     main_phone?: string;
+    main_address?: string;
     main_email?: string;
     website_url?: string;
     customer_portal_url?: string;
