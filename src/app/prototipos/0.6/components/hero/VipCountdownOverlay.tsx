@@ -50,7 +50,8 @@ interface VipCountdownOverlayProps {
   onOpenDniModal?: () => void;
 }
 
-const DNI_MAX_LENGTH = 8;
+const DOC_MIN_LENGTH = 8;
+const DOC_MAX_LENGTH = 12;
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 const DNI_STORAGE_PREFIX = 'baldecash-dni-';
@@ -99,10 +100,10 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const isValidDni = dni.length === DNI_MAX_LENGTH && /^\d{8}$/.test(dni);
+  const isValidDni = dni.length >= DOC_MIN_LENGTH && /^\d{8,12}$/.test(dni);
 
   const handleDniChange = useCallback((value: string) => {
-    const cleaned = value.replace(/\D/g, '').slice(0, DNI_MAX_LENGTH);
+    const cleaned = value.replace(/\D/g, '').slice(0, DOC_MAX_LENGTH);
     setDni(cleaned);
     if (errorMsg) setErrorMsg(null);
   }, [errorMsg]);
@@ -129,13 +130,15 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
           firstName: data.first_name || '',
           accessToken: data.access_token || '',
         });
-      } else {
-        try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
-        onValidated?.({ firstName: '', accessToken: '' });
+        // Keep the loading state on while the parent redirects to /catalogo.
+        // Do NOT reset submitting here — the component unmounts on navigation.
+        return;
       }
+      try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
+      onValidated?.({ firstName: '', accessToken: '' });
+      // Same reason: keep loading state until redirect unmounts us.
     } catch {
       setErrorMsg('No encontramos un registro con este DNI.');
-    } finally {
       setSubmitting(false);
     }
   }, [isValidDni, submitting, landingSlug, validateWhitelist, dni, onValidated]);
@@ -357,8 +360,8 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
                         value={dni}
                         onChange={(e) => handleDniChange(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') handleDniSubmit(); }}
-                        placeholder="Ingresa tu DNI"
-                        maxLength={DNI_MAX_LENGTH}
+                        placeholder="Ingresa tu número de documento"
+                        maxLength={DOC_MAX_LENGTH}
                         disabled={submitting}
                         aria-label="DNI"
                         aria-invalid={!!errorMsg}
@@ -368,14 +371,27 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
                       <button
                         onClick={handleDniSubmit}
                         disabled={!isValidDni || submitting}
-                        className="px-5 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+                        className="px-5 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 inline-flex items-center justify-center min-w-[92px]"
                         style={{ backgroundColor: '#E5A823', color: '#4654CD' }}
                       >
-                        {submitting ? '...' : 'Validar'}
+                        {submitting ? (
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-label="Validando"
+                            role="status"
+                          >
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                            <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                          </svg>
+                        ) : (
+                          'Validar'
+                        )}
                       </button>
                     </div>
                     {errorMsg && (
-                      <p className="mt-3 text-sm font-medium text-center" style={{ color: '#FCA5A5' }}>
+                      <p className="mt-2 text-sm font-medium text-left" style={{ color: '#FCA5A5' }}>
                         {errorMsg}
                       </p>
                     )}
