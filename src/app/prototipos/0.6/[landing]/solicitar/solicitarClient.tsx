@@ -564,7 +564,8 @@ function WizardPreviewContent() {
                   <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
                     <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
                     <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
-                      S/{formatMoneyNoDecimals(Math.floor(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}/mes
+                      S/{formatMoneyNoDecimals(Math.floor(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}
+                      {productsToShow[0]?.paymentFrequency === 'semanal' ? '/sem' : productsToShow[0]?.paymentFrequency === 'quincenal' ? '/qcn' : '/mes'}
                     </span>
                   </div>
 
