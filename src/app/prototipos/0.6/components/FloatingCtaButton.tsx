@@ -17,7 +17,7 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
 
   if (isExpanded) {
     return (
-      <div className="fixed left-4 right-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[90] rounded-2xl bg-[#1a1a2e]/95 backdrop-blur-sm p-5 shadow-xl sm:left-auto sm:right-6 sm:bottom-6 sm:w-[320px]">
+      <div className="fixed left-4 right-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[90] rounded-[16px] bg-[#1a1a2e]/95 backdrop-blur-sm p-5 shadow-xl sm:left-auto sm:right-6 sm:bottom-6 sm:w-[320px]">
         <button
           onClick={() => setIsExpanded(false)}
           className="absolute top-3 right-3 text-white/50 hover:text-white transition-colors cursor-pointer bg-transparent border-none"
@@ -26,7 +26,7 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
           <X className="h-4 w-4" />
         </button>
 
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#4654CD]/20 mb-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-[16px] bg-[#4654CD]/20 mb-4">
           <Icon className="h-5 w-5 text-[#03DBD0]" />
         </div>
 
@@ -49,10 +49,10 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
   return (
     <button
       onClick={() => setIsExpanded(true)}
-      className="fixed right-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[90] flex items-center justify-center rounded-full bg-[#1a1a2e]/90 backdrop-blur-sm p-3 shadow-lg transition-all hover:scale-105 hover:bg-[#1a1a2e] cursor-pointer border-none sm:right-6 sm:bottom-6 sm:gap-3 sm:rounded-2xl sm:px-5 sm:py-3 sm:justify-start"
+      className="fixed right-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[90] flex items-center justify-center rounded-[16px] bg-[#1a1a2e]/90 backdrop-blur-sm p-3 shadow-lg transition-all hover:scale-105 hover:bg-[#1a1a2e] cursor-pointer border-none sm:right-6 sm:bottom-6 sm:gap-3 sm:px-5 sm:py-3 sm:justify-start"
       aria-label={config.title}
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4654CD]/20">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] bg-[#4654CD]/20">
         <Icon className="h-5 w-5 text-[#03DBD0]" />
       </div>
       <div className="hidden sm:flex flex-col text-left">
