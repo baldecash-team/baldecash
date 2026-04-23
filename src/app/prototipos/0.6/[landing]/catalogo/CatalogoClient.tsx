@@ -1748,6 +1748,7 @@ function CatalogoContent() {
                 }}
                 isFavoriteCheck={(id) => wishlist.includes(id)}
                 isInCartCheck={ALLOW_MULTI_PRODUCT ? (id) => cart.includes(id) : () => false}
+                getDetailHref={(siblingSlug) => getDetailUrl(landing, siblingSlug || product.slug)}
                 onViewDetail={(siblingSlug) => {
                   tracker?.track('product_click', {
                     product_id: product.id,
@@ -1755,7 +1756,6 @@ function CatalogoContent() {
                     brand: product.brand,
                     slug: siblingSlug || product.slug,
                   });
-                  router.push(getDetailUrl(landing, siblingSlug || product.slug));
                 }}
                 onMouseEnter={() => {
                   tracker?.track('product_hover', {
