@@ -54,10 +54,11 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       price: product.price,
       monthlyPayment: product.quotaMonthly,
       months: (product.maxTermMonths || 24) as TermMonths,
-      initialPercent: 0,
+      initialPercent: product.hookInitialPercent ?? 0,
       initialAmount: 0,
       image: product.images[0] || product.thumbnail,
       type: product.deviceType,
+      variantId: product.variantId,
       paymentFrequency: product.paymentFrequency,
       specs: {
         processor: product.specs?.processor?.model || '',

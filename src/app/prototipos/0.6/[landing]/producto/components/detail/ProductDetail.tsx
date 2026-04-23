@@ -242,7 +242,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       monthlyPayment: pricingSelection.monthlyQuota,
       addedAt: Date.now(),
       // Variant/color info
-      variantId: selectedColorId || undefined,
+      variantId: product.variantId != null ? String(product.variantId) : (selectedColorId || undefined),
       colorName: selectedColor?.name,
       colorHex: selectedColor?.hex,
       // Payment plans for term standardization
@@ -272,7 +272,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       initialPercent: pricingSelection.initialPercent as InitialPaymentPercent,
       initialAmount: pricingSelection.initialAmount,
       monthlyPayment: pricingSelection.monthlyQuota,
-      variantId: selectedColorId || undefined,
+      variantId: product.variantId != null ? String(product.variantId) : (selectedColorId || undefined),
       colorName: selectedColor?.name,
       colorHex: selectedColor?.hex,
       addedAt: Date.now(),
@@ -335,7 +335,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       initialAmount: initialAmount,
       image: productThumbnail,
       type: product.deviceType as SelectedProduct['type'],
-      variantId: selectedColorId || undefined,
+      variantId: product.variantId != null ? String(product.variantId) : (selectedColorId || undefined),
       colorName: selectedColor?.name,
       colorHex: selectedColor?.hex,
       specs: {

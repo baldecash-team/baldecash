@@ -94,6 +94,10 @@ export interface ApiColorSibling {
       tea: number;
     } | null;
   };
+  variant?: {
+    id: number;
+    sku?: string;
+  } | null;
 }
 
 export interface ApiCatalogProduct {
@@ -561,6 +565,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
             imageUrl: sib.image_url || undefined,
             images: sib.image_url ? [sib.image_url] : [],
             productId: String(sib.product_id),
+            variantId: sib.variant?.id != null ? String(sib.variant.id) : undefined,
             slug: sib.slug,
             displayName: sib.display_name || sib.name,
             price: sib.pricing.final_price,

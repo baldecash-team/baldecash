@@ -362,6 +362,22 @@ function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct 
     };
   });
 
+  // Extract variant_id: prefer colors[0].id ("variant-{id}"), fallback to images[0].variant_id
+  let variantId: number | undefined;
+  const firstColor = apiProduct.colors?.[0];
+  if (firstColor?.id) {
+    const match = firstColor.id.match(/^variant-(\d+)$/);
+    if (match) variantId = parseInt(match[1], 10);
+  }
+  if (variantId == null) {
+    for (const img of transformedImages) {
+      if (img.variantId != null) {
+        variantId = img.variantId;
+        break;
+      }
+    }
+  }
+
   return {
     id: apiProduct.id,
     name: apiProduct.name,
@@ -381,6 +397,7 @@ function transformSimilarProduct(apiProduct: ApiSimilarProduct): SimilarProduct 
     slug: apiProduct.slug,
     specs: undefined,
     promotion: apiProduct.promotion as SimilarProduct['promotion'] ?? undefined,
+    variantId,
   };
 }
 
@@ -467,7 +484,28 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     reviewCount: apiProduct.review_count,
     tea: apiProduct.tea,
     tcea: apiProduct.tcea,
+    variantId: extractVariantId(apiProduct),
   };
+}
+
+/**
+ * Extract variant_id from detail API response.
+ * The /detail endpoint exposes variant_id indirectly via:
+ *   - `colors[].id` in "variant-{id}" format
+ *   - `images[].variant_id`
+ */
+function extractVariantId(apiProduct: ApiProductData): number | undefined {
+  // Prefer colors[0].id format "variant-{id}"
+  const colorId = apiProduct.colors?.[0]?.id;
+  if (colorId) {
+    const match = colorId.match(/^variant-(\d+)$/);
+    if (match) return parseInt(match[1], 10);
+  }
+  // Fallback: images[].variant_id
+  for (const img of apiProduct.images || []) {
+    if (img.variant_id != null) return img.variant_id;
+  }
+  return undefined;
 }
 
 // ============================================
