@@ -275,6 +275,8 @@ export interface ApplicationStatusResponse {
   }>;
 
   term_months?: number;
+  /** Payment frequency of the primary product: 'semanal' | 'quincenal' | 'mensual' */
+  payment_frequency?: string;
 
   // Initial payment info (NEW - for coherent data display)
   initial_payment_percent?: number;

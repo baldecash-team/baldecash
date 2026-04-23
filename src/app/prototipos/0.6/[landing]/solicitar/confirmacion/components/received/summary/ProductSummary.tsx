@@ -24,6 +24,11 @@ const formatPrice = (n: number): string => `S/${Math.floor(n).toLocaleString('en
 export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
   const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
 
+  const freqSuffix =
+    data.paymentFrequency === 'semanal' ? '/sem'
+    : data.paymentFrequency === 'quincenal' ? '/qcn'
+    : '/mes';
+
   // Calcular subtotal de productos (suma exacta, floor al final)
   const productsSubtotal = data.products.reduce(
     (sum, p) => sum + (p.monthlyQuota * p.quantity),
@@ -141,7 +146,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                 {/* Pricing */}
                 <div className="text-right flex-shrink-0">
                   <p className="text-base font-bold text-[var(--color-primary)]">
-                    {formatPrice(product.monthlyQuota)}/mes
+                    {formatPrice(product.monthlyQuota)}{freqSuffix}
                   </p>
                   <p className="text-xs text-neutral-500">
                     {data.termMonths} meses · {product.initialPayment && product.initialPayment > 0
@@ -158,7 +163,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
             <div className="mt-4 pt-4 border-t border-neutral-200 flex items-center justify-between">
               <span className="text-sm font-semibold text-neutral-800">Cuota total productos</span>
               <span className="text-base font-bold text-[var(--color-primary)]">
-                {formatPrice(productsSubtotal)}/mes
+                {formatPrice(productsSubtotal)}{freqSuffix}
               </span>
             </div>
           )}
@@ -213,7 +218,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
             <div className="flex items-center gap-3">
               {!isAccessoriesExpanded && (
                 <span className="text-sm font-medium text-[var(--color-primary)]">
-                  +{formatPrice(accessoriesSubtotal)}/mes
+                  +{formatPrice(accessoriesSubtotal)}{freqSuffix}
                 </span>
               )}
               {isAccessoriesExpanded ? (
@@ -244,7 +249,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                           <span className="text-neutral-700 truncate">{acc.name}</span>
                         </div>
                         <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
-                          +{formatPrice(acc.monthlyQuota)}/mes
+                          +{formatPrice(acc.monthlyQuota)}{freqSuffix}
                         </span>
                       </div>
                     ))}
@@ -262,7 +267,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
           <span className="text-sm font-semibold text-neutral-800 min-w-0 break-words">Cuota mensual total</span>
           <div className="text-right flex-shrink-0">
             <span className="text-lg sm:text-xl font-bold text-[var(--color-primary)] break-words">
-              {formatPrice(totalWithoutDiscount)}/mes
+              {formatPrice(totalWithoutDiscount)}{freqSuffix}
             </span>
           </div>
         </div>
