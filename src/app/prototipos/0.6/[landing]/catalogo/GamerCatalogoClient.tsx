@@ -254,7 +254,7 @@ function GamerCatalogoContent() {
   const [wishlistToast, setWishlistToast] = useState<string | null>(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
-  const [mobileSearchResults, setMobileSearchResults] = useState<{ id: string; slug: string; name: string; displayName: string; brand: string; thumbnail: string; quotaMonthly: number; maxTermMonths: number }[]>([]);
+  const [mobileSearchResults, setMobileSearchResults] = useState<{ id: string; slug: string; name: string; displayName: string; brand: string; thumbnail: string; images: string[]; quotaMonthly: number; maxTermMonths: number }[]>([]);
   const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
   const mobileSearchDebounce = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1140,6 +1140,9 @@ function GamerCatalogoContent() {
                             </p>
                             <p style={{ fontSize: 12, fontWeight: 700, color: T.neonCyan, margin: '2px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>
                               S/{Math.floor(item.monthlyPayment)}/mes
+                              <span style={{ fontWeight: 400, color: T.textMuted, marginLeft: 4, fontSize: 11 }}>
+                                x {item.months} meses
+                              </span>
                             </p>
                           </div>
                           <button
@@ -1884,8 +1887,8 @@ function GamerCatalogoContent() {
                         if (data) {
                           setMobileSearchResults(data.products.map((p) => ({
                             id: p.id, slug: p.slug, name: p.name, displayName: p.displayName,
-                            brand: p.brand, thumbnail: p.thumbnail, quotaMonthly: p.quotaMonthly,
-                            maxTermMonths: p.maxTermMonths,
+                            brand: p.brand, thumbnail: p.thumbnail, images: p.images || [],
+                            quotaMonthly: p.quotaMonthly, maxTermMonths: p.maxTermMonths,
                           })));
                         } else { setMobileSearchResults([]); }
                       } catch { setMobileSearchResults([]); }
@@ -2191,6 +2194,10 @@ function GamerCatalogoContent() {
         .gamer-wishlist-dark button.border-neutral-300:hover {
           border-color: #00ffd5 !important;
           color: #00ffd5 !important;
+        }
+        /* Botones solid (En comparador / Agregar): texto oscuro sobre fondo cyan */
+        .gamer-wishlist-dark button.text-white {
+          color: #0a0a0a !important;
         }
 
         /* ========= LIGHT MODE ========= */

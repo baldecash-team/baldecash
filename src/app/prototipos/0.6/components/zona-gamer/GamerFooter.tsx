@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
-import { Facebook, Instagram, Linkedin, Twitter, Youtube, Phone } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, Twitter, Youtube, Phone, MapPin } from 'lucide-react';
 import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import { getFooterData } from '@/app/prototipos/0.6/services/landingApi';
 import type { FooterData } from '@/app/prototipos/0.6/types/hero';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface GamerFooterProps {
   theme: 'dark' | 'light';
@@ -106,6 +107,7 @@ function resolveSocialLinks(data: FooterData | null): { platform: string; url: s
 }
 
 export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterProps) {
+  const tracker = useEventTrackerOptional();
   const params = useParams();
   const landingSlug =
     (params?.landing as string | undefined) ||
@@ -159,9 +161,14 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
       <div className="absolute top-0 left-0 right-0 h-px opacity-30" style={{ background: gradient }} />
 
       <div className="max-w-[1280px] mx-auto pt-12">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 sm:gap-8 mb-10">
+        <div className={`grid grid-cols-2 gap-6 sm:gap-8 mb-10 ${
+          columns.length <= 1 ? 'sm:grid-cols-2 lg:grid-cols-2'
+          : columns.length === 2 ? 'sm:grid-cols-3 lg:grid-cols-3'
+          : columns.length === 3 ? 'sm:grid-cols-3 lg:grid-cols-4'
+          : 'sm:grid-cols-3 lg:grid-cols-5'
+        }`}>
           {/* Brand column */}
-          <div className="col-span-2 sm:col-span-3 lg:col-span-1">
+          <div className="col-span-full lg:col-span-1">
             <Image
               src={LOGO_URL}
               alt="BaldeCash"
@@ -178,7 +185,7 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
             )}
 
             {socials.length > 0 && (
-              <div className="flex flex-wrap gap-2.5 mb-5">
+              <div className="flex flex-wrap gap-2.5">
                 {socials.map((s) => {
                   const Icon = getSocialIcon(s.platform);
                   if (!Icon) return null;
@@ -195,6 +202,7 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
                         color: textSecondary,
                       }}
                       title={s.platform}
+                      onClick={() => tracker?.track('cta_click', { cta_name: `social_${s.platform}`, href: s.url, location: 'footer' })}
                     >
                       <Icon className="w-4 h-4" />
                     </a>
@@ -202,55 +210,6 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
                 })}
               </div>
             )}
-
-            {/* Contáctanos */}
-            <div className="mt-4 flex flex-col gap-2">
-              {contactTitle && (
-                <p
-                  className="text-[11px] font-bold uppercase tracking-[2px]"
-                  style={{ fontFamily: "'Share Tech Mono', monospace", color: neonCyan }}
-                >
-                  {contactTitle}
-                </p>
-              )}
-
-              {mainPhone && (
-                <a
-                  href={`tel:${mainPhone.replace(/\s+/g, '')}`}
-                  className="flex items-center gap-2 text-[13px] no-underline transition-colors"
-                  style={{ color: textSecondary }}
-                >
-                  <Phone className="w-4 h-4 shrink-0" />
-                  <span>{mainPhone}</span>
-                </a>
-              )}
-
-              <a
-                href={WHATSAPP_SOPORTE.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:text-[#25D366]"
-                style={{ color: textSecondary }}
-              >
-                <WhatsAppIcon className="w-4 h-4 shrink-0" />
-                <span>
-                  {WHATSAPP_SOPORTE.number} · {WHATSAPP_SOPORTE.label}
-                </span>
-              </a>
-
-              <a
-                href={WHATSAPP_COBRANZAS.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:text-[#25D366]"
-                style={{ color: textSecondary }}
-              >
-                <WhatsAppIcon className="w-4 h-4 shrink-0" />
-                <span>
-                  {WHATSAPP_COBRANZAS.number} · {WHATSAPP_COBRANZAS.label}
-                </span>
-              </a>
-            </div>
           </div>
 
           {/* Link columns */}
@@ -269,6 +228,7 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
                       href={transformFooterHref(l.href, landingSlug)}
                       className="text-[13px] no-underline transition-colors hover:text-[#00ffd5]"
                       style={{ color: textSecondary }}
+                      onClick={() => tracker?.track('nav_click', { label: l.label, href: l.href, location: 'footer' })}
                     >
                       {l.label}
                     </a>
@@ -279,40 +239,87 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
           ))}
         </div>
 
-        {/* Bottom */}
-        <div
-          className="flex items-center justify-between gap-4 flex-col sm:flex-row py-5"
-          style={{ borderTop: `1px solid ${border}` }}
-        >
-          {copyrightText && (
-            <p className="text-xs" style={{ color: textMuted }}>
-              {copyrightText}
-            </p>
-          )}
-
-          <div className="flex items-center gap-4">
-            {sbsText && (
-              <p className="text-[11px]" style={{ color: 'rgba(85,85,119,0.6)' }}>
-                {sbsText}
-              </p>
-            )}
-            {libroReclamacionesHref && libroReclamacionesLabel && (
+        {/* Contacto - Fila separada */}
+        <div className="pt-6 mb-6" style={{ borderTop: `1px solid ${border}` }}>
+          <p
+            className="text-[11px] font-bold uppercase tracking-[2px] mb-3"
+            style={{ fontFamily: "'Share Tech Mono', monospace", color: neonCyan }}
+          >
+            {contactTitle || 'Contáctanos'}
+          </p>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2">
+            {mainPhone && (
               <a
-                href={libroReclamacionesHref}
-                title={libroReclamacionesLabel}
-                className="shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+                href={`tel:${mainPhone.replace(/\s+/g, '')}`}
+                className="flex items-center gap-2 text-[13px] no-underline transition-colors"
+                style={{ color: textSecondary }}
               >
-                <Image
-                  src={LIBRO_RECLAMACIONES_IMG}
-                  alt={libroReclamacionesLabel}
-                  width={90}
-                  height={48}
-                  loading="lazy"
-                  className="w-auto max-w-[90px] object-contain"
-                  style={{ height: 'clamp(40px, 6vw, 48px)' }}
-                />
+                <Phone className="w-4 h-4 shrink-0" />
+                <span>{mainPhone}</span>
               </a>
             )}
+            <a
+              href={WHATSAPP_SOPORTE.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:text-[#25D366]"
+              style={{ color: textSecondary }}
+            >
+              <WhatsAppIcon className="w-4 h-4 shrink-0" />
+              <span>{WHATSAPP_SOPORTE.number} · {WHATSAPP_SOPORTE.label}</span>
+            </a>
+            <a
+              href={WHATSAPP_COBRANZAS.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[13px] no-underline transition-colors hover:text-[#25D366]"
+              style={{ color: textSecondary }}
+            >
+              <WhatsAppIcon className="w-4 h-4 shrink-0" />
+              <span>{WHATSAPP_COBRANZAS.number} · {WHATSAPP_COBRANZAS.label}</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="flex flex-col gap-4 pt-6 py-5" style={{ borderTop: `1px solid ${border}` }}>
+          {footerData?.company?.main_address && (
+            <div className="flex items-center gap-2 text-[13px]" style={{ color: textMuted }}>
+              <MapPin className="w-4 h-4 shrink-0" />
+              <span>{footerData.company.main_address}</span>
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+            {copyrightText && (
+              <p className="text-xs" style={{ color: textMuted }}>
+                {copyrightText}
+              </p>
+            )}
+            <div className="flex items-center gap-4">
+              {sbsText && (
+                <p className="text-[11px]" style={{ color: 'rgba(85,85,119,0.6)' }}>
+                  {sbsText}
+                </p>
+              )}
+              {libroReclamacionesHref && (
+                <a
+                  href={libroReclamacionesHref}
+                  title={libroReclamacionesLabel || 'Libro de reclamaciones'}
+                  className="shrink-0 opacity-80 hover:opacity-100 transition-opacity"
+                  onClick={() => tracker?.track('nav_click', { label: 'libro_reclamaciones', location: 'footer' })}
+                >
+                  <Image
+                    src={LIBRO_RECLAMACIONES_IMG}
+                    alt={libroReclamacionesLabel || 'Libro de reclamaciones'}
+                    width={90}
+                    height={48}
+                    loading="lazy"
+                    className="w-auto max-w-[90px] object-contain"
+                    style={{ height: 'clamp(40px, 6vw, 48px)' }}
+                  />
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </div>
