@@ -120,6 +120,10 @@ export interface ApiCatalogProduct {
   images?: string[];
   colors?: ApiProductColor[];
   color_siblings?: ApiColorSibling[];
+  variant?: {
+    id: number;
+    sku?: string;
+  } | null;
   promotion?: ApiProductPromotion | null;
 }
 
@@ -587,6 +591,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
     paymentHooks: pricing.payment_hooks ?? undefined,
     hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
+    variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
     stock: 'available' as StockStatus, // Default - not in API response

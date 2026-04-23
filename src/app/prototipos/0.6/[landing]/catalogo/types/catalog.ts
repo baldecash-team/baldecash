@@ -692,6 +692,8 @@ export interface CatalogProduct {
   paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
   paymentHooks?: Record<string, number>; // Cuota hook por frecuencia: {semanal: 15, quincenal: 26}
   hookInitialPercent?: number; // % de inicial del hook (ej: 20 para celulares)
+  /** Variant ID del producto base (viene del API como `variant.id`). Fallback cuando no hay colores. */
+  variantId?: string;
   gama: GamaTier;
   condition: ProductCondition;
   stock: StockStatus;
@@ -940,6 +942,10 @@ export interface CartItem {
 
   // Configuración de financiamiento
   months: TermMonths;
+  /** Raw term in native units (weeks for 'semanal', fortnights for 'quincenal', months for 'mensual'). Fallback to months. */
+  term?: number;
+  /** Payment frequency: 'semanal' | 'quincenal' | 'mensual' */
+  paymentFrequency?: string;
   initialPercent: InitialPaymentPercent;
   initialAmount: number;
   monthlyPayment: number;
@@ -996,6 +1002,10 @@ export interface WishlistItem {
 
   // Configuración de financiamiento
   months: TermMonths;
+  /** Raw term in native units. Fallback to months. */
+  term?: number;
+  /** Payment frequency: 'semanal' | 'quincenal' | 'mensual' */
+  paymentFrequency?: string;
   initialPercent: InitialPaymentPercent;
   initialAmount: number;
   monthlyPayment: number;

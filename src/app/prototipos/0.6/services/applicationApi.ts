@@ -29,7 +29,11 @@ export interface SubmitApplicationRequest {
     variant_id?: number;
     term_months: number;
     initial_percent: number; // 0, 10, 20, 30 - backend calculates amounts
+    /** Initial payment amount in soles (hint for backend; it still recomputes). */
+    initial_amount?: number;
     unit_price?: number; // Hint for backend, will be validated against DB
+    /** Payment frequency of the primary product: 'semanal' | 'quincenal' | 'mensual' */
+    payment_frequency?: string;
     /** Multiple products for cart functionality */
     products?: {
       product_id: number;
@@ -38,6 +42,8 @@ export interface SubmitApplicationRequest {
       unit_price?: number;
       monthly_price?: number;  // Cuota mensual con intereses
       initial_percent?: number;
+      initial_amount?: number;
+      payment_frequency?: string;
     }[];
     accessories?: {
       accessory_id: number;

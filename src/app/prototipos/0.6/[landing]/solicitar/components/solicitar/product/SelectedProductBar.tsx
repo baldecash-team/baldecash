@@ -12,7 +12,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart, Shield } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
-import { TermSelect } from './TermSelect';
+import { TermSelect, getTermUnit } from './TermSelect';
 import Image from 'next/image';
 
 interface SelectedProductBarProps {
@@ -115,7 +115,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 )}
               </p>
               <p className="text-xs text-neutral-500">
-                {mainProduct.months} meses
+                {(() => {
+                  const displayTerm = mainProduct.term ?? mainProduct.months;
+                  return `${displayTerm} ${getTermUnit(displayTerm, mainProduct.paymentFrequency)}`;
+                })()}
               </p>
             </div>
 
@@ -288,10 +291,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-neutral-500">Plazo:</span>
                       <TermSelect
-                        value={mainProduct.months}
+                        value={mainProduct.term ?? mainProduct.months}
                         options={availableTerms}
                         onChange={(term) => updateAllProductsToTerm(term)}
                         size="sm"
+                        frequency={mainProduct.paymentFrequency}
                       />
                     </div>
                     {hasInitialPayment && (
@@ -342,9 +346,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500">Plazo:</span>
               <TermSelect
-                value={mainProduct.months}
+                value={mainProduct.term ?? mainProduct.months}
                 options={availableTerms}
                 onChange={(term) => updateAllProductsToTerm(term)}
+                frequency={mainProduct.paymentFrequency}
               />
             </div>
           </div>
@@ -418,9 +423,14 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   <p className="text-lg font-bold text-[var(--color-primary)]">
                     {formatPrice(product.monthlyPayment)}{freqSuffix(product.paymentFrequency)}
                   </p>
-                  <p className="text-sm text-neutral-500">
-                    {product.months} meses
-                  </p>
+                  {(() => {
+                    const displayTerm = product.term ?? product.months;
+                    return (
+                      <p className="text-sm text-neutral-500">
+                        {displayTerm} {getTermUnit(displayTerm, product.paymentFrequency)}
+                      </p>
+                    );
+                  })()}
                   {product.initialAmount > 0 && (
                     <p className="text-xs text-neutral-400 mt-0.5">
                       + {formatPrice(product.initialAmount)} inicial

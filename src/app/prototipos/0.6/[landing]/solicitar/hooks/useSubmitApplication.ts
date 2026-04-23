@@ -273,8 +273,10 @@ export function useSubmitApplication(
             : undefined,
           term_months: primaryProduct.months,
           initial_percent: primaryProduct.initialPercent ?? 0, // Send selection, backend calculates amounts
+          initial_amount: primaryProduct.initialAmount ?? 0,
           // Frontend-calculated values as hints (backend will recalculate)
           unit_price: primaryProduct.price,
+          payment_frequency: primaryProduct.paymentFrequency,
           // Multiple products array
           products: allProducts.map((p) => ({
             product_id: parseInt(p.id, 10),
@@ -283,6 +285,8 @@ export function useSubmitApplication(
             unit_price: p.price,
             monthly_price: p.monthlyPayment,  // Cuota mensual con intereses
             initial_percent: p.initialPercent ?? 0,
+            initial_amount: p.initialAmount ?? 0,
+            payment_frequency: p.paymentFrequency,
           })),
           // Map accessories (backend calculates monthly quotas)
           accessories: selectedAccessories.map((acc) => ({

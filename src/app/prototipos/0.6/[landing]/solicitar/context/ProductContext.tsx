@@ -47,7 +47,9 @@ export interface SelectedProduct {
   brand: string;
   price: number;
   monthlyPayment: number;
-  months: number;
+  months: number;          // Normalized term in months (e.g. 12 for a 48-week plan)
+  /** Raw term in native units: weeks for 'semanal', fortnights for 'quincenal', months for 'mensual'. Fallback to months. */
+  term?: number;
   initialPercent: number;  // 0, 10, 20, 30 - percentage of initial payment
   initialAmount: number;   // Calculated initial payment amount
   image: string;
@@ -445,34 +447,46 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   // ============================================
 
   /**
-   * Check if all products have the same term (months)
-   * Returns true if single product or all products have same term
+   * Check if all products share the same term AND payment frequency.
+   * Single products always return true.
    */
   const hasUnifiedTerms = useCallback((): boolean => {
     const products = getAllProducts();
     if (products.length <= 1) return true;
-    const firstTerm = products[0].months;
-    return products.every(p => p.months === firstTerm);
+    const firstTerm = products[0].term ?? products[0].months;
+    const firstFrequency = products[0].paymentFrequency ?? 'mensual';
+    return products.every(p => {
+      const rawTerm = p.term ?? p.months;
+      const freq = p.paymentFrequency ?? 'mensual';
+      return rawTerm === firstTerm && freq === firstFrequency;
+    });
   }, [getAllProducts]);
 
   /**
-   * Get available terms that ALL products support
-   * Returns intersection of terms from all products' paymentPlans
+   * Get available terms that ALL products support.
+   * When every product shares the same payment frequency, terms are returned in
+   * their native unit (e.g. 48/36/24/12 weeks for a 'semanal' product).
+   * When frequencies differ, terms are normalized to months so there is a
+   * common denominator to unify the cart.
    */
   const getAvailableTerms = useCallback((): number[] => {
     const products = getAllProducts();
     if (products.length === 0) return [12, 18, 24, 36]; // Default terms
 
-    // Get terms for each product (in months — use termMonths when available)
+    const frequencies = new Set(products.map(p => p.paymentFrequency ?? 'mensual'));
+    const unifiedFrequency = frequencies.size === 1;
+
     const termsPerProduct = products.map(p => {
       if (p.paymentPlans && p.paymentPlans.length > 0) {
-        return p.paymentPlans.map(plan => plan.termMonths ?? plan.term);
+        // Unified frequency: return native raw term (48, 24, 12, ...)
+        // Mixed frequencies: normalize to months
+        return p.paymentPlans.map(plan =>
+          unifiedFrequency ? plan.term : (plan.termMonths ?? plan.term)
+        );
       }
-      // Fallback: if no plans, assume all standard terms are available
       return [12, 18, 24, 36];
     });
 
-    // Find intersection of all terms
     const intersection = termsPerProduct.reduce((acc, terms) => {
       return acc.filter(t => terms.includes(t));
     });
@@ -489,13 +503,19 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     const products = getAllProducts();
     if (products.length === 0) return;
 
+    const frequencies = new Set(products.map(p => p.paymentFrequency ?? 'mensual'));
+    const unifiedFrequency = frequencies.size === 1;
+
     const updatedProducts = products.map(p => {
-      // Find the payment plan for this term (term is in months; match by termMonths first, then raw term)
-      const plan = p.paymentPlans?.find(pl => (pl.termMonths ?? pl.term) === term);
+      // When frequencies are unified, the incoming `term` is the raw value
+      // (e.g. 48 weeks). When mixed, it represents months.
+      const plan = p.paymentPlans?.find(pl => {
+        return unifiedFrequency
+          ? pl.term === term
+          : (pl.termMonths ?? pl.term) === term;
+      });
 
       if (plan) {
-        // Use real API data
-        // Find the option matching current initialPercent, or default to 0%
         const option = plan.options.find(opt => opt.initialPercent === p.initialPercent)
           || plan.options.find(opt => opt.initialPercent === 0)
           || plan.options[0];
@@ -503,7 +523,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         if (option) {
           return {
             ...p,
-            months: term,
+            term: plan.term,
+            months: plan.termMonths ?? plan.term,
             monthlyPayment: option.monthlyQuota,
             initialAmount: option.initialAmount,
             initialPercent: option.initialPercent,
@@ -512,12 +533,13 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       }
 
       // Fallback: calculate using formula (may not match exact API values but better than nothing)
-      // This handles products added before paymentPlans were saved
+      // This path assumes months, since no plans are available to translate native units.
+      const fallbackMonths = unifiedFrequency ? (p.months ?? term) : term;
       const validInitialPercent = [0, 10, 20].includes(p.initialPercent)
         ? p.initialPercent as InitialPaymentPercent
         : 0;
-      const validTerm = [12, 18, 24, 36].includes(term)
-        ? term as TermMonths
+      const validTerm = [12, 18, 24, 36].includes(fallbackMonths)
+        ? fallbackMonths as TermMonths
         : 24;
 
       const { quota, initialAmount } = calculateQuotaWithInitial(
@@ -528,7 +550,8 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
 
       return {
         ...p,
-        months: term,
+        term: unifiedFrequency ? term : (p.term ?? term),
+        months: fallbackMonths,
         monthlyPayment: quota,
         initialAmount: initialAmount,
         initialPercent: validInitialPercent,
@@ -543,12 +566,17 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       setSelectedProduct(updatedProducts[0]);
     }
 
-    // Re-fetch accessories with new term to update their monthly quotas
+    // Re-fetch accessories with new term to update their monthly quotas.
+    // Accessories API expects the term in the native unit (weeks / fortnights / months)
+    // so pair it with the raw term + payment frequency.
     const deviceTypes = [...new Set(
       products.map(p => p.type?.toLowerCase()).filter(Boolean) as string[]
     )];
     if (selectedAccessories.length > 0) {
-      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], term, previewKey)
+      const activeProduct = updatedProducts[0];
+      const activePaymentFrequency = activeProduct?.paymentFrequency;
+      const rawTerm = activeProduct?.term ?? activeProduct?.months ?? term;
+      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], rawTerm, previewKey, activePaymentFrequency)
         .then((apiAccessories) => {
           if (!apiAccessories || apiAccessories.length === 0) return;
           const accessoriesMap = new Map(apiAccessories.map(a => [a.id, a]));
@@ -564,13 +592,15 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         .catch(err => console.error('[ProductContext] Error refreshing accessories for new term:', err));
     }
 
-    // Re-fetch insurances with new term to update their monthly prices
+    // Re-fetch insurances with new term to update their monthly prices.
+    // Insurance API expects term_months (normalized to months).
     if (selectedInsurances.length > 0) {
-      const activeProduct = products[0];
+      const activeProduct = updatedProducts[0];
       const deviceType = (activeProduct?.type || 'laptop').charAt(0).toUpperCase() + (activeProduct?.type || 'laptop').slice(1).toLowerCase();
       const productPrice = activeProduct?.price || 0;
+      const termMonthsForInsurance = activeProduct?.months ?? term;
       if (productPrice > 0) {
-        getLandingInsurances(landingSlug, deviceType, productPrice, term, previewKey)
+        getLandingInsurances(landingSlug, deviceType, productPrice, termMonthsForInsurance, previewKey)
           .then((apiPlans) => {
             if (!apiPlans || apiPlans.length === 0) return;
             const plansMap = new Map(apiPlans.map(p => [p.id, p]));
@@ -679,16 +709,24 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
 
         if (!plans && !slug) return product;
 
-        // Find the option for current term and initial percent (months stored, term may be in weeks/fortnights)
-        const plan = plans?.find(p => (p.termMonths ?? p.term) === product.months);
+        // Find the plan matching the stored term. Older sessions only stored `months`,
+        // so we try `term` first and fall back to the month-equivalent.
+        const plan = plans?.find(p =>
+          (product.term !== undefined && p.term === product.term)
+          || (p.termMonths ?? p.term) === product.months
+        );
         const option = plan?.options.find(o => o.initialPercent === product.initialPercent)
           || plan?.options[0];
 
         return {
           ...product,
-          slug: product.slug || slug,  // Add slug if missing
+          slug: product.slug || slug,
           paymentPlans: plans || product.paymentPlans,
-          // Update monthlyPayment and initialAmount if we found a matching option
+          // Backfill the raw term if we resolved a plan.
+          ...(plan && {
+            term: plan.term,
+            months: plan.termMonths ?? plan.term,
+          }),
           ...(option && {
             monthlyPayment: option.monthlyQuota,
             initialAmount: option.initialAmount,

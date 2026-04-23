@@ -187,6 +187,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   const selectProductForWizard = useCallback((product: QuizProduct) => {
     const selectedProduct: SelectedProduct = {
       id: product.id,
+      slug: product.slug,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
@@ -196,6 +197,11 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       initialPercent: product.initialPercent || 0,
       initialAmount: 0,
       image: product.thumbnail || product.image,
+      type: product.deviceType,
+      variantId: product.variantId,
+      colorName: product.colorName,
+      colorHex: product.colorHex,
+      paymentFrequency: product.paymentFrequency,
       specs: {
         processor: product.specs?.processor || '',
         ram: product.specs?.ram ? `${product.specs.ram}GB RAM` : '',

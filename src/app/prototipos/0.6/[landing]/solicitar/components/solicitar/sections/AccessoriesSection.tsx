@@ -127,12 +127,18 @@ export function AccessoriesSection({
     return 24; // Default term
   }, [getAllProducts]);
 
+  // Payment frequency from the first product in the cart
+  const currentPaymentFrequency = useMemo(() => {
+    const products = getAllProducts();
+    return products[0]?.paymentFrequency;
+  }, [getAllProducts]);
+
   // Load accessories from API - filtered by all device types in cart
   useEffect(() => {
     async function fetchAccessories() {
       setIsLoading(true);
       try {
-        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey);
+        const apiAccessories = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey, currentPaymentFrequency);
         if (apiAccessories && apiAccessories.length > 0) {
           const transformedAccessories: Accessory[] = apiAccessories.map((acc) => ({
             id: acc.id,
@@ -163,7 +169,7 @@ export function AccessoriesSection({
 
     fetchAccessories();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landing, currentTerm, deviceTypes.join(',')]);
+  }, [landing, currentTerm, currentPaymentFrequency, deviceTypes.join(',')]);
 
   // Update selected accessories when term changes or accessories list changes
   const selectedAccessoriesRef = useRef(selectedAccessories);

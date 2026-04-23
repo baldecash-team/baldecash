@@ -56,6 +56,16 @@ export interface QuizAnswer {
 
 export interface QuizProduct {
   id: string;
+  /** Product slug for payment-plans API sync */
+  slug?: string;
+  /** Variant/color id chosen for this recommendation */
+  variantId?: string;
+  colorName?: string;
+  colorHex?: string;
+  /** Device category (laptop, celular, tablet, ...) */
+  deviceType?: string;
+  /** 'semanal' | 'quincenal' | 'mensual' */
+  paymentFrequency?: string;
   name: string;
   displayName: string;
   brand: string;
