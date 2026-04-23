@@ -579,12 +579,16 @@ function WizardPreviewContent() {
                         Accesorios seleccionados
                       </p>
                       <div className="space-y-1.5">
-                        {selectedAccessories.map((acc) => (
-                          <div key={acc.id} className="flex items-center justify-between text-sm">
-                            <span className="text-neutral-700">{acc.name}</span>
-                            <span className="text-[var(--color-primary)] font-medium">+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}/mes</span>
-                          </div>
-                        ))}
+                        {selectedAccessories.map((acc) => {
+                          const freq = productsToShow[0]?.paymentFrequency;
+                          const freqSfx = freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
+                          return (
+                            <div key={acc.id} className="flex items-center justify-between text-sm">
+                              <span className="text-neutral-700">{acc.name}</span>
+                              <span className="text-[var(--color-primary)] font-medium">+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}{freqSfx}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

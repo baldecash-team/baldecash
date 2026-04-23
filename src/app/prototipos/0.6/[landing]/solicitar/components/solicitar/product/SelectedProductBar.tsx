@@ -269,7 +269,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         <div key={acc.id} className="flex items-center gap-2 text-xs text-neutral-600">
                           <Plus className="w-3 h-3 text-[var(--color-primary)]" />
                           <span className="flex-1 truncate">{acc.name}</span>
-                          <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}/mes</span>
+                          <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}{freqSuffix(mainProduct.paymentFrequency)}</span>
                         </div>
                       ))}
                     </div>
@@ -574,7 +574,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               <div className="flex items-center gap-3">
                 {!isAccessoriesExpanded && (
                   <span className="text-sm font-medium text-[var(--color-primary)]">
-                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}/mes
+                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}{freqSuffix(mainProduct.paymentFrequency)}
                   </span>
                 )}
                 {isAccessoriesExpanded ? (
@@ -603,7 +603,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             <span className="text-neutral-700 truncate">{acc.name}</span>
                           </div>
                           <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
-                            +{formatPrice(acc.monthlyQuota)}/mes
+                            +{formatPrice(acc.monthlyQuota)}{freqSuffix(mainProduct.paymentFrequency)}
                           </span>
                         </div>
                       ))}
