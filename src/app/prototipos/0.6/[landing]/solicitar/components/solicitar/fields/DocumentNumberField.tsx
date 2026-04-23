@@ -168,14 +168,22 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     }
   }, [value, documentType, check]);
 
-  // Handle value change
+  // Handle value change — filter input based on document type
   const handleChange = useCallback((newValue: string) => {
-    updateField(field.code, newValue);
+    let filtered: string;
+    if (documentType === 'pasaporte' || documentType === 'passport') {
+      // Passport: alphanumeric only
+      filtered = newValue.replace(/[^a-zA-Z0-9]/g, '');
+    } else {
+      // DNI, CE: digits only
+      filtered = newValue.replace(/\D/g, '');
+    }
+    updateField(field.code, filtered);
     // Always reset prefill status when user modifies the document number
     // so prefill-dependent fields hide until next lookup completes
     updateField(`_prefill_status_${field.code}`, '');
     resetCheck(); // Allow re-checking when DNI changes
-  }, [field.code, updateField, resetCheck]);
+  }, [field.code, documentType, updateField, resetCheck]);
 
   // Build tooltip from API help_text
   const tooltip = field.help_text ? {
@@ -188,6 +196,8 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   const hasValue = !!value;
   const isSuccess = !error && hasValue;
 
+  const isPassport = documentType === 'pasaporte' || documentType === 'passport';
+
   return (
     <TextInput
       id={field.code}
@@ -199,6 +209,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       disabled={field.readonly}
       tooltip={tooltip}
       type="text"
+      inputMode={isPassport ? 'text' : 'numeric'}
       placeholder={field.placeholder || undefined}
       maxLength={field.max_length || undefined}
       success={isSuccess}

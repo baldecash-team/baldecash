@@ -178,10 +178,11 @@ export const DynamicField: React.FC<DynamicFieldProps> = ({ field, showError = f
       return (
         <TextInput
           {...commonProps}
+          onChange={(newValue: string) => updateField(field.code, newValue.replace(/\D/g, ''))}
           type="tel"
           placeholder={field.placeholder || undefined}
           maxLength={field.max_length || undefined}
-          inputMode="tel"
+          inputMode="numeric"
           success={!error && !!value}
           startContent={field.prefix || undefined}
         />
