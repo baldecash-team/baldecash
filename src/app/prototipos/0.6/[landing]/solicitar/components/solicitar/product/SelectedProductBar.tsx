@@ -14,6 +14,7 @@ import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart
 import { useProduct } from '../../../context/ProductContext';
 import { TermSelect, getTermUnit } from './TermSelect';
 import Image from 'next/image';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface SelectedProductBarProps {
   mobileOnly?: boolean;
@@ -23,6 +24,35 @@ interface SelectedProductBarProps {
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
   const { selectedProduct, selectedAccessories, selectedInsurance, selectedInsurances, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
+  const analytics = useAnalytics();
+
+  // Wrappers que disparan analytics antes de mutar el state global
+  const handleTermChange = (term: number) => {
+    const primary = getAllProducts()[0];
+    const from = primary?.term ?? primary?.months ?? 0;
+    if (primary && from !== term) {
+      analytics.trackPricingTermChange({
+        product_id: primary.id,
+        from,
+        to: term,
+        context: 'solicitar',
+        frequency: primary.paymentFrequency,
+      });
+    }
+    updateAllProductsToTerm(term);
+  };
+
+  const handleInitialChange = (productId: string, fromPercent: number, toPercent: number) => {
+    if (fromPercent !== toPercent) {
+      analytics.trackPricingInitialChange({
+        product_id: productId,
+        from: fromPercent,
+        to: toPercent,
+        context: 'solicitar',
+      });
+    }
+    updateProductInitial(productId, toPercent);
+  };
 
 
   // Usar el estado del contexto para la expansión
@@ -203,7 +233,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                                       key={option.percent}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        updateProductInitial(product.id, option.percent);
+                                        handleInitialChange(product.id, product.initialPercent, option.percent);
                                       }}
                                       className={`text-[10px] px-2 py-0.5 rounded-full transition-all cursor-pointer ${
                                         product.initialPercent === option.percent
@@ -293,7 +323,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                       <TermSelect
                         value={mainProduct.term ?? mainProduct.months}
                         options={availableTerms}
-                        onChange={(term) => updateAllProductsToTerm(term)}
+                        onChange={handleTermChange}
                         size="sm"
                         frequency={mainProduct.paymentFrequency}
                       />
@@ -348,7 +378,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               <TermSelect
                 value={mainProduct.term ?? mainProduct.months}
                 options={availableTerms}
-                onChange={(term) => updateAllProductsToTerm(term)}
+                onChange={handleTermChange}
                 frequency={mainProduct.paymentFrequency}
               />
             </div>
@@ -402,7 +432,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           {initialOptions.map((option) => (
                             <button
                               key={option.percent}
-                              onClick={() => updateProductInitial(product.id, option.percent)}
+                              onClick={() => handleInitialChange(product.id, product.initialPercent, option.percent)}
                               className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
                                 product.initialPercent === option.percent
                                   ? 'bg-[var(--color-primary)] text-white font-medium'
