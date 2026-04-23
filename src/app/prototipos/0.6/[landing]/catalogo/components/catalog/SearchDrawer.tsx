@@ -13,6 +13,7 @@ import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { searchProductSuggestions, ProductSuggestion } from '@/app/prototipos/0.6/services/catalogApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { TermMonths, calculateQuotaWithInitial } from '../../types/catalog';
 import { formatMoney, formatMoneyNoDecimals } from '../../utils/formatMoney';
 
@@ -43,6 +44,7 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
   const landing = (params.landing as string) || 'home';
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+  const analytics = useAnalytics();
 
   // Suggestions state
   const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([]);
@@ -121,18 +123,24 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
     };
   }, [isOpen]);
 
-  // Focus input when drawer opens
+  // Focus input when drawer opens + emit open/close analytics
   useEffect(() => {
     if (isOpen && inputRef.current) {
       setTimeout(() => {
         inputRef.current?.focus();
       }, 300);
     }
-  }, [isOpen]);
+    analytics.trackSearchDrawer({ open: isOpen });
+  }, [isOpen, analytics]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (value && onSubmit) {
+      analytics.trackSearchSubmit({
+        query_length: value.length,
+        has_results: suggestions.length > 0,
+        location: 'search_drawer',
+      });
       onSubmit();
     }
     onClose();
@@ -229,13 +237,17 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                   type="text"
                   value={value}
                   onChange={(e) => handleInputChange(e.target.value)}
+                  onFocus={() => analytics.trackSearchFocus({ location: 'search_drawer' })}
                   placeholder="Buscar por marca, modelo..."
                   className="flex-1 bg-transparent px-3 py-4 text-base text-neutral-800 placeholder-neutral-400 outline-none"
                 />
                 {value && (
                   <button
                     type="button"
-                    onClick={onClear}
+                    onClick={() => {
+                      analytics.trackSearchClear({ location: 'search_drawer' });
+                      onClear();
+                    }}
                     className="p-2 mr-2 rounded-lg hover:bg-neutral-200 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
                   >
                     <X className="w-5 h-5" />
@@ -316,6 +328,11 @@ export const SearchDrawer: React.FC<SearchDrawerProps> = ({
                 className="flex-1 bg-[var(--color-primary)] text-white font-semibold cursor-pointer hover:brightness-90"
                 onPress={() => {
                   if (value && onSubmit) {
+                    analytics.trackSearchSubmit({
+                      query_length: value.length,
+                      has_results: suggestions.length > 0,
+                      location: 'search_drawer',
+                    });
                     onSubmit();
                   }
                   onClose();

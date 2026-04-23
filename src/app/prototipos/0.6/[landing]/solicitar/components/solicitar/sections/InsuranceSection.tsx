@@ -16,6 +16,7 @@ import { getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import type { InsurancePlan } from '../../../types/upsell';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface InsuranceSectionProps {
   showIntro?: boolean;
@@ -34,6 +35,7 @@ export function InsuranceSection({
 
   const { badgeText } = useWizardConfig();
   const { selectedInsurances, toggleInsurance, selectedProduct, cartProducts } = useProduct();
+  const analytics = useAnalytics();
 
   const activeProduct = cartProducts?.[0] || selectedProduct;
   const deviceType = activeProduct?.type || 'Laptop';
@@ -98,7 +100,15 @@ export function InsuranceSection({
           selectedPlanIds={selectedInsurances.map(i => i.id)}
           onToggle={(planId) => {
             const plan = insurancePlans.find(p => p.id === planId);
-            if (plan) toggleInsurance(plan);
+            if (!plan) return;
+            const wasSelected = selectedInsurances.some((i) => i.id === planId);
+            analytics.trackInsuranceToggle({
+              insurance_id: String(plan.id),
+              insurance_name: plan.name,
+              active: !wasSelected,
+              monthly_price: plan.monthlyPrice ?? null,
+            });
+            toggleInsurance(plan);
           }}
           showIntro={showIntro}
           badgeText={badgeText}

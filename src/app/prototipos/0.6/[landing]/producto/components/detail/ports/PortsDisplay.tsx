@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { PortsDisplayProps, ProductPort, SpecSheetDownloadProps } from '../../../types/detail';
 import { generateSpecSheetPDF } from '../../../utils/generateSpecSheetPDF';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 const iconMap: Record<string, React.ElementType> = {
   Usb,
@@ -45,6 +46,7 @@ const iconMap: Record<string, React.ElementType> = {
 export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
   specs = [],
   ports = [],
+  productId = '',
   productName,
   productBrand,
   productImage,
@@ -54,9 +56,11 @@ export const SpecSheetDownload: React.FC<SpecSheetDownloadProps> = ({
 }) => {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const analytics = useAnalytics();
 
   const handleDownloadPDF = async () => {
     if (isGenerating) return;
+    analytics.trackSpecSheetDownload({ product_id: productId });
     setIsGenerating(true);
     try {
       await generateSpecSheetPDF({

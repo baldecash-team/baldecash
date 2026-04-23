@@ -311,11 +311,14 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     }
   }, [sessionKey]);
 
-  // Lazy session: do NOT auto-initialize on mount.
-  // Session is created on-demand when initSession() is called
-  // (e.g., when user navigates to the application form).
-  // EventTracker guards all hooks with `if (!sessionUuid) return`
-  // so it works safely without a session on landing pages.
+  // Auto-initialize session on mount for the current landing so tracking
+  // starts from the first page the user visits (home, catálogo, producto).
+  // The backend endpoint is idempotent: it recovers the existing session
+  // when the UUID stored in localStorage is reused across pages/reloads.
+  useEffect(() => {
+    if (!landingSlug || isInitialized || isCreating) return;
+    initSession(landingSlug);
+  }, [landingSlug, isInitialized, isCreating, initSession]);
 
   return (
     <SessionContext.Provider

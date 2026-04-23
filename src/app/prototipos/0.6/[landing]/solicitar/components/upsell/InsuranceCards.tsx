@@ -6,6 +6,7 @@ import { ShieldCheck, Lock, Check, Plus, X, Shield, Clock, FileText, Users } fro
 import type { InsurancePlan } from '../../types/upsell';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { InsuranceDetailModal } from './InsuranceDetailModal';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface InsuranceCardsProps {
   plans: InsurancePlan[];
@@ -59,6 +60,7 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
   badgeText,
 }) => {
   const [detailPlan, setDetailPlan] = useState<InsurancePlan | null>(null);
+  const analytics = useAnalytics();
 
   const gridCols = plans.length === 1
     ? 'grid-cols-1 max-w-lg mx-auto'
@@ -200,7 +202,10 @@ export const InsuranceCards: React.FC<InsuranceCardsProps> = ({
                     )}
                   </button>
                   <button
-                    onClick={() => setDetailPlan(plan)}
+                    onClick={() => {
+                      analytics.trackInsuranceViewTerms({ insurance_id: String(plan.id) });
+                      setDetailPlan(plan);
+                    }}
                     className="w-full py-1.5 mt-1 text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer flex items-center justify-center gap-1"
                   >
                     <FileText className="w-3 h-3" />

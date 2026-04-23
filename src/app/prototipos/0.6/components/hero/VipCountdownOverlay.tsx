@@ -11,9 +11,10 @@
  * When countdown expires, the overlay stays with a "finalizado" message.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
+import { saveVipToken, saveVipName } from './DniModal';
 
 interface TimeLeft {
   days: number;
@@ -26,8 +27,9 @@ export interface VipWelcomeData {
   firstName: string;
 }
 
+export type DniCaptureMode = 'modal' | 'inline';
+
 interface VipCountdownOverlayProps {
-  onOpenDniModal: () => void;
   /** ISO date string for countdown end (e.g. "2026-04-25T05:00:00.000Z") */
   endDate: string;
   /** Called when user clicks "¡Empezar!" (DNI validated) to dismiss overlay */
@@ -36,7 +38,23 @@ interface VipCountdownOverlayProps {
   welcomeData?: VipWelcomeData | null;
   /** Landing slug for the "Ver catálogo general" CTA when expired */
   catalogSlug?: string;
+  /** Landing slug used to validate the DNI against the backend whitelist */
+  landingSlug?: string;
+  /** If true, validates the DNI against the server whitelist; otherwise saves locally */
+  validateWhitelist?: boolean;
+  /** Called after a successful DNI validation (VIP flow) */
+  onValidated?: (result: { firstName: string; accessToken: string }) => void;
+  /** How the DNI is captured inside the overlay: 'inline' (input+button) or 'modal' (legacy popup). Default: 'inline'. */
+  captureMode?: DniCaptureMode;
+  /** Called when captureMode='modal' and the user clicks the CTA to open the external DNI modal. */
+  onOpenDniModal?: () => void;
 }
+
+const DOC_MIN_LENGTH = 8;
+const DOC_MAX_LENGTH = 12;
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+const DNI_STORAGE_PREFIX = 'baldecash-dni-';
 
 function calculateTimeLeft(endDate: Date): TimeLeft {
   const now = new Date().getTime();
@@ -61,17 +79,69 @@ function isExpiredDate(endDate: Date): boolean {
 const pad = (n: number) => n.toString().padStart(2, '0');
 
 export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
-  onOpenDniModal,
   endDate,
   onExpired,
   welcomeData,
   catalogSlug = 'home',
+  landingSlug,
+  validateWhitelist = false,
+  onValidated,
+  captureMode = 'inline',
+  onOpenDniModal,
 }) => {
   const targetDate = new Date(endDate);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [countdownFinished, setCountdownFinished] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Inline DNI form state
+  const [dni, setDni] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const isValidDni = dni.length >= DOC_MIN_LENGTH && /^\d{8,12}$/.test(dni);
+
+  const handleDniChange = useCallback((value: string) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, DOC_MAX_LENGTH);
+    setDni(cleaned);
+    if (errorMsg) setErrorMsg(null);
+  }, [errorMsg]);
+
+  const handleDniSubmit = useCallback(async () => {
+    if (!isValidDni || submitting || !landingSlug) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+    try {
+      if (validateWhitelist) {
+        const res = await fetch(
+          `${API_BASE_URL}/public/landing/${encodeURIComponent(landingSlug)}/validate-dni/${dni}`,
+        );
+        const data = await res.json();
+        if (!data.valid) {
+          setErrorMsg('No encontramos un registro con este DNI.');
+          setSubmitting(false);
+          return;
+        }
+        if (data.access_token) saveVipToken(landingSlug, data.access_token);
+        if (data.first_name) saveVipName(landingSlug, data.first_name);
+        try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
+        onValidated?.({
+          firstName: data.first_name || '',
+          accessToken: data.access_token || '',
+        });
+        // Keep the loading state on while the parent redirects to /catalogo.
+        // Do NOT reset submitting here — the component unmounts on navigation.
+        return;
+      }
+      try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
+      onValidated?.({ firstName: '', accessToken: '' });
+      // Same reason: keep loading state until redirect unmounts us.
+    } catch {
+      setErrorMsg('No encontramos un registro con este DNI.');
+      setSubmitting(false);
+    }
+  }, [isValidDni, submitting, landingSlug, validateWhitelist, dni, onValidated]);
 
   // Initialize only on client to avoid hydration mismatch
   useEffect(() => {
@@ -280,13 +350,61 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
                   que no vas a ver en ningún otro lado y no se repetirán.
                 </p>
 
-                <button
-                  onClick={onOpenDniModal}
-                  className="w-full py-3.5 bg-white rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
-                  style={{ color: '#4654CD' }}
-                >
-                  Ingresa tu DNI para acceder
-                </button>
+                {captureMode === 'inline' ? (
+                  <>
+                    <div className="flex items-stretch gap-2 w-full">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={dni}
+                        onChange={(e) => handleDniChange(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleDniSubmit(); }}
+                        placeholder="Ingresa tu número de documento"
+                        maxLength={DOC_MAX_LENGTH}
+                        disabled={submitting}
+                        aria-label="DNI"
+                        aria-invalid={!!errorMsg}
+                        className="flex-1 min-w-0 py-3.5 px-4 bg-white rounded-xl text-base font-medium outline-none focus:ring-2 focus:ring-[#E5A823] placeholder:text-gray-400 disabled:opacity-70"
+                        style={{ color: '#4654CD' }}
+                      />
+                      <button
+                        onClick={handleDniSubmit}
+                        disabled={!isValidDni || submitting}
+                        className="px-5 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 inline-flex items-center justify-center min-w-[92px]"
+                        style={{ backgroundColor: '#E5A823', color: '#4654CD' }}
+                      >
+                        {submitting ? (
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            aria-label="Validando"
+                            role="status"
+                          >
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                            <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                          </svg>
+                        ) : (
+                          'Validar'
+                        )}
+                      </button>
+                    </div>
+                    {errorMsg && (
+                      <p className="mt-2 text-sm font-medium text-left" style={{ color: '#FCA5A5' }}>
+                        {errorMsg}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={onOpenDniModal}
+                    className="w-full py-3.5 bg-white rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                    style={{ color: '#4654CD' }}
+                  >
+                    Ingresa tu DNI para acceder
+                  </button>
+                )}
               </motion.div>
             ) : (
               /* --- Welcome card: personalized greeting + "¡Empezar!" --- */

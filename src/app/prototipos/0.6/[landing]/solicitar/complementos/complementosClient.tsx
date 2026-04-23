@@ -46,21 +46,21 @@ function ComplementosContent() {
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
   const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
 
-  // Redirect to /solicitar if no product selected (e.g. direct URL access)
-  useEffect(() => {
-    if (!isProductHydrated) return;
-    if (!selectedProduct && cartProducts.length === 0) {
-      router.replace(routes.solicitar(landing));
-    }
-  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router]);
-
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
 
   // Submit application hook
-  const { submit: submitApplication, isSubmitting, submitMessage, submitStage } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
     onToast: showToast,
   });
+
+  // Redirect to /solicitar if no product selected (e.g. direct URL access)
+  useEffect(() => {
+    if (!isProductHydrated) return;
+    if (!selectedProduct && cartProducts.length === 0 && !submitSucceeded) {
+      router.replace(routes.solicitar(landing));
+    }
+  }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded]);
 
   // Get layout data from context
   const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();

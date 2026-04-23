@@ -100,7 +100,6 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   if (vipExpired && countdownDate) {
     return (
       <VipCountdownOverlay
-        onOpenDniModal={() => {}}
         endDate={countdownDate}
         catalogSlug={landing}
       />
@@ -112,10 +111,10 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       {children}
       {showWelcome && countdownDate && (
         <VipCountdownOverlay
-          onOpenDniModal={() => {}}
           endDate={countdownDate}
           onExpired={handleDismiss}
           welcomeData={welcomeName}
+          catalogSlug={landing}
         />
       )}
     </>

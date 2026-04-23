@@ -5,10 +5,11 @@
  * Pregunta si quieren un tour guiado del catálogo
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@nextui-org/react';
 import { motion } from 'framer-motion';
 import { Sparkles, X, ChevronRight } from 'lucide-react';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface OnboardingWelcomeModalProps {
   isOpen: boolean;
@@ -21,6 +22,13 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
   onStartTour,
   onDismiss,
 }) => {
+  const analytics = useAnalytics();
+
+  useEffect(() => {
+    if (isOpen) analytics.trackWelcomeModal({ shown: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -81,7 +89,10 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
               className="w-full bg-[var(--color-primary)] text-white font-bold cursor-pointer hover:brightness-90 transition-colors"
               style={{ borderRadius: '14px' }}
               endContent={<ChevronRight className="w-5 h-5" />}
-              onPress={onStartTour}
+              onPress={() => {
+                analytics.trackWelcomeModal({ shown: false, action: 'start_tour' });
+                onStartTour();
+              }}
             >
               Sí, guíame
             </Button>
@@ -97,7 +108,10 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
               size="lg"
               variant="light"
               className="w-full text-neutral-500 font-medium cursor-pointer hover:text-neutral-700"
-              onPress={onDismiss}
+              onPress={() => {
+                analytics.trackWelcomeModal({ shown: false, action: 'dismiss' });
+                onDismiss();
+              }}
             >
               No, ya conozco la plataforma
             </Button>

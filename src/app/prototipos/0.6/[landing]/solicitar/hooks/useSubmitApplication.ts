@@ -17,6 +17,7 @@ import {
   type UploadedFileData,
 } from '../../../services/applicationApi';
 import { resetFormStartTracking } from './useFieldTracking';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 interface UseSubmitApplicationOptions {
   /**
    * Callback for showing toast notifications
@@ -79,6 +80,10 @@ interface UseSubmitApplicationResult {
    * Last error message (if any)
    */
   error: string | null;
+  /**
+   * Whether the submission succeeded (navigating to confirmation)
+   */
+  submitSucceeded: boolean;
 }
 
 /**
@@ -94,10 +99,12 @@ export function useSubmitApplication(
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const keepData = typeof window !== 'undefined' && sessionStorage.getItem('keepData') === 'true';
+  const analytics = useAnalytics();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStage, setSubmitStage] = useState<SubmitStage>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [submitSucceeded, setSubmitSucceeded] = useState(false);
   const slowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Bloqueo de navegación durante el envío
@@ -217,6 +224,20 @@ export function useSubmitApplication(
       setIsSubmitting(true);
       setSubmitStage('validating');
 
+      // Emit summary_submit right at the start of the submission flow.
+      // Incluye totales calculables desde los datos ya disponibles.
+      try {
+        const totalMonthly = allProducts.reduce((sum, p) => sum + (p.monthlyPayment || 0), 0);
+        analytics.trackSummarySubmit({
+          product_count: allProducts.length,
+          accessory_count: selectedAccessories.length,
+          insurance_selected: (insuranceIds && insuranceIds.length > 0) || !!insuranceId,
+          total_monthly: totalMonthly || null,
+        });
+      } catch {
+        // Nunca bloquear el submit por analytics
+      }
+
       // Iniciar timeout para mensaje "slow" después de 15 segundos
       slowTimeoutRef.current = setTimeout(() => {
         setSubmitStage('slow');
@@ -295,6 +316,8 @@ export function useSubmitApplication(
             slowTimeoutRef.current = null;
           }
           setSubmitStage('success');
+
+          setSubmitSucceeded(true);
 
           // Clear all wizard state (skip if keepData param is set for testing)
           if (!keepData) {
@@ -380,5 +403,6 @@ export function useSubmitApplication(
     submitStage,
     submitMessage: SUBMIT_STAGE_MESSAGES[submitStage],
     error,
+    submitSucceeded,
   };
 }

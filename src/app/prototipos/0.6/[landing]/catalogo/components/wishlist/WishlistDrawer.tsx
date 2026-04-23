@@ -16,6 +16,7 @@ import { X, Heart, Trash2, GitCompare, ShoppingCart, AlertTriangle } from 'lucid
 import { CatalogProduct, WishlistItem } from '../../types/catalog';
 import { formatMoneyNoDecimals } from '../../utils/formatMoney';
 import { useIsMobile } from '@/app/prototipos/_shared';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface WishlistConfig {
   title?: string;
@@ -520,6 +521,14 @@ const MobileBottomSheet: React.FC<WishlistDrawerProps> = ({
  */
 export const WishlistDrawer: React.FC<WishlistDrawerProps> = (props) => {
   const isMobile = useIsMobile();
+  const analytics = useAnalytics();
+
+  // Emit drawer open/close events at the wrapper level so funciona para ambas
+  // variantes (mobile/desktop) sin duplicar el efecto en cada variante.
+  useEffect(() => {
+    analytics.trackWishlistDrawer({ open: props.isOpen, item_count: props.products.length });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.isOpen]);
 
   if (isMobile) {
     return <MobileBottomSheet {...props} />;

@@ -635,18 +635,21 @@ export function validateField(
         }
       }
 
-      // If dynamic validation passed, skip static min/max_length validation
-      return { isValid: true, error: null };
+      // Dynamic validation passed — skip static min/max_length (section 3)
+      // but continue to sections 4 & 5 (pattern, validations[])
     }
   }
 
   // 3. Validaciones de longitud (propiedades directas del campo)
-  if (field.min_length && trimmedValue.length < field.min_length) {
-    return { isValid: false, error: `Mínimo ${field.min_length} caracteres` };
-  }
+  // Skipped when dynamic validation (section 2) already handled length
+  if (!field.validation_source_field) {
+    if (field.min_length && trimmedValue.length < field.min_length) {
+      return { isValid: false, error: `Mínimo ${field.min_length} caracteres` };
+    }
 
-  if (field.max_length && trimmedValue.length > field.max_length) {
-    return { isValid: false, error: `Máximo ${field.max_length} caracteres` };
+    if (field.max_length && trimmedValue.length > field.max_length) {
+      return { isValid: false, error: `Máximo ${field.max_length} caracteres` };
+    }
   }
 
   // 3. Validaciones numéricas (para currency/number)

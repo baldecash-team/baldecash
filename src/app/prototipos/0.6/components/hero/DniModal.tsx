@@ -15,7 +15,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, Check, AlertCircle, ShieldX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const DNI_MAX_LENGTH = 8;
+const DOC_MIN_LENGTH = 8;
+const DOC_MAX_LENGTH = 12;
 
 /** Result from a successful whitelist validation */
 export interface WhitelistValidationResult {
@@ -116,12 +117,12 @@ export const DniModal: React.FC<DniModalProps> = ({
   const [welcomeName, setWelcomeName] = useState<string | null>(null);
 
   // Validación
-  const isComplete = dni.length === DNI_MAX_LENGTH;
-  const isValid = isComplete && /^\d{8}$/.test(dni);
-  const showError = dni.length > 0 && dni.length === DNI_MAX_LENGTH && !isValid;
+  const isComplete = dni.length >= DOC_MIN_LENGTH;
+  const isValid = isComplete && /^\d{8,12}$/.test(dni);
+  const showError = dni.length > 0 && dni.length >= DOC_MIN_LENGTH && !isValid;
 
   const handleChange = useCallback((value: string) => {
-    const cleaned = value.replace(/\D/g, '').slice(0, DNI_MAX_LENGTH);
+    const cleaned = value.replace(/\D/g, '').slice(0, DOC_MAX_LENGTH);
     setDni(cleaned);
   }, []);
 
@@ -321,7 +322,7 @@ export const DniModal: React.FC<DniModalProps> = ({
 
                       {/* Título */}
                       <h2 className="text-lg sm:text-xl font-bold text-neutral-900 font-['Baloo_2'] mb-2 text-center">
-                        Ingresa tu DNI
+                        Ingresa tu número de documento
                       </h2>
 
                       {/* Subtítulo */}
@@ -348,8 +349,8 @@ export const DniModal: React.FC<DniModalProps> = ({
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && isValid) handleSubmit();
                             }}
-                            placeholder="Ingresa tu DNI de 8 dígitos"
-                            maxLength={DNI_MAX_LENGTH}
+                            placeholder="Ingresa tu número de documento"
+                            maxLength={DOC_MAX_LENGTH}
                             autoFocus
                             className="flex-1 bg-transparent outline-none text-base text-neutral-800 placeholder:text-neutral-400 text-center"
                             style={{
@@ -366,13 +367,13 @@ export const DniModal: React.FC<DniModalProps> = ({
                           {showError ? (
                             <p className="text-sm text-[#ef4444] flex items-center gap-1">
                               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                              El DNI debe contener solo números
+                              El documento debe contener solo números
                             </p>
                           ) : (
                             <span />
                           )}
                           <p className="text-xs text-neutral-400 flex-shrink-0">
-                            {dni.length}/{DNI_MAX_LENGTH}
+                            {dni.length}/{DOC_MAX_LENGTH}
                           </p>
                         </div>
                       </div>
@@ -425,7 +426,7 @@ export const DniModal: React.FC<DniModalProps> = ({
                         Acceso restringido
                       </h3>
                       <p className="text-sm text-neutral-500 text-center mb-6 leading-relaxed">
-                        Este DNI no está registrado para acceder
+                        Este documento no está registrado para acceder
                         <br />
                         a esta promoción exclusiva.
                       </p>
@@ -434,7 +435,7 @@ export const DniModal: React.FC<DniModalProps> = ({
                         className="w-full h-12 rounded-lg text-base font-semibold text-white transition-all duration-150 cursor-pointer hover:opacity-90 active:scale-[0.98]"
                         style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
                       >
-                        Intentar con otro DNI
+                        Intentar con otro documento
                       </button>
                     </motion.div>
                   )}
@@ -454,10 +455,10 @@ export const DniModal: React.FC<DniModalProps> = ({
                         <Check className="w-8 h-8 text-[#22c55e]" />
                       </div>
                       <h3 className="text-xl font-bold text-neutral-900 font-['Baloo_2'] mb-2 text-center">
-                        {welcomeName ? `¡Hola, ${welcomeName}!` : 'DNI registrado'}
+                        {welcomeName ? `¡Hola, ${welcomeName}!` : 'Documento registrado'}
                       </h3>
                       <p className="text-sm text-neutral-500 text-center">
-                        {welcomeName ? 'Tu acceso ha sido verificado' : 'Tu DNI ha sido guardado correctamente'}
+                        {welcomeName ? 'Tu acceso ha sido verificado' : 'Tu documento ha sido guardado correctamente'}
                       </p>
                     </motion.div>
                   )}

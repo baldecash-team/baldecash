@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { FieldTooltip } from '@/app/prototipos/0.6/[landing]/solicitar/components/solicitar/fields';
 import { FilterTooltipInfo } from '../../../types/catalog';
+import { useAnalytics, type FilterCode } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface FilterSectionProps {
   title: string;
@@ -11,6 +12,8 @@ interface FilterSectionProps {
   defaultExpanded?: boolean;
   children: React.ReactNode;
   count?: number;
+  /** Código del filtro para analytics. Si se omite se usa el title en snake_case. */
+  filterCode?: FilterCode;
 }
 
 export const FilterSection: React.FC<FilterSectionProps> = ({
@@ -19,13 +22,24 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   defaultExpanded = true,
   children,
   count,
+  filterCode,
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const analytics = useAnalytics();
+
+  const handleToggle = () => {
+    const nextExpanded = !expanded;
+    setExpanded(nextExpanded);
+    analytics.trackFilterSectionToggle({
+      filter_code: filterCode ?? (title.toLowerCase().replace(/\s+/g, '_') as FilterCode),
+      expanded: nextExpanded,
+    });
+  };
 
   return (
     <div className="border-b border-neutral-200 py-4 bg-white">
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleToggle}
         className="w-full flex items-center justify-between text-left cursor-pointer group"
       >
         <div className="flex items-center gap-2">

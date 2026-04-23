@@ -93,6 +93,8 @@ import {
 // Import the shared state hook for cart/wishlist
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { useAnalytics, type FilterCode } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { diffAndEmitFilterChanges } from '@/app/prototipos/0.6/analytics/catalogFilterDiff';
 
 
 // API Hooks for loading products and filters
@@ -295,6 +297,8 @@ function CatalogoContent() {
   const isMobile = useIsMobile();
   const { setSelectedProduct, setCartProducts: setContextCartProducts, clearCartProducts, clearAccessories } = useProduct();
   const tracker = useEventTrackerOptional();
+  const analytics = useAnalytics();
+
 
   // Get layout data from context (fetched once at [landing] level)
   const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner } = useLayout();
@@ -323,7 +327,7 @@ function CatalogoContent() {
   const [filters, setFilters] = useState<FilterState>(() =>
     mergeFiltersWithDefaults(initialUrlFilters)
   );
-  const [sort, setSort] = useState<SortOption>(() =>
+  const [sort, setSortRaw] = useState<SortOption>(() =>
     initialUrlFilters.sort || 'recommended'
   );
 
@@ -347,6 +351,36 @@ function CatalogoContent() {
   );
   // State mirror of apiQuotaRangeRef for reactive dependencies (memos, chips)
   const [apiQuotaRangeState, setApiQuotaRangeState] = useState<[number, number]>(apiQuotaRangeRef.current);
+
+  // Tracked filter setter: diffs old vs new and emits analytics events per change.
+  // Used instead of raw `setFilters` where the change comes from user intent
+  // (UI toggles, Quiz apply, Clear all). Ref-driven rehydration keeps using
+  // `setFilters` to avoid false-positive events during initial load.
+  const setFiltersTracked = useCallback<typeof setFilters>(
+    (next) => {
+      setFilters((prev) => {
+        const applied = typeof next === 'function'
+          ? (next as (p: FilterState) => FilterState)(prev)
+          : next;
+        diffAndEmitFilterChanges(prev, applied, analytics, apiQuotaRangeRef.current);
+        return applied;
+      });
+    },
+    [analytics]
+  );
+
+  // Tracked sort setter
+  const setSort = useCallback(
+    (value: SortOption) => {
+      setSortRaw((prev) => {
+        if (prev !== value) {
+          analytics.trackSortChange({ from: prev, to: value });
+        }
+        return value;
+      });
+    },
+    [analytics]
+  );
 
   // Build API filters from frontend FilterState
   const apiFiltersForProducts = useMemo((): ApiCatalogFilters => {
@@ -818,7 +852,18 @@ function CatalogoContent() {
     unavailableWishlistIds,
   } = useCatalogSharedState(landing, previewKey);
 
-  const [viewMode, setViewMode] = useState<CatalogViewMode>('all');
+  const [viewMode, setViewModeRaw] = useState<CatalogViewMode>('all');
+  const setViewMode = useCallback(
+    (next: CatalogViewMode) => {
+      setViewModeRaw((prev) => {
+        if (prev !== next) {
+          analytics.trackViewModeChange({ from: prev, to: next });
+        }
+        return next;
+      });
+    },
+    [analytics]
+  );
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   // Search drawer state
@@ -865,13 +910,13 @@ function CatalogoContent() {
   const lastInteractionRef = useRef<number>(Date.now());
   const lastScrollYRef = useRef<number>(0);
 
-  // Quiz hint - show tour at help button after 1 minute of inactivity
+  // Quiz hint - show tour at help button after 5 minutes of inactivity
   useEffect(() => {
     const checkInactivity = () => {
       const timeSinceLastInteraction = Date.now() - lastInteractionRef.current;
-      const oneMinute = 60000;
+      const fiveMinutes = 300000;
 
-      // Show help tour if 1 minute passed without interaction and nothing else is open
+      // Show help tour if 5 minutes passed without interaction and nothing else is open
       const canShowHint =
         !isQuizOpen &&
         !isHelpPopoverOpen &&
@@ -887,7 +932,7 @@ function CatalogoContent() {
         !isPageLoading;
         // && !isWebchatOpen; // COMENTADO: Blip Chat
 
-      if (timeSinceLastInteraction >= oneMinute && canShowHint) {
+      if (timeSinceLastInteraction >= fiveMinutes && canShowHint) {
         if (hasQuiz) {
           onboarding.startTourAtHelpButton();  // Con quiz: solo paso del help button
         } else {
@@ -898,8 +943,8 @@ function CatalogoContent() {
       }
     };
 
-    // Check every 10 seconds
-    const interval = setInterval(checkInactivity, 10000);
+    // Check every 30 seconds
+    const interval = setInterval(checkInactivity, 30000);
 
     return () => clearInterval(interval);
   }, [
@@ -933,8 +978,18 @@ function CatalogoContent() {
       }
     };
 
+    const resetInteraction = () => { lastInteractionRef.current = Date.now(); };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('click', resetInteraction, { passive: true });
+    window.addEventListener('touchstart', resetInteraction, { passive: true });
+    window.addEventListener('keydown', resetInteraction, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('click', resetInteraction);
+      window.removeEventListener('touchstart', resetInteraction);
+      window.removeEventListener('keydown', resetInteraction);
+    };
   }, []);
 
   // Reset interaction timer when filters change
@@ -1180,12 +1235,12 @@ function CatalogoContent() {
       // Also set the first product as selectedProduct for backwards compatibility
       setSelectedProduct(productsForContext[0]);
     }
-    tracker?.track('cta_click', {
-      cta_name: 'cart_continue',
-      cart_count: cartItems.length,
+    analytics.trackCartContinue({
+      item_count: cartItems.length,
+      total_monthly_quota: totalMonthlyQuota,
     });
     router.push(getWizardUrl(landing));
-  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, setContextCartProducts, setSelectedProduct, landing, tracker]);
+  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, setContextCartProducts, setSelectedProduct, landing, analytics]);
 
   // wishlistProducts is now a state loaded from API via useEffect (see above)
 
@@ -1205,8 +1260,11 @@ function CatalogoContent() {
 
   // Handler to clear search
   const handleSearchClear = useCallback(() => {
+    if (searchQuery) {
+      analytics.trackSearchClear({ location: 'navbar' });
+    }
     setSearchQuery('');
-  }, []);
+  }, [analytics, searchQuery]);
 
   // Update URL when filters, sort, searchQuery, colorSelectorVersion, or onboarding config change
   useEffect(() => {
@@ -1283,8 +1341,12 @@ function CatalogoContent() {
 
   // Load more products from API
   const handleLoadMore = useCallback(() => {
+    analytics.trackLoadMore({
+      visible_count: catalogProducts.length,
+      total_count: totalProducts,
+    });
     loadMoreFromApi();
-  }, [loadMoreFromApi]);
+  }, [loadMoreFromApi, analytics, catalogProducts.length, totalProducts]);
 
   // Applied filters for EmptyState
   const appliedFilters = useMemo((): AppliedFilter[] => {
@@ -1314,7 +1376,7 @@ function CatalogoContent() {
   }, [filters, apiQuotaRangeState]);
 
   const handleRemoveFilter = useCallback((key: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const newFilters = { ...prev };
       if (key === 'brand') newFilters.brands = [];
       if (key === 'quota') newFilters.quotaRange = [...apiQuotaRangeRef.current];
@@ -1322,7 +1384,15 @@ function CatalogoContent() {
       if (key === 'gama') newFilters.gama = [];
       return newFilters;
     });
-  }, []);
+    const codeMap: Record<string, FilterCode> = {
+      brand: 'brand',
+      quota: 'quota_range',
+      ram: 'ram',
+      gama: 'gama',
+    };
+    const code = codeMap[key];
+    if (code) analytics.trackFilterClearSingle({ filter_code: code });
+  }, [setFiltersTracked, analytics]);
 
   // Helper: find product by ID in catalogProducts, or build from sibling color data
   const findProductOrSibling = useCallback((productId: string): CatalogProduct | null => {
@@ -1744,7 +1814,10 @@ function CatalogoContent() {
                   {wishlist.length > 0 && appliedFilters.length > 0 && (
                     <Button
                       variant="light"
-                      onPress={() => setFilters(defaultFilterState)}
+                      onPress={() => {
+                        setFiltersTracked(defaultFilterState);
+                        analytics.trackFilterClearAll({ source: 'favorites_empty_state' });
+                      }}
                       className="cursor-pointer text-neutral-600"
                     >
                       Limpiar filtros
@@ -1763,7 +1836,13 @@ function CatalogoContent() {
                         {searchSuggestions.map((suggestion, index) => (
                           <span key={suggestion.suggested}>
                             <button
-                              onClick={() => setSearchQuery(suggestion.suggested)}
+                              onClick={() => {
+                                analytics.trackSearchSuggestionClick({
+                                  original: searchQuery,
+                                  suggested: suggestion.suggested,
+                                });
+                                setSearchQuery(suggestion.suggested);
+                              }}
                               className="text-[var(--color-primary)] font-semibold hover:underline cursor-pointer"
                             >
                               {suggestion.suggested}
@@ -1780,8 +1859,12 @@ function CatalogoContent() {
                 <EmptyState
                   appliedFilters={appliedFilters}
                   onClearFilters={() => {
-                    setFilters(defaultFilterState);
+                    setFiltersTracked(defaultFilterState);
+                    if (searchQuery) {
+                      analytics.trackSearchClear({ location: 'empty_state' });
+                    }
                     setSearchQuery('');
+                    analytics.trackFilterClearAll({ source: 'empty_state' });
                   }}
                   onRemoveFilter={handleRemoveFilter}
                   totalProductsIfExpanded={catalogProducts.length}
@@ -2148,7 +2231,7 @@ function CatalogoContent() {
             // Aplicar filtros basados en las respuestas del quiz
             if (answers && answers.length > 0 && questions && questions.length > 0) {
               const quizFilters = mapQuizAnswersToFilters(answers, questions, filters);
-              setFilters((prev) => ({
+              setFiltersTracked((prev) => ({
                 ...prev,
                 ...quizFilters,
               }));

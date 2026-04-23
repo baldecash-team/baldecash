@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   basePath: basePath,
   trailingSlash: true,
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",

@@ -186,6 +186,7 @@ export interface CompanyData {
   logo_url?: string | null;
   logo_white_url?: string | null;
   main_phone?: string | null;
+  main_address?: string | null;
   main_email?: string | null;
   website_url?: string | null;
   customer_portal_url?: string | null;

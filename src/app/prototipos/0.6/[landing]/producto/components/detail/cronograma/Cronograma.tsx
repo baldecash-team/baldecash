@@ -6,7 +6,7 @@
  * Usa datos de ejemplo (paymentPlans) para mostrar cuotas consistentes por plazo.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'next/navigation';
 import { Calendar, Check, ChevronDown, ChevronUp, Info, Download, FileText, Percent, AlertCircle, Scale, X, Loader2 } from 'lucide-react';
@@ -16,6 +16,7 @@ import { useIsMobile, Toast } from '@/app/prototipos/_shared';
 import { CronogramaProps, CronogramaVersion, InitialPaymentPercentage } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import { generateCronogramaPDF } from '../../../utils/generateCronogramaPDF';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // Cálculo de amortización francesa (cuota fija)
 const calculateAmortization = (principal: number, annualRate: number, months: number) => {
@@ -57,6 +58,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   term = 36,
   startDate = new Date(),
   version = 1,
+  productId = '',
   productName = 'Producto',
   productBrand = 'BaldeCash',
   productPrice = 0,
@@ -72,6 +74,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const dragControls = useDragControls();
   const params = useParams();
   const landing = (params.landing as string) || '';
+  const analytics = useAnalytics();
   // Usar valores externos si están disponibles, sino usar estado interno
   const [internalSelectedTerm, setInternalSelectedTerm] = useState(paymentPlans[0]?.term ?? term);
   const [internalInitialPercent, setInternalInitialPercent] = useState<InitialPaymentPercentage>(0);
@@ -98,7 +101,18 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   }
 
   const [showAll, setShowAll] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpenRaw] = useState(false);
+  const setIsModalOpen = useCallback(
+    (next: boolean) => {
+      setIsModalOpenRaw((prev) => {
+        if (prev !== next) {
+          analytics.trackCronogramaModal({ open: next, product_id: productId });
+        }
+        return next;
+      });
+    },
+    [analytics, productId]
+  );
   const [showToast, setShowToast] = useState(false);
 
   // Block body scroll when modal is open (iOS Safari fix)
@@ -193,6 +207,11 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
   const handleDownloadPDF = async () => {
     if (isGeneratingPDF) return;
+    analytics.trackCronogramaDownload({
+      product_id: productId,
+      term: selectedTerm,
+      initial_percent: selectedInitialPercent,
+    });
     setIsGeneratingPDF(true);
     try {
       // Generar datos para el PDF
@@ -532,7 +551,15 @@ export const Cronograma: React.FC<CronogramaProps> = ({
         {/* Show More/Less */}
         {hasMore && (
           <button
-            onClick={() => setShowAll(!showAll)}
+            onClick={() => {
+              const next = !showAll;
+              setShowAll(next);
+              analytics.trackCronogramaExpand({
+                product_id: productId,
+                expanded: next,
+                term: selectedTerm,
+              });
+            }}
             className="w-full mt-4 py-2 flex items-center justify-center gap-2 text-sm font-medium text-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-lg transition-colors cursor-pointer"
           >
             {showAll ? (

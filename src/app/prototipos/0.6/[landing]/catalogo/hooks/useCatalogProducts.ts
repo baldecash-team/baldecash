@@ -89,6 +89,7 @@ export function useCatalogProducts({
   const baseInitialLimit = initialLimitOverride ?? INITIAL_LOAD_LIMIT;
   const initialLimit = gridColumns ? roundToColumns(baseInitialLimit, gridColumns) : baseInitialLimit;
   const loadMoreLimit = gridColumns ? roundToColumns(LOAD_MORE_LIMIT, gridColumns) : LOAD_MORE_LIMIT;
+
   const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -100,7 +101,7 @@ export function useCatalogProducts({
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [searchCorrected, setSearchCorrected] = useState<SearchCorrected | null>(null);
 
-  // Track if we've already attempted to load
+  // Track if we've already attempted to load.
   const hasLoadedRef = useRef(false);
   // Track if enabled changed from false to true
   const wasEnabledRef = useRef(enabled);

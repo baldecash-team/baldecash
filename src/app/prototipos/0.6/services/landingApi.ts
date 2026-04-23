@@ -147,6 +147,7 @@ interface ApiCompanyInfo {
   legal_name?: string | null;
   logo_url?: string | null;
   main_phone?: string | null;
+  main_address?: string | null;
   main_email?: string | null;
   website_url?: string | null;
   customer_portal_url?: string | null;
@@ -306,6 +307,7 @@ export interface LandingLayoutResponse {
     legal_name?: string;
     logo_url?: string;
     main_phone?: string;
+    main_address?: string;
     main_email?: string;
     website_url?: string;
     customer_portal_url?: string;
@@ -858,6 +860,7 @@ export function transformLandingData(data: LandingHeroResponse): {
       legal_name: data.company.legal_name,
       logo_url: data.company.logo_url,
       main_phone: data.company.main_phone,
+      main_address: data.company.main_address,
       main_email: data.company.main_email,
       website_url: data.company.website_url,
       customer_portal_url: data.company.customer_portal_url,
