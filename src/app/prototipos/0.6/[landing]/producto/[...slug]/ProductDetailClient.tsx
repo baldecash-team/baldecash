@@ -153,7 +153,9 @@ function ProductDetailContent() {
       brand: cartItem.brand,
       price: cartItem.price,
       monthlyPayment: cartItem.monthlyPayment,  // User's selected config
-      months: cartItem.months,                   // User's selected config
+      months: cartItem.months,                   // User's selected config (normalized to months)
+      term: cartItem.term ?? cartItem.months,    // Raw term in native units
+      paymentFrequency: cartItem.paymentFrequency,
       initialPercent: cartItem.initialPercent,   // User's selected config
       initialAmount: cartItem.initialAmount,     // User's selected config
       image: cartItem.image,

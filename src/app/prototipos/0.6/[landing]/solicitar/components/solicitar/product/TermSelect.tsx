@@ -19,7 +19,15 @@ interface TermSelectProps {
   warning?: boolean;
   /** Placeholder when no value is selected */
   placeholder?: string;
+  /** Payment frequency to pluralize the label: 'semanal' | 'quincenal' | 'mensual' */
+  frequency?: string;
 }
+
+export const getTermUnit = (count: number, frequency?: string): string => {
+  if (frequency === 'semanal') return count === 1 ? 'semana' : 'semanas';
+  if (frequency === 'quincenal') return count === 1 ? 'quincena' : 'quincenas';
+  return count === 1 ? 'mes' : 'meses';
+};
 
 export const TermSelect: React.FC<TermSelectProps> = ({
   value,
@@ -28,6 +36,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
   size = 'md',
   warning = false,
   placeholder,
+  frequency,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -36,7 +45,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
     setIsOpen(false);
   }, [onChange]);
 
-  const displayLabel = value ? `${value} meses` : placeholder || 'Seleccionar';
+  const displayLabel = value ? `${value} ${getTermUnit(value, frequency)}` : placeholder || 'Seleccionar';
   const hasValue = !!value;
 
   const sizeClasses = size === 'sm'
@@ -86,7 +95,7 @@ export const TermSelect: React.FC<TermSelectProps> = ({
                     }
                   `}
                 >
-                  <span>{term} meses</span>
+                  <span>{term} {getTermUnit(term, frequency)}</span>
                   {value === term && <Check className="w-3.5 h-3.5" />}
                 </button>
               ))}

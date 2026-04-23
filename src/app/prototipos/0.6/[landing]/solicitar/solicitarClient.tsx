@@ -8,7 +8,7 @@
 import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart, AlertTriangle, X } from 'lucide-react';
-import { TermSelect } from './components/solicitar/product/TermSelect';
+import { TermSelect, getTermUnit } from './components/solicitar/product/TermSelect';
 import { useProduct } from './context/ProductContext';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -394,11 +394,12 @@ function WizardPreviewContent() {
                     <span className="text-xs text-neutral-500">Plazo:</span>
                   )}
                   <TermSelect
-                    value={needsTermUnification ? 0 : (productsToShow[0]?.months || 0)}
+                    value={needsTermUnification ? 0 : ((productsToShow[0]?.term ?? productsToShow[0]?.months) || 0)}
                     options={availableTerms}
                     onChange={(term) => updateAllProductsToTerm(term)}
                     warning={needsTermUnification}
                     placeholder="Seleccionar"
+                    frequency={needsTermUnification ? undefined : productsToShow[0]?.paymentFrequency}
                   />
                 </div>
               </div>
@@ -491,9 +492,14 @@ function WizardPreviewContent() {
                         <>
                           <p className="text-base font-bold text-[var(--color-primary)] mt-1.5">
                             S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}{product.paymentFrequency === 'semanal' ? '/sem' : product.paymentFrequency === 'quincenal' ? '/qcn' : '/mes'}
-                            <span className="text-xs text-neutral-500 font-normal ml-1">
-                              x {product.months} meses
-                            </span>
+                            {(() => {
+                              const displayTerm = product.term ?? product.months;
+                              return (
+                                <span className="text-xs text-neutral-500 font-normal ml-1">
+                                  x {displayTerm} {getTermUnit(displayTerm, product.paymentFrequency)}
+                                </span>
+                              );
+                            })()}
                           </p>
                           {product.initialAmount > 0 && (
                             <p className="text-xs text-neutral-500 mt-0.5">

@@ -47,6 +47,7 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     clearAccessories();
     setSelectedProduct({
       id: product.id,
+      slug: product.slug,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
@@ -56,6 +57,8 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
       initialPercent: 0,
       initialAmount: 0,
       image: product.images[0] || product.thumbnail,
+      type: product.deviceType,
+      paymentFrequency: product.paymentFrequency,
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
