@@ -457,6 +457,8 @@ export interface ProductColor {
   images?: string[];   // Array de imágenes para carousel
   // Color sibling data (from ProductFamily)
   productId?: string;   // ID del producto sibling
+  /** Variant ID real de este sibling (viene del API como `variant.id`). Usar para submit. */
+  variantId?: string;
   slug?: string;        // Slug del producto sibling (para navegación)
   displayName?: string; // Nombre display del sibling
   price?: number;       // Precio final del sibling
