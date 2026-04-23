@@ -99,6 +99,27 @@ export function getVipName(slug: string): { firstName: string } | null {
   }
 }
 
+/** VIP welcome pending flag — one-shot signal that the user just validated */
+function getVipWelcomePendingKey(slug: string) {
+  return `baldecash-vip-welcome-pending-${slug}`;
+}
+
+export function setVipWelcomePending(slug: string): void {
+  try {
+    localStorage.setItem(getVipWelcomePendingKey(slug), '1');
+  } catch {}
+}
+
+export function consumeVipWelcomePending(slug: string): boolean {
+  try {
+    const pending = localStorage.getItem(getVipWelcomePendingKey(slug)) === '1';
+    if (pending) localStorage.removeItem(getVipWelcomePendingKey(slug));
+    return pending;
+  } catch {
+    return false;
+  }
+}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
@@ -156,6 +177,7 @@ export const DniModal: React.FC<DniModalProps> = ({
         }
         if (data.first_name || data.last_name) {
           saveVipName(landingSlug, data.first_name || '');
+          setVipWelcomePending(landingSlug);
         }
         setIsValidating(false);
         // If parent handles the validated state (VIP flow), delegate to it

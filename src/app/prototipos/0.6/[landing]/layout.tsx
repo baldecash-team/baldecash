@@ -15,7 +15,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
-import { getVipToken, getVipName } from '../components/hero/DniModal';
+import { getVipToken, getVipName, consumeVipWelcomePending } from '../components/hero/DniModal';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
 import { routes } from '../utils/routes';
@@ -74,8 +74,8 @@ function VipGate({ landing, children }: { landing: string; children: React.React
         }
       }
 
-      // Check if welcome overlay should show (user just validated)
-      if (hasWhitelist) {
+      // Check if welcome overlay should show (one-shot: only right after DNI validation)
+      if (hasWhitelist && consumeVipWelcomePending(landing)) {
         const name = getVipName(landing);
         if (name) {
           setWelcomeName(name);
