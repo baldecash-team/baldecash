@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { Card, CardBody, Button } from '@nextui-org/react';
 import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, type LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -43,6 +44,8 @@ interface ProductCardProps {
   /** Callback con WishlistItem completo incluyendo color seleccionado */
   onFavorite?: (item: WishlistItem) => void;
   onViewDetail?: (slug?: string) => void;
+  /** Builder opcional del href de detalle — cuando se pasa, el título y el botón "Detalle" se renderizan como <a> para soportar Ctrl/Cmd+click y middle-click */
+  getDetailHref?: (slug?: string) => string;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
   isFavoriteCheck?: (productId: string) => boolean;
@@ -71,6 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onAddToCart,
   onFavorite,
   onViewDetail,
+  getDetailHref,
   onMouseEnter,
   isFavorite = false,
   colorSelectorVersion = 1,
@@ -401,13 +405,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* Title - Altura fija para 2 líneas, tooltip CSS si está truncado */}
             <div className="relative group/title min-h-[3rem] sm:min-h-[3.5rem] mb-3">
-              <h3
-                ref={titleRef}
-                className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
-                onClick={() => onViewDetail?.(selectedColor?.slug)}
-              >
-                {displayName}
-              </h3>
+              {getDetailHref ? (
+                <Link
+                  href={getDetailHref(selectedColor?.slug)}
+                  onClick={() => onViewDetail?.(selectedColor?.slug)}
+                  className="block"
+                >
+                  <h3
+                    ref={titleRef}
+                    className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
+                  >
+                    {displayName}
+                  </h3>
+                </Link>
+              ) : (
+                <h3
+                  ref={titleRef}
+                  className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
+                  onClick={() => onViewDetail?.(selectedColor?.slug)}
+                >
+                  {displayName}
+                </h3>
+              )}
               {isTitleTruncated && (
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-3 py-2 bg-neutral-800 text-white text-xs rounded-lg shadow-lg max-w-sm whitespace-normal opacity-0 invisible group-hover/title:opacity-100 group-hover/title:visible transition-opacity duration-200 z-50 pointer-events-none">
                   {displayName}
@@ -512,16 +531,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
             {/* CTAs */}
             <div className="flex gap-2 w-full">
-              <Button
-                id={detailButtonId}
-                size="lg"
-                variant="bordered"
-                className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
-                startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
-                onPress={() => onViewDetail?.(selectedColor?.slug)}
-              >
-                Detalle
-              </Button>
+              {getDetailHref ? (
+                <Button
+                  id={detailButtonId}
+                  as={Link}
+                  href={getDetailHref(selectedColor?.slug)}
+                  size="lg"
+                  variant="bordered"
+                  className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
+                  startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
+                  onPress={() => onViewDetail?.(selectedColor?.slug)}
+                >
+                  Detalle
+                </Button>
+              ) : (
+                <Button
+                  id={detailButtonId}
+                  size="lg"
+                  variant="bordered"
+                  className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"
+                  startContent={<Eye className="w-5 h-5 lg:w-6 lg:h-6 shrink-0" />}
+                  onPress={() => onViewDetail?.(selectedColor?.slug)}
+                >
+                  Detalle
+                </Button>
+              )}
               <Button
                 id={addToCartButtonId}
                 size="lg"
