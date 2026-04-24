@@ -57,6 +57,8 @@ export interface ReceivedData {
   // Productos (múltiples)
   products: ProductItem[];
   termMonths: number;
+  /** Frecuencia de pago del producto principal: 'semanal' | 'quincenal' | 'mensual' */
+  paymentFrequency?: string;
 
   /** v0.6.1: Initial payment info for data coherence */
   initialPaymentPercent?: number;

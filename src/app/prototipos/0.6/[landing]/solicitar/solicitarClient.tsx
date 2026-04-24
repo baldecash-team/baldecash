@@ -46,6 +46,9 @@ import { SelectedProductBar, SelectedProductSpacer } from './components/solicita
 // Utils
 import { formatMoneyNoDecimals } from './utils/formatMoney';
 
+// Analytics
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+
 // Checkbox definido fuera del componente padre para evitar remount en cada
 // render cuando cambia el estado del padre (antes se redefinía dentro del
 // componente, causando que React lo tratara como un tipo nuevo).
@@ -97,6 +100,9 @@ function WizardPreviewContent() {
 
   // Scroll to top on page load
   useScrollToTop();
+
+  // Analytics
+  const analytics = useAnalytics();
 
   // Check if this landing has a catalog (for redirect fallback)
   const [hasCatalog, setHasCatalog] = useState(true);
@@ -396,7 +402,20 @@ function WizardPreviewContent() {
                   <TermSelect
                     value={needsTermUnification ? 0 : ((productsToShow[0]?.term ?? productsToShow[0]?.months) || 0)}
                     options={availableTerms}
-                    onChange={(term) => updateAllProductsToTerm(term)}
+                    onChange={(term) => {
+                      const primary = productsToShow[0];
+                      const from = primary?.term ?? primary?.months ?? 0;
+                      if (primary && from !== term) {
+                        analytics.trackPricingTermChange({
+                          product_id: primary.id,
+                          from,
+                          to: term,
+                          context: 'solicitar',
+                          frequency: primary.paymentFrequency,
+                        });
+                      }
+                      updateAllProductsToTerm(term);
+                    }}
                     warning={needsTermUnification}
                     placeholder="Seleccionar"
                     frequency={needsTermUnification ? undefined : productsToShow[0]?.paymentFrequency}
@@ -469,7 +488,17 @@ function WizardPreviewContent() {
                               {initialOptions.map((option) => (
                                 <button
                                   key={option.percent}
-                                  onClick={() => updateProductInitial(product.id, option.percent)}
+                                  onClick={() => {
+                                    if (product.initialPercent !== option.percent) {
+                                      analytics.trackPricingInitialChange({
+                                        product_id: product.id,
+                                        from: product.initialPercent,
+                                        to: option.percent,
+                                        context: 'solicitar',
+                                      });
+                                    }
+                                    updateProductInitial(product.id, option.percent);
+                                  }}
                                   className={`text-[11px] px-2.5 py-1.5 rounded-full transition-all cursor-pointer min-h-[28px] ${
                                     product.initialPercent === option.percent
                                       ? 'bg-[var(--color-primary)] text-white font-medium'
@@ -550,12 +579,16 @@ function WizardPreviewContent() {
                         Accesorios seleccionados
                       </p>
                       <div className="space-y-1.5">
-                        {selectedAccessories.map((acc) => (
-                          <div key={acc.id} className="flex items-center justify-between text-sm">
-                            <span className="text-neutral-700">{acc.name}</span>
-                            <span className="text-[var(--color-primary)] font-medium">+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}/mes</span>
-                          </div>
-                        ))}
+                        {selectedAccessories.map((acc) => {
+                          const freq = productsToShow[0]?.paymentFrequency;
+                          const freqSfx = freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
+                          return (
+                            <div key={acc.id} className="flex items-center justify-between text-sm">
+                              <span className="text-neutral-700">{acc.name}</span>
+                              <span className="text-[var(--color-primary)] font-medium">+S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}{freqSfx}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -564,7 +597,8 @@ function WizardPreviewContent() {
                   <div className="pt-3 border-t border-neutral-200 flex items-center justify-between">
                     <span className="text-sm font-semibold text-neutral-800">Cuota total</span>
                     <span className={`text-lg font-bold ${isOverQuotaLimit ? 'text-red-600' : 'text-[var(--color-primary)]'}`}>
-                      S/{formatMoneyNoDecimals(Math.floor(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}/mes
+                      S/{formatMoneyNoDecimals(Math.floor(totalMonthly + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}
+                      {productsToShow[0]?.paymentFrequency === 'semanal' ? ' / semana' : productsToShow[0]?.paymentFrequency === 'quincenal' ? ' / quincena' : ' / mes'}
                     </span>
                   </div>
 

@@ -112,8 +112,9 @@ export interface UseAnalyticsReturn {
   trackSimilarProductClick: (args: { source_product_id: string; target_product_id: string; position: number }) => void;
   trackSimilarProductAddToCart: (args: { source_product_id: string; target_product_id: string }) => void;
   trackSpecSheetDownload: (args: { product_id: string; format?: string }) => void;
-  trackPricingTermChange: (args: { product_id: string; from: number; to: number }) => void;
-  trackPricingInitialChange: (args: { product_id: string; from: number; to: number }) => void;
+  trackPricingTermChange: (args: { product_id: string; from: number; to: number; context?: 'detail' | 'solicitar'; frequency?: string }) => void;
+  trackPricingInitialChange: (args: { product_id: string; from: number; to: number; context?: 'detail' | 'solicitar' }) => void;
+  trackPricingFrequencyChange: (args: { product_id: string; from: string; to: string; context?: 'detail' | 'solicitar' }) => void;
 
   // Comparador + Drawers
   trackCompareClear: () => void;
@@ -396,6 +397,13 @@ export function useAnalytics(): UseAnalyticsReturn {
     },
     [track]
   );
+  const trackPricingFrequencyChange = useCallback<UseAnalyticsReturn['trackPricingFrequencyChange']>(
+    (args) => {
+      if (args.from === args.to) return;
+      track('pricing_frequency_change', { ...args });
+    },
+    [track]
+  );
 
   // ============================================================================
   // Comparador / Drawers
@@ -640,6 +648,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackSpecSheetDownload,
       trackPricingTermChange,
       trackPricingInitialChange,
+      trackPricingFrequencyChange,
       // Comparador / Drawers
       trackCompareClear,
       trackCompareClose,
@@ -705,6 +714,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackSpecSheetDownload,
       trackPricingTermChange,
       trackPricingInitialChange,
+      trackPricingFrequencyChange,
       trackCompareClear,
       trackCompareClose,
       trackCompareBestShown,

@@ -11,6 +11,8 @@ interface AccessoryCardProps {
   isSelected: boolean;
   onToggle: () => void;
   onViewDetails?: () => void;
+  /** Frecuencia de pago del producto principal (para sufijo de cuota) */
+  paymentFrequency?: string;
 }
 
 /**
@@ -22,7 +24,12 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
   isSelected,
   onToggle,
   onViewDetails,
+  paymentFrequency,
 }) => {
+  const freqSuffix =
+    paymentFrequency === 'semanal' ? '/sem'
+    : paymentFrequency === 'quincenal' ? '/qcn'
+    : '/mes';
   return (
     <Card
       isPressable
@@ -106,7 +113,7 @@ export const AccessoryCard: React.FC<AccessoryCardProps> = ({
         <div className="mt-auto flex items-center justify-between">
           <div>
             <span className="text-[var(--color-primary)] font-bold">
-              +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}/mes
+              +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}{freqSuffix}
             </span>
             {accessory.term && (
               <p className="text-[10px] text-neutral-400">en {accessory.term} meses</p>

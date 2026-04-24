@@ -363,6 +363,7 @@ export function AccessoriesSection({
                       });
                       setDetailAccessory(accessory);
                     }}
+                    paymentFrequency={currentPaymentFrequency}
                   />
                 ))}
               </div>

@@ -11,6 +11,8 @@ interface AccessoryCarouselProps {
   selectedAccessories: Accessory[];
   onToggle: (accessory: Accessory) => void;
   onViewDetails: (accessory: Accessory) => void;
+  /** Frecuencia de pago del producto principal (para sufijo de cuota) */
+  paymentFrequency?: string;
 }
 
 export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
@@ -18,7 +20,12 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
   selectedAccessories,
   onToggle,
   onViewDetails,
+  paymentFrequency,
 }) => {
+  const freqSuffix =
+    paymentFrequency === 'semanal' ? '/sem'
+    : paymentFrequency === 'quincenal' ? '/qcn'
+    : '/mes';
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -266,7 +273,7 @@ export const AccessoryCarousel: React.FC<AccessoryCarouselProps> = ({
                     {/* Price */}
                     <div className="mt-auto">
                       <span className="text-[var(--color-primary)] font-bold text-sm">
-                        +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}/mes
+                        +S/{formatMoneyNoDecimals(Math.floor(accessory.monthlyQuota))}{freqSuffix}
                       </span>
                     </div>
                   </div>

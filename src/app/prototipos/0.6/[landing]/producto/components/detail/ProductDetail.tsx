@@ -189,6 +189,8 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             product_id: product.id,
             from: prev.term,
             to: selection.term,
+            context: 'detail',
+            frequency: selection.paymentFrequency,
           });
         }
         if (prev.initialPercent !== selection.initialPercent) {
@@ -196,6 +198,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             product_id: product.id,
             from: prev.initialPercent,
             to: selection.initialPercent,
+            context: 'detail',
+          });
+        }
+        if (prev.paymentFrequency !== selection.paymentFrequency) {
+          analytics.trackPricingFrequencyChange({
+            product_id: product.id,
+            from: prev.paymentFrequency,
+            to: selection.paymentFrequency,
+            context: 'detail',
           });
         }
       }

@@ -74,6 +74,7 @@ export type EventType =
   | 'spec_sheet_download'
   | 'pricing_term_change'
   | 'pricing_initial_change'
+  | 'pricing_frequency_change'
   // Phase 5: Comparator / wishlist / cart drawers
   | 'compare_clear'
   | 'compare_close'
