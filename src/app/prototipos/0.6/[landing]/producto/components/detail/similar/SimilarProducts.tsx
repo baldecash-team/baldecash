@@ -192,6 +192,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
         initialPercent: 0,
         initialAmount: 0,
         image: product.thumbnail,
+        variantId: product.variantId != null ? String(product.variantId) : undefined,
         specs: product.specs ? {
           processor: product.specs.processor || '',
           ram: product.specs.ram || '',

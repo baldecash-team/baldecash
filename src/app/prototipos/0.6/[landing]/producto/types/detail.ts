@@ -151,6 +151,8 @@ export interface ProductDetail {
   reviewCount: number;
   tea?: number;
   tcea?: number;
+  /** Variant ID real del producto (extraído de colors[].id o images[].variant_id). */
+  variantId?: number;
 }
 
 // ============================================
@@ -251,6 +253,8 @@ export interface SimilarProduct {
   differentiators: string[];
   slug: string;
   promotion?: SimilarProductPromotion | null;
+  /** Variant ID real (extraído de colors[].id o images[].variant_id). */
+  variantId?: number;
   // Specs para mostrar en card estilo catálogo
   specs?: {
     processor: string;

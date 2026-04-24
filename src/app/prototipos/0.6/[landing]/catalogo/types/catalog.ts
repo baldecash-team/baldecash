@@ -457,6 +457,8 @@ export interface ProductColor {
   images?: string[];   // Array de imágenes para carousel
   // Color sibling data (from ProductFamily)
   productId?: string;   // ID del producto sibling
+  /** Variant ID real de este sibling (viene del API como `variant.id`). Usar para submit. */
+  variantId?: string;
   slug?: string;        // Slug del producto sibling (para navegación)
   displayName?: string; // Nombre display del sibling
   price?: number;       // Precio final del sibling
@@ -692,6 +694,8 @@ export interface CatalogProduct {
   paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
   paymentHooks?: Record<string, number>; // Cuota hook por frecuencia: {semanal: 15, quincenal: 26}
   hookInitialPercent?: number; // % de inicial del hook (ej: 20 para celulares)
+  /** Variant ID del producto base (viene del API como `variant.id`). Fallback cuando no hay colores. */
+  variantId?: string;
   gama: GamaTier;
   condition: ProductCondition;
   stock: StockStatus;
@@ -940,6 +944,10 @@ export interface CartItem {
 
   // Configuración de financiamiento
   months: TermMonths;
+  /** Raw term in native units (weeks for 'semanal', fortnights for 'quincenal', months for 'mensual'). Fallback to months. */
+  term?: number;
+  /** Payment frequency: 'semanal' | 'quincenal' | 'mensual' */
+  paymentFrequency?: string;
   initialPercent: InitialPaymentPercent;
   initialAmount: number;
   monthlyPayment: number;
@@ -996,6 +1004,10 @@ export interface WishlistItem {
 
   // Configuración de financiamiento
   months: TermMonths;
+  /** Raw term in native units. Fallback to months. */
+  term?: number;
+  /** Payment frequency: 'semanal' | 'quincenal' | 'mensual' */
+  paymentFrequency?: string;
   initialPercent: InitialPaymentPercent;
   initialAmount: number;
   monthlyPayment: number;

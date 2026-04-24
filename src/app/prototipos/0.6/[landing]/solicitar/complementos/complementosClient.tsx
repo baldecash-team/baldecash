@@ -44,7 +44,14 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts } = useProduct();
+
+  // Frecuencia del producto principal (para sufijo de cuotas en resumen)
+  const primaryFrequency = getAllProducts()[0]?.paymentFrequency;
+  const freqSuffix =
+    primaryFrequency === 'semanal' ? '/sem'
+    : primaryFrequency === 'quincenal' ? '/qcn'
+    : '/mes';
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
@@ -265,7 +272,7 @@ function ComplementosContent() {
                     <span className="text-sm text-neutral-600 truncate">{acc.name}</span>
                   </div>
                   <span className="text-sm text-[var(--color-primary)] font-medium flex-shrink-0 ml-3">
-                    +S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}/mes
+                    +S/{formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}{freqSuffix}
                   </span>
                 </div>
               ))}
@@ -280,7 +287,7 @@ function ComplementosContent() {
           }`}>
             <p className="text-sm font-semibold text-neutral-800 min-w-0 break-words">Cuota mensual total</p>
             <p className="text-xl sm:text-2xl font-bold text-[var(--color-primary)] break-words text-right flex-shrink-0">
-              S/{formatMoneyNoDecimals(Math.floor(totalMonthly))}/mes
+              S/{formatMoneyNoDecimals(Math.floor(totalMonthly))}{freqSuffix}
             </p>
           </div>
         </motion.div>

@@ -632,22 +632,28 @@ function CatalogoContent() {
 
   // Helper to save product to context (replaces saveProductForWizard)
   // Usar cuota precalculada del backend
-  const selectProductForWizard = useCallback((product: CatalogProduct) => {
+  const selectProductForWizard = useCallback((product: CatalogProduct, variantInfo?: CartItem | null) => {
     // Clear cart and accessories - user explicitly selected THIS product
     clearCartProducts();
     clearAccessories();
     setSelectedProduct({
       id: product.id,
+      slug: product.slug,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
       price: product.price,
-      monthlyPayment: product.quotaMonthly,
-      months: (product.maxTermMonths || 24) as TermMonths,
-      initialPercent: 0,
-      initialAmount: 0,
+      monthlyPayment: variantInfo?.monthlyPayment ?? product.quotaMonthly,
+      months: (variantInfo?.months ?? product.maxTermMonths ?? 24) as TermMonths,
+      term: variantInfo?.term,
+      initialPercent: variantInfo?.initialPercent ?? product.hookInitialPercent ?? 0,
+      initialAmount: variantInfo?.initialAmount ?? 0,
       image: product.images[0] || product.thumbnail,
       type: product.deviceType,
+      variantId: variantInfo?.variantId || product.variantId,
+      colorName: variantInfo?.colorName,
+      colorHex: variantInfo?.colorHex,
+      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
@@ -1211,6 +1217,8 @@ function CatalogoContent() {
           price: item.price,
           monthlyPayment: item.monthlyPayment,
           months: item.months,
+          term: item.term ?? item.months,
+          paymentFrequency: item.paymentFrequency,
           initialPercent: item.initialPercent,
           initialAmount: Math.round((item.price * item.initialPercent) / 100),
           image: item.image,
@@ -1725,7 +1733,7 @@ function CatalogoContent() {
                   if (!ALLOW_MULTI_PRODUCT) {
                     // Single-product mode: go directly to solicitar
                     const target = findProductOrSibling(cartItem.productId) || product;
-                    selectProductForWizard(target);
+                    selectProductForWizard(target, cartItem);
                     router.push(getWizardUrl(landing));
                     return;
                   }
@@ -1740,6 +1748,7 @@ function CatalogoContent() {
                 }}
                 isFavoriteCheck={(id) => wishlist.includes(id)}
                 isInCartCheck={ALLOW_MULTI_PRODUCT ? (id) => cart.includes(id) : () => false}
+                getDetailHref={(siblingSlug) => getDetailUrl(landing, siblingSlug || product.slug)}
                 onViewDetail={(siblingSlug) => {
                   tracker?.track('product_click', {
                     product_id: product.id,
@@ -1747,7 +1756,6 @@ function CatalogoContent() {
                     brand: product.brand,
                     slug: siblingSlug || product.slug,
                   });
-                  router.push(getDetailUrl(landing, siblingSlug || product.slug));
                 }}
                 onMouseEnter={() => {
                   tracker?.track('product_hover', {
@@ -1920,7 +1928,7 @@ function CatalogoContent() {
           product={selectedProductForCart}
           onRequestEquipment={() => {
             if (selectedProductForCart) {
-              selectProductForWizard(selectedProductForCart);
+              selectProductForWizard(selectedProductForCart, selectedVariantForCart);
             }
             setSelectedVariantForCart(null);
             router.push(getWizardUrl(landing));
@@ -2012,9 +2020,12 @@ function CatalogoContent() {
               image: wishlistItem.image,
               price: wishlistItem.price,
               months: wishlistItem.months,
+              term: wishlistItem.term ?? wishlistItem.months,
+              paymentFrequency: wishlistItem.paymentFrequency,
               initialPercent: wishlistItem.initialPercent,
               initialAmount: wishlistItem.initialAmount,
               monthlyPayment: wishlistItem.monthlyPayment,
+              type: wishlistItem.type,
               variantId: wishlistItem.variantId,
               colorName: wishlistItem.colorName,
               colorHex: wishlistItem.colorHex,

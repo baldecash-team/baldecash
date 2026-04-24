@@ -14,8 +14,9 @@ import { ChevronUp, ChevronDown, Package, Plus, Tag, AlertTriangle, ShoppingCart
 import { useProduct } from '../../../context/ProductContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
-import { TermSelect } from './TermSelect';
+import { TermSelect, getTermUnit } from './TermSelect';
 import Image from 'next/image';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 interface SelectedProductBarProps {
   mobileOnly?: boolean;
@@ -24,8 +25,37 @@ interface SelectedProductBarProps {
 }
 
 export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOnly = false, hideAddons = false }) => {
-  const { selectedProduct, selectedAccessories, selectedInsurance, selectedInsurances, getTotalPrice, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
+  const { selectedAccessories, selectedInsurances, getTotalMonthlyPayment, appliedCoupon, isProductBarExpanded, setIsProductBarExpanded, getAllProducts, isOverQuotaLimit, maxMonthlyQuota, updateProductInitial, getInitialOptionsForProduct, getAvailableTerms, updateAllProductsToTerm } = useProduct();
   const { landingId } = useLayout();
+  const analytics = useAnalytics();
+
+  // Wrappers que disparan analytics antes de mutar el state global
+  const handleTermChange = (term: number) => {
+    const primary = getAllProducts()[0];
+    const from = primary?.term ?? primary?.months ?? 0;
+    if (primary && from !== term) {
+      analytics.trackPricingTermChange({
+        product_id: primary.id,
+        from,
+        to: term,
+        context: 'solicitar',
+        frequency: primary.paymentFrequency,
+      });
+    }
+    updateAllProductsToTerm(term);
+  };
+
+  const handleInitialChange = (productId: string, fromPercent: number, toPercent: number) => {
+    if (fromPercent !== toPercent) {
+      analytics.trackPricingInitialChange({
+        product_id: productId,
+        from: fromPercent,
+        to: toPercent,
+        context: 'solicitar',
+      });
+    }
+    updateProductInitial(productId, toPercent);
+  };
 
   // TODO: Quitar cuando zona-gamer tenga su propia config en el backend
   const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
@@ -51,7 +81,6 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
   const freqSuffix = (freq?: string) =>
     freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
 
-  const totalPrice = getTotalPrice();
   const totalMonthlyPayment = getTotalMonthlyPayment();
   const hasAccessories = selectedAccessories.length > 0;
   const hasInsurance = selectedInsurances.length > 0;
@@ -120,7 +149,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                 )}
               </p>
               <p className="text-xs text-neutral-500">
-                {mainProduct.months} meses
+                {(() => {
+                  const displayTerm = mainProduct.term ?? mainProduct.months;
+                  return `${displayTerm} ${getTermUnit(displayTerm, mainProduct.paymentFrequency)}`;
+                })()}
               </p>
             </div>
 
@@ -205,7 +237,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                                       key={option.percent}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        updateProductInitial(product.id, option.percent);
+                                        handleInitialChange(product.id, product.initialPercent, option.percent);
                                       }}
                                       className={`text-[10px] px-2 py-0.5 rounded-full transition-all cursor-pointer ${
                                         product.initialPercent === option.percent
@@ -241,7 +273,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                         <div key={acc.id} className="flex items-center gap-2 text-xs text-neutral-600">
                           <Plus className="w-3 h-3 text-[var(--color-primary)]" />
                           <span className="flex-1 truncate">{acc.name}</span>
-                          <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}/mes</span>
+                          <span className="text-[var(--color-primary)] font-medium">+{formatPrice(acc.monthlyQuota)}{freqSuffix(mainProduct.paymentFrequency)}</span>
                         </div>
                       ))}
                     </div>
@@ -293,10 +325,11 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-xs text-neutral-500">Plazo:</span>
                       <TermSelect
-                        value={mainProduct.months}
+                        value={mainProduct.term ?? mainProduct.months}
                         options={availableTerms}
-                        onChange={(term) => updateAllProductsToTerm(term)}
+                        onChange={handleTermChange}
                         size="sm"
+                        frequency={mainProduct.paymentFrequency}
                       />
                     </div>
                     {hasInitialPayment && !isGamer && (
@@ -347,9 +380,10 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
             <div className="flex items-center gap-2">
               <span className="text-xs text-neutral-500">Plazo:</span>
               <TermSelect
-                value={mainProduct.months}
+                value={mainProduct.term ?? mainProduct.months}
                 options={availableTerms}
-                onChange={(term) => updateAllProductsToTerm(term)}
+                onChange={handleTermChange}
+                frequency={mainProduct.paymentFrequency}
               />
             </div>
           </div>
@@ -402,7 +436,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                           {initialOptions.map((option) => (
                             <button
                               key={option.percent}
-                              onClick={() => updateProductInitial(product.id, option.percent)}
+                              onClick={() => handleInitialChange(product.id, product.initialPercent, option.percent)}
                               className={`text-[11px] px-2 py-1 rounded-full transition-all cursor-pointer ${
                                 product.initialPercent === option.percent
                                   ? 'bg-[var(--color-primary)] text-white font-medium'
@@ -423,9 +457,14 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                   <p className="text-lg font-bold text-[var(--color-primary)]">
                     {formatPrice(product.monthlyPayment)}{freqSuffix(product.paymentFrequency)}
                   </p>
-                  <p className="text-sm text-neutral-500">
-                    {product.months} meses
-                  </p>
+                  {(() => {
+                    const displayTerm = product.term ?? product.months;
+                    return (
+                      <p className="text-sm text-neutral-500">
+                        {displayTerm} {getTermUnit(displayTerm, product.paymentFrequency)}
+                      </p>
+                    );
+                  })()}
                   {product.initialAmount > 0 && (
                     <p className="text-xs text-neutral-400 mt-0.5">
                       + {formatPrice(product.initialAmount)} inicial
@@ -539,7 +578,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
               <div className="flex items-center gap-3">
                 {!isAccessoriesExpanded && (
                   <span className="text-sm font-medium text-[var(--color-primary)]">
-                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}/mes
+                    +{formatPrice(selectedAccessories.reduce((sum, acc) => sum + acc.monthlyQuota, 0))}{freqSuffix(mainProduct.paymentFrequency)}
                   </span>
                 )}
                 {isAccessoriesExpanded ? (
@@ -568,7 +607,7 @@ export const SelectedProductBar: React.FC<SelectedProductBarProps> = ({ mobileOn
                             <span className="text-neutral-700 truncate">{acc.name}</span>
                           </div>
                           <span className="text-[var(--color-primary)] font-medium flex-shrink-0 ml-4">
-                            +{formatPrice(acc.monthlyQuota)}/mes
+                            +{formatPrice(acc.monthlyQuota)}{freqSuffix(mainProduct.paymentFrequency)}
                           </span>
                         </div>
                       ))}

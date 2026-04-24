@@ -62,6 +62,7 @@ interface ApplicationStatusData {
   }>;
 
   term_months?: number;
+  payment_frequency?: string;
 
   // v0.6.1: Initial payment info for data coherence
   initial_payment_percent?: number;
@@ -202,6 +203,7 @@ function buildReceivedData(
     estimatedResponseHours: 24,
     products,
     termMonths,
+    paymentFrequency: applicationData?.payment_frequency || undefined,
     // v0.6.1: Initial payment info
     initialPaymentPercent: applicationData?.initial_payment_percent || 0,
     initialPayment: applicationData?.initial_payment || 0,

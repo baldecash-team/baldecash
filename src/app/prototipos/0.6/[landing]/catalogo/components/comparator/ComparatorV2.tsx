@@ -46,15 +46,19 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
     clearAccessories();
     setSelectedProduct({
       id: product.id,
+      slug: product.slug,
       name: product.displayName,
       shortName: product.name,
       brand: product.brand,
       price: product.price,
       monthlyPayment: product.quotaMonthly,
       months: (product.maxTermMonths || 24) as TermMonths,
-      initialPercent: 0,
+      initialPercent: product.hookInitialPercent ?? 0,
       initialAmount: 0,
       image: product.images[0] || product.thumbnail,
+      type: product.deviceType,
+      variantId: product.variantId,
+      paymentFrequency: product.paymentFrequency,
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',

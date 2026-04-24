@@ -1,24 +1,40 @@
 'use client';
 
 /**
- * FeedbackButtonSimple - Botón de feedback usando modern-screenshot
- * Implementación simple basada en el ejemplo de tunel/index.html
+ * FeedbackButtonSimple - Botón de feedback con captura vía ApiFlash
  */
 
 import { useState, useEffect } from 'react';
 
+const FEEDBACK_API_URL = 'https://ws.baldecash.com/api/feedback';
+const FEEDBACK_API_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI3IiwianRpIjoiMmMyZWE0ZDc3OTQwZWY2ZTdmMzJlOGRkMjUwNjRhYTdhNjIyNDRmMzUzMDBkOTcyMGFjY2FhMWQxZmU4OTE2MzUxOGEwMDkzMGViZTc2NGQiLCJpYXQiOjE3NDIzMzc0OTEuMjExMzUsIm5iZiI6MTc0MjMzNzQ5MS4yMTEzNTMsImV4cCI6MTc3Mzg3MzQ5MS4xOTQ0NTUsInN1YiI6IjEiLCJzY29wZXMiOlsiKiJdfQ.GmljQKk_hSEzVFlRfZMYRpt1jtBc_Fl27Vt2UEeMT5lwN4ms1w84f-dJOObRDUyzh4--DONHc7O1WZ36SjttIqmPotbSw9UWRlrA0cDrhGzmwt6nQGAAqCth1g8pkgu5tXb737wbDq8hTHtu5FU05nLrs2bYqxtbjgp500VoQB23_xEi-5FybCX0pM3i38F6VeyPoduIiY7-FRiUq6tw153uSIcCjNpZGwkffBqw6hxQ0rgGe8G_ytFbMxha_Z0zuDL5oqXtEE2U2w4mIG2_cKygysbyPOd3Qkq_LLD_lRpOWHPASrxLdVQGpLkayCBXzHb4B-Qr0Z7zQz9LqZADqojck5J8R4ZitmPpGwHbQvh6t6IbsJuXRq9mFE37VPpqxvmHyJzo_4uM5Rm0K-jKvZ4WggUddAjDn8untElx1ncMjCmFs_kOcpnoUStv3aOQGk75635_WImjTStt05BQ_EmDoRZizUqZ2zVhlrxjmgnv1SxEiPL4jDK9jaLJWUnS2MPQX4yzhd6xwhFk0LI677xpMOiag-kFU5nC3naIc9bZBKj_Ekt1UyMejPL4KqMQsBk6g40eD6ju8qVEjNEZxYCLtgD6Qr8_dheXfXiDTQQltgrG-qSzio888E_ygdq2cawS73zf5edQiau_p_wpodbCl1O6r5BzZhRuaFF0zAA';
+
 interface FeedbackButtonSimpleProps {
   /** Clases adicionales para el contenedor */
   className?: string;
+  /** ID de la landing actual (se envía en el submit) */
+  landingId?: number;
 }
 
-export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/data:(.*?);base64/)?.[1] || 'image/jpeg';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
+export function FeedbackButtonSimple({ className, landingId }: FeedbackButtonSimpleProps) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [nombre, setNombre] = useState('');
   const [feedback, setFeedback] = useState('');
   const [pageUrl, setPageUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Obtener URL en el cliente para evitar error de hidratación
   useEffect(() => {
@@ -141,10 +157,39 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
     setFeedback('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Feedback enviado correctamente!');
-    handleClose();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('user', nombre);
+      formData.append('comments', feedback);
+      formData.append('url', pageUrl);
+      if (landingId !== undefined) {
+        formData.append('landing_id', String(landingId));
+      }
+      if (screenshot) {
+        formData.append('attachment', dataUrlToBlob(screenshot), 'screenshot.jpg');
+      }
+
+      const response = await fetch(FEEDBACK_API_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${FEEDBACK_API_TOKEN}` },
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Error al enviar feedback');
+
+      alert('Feedback enviado correctamente!');
+      handleClose();
+    } catch (error) {
+      console.error(error);
+      alert('Error al enviar feedback. Intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -340,8 +385,8 @@ export function FeedbackButtonSimple({ className }: FeedbackButtonSimpleProps) {
                 placeholder="Describe tu feedback..."
               />
             </div>
-            <button type="submit" className="btn-submit-simple">
-              Enviar Feedback
+            <button type="submit" className="btn-submit-simple" disabled={isSubmitting}>
+              {isSubmitting ? 'Enviando...' : 'Enviar Feedback'}
             </button>
           </form>
         </div>

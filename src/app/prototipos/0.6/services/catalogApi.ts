@@ -94,6 +94,10 @@ export interface ApiColorSibling {
       tea: number;
     } | null;
   };
+  variant?: {
+    id: number;
+    sku?: string;
+  } | null;
 }
 
 export interface ApiCatalogProduct {
@@ -120,6 +124,10 @@ export interface ApiCatalogProduct {
   images?: string[];
   colors?: ApiProductColor[];
   color_siblings?: ApiColorSibling[];
+  variant?: {
+    id: number;
+    sku?: string;
+  } | null;
   promotion?: ApiProductPromotion | null;
 }
 
@@ -557,6 +565,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
             imageUrl: sib.image_url || undefined,
             images: sib.image_url ? [sib.image_url] : [],
             productId: String(sib.product_id),
+            variantId: sib.variant?.id != null ? String(sib.variant.id) : undefined,
             slug: sib.slug,
             displayName: sib.display_name || sib.name,
             price: sib.pricing.final_price,
@@ -587,6 +596,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
     paymentHooks: pricing.payment_hooks ?? undefined,
     hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
+    variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
     stock: 'available' as StockStatus, // Default - not in API response

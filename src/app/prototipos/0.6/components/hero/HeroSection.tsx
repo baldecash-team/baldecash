@@ -164,16 +164,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     if (!isInCart(quizProduct.id)) {
       const cartItem: CartItem = {
         productId: quizProduct.id,
+        slug: quizProduct.slug,
         name: quizProduct.displayName,
         shortName: quizProduct.name,
         brand: quizProduct.brand,
         image: quizProduct.thumbnail || quizProduct.image,
         price: quizProduct.price,
         months: (quizProduct.termMonths || 24) as TermMonths,
+        paymentFrequency: quizProduct.paymentFrequency,
         initialPercent: WIZARD_SELECTED_INITIAL,
         initialAmount: 0,
         monthlyPayment: quizProduct.lowestQuota,
         addedAt: Date.now(),
+        variantId: quizProduct.variantId,
+        colorName: quizProduct.colorName,
+        colorHex: quizProduct.colorHex,
+        type: quizProduct.deviceType as CartItem['type'],
         specs: {
           processor: quizProduct.specs?.processor || '',
           ram: quizProduct.specs?.ram ? `${quizProduct.specs.ram}GB` : '',

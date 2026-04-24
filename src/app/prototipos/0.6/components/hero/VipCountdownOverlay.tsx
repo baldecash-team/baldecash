@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
-import { saveVipToken, saveVipName } from './DniModal';
+import { saveVipToken, saveVipName, setVipWelcomePending } from './DniModal';
 
 interface TimeLeft {
   days: number;
@@ -124,7 +124,10 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
           return;
         }
         if (data.access_token) saveVipToken(landingSlug, data.access_token);
-        if (data.first_name) saveVipName(landingSlug, data.first_name);
+        if (data.first_name) {
+          saveVipName(landingSlug, data.first_name);
+          setVipWelcomePending(landingSlug);
+        }
         try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
         onValidated?.({
           firstName: data.first_name || '',

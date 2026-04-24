@@ -1040,13 +1040,15 @@ interface ApiAccessory {
  * Obtiene los accesorios disponibles para una landing
  * @param slug - Landing slug
  * @param deviceType - Device type to filter accessories (e.g., 'laptop', 'celular', 'tablet')
- * @param term - Optional financing term in months to calculate monthly quota (default: 24)
+ * @param term - Optional financing term in native units (semanas, quincenas or meses) to calculate the installment
+ * @param paymentFrequency - Optional payment frequency to pair the accessory installment with the product ('semanal' | 'quincenal' | 'mensual')
  */
 export async function getLandingAccessories(
   slug: string,
   deviceType?: string | string[],
   term?: number,
-  previewKey?: string | null
+  previewKey?: string | null,
+  paymentFrequency?: string,
 ): Promise<ApiAccessory[]> {
   try {
     const queryParams = new URLSearchParams();
@@ -1061,6 +1063,9 @@ export async function getLandingAccessories(
     }
     if (term && term > 0) {
       queryParams.set('term', term.toString());
+    }
+    if (paymentFrequency) {
+      queryParams.set('payment_frequency', paymentFrequency);
     }
     if (previewKey) {
       queryParams.set('preview_key', previewKey);
