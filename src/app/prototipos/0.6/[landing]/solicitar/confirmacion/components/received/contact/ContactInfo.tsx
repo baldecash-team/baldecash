@@ -31,14 +31,16 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
           <p className="text-xs sm:text-sm text-neutral-500 mb-3 break-words">
             Nuestro equipo está disponible para ayudarte con cualquier consulta sobre tu solicitud.
           </p>
-          <button
-            onClick={() => window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer')}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-semibold rounded-xl cursor-pointer transition-colors"
+          <a
+            href="https://wa.link/osgxjf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-semibold rounded-xl cursor-pointer transition-colors no-underline"
           >
             <MessageCircle className="w-4 h-4 flex-shrink-0" />
             <span className="break-words">Escríbenos por WhatsApp</span>
             <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
-          </button>
+          </a>
         </div>
       </div>
 

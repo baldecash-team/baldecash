@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Button, Card, CardBody, Radio, RadioGroup } from '@nextui-org/react';
-import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare, ArrowLeft, Sun, Moon, Zap } from 'lucide-react';
+import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
@@ -64,7 +64,7 @@ const initialFormData: FormData = {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    <div className="bg-neutral-50 flex items-center justify-center" style={{ minHeight: '100svh' }}>
       <CubeGridSpinner />
     </div>
   );
@@ -94,6 +94,13 @@ export function LibroReclamacionesClient() {
   const isDark = theme === 'dark';
 
   useScrollToTop();
+
+  // Auto-dismiss success toast after 5s (parity with <Toast duration={5000}/> of default layout)
+  useEffect(() => {
+    if (!isSuccess) return;
+    const timer = setTimeout(() => setIsSuccess(false), 5000);
+    return () => clearTimeout(timer);
+  }, [isSuccess]);
 
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -135,7 +142,7 @@ export function LibroReclamacionesClient() {
   // Show loading spinner while fetching
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: isGamer ? (isDark ? '#0e0e0e' : '#f2f2f2') : '#fafafa' }}>
+      <div className="flex items-center justify-center" style={{ minHeight: '100svh', background: isGamer ? (isDark ? '#0e0e0e' : '#f2f2f2') : '#fafafa' }}>
         <CubeGridSpinner />
       </div>
     );
@@ -157,7 +164,7 @@ export function LibroReclamacionesClient() {
     const textMuted = isDark ? '#707070' : '#888';
 
     return (
-      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
+      <div style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
           .gamer-libro input, .gamer-libro textarea, .gamer-libro select {
@@ -247,15 +254,15 @@ export function LibroReclamacionesClient() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>Tipo de documento *</label>
-                  <select value={formData.tipoDocumento} onChange={(e) => handleInputChange('tipoDocumento', e.target.value)} style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 8, border: `1px solid ${border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none' }}>
+                  <select value={formData.tipoDocumento} onChange={(e) => handleInputChange('tipoDocumento', e.target.value)} style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 8, border: `1px solid ${border}`, background: bgSurface, color: textPrimary, fontSize: 16, fontFamily: "'Rajdhani', sans-serif", outline: 'none' }}>
                     <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
                   </select>
                 </div>
-                <GamerFormInput isDark={isDark} label="Número de documento *" value={formData.numeroDocumento} onChange={(v) => handleInputChange('numeroDocumento', v)} error={errors.numeroDocumento} placeholder="12345678" maxLength={12} />
+                <GamerFormInput isDark={isDark} label="Número de documento *" value={formData.numeroDocumento} onChange={(v) => handleInputChange('numeroDocumento', v)} error={errors.numeroDocumento} placeholder="12345678" maxLength={12} inputMode="numeric" />
                 <GamerFormInput isDark={isDark} label="Nombres *" value={formData.nombres} onChange={(v) => handleInputChange('nombres', v)} error={errors.nombres} placeholder="Juan Carlos" />
                 <GamerFormInput isDark={isDark} label="Apellidos *" value={formData.apellidos} onChange={(v) => handleInputChange('apellidos', v)} error={errors.apellidos} placeholder="Pérez García" />
-                <GamerFormInput isDark={isDark} label="Correo electrónico *" value={formData.email} onChange={(v) => handleInputChange('email', v)} error={errors.email} placeholder="correo@ejemplo.com" type="email" />
-                <GamerFormInput isDark={isDark} label="Teléfono *" value={formData.telefono} onChange={(v) => handleInputChange('telefono', v.replace(/\D/g, ''))} error={errors.telefono} placeholder="987654321" maxLength={9} />
+                <GamerFormInput isDark={isDark} label="Correo electrónico *" value={formData.email} onChange={(v) => handleInputChange('email', v)} error={errors.email} placeholder="correo@ejemplo.com" type="email" inputMode="email" autoComplete="email" />
+                <GamerFormInput isDark={isDark} label="Teléfono *" value={formData.telefono} onChange={(v) => handleInputChange('telefono', v.replace(/\D/g, ''))} error={errors.telefono} placeholder="987654321" maxLength={9} type="tel" inputMode="tel" autoComplete="tel" />
                 <div className="sm:col-span-2">
                   <GamerFormInput isDark={isDark} label="Dirección *" value={formData.direccion} onChange={(v) => handleInputChange('direccion', v)} error={errors.direccion} placeholder="Av. Ejemplo 123" />
                 </div>
@@ -283,7 +290,7 @@ export function LibroReclamacionesClient() {
                 <GamerFormInput isDark={isDark} label="Monto reclamado (S/)" value={formData.montoReclamado} onChange={(v) => handleInputChange('montoReclamado', v.replace(/[^\d.]/g, ''))} placeholder="0.00" />
                 <div className="sm:col-span-2">
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>Descripción del bien o servicio</label>
-                  <textarea value={formData.descripcionBien} onChange={(e) => handleInputChange('descripcionBien', e.target.value)} placeholder="Describa el producto o servicio contratado..." rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
+                  <textarea value={formData.descripcionBien} onChange={(e) => handleInputChange('descripcionBien', e.target.value)} placeholder="Describa el producto o servicio contratado..." rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${border}`, background: bgSurface, color: textPrimary, fontSize: 16, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
                 </div>
               </div>
             </div>
@@ -322,12 +329,12 @@ export function LibroReclamacionesClient() {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>Detalle del reclamo o queja *</label>
-                  <textarea value={formData.detalleReclamo} onChange={(e) => handleInputChange('detalleReclamo', e.target.value)} placeholder="Describa detalladamente los hechos..." rows={4} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${errors.detalleReclamo ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
+                  <textarea value={formData.detalleReclamo} onChange={(e) => handleInputChange('detalleReclamo', e.target.value)} placeholder="Describa detalladamente los hechos..." rows={4} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${errors.detalleReclamo ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 16, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
                   {errors.detalleReclamo && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><AlertCircle size={14} />{errors.detalleReclamo}</p>}
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>Pedido del consumidor *</label>
-                  <textarea value={formData.pedidoConsumidor} onChange={(e) => handleInputChange('pedidoConsumidor', e.target.value)} placeholder="Indique qué solución espera..." rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${errors.pedidoConsumidor ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
+                  <textarea value={formData.pedidoConsumidor} onChange={(e) => handleInputChange('pedidoConsumidor', e.target.value)} placeholder="Indique qué solución espera..." rows={3} style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: `1px solid ${errors.pedidoConsumidor ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 16, fontFamily: "'Rajdhani', sans-serif", outline: 'none', resize: 'none' }} />
                   {errors.pedidoConsumidor && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}><AlertCircle size={14} />{errors.pedidoConsumidor}</p>}
                 </div>
               </div>
@@ -492,6 +499,7 @@ export function LibroReclamacionesClient() {
                     error={errors.numeroDocumento}
                     placeholder="12345678"
                     maxLength={12}
+                    inputMode="numeric"
                   />
 
                   <FormInput
@@ -517,6 +525,8 @@ export function LibroReclamacionesClient() {
                     error={errors.email}
                     placeholder="correo@ejemplo.com"
                     type="email"
+                    inputMode="email"
+                    autoComplete="email"
                     icon={<Mail className="w-4 h-4" />}
                   />
 
@@ -527,6 +537,9 @@ export function LibroReclamacionesClient() {
                     error={errors.telefono}
                     placeholder="987654321"
                     maxLength={9}
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
                     icon={<Phone className="w-4 h-4" />}
                   />
 
@@ -770,9 +783,11 @@ interface FormInputProps {
   type?: string;
   maxLength?: number;
   icon?: React.ReactNode;
+  inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'search' | 'url';
+  autoComplete?: string;
 }
 
-function FormInput({ label, value, onChange, error, placeholder, type = 'text', maxLength, icon }: FormInputProps) {
+function FormInput({ label, value, onChange, error, placeholder, type = 'text', maxLength, icon, inputMode, autoComplete }: FormInputProps) {
   return (
     <div>
       <label className="block text-sm font-medium text-neutral-700 mb-1.5">
@@ -786,6 +801,8 @@ function FormInput({ label, value, onChange, error, placeholder, type = 'text', 
         )}
         <input
           type={type}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -811,9 +828,11 @@ function FormInput({ label, value, onChange, error, placeholder, type = 'text', 
 }
 
 // Gamer-styled form input
-function GamerFormInput({ isDark, label, value, onChange, error, placeholder, type = 'text', maxLength }: {
+function GamerFormInput({ isDark, label, value, onChange, error, placeholder, type = 'text', maxLength, inputMode, autoComplete }: {
   isDark: boolean; label: string; value: string; onChange: (v: string) => void;
   error?: string; placeholder?: string; type?: string; maxLength?: number;
+  inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'search' | 'url';
+  autoComplete?: string;
 }) {
   const border = isDark ? '#2a2a2a' : '#e0e0e0';
   const bgSurface = isDark ? '#1e1e1e' : '#f0f0f0';
@@ -824,8 +843,8 @@ function GamerFormInput({ isDark, label, value, onChange, error, placeholder, ty
   return (
     <div>
       <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: textSecondary, marginBottom: 6 }}>{label}</label>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength}
-        style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 8, border: `1px solid ${error ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 14, fontFamily: "'Rajdhani', sans-serif", outline: 'none' }}
+      <input type={type} inputMode={inputMode} autoComplete={autoComplete} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength}
+        style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 8, border: `1px solid ${error ? '#ef4444' : border}`, background: bgSurface, color: textPrimary, fontSize: 16, fontFamily: "'Rajdhani', sans-serif", outline: 'none' }}
         onFocus={(e) => { if (!error) e.currentTarget.style.borderColor = neonCyan; }}
         onBlur={(e) => { if (!error) e.currentTarget.style.borderColor = border; }}
       />

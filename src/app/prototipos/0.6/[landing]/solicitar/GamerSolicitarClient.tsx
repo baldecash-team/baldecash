@@ -13,12 +13,17 @@ import { useProduct } from './context/ProductContext';
 import { useWizardConfig } from './context/WizardConfigContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
+import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { useScrollToTop, CubeGridSpinner } from '@/app/prototipos/_shared';
+import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
+import { SectionRenderer } from './components/solicitar/sections';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { formatMoneyNoDecimals } from './utils/formatMoney';
 import type { Accessory } from './types/upsell';
 
@@ -89,6 +94,7 @@ function SolicitarContent() {
   // ── Context data (BD) ──
   const {
     selectedProduct,
+    setSelectedProduct,
     selectedAccessories,
     selectedInsurances,
     toggleAccessory,
@@ -97,7 +103,9 @@ function SolicitarContent() {
     setAppliedCoupon,
     clearCoupon,
     cartProducts,
+    setCartProducts,
     getAllProducts,
+    getTotalMonthlyPayment,
     isHydrated,
     isOverQuotaLimit,
     maxMonthlyQuota,
@@ -108,16 +116,33 @@ function SolicitarContent() {
     updateAllProductsToTerm,
     getInitialOptionsForProduct,
     updateProductInitial,
+    hasUnifiedTerms,
   } = useProduct();
   const product = selectedProduct;
   const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes, config: wizardConfigData } = useWizardConfig();
+
+  // Layout context (navbar/footer data, preview banner, 404 state)
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
 
   // ── Preview mode for API calls ──
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
 
+  // Analytics for pricing term/initial changes (parity with normal)
+  const analytics = useAnalytics();
+
   // ── Solicitar flow config (BD) ──
-  const { isEnabled: isSectionEnabled, isCouponRequired, isLoading: isFlowConfigLoading } = useSolicitarFlow({ slug: landing, previewKey });
+  const { isEnabled: isSectionEnabled, isCouponRequired, isLoading: isFlowConfigLoading, sectionsBeforeWizard } = useSolicitarFlow({ slug: landing, previewKey });
+
+  // Check if this landing has a catalog (for dynamic fallback route)
+  const [hasCatalog, setHasCatalog] = useState(true);
+  useEffect(() => {
+    fetchLandingConfig(landing).then(cfg => setHasCatalog(cfg.layout.has_catalog)).catch(() => {});
+  }, [landing]);
+  const fallbackRoute = hasCatalog ? routes.catalogo(landing) : routes.landingHome(landing);
+
+  // Terms unification for multi-product carts
+  const needsTermUnification = cartProducts.length > 1 && !hasUnifiedTerms();
 
   const firstStepSlug = (() => {
     const regularSteps = steps.filter((s: { is_summary_step?: boolean }) => !s.is_summary_step);
@@ -140,12 +165,22 @@ function SolicitarContent() {
   const [selectedMonths, setSelectedMonths] = useState(product?.months || 12);
   const [termsError, setTermsError] = useState(false);
   const [privacyError, setPrivacyError] = useState(false);
-  const termsRef = useRef<HTMLDivElement>(null);
 
   // ── Coupon state (validates via POST /public/coupons/validate) ──
   const [couponCode, setCouponCode] = useState('');
   const [couponState, setCouponState] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
   const [couponError, setCouponError] = useState('');
+  const couponIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleCouponReset = useCallback((ms: number = 2000) => {
+    if (couponIdleTimerRef.current) clearTimeout(couponIdleTimerRef.current);
+    couponIdleTimerRef.current = setTimeout(() => {
+      setCouponState('idle');
+      couponIdleTimerRef.current = null;
+    }, ms);
+  }, []);
+  useEffect(() => {
+    return () => { if (couponIdleTimerRef.current) clearTimeout(couponIdleTimerRef.current); };
+  }, []);
 
   // ── Persist terms in localStorage (same as normal landing) ──
   useEffect(() => {
@@ -179,9 +214,9 @@ function SolicitarContent() {
   useEffect(() => {
     if (!isHydrated) return;
     if (!selectedProduct) {
-      router.replace(routes.catalogo(landing));
+      router.replace(fallbackRoute);
     }
-  }, [isHydrated, selectedProduct, router, landing]);
+  }, [isHydrated, selectedProduct, router, fallbackRoute]);
 
   // ── Clear accessories if section disabled (prevents orphaned selections) ──
   useEffect(() => {
@@ -190,12 +225,60 @@ function SolicitarContent() {
     }
   }, [isFlowConfigLoading, isSectionEnabled, selectedAccessories.length, clearAccessories]);
 
+  // ── Clear coupon error when a coupon is successfully applied (parity con normal) ──
+  useEffect(() => {
+    if (appliedCoupon && couponError) {
+      setCouponError('');
+      setCouponState('idle');
+    }
+  }, [appliedCoupon, couponError]);
+
   // ── Unavailable products ──
   const currentProductIds = new Set(
     (cartProducts.length > 0 ? cartProducts : selectedProduct ? [selectedProduct] : []).map(p => p.id)
   );
   const activeUnavailableIds = (unavailableProductIds || []).filter(id => currentProductIds.has(id));
   const hasUnavailableProducts = activeUnavailableIds.length > 0;
+
+  // Remove product from cart (or clear selectedProduct if single). Parity with normal.
+  const handleRemoveProduct = useCallback((productId: string) => {
+    if (cartProducts.length > 1) {
+      const updated = cartProducts.filter(p => p.id !== productId);
+      setCartProducts(updated);
+      setSelectedProduct(updated[0]);
+    } else if (cartProducts.length === 1) {
+      setCartProducts([]);
+      setSelectedProduct(null);
+      router.replace(fallbackRoute);
+    } else if (selectedProduct?.id === productId) {
+      setSelectedProduct(null);
+      router.replace(fallbackRoute);
+    }
+  }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct, router, fallbackRoute]);
+
+  // Helper: real fixed-header height from CSS var (fallback 104px).
+  const getHeaderOffset = useCallback((): number => {
+    if (typeof window === 'undefined') return 104;
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--header-total-height');
+    const trimmed = v.trim();
+    if (!trimmed) return 104;
+    if (trimmed.endsWith('rem')) return parseFloat(trimmed) * 16;
+    if (trimmed.endsWith('px')) return parseFloat(trimmed);
+    return parseFloat(trimmed) || 104;
+  }, []);
+
+  // Smooth scroll to section with a brief highlight ring. Used for validation errors.
+  const scrollToSection = useCallback((sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (!element) return;
+    const rect = element.getBoundingClientRect();
+    const targetTop = window.pageYOffset + rect.top - getHeaderOffset() - 24;
+    window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+    element.classList.add('ring-2', 'ring-[var(--color-primary)]', 'ring-offset-2');
+    setTimeout(() => {
+      element.classList.remove('ring-2', 'ring-[var(--color-primary)]', 'ring-offset-2');
+    }, 2000);
+  }, [getHeaderOffset]);
 
   // ── Accessories from backend ──
   const [accessories, setAccessories] = useState<Accessory[]>([]);
@@ -259,24 +342,78 @@ function SolicitarContent() {
     if (product?.months) setSelectedMonths(product.months);
   }, [product?.months]);
 
-  // Block body scroll when modal is open
+  // Scroll lock + Escape handler when accessory detail modal is open.
+  // Saves/restores scrollY so iOS doesn't jump to the top on close.
   useEffect(() => {
-    if (accDetailId) { document.body.style.overflow = 'hidden'; }
-    return () => { document.body.style.overflow = ''; };
+    if (!accDetailId) return;
+    // Close mobile product bottom bar if expanded to avoid two overlays
+    // competing for scroll lock.
+    if (mobileProductExpanded) setMobileProductExpanded(false);
+    const savedY = window.scrollY;
+    const prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      overflow: document.body.style.overflow,
+    };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAccDetailId(null); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.position = prev.position;
+      document.body.style.top = prev.top;
+      document.body.style.left = prev.left;
+      document.body.style.right = prev.right;
+      document.body.style.overflow = prev.overflow;
+      window.scrollTo(0, savedY);
+      window.removeEventListener('keydown', onKey);
+    };
   }, [accDetailId]);
+
+  // Close term dropdown on Escape or outside click
+  useEffect(() => {
+    if (!termDropdownOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setTermDropdownOpen(false); };
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest('[data-term-dropdown]')) setTermDropdownOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onClick);
+    };
+  }, [termDropdownOpen]);
 
   // Toggle accessory via ProductContext (persists across wizard steps)
   const isAccSelected = useCallback((id: string) => selectedAccessories.some((a) => a.id === id), [selectedAccessories]);
   const toggleAcc = useCallback((accessory: Accessory) => {
+    const wasSelected = selectedAccessories.some((a) => a.id === accessory.id);
     toggleAccessory(accessory);
-  }, [toggleAccessory]);
+    if (wasSelected) {
+      analytics.trackAccessoryRemove({ accessory_id: accessory.id, source_product_id: product?.id ?? null });
+    } else {
+      analytics.trackAccessoryAdd({
+        accessory_id: accessory.id,
+        accessory_name: accessory.name,
+        price: accessory.price ?? null,
+        source_product_id: product?.id ?? null,
+      });
+    }
+  }, [toggleAccessory, selectedAccessories, analytics, product]);
 
   // Validate coupon against backend
   const handleApplyCoupon = useCallback(async () => {
     if (!couponCode.trim()) {
       setCouponState('error');
       setCouponError('Ingresa un código de cupón');
-      setTimeout(() => setCouponState('idle'), 2000);
+      scheduleCouponReset();
       return;
     }
     setCouponState('validating');
@@ -293,7 +430,7 @@ function SolicitarContent() {
         body: JSON.stringify({
           code: couponCode.trim(),
           product_id: productId,
-          landing_id: wizardConfigData?.landing_id,
+          landing_id: (wizardConfigData as { landing?: { id?: number } } | null)?.landing?.id ?? wizardConfigData?.landing_id,
         }),
       });
       const data: CouponValidateResponse = await response.json();
@@ -309,14 +446,14 @@ function SolicitarContent() {
       } else {
         setCouponState('error');
         setCouponError(data.error_message || 'Cupón no válido o expirado');
-        setTimeout(() => setCouponState('idle'), 2000);
+        scheduleCouponReset();
       }
     } catch {
       setCouponState('error');
       setCouponError('Error al validar el cupón. Intenta nuevamente.');
-      setTimeout(() => setCouponState('idle'), 2000);
+      scheduleCouponReset();
     }
-  }, [couponCode, selectedProduct, cartProducts, wizardConfigData, setAppliedCoupon]);
+  }, [couponCode, selectedProduct, cartProducts, wizardConfigData, setAppliedCoupon, scheduleCouponReset]);
 
   const handleRemoveCoupon = useCallback(() => {
     clearCoupon();
@@ -327,24 +464,33 @@ function SolicitarContent() {
   const handleStart = useCallback(() => {
     // Block if unavailable products
     if (hasUnavailableProducts) {
-      termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollToSection('unavailable-products-banner');
       return;
     }
 
     // Block if over quota limit
-    if (isOverQuotaLimit) return;
+    if (isOverQuotaLimit) {
+      scrollToSection('product-section');
+      return;
+    }
+
+    // Require unified term when multi-product cart has mixed plazos
+    if (needsTermUnification) {
+      scrollToSection('term-selector-section');
+      return;
+    }
 
     // Validate terms
     if (!acceptTerms) {
       setTermsError(true);
-      termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollToSection('terms-section');
       return;
     }
 
     // Validate privacy
     if (!acceptPrivacy) {
       setPrivacyError(true);
-      termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollToSection('terms-section');
       return;
     }
 
@@ -352,7 +498,8 @@ function SolicitarContent() {
     if (isCouponRequired && !appliedCoupon) {
       setCouponError('Debes ingresar un cupón válido para continuar');
       setCouponState('error');
-      setTimeout(() => setCouponState('idle'), 2000);
+      scrollToSection('coupon-section');
+      scheduleCouponReset();
       return;
     }
 
@@ -363,7 +510,7 @@ function SolicitarContent() {
     } else {
       console.error('[GamerSolicitar] No hay pasos configurados. steps:', steps);
     }
-  }, [router, landing, acceptTerms, acceptPrivacy, firstStepSlug, steps, hasUnavailableProducts, isOverQuotaLimit, isCouponRequired, appliedCoupon]);
+  }, [router, landing, acceptTerms, acceptPrivacy, firstStepSlug, steps, hasUnavailableProducts, isOverQuotaLimit, isCouponRequired, appliedCoupon, needsTermUnification, scrollToSection, scheduleCouponReset]);
 
   const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,179,150,${a})`;
   const freqLabel = product?.paymentFrequency === 'semanal' ? '/sem' : product?.paymentFrequency === 'quincenal' ? '/qcn' : '/mes';
@@ -375,16 +522,21 @@ function SolicitarContent() {
   const currentPlanOptions = product ? getInitialOptionsForProduct(product.id) : [];
 
   // Show loading while hydrating or waiting for essential data
-  if (!themeHydrated || !isHydrated || !selectedProduct || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {
+  if (!themeHydrated || !isHydrated || !selectedProduct || isConfigLoading || isFlowConfigLoading || isValidatingAvailability || isLayoutLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CubeGridSpinner />
       </div>
     );
   }
 
+  // 404 when the landing is paused / archived / missing.
+  if (hasLayoutError || !navbarProps) {
+    return <NotFoundContent homeUrl={routes.home()} />;
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gamer-btn-text': isDark ? '#0a0a0a' : '#fff', '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)' } as React.CSSProperties}>
+    <div style={{ minHeight: '100svh', background: T.bg, color: T.textPrimary, '--gamer-cyan': T.neonCyan, '--gamer-purple': T.neonPurple, '--gamer-border': T.border, '--gamer-btn-text': isDark ? '#0a0a0a' : '#fff', '--gradient-cyber': isDark ? 'linear-gradient(135deg, #6366f1 0%, #00ffd5 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)' } as React.CSSProperties}>
       <style>{FONTS_CSS}</style>
       <style>{`
         .btn-loquiero-detalle {
@@ -415,11 +567,11 @@ function SolicitarContent() {
         <div className="flex flex-col sm:hidden gap-0 mb-0">
           <div className="grid grid-cols-1 gap-3 mb-6">
             {[
-              { icon: <Clock size={24} />, title: `~${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
-              { icon: <FileText size={24} />, title: `${displayStepsCount || steps.length || 4} pasos`, sub: 'Proceso simple' },
-              { icon: <Shield size={24} />, title: '100% Seguro', sub: 'Datos protegidos' },
-            ].map((card, i) => (
-              <div key={i} style={{ background: T.bgCard, borderRadius: 12, padding: '16px 20px', border: `1px solid ${T.border}`, textAlign: 'center' }}>
+              { key: 'time', icon: <Clock size={24} />, title: `~${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
+              { key: 'steps', icon: <FileText size={24} />, title: `${displayStepsCount || steps.length || 4} pasos`, sub: 'Proceso simple' },
+              { key: 'secure', icon: <Shield size={24} />, title: '100% Seguro', sub: 'Datos protegidos' },
+            ].map((card) => (
+              <div key={card.key} style={{ background: T.bgCard, borderRadius: 12, padding: '16px 20px', border: `1px solid ${T.border}`, textAlign: 'center' }}>
                 <div style={{ color: T.neonCyan, marginBottom: 8, display: 'flex', justifyContent: 'center' }}>{card.icon}</div>
                 <p style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, margin: 0 }}>{card.title}</p>
                 <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{card.sub}</p>
@@ -449,26 +601,55 @@ function SolicitarContent() {
           </div>
         </div>
 
-        {/* Product summary — desktop only (mobile uses fixed bottom bar) */}
-        {product && (
-          <div className="hidden sm:block" style={{ background: T.bgCard, borderRadius: 12, border: `1px solid ${T.border}`, marginBottom: 32, overflow: 'hidden' }}>
+        {/* Product summary — desktop only (mobile uses fixed bottom bar).
+            Iterates over cartProducts when available so multi-product carts render
+            every item (parity with solicitarClient normal). */}
+        {(() => {
+          const productsToShow = cartProducts.length > 0 ? cartProducts : (selectedProduct ? [selectedProduct] : []);
+          if (productsToShow.length === 0) return null;
+          const primaryProduct = productsToShow[0];
+          return (
+          <div id="product-section" className="hidden sm:block" style={{ background: T.bgCard, borderRadius: 12, border: `1px solid ${needsTermUnification ? '#f59e0b' : T.border}`, marginBottom: 32, overflow: 'hidden' }}>
             {/* Header bar */}
-            <div style={{ padding: '12px 20px', borderBottom: `1px solid ${T.border}`, background: cyanAlpha(0.05), display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div id="term-selector-section" style={{ padding: '12px 20px', borderBottom: `1px solid ${needsTermUnification ? 'rgba(245,158,11,0.3)' : T.border}`, background: needsTermUnification ? (isDark ? 'rgba(245,158,11,0.1)' : '#fffbeb') : cyanAlpha(0.05), display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ShoppingCart size={16} style={{ color: T.neonCyan }} />
-                <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>Producto seleccionado</span>
+                <ShoppingCart size={16} style={{ color: needsTermUnification ? '#f59e0b' : T.neonCyan }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>
+                  {productsToShow.length === 1 ? 'Producto seleccionado' : `${productsToShow.length} productos seleccionados`}
+                </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 12, color: T.textMuted }}>Plazo:</span>
-                <div style={{ position: 'relative' }}>
-                  <button type="button" onClick={() => setTermDropdownOpen(!termDropdownOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 32, padding: '0 12px', borderRadius: 8, border: `2px solid ${T.neonCyan}`, background: isDark ? T.bgCard : '#fff', cursor: 'pointer', fontSize: 14, color: T.textPrimary, gap: 6 }}>
-                    <span>{selectedMonths} meses</span>
+                <span style={{ fontSize: 12, color: needsTermUnification ? '#b45309' : T.textMuted }}>
+                  {needsTermUnification ? 'Unificar plazo:' : 'Plazo:'}
+                </span>
+                <div data-term-dropdown style={{ position: 'relative' }}>
+                  <button type="button" aria-expanded={termDropdownOpen} aria-label="Cambiar plazo" onClick={() => setTermDropdownOpen(!termDropdownOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 40, padding: '0 12px', borderRadius: 8, border: `2px solid ${needsTermUnification ? '#f59e0b' : T.neonCyan}`, background: isDark ? T.bgCard : '#fff', cursor: 'pointer', fontSize: 14, color: T.textPrimary, gap: 6 }}>
+                    <span>{needsTermUnification ? 'Seleccionar' : `${(primaryProduct.term ?? primaryProduct.months) || selectedMonths} meses`}</span>
                     <ChevronDown size={14} style={{ color: T.textMuted, transition: 'transform 0.2s', transform: termDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
                   </button>
                   {termDropdownOpen && availableTerms.length > 0 && (
                     <div style={{ position: 'absolute', zIndex: 50, top: '100%', right: 0, marginTop: 4, minWidth: 140, background: isDark ? T.bgCard : '#fff', border: `1px solid ${T.border}`, borderRadius: 8, boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden', padding: 4 }}>
                       {availableTerms.map((m) => (
-                        <button key={m} type="button" onClick={() => { updateAllProductsToTerm(m); setSelectedMonths(m); setTermDropdownOpen(false); }} style={{ width: '100%', padding: '8px 12px', textAlign: 'left', fontSize: 14, borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}>
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            const from = primaryProduct.term ?? primaryProduct.months ?? 0;
+                            if (from !== m) {
+                              analytics.trackPricingTermChange({
+                                product_id: primaryProduct.id,
+                                from,
+                                to: m,
+                                context: 'solicitar',
+                                frequency: primaryProduct.paymentFrequency,
+                              });
+                            }
+                            updateAllProductsToTerm(m);
+                            setSelectedMonths(m);
+                            setTermDropdownOpen(false);
+                          }}
+                          style={{ width: '100%', padding: '8px 12px', textAlign: 'left', fontSize: 14, borderRadius: 6, border: 'none', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}
+                        >
                           <span>{m} meses</span>
                           {m === selectedMonths && <Check size={14} />}
                         </button>
@@ -478,65 +659,101 @@ function SolicitarContent() {
                 </div>
               </div>
             </div>
-            {/* Product content */}
-            <div style={{ padding: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-                <div style={{ width: 96, height: 96, background: T.bgSurface, borderRadius: 12, overflow: 'hidden', flexShrink: 0, border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {product.image && <Image src={product.image} alt={product.name} width={88} height={88} style={{ objectFit: 'contain' }} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 12, color: T.neonCyan, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{product.brand}</p>
-                  <h3 style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, marginTop: 2 }}>{product.name}</h3>
-                  {/* Specs pills */}
-                  {product.specs && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                      {product.specs.processor && (
-                        <span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{product.specs.processor}</span>
-                      )}
-                      {product.specs.ram && (
-                        <span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{product.specs.ram}</span>
-                      )}
-                      {product.specs.storage && (
-                        <span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{product.specs.storage}</span>
-                      )}
-                    </div>
-                  )}
-                  {/* Initial payment pills — del ProductContext */}
-                  {currentPlanOptions.length > 0 && (
-                    <div style={{ marginTop: 8 }}>
-                      <p style={{ fontSize: 11, color: T.textMuted, marginBottom: 4 }}>Inicial:</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        {currentPlanOptions.map((opt) => {
-                          const isActive = opt.percent === (product.initialPercent || 0);
-                          return (
-                            <button key={opt.percent} type="button" onClick={() => updateProductInitial(product.id, opt.percent)} style={{
-                              fontSize: 11, padding: '4px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-                              background: isActive ? T.neonCyan : T.bgSurface,
-                              color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
-                              fontWeight: isActive ? 500 : 400,
-                            }}>
-                              {opt.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  <p style={{ fontSize: 16, fontWeight: 700, color: T.neonCyan, marginTop: 8 }}>
-                    S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}{freqLabel}
-                    <span style={{ fontSize: 12, color: T.textMuted, fontWeight: 400, marginLeft: 4 }}>x {product.months} meses</span>
+
+            {/* Warning banner cuando hay plazos mixtos */}
+            {needsTermUnification && (
+              <div style={{ padding: '12px 20px', background: isDark ? 'rgba(245,158,11,0.08)' : '#fef3c7', borderBottom: `1px solid ${isDark ? 'rgba(245,158,11,0.2)' : '#fde68a'}`, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <AlertTriangle size={18} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: isDark ? '#fbbf24' : '#92400e', margin: 0 }}>Plazos diferentes detectados</p>
+                  <p style={{ fontSize: 12, color: isDark ? '#d97706' : '#b45309', margin: '2px 0 0' }}>
+                    Selecciona un plazo único para continuar. Esto permite generar un cronograma unificado.
                   </p>
-                  {product.initialAmount > 0 && (
-                    <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
-                      + S/{formatMoneyNoDecimals(Math.floor(product.initialAmount))} inicial
-                    </p>
-                  )}
                 </div>
-                {/* Remove button */}
-                <button onClick={() => router.push(routes.catalogo(landing))} style={{ padding: 6, borderRadius: '50%', border: 'none', background: 'transparent', color: T.textMuted, cursor: 'pointer', flexShrink: 0 }} title="Quitar producto">
-                  <X size={16} />
-                </button>
               </div>
+            )}
+
+            {/* Product list */}
+            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {productsToShow.map((p, idx) => {
+                const isUnavailable = activeUnavailableIds.includes(p.id);
+                const optionsForP = getInitialOptionsForProduct(p.id);
+                const pFreq = p.paymentFrequency === 'semanal' ? '/sem' : p.paymentFrequency === 'quincenal' ? '/qcn' : '/mes';
+                return (
+                  <div key={`${p.id}-${idx}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 16, paddingTop: idx > 0 ? 16 : 0, borderTop: idx > 0 ? `1px solid ${T.border}` : undefined, opacity: isUnavailable ? 0.5 : 1 }}>
+                    <div style={{ width: 96, height: 96, background: T.bgSurface, borderRadius: 12, overflow: 'hidden', flexShrink: 0, border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {p.image && <Image src={p.image} alt={p.name} width={88} height={88} style={{ objectFit: 'contain' }} />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12, color: T.neonCyan, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{p.brand}</p>
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, marginTop: 2 }}>{p.name}</h3>
+                      {p.specs && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                          {p.specs.processor && (<span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{p.specs.processor}</span>)}
+                          {p.specs.ram && (<span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{p.specs.ram}</span>)}
+                          {p.specs.storage && (<span style={{ fontSize: 11, background: T.bgSurface, color: T.textSecondary, padding: '2px 6px', borderRadius: 4 }}>{p.specs.storage}</span>)}
+                        </div>
+                      )}
+                      {optionsForP.length > 0 && (
+                        <div role="radiogroup" aria-label="Cuota inicial" style={{ marginTop: 8 }}>
+                          <p style={{ fontSize: 11, color: T.textMuted, marginBottom: 4 }}>Inicial:</p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {optionsForP.map((opt) => {
+                              const isActive = opt.percent === (p.initialPercent || 0);
+                              return (
+                                <button
+                                  key={opt.percent}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={isActive}
+                                  aria-label={opt.percent === 0 ? 'Sin cuota inicial' : `Cuota inicial ${opt.percent}%`}
+                                  onClick={() => {
+                                    if (p.initialPercent !== opt.percent) {
+                                      analytics.trackPricingInitialChange({
+                                        product_id: p.id,
+                                        from: p.initialPercent,
+                                        to: opt.percent,
+                                        context: 'solicitar',
+                                      });
+                                    }
+                                    updateProductInitial(p.id, opt.percent);
+                                  }}
+                                  style={{
+                                    fontSize: 11, padding: '4px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                                    background: isActive ? T.neonCyan : T.bgSurface,
+                                    color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
+                                    fontWeight: isActive ? 500 : 400,
+                                  }}
+                                >
+                                  {opt.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {isUnavailable ? (
+                        <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 500, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 4, marginTop: 6 }}>No disponible</span>
+                      ) : (
+                        <>
+                          <p style={{ fontSize: 16, fontWeight: 700, color: T.neonCyan, marginTop: 8 }}>
+                            S/{formatMoneyNoDecimals(Math.floor(p.monthlyPayment))}{pFreq}
+                            <span style={{ fontSize: 12, color: T.textMuted, fontWeight: 400, marginLeft: 4 }}>x {(p.term ?? p.months)} {p.paymentFrequency === 'semanal' ? 'semanas' : p.paymentFrequency === 'quincenal' ? 'quincenas' : 'meses'}</span>
+                          </p>
+                          {p.initialAmount > 0 && (
+                            <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>
+                              + S/{formatMoneyNoDecimals(Math.floor(p.initialAmount))} inicial
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                    <button onClick={() => handleRemoveProduct(p.id)} style={{ padding: 6, borderRadius: '50%', border: 'none', background: 'transparent', color: T.textMuted, cursor: 'pointer', flexShrink: 0 }} title="Quitar producto" aria-label="Quitar producto">
+                      <X size={16} />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
             {/* Accessories summary */}
             {selectedAccessories.length > 0 && (
@@ -568,11 +785,11 @@ function SolicitarContent() {
               </div>
             )}
 
-            {/* Footer: total */}
+            {/* Footer: total — uses getTotalMonthlyPayment so it sums cart products + accessories + insurances */}
             <div style={{ padding: '12px 20px', borderTop: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>Cuota total</span>
               <span style={{ fontSize: 18, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan }}>
-                S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}{freqLabel}
+                S/{formatMoneyNoDecimals(Math.floor(getTotalMonthlyPayment()))}{primaryProduct.paymentFrequency === 'semanal' ? '/sem' : primaryProduct.paymentFrequency === 'quincenal' ? '/qcn' : '/mes'}
               </span>
             </div>
 
@@ -591,16 +808,17 @@ function SolicitarContent() {
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* Info cards — desktop only (mobile shown above product) */}
         <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 40 }}>
           {[
-            { icon: <Clock size={24} />, title: `~${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
-            { icon: <FileText size={24} />, title: `${displayStepsCount || steps.length || 4} pasos`, sub: 'Proceso simple' },
-            { icon: <Shield size={24} />, title: '100% Seguro', sub: 'Datos protegidos' },
-          ].map((card, i) => (
-            <div key={i} style={{ background: T.bgCard, borderRadius: 12, padding: '16px 20px', border: `1px solid ${T.border}`, textAlign: 'center' }}>
+            { key: 'time', icon: <Clock size={24} />, title: `~${displayEstimatedMinutes || 5} minutos`, sub: 'Tiempo estimado' },
+            { key: 'steps', icon: <FileText size={24} />, title: `${displayStepsCount || steps.length || 4} pasos`, sub: 'Proceso simple' },
+            { key: 'secure', icon: <Shield size={24} />, title: '100% Seguro', sub: 'Datos protegidos' },
+          ].map((card) => (
+            <div key={card.key} style={{ background: T.bgCard, borderRadius: 12, padding: '16px 20px', border: `1px solid ${T.border}`, textAlign: 'center' }}>
               <div style={{ color: T.neonCyan, marginBottom: 8, display: 'flex', justifyContent: 'center' }}>{card.icon}</div>
               <p style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>{card.title}</p>
               <p style={{ fontSize: 12, color: T.textMuted }}>{card.sub}</p>
@@ -630,7 +848,8 @@ function SolicitarContent() {
           </div>
         </div>
 
-        {/* Accesorios */}
+        {/* Accesorios — solo si el backend habilita la sección en la landing */}
+        {isSectionEnabled('accessories') && (
         <div style={{ background: T.bgCard, borderRadius: 12, padding: '16px 24px 24px', border: `1px solid ${T.border}`, marginBottom: 32 }}>
           {/* Header */}
           <div style={{ background: cyanAlpha(0.05), borderRadius: 12, padding: 16, marginBottom: 24 }}>
@@ -661,13 +880,13 @@ function SolicitarContent() {
               {/* Filters + Search */}
               <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Category pills — derivadas de las categorías reales del backend */}
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+                <div role="tablist" aria-label="Filtrar accesorios por categoría" style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
                   {['Todos', ...Array.from(new Set(accessories.map((a) => a.category?.slug).filter(Boolean)))].map((catSlug) => {
                     const count = catSlug === 'Todos' ? accessories.length : accessories.filter((a) => a.category?.slug === catSlug).length;
                     const isActive = accFilter === catSlug;
                     const label = catSlug === 'Todos' ? 'Todos' : (accessories.find((a) => a.category?.slug === catSlug)?.category?.name || catSlug);
                     return (
-                      <button key={catSlug} onClick={() => { setAccFilter(catSlug as string); setAccPage(0); }} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s', border: 'none', background: isActive ? T.neonCyan : T.bgSurface, color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary }}>
+                      <button key={catSlug} role="tab" aria-selected={isActive} onClick={() => { setAccFilter(catSlug as string); setAccPage(0); }} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 999, fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.2s', border: 'none', background: isActive ? T.neonCyan : T.bgSurface, color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary }}>
                         {label} ({count})
                       </button>
                     );
@@ -677,7 +896,7 @@ function SolicitarContent() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
                   <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: 280 }}>
                     <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T.textMuted }} />
-                    <input type="text" placeholder="Buscar accesorio..." value={accSearch} onChange={(e) => { setAccSearch(e.target.value); setAccPage(0); }} style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 8, paddingBottom: 8, fontSize: 14, border: `1px solid ${T.border}`, borderRadius: 8, background: T.bgSurface, color: T.textPrimary, outline: 'none' }} />
+                    <input type="search" inputMode="search" enterKeyHint="search" autoComplete="off" placeholder="Buscar accesorio..." value={accSearch} onChange={(e) => { setAccSearch(e.target.value); setAccPage(0); }} aria-label="Buscar accesorio" style={{ width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 8, paddingBottom: 8, fontSize: 14, border: `1px solid ${T.border}`, borderRadius: 8, background: T.bgSurface, color: T.textPrimary, outline: 'none' }} />
                   </div>
                   {(() => {
                     const filtered = accessories.filter((a) => (accFilter === 'Todos' || a.category?.slug === accFilter) && (!accSearch || a.name.toLowerCase().includes(accSearch.toLowerCase())));
@@ -687,10 +906,10 @@ function SolicitarContent() {
                     return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexShrink: 0 }}>
                         <span style={{ fontSize: 12, color: T.textMuted }}>{filtered.length} accesorios</span>
-                        <button disabled={!canPrev} onClick={() => setAccPage((p) => p - 1)} style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: canPrev ? 'pointer' : 'default', transition: 'all 0.2s', background: canPrev ? T.neonCyan : T.bgSurface, color: canPrev ? '#fff' : T.textMuted, opacity: canPrev ? 1 : 0.5 }}>
+                        <button disabled={!canPrev} aria-label="Página anterior" onClick={() => setAccPage((p) => p - 1)} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: canPrev ? 'pointer' : 'default', transition: 'all 0.2s', background: canPrev ? T.neonCyan : T.bgSurface, color: canPrev ? '#fff' : T.textMuted, opacity: canPrev ? 1 : 0.5 }}>
                           <ChevronLeft size={16} />
                         </button>
-                        <button disabled={!canNext} onClick={() => setAccPage((p) => p + 1)} style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: canNext ? 'pointer' : 'default', transition: 'all 0.2s', background: canNext ? T.neonCyan : T.bgSurface, color: canNext ? '#fff' : T.textMuted, opacity: canNext ? 1 : 0.5 }}>
+                        <button disabled={!canNext} aria-label="Página siguiente" onClick={() => setAccPage((p) => p + 1)} style={{ width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: canNext ? 'pointer' : 'default', transition: 'all 0.2s', background: canNext ? T.neonCyan : T.bgSurface, color: canNext ? '#fff' : T.textMuted, opacity: canNext ? 1 : 0.5 }}>
                           <ChevronRight size={16} />
                         </button>
                       </div>
@@ -707,7 +926,7 @@ function SolicitarContent() {
                   .map((acc) => {
                     const isSelected = isAccSelected(acc.id);
                     return (
-                      <button key={acc.id} onClick={() => toggleAcc(acc)} type="button" style={{ display: 'flex', flexDirection: 'column', background: T.bgCard, borderRadius: 12, border: `2px solid ${isSelected ? T.neonCyan : 'transparent'}`, boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)', padding: 16, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', height: '100%' }}>
+                      <button key={acc.id} onClick={() => toggleAcc(acc)} type="button" aria-pressed={isSelected} aria-label={`${isSelected ? 'Quitar' : 'Agregar'} accesorio ${acc.name}`} style={{ display: 'flex', flexDirection: 'column', background: T.bgCard, borderRadius: 12, border: `2px solid ${isSelected ? T.neonCyan : 'transparent'}`, boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.06)', padding: 16, textAlign: 'left', cursor: 'pointer', transition: 'all 0.2s', height: '100%' }}>
                         {/* Check icon */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
                           <div style={{ width: 24, height: 24, borderRadius: '50%', background: T.neonCyan, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', opacity: isSelected ? 1 : 0, transform: isSelected ? 'scale(1)' : 'scale(0)' }}>
@@ -726,7 +945,7 @@ function SolicitarContent() {
                         <h4 style={{ fontWeight: 600, fontSize: 14, color: T.textPrimary, marginBottom: 4, minHeight: '2.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{acc.name}</h4>
                         <p style={{ fontSize: 12, color: T.textMuted, marginBottom: 8, minHeight: '2rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{acc.description}</p>
                         {/* Ver detalles */}
-                        <div onClick={(e) => { e.stopPropagation(); setAccDetailId(acc.id); }} role="button" tabIndex={0} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: T.neonCyan, background: cyanAlpha(0.1), fontWeight: 500, padding: '8px 12px', borderRadius: 8, marginBottom: 12, cursor: 'pointer', transition: 'background 0.2s' }}>
+                        <div onClick={(e) => { e.stopPropagation(); analytics.trackAccessoryView({ accessory_id: acc.id, accessory_name: acc.name }); setAccDetailId(acc.id); }} role="button" tabIndex={0} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 12, color: T.neonCyan, background: cyanAlpha(0.1), fontWeight: 500, padding: '8px 12px', borderRadius: 8, marginBottom: 12, cursor: 'pointer', transition: 'background 0.2s' }}>
                           <Info size={14} />
                           Ver detalles
                         </div>
@@ -745,9 +964,21 @@ function SolicitarContent() {
             </>
           )}
         </div>
+        )}
+
+        {/* Dynamic sections configured from backend (before the wizard CTA).
+            IMPORTANT: the gamer re-implements its own accessories UI inline (see
+            block above) and an insurance UI is rendered from context elsewhere.
+            Skip those types here so we don't duplicate the sections — only render
+            types we haven't re-implemented. */}
+        {sectionsBeforeWizard
+          .filter((section) => section.type !== 'accessories')
+          .map((section) => (
+            <SectionRenderer key={section.type} type={section.type} className="mb-8" />
+          ))}
 
         {/* Términos */}
-        <div ref={termsRef} style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${(termsError && !acceptTerms) || (privacyError && !acceptPrivacy) ? T.neonCyan : T.border}`, marginBottom: 32, transition: 'all 0.3s', boxShadow: (termsError && !acceptTerms) || (privacyError && !acceptPrivacy) ? `0 0 0 3px ${cyanAlpha(0.3)}` : 'none' }}>
+        <div id="terms-section" style={{ background: T.bgCard, borderRadius: 12, padding: 24, border: `1px solid ${(termsError && !acceptTerms) || (privacyError && !acceptPrivacy) ? T.neonCyan : T.border}`, marginBottom: 32, transition: 'all 0.3s', boxShadow: (termsError && !acceptTerms) || (privacyError && !acceptPrivacy) ? `0 0 0 3px ${cyanAlpha(0.3)}` : 'none' }}>
           <h3 style={{ fontWeight: 600, color: T.textPrimary, marginBottom: 16 }}>Términos y Condiciones</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Términos - obligatorio */}
@@ -757,7 +988,7 @@ function SolicitarContent() {
                   {acceptTerms && <Check size={14} style={{ color: isDark ? '#0a0a0a' : '#fff' }} />}
                 </div>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 500, color: termsError && !acceptTerms ? T.neonCyan : T.textPrimary }}>{termsError && !acceptTerms ? 'Acepto los términos y condiciones' : 'Acepto los términos y condiciones'}</p>
+                  <p style={{ fontSize: 14, fontWeight: 500, color: termsError && !acceptTerms ? T.neonCyan : T.textPrimary }}>Acepto los términos y condiciones</p>
                   <p style={{ fontSize: 12, color: T.textMuted, marginTop: 2 }}>He leído y acepto los términos de uso del servicio</p>
                 </div>
               </button>
@@ -794,7 +1025,7 @@ function SolicitarContent() {
         </div>
 
         {/* Cupón — validación contra /public/coupons/validate */}
-        <div style={{ marginBottom: 32 }}>
+        <div id="coupon-section" style={{ marginBottom: 32 }}>
           <div style={{ background: T.bgCard, borderRadius: 12, padding: 16, border: `1px solid ${T.border}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <Tag size={20} style={{ color: T.neonCyan }} />
@@ -802,6 +1033,11 @@ function SolicitarContent() {
                 Cupón de descuento
                 {isCouponRequired && <span style={{ color: T.neonCyan, marginLeft: 6 }}>*</span>}
               </h3>
+              {isCouponRequired && (
+                <span style={{ fontSize: 11, fontWeight: 500, background: isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7', color: isDark ? '#fbbf24' : '#92400e', padding: '2px 8px', borderRadius: 999 }}>
+                  Obligatorio
+                </span>
+              )}
             </div>
             {appliedCoupon ? (
               /* Cupón ya aplicado */
@@ -829,7 +1065,7 @@ function SolicitarContent() {
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     onKeyDown={(e) => { if (e.key === 'Enter' && couponState === 'idle') handleApplyCoupon(); }}
                     disabled={couponState === 'validating'}
-                    style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: `2px solid ${couponState === 'error' ? '#ff0055' : T.border}`, background: T.bgSurface, color: T.textPrimary, fontSize: 14, fontWeight: 500, textTransform: 'uppercase', outline: 'none' }}
+                    style={{ flex: 1, padding: '12px 16px', borderRadius: 12, border: `2px solid ${couponState === 'error' ? '#ff0055' : T.border}`, background: T.bgSurface, color: T.textPrimary, fontSize: 16, fontWeight: 500, textTransform: 'uppercase', outline: 'none' }}
                   />
                   <button
                     onClick={handleApplyCoupon}
@@ -850,7 +1086,7 @@ function SolicitarContent() {
 
         {/* Unavailable products banner */}
         {hasUnavailableProducts && (
-          <div style={{ marginBottom: 24, background: isDark ? 'rgba(202,138,4,0.1)' : '#fefce8', border: `1px solid ${isDark ? 'rgba(202,138,4,0.3)' : '#fde68a'}`, borderRadius: 12, padding: '12px 16px' }}>
+          <div id="unavailable-products-banner" style={{ marginBottom: 24, background: isDark ? 'rgba(202,138,4,0.1)' : '#fefce8', border: `1px solid ${isDark ? 'rgba(202,138,4,0.3)' : '#fde68a'}`, borderRadius: 12, padding: '12px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <AlertTriangle size={20} style={{ color: isDark ? '#eab308' : '#d97706', flexShrink: 0, marginTop: 2 }} />
               <div style={{ flex: 1 }}>
@@ -890,15 +1126,15 @@ function SolicitarContent() {
           <span>Comenzar Solicitud</span>
           <ArrowRight size={20} />
         </button>
-        <button onClick={() => router.push(routes.catalogo(landing))} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, padding: '8px 0', background: 'none', border: 'none', color: T.textMuted, fontSize: 14, cursor: 'pointer', transition: 'color 0.2s' }}>
+        <button onClick={() => router.push(fallbackRoute)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, padding: '8px 0', background: 'none', border: 'none', color: T.textMuted, fontSize: 14, cursor: 'pointer', transition: 'color 0.2s' }}>
           <ArrowLeft size={16} />
-          <span>Volver al catálogo</span>
+          <span>{hasCatalog ? 'Volver al catálogo' : 'Volver al inicio'}</span>
         </button>
 
       </main>
 
       {/* Mobile bottom bar spacer */}
-      {product && <div className="sm:hidden" style={{ height: 80 }} />}
+      {product && <div className="sm:hidden" style={{ height: 'calc(80px + env(safe-area-inset-bottom))' }} />}
 
       {/* Accessory detail modal — data real del backend */}
       {accDetailId && (() => {
@@ -908,9 +1144,9 @@ function SolicitarContent() {
         const months = acc.term || currentTerm;
         const categoryLabel = acc.category?.name || 'Accesorio';
         return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setAccDetailId(null)}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setAccDetailId(null)}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
-            <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 448, maxHeight: 'calc(100vh - 8rem)', display: 'flex', flexDirection: 'column', background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 448, maxHeight: 'calc(100svh - 8rem)', display: 'flex', flexDirection: 'column', background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
               {/* Header */}
               <div style={{
                 background: isDark ? '#1e1e1e' : '#f5f5f5',
@@ -925,7 +1161,7 @@ function SolicitarContent() {
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</h2>
                   <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{categoryLabel}</p>
                 </div>
-                <button onClick={() => setAccDetailId(null)} style={{ width: 28, height: 28, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <button onClick={() => setAccDetailId(null)} aria-label="Cerrar detalle del accesorio" style={{ width: 40, height: 40, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                   <X size={16} style={{ color: T.textSecondary }} />
                 </button>
               </div>
@@ -946,8 +1182,8 @@ function SolicitarContent() {
                 {/* Specs — solo si el backend los trae */}
                 {acc.specs && acc.specs.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {acc.specs.map((spec, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    {acc.specs.map((spec) => (
+                      <div key={spec.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                         <Check size={14} style={{ color: T.neonCyan, flexShrink: 0, marginTop: 2 }} />
                         <span style={{ fontSize: 12, color: T.textSecondary }}>
                           <strong style={{ color: T.textPrimary }}>{spec.label}:</strong> {spec.value}
@@ -983,7 +1219,14 @@ function SolicitarContent() {
           style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)' }}
         />
       )}
-      {product && (
+      {product && (() => {
+        const productsToShow = cartProducts.length > 0 ? cartProducts : [product];
+        const productsSubtotal = productsToShow.reduce((s, p) => s + p.monthlyPayment, 0);
+        const accessoriesSubtotal = selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0);
+        const insurancesSubtotal = selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0);
+        const totalMonthly = productsSubtotal + accessoriesSubtotal + insurancesSubtotal;
+        const multiProduct = productsToShow.length > 1;
+        return (
         <div
           className="sm:hidden fixed bottom-0 left-0 right-0 z-50"
           style={{
@@ -1005,12 +1248,16 @@ function SolicitarContent() {
               width: 48, height: 48, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
               background: isDark ? T.bgSurface : '#f5f5f5',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative',
             }}>
-              {product.image && <Image src={product.image} alt={product.name} width={48} height={48} style={{ objectFit: 'contain' }} />}
+              {productsToShow[0]?.image && <Image src={productsToShow[0].image} alt={productsToShow[0].name} width={48} height={48} style={{ objectFit: 'contain' }} />}
+              {multiProduct && (
+                <span style={{ position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, background: T.neonCyan, color: isDark ? '#0a0a0a' : '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>{productsToShow.length}</span>
+              )}
             </div>
             <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
               <p style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {product.name}
+                {multiProduct ? `${productsToShow.length} productos` : productsToShow[0].name}
                 {selectedAccessories.length > 0 && (
                   <span style={{ fontSize: 12, color: T.textMuted, marginLeft: 4 }}>+{selectedAccessories.length} acc.</span>
                 )}
@@ -1018,7 +1265,7 @@ function SolicitarContent() {
               <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{selectedMonths} meses</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}{freqLabel}</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{formatMoneyNoDecimals(Math.floor(totalMonthly))}{freqLabel}</span>
               <ChevronUp size={20} style={{ color: T.textMuted, transition: 'transform 0.2s', transform: mobileProductExpanded ? 'rotate(180deg)' : 'none' }} />
             </div>
           </button>
@@ -1026,45 +1273,67 @@ function SolicitarContent() {
           {/* Expanded content */}
           {mobileProductExpanded && (
             <div style={{ borderTop: `1px solid ${T.border}`, padding: 16, maxHeight: '60vh', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', gap: 16 }}>
+              {productsToShow.map((p, idx) => {
+                const initialOpts = getInitialOptionsForProduct(p.id);
+                return (
+              <div key={p.id} style={{ display: 'flex', gap: 16, paddingTop: idx === 0 ? 0 : 12, borderTop: idx === 0 ? 'none' : `1px solid ${T.border}`, marginTop: idx === 0 ? 0 : 12 }}>
                 <div style={{
                   width: 80, height: 80, borderRadius: 12, overflow: 'hidden', flexShrink: 0,
                   background: isDark ? T.bgSurface : '#f5f5f5',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  {product.image && <Image src={product.image} alt={product.name} width={80} height={80} style={{ objectFit: 'contain' }} />}
+                  {p.image && <Image src={p.image} alt={p.name} width={80} height={80} style={{ objectFit: 'contain' }} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{product.brand}</p>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, margin: '2px 0 0' }}>{product.name}</p>
-                  {product.shortName && (
-                    <p style={{ fontSize: 11, color: T.textMuted, margin: '2px 0 0' }}>
-                      {product.shortName !== product.name ? product.shortName : ''}
-                    </p>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 11, color: T.textMuted, textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>{p.brand}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, margin: '2px 0 0' }}>{p.name}</p>
+                      {p.shortName && (
+                        <p style={{ fontSize: 11, color: T.textMuted, margin: '2px 0 0' }}>
+                          {p.shortName !== p.name ? p.shortName : ''}
+                        </p>
+                      )}
+                    </div>
+                    {multiProduct && (
+                      <button type="button" onClick={() => handleRemoveProduct(p.id)} aria-label={`Quitar ${p.name}`} style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 8, border: 'none', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: T.textSecondary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
                   {/* Specs pills */}
-                  {product.specs && (
+                  {p.specs && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                      {product.specs.processor && (
-                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{product.specs.processor}</span>
+                      {p.specs.processor && (
+                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{p.specs.processor}</span>
                       )}
-                      {product.specs.ram && (
-                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{product.specs.ram}</span>
+                      {p.specs.ram && (
+                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{p.specs.ram}</span>
                       )}
-                      {product.specs.storage && (
-                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{product.specs.storage}</span>
+                      {p.specs.storage && (
+                        <span style={{ fontSize: 10, background: T.bgSurface, color: T.textSecondary, padding: '2px 5px', borderRadius: 4 }}>{p.specs.storage}</span>
                       )}
                     </div>
                   )}
                   {/* Initial payment pills */}
-                  {currentPlanOptions.length > 0 && (
+                  {initialOpts.length > 0 && (
                     <div style={{ marginTop: 8 }}>
                       <p style={{ fontSize: 10, color: T.textMuted, marginBottom: 4 }}>Inicial:</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {currentPlanOptions.map((opt) => {
-                          const isActive = opt.percent === (product.initialPercent || 0);
+                        {initialOpts.map((opt) => {
+                          const isActive = opt.percent === (p.initialPercent || 0);
                           return (
-                            <button key={opt.percent} type="button" onClick={() => updateProductInitial(product.id, opt.percent)} style={{
+                            <button key={opt.percent} type="button" onClick={() => {
+                              if (p.initialPercent !== opt.percent) {
+                                analytics.trackPricingInitialChange({
+                                  product_id: p.id,
+                                  from: p.initialPercent,
+                                  to: opt.percent,
+                                  context: 'solicitar',
+                                });
+                              }
+                              updateProductInitial(p.id, opt.percent);
+                            }} style={{
                               fontSize: 10, padding: '3px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', transition: 'all 0.15s',
                               background: isActive ? T.neonCyan : T.bgSurface,
                               color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
@@ -1077,14 +1346,16 @@ function SolicitarContent() {
                       </div>
                     </div>
                   )}
-                  <p style={{ fontSize: 14, fontWeight: 700, color: T.neonCyan, margin: '6px 0 0' }}>S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment))}{freqLabel}</p>
-                  {product.initialAmount > 0 && (
+                  <p style={{ fontSize: 14, fontWeight: 700, color: T.neonCyan, margin: '6px 0 0' }}>S/{formatMoneyNoDecimals(Math.floor(p.monthlyPayment))}{freqLabel}</p>
+                  {p.initialAmount > 0 && (
                     <p style={{ fontSize: 11, color: T.textMuted, margin: '2px 0 0' }}>
-                      + S/{formatMoneyNoDecimals(Math.floor(product.initialAmount))} inicial
+                      + S/{formatMoneyNoDecimals(Math.floor(p.initialAmount))} inicial
                     </p>
                   )}
                 </div>
               </div>
+                );
+              })}
 
               {/* Accessories summary */}
               {selectedAccessories.length > 0 && (
@@ -1116,14 +1387,14 @@ function SolicitarContent() {
               <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: cyanAlpha(0.05) }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: T.textPrimary }}>Cuota mensual total</span>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{formatMoneyNoDecimals(Math.floor(product.monthlyPayment + selectedAccessories.reduce((s, a) => s + a.monthlyQuota, 0) + selectedInsurances.reduce((s, i) => s + i.monthlyPrice, 0)))}{freqLabel}</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: isOverQuotaLimit ? '#ff0055' : T.neonCyan, fontFamily: "'Orbitron', sans-serif" }}>S/{formatMoneyNoDecimals(Math.floor(totalMonthly))}{freqLabel}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
                   <span style={{ fontSize: 12, color: T.textMuted }}>Plazo:</span>
-                  <div style={{ position: 'relative' }}>
-                    <button type="button" onClick={() => setTermDropdownOpen(!termDropdownOpen)} style={{
+                  <div data-term-dropdown style={{ position: 'relative' }}>
+                    <button type="button" aria-expanded={termDropdownOpen} aria-label="Cambiar plazo" onClick={() => setTermDropdownOpen(!termDropdownOpen)} style={{
                       display: 'flex', alignItems: 'center', gap: 4,
-                      height: 28, padding: '0 8px', borderRadius: 8,
+                      minHeight: 40, padding: '0 10px', borderRadius: 8,
                       border: `1.5px solid ${T.border}`, background: isDark ? T.bgCard : '#fff',
                       cursor: 'pointer', fontSize: 12, color: T.textPrimary,
                     }}>
@@ -1133,7 +1404,22 @@ function SolicitarContent() {
                     {termDropdownOpen && availableTerms.length > 0 && (
                       <div style={{ position: 'absolute', zIndex: 50, bottom: '100%', right: 0, marginBottom: 4, minWidth: 120, background: isDark ? T.bgCard : '#fff', border: `1px solid ${T.border}`, borderRadius: 8, boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.12)', padding: 4 }}>
                         {availableTerms.map((m) => (
-                          <button key={m} type="button" onClick={() => { updateAllProductsToTerm(m); setSelectedMonths(m); setTermDropdownOpen(false); }} style={{ width: '100%', padding: '6px 10px', textAlign: 'left', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}>
+                          <button key={m} type="button" onClick={() => {
+                            const primary = productsToShow[0];
+                            const from = primary?.term ?? primary?.months ?? 0;
+                            if (primary && from !== m) {
+                              analytics.trackPricingTermChange({
+                                product_id: primary.id,
+                                from,
+                                to: m,
+                                context: 'solicitar',
+                                frequency: primary.paymentFrequency,
+                              });
+                            }
+                            updateAllProductsToTerm(m);
+                            setSelectedMonths(m);
+                            setTermDropdownOpen(false);
+                          }} style={{ width: '100%', padding: '6px 10px', textAlign: 'left', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', background: m === selectedMonths ? T.neonCyan : 'transparent', color: m === selectedMonths ? (isDark ? '#0a0a0a' : '#fff') : T.textPrimary }}>
                             {m} meses
                           </button>
                         ))}
@@ -1145,10 +1431,11 @@ function SolicitarContent() {
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       <GamerNewsletter theme={theme} />
-      <GamerFooter theme={theme} />
+      <GamerFooter theme={theme} footerData={footerData} />
     </div>
   );
 }

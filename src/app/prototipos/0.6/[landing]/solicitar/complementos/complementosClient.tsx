@@ -7,7 +7,7 @@
  * Insurance and Accessories state is managed via ProductContext
  */
 
-import React, { Suspense, useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
@@ -44,7 +44,7 @@ function ComplementosContent() {
   useScrollToTop();
 
   // Get data from ProductContext (includes insurance, accessories, products, coupon)
-  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurance, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts } = useProduct();
+  const { selectedProduct, isHydrated: isProductHydrated, getTotalMonthlyPayment, selectedAccessories, selectedInsurances, appliedCoupon, hasUnifiedTerms, cartProducts, isOverQuotaLimit, unavailableProductIds, isValidatingAvailability, getAllProducts } = useProduct();
 
   // Frecuencia del producto principal (para sufijo de cuotas en resumen)
   const primaryFrequency = getAllProducts()[0]?.paymentFrequency;
@@ -55,6 +55,12 @@ function ComplementosContent() {
 
   // Toast notifications
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Timer ref for the delayed redirect after showing a validation toast
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => { if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current); };
+  }, []);
 
   // Submit application hook
   const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
@@ -85,7 +91,6 @@ function ComplementosContent() {
   // Get solicitar flow configuration
   const {
     sectionsAfterWizard,
-    isEnabled,
     isCouponRequired,
     isLoading: isFlowConfigLoading,
   } = useSolicitarFlow({ slug: landing, previewKey });
@@ -138,6 +143,12 @@ function ComplementosContent() {
     return steps.filter(s => !s.is_summary_step);
   }, [steps]);
 
+  // Summary steps that have editable fields (e.g. accept terms) — must also be
+  // validated before submit to match the behavior of handleSummarySubmit in [stepSlug].
+  const validatableSummarySteps = useMemo(() => {
+    return steps.filter(s => s.is_summary_step && s.fields.length > 0);
+  }, [steps]);
+
   // Get the last wizard step for back navigation
   // Secuencia correcta: pasos regulares primero, luego pasos de resumen
   const lastStep = useMemo(() => {
@@ -170,8 +181,9 @@ function ComplementosContent() {
   };
 
   const handleSubmit = async () => {
-    // Validate ALL wizard steps before submitting
-    for (const s of regularSteps) {
+    // Validate ALL wizard steps (regular + summary steps with fields) before submitting
+    const stepsToValidate = [...regularSteps, ...validatableSummarySteps];
+    for (const s of stepsToValidate) {
       const firstError = validateStepFields(s, formValues, setFieldError);
       if (firstError) {
         showToast(
@@ -179,7 +191,7 @@ function ComplementosContent() {
           'error'
         );
         const stepSlug = getStepSlug(s);
-        setTimeout(() => {
+        redirectTimerRef.current = setTimeout(() => {
           router.push(routes.solicitarStep(landing, stepSlug));
         }, 1500);
         return;
@@ -332,7 +344,7 @@ function ComplementosContent() {
       return <LoadingFallback />;
     }
     return (
-      <GamerComplementosWrapper>
+      <GamerComplementosWrapper footerData={footerData}>
         {pageContent}
         <SelectedProductSpacer />
         <SubmitOverlay isOpen={isSubmitting} stage={submitStage} />
@@ -395,31 +407,36 @@ function LoadingFallback() {
   );
 }
 
-function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
+// Gamer theme wrapper.
+// Assumes zona-gamer never runs under a convenio (no ConvenioFooter branch);
+// if that ever changes, add an agreementData prop + branch here.
+function GamerComplementosWrapper({ children, footerData }: { children: React.ReactNode; footerData?: import('@/app/prototipos/0.6/types/hero').FooterData | null }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
 
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
-    if (saved) setTheme(saved);
+    try {
+      const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+      if (saved) setTheme(saved);
+    } catch {}
     setHydrated(true);
   }, []);
 
   const handleToggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
-    localStorage.setItem('baldecash-theme', next);
+    try { localStorage.setItem('baldecash-theme', next); } catch {}
   };
   const isDark = theme === 'dark';
 
   if (!hydrated) {
-    return <div className="gamer-theme-bg" style={{ minHeight: '100vh' }} />;
+    return <div className="gamer-theme-bg" style={{ minHeight: '100svh' }} />;
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
+    <div style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
         /* Gamer cyan overrides - both dark and light modes */
@@ -517,6 +534,8 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
         /* Insurance/Accessories cards */
         .gamer-complementos-dark .bg-white.rounded-xl { background: #1a1a1a !important; border-color: #2a2a2a !important; }
         .gamer-complementos-dark .bg-white.rounded-2xl { background: #1a1a1a !important; border-color: #2a2a2a !important; }
+        /* AccessoriesSection outer container (bg-white without rounded-xl combo match) */
+        .gamer-complementos-dark .bg-white { background: #1a1a1a !important; }
         /* Selected state borders */
         .gamer-complementos-dark .border-\\[var\\(--color-primary\\)\\] { border-color: #00ffd5 !important; }
         .gamer-complementos-dark .ring-\\[var\\(--color-primary\\)\\] { --tw-ring-color: #00ffd5 !important; }
@@ -655,7 +674,7 @@ function GamerComplementosWrapper({ children }: { children: React.ReactNode }) {
         />
         {children}
         <GamerNewsletter theme={theme} />
-        <GamerFooter theme={theme} />
+        <GamerFooter theme={theme} footerData={footerData} />
       </div>
     </div>
   );

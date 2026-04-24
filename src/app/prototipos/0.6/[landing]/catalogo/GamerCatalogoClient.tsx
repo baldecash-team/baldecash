@@ -13,7 +13,7 @@
  * Fuentes: Rajdhani, Orbitron, Share Tech Mono, Barlow Condensed
  */
 
-import { useState, useMemo, useCallback, useRef, useEffect, Suspense } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect, Suspense, useDeferredValue } from 'react';
 import {
   Search,
   Heart,
@@ -32,22 +32,23 @@ import { useRouter, useSearchParams, useParams } from 'next/navigation';
 // localStorage keys — must match ProductContext keys exactly
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
+const getAccessoriesKey = (landing: string) => `baldecash-${landing}-solicitar-selected-accessories`;
 
 // Hooks de datos (los mismos que CatalogoClient)
-import { useCatalogProducts, useCatalogFilters } from './hooks/useCatalogProducts';
+import { useCatalogProducts, useCatalogFilters, type AppliedFiltersForCounts } from './hooks/useCatalogProducts';
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
 import { useGridColumns, roundToColumns } from './hooks/useGridColumns';
 import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
-import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import {
   parseFiltersFromParams,
   buildParamsFromFilters,
   mergeFiltersWithDefaults,
 } from './utils/queryFilters';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
+import { getAllowMultiProduct, getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // Types
 import type {
@@ -56,8 +57,14 @@ import type {
   FilterState,
   SortOption,
   WishlistItem,
+  TermMonths,
+  InitialPaymentPercent,
 } from './types/catalog';
 import { defaultFilterState } from './types/catalog';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+
+const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
 import { fetchCatalogData, fetchProductsByIds } from '../../services/catalogApi';
 import type { CatalogFilters as ApiCatalogFilters, SortBy as ApiSortBy } from '../../services/catalogApi';
 
@@ -68,7 +75,7 @@ import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNav
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { GamerOnboardingTour } from '@/app/prototipos/0.6/components/zona-gamer/GamerOnboardingTour';
 import type { OnboardingStep } from './types/catalog';
-import { Toast, useToast, CubeGridSpinner, useIsMobile } from '@/app/prototipos/_shared';
+import { Toast, useToast, CubeGridSpinner, useIsMobile, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { CartSelectionModal } from './components/catalog/CartSelectionModal';
 import { CartDrawer } from './components/catalog/CartDrawer';
@@ -123,9 +130,11 @@ function GamerCatalogoContent() {
   const searchParams = useSearchParams();
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
+
+  // Scroll to top on mount (when arriving from another route with scroll)
+  useScrollToTop();
   // Note: we don't use ProductContext setters here — we write directly to localStorage
-  // because each page has its own ProductProvider instance
-  useProduct(); // keep the hook call to ensure context exists
+  // because each page has its own ProductProvider instance.
 
   // Theme - persist to localStorage (SSR-safe: always start dark, hydrate from localStorage)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -151,18 +160,26 @@ function GamerCatalogoContent() {
   // Preview
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+  // TODO: when GamerNavbar accepts previewBannerOffset, pass `previewKey ? 24 : 0`
+  // so the sticky secondary nav leaves space for the preview banner (parity with Navbar normal).
 
   // Parse URL filters
   const initialUrlFilters = useMemo(() => parseFiltersFromParams(searchParams), [searchParams]);
   const [filters, setFilters] = useState<FilterState>(() => mergeFiltersWithDefaults(initialUrlFilters));
   const [sort, setSort] = useState<SortOption>((initialUrlFilters as { sort?: SortOption }).sort || 'recommended');
   const [searchQuery, setSearchQuery] = useState((initialUrlFilters as { searchQuery?: string }).searchQuery || '');
+  // Brand slug-to-id mapping from API (stable once loaded).
+  // brand_ids (not brand slugs) is what the catalog API accepts for the brands filter.
+  const [brandMapping, setBrandMapping] = useState<Map<string, number>>(new Map());
+  // Deferred value: keeps the input snappy while the grid re-fetches with lower priority
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
   // Layout data (navbar items, promo banner) desde /landing/zona-gamer/layout
   const { navbarProps, isLoading: isLayoutLoading, hasError: hasLayoutError, settings } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
+  const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
   // Onboarding tour (custom steps for zona-gamer)
   const [tourActive, setTourActive] = useState(false);
@@ -252,12 +269,27 @@ function GamerCatalogoContent() {
   // Mobile filters
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [wishlistToast, setWishlistToast] = useState<string | null>(null);
+  const wishlistToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  // Drag-to-dismiss state for the mobile search bottom sheet
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const sheetDragStartRef = useRef<number | null>(null);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [mobileSearchResults, setMobileSearchResults] = useState<{ id: string; slug: string; name: string; displayName: string; brand: string; thumbnail: string; images: string[]; quotaMonthly: number; maxTermMonths: number }[]>([]);
   const [mobileSearchLoading, setMobileSearchLoading] = useState(false);
   const mobileSearchDebounce = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Monotonic request id: only the latest in-flight mobile search applies to state.
+  // This prevents race conditions when fetchCatalogData (which doesn't accept a signal)
+  // has multiple in-flight calls due to rapid typing or sheet close/reopen.
+  const mobileSearchReqIdRef = useRef(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Initial page loading gate: prevents the grid/empty-state flash before the
+  // first paint is ready. Mirrors the pattern used in CatalogoClient normal.
+  const [isPageLoading, setIsPageLoading] = useState(true);
+  useEffect(() => {
+    setIsPageLoading(false);
+  }, []);
 
   // Scroll to top button
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -284,13 +316,18 @@ function GamerCatalogoContent() {
     condicion: false,
   });
 
-  // Build API filters
+  // Build API filters (uses deferredSearchQuery so typing stays snappy)
   const apiFilters = useMemo((): ApiCatalogFilters => {
     const af: ApiCatalogFilters = {};
-    if (searchQuery.trim()) af.q = searchQuery.trim();
-    if (filters.brands.length > 0) {
-      // Pass brand slugs as types for text-based filtering
-      af.types = filters.deviceTypes.length > 0 ? filters.deviceTypes : undefined;
+    if (deferredSearchQuery.trim()) af.q = deferredSearchQuery.trim();
+    // Brands: convert slugs to numeric brand_ids via the mapping loaded from the filters API
+    if (filters.brands.length > 0 && brandMapping.size > 0) {
+      const brandIds = filters.brands
+        .map((slug) => brandMapping.get(slug))
+        .filter((id): id is number => id !== undefined);
+      if (brandIds.length > 0) {
+        af.brand_ids = brandIds;
+      }
     }
     if (filters.deviceTypes.length > 0) {
       af.types = filters.deviceTypes;
@@ -310,7 +347,7 @@ function GamerCatalogoContent() {
     if (filters.displaySize.length > 0) specs.screen_size = filters.displaySize;
     if (Object.keys(specs).length > 0) af.specs = specs;
     return af;
-  }, [filters, searchQuery, landing]);
+  }, [filters, deferredSearchQuery, landing, brandMapping]);
 
   // API sort mapping
   const apiSortBy = useMemo((): ApiSortBy => {
@@ -325,6 +362,10 @@ function GamerCatalogoContent() {
     return map[sort];
   }, [sort]);
 
+  // Only fetch products once the brand mapping is loaded (if brand filters are active).
+  // Otherwise brand_ids would be missing on the first request and the filter would be ignored.
+  const isReadyToFetchProducts = filters.brands.length === 0 || brandMapping.size > 0;
+
   // Fetch products from DB
   const {
     products,
@@ -338,7 +379,7 @@ function GamerCatalogoContent() {
     landingSlug: landing,
     filters: apiFilters,
     sortBy: apiSortBy,
-    enabled: true,
+    enabled: isReadyToFetchProducts,
     previewKey,
     gridColumns,
   });
@@ -347,8 +388,29 @@ function GamerCatalogoContent() {
   const allProducts = products;
   const displayTotal = total;
 
-  // Fetch filter options
-  const catalogFilters = useCatalogFilters(landing);
+  // Derive applied filters for contextual counts (each filter option count reflects
+  // how many products remain if *that* filter is applied given the other active filters).
+  const appliedFiltersForCounts = useMemo((): AppliedFiltersForCounts => {
+    const { q: _q, product_ids: _pids, is_featured: _feat, brand_id: _bid, type: _type, specs: rawSpecs, ...rest } = apiFilters;
+    void _q; void _pids; void _feat; void _bid; void _type;
+    return {
+      ...rest,
+      ...(rawSpecs && Object.keys(rawSpecs).length > 0 && {
+        specs: rawSpecs as Record<string, (string | number | boolean)[]>,
+      }),
+    };
+  }, [apiFilters]);
+
+  // Fetch filter options (with contextual counts driven by the applied filters)
+  const catalogFilters = useCatalogFilters(landing, appliedFiltersForCounts);
+
+  // Populate brandMapping once apiFilters.brands is available
+  useEffect(() => {
+    if (catalogFilters.apiFilters?.brands && brandMapping.size === 0) {
+      const newMapping = new Map(catalogFilters.apiFilters.brands.map((b) => [b.slug, b.id]));
+      setBrandMapping(newMapping);
+    }
+  }, [catalogFilters.apiFilters?.brands, brandMapping.size]);
 
   // Cart / Wishlist
   const {
@@ -367,11 +429,31 @@ function GamerCatalogoContent() {
     clearCart: clearCartItems,
     isInCart,
     unavailableCartIds,
+    unavailableWishlistIds,
     isHydrated: isCartWishlistHydrated,
   } = useCatalogSharedState(landing, previewKey);
 
   // Toast
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Analytics
+  const analytics = useAnalytics();
+  // Optional session tracker (shared with solicitar) — used for cross-page product/compare events.
+  // Optional because the EventTrackerProvider may not be mounted when the user isn't in a session.
+  const tracker = useEventTrackerOptional();
+
+  // Tracked setters: wrap raw state setters to emit analytics events on change
+  const setSortTracked = useCallback((next: SortOption) => {
+    setSort((prev) => {
+      if (prev !== next) analytics.trackSortChange({ from: prev, to: next });
+      return next;
+    });
+  }, [analytics]);
+
+  const handleSearchClear = useCallback((location: string = 'navbar') => {
+    if (searchQuery) analytics.trackSearchClear({ location });
+    setSearchQuery('');
+  }, [analytics, searchQuery]);
 
   // Blip Chat
   const blipChat = useBlipChat();
@@ -417,18 +499,32 @@ function GamerCatalogoContent() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [isWishlistDrawerOpen, isMobileViewport]);
 
-  // Compare
-  const [compareList, setCompareList] = useState<CatalogProduct[]>([]);
+  // Compare — store IDs in localStorage and refetch product data from API.
+  // Parity with CatalogoClient normal: avoids stale snapshots when prices change.
+  const [compareList, setCompareList] = useState<string[]>([]);
+  const [compareProducts, setCompareProducts] = useState<CatalogProduct[]>([]);
   const [isCompareListLoaded, setIsCompareListLoaded] = useState(false);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showDiffOnly, setShowDiffOnly] = useState(false);
 
-  // Load compareList from localStorage on mount
+  // Load compareList (IDs) from localStorage on mount.
+  // Backwards compatibility: if an older snapshot (CatalogProduct[]) is stored,
+  // extract the IDs and upgrade the storage format.
   useEffect(() => {
     const saved = localStorage.getItem(`baldecash-${landing}-compare`);
     if (saved) {
       try {
-        setCompareList(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          if (parsed.length === 0) {
+            setCompareList([]);
+          } else if (typeof parsed[0] === 'string') {
+            setCompareList(parsed as string[]);
+          } else if (parsed[0] && typeof parsed[0] === 'object' && 'id' in parsed[0]) {
+            // Legacy format — upgrade to IDs
+            setCompareList((parsed as { id: string }[]).map((p) => p.id));
+          }
+        }
       } catch (e) {
         console.error('Error parsing compareList from localStorage:', e);
       }
@@ -436,12 +532,21 @@ function GamerCatalogoContent() {
     setIsCompareListLoaded(true);
   }, [landing]);
 
-  // Persist compareList to localStorage
+  // Persist compareList (IDs) to localStorage
   useEffect(() => {
     if (isCompareListLoaded) {
       localStorage.setItem(`baldecash-${landing}-compare`, JSON.stringify(compareList));
     }
   }, [compareList, isCompareListLoaded, landing]);
+
+  // Refetch compare product data from API when the list changes
+  useEffect(() => {
+    if (isCompareListLoaded && compareList.length > 0) {
+      fetchProductsByIds(landing, compareList, previewKey).then(setCompareProducts);
+    } else {
+      setCompareProducts([]);
+    }
+  }, [compareList, isCompareListLoaded, landing, previewKey]);
 
   const getDeviceType = (product: CatalogProduct): string => {
     return product.deviceType || 'laptop';
@@ -449,15 +554,16 @@ function GamerCatalogoContent() {
 
   const handleToggleCompare = useCallback((product: CatalogProduct) => {
     // Si ya está, quitarlo
-    if (compareList.some(p => p.id === product.id)) {
-      setCompareList(prev => prev.filter(p => p.id !== product.id));
+    if (compareList.includes(product.id)) {
+      setCompareList(prev => prev.filter(id => id !== product.id));
+      tracker?.track('compare_remove', { product_id: product.id });
       return;
     }
     // Límite
     if (compareList.length >= 3) return;
-    // Validar mismo tipo de dispositivo
-    if (compareList.length > 0) {
-      const currentDeviceType = getDeviceType(compareList[0]);
+    // Validar mismo tipo de dispositivo (usa compareProducts hidratado del API)
+    if (compareProducts.length > 0) {
+      const currentDeviceType = getDeviceType(compareProducts[0]);
       const newDeviceType = getDeviceType(product);
       if (currentDeviceType !== newDeviceType) {
         const deviceTypeLabels: Record<string, string> = {
@@ -474,10 +580,16 @@ function GamerCatalogoContent() {
         return;
       }
     }
-    setCompareList(prev => [...prev, product]);
-  }, [compareList, showToast]);
+    setCompareList(prev => [...prev, product.id]);
+    tracker?.track('compare_add', { product_id: product.id });
+  }, [compareList, compareProducts, showToast, tracker]);
 
-  const isInCompare = useCallback((id: string) => compareList.some(p => p.id === id), [compareList]);
+  const handleOpenCompareModal = useCallback(() => {
+    tracker?.track('compare_open', { product_count: compareList.length });
+    setShowCompareModal(true);
+  }, [compareList.length, tracker]);
+
+  const isInCompare = useCallback((id: string) => compareList.includes(id), [compareList]);
 
   // Close search dropdown on click outside
   useEffect(() => {
@@ -607,7 +719,13 @@ function GamerCatalogoContent() {
     setFilters(defaultFilterState);
     setSearchQuery('');
     setSort('recommended');
-  }, []);
+    analytics.trackFilterClearAll({ source: 'gamer_clear_all' });
+  }, [analytics]);
+
+  const handleLoadMore = useCallback(() => {
+    analytics.trackLoadMore({ visible_count: products.length, total_count: total });
+    loadMore();
+  }, [analytics, products.length, total, loadMore]);
 
   const handleWishlistToggle = useCallback((product: CatalogProduct) => {
     const wasInWishlist = isInWishlist(product.id);
@@ -621,23 +739,69 @@ function GamerCatalogoContent() {
       image: (product.images?.length > 0 ? product.images[0] : product.thumbnail) || '/images/products/placeholder.jpg',
       lowestQuota: product.quotaMonthly,
       type: product.deviceType,
-      months: (product.maxTermMonths || 24) as 6 | 12 | 18 | 24,
-      initialPercent: 0,
+      months: (product.maxTermMonths || 24) as TermMonths,
+      term: product.maxTermMonths,
+      paymentFrequency: product.paymentFrequency,
+      initialPercent: WIZARD_SELECTED_INITIAL,
       initialAmount: 0,
       monthlyPayment: product.quotaMonthly,
       addedAt: Date.now(),
     };
     toggleWishlist(item);
     setWishlistToast(wasInWishlist ? 'Eliminado de favoritos' : 'Agregado a favoritos');
-    setTimeout(() => setWishlistToast(null), 2500);
+    if (wishlistToastTimerRef.current) clearTimeout(wishlistToastTimerRef.current);
+    wishlistToastTimerRef.current = setTimeout(() => {
+      setWishlistToast(null);
+      wishlistToastTimerRef.current = null;
+    }, 2500);
   }, [toggleWishlist, isInWishlist]);
 
-  const handleProductDetail = useCallback((product: CatalogProduct) => {
-    router.push(routes.producto(landing, product.slug));
-  }, [router, landing]);
+  // Clean up the wishlist toast timer on unmount to avoid setState-after-unmount
+  useEffect(() => () => {
+    if (wishlistToastTimerRef.current) clearTimeout(wishlistToastTimerRef.current);
+  }, []);
 
-  // "Lo quiero" handler — respects ALLOW_MULTI_PRODUCT
-  const selectProductForWizard = useCallback((product: CatalogProduct) => {
+  const handleProductDetail = useCallback((product: CatalogProduct) => {
+    tracker?.track('product_click', {
+      product_id: product.id,
+      product_name: product.name,
+      brand: product.brand,
+      slug: product.slug,
+    });
+    router.push(routes.producto(landing, product.slug));
+  }, [router, landing, tracker]);
+
+  // Helper: find a product by ID in allProducts, or build one from a color sibling.
+  // Parity with CatalogoClient normal — needed when a productId comes from wishlist/cart
+  // and the id corresponds to a color variant of a parent product rather than the parent itself.
+  const findProductOrSibling = useCallback((productId: string): CatalogProduct | null => {
+    const direct = allProducts.find((p) => p.id === productId);
+    if (direct) return direct;
+    for (const parent of allProducts) {
+      const sibling = parent.colors?.find((c) => c.productId === productId);
+      if (sibling) {
+        return {
+          ...parent,
+          id: productId,
+          slug: sibling.slug || parent.slug,
+          displayName: sibling.displayName || parent.displayName,
+          name: sibling.displayName || parent.name,
+          price: sibling.price ?? parent.price,
+          quotaMonthly: sibling.quotaMonthly ?? parent.quotaMonthly,
+          originalQuotaMonthly: sibling.originalQuotaMonthly ?? parent.originalQuotaMonthly,
+          discount: sibling.discount ?? parent.discount,
+          specs: sibling.specs ?? parent.specs,
+          thumbnail: sibling.imageUrl || (sibling.images?.[0]) || parent.thumbnail,
+          images: sibling.images || (sibling.imageUrl ? [sibling.imageUrl] : parent.images),
+        };
+      }
+    }
+    return null;
+  }, [allProducts]);
+
+  // "Lo quiero" handler — respects ALLOW_MULTI_PRODUCT.
+  // Accepts optional variantInfo (CartItem) when the user selected a variant/color/initial from the card.
+  const selectProductForWizard = useCallback((product: CatalogProduct, variantInfo?: CartItem | null) => {
     const selectedProductData = {
       id: product.id,
       slug: product.slug,
@@ -645,22 +809,30 @@ function GamerCatalogoContent() {
       shortName: product.name,
       brand: product.brand,
       price: product.price,
-      monthlyPayment: product.quotaMonthly,
-      months: (product as unknown as { maxTermMonths?: number }).maxTermMonths || 24,
-      initialPercent: 0,
-      initialAmount: 0,
+      monthlyPayment: variantInfo?.monthlyPayment ?? product.quotaMonthly,
+      months: (variantInfo?.months ?? product.maxTermMonths ?? 24) as TermMonths,
+      term: variantInfo?.term ?? variantInfo?.months ?? product.maxTermMonths,
+      paymentFrequency: variantInfo?.paymentFrequency || product.paymentFrequency,
+      initialPercent: variantInfo?.initialPercent ?? product.hookInitialPercent ?? 0,
+      initialAmount: variantInfo?.initialAmount ?? 0,
       image: (product.images?.length > 0 ? product.images[0] : product.thumbnail) || '/images/products/placeholder.jpg',
       type: product.deviceType,
+      variantId: variantInfo?.variantId || product.variantId,
+      colorName: variantInfo?.colorName,
+      colorHex: variantInfo?.colorHex,
+      paymentPlans: variantInfo?.paymentPlans,
       specs: {
         processor: product.specs?.processor?.model || '',
         ram: product.specs?.ram ? `${product.specs.ram.size}GB RAM` : '',
         storage: product.specs?.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
       },
     };
-    // Write directly to localStorage (each page has its own ProductProvider instance)
+    // Write directly to localStorage (each page has its own ProductProvider instance).
+    // Clear cart + accessories because user explicitly selected THIS single product.
     try {
       localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProductData));
       localStorage.removeItem(getCartProductsKey(landing));
+      localStorage.removeItem(getAccessoriesKey(landing));
     } catch {
       // localStorage not available
     }
@@ -674,7 +846,7 @@ function GamerCatalogoContent() {
   const handleAddToCart = useCallback((productId: string, product?: CatalogProduct, cartItem?: CartItem) => {
     if (!isInCart(productId)) {
       const productQuota = cartItem?.monthlyPayment || product?.quotaMonthly || 0;
-      if (totalMonthlyQuota + productQuota > 600) {
+      if (totalMonthlyQuota + productQuota > MAX_MONTHLY_QUOTA) {
         if (product) setAttemptedCartProduct(product);
         setIsCartLimitModalOpen(true);
         return;
@@ -682,6 +854,7 @@ function GamerCatalogoContent() {
       if (cartItem) {
         addCartItem(cartItem);
       } else if (product) {
+        const months = (product.maxTermMonths || 24) as TermMonths;
         addCartItem({
           productId: product.id,
           slug: product.slug,
@@ -690,36 +863,66 @@ function GamerCatalogoContent() {
           brand: product.brand,
           image: (product.images?.length > 0 ? product.images[0] : product.thumbnail) || '/images/products/placeholder.jpg',
           price: product.price,
-          months: ((product as unknown as { maxTermMonths?: number }).maxTermMonths || 24) as 6 | 12 | 18 | 24,
-          initialPercent: 0,
+          months,
+          term: product.maxTermMonths ?? months,
+          paymentFrequency: product.paymentFrequency,
+          initialPercent: WIZARD_SELECTED_INITIAL,
           initialAmount: 0,
           monthlyPayment: product.quotaMonthly,
           type: product.deviceType,
           addedAt: Date.now(),
+          specs: product.specs ? {
+            processor: product.specs.processor?.model || '',
+            ram: product.specs.ram ? `${product.specs.ram.size}GB RAM` : '',
+            storage: product.specs.storage ? `${product.specs.storage.size}GB ${product.specs.storage.type}` : '',
+          } : undefined,
         });
       }
       showToast('Producto añadido al carrito', 'success');
     }
-  }, [isInCart, addCartItem, showToast, totalMonthlyQuota]);
+  }, [isInCart, addCartItem, showToast, totalMonthlyQuota, MAX_MONTHLY_QUOTA]);
 
   const handleRemoveFromCart = useCallback((productId: string) => {
     removeCartItem(productId);
-  }, [removeCartItem]);
+    // If the removed product matches the one saved for the wizard, clear it too
+    try {
+      const saved = localStorage.getItem(getStorageKey(landing));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.id === productId) {
+          localStorage.removeItem(getStorageKey(landing));
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }, [removeCartItem, landing]);
 
-  const handleProductSolicitar = useCallback((product: CatalogProduct) => {
+  const handleClearCart = useCallback(() => {
+    clearCartItems();
+    try {
+      localStorage.removeItem(getStorageKey(landing));
+      localStorage.removeItem(getCartProductsKey(landing));
+    } catch {
+      // localStorage not available
+    }
+  }, [clearCartItems, landing]);
+
+  const handleProductSolicitar = useCallback((product: CatalogProduct, variantInfo?: CartItem | null) => {
     if (!ALLOW_MULTI_PRODUCT) {
       // Single-product mode: go directly to solicitar
-      selectProductForWizard(product);
+      selectProductForWizard(product, variantInfo);
       router.push(routes.solicitar(landing));
       return;
     }
-    // Multi-product mode: open cart selection modal
+    // Multi-product mode: open cart selection modal (variant flows through selectedVariantForCart)
+    if (variantInfo) setSelectedVariantForCart(variantInfo);
     handleOpenCartModal(product);
   }, [ALLOW_MULTI_PRODUCT, selectProductForWizard, router, landing, handleOpenCartModal]);
 
   const handleCartContinue = useCallback(() => {
-    if ((cartItems || []).length === 0 || totalMonthlyQuota > 600) {
-      if (totalMonthlyQuota > 600) showToast('La cuota total supera S/600/mes', 'warning');
+    if ((cartItems || []).length === 0 || totalMonthlyQuota > MAX_MONTHLY_QUOTA) {
+      if (totalMonthlyQuota > MAX_MONTHLY_QUOTA) showToast(`La cuota total supera S/${MAX_MONTHLY_QUOTA}/mes`, 'warning');
       return;
     }
 
@@ -736,6 +939,8 @@ function GamerCatalogoContent() {
           price: item.price,
           monthlyPayment: item.monthlyPayment,
           months: item.months,
+          term: item.term ?? item.months,
+          paymentFrequency: item.paymentFrequency,
           initialPercent: item.initialPercent,
           initialAmount: Math.round((item.price * item.initialPercent) / 100),
           image: item.image,
@@ -761,8 +966,123 @@ function GamerCatalogoContent() {
       }
     }
 
+    analytics.trackCartContinue({
+      item_count: (cartItems || []).length,
+      total_monthly_quota: totalMonthlyQuota,
+    });
     router.push(routes.solicitar(landing));
-  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, landing]);
+  }, [cartItems, cartProducts, totalMonthlyQuota, router, showToast, landing, analytics, MAX_MONTHLY_QUOTA]);
+
+  // Detect which rows contain at least one promotional card so the sibling
+  // (non-promo) cards in that row can reserve vertical space and stay aligned.
+  // Parity with CatalogoClient normal.
+  const promoSpacerFlags = useMemo(() => {
+    const cols = gridColumns || 1;
+    const flags = new Array(allProducts.length).fill(false);
+    for (let i = 0; i < allProducts.length; i += cols) {
+      const rowEnd = Math.min(i + cols, allProducts.length);
+      let rowHasPromo = false;
+      for (let j = i; j < rowEnd; j++) {
+        if (allProducts[j].promotion?.template) {
+          rowHasPromo = true;
+          break;
+        }
+      }
+      if (rowHasPromo) {
+        for (let j = i; j < rowEnd; j++) flags[j] = true;
+      }
+    }
+    return flags;
+  }, [allProducts, gridColumns]);
+
+  // Sync filter state to URL query params (shareable links)
+  const isFirstRenderRef = useRef(true);
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+    const apiRange: [number, number] = [defaultFilterState.quotaRange[0], defaultFilterState.quotaRange[1]];
+    const filterParams = buildParamsFromFilters(filters, sort, searchQuery, apiRange);
+    const queryString = filterParams.toString().replace(/%2C/g, ',');
+    router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
+  }, [filters, sort, searchQuery, router]);
+  // Note: {scroll:false} ensures changing a filter doesn't scroll-jump to top
+
+  // Scroll lock for drawers/sheets/modals (iOS Safari fix).
+  // Prevents body scroll under the overlay and restores scrollY on close.
+  const scrollYRef = useRef<number>(0);
+  const isAnyOverlayOpen =
+    showMobileFilters ||
+    showMobileSearch ||
+    (isWishlistDrawerOpen && isMobileViewport) ||
+    isCartDrawerOpen ||
+    showCompareModal ||
+    isCartModalOpen ||
+    isCartLimitModalOpen;
+
+  useEffect(() => {
+    if (isAnyOverlayOpen) {
+      if (document.body.style.position !== 'fixed') {
+        scrollYRef.current = window.scrollY;
+      }
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollYRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.overflow = 'hidden';
+    } else {
+      const savedScrollY = scrollYRef.current;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, savedScrollY);
+    }
+  }, [isAnyOverlayOpen]);
+
+  // Reset mobile search state when the bottom sheet closes
+  useEffect(() => {
+    if (!showMobileSearch) {
+      setMobileSearchQuery('');
+      setMobileSearchResults([]);
+      setMobileSearchLoading(false);
+      if (mobileSearchDebounce.current) {
+        clearTimeout(mobileSearchDebounce.current);
+        mobileSearchDebounce.current = undefined;
+      }
+      // Invalidate any in-flight request so it doesn't apply stale results
+      mobileSearchReqIdRef.current += 1;
+    }
+  }, [showMobileSearch]);
+
+  // Global Escape handler: closes the top-most overlay (by precedence)
+  useEffect(() => {
+    if (!isAnyOverlayOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      // Precedence: narrower/modal-like first
+      if (isCartLimitModalOpen) { setIsCartLimitModalOpen(false); return; }
+      if (isCartModalOpen) { setIsCartModalOpen(false); return; }
+      if (showCompareModal) { setShowCompareModal(false); return; }
+      if (showMobileSearch) { setSheetDragY(0); setShowMobileSearch(false); return; }
+      if (showMobileFilters) { setShowMobileFilters(false); return; }
+      if (isCartDrawerOpen) { setIsCartDrawerOpen(false); return; }
+      if (isWishlistDrawerOpen) { setIsWishlistDrawerOpen(false); return; }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [
+    isAnyOverlayOpen,
+    isCartLimitModalOpen,
+    isCartModalOpen,
+    showCompareModal,
+    showMobileSearch,
+    showMobileFilters,
+    isCartDrawerOpen,
+    isWishlistDrawerOpen,
+  ]);
 
   // Active filters count
   const activeFilterCount = useMemo(() => {
@@ -783,8 +1103,8 @@ function GamerCatalogoContent() {
   }, [filters, searchQuery]);
 
 
-  // Show loading while layout data is being fetched
-  if (isLayoutLoading) {
+  // Show loading until the first paint is ready AND layout data is fetched
+  if (isPageLoading || isLayoutLoading) {
     return <GamerLoadingFallback />;
   }
 
@@ -913,6 +1233,7 @@ function GamerCatalogoContent() {
           {/* Mobile search button */}
           <div className="md:hidden">
             <button
+              aria-label="Abrir búsqueda"
               onClick={() => { setShowMobileSearch(true); setMobileSearchQuery(searchQuery); }}
               style={{
                 width: 40, height: 40, borderRadius: 12,
@@ -946,7 +1267,10 @@ function GamerCatalogoContent() {
                   <path d="m21 21-4.34-4.34" /><circle cx="11" cy="11" r="8" />
                 </svg>
                 <input
-                  type="text"
+                  type="search"
+                  inputMode="search"
+                  enterKeyHint="search"
+                  autoComplete="off"
                   placeholder="Buscar equipos..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
@@ -960,7 +1284,7 @@ function GamerCatalogoContent() {
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => { handleSearch(''); setShowSearchDropdown(false); }}
+                    onClick={() => { handleSearchClear('desktop_search'); setShowSearchDropdown(false); }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.textMuted, padding: 2 }}
                   >
                     <X className="w-3.5 h-3.5" />
@@ -1057,6 +1381,7 @@ function GamerCatalogoContent() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.3s', position: 'relative',
                 }}
+                aria-label={`Favoritos${wishlistCount > 0 ? ` (${wishlistCount})` : ''}`}
                 title="Favoritos"
               >
                 <Heart className="w-5 h-5" />
@@ -1148,6 +1473,7 @@ function GamerCatalogoContent() {
                           <button
                             onClick={() => removeFromWishlist(item.productId)}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: T.textMuted, display: 'flex' }}
+                            aria-label="Quitar de favoritos"
                             title="Quitar"
                           >
                             <X className="w-4 h-4" />
@@ -1172,6 +1498,7 @@ function GamerCatalogoContent() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.3s', position: 'relative',
                 }}
+                aria-label={`Carrito${cartCount > 0 ? ` (${cartCount})` : ''}`}
                 title="Carrito"
               >
                 <ShoppingCart className="w-5 h-5" />
@@ -1284,7 +1611,7 @@ function GamerCatalogoContent() {
                 isDark={isDark}
                 T={T}
                 sort={sort}
-                onSortChange={setSort}
+                onSortChange={setSortTracked}
                 options={catalogFilters.sortOptions}
               />
             </div>
@@ -1305,7 +1632,7 @@ function GamerCatalogoContent() {
             width: 260,
             position: 'sticky',
             top: 130,
-            maxHeight: 'calc(100vh - 150px)',
+            maxHeight: 'calc(100svh - 150px)',
             overflow: 'hidden',
           }}
         >
@@ -1315,7 +1642,7 @@ function GamerCatalogoContent() {
             filters={filters}
             apiFilters={catalogFilters.apiFilters}
             sort={sort}
-            onSortChange={setSort}
+            onSortChange={setSortTracked}
             expandedSections={expandedSections}
             onToggleSection={handleToggleSection}
             onBrandToggle={handleBrandToggle}
@@ -1348,7 +1675,7 @@ function GamerCatalogoContent() {
                   <SlidersHorizontal className="w-5 h-5" style={{ color: T.neonCyan }} />
                   <h2 style={{ fontSize: 18, fontWeight: 700, color: T.textPrimary, margin: 0, fontFamily: "'Rajdhani', sans-serif" }}>Filtros</h2>
                 </div>
-                <button onClick={() => setShowMobileFilters(false)} style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: `1px solid ${T.border}`, color: T.textSecondary, cursor: 'pointer' }}>
+                <button aria-label="Cerrar filtros" onClick={() => setShowMobileFilters(false)} style={{ width: 44, height: 44, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: `1px solid ${T.border}`, color: T.textSecondary, cursor: 'pointer' }}>
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -1360,7 +1687,7 @@ function GamerCatalogoContent() {
                   filters={filters}
                   apiFilters={catalogFilters.apiFilters}
                   sort={sort}
-                  onSortChange={setSort}
+                  onSortChange={setSortTracked}
                   expandedSections={expandedSections}
                   onToggleSection={handleToggleSection}
                   onBrandToggle={handleBrandToggle}
@@ -1412,7 +1739,7 @@ function GamerCatalogoContent() {
               onGpuToggle={handleGpuToggle}
               onProcessorToggle={handleProcessorToggle}
               onScreenSizeToggle={handleScreenSizeToggle}
-              onClearSearch={() => setSearchQuery('')}
+              onClearSearch={() => handleSearchClear('active_filters_chip')}
               onClearAll={handleClearFilters}
             />
           )}
@@ -1458,7 +1785,7 @@ function GamerCatalogoContent() {
               >
                 {allProducts.map((product, idx) => (
                   <GamerProductCard
-                    key={product.id}
+                    key={product.landingProductId ?? product.id}
                     product={product}
                     isDark={isDark}
                     T={T}
@@ -1470,6 +1797,14 @@ function GamerCatalogoContent() {
                     onSolicitar={() => handleProductSolicitar(product)}
                     isInCart={ALLOW_MULTI_PRODUCT ? isInCart(product.id) : false}
                     isFirstCard={idx === 0}
+                    needsPromoSpacer={promoSpacerFlags[idx]}
+                    onHoverStart={() => {
+                      tracker?.track('product_hover', {
+                        product_id: product.id,
+                        product_name: product.name,
+                        brand: product.brand,
+                      });
+                    }}
                   />
                 ))}
               </div>
@@ -1490,7 +1825,7 @@ function GamerCatalogoContent() {
               {hasMore && !isLoadingMore && (
                 <div style={{ textAlign: 'center', marginTop: 32 }}>
                   <button
-                    onClick={loadMore}
+                    onClick={handleLoadMore}
                     style={{
                       padding: '14px 40px',
                       background: 'transparent',
@@ -1601,7 +1936,7 @@ function GamerCatalogoContent() {
         <div
           style={{
             position: 'fixed',
-            bottom: 94,
+            bottom: 'calc(94px + env(safe-area-inset-bottom))',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 200,
@@ -1723,9 +2058,9 @@ function GamerCatalogoContent() {
             </div>
           </div>
 
-          {/* Thumbnail stack */}
+          {/* Thumbnail stack — uses refreshed compareProducts from API */}
           <div style={{ display: 'flex', marginLeft: -8 }}>
-            {compareList.map((p, i) => (
+            {compareProducts.map((p, i) => (
               <div
                 key={p.id}
                 style={{
@@ -1784,7 +2119,7 @@ function GamerCatalogoContent() {
 
             {/* Compare button */}
             <button
-              onClick={() => setShowCompareModal(true)}
+              onClick={handleOpenCompareModal}
               disabled={compareList.length < 2}
               style={{
                 height: 32,
@@ -1813,10 +2148,10 @@ function GamerCatalogoContent() {
 
       {/* ====== MOBILE SEARCH BOTTOM SHEET ====== */}
       {showMobileSearch && (
-        <div className="md:hidden fixed inset-0 z-[9999]">
+        <div className="md:hidden fixed inset-0 z-[300]">
           {/* Backdrop */}
           <div
-            onClick={() => setShowMobileSearch(false)}
+            onClick={() => { setSheetDragY(0); setShowMobileSearch(false); }}
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }}
           />
           {/* Bottom sheet */}
@@ -1826,17 +2161,47 @@ function GamerCatalogoContent() {
               background: isDark ? '#1a1a1a' : '#fff',
               borderRadius: '24px 24px 0 0',
               display: 'flex', flexDirection: 'column',
-              maxHeight: 'calc(100vh - 6rem)',
+              maxHeight: 'calc(100svh - 6rem)',
               paddingBottom: 'env(safe-area-inset-bottom)',
-              animation: 'gamerSlideUp 0.25s ease-out',
+              transform: sheetDragY > 0 ? `translateY(${sheetDragY}px)` : undefined,
+              transition: sheetDragStartRef.current === null ? 'transform 0.2s ease-out' : undefined,
+              animation: sheetDragY === 0 && sheetDragStartRef.current === null ? 'gamerSlideUp 0.25s ease-out' : undefined,
+              touchAction: 'pan-y',
             }}
           >
             <style>{`
               @keyframes gamerSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
               @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
-            {/* Drag handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
+            {/* Drag handle (swipe down to dismiss) */}
+            <div
+              role="button"
+              aria-label="Arrastra hacia abajo para cerrar"
+              style={{ display: 'flex', justifyContent: 'center', padding: '12px 0', cursor: 'grab', touchAction: 'none' }}
+              onPointerDown={(e) => {
+                sheetDragStartRef.current = e.clientY;
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              }}
+              onPointerMove={(e) => {
+                if (sheetDragStartRef.current === null) return;
+                const delta = e.clientY - sheetDragStartRef.current;
+                if (delta > 0) setSheetDragY(delta);
+              }}
+              onPointerUp={() => {
+                const shouldDismiss = sheetDragY > 100;
+                sheetDragStartRef.current = null;
+                if (shouldDismiss) {
+                  setSheetDragY(0);
+                  setShowMobileSearch(false);
+                } else {
+                  setSheetDragY(0);
+                }
+              }}
+              onPointerCancel={() => {
+                sheetDragStartRef.current = null;
+                setSheetDragY(0);
+              }}
+            >
               <div style={{ width: 40, height: 6, background: isDark ? '#444' : '#d4d4d4', borderRadius: 3 }} />
             </div>
             {/* Header */}
@@ -1851,8 +2216,9 @@ function GamerCatalogoContent() {
                 </div>
               </div>
               <button
+                aria-label="Cerrar búsqueda"
                 onClick={() => setShowMobileSearch(false)}
-                style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: T.textMuted, cursor: 'pointer' }}
+                style={{ width: 44, height: 44, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', color: T.textMuted, cursor: 'pointer' }}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1871,19 +2237,27 @@ function GamerCatalogoContent() {
                   <Search className="w-5 h-5 ml-4 shrink-0" style={{ color: T.textMuted }} />
                 )}
                 <input
-                  type="text"
+                  type="search"
+                  inputMode="search"
+                  enterKeyHint="search"
+                  autoComplete="off"
                   placeholder="Buscar por marca, modelo..."
                   value={mobileSearchQuery}
                   onChange={(e) => {
                     const q = e.target.value;
                     setMobileSearchQuery(q);
                     if (mobileSearchDebounce.current) clearTimeout(mobileSearchDebounce.current);
-                    if (!q.trim()) { setMobileSearchResults([]); return; }
+                    // Bump request id — any in-flight fetch from a previous keystroke is now stale
+                    mobileSearchReqIdRef.current += 1;
+                    if (!q.trim()) { setMobileSearchResults([]); setMobileSearchLoading(false); return; }
                     setMobileSearchLoading(true);
                     // TODO: Extraer a hook cuando se refactorice este archivo
                     mobileSearchDebounce.current = setTimeout(async () => {
+                      const reqId = mobileSearchReqIdRef.current;
                       try {
                         const data = await fetchCatalogData(landing, { filters: { q: q.trim() }, limit: 8 });
+                        // Ignore stale responses (sheet closed or another keystroke bumped the id)
+                        if (reqId !== mobileSearchReqIdRef.current) return;
                         if (data) {
                           setMobileSearchResults(data.products.map((p) => ({
                             id: p.id, slug: p.slug, name: p.name, displayName: p.displayName,
@@ -1891,8 +2265,11 @@ function GamerCatalogoContent() {
                             quotaMonthly: p.quotaMonthly, maxTermMonths: p.maxTermMonths,
                           })));
                         } else { setMobileSearchResults([]); }
-                      } catch { setMobileSearchResults([]); }
-                      setMobileSearchLoading(false);
+                      } catch {
+                        if (reqId !== mobileSearchReqIdRef.current) return;
+                        setMobileSearchResults([]);
+                      }
+                      if (reqId === mobileSearchReqIdRef.current) setMobileSearchLoading(false);
                     }, 300);
                   }}
                   onKeyDown={(e) => { if (e.key === 'Enter') { handleSearch(mobileSearchQuery); setShowMobileSearch(false); } }}
@@ -1956,7 +2333,7 @@ function GamerCatalogoContent() {
             {/* Footer */}
             <div style={{ borderTop: `1px solid ${T.border}`, padding: 16, display: 'flex', gap: 8 }}>
               <button
-                onClick={() => { setMobileSearchQuery(''); setMobileSearchResults([]); handleSearch(''); }}
+                onClick={() => { setMobileSearchQuery(''); setMobileSearchResults([]); handleSearchClear('mobile_search'); }}
                 style={{
                   padding: '10px 16px', borderRadius: 12, border: 'none',
                   background: 'none', color: T.textMuted,
@@ -1985,7 +2362,7 @@ function GamerCatalogoContent() {
       )}
 
       {/* ====== MOBILE FILTERS FAB ====== */}
-      <div className="lg:hidden" style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 90 }}>
+      <div className="lg:hidden" style={{ position: 'fixed', bottom: 'calc(24px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', zIndex: 90 }}>
         <button
           id="onboarding-filters-mobile"
           onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -2024,10 +2401,10 @@ function GamerCatalogoContent() {
       {compareList.length > 0 && !showCompareModal && (
         <button
           className="lg:hidden flex items-center gap-2"
-          onClick={() => setShowCompareModal(true)}
+          onClick={handleOpenCompareModal}
           style={{
             position: 'fixed',
-            bottom: 76,
+            bottom: 'calc(76px + env(safe-area-inset-bottom))',
             left: 24,
             zIndex: 90,
             padding: '10px 16px',
@@ -2056,15 +2433,15 @@ function GamerCatalogoContent() {
       )}
 
       {/* ====== COMPARE MODAL ====== */}
-      {showCompareModal && (
+      {showCompareModal && compareProducts.length > 0 && (
         <GamerCompareModal
-          products={compareList}
+          products={compareProducts}
           isDark={isDark}
           T={T}
           showDiffOnly={showDiffOnly}
           onToggleDiffOnly={() => setShowDiffOnly(prev => !prev)}
           onClose={() => setShowCompareModal(false)}
-          onRemove={(id) => setCompareList(prev => prev.filter(p => p.id !== id))}
+          onRemove={(id) => setCompareList(prev => prev.filter(cid => cid !== id))}
           onClearAll={() => { setCompareList([]); setShowCompareModal(false); }}
           onSelectProduct={(product) => {
             selectProductForWizard(product);
@@ -2088,11 +2465,17 @@ function GamerCatalogoContent() {
         onClearAll={() => clearWishlist()}
         onViewProduct={(productId) => {
           setIsWishlistDrawerOpen(false);
-          const prod = products.find((p) => p.id === productId);
-          if (prod) router.push(routes.producto(landing, prod.slug));
+          const prod = findProductOrSibling(productId);
+          if (prod) {
+            router.push(routes.producto(landing, prod.slug));
+            return;
+          }
+          // Fall back to the slug stored in the wishlist item if the product is no longer in the catalog
+          const item = wishlist.find((w) => w.productId === productId);
+          if (item?.slug) router.push(routes.producto(landing, item.slug));
         }}
         onAddToCompare={(productId) => {
-          const prod = products.find((p) => p.id === productId);
+          const prod = findProductOrSibling(productId);
           if (prod) handleToggleCompare(prod);
         }}
         onAddToCart={ALLOW_MULTI_PRODUCT ? (productId) => {
@@ -2114,8 +2497,9 @@ function GamerCatalogoContent() {
             });
           }
         } : undefined}
-        compareList={compareList.map((p) => p.id)}
+        compareList={compareList}
         maxCompareProducts={3}
+        unavailableIds={unavailableWishlistIds}
         themeClassName={isDark ? 'gamer-wishlist-dark' : 'gamer-wishlist-light'}
       />
 
@@ -2226,7 +2610,7 @@ function GamerCatalogoContent() {
       {/* Wishlist toast */}
       {wishlistToast && (
         <div style={{
-          position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+          position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', zIndex: 200,
           display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', borderRadius: 12,
           background: isDark ? '#1a1a1a' : '#fff', border: `1px solid ${T.border}`,
           boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
@@ -2297,7 +2681,7 @@ function GamerCatalogoContent() {
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           style={{
             position: 'fixed',
-            bottom: 24,
+            bottom: 'calc(24px + env(safe-area-inset-bottom))',
             right: 24,
             zIndex: 100,
             width: 40,
@@ -2343,7 +2727,7 @@ function GamerCatalogoContent() {
           onClose={() => setIsCartDrawerOpen(false)}
           items={cartItems || []}
           onRemoveItem={handleRemoveFromCart}
-          onClearAll={() => { clearCartItems(); setIsCartDrawerOpen(false); }}
+          onClearAll={() => { handleClearCart(); setIsCartDrawerOpen(false); }}
           onContinue={() => { handleCartContinue(); setIsCartDrawerOpen(false); }}
           unavailableIds={unavailableCartIds}
         />

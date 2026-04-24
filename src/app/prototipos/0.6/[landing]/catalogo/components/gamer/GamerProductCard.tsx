@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Heart,
   Cpu,
@@ -27,6 +27,16 @@ interface GamerProductCardProps {
   onSolicitar: () => void;
   isInCart?: boolean;
   isFirstCard?: boolean;
+  /**
+   * When true, reserve vertical space at the bottom of the card to keep row
+   * alignment with sibling promotional cards in the same row.
+   */
+  needsPromoSpacer?: boolean;
+  /**
+   * Called when the card is first hovered. Separate from the internal hover
+   * visual state so the parent can emit analytics/telemetry (e.g. product_hover).
+   */
+  onHoverStart?: () => void;
 }
 
 export function GamerProductCard({
@@ -41,8 +51,11 @@ export function GamerProductCard({
   onSolicitar,
   isInCart = false,
   isFirstCard = false,
+  needsPromoSpacer = false,
+  onHoverStart,
 }: GamerProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const hasFiredHoverRef = useRef(false);
 
   // Spec items helper
   const specItems: { icon: React.ReactNode; label: string }[] = [];
@@ -64,7 +77,13 @@ export function GamerProductCard({
 
   return (
     <div
-      onMouseEnter={() => setIsHovered(true)}
+      onMouseEnter={() => {
+        setIsHovered(true);
+        if (!hasFiredHoverRef.current) {
+          hasFiredHoverRef.current = true;
+          onHoverStart?.();
+        }
+      }}
       onMouseLeave={() => setIsHovered(false)}
       className="flex flex-col"
       style={{
@@ -258,9 +277,25 @@ export function GamerProductCard({
             marginBottom: 16,
           }}
         >
-          {/* Label */}
+          {/* Label + discount badge */}
           <div style={{ height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <span style={{ fontSize: 12, color: T.textMuted }}>Cuota mensual</span>
+            {product.discount && product.discount > 0 ? (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  background: '#ff3366',
+                  color: '#fff',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  letterSpacing: 0.5,
+                }}
+              >
+                -{product.discount}%
+              </span>
+            ) : null}
           </div>
           {/* Main price */}
           <div className="flex items-baseline justify-center gap-0.5" style={{ marginTop: 4 }}>
@@ -283,6 +318,19 @@ export function GamerProductCard({
               /mes
             </span>
           </div>
+          {/* Strikethrough original price when discounted */}
+          {product.originalQuotaMonthly && product.originalQuotaMonthly > product.quotaMonthly ? (
+            <p
+              style={{
+                fontSize: 12,
+                color: T.textMuted,
+                textDecoration: 'line-through',
+                marginTop: 2,
+              }}
+            >
+              Antes S/{product.originalQuotaMonthly}/mes
+            </p>
+          ) : null}
           {/* Sub info */}
           <p
             style={{
@@ -337,6 +385,8 @@ export function GamerProductCard({
             {isInCart ? <><Check className="w-4 h-4" /> En carrito</> : 'Lo quiero'}
           </button>
         </div>
+        {/* Spacer to keep row alignment when a sibling card in the same row is promotional */}
+        {needsPromoSpacer ? <div aria-hidden="true" style={{ height: 32 }} /> : null}
       </div>
     </div>
   );

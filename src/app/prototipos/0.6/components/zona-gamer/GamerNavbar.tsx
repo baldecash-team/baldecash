@@ -74,7 +74,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
   const isMobileViewport = useIsMobile();
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(LANDING_SLUG) ? preview.previewKey : null;
-  const { wishlist, wishlistCount, removeFromWishlist, clearWishlist, cart, cartCount, addToCart, removeFromCart, clearCart, isInCart } = useCatalogSharedState(LANDING_SLUG, previewKey);
+  const { wishlist, wishlistCount, removeFromWishlist, clearWishlist, cart, cartCount, addToCart, removeFromCart, clearCart, isInCart, unavailableWishlistIds } = useCatalogSharedState(LANDING_SLUG, previewKey);
   const layoutCtx = useContext(LayoutContext);
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(layoutCtx?.settings);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
@@ -606,45 +606,89 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                     </div>
                   ) : (
                     <div style={{ maxHeight: 340, overflowY: 'auto', padding: 10 }}>
-                      {wishlist.map((item) => (
-                        <div
-                          key={item.productId}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, background: isDark ? '#222' : '#fafafa', marginBottom: 6 }}
-                        >
+                      {wishlist.map((item) => {
+                        // Build detail URL preserving user's term + initial selection
+                        // so the detail page pre-selects the same plan on reopen.
+                        // Uses item.months (normalized to months) to match the pattern in CatalogoClient normal.
+                        const buildDetailHref = () => {
+                          if (!item.slug) return null;
+                          const base = routes.producto(LANDING_SLUG, item.slug);
+                          const qs = new URLSearchParams();
+                          if (item.months != null) qs.set('term', String(item.months));
+                          if (item.initialPercent != null) qs.set('initial', String(item.initialPercent));
+                          const q = qs.toString();
+                          return q ? `${base}?${q}` : base;
+                        };
+                        const goToDetail = () => {
+                          setIsWishlistDrawerOpen(false);
+                          const href = buildDetailHref();
+                          if (href) router.push(href);
+                        };
+                        const hasInitial = (item.initialAmount ?? 0) > 0;
+                        const isUnavailable = unavailableWishlistIds?.includes(item.productId) ?? false;
+                        return (
                           <div
-                            onClick={() => {
-                              setIsWishlistDrawerOpen(false);
-                              if (item.slug) router.push(routes.producto(LANDING_SLUG, item.slug));
+                            key={item.productId}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 10, padding: 8, borderRadius: 8, marginBottom: 6,
+                              background: isUnavailable
+                                ? (isDark ? 'rgba(234,179,8,0.1)' : '#fffbeb')
+                                : (isDark ? '#222' : '#fafafa'),
+                              border: isUnavailable
+                                ? `1px solid ${isDark ? 'rgba(234,179,8,0.3)' : '#fde68a'}`
+                                : '1px solid transparent',
+                              opacity: isUnavailable ? 0.7 : 1,
                             }}
-                            style={{ width: 44, height: 44, borderRadius: 8, flexShrink: 0, background: isDark ? '#2a2a2a' : '#fff', border: `1px solid ${isDark ? '#333' : '#e5e5e5'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }}
                           >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 11, color: V.textMuted, margin: 0, textTransform: 'uppercase' }}>{item.brand}</p>
-                            <p
-                              onClick={() => {
-                                setIsWishlistDrawerOpen(false);
-                                if (item.slug) router.push(routes.producto(LANDING_SLUG, item.slug));
-                              }}
-                              style={{ fontSize: 12, fontWeight: 600, color: V.textPrimary, margin: 0, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Rajdhani', sans-serif" }}
+                            <div
+                              onClick={isUnavailable ? undefined : goToDetail}
+                              style={{ width: 44, height: 44, borderRadius: 8, flexShrink: 0, background: isDark ? '#2a2a2a' : '#fff', border: `1px solid ${isDark ? '#333' : '#e5e5e5'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: isUnavailable ? 'default' : 'pointer' }}
                             >
-                              {item.name}
-                            </p>
-                            <p style={{ fontSize: 12, fontWeight: 700, color: V.neonCyan, margin: '2px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>
-                              S/{formatMoneyNoDecimals(Math.floor(item.monthlyPayment))}/mes
-                            </p>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 11, color: V.textMuted, margin: 0, textTransform: 'uppercase' }}>{item.brand}</p>
+                              <p
+                                onClick={isUnavailable ? undefined : goToDetail}
+                                style={{ fontSize: 12, fontWeight: 600, color: V.textPrimary, margin: 0, cursor: isUnavailable ? 'default' : 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: "'Rajdhani', sans-serif" }}
+                                title={item.name}
+                              >
+                                {item.name}
+                              </p>
+                              {isUnavailable ? (
+                                <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 600, color: isDark ? '#fcd34d' : '#92400e', background: isDark ? 'rgba(234,179,8,0.18)' : '#fef3c7', padding: '2px 8px', borderRadius: 4, marginTop: 2 }}>
+                                  No disponible
+                                </span>
+                              ) : (
+                                <>
+                                  <p style={{ fontSize: 12, fontWeight: 700, color: V.neonCyan, margin: '2px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>
+                                    S/{formatMoneyNoDecimals(Math.floor(item.monthlyPayment))}/mes
+                                    {item.months ? (
+                                      <span style={{ fontWeight: 400, color: V.textMuted, marginLeft: 4, fontSize: 11 }}>
+                                        x {item.months} meses
+                                      </span>
+                                    ) : null}
+                                  </p>
+                                  {hasInitial && (
+                                    <p style={{ fontSize: 11, color: V.textMuted, margin: '1px 0 0', fontFamily: "'Rajdhani', sans-serif" }}>
+                                      + S/{formatMoneyNoDecimals(Math.floor(item.initialAmount))} inicial
+                                    </p>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => removeFromWishlist(item.productId)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: V.textMuted, display: 'flex' }}
+                              title="Quitar"
+                              aria-label="Quitar de favoritos"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
                           </div>
-                          <button
-                            onClick={() => removeFromWishlist(item.productId)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: V.textMuted, display: 'flex' }}
-                            title="Quitar"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

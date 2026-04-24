@@ -316,7 +316,8 @@ export function AccessoriesSection({
                     <button
                       onClick={() => setCurrentPage((p) => p - 1)}
                       disabled={!canGoBack}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                      aria-label="Página anterior"
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                         canGoBack
                           ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
                           : 'bg-neutral-100 text-neutral-300 cursor-default'
@@ -327,7 +328,8 @@ export function AccessoriesSection({
                     <button
                       onClick={() => setCurrentPage((p) => p + 1)}
                       disabled={!canGoForward}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                      aria-label="Página siguiente"
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
                         canGoForward
                           ? 'bg-[var(--color-primary)] text-white hover:brightness-90'
                           : 'bg-neutral-100 text-neutral-300 cursor-default'

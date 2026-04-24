@@ -334,22 +334,26 @@ function ConfirmacionContent() {
 
   // Fetch application status when code is present
   useEffect(() => {
-    if (applicationCode) {
-      setIsLoadingStatus(true);
+    if (!applicationCode) return;
+    let cancelled = false;
+    setIsLoadingStatus(true);
 
-      getApplicationStatus(applicationCode)
-        .then((data) => {
-          if (data) {
-            setApplicationData(data);
-          }
-        })
-        .catch(() => {
-          // Silently fail - we'll show the page anyway with available data
-        })
-        .finally(() => {
-          setIsLoadingStatus(false);
-        });
-    }
+    getApplicationStatus(applicationCode)
+      .then((data) => {
+        if (cancelled) return;
+        if (data) {
+          setApplicationData(data);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('[Confirmacion] getApplicationStatus failed:', err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingStatus(false);
+      });
+
+    return () => { cancelled = true; };
   }, [applicationCode]);
 
   // Navigation handlers
@@ -363,17 +367,23 @@ function ConfirmacionContent() {
 
   const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
 
+  // 404 if landing not found — checked before the gamer wrap so the user sees
+  // NotFoundContent instead of an empty gamer shell when the landing fails.
+  if (!isLayoutLoading && (hasLayoutError || !navbarProps)) {
+    return <NotFoundContent homeUrl={routes.home()} />;
+  }
+
   // Zona Gamer: wrap antes de checks de layout para asegurar tema dark siempre
   if (isGamer) {
     if (isLoadingStatus) {
       return (
-        <GamerConfirmacionWrapper>
+        <GamerConfirmacionWrapper footerData={footerData}>
           <GamerLoadingFallback />
         </GamerConfirmacionWrapper>
       );
     }
     return (
-      <GamerConfirmacionWrapper>
+      <GamerConfirmacionWrapper footerData={footerData}>
         {applicationCode ? (
           <RealConfirmationContent
             applicationCode={applicationCode}
@@ -436,7 +446,7 @@ function LoadingFallback() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    <div className="bg-neutral-50 flex items-center justify-center" style={{ minHeight: '100svh' }}>
       <CubeGridSpinner />
     </div>
   );
@@ -444,37 +454,42 @@ function LoadingFallback() {
 
 function GamerLoadingFallback() {
   return (
-    <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 200px)' }}>
+    <div className="flex items-center justify-center" style={{ minHeight: 'calc(100svh - 200px)' }}>
       <CubeGridSpinner />
     </div>
   );
 }
 
-function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
+// Gamer theme wrapper.
+// Assumes zona-gamer never runs under a convenio (no ConvenioFooter branch);
+// if that ever changes, add an agreementData prop + branch here.
+function GamerConfirmacionWrapper({ children, footerData }: { children: React.ReactNode; footerData?: import('@/app/prototipos/0.6/types/hero').FooterData | null }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
 
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
-    if (saved) setTheme(saved);
+    try {
+      const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+      if (saved) setTheme(saved);
+    } catch {}
     setHydrated(true);
   }, []);
 
   const handleToggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
-    localStorage.setItem('baldecash-theme', next);
+    try { localStorage.setItem('baldecash-theme', next); } catch {}
   };
   const isDark = theme === 'dark';
 
   if (!hydrated) {
-    return <div className="gamer-theme-bg" style={{ minHeight: '100vh' }} />;
+    return <div className="gamer-theme-bg" style={{ minHeight: '100svh' }} />;
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
+    <div style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
       <style jsx global>{`
         /* Override CSS variables → neon cyan instead of landing purple */
         .gamer-confirmacion-dark {
@@ -624,7 +639,7 @@ function GamerConfirmacionWrapper({ children }: { children: React.ReactNode }) {
         />
         {children}
         <GamerNewsletter theme={theme} />
-        <GamerFooter theme={theme} />
+        <GamerFooter theme={theme} footerData={footerData} />
       </div>
     </div>
   );

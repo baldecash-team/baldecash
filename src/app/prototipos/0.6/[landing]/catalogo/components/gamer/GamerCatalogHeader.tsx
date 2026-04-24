@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Sun, Moon } from 'lucide-react';
 import { type GamerTheme } from './gamerTheme';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
 export function GamerCatalogHeader({
   isDark,
@@ -80,7 +81,7 @@ export function GamerCatalogHeader({
           style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
         >
           <Image
-            src="/images/zona-gamer/logo baldecash/LOGO OFI.png"
+            src={`${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`}
             alt="BaldeCash"
             width={140}
             height={32}

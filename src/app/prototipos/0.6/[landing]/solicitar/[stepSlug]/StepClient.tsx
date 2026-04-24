@@ -102,7 +102,6 @@ function StepContent() {
   const {
     getStepByUrlSlug,
     getNavigation,
-    getUrlSlugForStep,
     steps,
     isLoading: isConfigLoading,
     error: configError
@@ -559,21 +558,32 @@ function StepContent() {
 
   // Error state - step not found
   if (configError || !step) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 mb-2">Error al cargar el formulario</p>
-          <p className="text-sm text-neutral-500 mb-4">
-            No se encontro el paso: {stepSlug}
-          </p>
-          <button
-            onClick={() => router.push(routes.solicitar(landing))}
-            className="text-[var(--color-primary)] underline"
-          >
-            Volver al inicio
-          </button>
+    const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+    const errorContent = (
+      <div className="text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <p className={isGamer ? 'text-red-400 mb-2' : 'text-red-500 mb-2'}>Error al cargar el formulario</p>
+        <p className={`text-sm mb-4 ${isGamer ? 'text-neutral-400' : 'text-neutral-500'}`}>
+          No se encontro el paso: {stepSlug}
+        </p>
+        <button
+          onClick={() => router.push(routes.solicitar(landing))}
+          className={`underline ${isGamer ? 'text-[#00ffd5]' : 'text-[var(--color-primary)]'}`}
+        >
+          Volver al formulario
+        </button>
+      </div>
+    );
+    if (isGamer) {
+      return (
+        <div className="flex items-center justify-center" style={{ minHeight: '100svh', background: '#0e0e0e', color: '#f0f0f0' }}>
+          {errorContent}
         </div>
+      );
+    }
+    return (
+      <div className="bg-neutral-50 flex items-center justify-center" style={{ minHeight: '100svh' }}>
+        {errorContent}
       </div>
     );
   }
@@ -749,7 +759,7 @@ function StepContent() {
     // Zona Gamer: wrap summary with dark theme, gamer navbar and footer
     if (landingId === LANDING_IDS.ZONA_GAMER) {
       return (
-        <GamerWizardWrapper>
+        <GamerWizardWrapper footerData={footerData}>
           {pageContent}
           <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
         </GamerWizardWrapper>
@@ -818,7 +828,7 @@ function StepContent() {
   // Zona Gamer: wrap with dark theme, gamer navbar and footer
   if (landingId === LANDING_IDS.ZONA_GAMER) {
     return (
-      <GamerWizardWrapper>
+      <GamerWizardWrapper footerData={footerData}>
         {pageContent}
         <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
       </GamerWizardWrapper>
@@ -853,8 +863,10 @@ function LoadingFallback() {
   );
 }
 
-// Gamer theme wrapper for zona-gamer wizard steps
-function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
+// Gamer theme wrapper for zona-gamer wizard steps.
+// Assumes zona-gamer never runs under a convenio (no ConvenioFooter branch);
+// if that ever changes, add an agreementData prop + branch here.
+function GamerWizardWrapper({ children, footerData }: { children: React.ReactNode; footerData?: import('@/app/prototipos/0.6/types/hero').FooterData | null }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
@@ -862,14 +874,16 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
 
   // Hydrate theme from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
-    if (saved) setTheme(saved);
+    try {
+      const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+      if (saved) setTheme(saved);
+    } catch {}
     setHydrated(true);
   }, []);
   // Persist theme (solo después de hidratar para no sobrescribir el valor previo en el mount)
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem('baldecash-theme', theme);
+    try { localStorage.setItem('baldecash-theme', theme); } catch {}
   }, [theme, hydrated]);
 
   const isDark = theme === 'dark';
@@ -879,11 +893,11 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (!hydrated) {
-    return <div className="gamer-theme-bg" style={{ minHeight: '100vh' }} />;
+    return <div className="gamer-theme-bg" style={{ minHeight: '100svh' }} />;
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
+    <div style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f5f5f5', color: isDark ? '#f0f0f0' : '#1a1a1a' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap');
         /* Gamer cyan overrides - both dark and light modes */
@@ -1408,11 +1422,9 @@ function GamerWizardWrapper({ children }: { children: React.ReactNode }) {
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
         />
-        {/* Spacer for fixed GamerNavbar */}
-        <div style={{ height: 80 }} />
         {children}
         <GamerNewsletter theme={theme} />
-        <GamerFooter theme={theme} />
+        <GamerFooter theme={theme} footerData={footerData} />
       </div>
     </div>
   );

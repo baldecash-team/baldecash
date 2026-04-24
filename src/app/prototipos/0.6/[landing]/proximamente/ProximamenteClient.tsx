@@ -8,7 +8,7 @@
  */
 
 import React, { Suspense, useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@nextui-org/react';
 import {
   Construction,
@@ -74,13 +74,14 @@ function LoadingFallback() {
     }
   }, []);
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: bg || '#0e0e0e' }} suppressHydrationWarning>
+    <div className="flex items-center justify-center" style={{ minHeight: '100svh', background: bg || '#0e0e0e' }} suppressHydrationWarning>
       <CubeGridSpinner />
     </div>
   );
 }
 
 function ProximamenteContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const seccion = searchParams.get('seccion') || '';
   const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing } = useLayout();
@@ -169,7 +170,6 @@ function ProximamenteContent() {
 
   if (isGamer) {
     const neonCyan = isDark ? '#00ffd5' : '#00897a';
-    const neonPurple = isDark ? '#a855f7' : '#7c3aed';
     const border = isDark ? '#2a2a2a' : '#e0e0e0';
     const bgCard = isDark ? '#1a1a1a' : '#ffffff';
     const textPrimary = isDark ? '#f0f0f0' : '#1a1a1a';
@@ -178,7 +178,7 @@ function ProximamenteContent() {
     const cyanAlpha = (a: number) => isDark ? `rgba(0,255,213,${a})` : `rgba(0,137,122,${a})`;
 
     return (
-      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
+      <div style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
           @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px ${cyanAlpha(0.15)}, 0 0 60px ${cyanAlpha(0.05)}; } 50% { box-shadow: 0 0 30px ${cyanAlpha(0.25)}, 0 0 80px ${cyanAlpha(0.1)}; } }
@@ -248,7 +248,7 @@ function ProximamenteContent() {
 
             {/* Back button */}
             <button
-              onClick={() => window.location.href = routes.landingHome(landing)}
+              onClick={() => router.push(routes.landingHome(landing))}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '13px 32px', borderRadius: 12,
@@ -325,7 +325,7 @@ function ProximamenteContent() {
           </div>
         </main>
         <GamerNewsletter theme={theme} />
-        <GamerFooter theme={theme} />
+        <GamerFooter theme={theme} footerData={footerData} />
       </div>
     );
   }

@@ -86,7 +86,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
           <div className="space-y-4">
             {data.products.map((product, idx) => (
               <div
-                key={idx}
+                key={`${product.name}-${idx}`}
                 className={`flex items-start gap-4 ${idx > 0 ? 'pt-4 border-t border-neutral-100' : ''}`}
               >
                 {/* Product Image */}
@@ -183,7 +183,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
 
       {/* Insurance Card(s) - Separate */}
       {hasInsurance && allInsurances.map((ins, idx) => (
-        <div key={idx} className="bg-[var(--color-secondary)]/5 rounded-xl border border-[var(--color-secondary)]/10 p-4">
+        <div key={`${ins.name}-${idx}`} className="bg-[var(--color-secondary)]/5 rounded-xl border border-[var(--color-secondary)]/10 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-[var(--color-secondary)]" />
@@ -243,7 +243,7 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                   {/* Accessories List */}
                   <div className="space-y-2">
                     {data.accessories.map((acc, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm">
+                      <div key={`${acc.name}-${idx}`} className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2 min-w-0">
                           <Plus className="w-3 h-3 text-[var(--color-primary)] flex-shrink-0" />
                           <span className="text-neutral-700 truncate">{acc.name}</span>

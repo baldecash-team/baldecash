@@ -8,11 +8,11 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Award, Calculator, Calendar, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Loader2, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, CircleAlert } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
-import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
@@ -21,16 +21,20 @@ import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFoo
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { CartDrawer } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CartDrawer';
-import type { CartItem, TermMonths } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import type { CartItem, TermMonths, InitialPaymentPercent, CatalogDeviceType, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import type { ProductSpec, ProductPort, SimilarProduct } from './types/detail';
 
 // localStorage keys — must match ProductContext keys exactly
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
+const getAccessoriesKey = (landing: string) => `baldecash-${landing}-solicitar-selected-accessories`;
 import { generateSpecSheetPDF } from './utils/generateSpecSheetPDF';
 import { generateCronogramaPDF } from './utils/generateCronogramaPDF';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
-import { CubeGridSpinner, Toast, useToast } from '@/app/prototipos/_shared';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
+import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
+import { CubeGridSpinner, Toast, useToast, useScrollToTop } from '@/app/prototipos/_shared';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 
@@ -106,17 +110,36 @@ function LoadingFallback() {
 function DetailContent() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const landing = (params.landing as string) || 'zona-gamer';
   const slugArray = params.slug as string[] | undefined;
   const slug = slugArray?.join('/') || '';
   // Note: we write directly to localStorage instead of using context setters
-  // because each page has its own ProductProvider instance
-  useProduct(); // keep the hook call to ensure context exists
+  // because each page has its own ProductProvider instance.
+
+  // Scroll to top on mount (when arriving from catalog with scroll)
+  useScrollToTop();
+
+  // Read pricing defaults from URL params so user's selection from catalog is preserved
+  const urlDefaultTerm = (() => {
+    const p = searchParams.get('term');
+    if (!p) return undefined;
+    const n = parseInt(p);
+    return isNaN(n) ? undefined : n;
+  })();
+  const urlDefaultInitial = (() => {
+    const p = searchParams.get('initial');
+    if (!p) return undefined;
+    const n = parseInt(p);
+    return isNaN(n) ? undefined : n;
+  })();
+
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const { settings } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const tracker = useEventTrackerOptional();
+  const analytics = useAnalytics();
 
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [themeHydrated, setThemeHydrated] = useState(false);
@@ -133,10 +156,54 @@ function DetailContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
+  // Reset image index when the user navigates to another product (e.g. color sibling)
+  // so the gallery doesn't show a stale index from the previous product.
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [data?.product?.id]);
   const [zoom, setZoom] = useState<{ active: boolean; x: number; y: number }>({ active: false, x: 50, y: 50 });
   const touchStartX = useRef<number | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxZoom, setLightboxZoom] = useState(100);
+
+  // Gallery tracking helpers — emit open/close/zoom/image-change with payloads
+  // identical to the normal landing (parity with ProductGallery.tsx).
+  const openLightbox = useCallback((index: number) => {
+    setLightboxZoom(100);
+    setLightboxOpen(true);
+    if (data?.product) {
+      analytics.trackGalleryLightbox({ open: true, product_id: String(data.product.id), index });
+    }
+  }, [analytics, data]);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxOpen(false);
+    if (data?.product) {
+      analytics.trackGalleryLightbox({ open: false, product_id: String(data.product.id) });
+    }
+  }, [analytics, data]);
+
+  const changeGalleryImage = useCallback((newIndex: number, method: 'thumb' | 'arrow' | 'keyboard' | 'swipe') => {
+    setSelectedImage(newIndex);
+    if (data?.product) {
+      analytics.trackGalleryImageChange({
+        product_id: String(data.product.id),
+        index: newIndex,
+        total: data.product.images?.length ?? 0,
+        method,
+      });
+    }
+  }, [analytics, data]);
+
+  const zoomLightbox = useCallback((direction: 'in' | 'out') => {
+    setLightboxZoom((z) => {
+      const next = direction === 'in' ? Math.min(300, z + 25) : Math.max(50, z - 25);
+      if (data?.product && next !== z) {
+        analytics.trackGalleryZoom({ product_id: String(data.product.id), direction, level: next });
+      }
+      return next;
+    });
+  }, [analytics, data]);
   const [selectedTerm, setSelectedTerm] = useState(12);
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<number>(0);
 
@@ -152,6 +219,20 @@ function DetailContent() {
   // Download loading states
   const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
   const [specDownloadSuccess, setSpecDownloadSuccess] = useState(false);
+
+  // Landing config (drives feature flags like show_platform_commission).
+  // Mirrors ProductDetailClient normal so the cronograma respects the same toggle.
+  const [landingConfig, setLandingConfig] = useState<LandingConfig>(DEFAULT_LANDING_CONFIG);
+  useEffect(() => {
+    let cancelled = false;
+    fetchLandingConfig(landing).then((cfg) => {
+      if (!cancelled) setLandingConfig(cfg);
+    }).catch((err) => {
+      console.warn('[GamerProductDetail] Failed to load landing config:', err);
+    });
+    return () => { cancelled = true; };
+  }, [landing]);
+  const showPlatformCommission = landingConfig.features.show_platform_commission;
 
   // Add to cart handler
   const handleAddToCart = useCallback((cartItem: CartItem) => {
@@ -173,6 +254,8 @@ function DetailContent() {
       price: item.price,
       monthlyPayment: item.monthlyPayment,
       months: item.months,
+      term: item.term ?? item.months,
+      paymentFrequency: item.paymentFrequency,
       initialPercent: item.initialPercent,
       initialAmount: item.initialAmount,
       image: item.image,
@@ -192,6 +275,41 @@ function DetailContent() {
     }
     router.push(routes.solicitar(landing));
   }, [catalogState.cart, router, landing]);
+
+  // Cleanup toast timers on unmount (prevents setState-after-unmount)
+  useEffect(() => () => {
+    if (wishlistToastTimerRef.current) clearTimeout(wishlistToastTimerRef.current);
+    if (specDownloadTimerRef.current) clearTimeout(specDownloadTimerRef.current);
+  }, []);
+
+  // Scroll lock + Escape for the image lightbox (a11y + iOS Safari)
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const savedY = window.scrollY;
+    const prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      overflow: document.body.style.overflow,
+    };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeLightbox(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.position = prev.position;
+      document.body.style.top = prev.top;
+      document.body.style.left = prev.left;
+      document.body.style.right = prev.right;
+      document.body.style.overflow = prev.overflow;
+      window.scrollTo(0, savedY);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [lightboxOpen, closeLightbox]);
 
   // Fetch product data desde el endpoint real de zona-gamer — sin fallback a mocks
   useEffect(() => {
@@ -223,30 +341,49 @@ function DetailContent() {
     return () => { cancelled = true; };
   }, [landing, slug]);
 
-  // Set default term and initial from API response
+  // Set default term and initial: URL params first (user's selection from catalog),
+  // then API defaultTerm/defaultInitial, then fallback to max term / 0.
+  //
+  // Fires once per product (keyed on product.id). Without this guard, any
+  // subsequent mutation of `data` (e.g. after the user switches color and the
+  // fetch replaces `data` with the sibling's) would overwrite the user's manual
+  // term/initial selection.
+  const defaultsAppliedForIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (!data?.paymentPlans?.length) return;
+    const currentId = String(data.product.id);
+    if (defaultsAppliedForIdRef.current === currentId) return;
+    defaultsAppliedForIdRef.current = currentId;
+
     const plans = data.paymentPlans;
-    // Use API defaultTerm if available and valid, otherwise use max term, fallback to first
-    const apiDefault = data.defaultTerm;
-    if (apiDefault != null && plans.some((p) => p.term === apiDefault)) {
-      setSelectedTerm(apiDefault);
+    // Term
+    if (urlDefaultTerm != null && plans.some((p) => p.term === urlDefaultTerm)) {
+      setSelectedTerm(urlDefaultTerm);
+    } else if (data.defaultTerm != null && plans.some((p) => p.term === data.defaultTerm)) {
+      setSelectedTerm(data.defaultTerm);
     } else {
       setSelectedTerm(Math.max(...plans.map((p) => p.term)));
     }
-    // Use API defaultInitial if available
-    if (data.defaultInitial != null) {
+    // Initial
+    if (urlDefaultInitial != null) {
+      setSelectedInitialPercent(urlDefaultInitial);
+    } else if (data.defaultInitial != null) {
       setSelectedInitialPercent(data.defaultInitial);
     }
-  }, [data]);
+  }, [data, urlDefaultTerm, urlDefaultInitial]);
 
-  // Fetch accessories
+  // Fetch accessories — re-runs when the user picks a different plazo so cuotas
+  // are recalculated for the active term. Also passes previewKey and paymentFrequency
+  // so preview mode + semanal/quincenal products get the right price set.
   useEffect(() => {
     let cancelled = false;
     const deviceType = data?.product?.deviceType;
-    const term = data?.paymentPlans?.[0]?.term;
     if (!deviceType) return;
-    getLandingAccessories(landing, deviceType, term).then((items) => {
+    // Use the user-selected term (falls back to the first plan's term on first render
+    // before defaults settle).
+    const term = selectedTerm || data?.paymentPlans?.[0]?.term;
+    const paymentFrequency = data?.paymentFrequencies?.[0];
+    getLandingAccessories(landing, deviceType, term, previewKey, paymentFrequency).then((items) => {
       if (cancelled || !items?.length) return;
       setAccessories(items.map((a) => ({
         id: a.id,
@@ -259,9 +396,12 @@ function DetailContent() {
         category: a.category?.name || null,
         brand: a.brand?.name || null,
       })));
-    }).catch(() => { /* silently ignore — accessories are optional */ });
+    }).catch((err) => {
+      // Accessories are optional — log for visibility but don't break the page.
+      console.warn('[GamerProductDetail] Failed to load accessories:', err);
+    });
     return () => { cancelled = true; };
-  }, [landing, data]);
+  }, [landing, data, selectedTerm, previewKey]);
 
   const product = data?.product;
 
@@ -292,6 +432,53 @@ function DetailContent() {
   const lowestOption = activePlan?.options?.find((o) => o.initialPercent === selectedInitialPercent) || activePlan?.options?.[0];
   const isWishlisted = product ? catalogState.isInWishlist(String(product.id)) : false;
 
+  // Month-equivalent of the selected term. For semanal (term=48 weeks → 12 months)
+  // or quincenal (term=24 fortnights → 12 months) we need the normalized value
+  // so wishlist/cart items show the right plazo regardless of frequency.
+  const selectedTermMonths = useMemo(() => {
+    const plan = paymentPlans.find((p) => p.term === selectedTerm);
+    return plan?.termMonths ?? selectedTerm;
+  }, [paymentPlans, selectedTerm]);
+
+  // Tracked setters: emit analytics when the user (not the URL/API default) changes pricing.
+  const handleTermChange = useCallback((nextTerm: number) => {
+    if (nextTerm === selectedTerm || !product) return;
+    analytics.trackPricingTermChange({
+      product_id: String(product.id),
+      from: selectedTerm,
+      to: nextTerm,
+      context: 'detail',
+      frequency: data?.paymentFrequencies?.[0],
+    });
+    setSelectedTerm(nextTerm);
+  }, [analytics, selectedTerm, product, data]);
+
+  const handleInitialChange = useCallback((nextInitial: number) => {
+    if (nextInitial === selectedInitialPercent || !product) return;
+    analytics.trackPricingInitialChange({
+      product_id: String(product.id),
+      from: selectedInitialPercent,
+      to: nextInitial,
+      context: 'detail',
+    });
+    setSelectedInitialPercent(nextInitial);
+  }, [analytics, selectedInitialPercent, product]);
+
+  // Transform PaymentPlan[] to CartPaymentPlan[] so persisted items match
+  // the shape the solicitar flow expects (parity with ProductDetail normal).
+  const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
+    return paymentPlans.map((plan) => ({
+      term: plan.term,
+      termMonths: plan.termMonths ?? null,
+      options: plan.options.map((opt) => ({
+        initialPercent: opt.initialPercent,
+        initialAmount: opt.initialAmount,
+        monthlyQuota: opt.monthlyQuota,
+        originalQuota: opt.originalQuota,
+      })),
+    }));
+  }, [paymentPlans]);
+
   // Color siblings (other color variants of the same product)
   const hasSiblings = (product?.colorSiblings?.length ?? 0) > 1;
   const siblingColors = hasSiblings
@@ -307,19 +494,44 @@ function DetailContent() {
     if (hasSiblings && product?.colorSiblings) {
       const sibling = product.colorSiblings.find((s) => String(s.productId) === colorId);
       if (sibling && sibling.slug !== product.slug) {
-        router.push(routes.producto(landing, sibling.slug));
+        analytics.trackColorSelect({
+          product_id: String(product.id),
+          color_id: colorId,
+          color_name: sibling.color,
+          navigates_to_sibling: true,
+        });
+        // Preserve the user's term + initial choice so the sibling doesn't reset pricing.
+        const base = routes.producto(landing, sibling.slug);
+        const qs = new URLSearchParams();
+        if (selectedTerm) qs.set('term', String(selectedTerm));
+        if (selectedInitialPercent != null) qs.set('initial', String(selectedInitialPercent));
+        const q = qs.toString();
+        router.push(q ? `${base}?${q}` : base);
         return;
       }
     }
+    if (product) {
+      const selectedColor = displayColors.find((c) => c.id === colorId);
+      analytics.trackColorSelect({
+        product_id: String(product.id),
+        color_id: colorId,
+        color_name: selectedColor?.name,
+        navigates_to_sibling: false,
+      });
+    }
     setSelectedColorId(colorId);
-  }, [hasSiblings, product, router, landing]);
+  }, [hasSiblings, product, router, landing, analytics, displayColors, selectedTerm, selectedInitialPercent]);
 
   const [wishlistToast, setWishlistToast] = useState<string | null>(null);
+  const wishlistToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const specDownloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleToggleWishlist = () => {
     if (!product) return;
     const pid = String(product.id);
     const wasWishlisted = catalogState.isInWishlist(pid);
+    const selectedColor = displayColors.find((c) => c.id === selectedColorId);
+    const initialAmount = lowestOption?.initialAmount ?? Math.round((product.price * (selectedInitialPercent || 0)) / 100);
     catalogState.toggleWishlist({
       productId: pid,
       name: product.displayName || product.name,
@@ -330,17 +542,26 @@ function DetailContent() {
       brand: product.brand,
       slug: product.slug,
       type: product.deviceType as 'laptop' | 'tablet' | 'celular' | 'accesorio',
-      months: (selectedTerm || 24) as TermMonths,
+      months: (selectedTermMonths || 24) as TermMonths,
+      term: selectedTerm ?? undefined,
+      paymentFrequency: data?.paymentFrequencies?.[0],
       initialPercent: (selectedInitialPercent || 0) as 0 | 10 | 20,
-      initialAmount: Math.round((product.price * (selectedInitialPercent || 0)) / 100),
+      initialAmount,
       monthlyPayment: lowestOption?.monthlyQuota || 0,
-      variantId: selectedColorId || undefined,
-      colorName: displayColors.find((c) => c.id === selectedColorId)?.name,
-      colorHex: displayColors.find((c) => c.id === selectedColorId)?.hex,
+      // Priorize backend variantId (e.g. SKU) over the color swatch id.
+      variantId: (product as { variantId?: string | number }).variantId != null
+        ? String((product as { variantId: string | number }).variantId)
+        : (selectedColorId || undefined),
+      colorName: selectedColor?.name,
+      colorHex: selectedColor?.hex,
       addedAt: Date.now(),
     });
     setWishlistToast(wasWishlisted ? 'Eliminado de favoritos' : 'Agregado a favoritos');
-    setTimeout(() => setWishlistToast(null), 2500);
+    if (wishlistToastTimerRef.current) clearTimeout(wishlistToastTimerRef.current);
+    wishlistToastTimerRef.current = setTimeout(() => {
+      setWishlistToast(null);
+      wishlistToastTimerRef.current = null;
+    }, 2500);
   };
 
   const handleSolicitar = useCallback(() => {
@@ -348,6 +569,8 @@ function DetailContent() {
 
     if (ALLOW_MULTI_PRODUCT) {
       // Multi-product mode: add to cart
+      const selectedColor = displayColors.find((c) => c.id === selectedColorId);
+      const initialAmount = lowestOption?.initialAmount ?? Math.round((product.price * (selectedInitialPercent || 0)) / 100);
       const cartItem: CartItem = {
         productId: String(product.id),
         slug: product.slug,
@@ -356,12 +579,20 @@ function DetailContent() {
         brand: product.brand,
         image: productThumbnail,
         price: product.price,
-        months: (selectedTerm || 24) as TermMonths,
-        initialPercent: (selectedInitialPercent || 0) as 0 | 10 | 20 | 30,
-        initialAmount: Math.round((product.price * (selectedInitialPercent || 0)) / 100),
+        months: (selectedTermMonths || 24) as TermMonths,
+        term: selectedTerm ?? undefined,
+        paymentFrequency: data?.paymentFrequencies?.[0],
+        initialPercent: (selectedInitialPercent || 0) as InitialPaymentPercent,
+        initialAmount,
         monthlyPayment: lowestOption?.monthlyQuota || 0,
-        type: product.deviceType,
+        type: product.deviceType as CatalogDeviceType,
+        variantId: (product as { variantId?: string | number }).variantId != null
+          ? String((product as { variantId: string | number }).variantId)
+          : (selectedColorId || undefined),
+        colorName: selectedColor?.name,
+        colorHex: selectedColor?.hex,
         addedAt: Date.now(),
+        paymentPlans: cartPaymentPlans.length > 0 ? cartPaymentPlans : undefined,
         specs: product.specs?.length ? {
           processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model'),
           ram: getSpecValue('memoria', 'capacidad') || getSpecValue('ram', 'size'),
@@ -379,6 +610,7 @@ function DetailContent() {
 
     // Single-product mode: save directly to localStorage (like normal landing)
     // This ensures data persists across page navigation since each page has its own ProductProvider
+    const selectedColor = displayColors.find((c) => c.id === selectedColorId);
     const selectedProductData = {
       id: String(product.id),
       slug: product.slug,
@@ -387,27 +619,35 @@ function DetailContent() {
       brand: product.brand,
       price: Math.floor(product.price),
       monthlyPayment: lowestOption?.monthlyQuota || 0,
-      months: selectedTerm || 24,
+      months: selectedTermMonths || 24,
+      term: selectedTerm ?? undefined,
+      paymentFrequency: data?.paymentFrequencies?.[0],
       initialPercent: selectedInitialPercent || 0,
-      initialAmount: lowestOption?.initialAmount || Math.round((product.price * (selectedInitialPercent || 0)) / 100),
+      initialAmount: lowestOption?.initialAmount ?? Math.round((product.price * (selectedInitialPercent || 0)) / 100),
       image: productThumbnail,
       type: product.deviceType,
+      variantId: (product as { variantId?: string | number }).variantId != null
+        ? String((product as { variantId: string | number }).variantId)
+        : (selectedColorId || undefined),
+      colorName: selectedColor?.name,
+      colorHex: selectedColor?.hex,
       specs: product.specs?.length ? {
         processor: getSpecValue('procesador', 'modelo') || getSpecValue('processor', 'model'),
         ram: getSpecValue('memoria', 'capacidad') || getSpecValue('ram', 'size'),
         storage: getSpecValue('almacenamiento', 'capacidad') || getSpecValue('storage', 'size'),
       } : undefined,
-      paymentPlans: paymentPlans.length > 0 ? paymentPlans : undefined,
+      paymentPlans: cartPaymentPlans.length > 0 ? cartPaymentPlans : undefined,
     };
     try {
       localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProductData));
-      // Clear cart products since this is a single product selection
+      // User explicitly picked THIS single product — wipe stale cart + accessories
       localStorage.removeItem(getCartProductsKey(landing));
+      localStorage.removeItem(getAccessoriesKey(landing));
     } catch {
       // localStorage not available
     }
     router.push(routes.solicitar(landing));
-  }, [product, landing, router, lowestOption, selectedTerm, selectedInitialPercent, ALLOW_MULTI_PRODUCT, catalogState, handleAddToCart, paymentPlans]);
+  }, [product, landing, router, lowestOption, selectedTerm, selectedTermMonths, selectedInitialPercent, ALLOW_MULTI_PRODUCT, catalogState, handleAddToCart, cartPaymentPlans, data, productThumbnail, getSpecValue, selectedColorId, displayColors]);
 
   if (isLoading) return <LoadingFallback />;
 
@@ -707,7 +947,19 @@ function DetailContent() {
       />
 
       {/* SIDE NAV - only visible on xl+ */}
-      <SideNav isDark={isDark} T={T} />
+      <SideNav
+        isDark={isDark}
+        T={T}
+        hasDescription={!!product.description}
+        hasAccessories={accessories.length > 0}
+        hasSimilar={similarProducts.length > 0}
+        onTabClick={(sectionId) => {
+          analytics.trackDetailTabClick({
+            product_id: String(product.id),
+            section: sectionId,
+          });
+        }}
+      />
 
       {/* MAIN CONTENT */}
       <main style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(12px, 3vw, 24px) clamp(8px, 3vw, 16px) 48px' }} className="detail-main product-font">
@@ -766,20 +1018,26 @@ function DetailContent() {
               {displayColors.length > 1 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10 }}>
                   <span style={{ fontSize: 12, color: T.textMuted, fontFamily: F.mono }}>Color:</span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {displayColors.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => handleColorSelect(c.id)}
-                        title={c.name}
-                        style={{
-                          width: 28, height: 28, borderRadius: '50%', border: c.id === selectedColorId ? `2px solid ${T.neonCyan}` : `2px solid ${T.border}`,
-                          background: c.hex || '#888', cursor: 'pointer', padding: 0,
-                          boxShadow: c.id === selectedColorId ? `0 0 8px ${T.neonCyan}40` : 'none',
-                          transition: 'all 0.2s',
-                        }}
-                      />
-                    ))}
+                  <div role="radiogroup" aria-label="Colores disponibles" style={{ display: 'flex', gap: 6 }}>
+                    {displayColors.map((c) => {
+                      const isSelected = c.id === selectedColorId;
+                      return (
+                        <button
+                          key={c.id}
+                          onClick={() => handleColorSelect(c.id)}
+                          role="radio"
+                          aria-checked={isSelected}
+                          aria-label={c.name}
+                          title={c.name}
+                          style={{
+                            width: 28, height: 28, borderRadius: '50%', border: isSelected ? `2px solid ${T.neonCyan}` : `2px solid ${T.border}`,
+                            background: c.hex || '#888', cursor: 'pointer', padding: 0,
+                            boxShadow: isSelected ? `0 0 8px ${T.neonCyan}40` : 'none',
+                            transition: 'all 0.2s',
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -795,8 +1053,8 @@ function DetailContent() {
                 const dx = e.changedTouches[0].clientX - touchStartX.current;
                 touchStartX.current = null;
                 if (Math.abs(dx) < 50) return;
-                if (dx < 0 && selectedImage < images.length - 1) setSelectedImage(selectedImage + 1);
-                else if (dx > 0 && selectedImage > 0) setSelectedImage(selectedImage - 1);
+                if (dx < 0 && selectedImage < images.length - 1) changeGalleryImage(selectedImage + 1, 'swipe');
+                else if (dx > 0 && selectedImage > 0) changeGalleryImage(selectedImage - 1, 'swipe');
               }}
               {...(currentImage.type !== 'video' && {
                 onMouseEnter: () => setZoom((z) => ({ ...z, active: true })),
@@ -807,10 +1065,10 @@ function DetailContent() {
                   const y = ((e.clientY - rect.top) / rect.height) * 100;
                   setZoom({ active: true, x, y });
                 },
-                onClick: () => { setLightboxZoom(100); setLightboxOpen(true); },
+                onClick: () => openLightbox(selectedImage),
                 role: 'button',
                 tabIndex: 0,
-                onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Enter' || e.key === ' ') { setLightboxZoom(100); setLightboxOpen(true); } },
+                onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => { if (e.key === 'Enter' || e.key === ' ') openLightbox(selectedImage); },
               })}
             >
               {currentImage.type === 'video' ? (
@@ -867,7 +1125,7 @@ function DetailContent() {
                     return (
                       <div
                         key={img.id}
-                        onClick={() => setSelectedImage(idx)}
+                        onClick={() => changeGalleryImage(idx, 'thumb')}
                         role="button"
                         tabIndex={0}
                         style={{
@@ -954,15 +1212,21 @@ function DetailContent() {
                     {activePlan.options.map((opt) => {
                       const isActive = opt.initialPercent === selectedInitialPercent;
                       return (
-                        <button key={opt.initialPercent} onClick={() => setSelectedInitialPercent(opt.initialPercent)} style={{
-                          padding: '10px 16px', fontSize: 14, fontFamily: F.raj, borderRadius: 999, cursor: 'pointer', transition: 'all 0.2s',
-                          minHeight: 40,
-                          fontWeight: isActive ? 700 : 500,
-                          background: isActive ? T.neonCyan : (isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5'),
-                          color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
-                          border: `1px solid ${isActive ? T.neonCyan : 'transparent'}`,
-                          boxShadow: isActive ? `0 2px 10px rgba(0,255,213,0.35)` : 'none',
-                        }}>
+                        <button
+                          key={opt.initialPercent}
+                          onClick={() => handleInitialChange(opt.initialPercent)}
+                          aria-pressed={isActive}
+                          aria-label={opt.initialPercent === 0 ? 'Sin cuota inicial' : `Cuota inicial ${opt.initialPercent}% (S/${Math.round(opt.initialAmount)})`}
+                          style={{
+                            padding: '10px 16px', fontSize: 14, fontFamily: F.raj, borderRadius: 999, cursor: 'pointer', transition: 'all 0.2s',
+                            minHeight: 40,
+                            fontWeight: isActive ? 700 : 500,
+                            background: isActive ? T.neonCyan : (isDark ? 'rgba(255,255,255,0.06)' : '#f5f5f5'),
+                            color: isActive ? (isDark ? '#0a0a0a' : '#fff') : T.textSecondary,
+                            border: `1px solid ${isActive ? T.neonCyan : 'transparent'}`,
+                            boxShadow: isActive ? `0 2px 10px rgba(0,255,213,0.35)` : 'none',
+                          }}
+                        >
                           {opt.initialPercent === 0 ? 'Sin inicial' : `S/${Math.round(opt.initialAmount)}`}
                         </button>
                       );
@@ -980,13 +1244,19 @@ function DetailContent() {
                     const originalOpt = opt?.originalQuota;
                     const isSelected = term === selectedTerm;
                     return (
-                      <button key={term} onClick={() => setSelectedTerm(term)} style={{
-                        position: 'relative', padding: 12, borderRadius: 10, cursor: 'pointer', transition: 'all 0.3s', textAlign: 'center',
-                        background: isSelected ? T.neonCyan : T.bgSurface,
-                        border: isSelected ? `2px solid ${T.neonCyan}` : `2px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
-                        transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                        boxShadow: isSelected ? (isDark ? '0 8px 24px rgba(0,255,213,0.35)' : '0 8px 24px rgba(0,137,122,0.3)') : 'none',
-                      }}>
+                      <button
+                        key={term}
+                        onClick={() => handleTermChange(term)}
+                        aria-pressed={isSelected}
+                        aria-label={`Plazo de ${term} meses — cuota S/${opt ? Math.round(opt.monthlyQuota) : 'no disponible'} mensual`}
+                        style={{
+                          position: 'relative', padding: 12, borderRadius: 10, cursor: 'pointer', transition: 'all 0.3s', textAlign: 'center',
+                          background: isSelected ? T.neonCyan : T.bgSurface,
+                          border: isSelected ? `2px solid ${T.neonCyan}` : `2px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
+                          transform: isSelected ? 'scale(1.05)' : 'scale(1)',
+                          boxShadow: isSelected ? (isDark ? '0 8px 24px rgba(0,255,213,0.35)' : '0 8px 24px rgba(0,137,122,0.3)') : 'none',
+                        }}
+                      >
                         {isSelected && (
                           <div style={{ position: 'absolute', top: -7, right: -7, background: '#10b981', color: '#fff', fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 999 }}>✓</div>
                         )}
@@ -1034,29 +1304,76 @@ function DetailContent() {
               </div>
             ) : (
               <div className="gamer-detail-cta-bar">
-                {ALLOW_MULTI_PRODUCT && product && catalogState.isInCart(String(product.id)) ? (
-                  <button
-                    onClick={() => setIsCartDrawerOpen(true)}
-                    className="btn-loquiero-detalle"
-                    style={{
-                      flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)',
-                      background: isDark ? '#1a3a35' : '#e6faf7',
-                      border: `2px solid ${T.neonCyan}60`,
-                      color: T.neonCyan,
-                    }}
-                  >
-                    <CheckCircle size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
-                    En carrito
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleSolicitar}
-                    className="btn-loquiero-detalle"
-                    style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}
-                  >
-                    {ALLOW_MULTI_PRODUCT ? 'Agregar al carrito' : '¡Lo quiero!'}
-                  </button>
-                )}
+                {(() => {
+                  // Multi-product mode: detect whether the product is in cart with a different
+                  // config than the one currently selected. If so, offer "Actualizar carrito"
+                  // instead of leaving the user stuck with the old config.
+                  if (!ALLOW_MULTI_PRODUCT || !product) {
+                    return (
+                      <button
+                        onClick={handleSolicitar}
+                        className="btn-loquiero-detalle"
+                        style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}
+                      >
+                        ¡Lo quiero!
+                      </button>
+                    );
+                  }
+                  const pid = String(product.id);
+                  const cartItem = catalogState.getCartItem(pid);
+                  if (!cartItem) {
+                    return (
+                      <button
+                        onClick={handleSolicitar}
+                        className="btn-loquiero-detalle"
+                        style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}
+                      >
+                        Agregar al carrito
+                      </button>
+                    );
+                  }
+                  const configChanged =
+                    cartItem.months !== (selectedTermMonths || 24) ||
+                    cartItem.initialPercent !== (selectedInitialPercent || 0);
+                  if (configChanged) {
+                    return (
+                      <button
+                        onClick={() => {
+                          const initialAmount = lowestOption?.initialAmount ?? Math.round((product.price * (selectedInitialPercent || 0)) / 100);
+                          catalogState.updateCartItem(pid, {
+                            months: (selectedTermMonths || 24) as TermMonths,
+                            term: selectedTerm ?? undefined,
+                            paymentFrequency: data?.paymentFrequencies?.[0],
+                            initialPercent: (selectedInitialPercent || 0) as InitialPaymentPercent,
+                            initialAmount,
+                            monthlyPayment: lowestOption?.monthlyQuota || 0,
+                            paymentPlans: cartPaymentPlans.length > 0 ? cartPaymentPlans : undefined,
+                          });
+                          showToast('Carrito actualizado', 'success');
+                        }}
+                        className="btn-loquiero-detalle"
+                        style={{ flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)' }}
+                      >
+                        Actualizar carrito
+                      </button>
+                    );
+                  }
+                  return (
+                    <button
+                      onClick={() => setIsCartDrawerOpen(true)}
+                      className="btn-loquiero-detalle"
+                      style={{
+                        flex: 1, padding: '14px 0', fontSize: 'clamp(0.95rem, 3vw, 1.1rem)',
+                        background: isDark ? '#1a3a35' : '#e6faf7',
+                        border: `2px solid ${T.neonCyan}60`,
+                        color: T.neonCyan,
+                      }}
+                    >
+                      <CheckCircle size={18} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 8 }} />
+                      En carrito
+                    </button>
+                  );
+                })()}
                 <button
                   onClick={handleToggleWishlist}
                   className={`gamer-detail-cta-heart${isWishlisted ? ' is-wishlisted' : ''}`}
@@ -1153,6 +1470,10 @@ function DetailContent() {
               onClick={async () => {
                 if (isGeneratingSpec) return;
                 setIsGeneratingSpec(true);
+                analytics.trackSpecSheetDownload({
+                  product_id: String(product.id),
+                  format: 'pdf',
+                });
                 try {
                   await generateSpecSheetPDF({
                     productName: product.displayName || product.name,
@@ -1169,7 +1490,11 @@ function DetailContent() {
                     darkMode: isDark,
                   });
                   setSpecDownloadSuccess(true);
-                  setTimeout(() => setSpecDownloadSuccess(false), 3000);
+                  if (specDownloadTimerRef.current) clearTimeout(specDownloadTimerRef.current);
+                  specDownloadTimerRef.current = setTimeout(() => {
+                    setSpecDownloadSuccess(false);
+                    specDownloadTimerRef.current = null;
+                  }, 3000);
                 } catch (e) {
                   console.error('Error generando PDF:', e);
                 } finally {
@@ -1198,13 +1523,51 @@ function DetailContent() {
 
       {/* CRONOGRAMA / DETALLE DE CUOTAS */}
       <div id="cronograma">
-        <CronogramaSection T={T} isDark={isDark} selectedTerm={selectedTerm} monthlyQuota={lowestOption?.monthlyQuota || product.lowestQuota} price={product.price} commission={lowestOption?.commissionAmount || null} productName={product.displayName || product.name} productBrand={product.brand} tea={activePlan?.tea ?? lowestOption?.tea} tcea={activePlan?.tcea ?? lowestOption?.tcea} />
+        <CronogramaSection
+          T={T}
+          isDark={isDark}
+          selectedTerm={selectedTerm}
+          monthlyQuota={lowestOption?.monthlyQuota || product.lowestQuota}
+          price={product.price}
+          commission={showPlatformCommission ? (lowestOption?.commissionAmount || null) : null}
+          productName={product.displayName || product.name}
+          productBrand={product.brand}
+          /* TEA/TCEA priority: selected option first (backend may set it per initial%), then plan,
+             then null (no amortization). Matches Cronograma normal behavior. */
+          tea={lowestOption?.tea ?? activePlan?.tea ?? null}
+          tcea={lowestOption?.tcea ?? activePlan?.tcea ?? null}
+          onTrackDownload={() => {
+            analytics.trackCronogramaDownload({
+              product_id: String(product.id),
+              term: selectedTerm,
+              initial_percent: selectedInitialPercent,
+            });
+          }}
+          onTrackModal={(open) => {
+            analytics.trackCronogramaModal({ open, product_id: String(product.id) });
+          }}
+          onTrackExpand={(expanded) => {
+            analytics.trackCronogramaExpand({
+              product_id: String(product.id),
+              expanded,
+              term: selectedTerm,
+            });
+          }}
+        />
       </div>
 
       {/* ACCESSORIES */}
       {accessories.length > 0 && (
         <div id="accesorios">
-          <AccessoriesCarousel T={T} isDark={isDark} accessories={accessories} selectedTerm={selectedTerm} />
+          <AccessoriesCarousel
+            T={T}
+            isDark={isDark}
+            accessories={accessories}
+            selectedTerm={selectedTerm}
+            onTrackView={(accId, accName) => {
+              analytics.trackAccessoryView({ accessory_id: accId, accessory_name: accName });
+            }}
+          />
         </div>
       )}
 
@@ -1220,6 +1583,19 @@ function DetailContent() {
             allowMultiProduct={ALLOW_MULTI_PRODUCT}
             onAddToCart={handleAddToCart}
             isInCart={(id) => catalogState.isInCart(id)}
+            onTrackClick={(targetId, position) => {
+              analytics.trackSimilarProductClick({
+                source_product_id: String(product.id),
+                target_product_id: targetId,
+                position,
+              });
+            }}
+            onTrackAddToCart={(targetId) => {
+              analytics.trackSimilarProductAddToCart({
+                source_product_id: String(product.id),
+                target_product_id: targetId,
+              });
+            }}
           />
         )}
       </div>
@@ -1305,13 +1681,13 @@ function DetailContent() {
       {lightboxOpen && (
         <div
           style={{
-            position: 'fixed', inset: 0, zIndex: 10000,
+            position: 'fixed', inset: 0, zIndex: 310,
             background: isDark ? 'rgba(0,0,0,0.92)' : 'rgba(255,255,255,0.96)',
             backdropFilter: 'blur(8px)',
             display: 'flex', flexDirection: 'column',
             animation: 'fadeIn 0.2s ease-out',
           }}
-          onClick={() => setLightboxOpen(false)}
+          onClick={closeLightbox}
         >
           {/* Top bar: zoom controls + close */}
           <div
@@ -1326,7 +1702,7 @@ function DetailContent() {
               borderRadius: 999, padding: '6px 14px',
             }}>
               <button
-                onClick={() => setLightboxZoom((z) => Math.max(50, z - 25))}
+                onClick={() => zoomLightbox('out')}
                 disabled={lightboxZoom <= 50}
                 aria-label="Reducir zoom"
                 style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'transparent', color: T.textPrimary, cursor: lightboxZoom <= 50 ? 'not-allowed' : 'pointer', opacity: lightboxZoom <= 50 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1337,7 +1713,7 @@ function DetailContent() {
                 {lightboxZoom}%
               </span>
               <button
-                onClick={() => setLightboxZoom((z) => Math.min(300, z + 25))}
+                onClick={() => zoomLightbox('in')}
                 disabled={lightboxZoom >= 300}
                 aria-label="Aumentar zoom"
                 style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'transparent', color: T.textPrimary, cursor: lightboxZoom >= 300 ? 'not-allowed' : 'pointer', opacity: lightboxZoom >= 300 ? 0.4 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1346,7 +1722,7 @@ function DetailContent() {
               </button>
             </div>
             <button
-              onClick={() => setLightboxOpen(false)}
+              onClick={closeLightbox}
               aria-label="Cerrar"
               style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', color: T.textPrimary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
@@ -1399,7 +1775,7 @@ function DetailContent() {
                   return (
                     <div
                       key={img.id}
-                      onClick={() => { setSelectedImage(idx); setLightboxZoom(100); }}
+                      onClick={() => { changeGalleryImage(idx, 'thumb'); setLightboxZoom(100); }}
                       role="button"
                       tabIndex={0}
                       style={{
@@ -1544,7 +1920,9 @@ function cyanAlphaFn(isDark: boolean) {
 // Side Navigation
 // ============================================
 
-const SIDE_NAV_ITEMS = [
+type SideNavItem = { id: string; icon: React.ComponentType<{ className?: string }>; label: string };
+
+const SIDE_NAV_ITEMS_ALL: SideNavItem[] = [
   { id: 'section-gallery', icon: ImageIcon, label: 'Galería' },
   { id: 'section-pricing', icon: Calculator, label: 'Cuotas' },
   { id: 'section-description', icon: FileText, label: 'Descripción' },
@@ -1554,7 +1932,30 @@ const SIDE_NAV_ITEMS = [
   { id: 'similares', icon: Package, label: 'Similares' },
 ];
 
-function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
+function SideNav({
+  isDark,
+  T,
+  hasDescription,
+  hasAccessories,
+  hasSimilar,
+  onTabClick,
+}: {
+  isDark: boolean;
+  T: Theme;
+  hasDescription: boolean;
+  hasAccessories: boolean;
+  hasSimilar: boolean;
+  onTabClick?: (sectionId: string) => void;
+}) {
+  // Only show sections that will actually render in the DOM, so clicking a nav
+  // item never scrolls to nothing. Parity with DetailTabs normal.
+  const SIDE_NAV_ITEMS: SideNavItem[] = SIDE_NAV_ITEMS_ALL.filter((item) => {
+    if (item.id === 'section-description') return hasDescription;
+    if (item.id === 'accesorios') return hasAccessories;
+    if (item.id === 'similares') return hasSimilar;
+    return true;
+  });
+
   const [activeSection, setActiveSection] = useState('section-gallery');
   const manualOverride = useRef<string | null>(null);
   const overrideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1588,6 +1989,8 @@ function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
     setActiveSection(id);
     if (overrideTimer.current) clearTimeout(overrideTimer.current);
     overrideTimer.current = setTimeout(() => { manualOverride.current = null; }, 1000);
+
+    onTabClick?.(id);
 
     const el = document.getElementById(id);
     if (el) {
@@ -1642,11 +2045,37 @@ function SideNav({ isDark, T }: { isDark: boolean; T: Theme }) {
 // ============================================
 
 function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, totalPagar, tea, tcea, commission, onClose, onDownloadPdf, isDownloading }: { T: Theme; isDark: boolean; price: number; monthlyQuota: number; selectedTerm: number; totalPagar: number; tea?: number | null; tcea?: number | null; commission?: number | null; onClose: () => void; onDownloadPdf: () => void; isDownloading?: boolean }) {
-  // Block body scroll while modal is open
+  // Block body scroll while modal is open (save/restore scrollY for iOS Safari)
   useEffect(() => {
+    const savedY = window.scrollY;
+    const prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      overflow: document.body.style.overflow,
+    };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.position = prev.position;
+      document.body.style.top = prev.top;
+      document.body.style.left = prev.left;
+      document.body.style.right = prev.right;
+      document.body.style.overflow = prev.overflow;
+      window.scrollTo(0, savedY);
+    };
   }, []);
+
+  // Close with Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const bg = isDark ? '#1a1a1a' : '#fff';
   const surface = isDark ? '#252525' : '#fafafa';
@@ -1658,7 +2087,7 @@ function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, tot
   const purple = T.neonPurple;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
       {/* Backdrop with blur */}
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
 
@@ -1674,7 +2103,7 @@ function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, tot
             <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', margin: 0 }}>Detalle del Financiamiento</h3>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0 }}>Información completa de tu crédito</p>
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <button onClick={onClose} aria-label="Cerrar detalle de financiamiento" style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
             <X size={16} style={{ color: '#fff' }} />
           </button>
         </div>
@@ -1773,7 +2202,35 @@ function FinanciamientoModal({ T, isDark, price, monthlyQuota, selectedTerm, tot
 
 const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
 
-function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commission, productName, productBrand, tea, tcea }: { T: Theme; isDark: boolean; selectedTerm: number; monthlyQuota: number; price: number; commission: number | null; productName: string; productBrand: string; tea?: number | null; tcea?: number | null }) {
+function CronogramaSection({
+  T,
+  isDark,
+  selectedTerm,
+  monthlyQuota,
+  price,
+  commission,
+  productName,
+  productBrand,
+  tea,
+  tcea,
+  onTrackDownload,
+  onTrackModal,
+  onTrackExpand,
+}: {
+  T: Theme;
+  isDark: boolean;
+  selectedTerm: number;
+  monthlyQuota: number;
+  price: number;
+  commission: number | null;
+  productName: string;
+  productBrand: string;
+  tea?: number | null;
+  tcea?: number | null;
+  onTrackDownload?: () => void;
+  onTrackModal?: (open: boolean) => void;
+  onTrackExpand?: (expanded: boolean) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [isGeneratingCronoPDF, setIsGeneratingCronoPDF] = useState(false);
@@ -1840,6 +2297,7 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
   const handleDownloadCronograma = useCallback(async () => {
     if (isGeneratingCronoPDF) return;
     setIsGeneratingCronoPDF(true);
+    onTrackDownload?.();
     try {
       await generateCronogramaPDF({
         productName,
@@ -1875,7 +2333,7 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
     } finally {
       setIsGeneratingCronoPDF(false);
     }
-  }, [price, selectedTerm, monthlyQuota, productName, productBrand, tea, tcea, rows, totalPagar, isDark, isGeneratingCronoPDF]);
+  }, [price, selectedTerm, monthlyQuota, productName, productBrand, tea, tcea, rows, totalPagar, isDark, isGeneratingCronoPDF, onTrackDownload]);
 
   return (
     <section style={{ maxWidth: 1280, margin: '0 auto 48px', padding: '0 clamp(8px, 3vw, 24px)' }}>
@@ -1893,7 +2351,16 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
           </div>
         </div>
 
-        {/* Table */}
+        {/* Empty state when backend doesn't provide TEA (we can't compute amortization without it) */}
+        {rows.length === 0 ? (
+          <div style={{ padding: '32px 16px', textAlign: 'center', borderRadius: 12, border: `1px dashed ${isDark ? T.border : '#e5e7eb'}`, color: isDark ? '#a0a0a0' : '#737373' }}>
+            <Info size={20} style={{ marginBottom: 8, color: T.neonCyan }} />
+            <p style={{ fontSize: 14, margin: 0 }}>
+              El cronograma detallado no está disponible para este producto.
+            </p>
+          </div>
+        ) : (
+        /* Table */
         <div style={{ overflowX: 'auto', borderRadius: 12, border: `1px solid ${isDark ? T.border : '#e5e7eb'}` }}>
           <table style={{ width: '100%', minWidth: 520, borderCollapse: 'collapse' }}>
             <thead>
@@ -1922,10 +2389,11 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
             </tbody>
           </table>
         </div>
+        )}
 
         {/* Toggle button */}
         {rows.length > 6 && (
-          <button onClick={() => setExpanded(!expanded)} style={{ width: '100%', marginTop: 16, padding: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: T.neonCyan, background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>
+          <button onClick={() => { const next = !expanded; setExpanded(next); onTrackExpand?.(next); }} style={{ width: '100%', marginTop: 16, padding: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, fontWeight: 500, color: T.neonCyan, background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer', transition: 'background 0.2s' }}>
             {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             {expanded ? 'Ver menos' : 'Ver todo'}
           </button>
@@ -1933,7 +2401,7 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
 
         {/* Footer: total + buttons */}
         <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-          <button onClick={() => setShowDetail(true)} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', borderRadius: 10, border: `2px solid ${T.neonCyan}`, background: 'transparent', color: T.neonCyan, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
+          <button onClick={() => { setShowDetail(true); onTrackModal?.(true); }} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px 16px', borderRadius: 10, border: `2px solid ${T.neonCyan}`, background: 'transparent', color: T.neonCyan, fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
             <Info size={16} />
             Ver detalle de pago
           </button>
@@ -1945,7 +2413,7 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
       </div>
 
       {/* Modal: Detalle del Financiamiento */}
-      {showDetail && <FinanciamientoModal T={T} isDark={isDark} price={price} monthlyQuota={monthlyQuota} selectedTerm={selectedTerm} totalPagar={totalPagar} tea={tea} tcea={tcea} commission={commission} onClose={() => setShowDetail(false)} onDownloadPdf={handleDownloadCronograma} isDownloading={isGeneratingCronoPDF} />}
+      {showDetail && <FinanciamientoModal T={T} isDark={isDark} price={price} monthlyQuota={monthlyQuota} selectedTerm={selectedTerm} totalPagar={totalPagar} tea={tea} tcea={tcea} commission={commission} onClose={() => { setShowDetail(false); onTrackModal?.(false); }} onDownloadPdf={handleDownloadCronograma} isDownloading={isGeneratingCronoPDF} />}
     </section>
   );
 }
@@ -1958,11 +2426,40 @@ function CronogramaSection({ T, isDark, selectedTerm, monthlyQuota, price, commi
 // Accessories Carousel
 // ============================================
 
-function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Theme; isDark: boolean; accessories: { id: string; name: string; description: string; price: number; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]; selectedTerm: number }) {
+function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView }: { T: Theme; isDark: boolean; accessories: { id: string; name: string; description: string; price: number; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]; selectedTerm: number; onTrackView?: (accessoryId: string, accessoryName: string) => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [accDetailId, setAccDetailId] = useState<string | null>(null);
+
+  // Scroll lock + Escape when the accessory detail modal is open
+  useEffect(() => {
+    if (!accDetailId) return;
+    const savedY = window.scrollY;
+    const prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      overflow: document.body.style.overflow,
+    };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAccDetailId(null); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.position = prev.position;
+      document.body.style.top = prev.top;
+      document.body.style.left = prev.left;
+      document.body.style.right = prev.right;
+      document.body.style.overflow = prev.overflow;
+      window.scrollTo(0, savedY);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [accDetailId]);
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -2057,7 +2554,11 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Them
                   {/* Ver detalles */}
                   {acc.description && (
                     <div
-                      onClick={(e) => { e.stopPropagation(); setAccDetailId(acc.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAccDetailId(acc.id);
+                        onTrackView?.(acc.id, acc.name);
+                      }}
                       role="button"
                       tabIndex={0}
                       style={{
@@ -2088,9 +2589,9 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Them
         const acc = accessories.find((a) => a.id === accDetailId);
         if (!acc) return null;
         return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setAccDetailId(null)}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setAccDetailId(null)}>
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} />
-            <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 448, maxHeight: 'calc(100vh - 8rem)', display: 'flex', flexDirection: 'column', background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 448, maxHeight: 'calc(100svh - 8rem)', display: 'flex', flexDirection: 'column', background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
               {/* Header */}
               <div style={{
                 background: isDark ? '#1e1e1e' : '#f5f5f5',
@@ -2104,7 +2605,7 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Them
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</h2>
                   <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{acc.category || acc.brand || 'Accesorio'}</p>
                 </div>
-                <button onClick={() => setAccDetailId(null)} style={{ width: 28, height: 28, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <button onClick={() => setAccDetailId(null)} aria-label="Cerrar detalle del accesorio" style={{ width: 40, height: 40, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                   <X size={16} style={{ color: T.textSecondary }} />
                 </button>
               </div>
@@ -2138,7 +2639,29 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm }: { T: Them
 // Similar Products Section
 // ============================================
 
-function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, landing, allowMultiProduct = false, onAddToCart, isInCart }: { T: Theme; isDark: boolean; similarProducts: SimilarProduct[]; currentQuota: number; landing: string; allowMultiProduct?: boolean; onAddToCart?: (item: CartItem) => void; isInCart?: (id: string) => boolean }) {
+function SimilarProductsSection({
+  T,
+  isDark,
+  similarProducts,
+  currentQuota,
+  landing,
+  allowMultiProduct = false,
+  onAddToCart,
+  isInCart,
+  onTrackClick,
+  onTrackAddToCart,
+}: {
+  T: Theme;
+  isDark: boolean;
+  similarProducts: SimilarProduct[];
+  currentQuota: number;
+  landing: string;
+  allowMultiProduct?: boolean;
+  onAddToCart?: (item: CartItem) => void;
+  isInCart?: (id: string) => boolean;
+  onTrackClick?: (targetId: string, position: number) => void;
+  onTrackAddToCart?: (targetId: string) => void;
+}) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -2149,7 +2672,36 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
   // Per-product selected image index
   const [imgIdx, setImgIdx] = useState<Record<string, number>>({});
   // Modal state for multi-product cart selection
-  const [modalProd, setModalProd] = useState<SimilarProduct | null>(null);
+  const [modalProd, setModalProd] = useState<(SimilarProduct & { __position?: number }) | null>(null);
+
+  // Scroll lock + Escape when the cart-selection modal is open
+  useEffect(() => {
+    if (!modalProd) return;
+    const savedY = window.scrollY;
+    const prev = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      left: document.body.style.left,
+      right: document.body.style.right,
+      overflow: document.body.style.overflow,
+    };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${savedY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setModalProd(null); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.position = prev.position;
+      document.body.style.top = prev.top;
+      document.body.style.left = prev.left;
+      document.body.style.right = prev.right;
+      document.body.style.overflow = prev.overflow;
+      window.scrollTo(0, savedY);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [modalProd]);
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
@@ -2183,7 +2735,7 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
 
         {/* Carousel */}
         <div ref={scrollRef} onScroll={updateScrollState} style={{ display: 'flex', gap: 16, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 24, scrollbarWidth: 'none' }}>
-          {products.map((prod) => {
+          {products.map((prod, position) => {
             // quotaDifference viene del backend; si no, calculamos vs la cuota actual
             const diff = prod.quotaDifference != null ? prod.quotaDifference : Math.round(prod.monthlyQuota) - Math.round(currentQuota);
             const isCheaper = diff < 0;
@@ -2191,6 +2743,11 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
             const diffTags = prod.differentiators?.filter((d) => d.toLowerCase() !== prod.brand.toLowerCase()).slice(0, 3) || [];
             const imageUrls = prod.images && prod.images.length > 0 ? prod.images.map((img) => img.url) : [prod.thumbnail];
             const currentImg = imageUrls[imgIdx[prod.id] || 0] || prod.thumbnail;
+            // Navigate + emit trackSimilarProductClick once per navigation trigger.
+            const goToDetail = () => {
+              onTrackClick?.(prod.id, position);
+              router.push(routes.producto(landing, prod.slug));
+            };
             return (
               <div key={prod.id} style={{ width: 300, minWidth: 300, flexShrink: 0, scrollSnapAlign: 'start' }}>
                 <div style={{ height: '100%', borderRadius: 16, overflow: 'hidden', background: isDark ? T.bgSurface : '#fff', boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 16px rgba(0,0,0,0.08)', transition: 'all 0.2s', display: 'flex', flexDirection: 'column' }}>
@@ -2232,7 +2789,7 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
                   {/* Content */}
                   <div style={{ padding: 20, textAlign: 'center', display: 'flex', flexDirection: 'column', flex: 1 }}>
                     <p style={{ fontSize: 12, color: T.neonCyan, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{prod.brand}</p>
-                    <h3 title={displayName} style={{ fontWeight: 700, color: isDark ? '#fff' : '#262626', fontSize: 18, marginBottom: 12, minHeight: '3.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', cursor: 'pointer' }} onClick={() => router.push(routes.producto(landing, prod.slug))}>{displayName}</h3>
+                    <h3 title={displayName} style={{ fontWeight: 700, color: isDark ? '#fff' : '#262626', fontSize: 18, marginBottom: 12, minHeight: '3.5rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', cursor: 'pointer' }} onClick={goToDetail}>{displayName}</h3>
 
                     {/* Differentiator tags */}
                     {diffTags.length > 0 && (
@@ -2260,7 +2817,7 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
 
                     {/* Buttons */}
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => router.push(routes.producto(landing, prod.slug))} style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: `2px solid ${T.neonCyan}`, background: 'transparent', color: T.neonCyan, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <button onClick={goToDetail} style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: `2px solid ${T.neonCyan}`, background: 'transparent', color: T.neonCyan, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                         <Eye size={18} className="hidden md:block" />
                         Detalle
                       </button>
@@ -2268,10 +2825,10 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
                         onClick={() => {
                           if (allowMultiProduct && isInCart?.(prod.id)) return;
                           if (allowMultiProduct && onAddToCart) {
-                            setModalProd(prod);
+                            setModalProd({ ...prod, __position: position });
                           } else {
                             // Single mode: navigate to product detail so user can configure term/initial
-                            router.push(routes.producto(landing, prod.slug));
+                            goToDetail();
                           }
                         }}
                         className="btn-loquiero-detalle"
@@ -2300,7 +2857,7 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
 
       {/* Cart selection modal for multi-product */}
       {allowMultiProduct && modalProd && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setModalProd(null)}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setModalProd(null)}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} />
           <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 400, background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
             {/* Product preview */}
@@ -2312,14 +2869,18 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
                 <p style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{modalProd.displayName}</p>
                 <p style={{ fontSize: 15, fontWeight: 800, color: T.neonCyan, margin: 0 }}>S/{Math.round(modalProd.monthlyQuota)}/mes</p>
               </div>
-              <button onClick={() => setModalProd(null)} style={{ width: 28, height: 28, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <button onClick={() => setModalProd(null)} aria-label="Cerrar" style={{ width: 40, height: 40, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                 <X size={16} style={{ color: T.textSecondary }} />
               </button>
             </div>
             {/* Options */}
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
-                onClick={() => { router.push(routes.producto(landing, modalProd.slug)); setModalProd(null); }}
+                onClick={() => {
+                  onTrackClick?.(modalProd.id, modalProd.__position ?? 0);
+                  router.push(routes.producto(landing, modalProd.slug));
+                  setModalProd(null);
+                }}
                 style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: `2px solid ${T.neonCyan}`, background: 'transparent', color: T.neonCyan, fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}
               >
                 <Eye size={20} />
@@ -2345,6 +2906,7 @@ function SimilarProductsSection({ T, isDark, similarProducts, currentQuota, land
                       monthlyPayment: modalProd.monthlyQuota,
                       addedAt: Date.now(),
                     });
+                    onTrackAddToCart?.(modalProd.id);
                   }
                   setModalProd(null);
                 }}

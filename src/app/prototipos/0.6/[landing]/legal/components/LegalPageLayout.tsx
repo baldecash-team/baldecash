@@ -14,6 +14,7 @@ import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
+import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
@@ -58,7 +59,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
   // Wait until theme is read from localStorage before rendering gamer layout
   if (isGamer && theme === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f2f2f2' }}>
+      <div className="flex items-center justify-center" style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f2f2f2' }}>
         <CubeGridSpinner />
       </div>
     );
@@ -68,7 +69,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
   if (isLoading) {
     if (isGamer) {
       return (
-        <div className="min-h-screen flex items-center justify-center" style={{ background: isDark ? '#0e0e0e' : '#f2f2f2' }}>
+        <div className="flex items-center justify-center" style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f2f2f2' }}>
           <CubeGridSpinner />
         </div>
       );
@@ -82,7 +83,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
   }
 
   // ====== GAMER LAYOUT ======
-  if (isGamer) {
+  if (isGamer && theme !== null) {
     const neonCyan = isDark ? '#00ffd5' : '#00897a';
     const border = isDark ? '#2a2a2a' : '#e0e0e0';
     const bgCard = isDark ? '#1a1a1a' : '#ffffff';
@@ -91,14 +92,14 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
     const textMuted = isDark ? '#707070' : '#888';
 
     return (
-      <div style={{ minHeight: '100vh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
+      <div style={{ minHeight: '100svh', background: isDark ? '#0e0e0e' : '#f2f2f2', color: textPrimary, fontFamily: "'Rajdhani', sans-serif" }}>
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
         `}</style>
 
         {/* Header — shared GamerNavbar */}
         <GamerNavbar
-          theme={theme || 'dark'}
+          theme={theme}
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
@@ -150,7 +151,8 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
           </div>
         </main>
 
-        <GamerFooter theme={theme || 'dark'} footerData={footerData} />
+        <GamerNewsletter theme={theme} />
+        <GamerFooter theme={theme} footerData={footerData} />
       </div>
     );
   }
