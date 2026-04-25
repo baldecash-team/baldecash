@@ -271,6 +271,8 @@ export function useSubmitApplication(
           variant_id: primaryProduct.variantId
             ? parseInt(primaryProduct.variantId, 10)
             : undefined,
+          // Raw term in native units of payment_frequency (no conversion)
+          term: primaryProduct.term ?? primaryProduct.months,
           term_months: primaryProduct.months,
           initial_percent: primaryProduct.initialPercent ?? 0, // Send selection, backend calculates amounts
           initial_amount: primaryProduct.initialAmount ?? 0,
@@ -284,6 +286,8 @@ export function useSubmitApplication(
             quantity: 1,
             unit_price: p.price,
             monthly_price: p.monthlyPayment,  // Cuota mensual con intereses
+            term: p.term ?? p.months,
+            term_months: p.months,
             initial_percent: p.initialPercent ?? 0,
             initial_amount: p.initialAmount ?? 0,
             payment_frequency: p.paymentFrequency,
