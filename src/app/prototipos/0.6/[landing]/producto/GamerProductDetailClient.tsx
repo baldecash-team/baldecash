@@ -12,7 +12,8 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Award, Calculator, Calendar, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Loader2, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, CircleAlert } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
-import { ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import type { Accessory } from '@/app/prototipos/0.6/[landing]/solicitar/types/upsell';
 import { fetchProductDetail, ProductDetailResult } from './api/productDetailApi';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
@@ -208,13 +209,28 @@ function DetailContent() {
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<number>(0);
 
   // Accessories
-  const [accessories, setAccessories] = useState<{ id: string; name: string; description: string; price: number; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]>([]);
+  const [accessories, setAccessories] = useState<Accessory[]>([]);
 
   const catalogState = useCatalogSharedState(landing, previewKey);
 
   // Cart UI state
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const { toast, showToast, hideToast, isVisible: isToastVisible } = useToast(4000);
+
+  // Accessory toast (matches wishlist toast styling in GamerCatalogoClient)
+  const [accessoryToast, setAccessoryToast] = useState<{ message: string; isAdded: boolean } | null>(null);
+  const accessoryToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const triggerAccessoryToast = useCallback((message: string, isAdded: boolean) => {
+    setAccessoryToast({ message, isAdded });
+    if (accessoryToastTimerRef.current) clearTimeout(accessoryToastTimerRef.current);
+    accessoryToastTimerRef.current = setTimeout(() => {
+      setAccessoryToast(null);
+      accessoryToastTimerRef.current = null;
+    }, 2500);
+  }, []);
+  useEffect(() => () => {
+    if (accessoryToastTimerRef.current) clearTimeout(accessoryToastTimerRef.current);
+  }, []);
 
   // Download loading states
   const [isGeneratingSpec, setIsGeneratingSpec] = useState(false);
@@ -391,10 +407,14 @@ function DetailContent() {
         description: a.description || '',
         price: a.price || 0,
         image: a.thumbnail_url || a.image,
+        thumbnailUrl: a.thumbnail_url,
         monthlyQuota: a.monthlyQuota,
         term: a.term,
-        category: a.category?.name || null,
-        brand: a.brand?.name || null,
+        category: a.category ?? null,
+        isRecommended: a.isRecommended,
+        compatibleWith: a.compatibleWith,
+        specs: a.specs,
+        brand: a.brand ?? null,
       })));
     }).catch((err) => {
       // Accessories are optional — log for visibility but don't break the page.
@@ -640,9 +660,9 @@ function DetailContent() {
     };
     try {
       localStorage.setItem(getStorageKey(landing), JSON.stringify(selectedProductData));
-      // User explicitly picked THIS single product — wipe stale cart + accessories
+      // User explicitly picked THIS single product — wipe stale cart only.
+      // Accessories pre-selected in this page must carry over to the wizard.
       localStorage.removeItem(getCartProductsKey(landing));
-      localStorage.removeItem(getAccessoriesKey(landing));
     } catch {
       // localStorage not available
     }
@@ -1567,6 +1587,7 @@ function DetailContent() {
             onTrackView={(accId, accName) => {
               analytics.trackAccessoryView({ accessory_id: accId, accessory_name: accName });
             }}
+            onToggleFeedback={(msg, variant) => triggerAccessoryToast(msg, variant === 'success')}
           />
         </div>
       )}
@@ -1668,6 +1689,22 @@ function DetailContent() {
           duration={4000}
           position="bottom"
         />
+      )}
+
+      {/* Accessory toast — gamer style, matches wishlist toast */}
+      {accessoryToast && (
+        <div style={{
+          position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+          display: 'flex', alignItems: 'center', gap: 10, padding: '12px 20px', borderRadius: 12,
+          background: isDark ? '#1a1a1a' : '#fff', border: `1px solid ${T.border}`,
+          boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
+          fontSize: 13, fontWeight: 500, color: T.textPrimary,
+          fontFamily: "'Rajdhani', sans-serif", animation: 'accToastFadeIn 0.25s ease-out',
+        }}>
+          <style>{`@keyframes accToastFadeIn { from { opacity:0; transform:translateX(-50%) translateY(12px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }`}</style>
+          <Heart size={16} style={{ color: T.neonCyan, fill: accessoryToast.isAdded ? T.neonCyan : 'none' }} />
+          {accessoryToast.message}
+        </div>
       )}
 
       {/* Newsletter — before footer */}
@@ -2426,11 +2463,13 @@ function CronogramaSection({
 // Accessories Carousel
 // ============================================
 
-function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView }: { T: Theme; isDark: boolean; accessories: { id: string; name: string; description: string; price: number; image: string; monthlyQuota: number; term?: number; category: string | null; brand: string | null }[]; selectedTerm: number; onTrackView?: (accessoryId: string, accessoryName: string) => void }) {
+function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView, onToggleFeedback }: { T: Theme; isDark: boolean; accessories: Accessory[]; selectedTerm: number; onTrackView?: (accessoryId: string, accessoryName: string) => void; onToggleFeedback?: (message: string, variant: 'success' | 'info') => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [accDetailId, setAccDetailId] = useState<string | null>(null);
+  const { selectedAccessories, toggleAccessory } = useProduct();
+  const selectedIds = useMemo(() => new Set(selectedAccessories.map((a) => a.id)), [selectedAccessories]);
 
   // Scroll lock + Escape when the accessory detail modal is open
   useEffect(() => {
@@ -2498,15 +2537,41 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView
 
         {/* Carousel */}
         <div ref={scrollRef} onScroll={updateScrollState} style={{ display: 'flex', gap: 14, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 8, scrollbarWidth: 'none' }}>
-          {accessories.map((acc) => (
+          {accessories.map((acc) => {
+            const isSelected = selectedIds.has(acc.id);
+            const handleCardToggle = () => {
+              const wasSelected = selectedIds.has(acc.id);
+              toggleAccessory(acc);
+              onToggleFeedback?.(
+                wasSelected ? 'Accesorio quitado' : 'Se agregará al financiamiento de tu laptop',
+                wasSelected ? 'info' : 'success',
+              );
+            };
+            return (
             <div key={acc.id} style={{ width: 220, minWidth: 220, flexShrink: 0, scrollSnapAlign: 'start' }}>
-              <div style={{
-                height: '100%', borderRadius: 14, overflow: 'hidden',
-                background: isDark ? T.bgSurface : '#fafafa',
-                border: `1px solid ${isDark ? T.border : '#e5e7eb'}`,
-                display: 'flex', flexDirection: 'column',
-                transition: 'all 0.2s',
-              }}>
+              <div
+                role="button"
+                tabIndex={0}
+                aria-pressed={isSelected}
+                onClick={handleCardToggle}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCardToggle();
+                  }
+                }}
+                style={{
+                  height: '100%', borderRadius: 14, overflow: 'hidden',
+                  background: isDark ? T.bgSurface : '#fafafa',
+                  border: `${isSelected ? 2 : 1}px solid ${isSelected ? T.neonCyan : (isDark ? T.border : '#e5e7eb')}`,
+                  display: 'flex', flexDirection: 'column',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                  boxShadow: isSelected
+                    ? (isDark ? '0 0 0 3px rgba(0,255,213,0.12)' : '0 0 0 3px rgba(0,137,122,0.12)')
+                    : 'none',
+                }}
+              >
                 {/* Image */}
                 <div style={{ padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 120 }}>
                   <Image
@@ -2521,9 +2586,9 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView
                 {/* Content */}
                 <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                   {/* Category */}
-                  {acc.category && (
+                  {acc.category?.name && (
                     <span style={{ fontSize: 10, color: T.neonCyan, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                      {acc.category}
+                      {acc.category.name}
                     </span>
                   )}
 
@@ -2551,31 +2616,50 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView
                     <span style={{ fontSize: 10, color: isDark ? '#555' : '#999' }}>en {acc.term} meses</span>
                   )}
 
-                  {/* Ver detalles */}
-                  {acc.description && (
-                    <div
+                  {/* Action row: Ver detalles + Agregar */}
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    {acc.description && (
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAccDetailId(acc.id);
+                          onTrackView?.(acc.id, acc.name);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        style={{
+                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          fontSize: 11, color: T.neonCyan, background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)',
+                          fontWeight: 500, padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                          transition: 'background 0.2s', fontFamily: "'Rajdhani', sans-serif",
+                        }}
+                      >
+                        <Info size={12} />
+                        Ver detalles
+                      </div>
+                    )}
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setAccDetailId(acc.id);
-                        onTrackView?.(acc.id, acc.name);
+                        handleCardToggle();
                       }}
-                      role="button"
-                      tabIndex={0}
                       style={{
-                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        fontSize: 11, color: T.neonCyan, background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)',
-                        fontWeight: 500, padding: '6px 10px', borderRadius: 8, marginTop: 8, cursor: 'pointer',
-                        transition: 'background 0.2s', fontFamily: "'Rajdhani', sans-serif",
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        fontSize: 11, fontWeight: 600,
+                        color: isSelected ? (isDark ? '#0a0a0a' : '#fff') : T.neonCyan,
+                        background: isSelected ? T.neonCyan : (isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)'),
+                        border: 'none', padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
+                        transition: 'all 0.2s', fontFamily: "'Rajdhani', sans-serif",
                       }}
                     >
-                      <Info size={12} />
-                      Ver detalles
-                    </div>
-                  )}
+                      {isSelected ? <><Check size={12} />Agregado</> : <><Plus size={12} />Agregar</>}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Mobile hint */}
@@ -2603,7 +2687,7 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</h2>
-                  <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{acc.category || acc.brand || 'Accesorio'}</p>
+                  <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{acc.category?.name || acc.brand?.name || 'Accesorio'}</p>
                 </div>
                 <button onClick={() => setAccDetailId(null)} aria-label="Cerrar detalle del accesorio" style={{ width: 40, height: 40, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
                   <X size={16} style={{ color: T.textSecondary }} />
