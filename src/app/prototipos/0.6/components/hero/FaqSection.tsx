@@ -22,6 +22,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { FaqSectionProps } from '../../types/hero';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 // Mapeo de nombres de iconos a componentes
 const iconMap: Record<string, React.ElementType> = {
@@ -60,6 +61,7 @@ const defaultCategoryColors: Record<string, string> = {
 };
 
 export const FaqSection: React.FC<FaqSectionProps> = ({ data, underlineStyle = 4 }) => {
+  const tracker = useEventTrackerOptional();
   // Evitar hydration mismatch con Accordion IDs
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
@@ -105,6 +107,14 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ data, underlineStyle = 4
               variant="splitted"
               selectionMode="multiple"
               className="gap-3"
+              onSelectionChange={(keys) => {
+                const selected = keys as Set<string>;
+                if (selected.size > 0) {
+                  const lastKey = Array.from(selected).pop();
+                  const item = data.items.find((i) => String(i.id) === lastKey);
+                  if (item) tracker?.track('faq_toggle', { question_id: item.id, category: item.category });
+                }
+              }}
               itemClasses={{
                 base: 'bg-white border border-neutral-200 rounded-xl px-4 shadow-sm hover:shadow-md transition-all',
                 title: 'font-medium text-neutral-800 text-left',

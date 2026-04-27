@@ -93,7 +93,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
   // Handle CTA click - external links in new tab, anchors with smooth scroll
   const handleCtaClick = () => {
-    tracker?.track('cta_click', { cta_name: 'hero_primary', text: primaryCta?.text, href: ctaUrl, location: 'hero_banner' });
+    tracker?.track('hero_cta_click', { cta_name: 'hero_primary', text: primaryCta?.text, href: ctaUrl, location: 'hero_banner' });
     if (isExternalLink(ctaUrl)) {
       window.open(ctaUrl, '_blank', 'noopener,noreferrer');
     } else if (isAnchorLink(ctaUrl)) {

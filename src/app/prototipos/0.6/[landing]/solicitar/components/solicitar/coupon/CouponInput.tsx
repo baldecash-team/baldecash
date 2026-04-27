@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Tag, Loader2, Check, X, Sparkles } from 'lucide-react';
 import { useProduct } from '../../../context/ProductContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
+import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 
 type CouponState = 'idle' | 'validating' | 'success' | 'error';
 
@@ -40,6 +41,7 @@ interface CouponInputProps {
 }
 
 export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) => {
+  const tracker = useEventTrackerOptional();
   const [couponCode, setCouponCode] = useState('');
   const [state, setState] = useState<CouponState>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -94,19 +96,33 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
           couponType: data.coupon_type || 'fixed',
           quotasAffected: data.quotas_affected || undefined,
         });
+        tracker?.track('coupon_applied', {
+          coupon_code: data.code,
+          coupon_type: data.coupon_type,
+          discount_value: data.value,
+        });
       } else {
         setState('error');
         setErrorMessage(data.error_message || 'Cupón no válido o expirado');
+        tracker?.track('coupon_error', {
+          coupon_code: couponCode.trim(),
+          error_message: data.error_message ?? 'invalid',
+        });
         setTimeout(() => setState('idle'), 2000);
       }
     } catch {
       setState('error');
       setErrorMessage('Error al validar el cupón. Intenta nuevamente.');
+      tracker?.track('coupon_error', {
+        coupon_code: couponCode.trim(),
+        error_message: 'network_error',
+      });
       setTimeout(() => setState('idle'), 2000);
     }
   };
 
   const handleRemoveCoupon = () => {
+    tracker?.track('coupon_removed', { coupon_code: appliedCoupon?.code });
     clearCoupon();
     setCouponCode('');
     setState('idle');

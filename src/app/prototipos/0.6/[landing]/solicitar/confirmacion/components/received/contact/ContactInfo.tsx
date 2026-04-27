@@ -8,12 +8,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageCircle, HelpCircle, Home, ArrowRight } from 'lucide-react';
+import { useEventTrackerOptional } from '../../../../context/EventTrackerContext';
 
 interface ContactInfoProps {
   onGoToHome?: () => void;
 }
 
 export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
+  const tracker = useEventTrackerOptional();
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -32,7 +34,10 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
             Nuestro equipo está disponible para ayudarte con cualquier consulta sobre tu solicitud.
           </p>
           <button
-            onClick={() => window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer')}
+            onClick={() => {
+              tracker?.track('cta_click', { cta_name: 'whatsapp_support', location: 'confirmacion' });
+              window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer');
+            }}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-semibold rounded-xl cursor-pointer transition-colors"
           >
             <MessageCircle className="w-4 h-4 flex-shrink-0" />
@@ -44,7 +49,10 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
 
       {/* Home CTA */}
       <button
-        onClick={onGoToHome}
+        onClick={() => {
+          tracker?.track('cta_click', { cta_name: 'go_home', location: 'confirmacion' });
+          onGoToHome?.();
+        }}
         className="w-full flex items-center justify-center gap-2 py-3 min-h-[44px] text-sm text-neutral-400 hover:text-neutral-600 cursor-pointer transition-colors"
       >
         <Home className="w-4 h-4" />

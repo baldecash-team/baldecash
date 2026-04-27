@@ -267,6 +267,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const handleToggleWishlist = useCallback(() => {
     if (!onToggleWishlist || !pricingSelection) return;
 
+    analytics.track(isInWishlist ? 'wishlist_remove' : 'wishlist_add', {
+      product_id: product.id,
+      product_name: product.name,
+      brand: product.brand,
+      source: 'product_detail',
+    });
+
     const selectedColor = displayColors?.find(c => c.id === selectedColorId);
 
     const wishlistItem: WishlistItem = {
@@ -290,7 +297,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     };
 
     onToggleWishlist(wishlistItem);
-  }, [onToggleWishlist, pricingSelection, displayColors, selectedColorId, product]);
+  }, [onToggleWishlist, pricingSelection, displayColors, selectedColorId, product, isInWishlist, analytics]);
 
   // Only show ports for laptops
   const showPorts = deviceType === 'laptop' && product.ports.length > 0;
@@ -322,6 +329,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   };
 
   const handleSolicitar = () => {
+    analytics.track('product_cta_click', {
+      product_id: product.id,
+      product_name: product.name,
+      brand: product.brand,
+      term: selectedTermMonths ?? pricingSelection?.term ?? 24,
+      initial_percent: pricingSelection?.initialPercent ?? 0,
+      monthly_quota: Math.floor(pricingSelection?.monthlyQuota ?? product.lowestQuota),
+      location: 'product_detail',
+    });
     // Use the user's selection from PricingCalculator, or fallback to defaults
     // Round to whole numbers to match the display format
     const monthlyQuota = Math.floor(pricingSelection?.monthlyQuota ?? product.lowestQuota);
@@ -493,6 +509,15 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                   const handleCartAction = () => {
                     if (!isInCart) {
                       handleAddToCart();
+                      analytics.track('cart_add', {
+                        product_id: product.id,
+                        product_name: product.name,
+                        brand: product.brand,
+                        months: selectedTermMonths ?? pricingSelection?.term,
+                        monthly_payment: pricingSelection?.monthlyQuota,
+                        initial_percent: pricingSelection?.initialPercent,
+                        source: 'product_detail',
+                      });
                     } else if (configChanged && onUpdateCart && pricingSelection) {
                       onUpdateCart(product.id, {
                         months: (selectedTermMonths ?? pricingSelection.term) as TermMonths,
@@ -500,8 +525,20 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                         initialAmount: pricingSelection.initialAmount,
                         monthlyPayment: pricingSelection.monthlyQuota,
                       });
+                      analytics.track('cart_update', {
+                        product_id: product.id,
+                        product_name: product.name,
+                        months: selectedTermMonths ?? pricingSelection.term,
+                        initial_percent: pricingSelection.initialPercent,
+                        source: 'product_detail',
+                      });
                     } else if (onRemoveFromCart) {
                       onRemoveFromCart(product.id);
+                      analytics.track('cart_remove', {
+                        product_id: product.id,
+                        product_name: product.name,
+                        source: 'product_detail',
+                      });
                     }
                   };
 

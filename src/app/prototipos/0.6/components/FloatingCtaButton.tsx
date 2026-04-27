@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import { type FloatingCtaConfig } from '../types/landingConfig';
 import { GraduationCap, X, ArrowRight } from 'lucide-react';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface FloatingCtaButtonProps {
   config: FloatingCtaConfig | null;
 }
 
 export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
+  const tracker = useEventTrackerOptional();
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!config) return null;
@@ -38,6 +40,7 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full rounded-full bg-[#03DBD0] px-5 py-2.5 text-sm font-semibold text-[#1a1a2e] no-underline transition-all hover:brightness-110"
+          onClick={() => tracker?.track('cta_click', { cta_name: 'floating_cta_link', href: config.url, location: 'floating' })}
         >
           {config.cta_text}
           <ArrowRight className="h-4 w-4" />
@@ -48,7 +51,10 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
 
   return (
     <button
-      onClick={() => setIsExpanded(true)}
+      onClick={() => {
+        tracker?.track('cta_click', { cta_name: 'floating_cta_expand', location: 'floating' });
+        setIsExpanded(true);
+      }}
       className="fixed right-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] z-[90] flex items-center justify-center rounded-[16px] bg-[#1a1a2e]/90 backdrop-blur-sm p-3 shadow-lg transition-all hover:scale-105 hover:bg-[#1a1a2e] cursor-pointer border-none sm:right-6 sm:bottom-6 sm:gap-3 sm:px-5 sm:py-3 sm:justify-start"
       aria-label={config.title}
     >

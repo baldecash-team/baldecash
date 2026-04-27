@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { SocialProofProps, Testimonial } from '../../types/hero';
 import { UnderlinedText } from './common/UnderlinedText';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface ExtendedSocialProofProps extends SocialProofProps {
   testimonials?: Testimonial[];
@@ -24,6 +25,7 @@ interface ExtendedSocialProofProps extends SocialProofProps {
 }
 
 export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimonials = [], testimonialsTitle, underlineStyle = 4 }) => {
+  const tracker = useEventTrackerOptional();
   // Filtrar study centers activos y testimonios visibles
   const activeStudyCenters = data.studyCenters.filter((sc) => sc.is_active !== false);
   const visibleTestimonials = testimonials.filter((t) => t.is_visible !== false);
@@ -87,8 +89,14 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
     (page + 1) * testimonialsPerPage
   );
 
-  const nextPage = () => setPage((prev) => (prev + 1) % totalPages);
-  const prevPage = () => setPage((prev) => (prev - 1 + totalPages) % totalPages);
+  const nextPage = () => {
+    tracker?.track('testimonial_view', { direction: 'next', page: (page + 1) % totalPages });
+    setPage((prev) => (prev + 1) % totalPages);
+  };
+  const prevPage = () => {
+    tracker?.track('testimonial_view', { direction: 'prev', page: (page - 1 + totalPages) % totalPages });
+    setPage((prev) => (prev - 1 + totalPages) % totalPages);
+  };
 
   const findStudyCenter = (institutionName: string) => {
     if (!institutionName) return null;
@@ -335,7 +343,10 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
             {Array.from({ length: totalPages }).map((_, index) => (
               <button
                 key={index}
-                onClick={() => setPage(index)}
+                onClick={() => {
+                  tracker?.track('testimonial_view', { direction: 'dot', page: index });
+                  setPage(index);
+                }}
                 aria-label={`Ir a página ${index + 1}`}
                 className={`h-2 rounded-full transition-all cursor-pointer ${
                   page === index ? 'w-6' : 'bg-neutral-300 hover:bg-neutral-400 w-2'

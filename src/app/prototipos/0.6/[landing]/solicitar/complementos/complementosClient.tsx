@@ -28,6 +28,7 @@ import { useSolicitarFlow } from '@/app/prototipos/0.6/hooks/useSolicitarFlow';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
+import { useEventTrackerOptional } from '../context/EventTrackerContext';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 
@@ -35,6 +36,7 @@ function ComplementosContent() {
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+  const tracker = useEventTrackerOptional();
 
   // Scroll to top on page load
   useScrollToTop();
@@ -159,6 +161,10 @@ function ComplementosContent() {
   }, [sectionsAfterWizard]);
 
   const handleBack = () => {
+    tracker?.track('complementos_back', {
+      accessories_count: selectedAccessories.length,
+      insurance_count: selectedInsurances?.length ?? (selectedInsurance ? 1 : 0),
+    });
     const lastStepSlug = lastStep ? getStepSlug(lastStep) : 'resumen';
     router.push(routes.solicitarStep(landing, lastStepSlug));
   };

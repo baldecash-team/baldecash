@@ -911,6 +911,8 @@ function CatalogoContent() {
 
   // Ref to store scroll position when any drawer opens
   const scrollYRef = useRef<number>(0);
+  const lastHoveredProductRef = useRef<number | null>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Quiz hint - tracking last interaction for inactivity detection
   const lastInteractionRef = useRef<number>(Date.now());
@@ -1681,7 +1683,7 @@ function CatalogoContent() {
         <CatalogLayout
         products={displayedProducts}
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={setFiltersTracked}
         sort={sort}
         onSortChange={setSort}
         config={config}
@@ -1758,11 +1760,16 @@ function CatalogoContent() {
                   });
                 }}
                 onMouseEnter={() => {
-                  tracker?.track('product_hover', {
-                    product_id: product.id,
-                    product_name: product.name,
-                    brand: product.brand,
-                  });
+                  if (lastHoveredProductRef.current === product.id) return;
+                  if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+                  hoverTimerRef.current = setTimeout(() => {
+                    lastHoveredProductRef.current = product.id;
+                    tracker?.track('product_hover', {
+                      product_id: product.id,
+                      product_name: product.name,
+                      brand: product.brand,
+                    });
+                  }, 500);
                 }}
                 onCompare={(activeId) => handleToggleCompare(activeId)}
                 isCompareCheck={(id) => compareList.includes(id)}

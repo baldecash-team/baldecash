@@ -334,6 +334,10 @@ export function useSubmitApplication(
         });
 
         if (result.success && result.public_token) {
+          analytics.track('form_submit_success', {
+            product_count: allProducts.length,
+            accessory_count: selectedAccessories.length,
+          });
           // Limpiar timeout de "slow"
           if (slowTimeoutRef.current) {
             clearTimeout(slowTimeoutRef.current);
@@ -369,6 +373,10 @@ export function useSubmitApplication(
           return true;
         } else {
           // Show error
+          analytics.track('form_submit_error', {
+            error_code: result.error_code ?? 'unknown',
+            stage: 'api_response',
+          });
           setSubmitStage('error');
           const msg = result.error_code === 'PRODUCT_DISABLED'
             ? 'Uno o más productos de tu solicitud ya no están disponibles. Por favor vuelve atrás y revisa tu selección.'
@@ -379,6 +387,10 @@ export function useSubmitApplication(
         }
       } catch (err) {
         console.error('Error submitting application:', err);
+        analytics.track('form_submit_error', {
+          error_code: 'network_error',
+          stage: 'connection',
+        });
         setSubmitStage('error');
         const msg = 'Error de conexión. Por favor intenta nuevamente.';
         setError(msg);

@@ -75,6 +75,7 @@ export type EventType =
   | 'pricing_term_change'
   | 'pricing_initial_change'
   | 'pricing_frequency_change'
+  | 'product_cta_click'
   // Phase 5: Comparator / wishlist / cart drawers
   | 'compare_clear'
   | 'compare_close'
@@ -110,12 +111,28 @@ export type EventType =
   | 'insurance_view_terms'
   | 'summary_edit_click'
   | 'summary_submit'
+  | 'form_step_complete'
+  | 'form_step_back'
+  | 'form_step_validation_error'
+  | 'form_submit_success'
+  | 'form_submit_error'
+  | 'coupon_applied'
+  | 'coupon_error'
+  | 'coupon_removed'
+  | 'accessory_filter'
+  | 'accessory_search'
+  | 'accessory_pagination'
+  | 'file_selected'
+  | 'file_removed'
+  | 'file_upload_error'
+  | 'complementos_back'
   // Phase 8: Home / Landing sections
   | 'hero_cta_click'
   | 'section_cta_click'
   | 'section_view'
   | 'promo_card_click'
   | 'testimonial_view'
+  | 'faq_toggle'
   | 'error';
 
 /** Properties that are BLOCKED for privacy reasons */
