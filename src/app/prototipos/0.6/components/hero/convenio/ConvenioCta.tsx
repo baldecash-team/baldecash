@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import type { CtaData, AgreementData, HeroContent, CtaQuickLink } from '../../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 const AVATAR_COLORS = [
   '#4654CD', '#E85D75', '#03DBD0', '#F59E0B', '#8B5CF6',
@@ -51,6 +52,7 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
   landing,
 }) => {
   const router = useRouter();
+  const tracker = useEventTrackerOptional();
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
 
@@ -70,12 +72,14 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
   const quickLinks: CtaQuickLink[] = ctaData?.quickLinks || [];
 
   const handleWhatsApp = () => {
+    tracker?.track('cta_click', { cta_name: 'whatsapp', source: 'convenio_cta' });
     if (whatsappUrl) {
       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
   const handleScrollTo = (id: string) => {
+    tracker?.track('nav_click', { section: id, source: 'convenio_quick_links' });
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -172,6 +176,7 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
                       key={index}
                       href={linkUrl}
                       onClick={(e) => {
+                        tracker?.track('cta_click', { cta_name: link.text, target: linkUrl, source: 'convenio_quick_links' });
                         if (!linkUrl.startsWith('http')) {
                           e.preventDefault();
                           router.push(linkUrl);

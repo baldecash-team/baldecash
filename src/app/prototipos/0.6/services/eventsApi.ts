@@ -143,6 +143,13 @@ export type EventType =
   | 'viewer_feature_expand'
   | 'viewer_feature_close'
   | 'viewer_color_select'
+  // Phase 10: VIP / DNI landing events
+  | 'dni_submit'
+  | 'dni_validated'
+  | 'dni_rejected'
+  | 'dni_retry'
+  | 'dni_skip'
+  | 'vip_start_click'
   | 'error';
 
 /** Properties that are BLOCKED for privacy reasons */
