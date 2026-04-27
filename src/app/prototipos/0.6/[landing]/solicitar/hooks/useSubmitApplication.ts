@@ -18,6 +18,17 @@ import {
 } from '../../../services/applicationApi';
 import { resetFormStartTracking } from './useFieldTracking';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+
+/**
+ * Convert raw term (in payment_frequency units) to calendar months.
+ * 4 weeks ≈ 1 month, 2 fortnights = 1 month.
+ */
+function termToMonths(term: number, frequency?: string): number {
+  if (frequency === 'semanal') return Math.round(term / 4);
+  if (frequency === 'quincenal') return Math.round(term / 2);
+  return term; // mensual or unknown → assume already in months
+}
+
 interface UseSubmitApplicationOptions {
   /**
    * Callback for showing toast notifications
@@ -271,7 +282,14 @@ export function useSubmitApplication(
           variant_id: primaryProduct.variantId
             ? parseInt(primaryProduct.variantId, 10)
             : undefined,
-          term_months: primaryProduct.months,
+          // Raw term in native units of payment_frequency (no conversion)
+          term: primaryProduct.term ?? primaryProduct.months,
+          // Calendar-month equivalent, derived from term + frequency
+          // (do NOT trust `months` — it can fall back to raw term in some flows)
+          term_months: termToMonths(
+            primaryProduct.term ?? primaryProduct.months,
+            primaryProduct.paymentFrequency
+          ),
           initial_percent: primaryProduct.initialPercent ?? 0, // Send selection, backend calculates amounts
           initial_amount: primaryProduct.initialAmount ?? 0,
           // Frontend-calculated values as hints (backend will recalculate)
@@ -284,6 +302,8 @@ export function useSubmitApplication(
             quantity: 1,
             unit_price: p.price,
             monthly_price: p.monthlyPayment,  // Cuota mensual con intereses
+            term: p.term ?? p.months,
+            term_months: termToMonths(p.term ?? p.months, p.paymentFrequency),
             initial_percent: p.initialPercent ?? 0,
             initial_amount: p.initialAmount ?? 0,
             payment_frequency: p.paymentFrequency,

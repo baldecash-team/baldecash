@@ -123,6 +123,7 @@ describe('useSubmitApplication', () => {
         },
         product_data: expect.objectContaining({
           product_id: 1,
+          term: 12,
           term_months: 12,
           monthly_payment: 90,
           total_amount: 1080,
