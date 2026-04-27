@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
-import { saveVipToken, saveVipName, setVipWelcomePending } from './DniModal';
+import { saveVipToken, saveVipName, setVipWelcomePending, clearVipData } from './DniModal';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface TimeLeft {
@@ -123,6 +123,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
         const data = await res.json();
         if (!data.valid) {
           tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay' });
+          if (landingSlug) clearVipData(landingSlug);
           setErrorMsg('No encontramos un registro con este DNI.');
           setSubmitting(false);
           return;
@@ -144,6 +145,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
       onValidated?.({ firstName: '', accessToken: '' });
     } catch {
       tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', reason: 'network_error' });
+      if (landingSlug) clearVipData(landingSlug);
       setErrorMsg('No encontramos un registro con este DNI.');
       setSubmitting(false);
     }

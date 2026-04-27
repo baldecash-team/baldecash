@@ -121,6 +121,16 @@ export function consumeVipWelcomePending(slug: string): boolean {
   }
 }
 
+/** Clear all VIP-related localStorage keys for a landing */
+export function clearVipData(slug: string): void {
+  try {
+    localStorage.removeItem(getStorageKey(slug));
+    localStorage.removeItem(getVipTokenKey(slug));
+    localStorage.removeItem(getVipNameKey(slug));
+    localStorage.removeItem(getVipWelcomePendingKey(slug));
+  } catch {}
+}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
@@ -169,6 +179,7 @@ export const DniModal: React.FC<DniModalProps> = ({
         const data = await res.json();
         if (!data.valid) {
           tracker?.track('dni_rejected', { landing_slug: landingSlug });
+          clearVipData(landingSlug);
           setIsValidating(false);
           setView('rejected');
           return;
@@ -198,6 +209,7 @@ export const DniModal: React.FC<DniModalProps> = ({
         }
       } catch {
         tracker?.track('dni_rejected', { landing_slug: landingSlug, reason: 'network_error' });
+        clearVipData(landingSlug);
         setIsValidating(false);
         setView('rejected');
         return;
