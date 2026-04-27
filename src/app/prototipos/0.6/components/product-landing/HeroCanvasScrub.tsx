@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Play, ArrowRight } from 'lucide-react';
 import { ASSETS, BC } from './lib/constants';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 const STAGGER = {
   eyebrow: 0,
@@ -22,6 +23,7 @@ interface HeroProps {
 }
 
 export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: HeroProps) {
+  const tracker = useEventTrackerOptional();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoEnded, setVideoEnded] = useState(false);
   const [isReplaying, setIsReplaying] = useState(false);
@@ -84,6 +86,7 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
     const video = videoRef.current;
     if (!video || isReplaying) return;
 
+    tracker?.track('video_replay', { section: 'hero' });
     onVideoReplay?.();
     setIsReplaying(true);
 
@@ -93,7 +96,7 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
       video.play().catch(() => {});
       setIsReplaying(false);
     }, FADE_OUT_MS);
-  }, [onVideoReplay, isReplaying]);
+  }, [onVideoReplay, isReplaying, tracker]);
 
   // Show content only after video ends (or is skipped). On desktop with video,
   // hide content until the video has actually started playing to prevent flash.
@@ -108,6 +111,7 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
   });
 
   const handleFinanciar = () => {
+    tracker?.track('hero_cta_click', { cta_name: 'lo_quiero', target: 'financing' });
     const el = document.getElementById('financing');
     if (!el) return;
     const mobile = window.innerWidth < 768;

@@ -7,8 +7,10 @@ import { TextOverMedia } from './shared/components/TextOverMedia';
 import { designData } from './data/v5Data';
 import { ASSETS, BC } from './lib/constants';
 import { useReducedMotion } from './shared/hooks/useReducedMotion';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 export default function TextOverMediaDesign() {
+  const tracker = useEventTrackerOptional();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -19,6 +21,7 @@ export default function TextOverMediaDesign() {
   }, []);
 
   const handleScrollTo = () => {
+    tracker?.track('section_cta_click', { section: 'design', cta_label: designData.ctaLabel, target: designData.ctaScrollTo });
     const el = document.getElementById(designData.ctaScrollTo);
     if (!el) return;
     const mobile = window.innerWidth < 768;

@@ -6,6 +6,7 @@ import { Menu, X, User } from 'lucide-react';
 import { navLinks } from './data/v5Data';
 import { BC } from './lib/constants';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface StickyNavV5Props {
   videoEnded: boolean;
@@ -17,6 +18,7 @@ const LOGO_WHITE = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
 const LOGO_DARK = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
 export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo', previewBannerOffset = 0 }: StickyNavV5Props) {
+  const tracker = useEventTrackerOptional();
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('hero');
@@ -84,6 +86,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
   }, []);
 
   const handleNavClick = useCallback((sectionId: string) => {
+    tracker?.track('nav_click', { section: sectionId, source: 'macbook_neo_nav' });
     const el = document.getElementById(sectionId);
     if (!el) return;
     const mobile = window.innerWidth < 768;
@@ -91,7 +94,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
     const top = el.getBoundingClientRect().top + window.scrollY - offset;
     window.scrollTo({ top, behavior: 'smooth' });
     history.replaceState(null, '', `#${sectionId}`);
-  }, []);
+  }, [tracker]);
 
   const heroUrl = routes.landingHome(landing);
 
@@ -100,9 +103,10 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
   }, []);
 
   const handleMobileNavClick = useCallback((sectionId: string) => {
+    tracker?.track('mobile_menu_toggle', { open: false });
     setMobileMenuOpen(false);
     setTimeout(() => handleNavClick(sectionId), 200);
-  }, [handleNavClick]);
+  }, [handleNavClick, tracker]);
 
   // ═══════════════════════════════════════════════════════════
   // MOBILE: Navbar blanco estilo home (siempre visible)
@@ -142,7 +146,11 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
               {/* Hamburger */}
               <button
                 className="p-2 rounded-lg hover:bg-neutral-100 cursor-pointer border-0 bg-transparent"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                onClick={() => {
+                  const next = !mobileMenuOpen;
+                  tracker?.track('mobile_menu_toggle', { open: next });
+                  setMobileMenuOpen(next);
+                }}
                 aria-label="Menú"
               >
                 {mobileMenuOpen ? (

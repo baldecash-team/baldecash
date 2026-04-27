@@ -3,11 +3,13 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { highlightCards } from './data/v5Data';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 // Duplicate cards for seamless infinite loop
 const loopCards = [...highlightCards, ...highlightCards];
 
 export default function MediaCardGallery() {
+  const tracker = useEventTrackerOptional();
   const sectionRef = useRef<HTMLElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -35,8 +37,9 @@ export default function MediaCardGallery() {
   }, [isVisible, isPlaying]);
 
   const handleDotClick = useCallback((i: number) => {
+    tracker?.track('gallery_dot_click', { index: i, card_id: highlightCards[i]?.id });
     setActiveIndex(i);
-  }, []);
+  }, [tracker]);
 
   return (
     <section
@@ -117,7 +120,11 @@ export default function MediaCardGallery() {
       {/* Controls */}
       <div className="flex items-center justify-center gap-4 mt-6">
         <button
-          onClick={() => setIsPlaying((prev) => !prev)}
+          onClick={() => {
+            const next = !isPlaying;
+            tracker?.track('gallery_pause_toggle', { playing: next });
+            setIsPlaying(next);
+          }}
           className="w-12 h-12 flex items-center justify-center rounded-full cursor-pointer"
           style={{ backgroundColor: 'rgba(255,255,255,0.12)', border: 'none' }}
           aria-label={isPlaying ? 'Pausar' : 'Reproducir'}

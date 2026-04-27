@@ -133,6 +133,16 @@ export type EventType =
   | 'promo_card_click'
   | 'testimonial_view'
   | 'faq_toggle'
+  // Phase 9: MacBook Neo product landing
+  | 'video_replay'
+  | 'gallery_dot_click'
+  | 'gallery_pause_toggle'
+  | 'mobile_menu_toggle'
+  | 'plan_color_select'
+  | 'plan_cta_click'
+  | 'viewer_feature_expand'
+  | 'viewer_feature_close'
+  | 'viewer_color_select'
   | 'error';
 
 /** Properties that are BLOCKED for privacy reasons */

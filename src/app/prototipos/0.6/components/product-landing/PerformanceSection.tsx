@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import { performanceData } from './data/v5Data';
 import { BC } from './lib/constants';
 import { RevealOnScroll } from './shared/components/RevealOnScroll';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 function ChapterCard({ chapter, imageLeft }: { chapter: { id: string; title: string; description: string; image: string }; imageLeft: boolean }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -92,7 +93,9 @@ function ChapterCard({ chapter, imageLeft }: { chapter: { id: string; title: str
 }
 
 export default function PerformanceSection() {
+  const tracker = useEventTrackerOptional();
   const handleScrollToPlans = () => {
+    tracker?.track('section_cta_click', { section: 'performance', cta_label: 'Ver planes', target: 'financing' });
     const el = document.getElementById('financing');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
