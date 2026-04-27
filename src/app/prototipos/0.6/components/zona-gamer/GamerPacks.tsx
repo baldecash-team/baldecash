@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { ArrowRight, Package, Gamepad2, Zap, Star, Check } from 'lucide-react';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface Pack {
   name: string;
@@ -104,6 +105,7 @@ interface GamerPacksProps {
 
 export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
   const isDark = theme === 'dark';
+  const tracker = useEventTrackerOptional();
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#6366f1' : '#4f46e5';
   const border = isDark ? '#2a2a2a' : '#e0e0e0';
@@ -295,6 +297,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
                 {/* pack-btn */}
                 <a
                   href={catalogUrl}
+                  onClick={() => tracker?.track('cta_click', { cta_name: pack.name, pack_tier: pack.tier, source: 'zona_gamer_packs' })}
                   className="w-full flex items-center justify-center gap-2 no-underline mt-auto transition-all cursor-pointer"
                   style={{
                     fontFamily: "'Barlow Condensed', sans-serif",
@@ -336,6 +339,7 @@ export function GamerPacks({ theme, catalogUrl }: GamerPacksProps) {
         >
           <a
             href={catalogUrl}
+            onClick={() => tracker?.track('cta_click', { cta_name: 'ver_catalogo_completo', source: 'zona_gamer_packs' })}
             className="group inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl no-underline font-bold text-[17px] transition-all duration-300 hover:-translate-y-0.5"
             style={{
               fontFamily: "'Rajdhani', sans-serif",

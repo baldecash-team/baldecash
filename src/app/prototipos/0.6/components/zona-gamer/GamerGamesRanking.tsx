@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, X, Monitor } from 'lucide-react';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface GamerGamesRankingProps {
   theme: 'dark' | 'light';
@@ -79,6 +80,7 @@ const RANK_COLORS = ['#ff8800', '#94a3b8', '#cd7f32'];
 
 export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
   const isDark = theme === 'dark';
+  const tracker = useEventTrackerOptional();
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#00ffd5' : '#4f46e5';
@@ -92,9 +94,10 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
     : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   const openModal = useCallback((idx: number) => {
+    tracker?.track('product_click', { game_name: GAMES[idx].name, game_genre: GAMES[idx].genre, source: 'zona_gamer_ranking' });
     setSelectedGame(idx);
     document.body.style.overflow = 'hidden';
-  }, []);
+  }, [tracker]);
 
   const closeModal = useCallback(() => {
     setSelectedGame(null);

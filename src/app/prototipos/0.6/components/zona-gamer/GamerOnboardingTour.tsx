@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface OnboardingStep {
   id: string;
@@ -45,6 +46,7 @@ export const GamerOnboardingTour: React.FC<GamerOnboardingTourProps> = ({
   onPrev,
   onSkip,
 }) => {
+  const tracker = useEventTrackerOptional();
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -322,7 +324,7 @@ export const GamerOnboardingTour: React.FC<GamerOnboardingTourProps> = ({
               </button>
 
               <button
-                onClick={onNext}
+                onClick={() => { tracker?.track(isLastStep ? 'tour_finish' : 'tour_step_view', { step: currentStepIndex + 1, step_id: currentStep.id, source: 'zona_gamer_tour' }); onNext(); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
                   padding: '8px 20px', borderRadius: 10,
@@ -343,7 +345,7 @@ export const GamerOnboardingTour: React.FC<GamerOnboardingTourProps> = ({
 
             {/* Skip link */}
             <button
-              onClick={onSkip}
+              onClick={() => { tracker?.track('tour_skip', { step: currentStepIndex, step_id: currentStep.id, source: 'zona_gamer_tour' }); onSkip(); }}
               style={{
                 display: 'block', width: '100%', marginTop: 10,
                 background: 'none', border: 'none',

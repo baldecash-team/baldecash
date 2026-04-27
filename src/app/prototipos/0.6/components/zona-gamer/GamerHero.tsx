@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Zap, ArrowRight, ChevronDown } from 'lucide-react';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface GamerHeroProps {
   theme: 'dark' | 'light';
@@ -11,6 +12,7 @@ interface GamerHeroProps {
 
 export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
   const isDark = theme === 'dark';
+  const tracker = useEventTrackerOptional();
 
   const scrollTo = (id: string, offset = 120) => {
     const el = document.getElementById(id);
@@ -138,6 +140,7 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
               {/* btn-primary */}
               <a
                 href={catalogUrl}
+                onClick={() => tracker?.track('hero_cta_click', { cta_name: 'explorar_equipos', target: catalogUrl, source: 'zona_gamer_hero' })}
                 className="inline-flex items-center border-none cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(99,102,241,0.35)] no-underline"
                 style={{
                   fontFamily: "'Barlow Condensed', sans-serif",
@@ -158,7 +161,7 @@ export function GamerHero({ theme, catalogUrl }: GamerHeroProps) {
 
               {/* btn-ghost */}
               <button
-                onClick={() => scrollTo('linea-combate', 160)}
+                onClick={() => { tracker?.track('nav_click', { section: 'linea-combate', source: 'zona_gamer_hero' }); scrollTo('linea-combate', 160); }}
                 className="inline-flex items-center cursor-pointer transition-all hover:-translate-y-0.5"
                 style={{
                   fontFamily: "'Barlow Condensed', sans-serif",

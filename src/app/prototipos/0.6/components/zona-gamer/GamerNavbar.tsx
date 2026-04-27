@@ -16,6 +16,7 @@ import { formatMoneyNoDecimals } from '@/app/prototipos/0.6/[landing]/catalogo/u
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import LayoutContext from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
@@ -78,6 +79,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
   const layoutCtx = useContext(LayoutContext);
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(layoutCtx?.settings);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const tracker = useEventTrackerOptional();
 
   // Cerrar dropdown desktop al hacer clic fuera
   useEffect(() => {
@@ -135,19 +137,21 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
   }, []);
 
   const handleSelectProduct = useCallback((slug: string) => {
+    tracker?.track('search_suggestion_click', { slug, source: 'zona_gamer_nav' });
     setShowDropdown(false);
     setSearchQuery('');
     setSearchResults([]);
     router.push(routes.producto(LANDING_SLUG, slug));
-  }, [router]);
+  }, [router, tracker]);
 
   const handleViewAll = useCallback(() => {
+    tracker?.track('search_submit', { query: searchQuery.trim(), source: 'zona_gamer_nav' });
     setShowDropdown(false);
     const q = searchQuery.trim();
     setSearchQuery('');
     setSearchResults([]);
     router.push(routes.catalogo(LANDING_SLUG, q ? `q=${encodeURIComponent(q)}` : ''));
-  }, [router, searchQuery]);
+  }, [router, searchQuery, tracker]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -170,6 +174,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
   }, []);
 
   const scrollTo = (id: string) => {
+    tracker?.track('nav_click', { section: id, source: 'zona_gamer_nav' });
     const el = document.getElementById(id);
     if (el) {
       const y = el.getBoundingClientRect().top + window.pageYOffset - 120;
@@ -287,7 +292,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
 
           {/* theme-toggle */}
           <button
-            onClick={onToggleTheme}
+            onClick={() => { tracker?.track('view_mode_change', { mode: isDark ? 'light' : 'dark', source: 'zona_gamer_nav' }); onToggleTheme(); }}
             className="flex items-center justify-center cursor-pointer transition-all relative"
             style={{
               width: 'clamp(34px, 8vw, 40px)',
@@ -304,7 +309,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
 
           {/* hamburger-btn (mobile only) */}
           <button
-            onClick={() => setMobileOpenAndNotify(!mobileOpen)}
+            onClick={() => { tracker?.track('mobile_menu_toggle', { open: !mobileOpen, source: 'zona_gamer_nav' }); setMobileOpenAndNotify(!mobileOpen); }}
             className="hidden max-md:flex items-center justify-center"
             style={{
               width: 'clamp(32px, 8vw, 36px)',
@@ -512,7 +517,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             {/* Cart button — only when multi-product is enabled */}
             {ALLOW_MULTI_PRODUCT && (
               <button
-                onClick={() => setIsCartDrawerOpen(true)}
+                onClick={() => { tracker?.track('cart_drawer_open', { source: 'zona_gamer_nav' }); setIsCartDrawerOpen(true); }}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5] relative"
                 style={{
                   background: V.bgSurface,
@@ -539,7 +544,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             )}
             <div ref={wishlistDropdownRef} style={{ position: 'relative' }}>
               <button
-                onClick={() => setIsWishlistDrawerOpen(prev => !prev)}
+                onClick={() => { const next = !isWishlistDrawerOpen; tracker?.track(next ? 'wishlist_drawer_open' : 'wishlist_drawer_close', { source: 'zona_gamer_nav' }); setIsWishlistDrawerOpen(next); }}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border cursor-pointer transition-all hover:border-[#00ffd5] hover:text-[#00ffd5] relative"
                 style={{
                   background: V.bgSurface,

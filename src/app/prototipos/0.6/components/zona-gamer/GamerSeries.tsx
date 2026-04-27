@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface GamerSeriesProps {
   theme: 'dark' | 'light';
@@ -62,6 +63,7 @@ const SERIES = [
 
 export function GamerSeries({ theme }: GamerSeriesProps) {
   const isDark = theme === 'dark';
+  const tracker = useEventTrackerOptional();
   const scrollRef = useRef<HTMLDivElement>(null);
   const border = isDark ? '#2a2a2a' : '#e0e0e0';
   const bgCard = isDark ? '#1a1a1a' : '#ffffff';
@@ -71,6 +73,7 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
     : 'linear-gradient(135deg, #4f46e5 0%, #00897a 100%)';
 
   const scroll = (dir: number) => {
+    tracker?.track('nav_click', { direction: dir > 0 ? 'next' : 'prev', source: 'zona_gamer_series' });
     if (!scrollRef.current) return;
     const cardWidth = scrollRef.current.querySelector<HTMLElement>('.series-card')?.offsetWidth ?? 300;
     scrollRef.current.scrollBy({ left: dir * (cardWidth + 16), behavior: 'smooth' });

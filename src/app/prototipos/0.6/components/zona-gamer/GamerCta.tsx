@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { ArrowRight, Gift } from 'lucide-react';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface GamerCtaProps {
   theme: 'dark' | 'light';
@@ -10,6 +11,7 @@ interface GamerCtaProps {
 
 export function GamerCta({ theme, catalogUrl }: GamerCtaProps) {
   const isDark = theme === 'dark';
+  const tracker = useEventTrackerOptional();
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#6366f1' : '#4f46e5';
   const gradient = isDark
@@ -83,6 +85,7 @@ export function GamerCta({ theme, catalogUrl }: GamerCtaProps) {
           >
             <a
               href={catalogUrl}
+              onClick={() => tracker?.track('cta_click', { cta_name: 'explorar_catalogo', source: 'zona_gamer_cta' })}
               className="inline-flex items-center gap-2 no-underline text-white transition-all hover:-translate-y-0.5"
               style={{
                 fontFamily: "'Barlow Condensed', sans-serif",

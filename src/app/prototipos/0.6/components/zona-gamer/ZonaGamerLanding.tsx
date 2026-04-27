@@ -13,6 +13,7 @@ import { GamerNewsletter } from './GamerNewsletter';
 import { GamerFooter } from './GamerFooter';
 import { LazySection } from './LazySection';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 const LANDING_SLUG = 'zona-gamer';
 
@@ -35,8 +36,11 @@ export function ZonaGamerLanding() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, []);
 
+  const tracker = useEventTrackerOptional();
+
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
+    tracker?.track('view_mode_change', { mode: next, source: 'zona_gamer_landing' });
     setTheme(next);
     localStorage.setItem('baldecash-theme', next);
   };
