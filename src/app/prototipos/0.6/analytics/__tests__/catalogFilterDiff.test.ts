@@ -1,94 +1,23 @@
 import { diffAndEmitFilterChanges } from '../catalogFilterDiff';
+import type { UseAnalyticsReturn } from '../useAnalytics';
 import type { FilterState } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
-const makeAnalytics = () => ({
-  track: jest.fn(),
-  trackFilterToggle: jest.fn(),
-  trackFilterRangeChange: jest.fn(),
-  trackFilterClearSingle: jest.fn(),
-  trackFilterClearAll: jest.fn(),
-  trackFilterSectionToggle: jest.fn(),
-  trackSortChange: jest.fn(),
-  trackLoadMore: jest.fn(),
-  trackViewModeChange: jest.fn(),
-  trackSearchFocus: jest.fn(),
-  trackSearchSubmit: jest.fn(),
-  trackSearchClear: jest.fn(),
-  trackSearchSuggestionClick: jest.fn(),
-  trackSearchDrawerOpen: jest.fn(),
-  trackSearchDrawerClose: jest.fn(),
-  trackBannerClick: jest.fn(),
-  trackBannerHover: jest.fn(),
-  trackProductView: jest.fn(),
-  trackProductClick: jest.fn(),
-  trackProductHover: jest.fn(),
-  trackCartAdd: jest.fn(),
-  trackCartRemove: jest.fn(),
-  trackCartClear: jest.fn(),
-  trackWishlistAdd: jest.fn(),
-  trackWishlistRemove: jest.fn(),
-  trackWishlistClear: jest.fn(),
-  trackCompareAdd: jest.fn(),
-  trackCompareRemove: jest.fn(),
-  trackCompareOpen: jest.fn(),
-  trackNavClick: jest.fn(),
-  trackNavHover: jest.fn(),
-  trackCronogramaDownload: jest.fn(),
-  trackCronogramaModalOpen: jest.fn(),
-  trackCronogramaModalClose: jest.fn(),
-  trackCronogramaExpand: jest.fn(),
-  trackGalleryImageChange: jest.fn(),
-  trackGalleryLightboxOpen: jest.fn(),
-  trackGalleryLightboxClose: jest.fn(),
-  trackGalleryZoom: jest.fn(),
-  trackColorSelect: jest.fn(),
-  trackDetailTabClick: jest.fn(),
-  trackSimilarProductClick: jest.fn(),
-  trackSimilarProductAddToCart: jest.fn(),
-  trackSpecSheetDownload: jest.fn(),
-  trackPricingTermChange: jest.fn(),
-  trackPricingInitialChange: jest.fn(),
-  trackPricingFrequencyChange: jest.fn(),
-  trackProductCtaClick: jest.fn(),
-  trackCompareClear: jest.fn(),
-  trackCompareClose: jest.fn(),
-  trackCompareBestShown: jest.fn(),
-  trackCompareBestAddToCart: jest.fn(),
-  trackWishlistDrawerOpen: jest.fn(),
-  trackWishlistDrawerClose: jest.fn(),
-  trackWishlistMoveToCart: jest.fn(),
-  trackCartDrawerOpen: jest.fn(),
-  trackCartDrawerClose: jest.fn(),
-  trackCartContinue: jest.fn(),
-  trackCartUpdate: jest.fn(),
-  trackQuizStart: jest.fn(),
-  trackQuizAnswer: jest.fn(),
-  trackQuizFinish: jest.fn(),
-  trackQuizAbandon: jest.fn(),
-  trackQuizResultClick: jest.fn(),
-  trackTourStart: jest.fn(),
-  trackTourStepView: jest.fn(),
-  trackTourFinish: jest.fn(),
-  trackTourSkip: jest.fn(),
-  trackWelcomeModalShown: jest.fn(),
-  trackWelcomeModalDismiss: jest.fn(),
-  trackWebchatOpen: jest.fn(),
-  trackWebchatClose: jest.fn(),
-  trackAccessoryAdd: jest.fn(),
-  trackAccessoryRemove: jest.fn(),
-  trackAccessoryView: jest.fn(),
-  trackAccessoryImpression: jest.fn(),
-  trackInsuranceToggle: jest.fn(),
-  trackInsuranceViewTerms: jest.fn(),
-  trackSummaryEditClick: jest.fn(),
-  trackSummarySubmit: jest.fn(),
-  trackHeroCtaClick: jest.fn(),
-  trackSectionCtaClick: jest.fn(),
-  trackSectionView: jest.fn(),
-  trackPromoCardClick: jest.fn(),
-  trackTestimonialView: jest.fn(),
-  trackFaqToggle: jest.fn(),
-});
+const makeAnalytics = () => {
+  const fns: Record<string, jest.Mock> = {
+    track: jest.fn(),
+    trackFilterToggle: jest.fn(),
+    trackFilterRangeChange: jest.fn(),
+    trackFilterClearSingle: jest.fn(),
+    trackFilterClearAll: jest.fn(),
+    trackFilterSectionToggle: jest.fn(),
+  };
+  return new Proxy(fns, {
+    get: (target, prop: string) => {
+      if (!target[prop]) target[prop] = jest.fn();
+      return target[prop];
+    },
+  }) as unknown as UseAnalyticsReturn & Record<string, jest.Mock>;
+};
 
 const baseFilter: FilterState = {
   deviceTypes: [],
@@ -119,8 +48,8 @@ const baseFilter: FilterState = {
   hasSDCard: null,
   hasHDMI: null,
   minUSBPorts: null,
-  quotaRange: [0, 1000],
-  quotaFrequency: 'monthly',
+  quotaRange: [0, 1000] as [number, number],
+  quotaFrequency: 'monthly' as const,
 };
 
 const apiQuotaFullRange: [number, number] = [0, 1000];
@@ -135,7 +64,7 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('emits filter_toggle when a brand is added', () => {
     const analytics = makeAnalytics();
-    const next = { ...baseFilter, brands: ['Lenovo'] };
+    const next: FilterState = { ...baseFilter, brands: ['Lenovo'] };
     diffAndEmitFilterChanges(baseFilter, next, analytics, apiQuotaFullRange);
     expect(analytics.trackFilterToggle).toHaveBeenCalledWith({
       filter_code: 'brand',
@@ -146,8 +75,8 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('emits filter_toggle when a brand is removed', () => {
     const analytics = makeAnalytics();
-    const prev = { ...baseFilter, brands: ['Lenovo', 'HP'] };
-    const next = { ...baseFilter, brands: ['Lenovo'] };
+    const prev: FilterState = { ...baseFilter, brands: ['Lenovo', 'HP'] };
+    const next: FilterState = { ...baseFilter, brands: ['Lenovo'] };
     diffAndEmitFilterChanges(prev, next, analytics, apiQuotaFullRange);
     expect(analytics.trackFilterToggle).toHaveBeenCalledWith({
       filter_code: 'brand',
@@ -158,7 +87,7 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('emits filter_toggle for boolean tri-state changes', () => {
     const analytics = makeAnalytics();
-    const next = { ...baseFilter, touchScreen: true };
+    const next: FilterState = { ...baseFilter, touchScreen: true };
     diffAndEmitFilterChanges(baseFilter, next, analytics, apiQuotaFullRange);
     expect(analytics.trackFilterToggle).toHaveBeenCalledWith({
       filter_code: 'display_size',
@@ -169,8 +98,8 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('emits filter_toggle with active=false when bool goes back to null', () => {
     const analytics = makeAnalytics();
-    const prev = { ...baseFilter, fingerprint: true };
-    const next = { ...baseFilter, fingerprint: null };
+    const prev: FilterState = { ...baseFilter, fingerprint: true };
+    const next: FilterState = { ...baseFilter, fingerprint: null };
     diffAndEmitFilterChanges(prev, next, analytics, apiQuotaFullRange);
     expect(analytics.trackFilterToggle).toHaveBeenCalledWith({
       filter_code: 'tags',
@@ -181,7 +110,7 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('emits filter_toggle for minUSBPorts change', () => {
     const analytics = makeAnalytics();
-    const next = { ...baseFilter, minUSBPorts: 3 };
+    const next: FilterState = { ...baseFilter, minUSBPorts: 3 };
     diffAndEmitFilterChanges(baseFilter, next, analytics, apiQuotaFullRange);
     expect(analytics.trackFilterToggle).toHaveBeenCalledWith({
       filter_code: 'tags',
@@ -192,7 +121,7 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('emits filter_range_change for quota range', () => {
     const analytics = makeAnalytics();
-    const next = { ...baseFilter, quotaRange: [100, 500] as [number, number] };
+    const next: FilterState = { ...baseFilter, quotaRange: [100, 500] as [number, number] };
     diffAndEmitFilterChanges(baseFilter, next, analytics, apiQuotaFullRange);
     expect(analytics.trackFilterRangeChange).toHaveBeenCalledWith({
       filter_code: 'quota_range',
@@ -204,8 +133,8 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('sets is_full_range=true when range covers API full range', () => {
     const analytics = makeAnalytics();
-    const prev = { ...baseFilter, quotaRange: [100, 500] as [number, number] };
-    const next = { ...baseFilter, quotaRange: [0, 1000] as [number, number] };
+    const prev: FilterState = { ...baseFilter, quotaRange: [100, 500] as [number, number] };
+    const next: FilterState = { ...baseFilter, quotaRange: [0, 1000] as [number, number] };
     diffAndEmitFilterChanges(prev, next, analytics, apiQuotaFullRange);
     expect(analytics.trackFilterRangeChange).toHaveBeenCalledWith({
       filter_code: 'quota_range',
@@ -217,7 +146,7 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('emits filter_toggle for quotaFrequency change', () => {
     const analytics = makeAnalytics();
-    const next = { ...baseFilter, quotaFrequency: 'biweekly' };
+    const next: FilterState = { ...baseFilter, quotaFrequency: 'biweekly' as const };
     diffAndEmitFilterChanges(baseFilter, next, analytics, apiQuotaFullRange);
     expect(analytics.trackFilterToggle).toHaveBeenCalledWith({
       filter_code: 'quota_range',
@@ -228,10 +157,10 @@ describe('diffAndEmitFilterChanges', () => {
 
   it('emits multiple events for multiple simultaneous changes', () => {
     const analytics = makeAnalytics();
-    const next = {
+    const next: FilterState = {
       ...baseFilter,
       brands: ['Lenovo'],
-      ram: ['16GB'],
+      ram: [16],
       touchScreen: true,
     };
     diffAndEmitFilterChanges(baseFilter, next, analytics, apiQuotaFullRange);

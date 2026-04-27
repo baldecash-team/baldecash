@@ -126,8 +126,8 @@ describe('FaqSection tracking', () => {
     title: 'Preguntas Frecuentes',
     subtitle: 'Resolvemos tus dudas',
     items: [
-      { id: 1, question: '¿Cómo funciona?', answer: '<p>Así funciona</p>', category: 'General' },
-      { id: 2, question: '¿Cuánto cuesta?', answer: '<p>Depende</p>', category: 'Pagos' },
+      { id: '1', question: '¿Cómo funciona?', answer: '<p>Así funciona</p>', category: 'General' },
+      { id: '2', question: '¿Cuánto cuesta?', answer: '<p>Depende</p>', category: 'Pagos' },
     ],
     categories: ['General', 'Pagos'],
   };
@@ -139,7 +139,7 @@ describe('FaqSection tracking', () => {
     fireEvent.click(accordion);
 
     expect(mockTrack).toHaveBeenCalledWith('faq_toggle', {
-      question_id: 1,
+      question_id: '1',
       category: 'General',
     });
   });

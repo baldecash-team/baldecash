@@ -911,7 +911,7 @@ function CatalogoContent() {
 
   // Ref to store scroll position when any drawer opens
   const scrollYRef = useRef<number>(0);
-  const lastHoveredProductRef = useRef<number | null>(null);
+  const lastHoveredProductRef = useRef<string | null>(null);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Quiz hint - tracking last interaction for inactivity detection

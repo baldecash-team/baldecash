@@ -231,7 +231,10 @@ export function useAnalytics(): UseAnalyticsReturn {
 
   // Sort + paginado (debounce: NextUI Select dispara onSelectionChange dos veces)
   const debouncedSortChange = useDebouncedCallback(
-    (args: { from: string; to: string }) => track('sort_change', args),
+    (...args: unknown[]) => {
+      const payload = args[0] as { from: string; to: string };
+      track('sort_change', payload);
+    },
     300
   );
   const trackSortChange = useCallback<UseAnalyticsReturn['trackSortChange']>(
