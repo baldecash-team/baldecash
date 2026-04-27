@@ -27,6 +27,9 @@ export interface SubmitApplicationRequest {
   product_data: {
     product_id: number;
     variant_id?: number;
+    /** Raw term in native units of payment_frequency (weeks / fortnights / months). */
+    term: number;
+    /** Term normalized to months (12 for 24 quincenas, etc.). */
     term_months: number;
     initial_percent: number; // 0, 10, 20, 30 - backend calculates amounts
     /** Initial payment amount in soles (hint for backend; it still recomputes). */
@@ -41,6 +44,10 @@ export interface SubmitApplicationRequest {
       quantity: number;
       unit_price?: number;
       monthly_price?: number;  // Cuota mensual con intereses
+      /** Raw term in native units of payment_frequency. */
+      term?: number;
+      /** Term normalized to months. */
+      term_months?: number;
       initial_percent?: number;
       initial_amount?: number;
       payment_frequency?: string;

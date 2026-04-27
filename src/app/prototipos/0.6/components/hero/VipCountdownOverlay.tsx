@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { saveVipToken, saveVipName, setVipWelcomePending } from './DniModal';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface TimeLeft {
   days: number;
@@ -89,6 +90,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
   captureMode = 'inline',
   onOpenDniModal,
 }) => {
+  const tracker = useEventTrackerOptional();
   const targetDate = new Date(endDate);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [countdownFinished, setCountdownFinished] = useState(false);
@@ -110,6 +112,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
 
   const handleDniSubmit = useCallback(async () => {
     if (!isValidDni || submitting || !landingSlug) return;
+    tracker?.track('dni_submit', { landing_slug: landingSlug, whitelist: validateWhitelist, source: 'vip_overlay' });
     setSubmitting(true);
     setErrorMsg(null);
     try {
@@ -119,6 +122,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
         );
         const data = await res.json();
         if (!data.valid) {
+          tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay' });
           setErrorMsg('No encontramos un registro con este DNI.');
           setSubmitting(false);
           return;
@@ -128,23 +132,22 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
           saveVipName(landingSlug, data.first_name);
           setVipWelcomePending(landingSlug);
         }
+        tracker?.track('dni_validated', { landing_slug: landingSlug, source: 'vip_overlay' });
         try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
         onValidated?.({
           firstName: data.first_name || '',
           accessToken: data.access_token || '',
         });
-        // Keep the loading state on while the parent redirects to /catalogo.
-        // Do NOT reset submitting here — the component unmounts on navigation.
         return;
       }
       try { localStorage.setItem(`${DNI_STORAGE_PREFIX}${landingSlug}`, dni); } catch {}
       onValidated?.({ firstName: '', accessToken: '' });
-      // Same reason: keep loading state until redirect unmounts us.
     } catch {
+      tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', reason: 'network_error' });
       setErrorMsg('No encontramos un registro con este DNI.');
       setSubmitting(false);
     }
-  }, [isValidDni, submitting, landingSlug, validateWhitelist, dni, onValidated]);
+  }, [isValidDni, submitting, landingSlug, validateWhitelist, dni, onValidated, tracker]);
 
   // Initialize only on client to avoid hydration mismatch
   useEffect(() => {
@@ -444,6 +447,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
 
                 <button
                   onClick={() => {
+                    tracker?.track('vip_start_click', { landing_slug: landingSlug, first_name: welcomeData?.firstName });
                     setDismissed(true);
                     onExpired?.();
                   }}

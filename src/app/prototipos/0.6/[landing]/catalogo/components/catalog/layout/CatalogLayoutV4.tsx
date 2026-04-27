@@ -455,6 +455,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   };
 
   const handleClearAll = () => {
+    analytics.trackFilterClearAll({ source: 'clear_all_button' });
     onFiltersChange({
       ...filters,
       deviceTypes: [],

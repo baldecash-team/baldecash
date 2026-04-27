@@ -6,6 +6,7 @@ import { financingPlans } from './data/v5Data';
 import { BC } from './lib/constants';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { useReducedMotion } from './shared/hooks/useReducedMotion';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface FinancingPlansV5Props {
   tier: string;
@@ -14,6 +15,7 @@ interface FinancingPlansV5Props {
 const ICON_MAP: Record<string, LucideIcon> = { Zap, Star, Crown };
 
 export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
+  const tracker = useEventTrackerOptional();
   const sectionRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
@@ -192,7 +194,10 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                         return (
                           <button
                             key={color.id}
-                            onClick={() => setSelectedColors(prev => ({ ...prev, [plan.id]: color.id }))}
+                            onClick={() => {
+                              tracker?.track('plan_color_select', { plan_id: plan.id, color: color.id });
+                              setSelectedColors(prev => ({ ...prev, [plan.id]: color.id }));
+                            }}
                             className="w-6 h-6 rounded-full border-2 transition-all cursor-pointer flex items-center justify-center"
                             style={{
                               backgroundColor: color.hex,
@@ -268,6 +273,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                   {/* CTA button */}
                   <a
                     href={ctaUrl}
+                    onClick={() => tracker?.track('plan_cta_click', { plan_id: plan.id, plan_name: plan.nombre, color: selectedColorId })}
                     className="mt-6 inline-flex items-center justify-center gap-2 w-full py-3 text-xs font-semibold no-underline rounded-xl transition-all active:scale-[0.97]"
                     style={
                       isDestacado

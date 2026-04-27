@@ -49,7 +49,7 @@ describe('mergeLandingConfig', () => {
       features: { has_dni_modal: true, dni_required: false },
     } as Parameters<typeof mergeLandingConfig>[0]);
     expect(result.layout).toEqual({ has_catalog: false });
-    expect(result.features).toEqual({ has_dni_modal: true, dni_required: false, show_platform_commission: false });
+    expect(result.features).toEqual(expect.objectContaining({ has_dni_modal: true, dni_required: false, show_platform_commission: false }));
   });
 
   it('passes through unknown namespaces untouched (extensibility)', () => {

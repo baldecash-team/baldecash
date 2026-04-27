@@ -14,6 +14,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, Check, AlertCircle, ShieldX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
@@ -131,6 +132,7 @@ export const DniModal: React.FC<DniModalProps> = ({
   validateWhitelist = false,
   onWhitelistValidated,
 }) => {
+  const tracker = useEventTrackerOptional();
   const [dni, setDni] = useState('');
   // Modal view: 'form' | 'rejected' | 'confirmed'
   const [view, setView] = useState<'form' | 'rejected' | 'confirmed'>('form');
@@ -148,12 +150,14 @@ export const DniModal: React.FC<DniModalProps> = ({
   }, []);
 
   const handleRetry = useCallback(() => {
+    tracker?.track('dni_retry', { landing_slug: landingSlug });
     setDni('');
     setView('form');
-  }, []);
+  }, [tracker, landingSlug]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid || isValidating) return;
+    tracker?.track('dni_submit', { landing_slug: landingSlug, whitelist: validateWhitelist });
 
     // Whitelist validation
     if (validateWhitelist) {
@@ -164,6 +168,7 @@ export const DniModal: React.FC<DniModalProps> = ({
         );
         const data = await res.json();
         if (!data.valid) {
+          tracker?.track('dni_rejected', { landing_slug: landingSlug });
           setIsValidating(false);
           setView('rejected');
           return;
@@ -179,6 +184,7 @@ export const DniModal: React.FC<DniModalProps> = ({
           saveVipName(landingSlug, data.first_name || '');
           setVipWelcomePending(landingSlug);
         }
+        tracker?.track('dni_validated', { landing_slug: landingSlug });
         setIsValidating(false);
         // If parent handles the validated state (VIP flow), delegate to it
         if (onWhitelistValidated) {
@@ -191,6 +197,7 @@ export const DniModal: React.FC<DniModalProps> = ({
           return;
         }
       } catch {
+        tracker?.track('dni_rejected', { landing_slug: landingSlug, reason: 'network_error' });
         setIsValidating(false);
         setView('rejected');
         return;
@@ -215,7 +222,7 @@ export const DniModal: React.FC<DniModalProps> = ({
     setTimeout(() => {
       onClose();
     }, 2000);
-  }, [isValid, isValidating, validateWhitelist, dni, landingSlug, onClose, allowSkip, onWhitelistValidated]);
+  }, [isValid, isValidating, validateWhitelist, dni, landingSlug, onClose, allowSkip, onWhitelistValidated, tracker]);
 
   // Cerrar con Escape (solo si allowSkip)
   useEffect(() => {
@@ -420,7 +427,10 @@ export const DniModal: React.FC<DniModalProps> = ({
                       {/* Skip link */}
                       {allowSkip && (
                         <button
-                          onClick={onClose}
+                          onClick={() => {
+                            tracker?.track('dni_skip', { landing_slug: landingSlug });
+                            onClose();
+                          }}
                           className="mt-4 text-sm text-neutral-400 hover:text-neutral-600 transition-colors duration-150 cursor-pointer"
                         >
                           No, omitir por ahora

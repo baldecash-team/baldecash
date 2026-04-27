@@ -370,6 +370,12 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
         initial_percent: config.initialPercent,
         source: 'wishlist',
       });
+      tracker?.track('wishlist_remove', {
+        product_id: wishlistItem.productId,
+        product_name: wishlistItem.name,
+        brand: wishlistItem.brand,
+        source: 'move_to_cart',
+      });
     },
     [wishlist, tracker]
   );

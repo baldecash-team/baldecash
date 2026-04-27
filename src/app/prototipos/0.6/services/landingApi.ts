@@ -1064,6 +1064,7 @@ export async function getLandingAccessories(
     if (term && term > 0) {
       queryParams.set('term', term.toString());
     }
+    queryParams.set('all', 'true');
     if (paymentFrequency) {
       queryParams.set('payment_frequency', paymentFrequency);
     }

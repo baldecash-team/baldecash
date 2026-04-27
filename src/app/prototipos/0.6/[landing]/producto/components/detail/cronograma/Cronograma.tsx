@@ -197,6 +197,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const freqLabelPlural = paymentFrequency === 'semanal' ? 'semanales'
     : paymentFrequency === 'quincenal' ? 'quincenales'
     : 'mensuales';
+  const termUnitPlural = paymentFrequency === 'semanal' ? 'semanas'
+    : paymentFrequency === 'quincenal' ? 'quincenas'
+    : 'meses';
 
   const visibleMonths = showAll ? selectedTerm : Math.min(6, selectedTerm);
   const hasMore = selectedTerm > 6;
@@ -684,7 +687,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-neutral-600">Plazo</span>
-                      <span className="font-semibold text-neutral-900">{currentPlan?.termMonths ?? selectedTerm} meses</span>
+                      <span className="font-semibold text-neutral-900">{selectedTerm} {termUnitPlural}</span>
                     </div>
                   </div>
 
@@ -747,8 +750,8 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                           <p className="text-sm text-neutral-600">Monto total a pagar</p>
                           <p className="text-xs text-neutral-500">
                             {selectedInitialPercent > 0
-                              ? `S/${formatMoneyNoDecimals(Math.floor(initialAmount))} inicial + ${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
-                              : `${selectedTerm} cuotas de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
+                              ? `S/${formatMoneyNoDecimals(Math.floor(initialAmount))} inicial + ${selectedTerm} cuotas ${freqLabelPlural} de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
+                              : `${selectedTerm} cuotas ${freqLabelPlural} de S/${formatMoneyNoDecimals(Math.floor(adjustedQuota))}`
                             }
                           </p>
                         </div>
@@ -837,12 +840,12 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   </div>
                 )}
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-neutral-600">Cuota mensual</span>
+                  <span className="text-neutral-600">Cuota {freqLabel}</span>
                   <span className="text-xl font-bold text-[var(--color-primary)]">S/{formatMoneyNoDecimals(Math.floor(adjustedQuota))}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-neutral-600">Plazo</span>
-                  <span className="font-semibold text-neutral-900">{selectedTerm} meses</span>
+                  <span className="font-semibold text-neutral-900">{selectedTerm} {termUnitPlural}</span>
                 </div>
               </div>
 

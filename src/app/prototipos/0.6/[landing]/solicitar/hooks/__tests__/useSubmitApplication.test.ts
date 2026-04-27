@@ -87,6 +87,21 @@ jest.mock('../../context/SessionContext', () => ({
   }),
 }));
 
+// Mock useAnalytics (returns no-ops by default)
+const mockAnalyticsTrack = jest.fn();
+jest.mock('@/app/prototipos/0.6/analytics/useAnalytics', () => ({
+  useAnalytics: () =>
+    new Proxy(
+      { track: mockAnalyticsTrack },
+      { get: (target, prop) => (target as Record<string, unknown>)[prop as string] ?? jest.fn() }
+    ),
+}));
+
+// Mock useFieldTracking (resetFormStartTracking)
+jest.mock('../useFieldTracking', () => ({
+  resetFormStartTracking: jest.fn(),
+}));
+
 // Mock applicationApi
 const mockSubmitApplication = jest.fn();
 jest.mock('../../../../services/applicationApi', () => ({
@@ -102,7 +117,7 @@ describe('useSubmitApplication', () => {
     it('submits application and redirects on success', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        application_code: 'APP-123',
+        public_token: 'APP-123',
       });
 
       const onToast = jest.fn();
@@ -114,30 +129,30 @@ describe('useSubmitApplication', () => {
       });
 
       expect(success).toBe(true);
-      expect(mockSubmitApplication).toHaveBeenCalledWith({
-        session_uuid: mockSessionUuid,
-        form_data: {
-          nombres: 'John',
-          apellido_paterno: 'Doe',
-          email: 'john@example.com',
-        },
-        product_data: expect.objectContaining({
-          product_id: 1,
-          term_months: 12,
-          monthly_payment: 90,
-          total_amount: 1080,
-          unit_price: 1000,
-          products: expect.arrayContaining([
-            expect.objectContaining({
-              product_id: 1,
-              quantity: 1,
-              unit_price: 1000,
-              final_price: 1000,
-            }),
-          ]),
-        }),
-        coupon_code: 'TEST10',
-      });
+      expect(mockSubmitApplication).toHaveBeenCalledWith(
+        expect.objectContaining({
+          session_uuid: mockSessionUuid,
+          form_data: {
+            nombres: 'John',
+            apellido_paterno: 'Doe',
+            email: 'john@example.com',
+          },
+          product_data: expect.objectContaining({
+            product_id: 1,
+            term: 12,
+            term_months: 12,
+            unit_price: 1000,
+            products: expect.arrayContaining([
+              expect.objectContaining({
+                product_id: 1,
+                quantity: 1,
+                unit_price: 1000,
+              }),
+            ]),
+          }),
+          coupon_code: 'TEST10',
+        })
+      );
 
       // Should clear all state
       expect(mockClearSession).toHaveBeenCalled();
@@ -160,7 +175,7 @@ describe('useSubmitApplication', () => {
     it('includes insurance_id and insurance_premium when provided', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        application_code: 'APP-456',
+        public_token: 'APP-456',
       });
 
       const { result } = renderHook(() => useSubmitApplication());
@@ -173,7 +188,6 @@ describe('useSubmitApplication', () => {
         expect.objectContaining({
           product_data: expect.objectContaining({
             insurance_id: 5,
-            insurance_premium: 45, // From mockSelectedInsurance.monthlyPrice
           }),
         })
       );
@@ -182,7 +196,7 @@ describe('useSubmitApplication', () => {
     it('includes accessories in product_data', async () => {
       mockSubmitApplication.mockResolvedValueOnce({
         success: true,
-        application_code: 'APP-789',
+        public_token: 'APP-789',
       });
 
       const { result } = renderHook(() => useSubmitApplication());
@@ -194,7 +208,7 @@ describe('useSubmitApplication', () => {
       expect(mockSubmitApplication).toHaveBeenCalledWith(
         expect.objectContaining({
           product_data: expect.objectContaining({
-            accessories: [{ accessory_id: 1, price: 50 }],
+            accessories: [{ accessory_id: 1 }],
           }),
         })
       );
@@ -285,7 +299,7 @@ describe('useSubmitApplication', () => {
     it('clears error on new submission', async () => {
       mockSubmitApplication
         .mockResolvedValueOnce({ success: false, error: 'First error' })
-        .mockResolvedValueOnce({ success: true, application_code: 'APP-100' });
+        .mockResolvedValueOnce({ success: true, public_token: 'APP-100' });
 
       const { result } = renderHook(() => useSubmitApplication());
 

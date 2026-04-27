@@ -23,6 +23,7 @@ import {
   ClipboardCheck,
 } from 'lucide-react';
 import type { FaqData, AgreementData } from '../../../types/hero';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface ConvenioFaqProps {
   data: FaqData;
@@ -58,6 +59,7 @@ const categoryIcons: Record<string, React.ElementType> = {
 };
 
 export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ data, agreementData }) => {
+  const tracker = useEventTrackerOptional();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const institutionShortName = agreementData.institution_short_name || agreementData.institution_name || '';
 
@@ -102,7 +104,11 @@ export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ data, agreementData })
               >
                 <button
                   className="w-full flex items-center gap-3 sm:gap-4 p-4 sm:p-5 text-left cursor-pointer hover:bg-neutral-50 transition-colors"
-                  onClick={() => setOpenIndex(isOpen ? null : index)}
+                  onClick={() => {
+                    const next = isOpen ? null : index;
+                    tracker?.track('faq_toggle', { faq_id: faq.id, open: next !== null, category: faq.category, source: 'convenio' });
+                    setOpenIndex(next);
+                  }}
                 >
                   <div
                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0"

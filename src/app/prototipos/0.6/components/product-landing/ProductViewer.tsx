@@ -6,6 +6,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { productViewerData } from './data/v5Data';
 import { ASSETS } from './lib/constants';
 import type { MacbookNeoColor } from './types/v5Types';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 /* ─── image map ─── */
 const ITEM_IMAGES: Record<string, string> = {
@@ -69,6 +70,7 @@ function ColorSelector({ activeColor, onSelect }: { activeColor: MacbookNeoColor
 }
 
 export default function ProductViewer() {
+  const tracker = useEventTrackerOptional();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [activeColor, setActiveColor] = useState<MacbookNeoColor>('silver');
   const [introPlayed, setIntroPlayed] = useState(false);
@@ -108,6 +110,7 @@ export default function ProductViewer() {
   /* ─── Expand an item ─── */
   const expandItem = useCallback((index: number) => {
     if (expandedIndex === index) return;
+    tracker?.track('viewer_feature_expand', { feature: items[index]?.id, index });
     const prev = expandedIndex;
     prevIndexRef.current = prev;
 
@@ -121,7 +124,7 @@ export default function ProductViewer() {
 
     setExpandedIndex(index);
     setTimeout(() => setTransitionDir(null), 500);
-  }, [expandedIndex]);
+  }, [expandedIndex, tracker, items]);
 
   /* ─── Navigate ─── */
   const goNext = useCallback(() => {
@@ -134,10 +137,11 @@ export default function ProductViewer() {
 
   /* ─── Close ─── */
   const close = useCallback(() => {
+    tracker?.track('viewer_feature_close', { feature: expandedIndex !== null ? items[expandedIndex]?.id : null });
     prevIndexRef.current = expandedIndex;
     setTransitionDir(null);
     setExpandedIndex(null);
-  }, [expandedIndex]);
+  }, [expandedIndex, tracker, items]);
 
   return (
     <section className="bg-white text-[#1d1d1f]" ref={sectionRef}>
@@ -362,7 +366,7 @@ export default function ProductViewer() {
                           {item.description}
                         </p>
                         {item.type === 'color-selector' && (
-                          <ColorSelector activeColor={activeColor} onSelect={setActiveColor} />
+                          <ColorSelector activeColor={activeColor} onSelect={(c) => { tracker?.track('viewer_color_select', { color: c }); setActiveColor(c); }} />
                         )}
                       </div>
                     </div>

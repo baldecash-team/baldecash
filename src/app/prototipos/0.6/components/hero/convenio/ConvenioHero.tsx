@@ -17,6 +17,7 @@ import type { HeroContent, AgreementData } from '../../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getContrastTextColor } from '@/app/prototipos/0.6/utils/colorContrast';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface ConvenioHeroProps {
   heroContent: HeroContent;
@@ -32,6 +33,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   primaryColor,
 }) => {
   const router = useRouter();
+  const tracker = useEventTrackerOptional();
   const normalizedLanding = landing.replace(/\/+$/, '');
   const heroUrl = routes.landingHome(normalizedLanding);
 
@@ -78,6 +80,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   const ctaTextColor = getContrastTextColor(primaryColor || '#4654CD');
 
   const handleCtaClick = () => {
+    tracker?.track('hero_cta_click', { cta_text: heroContent.primaryCta?.text, target: ctaUrl, source: 'convenio_hero' });
     if (ctaUrl.startsWith('http')) {
       window.open(ctaUrl, '_blank', 'noopener,noreferrer');
     } else {

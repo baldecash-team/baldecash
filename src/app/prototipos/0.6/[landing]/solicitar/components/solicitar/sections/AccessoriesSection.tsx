@@ -229,6 +229,15 @@ export function AccessoriesSection({
     return filtered;
   }, [accessories, activeCategory, searchQuery]);
 
+  // Track search with debounce
+  useEffect(() => {
+    if (!searchQuery.trim()) return;
+    const timer = setTimeout(() => {
+      analytics.track('accessory_search', { query: searchQuery.trim(), results_count: filteredAccessories.length });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, analytics, filteredAccessories.length]);
+
   // Reset page when filters or page size change
   useEffect(() => {
     setCurrentPage(0);
@@ -260,7 +269,10 @@ export function AccessoriesSection({
             <div className="flex items-center gap-3">
               <div className="flex-1 flex gap-2 overflow-x-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 <button
-                  onClick={() => setActiveCategory('todos')}
+                  onClick={() => {
+                    analytics.track('accessory_filter', { category: 'todos' });
+                    setActiveCategory('todos');
+                  }}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
                     activeCategory === 'todos'
                       ? 'bg-[var(--color-primary)] text-white'
@@ -274,7 +286,10 @@ export function AccessoriesSection({
                   return (
                     <button
                       key={cat.slug}
-                      onClick={() => setActiveCategory(cat.slug)}
+                      onClick={() => {
+                        analytics.track('accessory_filter', { category: cat.slug });
+                        setActiveCategory(cat.slug);
+                      }}
                       className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
                         activeCategory === cat.slug
                           ? 'bg-[var(--color-primary)] text-white'
@@ -314,7 +329,10 @@ export function AccessoriesSection({
                 {totalPages > 1 && (
                   <>
                     <button
-                      onClick={() => setCurrentPage((p) => p - 1)}
+                      onClick={() => {
+                        analytics.track('accessory_pagination', { direction: 'prev', page: currentPage - 1 });
+                        setCurrentPage((p) => p - 1);
+                      }}
                       disabled={!canGoBack}
                       aria-label="Página anterior"
                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
@@ -326,7 +344,10 @@ export function AccessoriesSection({
                       <ChevronLeft className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => setCurrentPage((p) => p + 1)}
+                      onClick={() => {
+                        analytics.track('accessory_pagination', { direction: 'next', page: currentPage + 1 });
+                        setCurrentPage((p) => p + 1);
+                      }}
                       disabled={!canGoForward}
                       aria-label="Página siguiente"
                       className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${

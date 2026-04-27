@@ -41,6 +41,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { useLayout } from '../context/LayoutContext';
 import { getComingSoonContent, ComingSoonSection } from '@/app/prototipos/0.6/services/landingApi';
+import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 // Mapeo de iconos string a componentes
 const iconMap: Record<string, LucideIcon> = {
@@ -86,6 +87,7 @@ function ProximamenteContent() {
   const seccion = searchParams.get('seccion') || '';
   const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing } = useLayout();
   const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
+  const tracker = useEventTrackerOptional();
 
   // Gamer theme
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -394,6 +396,7 @@ function ProximamenteContent() {
               className="w-full sm:w-auto text-white font-semibold px-6"
               style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}
               startContent={<ArrowLeft className="w-4 h-4" />}
+              onClick={() => tracker?.track('cta_click', { cta_name: 'volver_inicio', location: 'proximamente' })}
             >
               Volver al inicio
             </Button>
@@ -414,7 +417,10 @@ function ProximamenteContent() {
                   size="sm"
                   className="w-full sm:w-auto bg-[#25D366] text-white font-semibold cursor-pointer"
                   startContent={<MessageCircle className="w-4 h-4 flex-shrink-0" />}
-                  onPress={() => window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer')}
+                  onPress={() => {
+                    tracker?.track('cta_click', { cta_name: 'whatsapp_support', location: 'proximamente' });
+                    window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer');
+                  }}
                 >
                   Escríbenos por WhatsApp
                 </Button>

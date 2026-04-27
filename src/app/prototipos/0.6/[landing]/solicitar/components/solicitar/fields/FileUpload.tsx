@@ -8,6 +8,7 @@
 import React, { useCallback, useState, useRef } from 'react';
 import { Upload, X, FileText, AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { FieldTooltip } from './FieldTooltip';
+import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 
 export interface FieldTooltipInfo {
   title: string;
@@ -58,6 +59,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   disabled = false,
   required = false,
 }) => {
+  const tracker = useEventTrackerOptional();
   const [isDragging, setIsDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -122,11 +124,14 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       if (rejectedByType.length > 0) {
         const allowed = allowedExtensions.map((e) => e.replace('.', '').toUpperCase()).join(', ');
         setFileError(`Formato no permitido. Solo se aceptan: ${allowed}`);
+        tracker?.track('file_upload_error', { field_id: id, error: 'invalid_type', count: rejectedByType.length });
       } else if (rejectedBySize.length > 0) {
         setFileError(`El archivo excede el tamaño máximo de ${formatSize(maxSize)}`);
+        tracker?.track('file_upload_error', { field_id: id, error: 'too_large', count: rejectedBySize.length });
       }
 
       if (newFiles.length > 0) {
+        tracker?.track('file_selected', { field_id: id, file_count: newFiles.length, file_type: newFiles[0]?.type });
         // When maxFiles is 1, replace existing file; otherwise append
         if (maxFiles === 1) {
           onChange(newFiles);
@@ -168,6 +173,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   const handleRemove = (fileId: string) => {
+    tracker?.track('file_removed', { field_id: id });
     onChange(value.filter((f) => f.id !== fileId));
     setFileError(null);
   };

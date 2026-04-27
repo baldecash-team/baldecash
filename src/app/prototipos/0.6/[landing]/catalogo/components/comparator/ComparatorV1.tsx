@@ -285,19 +285,21 @@ export const ComparatorV1: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                 >
                   Elegir ganador
                 </Button>
-                <Button
-                  variant="bordered"
-                  className="cursor-pointer border-[var(--color-primary)] text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] font-semibold w-full md:w-auto order-2 md:order-3"
-                  startContent={<ShoppingCart className="w-4 h-4" />}
-                  onPress={() => {
-                    if (bestProduct) {
-                      analytics.trackCompareBestAddToCart({ product_id: bestProduct.id });
-                      onAddToCart?.(bestProduct.id);
-                    }
-                  }}
-                >
-                  Al carrito
-                </Button>
+                {onAddToCart && (
+                  <Button
+                    variant="bordered"
+                    className="cursor-pointer border-[var(--color-primary)] text-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)] hover:bg-[rgba(var(--color-primary-rgb),0.1)] font-semibold w-full md:w-auto order-2 md:order-3"
+                    startContent={<ShoppingCart className="w-4 h-4" />}
+                    onPress={() => {
+                      if (bestProduct) {
+                        analytics.trackCompareBestAddToCart({ product_id: bestProduct.id });
+                        onAddToCart(bestProduct.id);
+                      }
+                    }}
+                  >
+                    Al carrito
+                  </Button>
+                )}
               </>
             )}
             <Button

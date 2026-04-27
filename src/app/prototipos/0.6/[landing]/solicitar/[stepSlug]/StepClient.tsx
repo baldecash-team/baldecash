@@ -415,9 +415,19 @@ function StepContent() {
     setSubmitted(true);
     const firstErrorField = validateStep();
     if (firstErrorField) {
+      tracker?.track('form_step_validation_error', {
+        step_code: step?.code,
+        step_title: step?.title,
+        error_field: firstErrorField,
+      });
       document.getElementById(firstErrorField)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    tracker?.track('form_step_complete', {
+      step_code: step?.code,
+      step_title: step?.title,
+      next_step: navigation.nextStep?.code ?? 'complementos_or_submit',
+    });
     if (step) {
       markStepCompleted(step.url_slug || step.code);
     }
@@ -438,6 +448,10 @@ function StepContent() {
   };
 
   const handleBack = () => {
+    tracker?.track('form_step_back', {
+      step_code: step?.code,
+      prev_step: navigation.prevStep?.code ?? 'preview',
+    });
     if (navigation.prevStep) {
       const prevSlug = navigation.prevStep.url_slug || navigation.prevStep.code;
       router.push(routes.solicitarStep(landing, prevSlug));
