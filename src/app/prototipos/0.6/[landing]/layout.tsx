@@ -152,120 +152,210 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
   const { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit } = useDniValidation(landing, handleDniValidated);
 
   const CADE_TEAL = '#00BFB3';
+  const BALDI_CADE_VALIDATE = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-validate.webp';
+  const BALDI_CADE_WELCOME = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-welcome.webp';
+  const BALDI_CADE_EXPIRED = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-expired.webp';
 
   return (
     <div
-      className="fixed inset-0 z-[10001] flex items-center justify-center px-4"
-      style={{ backgroundColor: '#F0F2F5' }}
+      className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
+      style={{ backgroundColor: '#F0F2F5', backgroundImage: 'url(https://baldecash.s3.amazonaws.com/illustrations/cade-overlay-bg.webp)', backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <div className="max-w-sm w-full bg-white rounded-2xl shadow-lg p-6 sm:p-8">
-        {view === 'form' && (
-          <>
-            <div className="text-center mb-6">
-              <p className="text-gray-500 text-base">Acceso</p>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                CADE Universitario 2026
-              </h2>
-              <p className="text-gray-400 text-sm mt-1">
-                Valida tu identidad para continuar
-              </p>
-            </div>
+      <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto">
+        {/* Illustration — hidden on mobile/tablet, visible on md+ */}
+        <div className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10">
+          <img
+            src={view === 'form' ? BALDI_CADE_VALIDATE : view === 'expired' ? BALDI_CADE_EXPIRED : BALDI_CADE_WELCOME}
+            alt="Baldi CADE"
+            className="h-96 lg:h-[28rem] w-auto object-contain drop-shadow-xl"
+          />
+        </div>
 
-            <div className="mb-4">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                DNI
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={dni}
-                  onChange={(e) => handleChange(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-                  placeholder="Ingresa tu DNI"
-                  maxLength={12}
-                  disabled={submitting}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl text-base text-gray-800 font-medium outline-none focus:ring-2 placeholder:text-gray-400 disabled:opacity-70"
-                  style={{ '--tw-ring-color': CADE_TEAL } as React.CSSProperties}
+        {/* Card */}
+        <div className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative">
+          <img
+            src="https://baldecash.s3.amazonaws.com/company/logo-cade-2026.webp"
+            alt="CADE Universitario 2026"
+            className="w-40 sm:w-56 h-auto mx-auto"
+          />
+
+          {view === 'form' && (
+            <>
+              {/* Mobile illustration */}
+              <div className="flex md:hidden justify-center mb-3">
+                <img
+                  src={BALDI_CADE_VALIDATE}
+                  alt="Baldi CADE"
+                  className="h-28 sm:h-36 w-auto object-contain"
                 />
               </div>
-              {errorMsg && (
-                <p className="mt-1.5 text-sm font-medium text-red-500">{errorMsg}</p>
-              )}
-            </div>
 
-            <button
-              onClick={handleSubmit}
-              disabled={!isValidDni || submitting}
-              className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
-              style={{ backgroundColor: CADE_TEAL }}
-            >
-              {submitting ? (
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" role="status">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <>
-                  Validar acceso
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              <div className="text-center mb-4 sm:mb-5">
+                <p className="text-gray-500 text-base sm:text-xl mb-1">Acceso</p>
+                <h2 className="text-xl sm:text-3xl font-bold" style={{ color: '#1B2A4A' }}>
+                  <span style={{ color: CADE_TEAL }}>CADE</span> Universitario 2026
+                </h2>
+                <p className="text-gray-400 text-xs sm:text-sm mt-1">
+                  Valida tu identidad para continuar
+                </p>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  DNI
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={dni}
+                    onChange={(e) => handleChange(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+                    placeholder="Ingresa tu DNI"
+                    maxLength={12}
+                    disabled={submitting}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl text-base text-gray-800 font-medium outline-none focus:ring-2 placeholder:text-gray-400 disabled:opacity-70"
+                    style={{ '--tw-ring-color': CADE_TEAL } as React.CSSProperties}
+                  />
+                </div>
+                {errorMsg && (
+                  <p className="mt-1.5 text-sm font-medium text-red-500">{errorMsg}</p>
+                )}
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={!isValidDni || submitting}
+                className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
+                style={{ backgroundColor: CADE_TEAL }}
+              >
+                {submitting ? (
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" role="status">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
                   </svg>
-                </>
-              )}
-            </button>
+                ) : (
+                  <>
+                    Validar acceso
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </>
+                )}
+              </button>
 
-            <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-              </svg>
-              Tus datos están protegidos.
-            </p>
-          </>
-        )}
+              <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                Tus datos están protegidos.
+              </p>
+            </>
+          )}
 
-        {view === 'welcome' && (
-          <div className="text-center">
-            <p className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-              {firstName ? `¡Hola ${firstName}!` : '¡Bienvenido!'}
-            </p>
-            <p className="text-gray-500 text-sm sm:text-base leading-relaxed mb-6">
-              Tienes acceso a ofertas exclusivas del CADE Universitario 2026.
-            </p>
-            <button
-              onClick={onValidated}
-              className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
-              style={{ backgroundColor: CADE_TEAL }}
-            >
-              Comenzar
-            </button>
-          </div>
-        )}
+          {view === 'welcome' && (
+            <div className="text-center">
+              <div className="flex md:hidden justify-center mb-3">
+                <img src={BALDI_CADE_WELCOME} alt="Baldi CADE" className="h-28 sm:h-36 w-auto object-contain" />
+              </div>
 
-        {view === 'expired' && (
-          <div className="text-center">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-              Este evento ha finalizado
-            </h2>
-            <p className="text-gray-500 text-sm sm:text-base leading-relaxed mb-6">
-              El periodo de acceso exclusivo CADE Universitario 2026 ha terminado.
-              Explora nuestro catálogo general para encontrar tu equipo ideal.
-            </p>
-            <a
-              href={routes.catalogo('home')}
-              className="block w-full py-3.5 rounded-xl text-base font-semibold text-white text-center transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
-              style={{ backgroundColor: CADE_TEAL }}
-            >
-              Ver catálogo general
-            </a>
-          </div>
-        )}
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#1B2A4A' }}>
+                {firstName ? `¡Hola, ${firstName}!` : '¡Bienvenido!'}
+              </h2>
+              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-5">
+                Nos alegra verte de nuevo.<br />
+                Estás listo para vivir la experiencia CADE.
+              </p>
+
+              <div className="flex items-center rounded-xl py-2.5 px-4 mb-5 border border-gray-200 bg-gray-50">
+                <div className="flex items-center gap-1.5 pr-3 border-r border-gray-200">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke={CADE_TEAL} strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                  </svg>
+                  <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: CADE_TEAL }}>DNI</span>
+                </div>
+                <span className="pl-3 text-base font-semibold text-gray-800">{dni}</span>
+              </div>
+
+              <button
+                onClick={onValidated}
+                className="w-full py-3.5 rounded-xl text-base font-semibold transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                style={{ backgroundColor: 'transparent', color: CADE_TEAL, border: `2px solid ${CADE_TEAL}` }}
+              >
+                Comenzar
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </button>
+
+              <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                Tus datos están protegidos.
+              </p>
+            </div>
+          )}
+
+          {view === 'expired' && (
+            <div className="text-center">
+              <div className="flex md:hidden justify-center mb-3">
+                <img src={BALDI_CADE_EXPIRED} alt="Baldi CADE" className="h-28 sm:h-36 w-auto object-contain" />
+              </div>
+
+              <div className="flex justify-center mb-3">
+                <img
+                  src="https://baldecash.s3.amazonaws.com/illustrations/cade-calendar-check.webp"
+                  alt=""
+                  className="h-24 sm:h-28 w-auto"
+                />
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#1B2A4A' }}>
+                ¡Evento finalizado!
+              </h2>
+              <p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
+                Gracias por ser parte de esta experiencia.
+              </p>
+              <p className="text-gray-400 text-xs sm:text-sm font-bold mb-3">
+                Te esperamos en futuros eventos.
+              </p>
+
+              <div className="flex items-center gap-2 mb-5">
+                <div className="flex-1 h-px bg-gray-200" />
+                <svg className="h-4 w-4 flex-shrink-0" fill={CADE_TEAL} viewBox="0 0 24 24">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+
+              <div className="flex items-center gap-3 rounded-xl p-3.5 mb-5 text-left border border-gray-200 bg-gray-50">
+                <img
+                  src="https://baldecash.s3.amazonaws.com/illustrations/cade-calendar-check.webp"
+                  alt=""
+                  className="h-12 w-12 flex-shrink-0"
+                />
+                <p className="text-xs sm:text-sm text-gray-500 leading-snug">
+                  Mantente atento a nuestras redes para conocer las próximas fechas.
+                </p>
+              </div>
+
+              <a
+                href={routes.catalogo('home')}
+                className="block w-full py-3.5 rounded-xl text-base font-semibold text-white text-center transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                style={{ backgroundColor: CADE_TEAL }}
+              >
+                Ver catálogo completo
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
