@@ -16,7 +16,7 @@ import { Chip } from '@nextui-org/react';
 import type { HeroContent, AgreementData } from '../../../types/hero';
 import { formatMoney } from '@/app/prototipos/0.5/utils/formatMoney';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { getContrastTextColor } from '@/app/prototipos/0.6/utils/colorContrast';
+import { getContrastTextColor, getColorForDarkBg } from '@/app/prototipos/0.6/utils/colorContrast';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface ConvenioHeroProps {
@@ -78,6 +78,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
   };
 
   const ctaTextColor = getContrastTextColor(primaryColor || '#4654CD');
+  const insightIconColor = getColorForDarkBg(primaryColor || '#4654CD');
 
   const handleCtaClick = () => {
     tracker?.track('hero_cta_click', { cta_text: heroContent.primaryCta?.text, target: ctaUrl, source: 'convenio_hero' });
@@ -158,7 +159,7 @@ export const ConvenioHero: React.FC<ConvenioHeroProps> = ({
               const IconComponent = getIconComponent(signal.icon);
               return (
                 <li key={index} className="flex items-center gap-2 text-white/90 text-sm sm:text-base">
-                  <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: 'var(--color-primary, #4654CD)' }} />
+                  <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: insightIconColor }} />
                   <span className="break-words min-w-0">{signal.text}</span>
                 </li>
               );

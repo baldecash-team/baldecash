@@ -26,6 +26,12 @@ export function getContrastTextColor(hex: string): string {
   return luminance(r, g, b) > 0.4 ? '#1a1a1a' : '#FFFFFF';
 }
 
+/** Returns white if the color is too dark to be visible on a dark background. */
+export function getColorForDarkBg(hex: string): string {
+  const [r, g, b] = parseHex(hex);
+  return luminance(r, g, b) > 0.1 ? hex : '#FFFFFF';
+}
+
 /** Returns the original color if readable on white, or a darkened fallback. */
 export function getReadableColorOnWhite(hex: string): string {
   const [r, g, b] = parseHex(hex);
