@@ -38,6 +38,10 @@ export interface LandingConfigFeatures {
   dni_capture_mode: DniCaptureMode;
   /** Floating CTA button config. null = no button. */
   floating_cta: FloatingCtaConfig | null;
+  /** Overlay variant slug. Empty = default VIP overlay. */
+  overlay_variant: string;
+  /** ISO date deadline for overlay access. Empty = no deadline. */
+  overlay_deadline: string;
 }
 
 /**
@@ -78,5 +82,7 @@ export const DEFAULT_LANDING_CONFIG: LandingConfig = {
     has_dni_whitelist: false,
     dni_capture_mode: 'modal',
     floating_cta: null,
+    overlay_variant: '',
+    overlay_deadline: '',
   },
 };

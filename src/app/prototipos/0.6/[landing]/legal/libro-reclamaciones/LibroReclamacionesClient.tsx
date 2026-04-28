@@ -12,7 +12,6 @@ import { Button, Card, CardBody, Radio, RadioGroup } from '@nextui-org/react';
 import { Send, AlertCircle, FileText, User, Mail, Phone, MapPin, MessageSquare } from 'lucide-react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
@@ -754,11 +753,7 @@ export function LibroReclamacionesClient() {
       </main>
 
       {/* Footer */}
-      {isConvenio ? (
-        <ConvenioFooter data={footerData} agreementData={agreementData!} landing={landing} />
-      ) : (
-        <Footer data={footerData} landing={landing} />
-      )}
+      <Footer data={footerData} landing={landing} agreementData={agreementData} />
 
       {/* Success Toast */}
       <Toast

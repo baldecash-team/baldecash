@@ -19,7 +19,6 @@ import { StepSuccessMessage } from '../components/solicitar/celebration/StepSucc
 import { GamerStepSuccess } from '../components/solicitar/celebration/GamerStepSuccess';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/GamerNewsletter';
@@ -783,7 +782,7 @@ function StepContent() {
     return (
       <>
         {pageContent}
-        {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+        <Footer data={footerData} landing={landing} agreementData={agreementData} />
       </>
     );
   }
@@ -852,7 +851,7 @@ function StepContent() {
   return (
     <>
       {pageContent}
-      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+      <Footer data={footerData} landing={landing} agreementData={agreementData} />
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
     </>
   );

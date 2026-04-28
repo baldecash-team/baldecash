@@ -44,7 +44,7 @@ import { Benefits } from './Benefits';
 import { Footer } from './Footer';
 
 // Convenio-specific components
-import { ConvenioHero, ConvenioTestimonials, ConvenioCta, ConvenioFooter, ConvenioFaq } from './convenio';
+import { ConvenioHero, ConvenioTestimonials, ConvenioCta, ConvenioFaq } from './convenio';
 
 // Fixed underline style for v0.6 (4 = sin subrayado)
 const UNDERLINE_STYLE = 4;
@@ -364,13 +364,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         )}
       </main>
 
-      {/* Footer - Convenio uses minimalist co-branded footer */}
+      {/* Footer - Institucional con logo doble si es convenio */}
       <div id="footer">
-        {isConvenio ? (
-          <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} />
-        ) : (
-          <Footer data={footerData} landing={landing} />
-        )}
+        <Footer data={footerData} landing={landing} agreementData={agreementData} />
       </div>
 
       {/* Quiz Modal - Solo renderizar si hay quiz asociado */}

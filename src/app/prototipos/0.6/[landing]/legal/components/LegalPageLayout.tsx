@@ -10,7 +10,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
@@ -201,12 +200,8 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
         </div>
       </main>
 
-      {/* Footer - Convenio uses minimalist co-branded footer */}
-      {isConvenio ? (
-        <ConvenioFooter data={footerData} agreementData={agreementData!} landing={landing} />
-      ) : (
-        <Footer data={footerData} landing={landing} />
-      )}
+      {/* Footer */}
+      <Footer data={footerData} landing={landing} agreementData={agreementData} />
     </div>
   );
 }

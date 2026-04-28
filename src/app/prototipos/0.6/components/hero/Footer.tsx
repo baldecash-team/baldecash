@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { Button } from '@nextui-org/react';
 import { Facebook, Instagram, Linkedin, Phone, Send, AlertCircle, Check, Twitter, Youtube, MapPin } from 'lucide-react';
 import { Toast } from '@/app/prototipos/_shared';
-import type { FooterData } from '../../types/hero';
+import type { FooterData, AgreementData } from '../../types/hero';
 import { routes, BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
@@ -41,9 +41,10 @@ const socialIconMap: Record<string, React.ComponentType<{ className?: string }>>
 interface FooterProps {
   data?: FooterData | null;
   landing?: string;
+  agreementData?: AgreementData | null;
 }
 
-export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData }) => {
   const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
 
@@ -193,7 +194,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
     >
       {/* Newsletter Section - Only render if newsletter is enabled */}
       {newsletterConfig?.enabled && (
-        <div style={{ backgroundColor: 'var(--color-primary, #4654CD)' }}>
+        <div style={{ backgroundColor: '#4654CD' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="text-center md:text-left">
@@ -271,13 +272,39 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home' }) => {
         }`}>
           {/* Logo Column - full width on mobile/tablet, single col on desktop */}
           <div className="col-span-full lg:col-span-1">
-            <a href={heroUrl} className="inline-block mb-4">
-              <img
-                src={logoUrl}
-                alt="BaldeCash"
-                className="h-8 object-contain"
-              />
-            </a>
+            <div className="flex items-center gap-3 mb-4">
+              <a href={heroUrl} className="inline-block">
+                <img
+                  src={logoUrl}
+                  alt="BaldeCash"
+                  className="h-8 object-contain"
+                />
+              </a>
+              {agreementData?.institution_logo && (
+                <>
+                  <span className="text-neutral-500">×</span>
+                  <div className="bg-white rounded-lg px-3 py-1.5">
+                    <img
+                      src={agreementData.institution_logo}
+                      alt={agreementData.institution_name || 'Institución'}
+                      className="h-5 object-contain max-w-[140px]"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+              {agreementData && !agreementData.institution_logo && (agreementData.institution_short_name || agreementData.institution_name) && (
+                <>
+                  <span className="text-neutral-500">×</span>
+                  <span className="text-neutral-400 font-medium text-sm">
+                    {agreementData.institution_short_name || agreementData.institution_name}
+                  </span>
+                </>
+              )}
+            </div>
             <p className="text-sm text-neutral-400 mb-4">{tagline}</p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => (
