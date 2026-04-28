@@ -179,7 +179,7 @@ function ComplementosContent() {
   const handleBack = () => {
     tracker?.track('complementos_back', {
       accessories_count: selectedAccessories.length,
-      insurance_count: selectedInsurances?.length ?? (selectedInsurance ? 1 : 0),
+      insurance_count: selectedInsurances?.length ?? 0,
     });
     const lastStepSlug = lastStep ? getStepSlug(lastStep) : 'resumen';
     router.push(routes.solicitarStep(landing, lastStepSlug));
