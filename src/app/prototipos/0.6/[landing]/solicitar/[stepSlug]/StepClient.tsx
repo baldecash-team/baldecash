@@ -18,7 +18,6 @@ import { DynamicWizardStep } from '../components/solicitar/wizard/DynamicWizardS
 import { StepSuccessMessage } from '../components/solicitar/celebration/StepSuccessMessage';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 
 // Context
@@ -757,7 +756,7 @@ function StepContent() {
     return (
       <>
         {pageContent}
-        {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+        <Footer data={footerData} landing={landing} agreementData={agreementData} />
       </>
     );
   }
@@ -806,7 +805,7 @@ function StepContent() {
   return (
     <>
       {pageContent}
-      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+      <Footer data={footerData} landing={landing} agreementData={agreementData} />
       <SubmitOverlay isOpen={isAppSubmitting} stage={submitStage} />
     </>
   );

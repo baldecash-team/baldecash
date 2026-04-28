@@ -15,7 +15,6 @@ import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 
 // Secondary Navbar with search, wishlist, cart
 import { CatalogSecondaryNavbar } from '@/app/prototipos/0.6/[landing]/catalogo/components/catalog/CatalogSecondaryNavbar';
@@ -418,7 +417,7 @@ function ProductDetailContent() {
       </main>
 
       {/* Footer from Hero */}
-      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+      <Footer data={footerData} landing={landing} agreementData={agreementData} />
 
       {/* Mobile Drawers */}
       <SearchDrawer

@@ -17,7 +17,6 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
@@ -798,7 +797,7 @@ function WizardPreviewContent() {
       {pageContent}
       <SelectedProductBar mobileOnly />
       <SelectedProductSpacer />
-      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+      <Footer data={footerData} landing={landing} agreementData={agreementData} />
     </div>
   );
 }

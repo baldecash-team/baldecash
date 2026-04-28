@@ -17,7 +17,6 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { ReceivedScreen } from './components/received';
@@ -386,7 +385,7 @@ function ConfirmacionContent() {
           <DemoContent onSelectResult={handleSelectResult} />
         )}
       </div>
-      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+      <Footer data={footerData} landing={landing} agreementData={agreementData} />
     </>
   );
 }

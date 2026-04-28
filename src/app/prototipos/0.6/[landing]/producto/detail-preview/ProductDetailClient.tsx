@@ -19,7 +19,6 @@ import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigA
 // Hero components
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
 
 // Hooks
 import { useProductDetail } from './hooks/useProductDetail';
@@ -124,7 +123,7 @@ function ProductDetailContent() {
             {hasCatalog ? 'Volver al catálogo' : 'Volver al inicio'}
           </button>
         </div>
-        {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+        <Footer data={footerData} landing={landing} agreementData={agreementData} />
       </div>
     );
   }

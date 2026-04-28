@@ -57,8 +57,6 @@ import { useOnboarding } from './hooks/useOnboarding';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
-import { ConvenioFooter } from '@/app/prototipos/0.6/components/hero/convenio';
-
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -1587,7 +1585,7 @@ function CatalogoContent() {
             </div>
           </div>
         </main>
-        {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+        <Footer data={footerData} landing={landing} agreementData={agreementData} />
       </div>
     );
   }
@@ -1922,7 +1920,7 @@ function CatalogoContent() {
       </main>
 
       {/* Footer from Hero */}
-      {agreementData ? <ConvenioFooter data={footerData} agreementData={agreementData} landing={landing} /> : <Footer data={footerData} landing={landing} />}
+      <Footer data={footerData} landing={landing} agreementData={agreementData} />
 
       {/* Cart Selection Modal — only in multi-product mode */}
       {ALLOW_MULTI_PRODUCT && (
