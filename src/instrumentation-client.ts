@@ -4,6 +4,12 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+// Fixes BALDECASH3-1, BALDECASH3-2: blip-chat-widget keeps a window 'resize'
+// listener attached after the React component unmounts on route transitions,
+// firing TypeError: Cannot read properties of null (reading 'style') at every
+// resize. We don't control the third-party script, so we drop its events.
+const THIRD_PARTY_NOISE_PATTERN = /blip-chat-widget|baldecash\.chat\.blip\.ai/i;
+
 Sentry.init({
   dsn: "https://89b76047709a0b3fe7c9bff6c5b221e7@o4504769499561984.ingest.us.sentry.io/4511120032333824",
 
@@ -16,6 +22,15 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 
   sendDefaultPii: true,
+
+  beforeSend(event) {
+    const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
+    for (const frame of frames) {
+      const url = frame.filename || frame.abs_path || "";
+      if (THIRD_PARTY_NOISE_PATTERN.test(url)) return null;
+    }
+    return event;
+  },
 
   ignoreErrors: [
     // Instagram / Facebook / TikTok in-app browsers inject scripts that probe
@@ -44,6 +59,8 @@ Sentry.init({
     /livechatinc\.com/,
     /tidio\.co/,
     /cliengo\./,
+    /blip-chat-widget/,
+    /baldecash\.chat\.blip\.ai/,
     // Analytics & ads
     /google-analytics\.com/,
     /googletagmanager\.com/,
