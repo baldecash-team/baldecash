@@ -385,6 +385,56 @@ export const EventTrackerProvider: React.FC<EventTrackerProviderProps> = ({
   }, [sessionUuid, enqueue]);
 
   // ------------------------------------------------------------------
+  // Auto: global error tracking (window.onerror + unhandledrejection)
+  // ------------------------------------------------------------------
+  useEffect(() => {
+    if (!sessionUuid) return;
+
+    const handleError = (event: ErrorEvent) => {
+      enqueue({
+        event_type: 'error',
+        client_ts: Date.now(),
+        page_url: getPageUrl(),
+        element_id: null,
+        properties: {
+          error_type: 'runtime',
+          message: event.message?.slice(0, 200),
+          source: event.filename?.slice(-100),
+          line: event.lineno,
+          col: event.colno,
+        },
+      });
+    };
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const message =
+        reason instanceof Error
+          ? reason.message
+          : typeof reason === 'string'
+            ? reason
+            : 'Unknown rejection';
+      enqueue({
+        event_type: 'error',
+        client_ts: Date.now(),
+        page_url: getPageUrl(),
+        element_id: null,
+        properties: {
+          error_type: 'unhandled_rejection',
+          message: message.slice(0, 200),
+        },
+      });
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, [sessionUuid, enqueue]);
+
+  // ------------------------------------------------------------------
   // Periodic flush timer
   // ------------------------------------------------------------------
   useEffect(() => {

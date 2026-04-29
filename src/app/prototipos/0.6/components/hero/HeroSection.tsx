@@ -14,7 +14,7 @@
  * - Footer: V2 (Newsletter + Columnas)
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { UnderlinedText } from './common/UnderlinedText';
 
 // Types
@@ -25,6 +25,9 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { HelpQuiz } from '../../quiz';
 import { useQuiz } from '../../quiz/hooks/useQuiz';
 import type { QuizProduct } from '../../quiz/types/quiz';
+
+// Event tracking
+import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
 
 // Shared state for cart (same localStorage as catalog)
 import { useCatalogSharedState } from '../../[landing]/catalogo/hooks/useCatalogSharedState';
@@ -202,6 +205,34 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   // Determine if this is a convenio landing
   const isConvenio = !!agreementData;
+
+  // section_view tracking via IntersectionObserver
+  const tracker = useEventTrackerOptional();
+  const viewedSectionsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!tracker) return;
+
+    const sectionIds = ['hero', 'beneficios', 'testimonios', 'convenios', 'como-funciona', 'faq', 'cta'];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && !viewedSectionsRef.current.has(entry.target.id)) {
+            viewedSectionsRef.current.add(entry.target.id);
+            tracker.track('section_view', { section_id: entry.target.id }, entry.target.id);
+          }
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    for (const id of sectionIds) {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [tracker]);
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -248,6 +248,20 @@ export function AccessoriesSection({
   const canGoBack = currentPage > 0;
   const canGoForward = currentPage < totalPages - 1;
 
+  // Track accessory impressions when visible set changes
+  const prevVisibleIdsRef = useRef<string>('');
+  useEffect(() => {
+    if (visibleAccessories.length === 0) return;
+    const ids = visibleAccessories.map(a => String(a.id)).join(',');
+    if (ids === prevVisibleIdsRef.current) return;
+    prevVisibleIdsRef.current = ids;
+    analytics.track('accessory_impression', {
+      accessory_ids: ids,
+      count: visibleAccessories.length,
+      page: currentPage,
+    });
+  }, [visibleAccessories, currentPage, analytics]);
+
   // Si no hay accesorios disponibles, no mostrar la sección
   if (!isLoading && accessories.length === 0) {
     return null;
