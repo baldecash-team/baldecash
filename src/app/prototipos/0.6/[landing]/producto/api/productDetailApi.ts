@@ -139,6 +139,7 @@ interface ApiInitialPaymentOption {
   original_quota: string | null;
   commission_amount: string | null;
   tea?: number | null;
+  tea_irr?: number | null;
   tcea?: number | null;
 }
 
@@ -345,6 +346,7 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
       originalQuota: opt.original_quota ? parseFloat(opt.original_quota) : undefined,
       commissionAmount: opt.commission_amount ? parseFloat(opt.commission_amount) : null,
       tea: opt.tea ?? null,
+      teaIrr: opt.tea_irr ?? null,
       tcea: opt.tcea ?? null,
     })),
   };

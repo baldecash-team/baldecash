@@ -194,6 +194,7 @@ export interface InitialPaymentOption {
   originalQuota?: number;
   commissionAmount?: number | null;
   tea?: number | null;
+  teaIrr?: number | null;
   tcea?: number | null;
 }
 

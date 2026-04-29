@@ -93,8 +93,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   // Override TEA/TCEA from selected option if available (backend returns per term+initial%)
   const planForRates = paymentPlans.find(p => p.term === selectedTerm) ?? paymentPlans[0];
   const selectedOption = planForRates?.options.find(o => o.initialPercent === selectedInitialPercent) ?? planForRates?.options[0];
-  if (selectedOption?.tea != null) {
-    FINANCIAL_DATA.tea = selectedOption.tea;
+  const effectiveTea = selectedOption?.teaIrr ?? selectedOption?.tea;
+  if (effectiveTea != null) {
+    FINANCIAL_DATA.tea = effectiveTea;
   }
   if (selectedOption?.tcea != null) {
     FINANCIAL_DATA.tcea = selectedOption.tcea;
