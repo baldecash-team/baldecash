@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { Card, CardBody } from '@nextui-org/react';
 import { Flame, Siren, Zap, Star, Gift, ChevronRight, type LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
   CatalogProduct,
   CartItem,
@@ -46,6 +47,7 @@ export const PromotionalProductCard: React.FC<PromotionalProductCardProps> = ({
   onAddToCart,
   onViewDetail,
 }) => {
+  const analytics = useAnalytics();
   const template = product.promotion?.template;
   const [selectedTerm, setSelectedTerm] = useState<TermMonths>(product.maxTermMonths as TermMonths);
   const [selectedInitial, setSelectedInitial] = useState<InitialPaymentPercent>(0);
@@ -147,7 +149,10 @@ export const PromotionalProductCard: React.FC<PromotionalProductCardProps> = ({
             {/* Product name */}
             <h3
               className="text-sm sm:text-base font-bold text-[var(--color-primary)] mb-4 line-clamp-3 cursor-pointer hover:underline min-h-[3rem]"
-              onClick={() => onViewDetail?.(product.slug)}
+              onClick={() => {
+                analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: product.slug });
+                onViewDetail?.(product.slug);
+              }}
             >
               {product.displayName}
             </h3>

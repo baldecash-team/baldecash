@@ -2,6 +2,7 @@
 
 import Script from 'next/script';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEventTrackerOptional } from '../[landing]/solicitar/context/EventTrackerContext';
 
 // Tipos para la API de Blip Chat
 type BlipAuthType = 'Guest' | 'Dev';
@@ -104,6 +105,9 @@ export function BlipChat({
   onLoad,
   onCreateAccount,
 }: BlipChatProps = {}) {
+  const tracker = useEventTrackerOptional();
+  const trackerRef = useRef(tracker);
+  trackerRef.current = tracker;
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const clientRef = useRef<BlipChatClient | null>(null);
@@ -194,10 +198,12 @@ export function BlipChat({
     // Configurar event handlers (incluyendo los internos para el estado)
     instance = instance.withEventHandler(window.BlipChat.ENTER_EVENT, () => {
       setIsChatOpen(true);
+      trackerRef.current?.track('webchat_open', { source: 'blip' });
       props.onOpen?.();
     });
     instance = instance.withEventHandler(window.BlipChat.LEAVE_EVENT, () => {
       setIsChatOpen(false);
+      trackerRef.current?.track('webchat_close', { source: 'blip' });
       props.onClose?.();
     });
     if (props.onLoad) {
