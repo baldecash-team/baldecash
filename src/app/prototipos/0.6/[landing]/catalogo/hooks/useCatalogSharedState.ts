@@ -361,6 +361,14 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
 
       setWishlist((prev) => prev.filter((w) => w.productId !== productId));
 
+      tracker?.track('wishlist_move_to_cart', {
+        product_id: wishlistItem.productId,
+        product_name: wishlistItem.name,
+        brand: wishlistItem.brand,
+        months: config.months,
+        monthly_payment: config.monthlyPayment,
+        initial_percent: config.initialPercent,
+      });
       tracker?.track('cart_add', {
         product_id: wishlistItem.productId,
         product_name: wishlistItem.name,

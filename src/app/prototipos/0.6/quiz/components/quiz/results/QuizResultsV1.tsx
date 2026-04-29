@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { QuizResultsProps, QuizResult, QuizProduct } from '../../../types/quiz';
 import { useIsMobile } from '@/app/prototipos/_shared';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 export const QuizResultsV1: React.FC<QuizResultsProps> = ({
   results,
@@ -33,6 +34,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
   cartItems = [],
 }) => {
   const isMobile = useIsMobile();
+  const analytics = useAnalytics();
 
   // Modal state for cart selection
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -225,6 +227,7 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
                       endContent={isInCart ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
                       onPress={() => {
                         if (isInCart) return;
+                        analytics.trackQuizResultClick({ product_id: topResult.product.id, position: 0 });
                         if (onAddToCart) {
                           handleOpenModal(topResult.product);
                         } else {
@@ -259,8 +262,14 @@ export const QuizResultsV1: React.FC<QuizResultsProps> = ({
               <SecondaryProductCard
                 key={result.product.id}
                 result={result}
-                onOpenModal={onAddToCart ? handleOpenModal : undefined}
-                onDirectSelect={!onAddToCart ? onViewProduct : undefined}
+                onOpenModal={onAddToCart ? (product) => {
+                  analytics.trackQuizResultClick({ product_id: product.id, position: index + 1 });
+                  handleOpenModal(product);
+                } : undefined}
+                onDirectSelect={!onAddToCart ? (productId) => {
+                  analytics.trackQuizResultClick({ product_id: productId, position: index + 1 });
+                  onViewProduct(productId);
+                } : undefined}
                 isInCart={!!onAddToCart && cartItems.includes(result.product.id)}
                 delay={0.5 + index * 0.1}
               />

@@ -24,6 +24,7 @@ import {
   InitialPaymentPercent,
   calculateQuotaWithInitial,
 } from '../../../types/catalog';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
   fire: Flame,
@@ -92,6 +93,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   hideColors = true,
   needsPromoSpacer = false,
 }) => {
+  const analytics = useAnalytics();
+
   // Color selector state — default to current product's ID if it's in the siblings
   const currentProductColor = product.colors?.find(c => c.productId === product.id);
   const [selectedColorId, setSelectedColorId] = useState<string>(
@@ -408,7 +411,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {getDetailHref ? (
                 <Link
                   href={getDetailHref(selectedColor?.slug)}
-                  onClick={() => onViewDetail?.(selectedColor?.slug)}
+                  onClick={() => {
+                    if (promoTemplate) {
+                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
+                    }
+                    onViewDetail?.(selectedColor?.slug);
+                  }}
                   className="block"
                 >
                   <h3
@@ -422,7 +430,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <h3
                   ref={titleRef}
                   className="font-bold text-neutral-800 text-base sm:text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
-                  onClick={() => onViewDetail?.(selectedColor?.slug)}
+                  onClick={() => {
+                    if (promoTemplate) {
+                      analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
+                    }
+                    onViewDetail?.(selectedColor?.slug);
+                  }}
                 >
                   {displayName}
                 </h3>

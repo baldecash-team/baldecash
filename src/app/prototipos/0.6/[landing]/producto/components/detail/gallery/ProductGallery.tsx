@@ -520,8 +520,8 @@ export const ProductGallery: React.FC<ExtendedProductGalleryProps> = ({
                   style={{
                     transform: `scale(${lightboxZoom}) translate(${lightboxPosition.x / lightboxZoom}px, ${lightboxPosition.y / lightboxZoom}px)`,
                   }}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={{ duration: 0.2 }}
                   draggable={false}
                   onError={handleImageError}
