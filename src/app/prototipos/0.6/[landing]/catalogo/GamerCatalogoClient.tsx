@@ -62,6 +62,7 @@ import type {
 } from './types/catalog';
 import { defaultFilterState } from './types/catalog';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
+import { diffAndEmitFilterChanges } from '@/app/prototipos/0.6/analytics/catalogFilterDiff';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 const WIZARD_SELECTED_INITIAL: InitialPaymentPercent = 0;
@@ -443,6 +444,17 @@ function GamerCatalogoContent() {
   const tracker = useEventTrackerOptional();
 
   // Tracked setters: wrap raw state setters to emit analytics events on change
+  const setFiltersTracked = useCallback(
+    (next: FilterState | ((prev: FilterState) => FilterState)) => {
+      setFilters((prev) => {
+        const applied = typeof next === 'function' ? next(prev) : next;
+        diffAndEmitFilterChanges(prev, applied, analytics, [defaultFilterState.quotaRange[0], defaultFilterState.quotaRange[1]]);
+        return applied;
+      });
+    },
+    [analytics]
+  );
+
   const setSortTracked = useCallback((next: SortOption) => {
     setSort((prev) => {
       if (prev !== next) analytics.trackSortChange({ from: prev, to: next });
@@ -613,114 +625,114 @@ function GamerCatalogoContent() {
   }, []);
 
   const handleBrandToggle = useCallback((brand: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = prev.brands.includes(brand)
         ? prev.brands.filter((b) => b !== brand)
         : [...prev.brands, brand];
       return { ...prev, brands: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleGamaToggle = useCallback((gama: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = (prev.gama as string[]).includes(gama)
         ? prev.gama.filter((g) => g !== gama)
         : [...prev.gama, gama as typeof prev.gama[number]];
       return { ...prev, gama: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleConditionToggle = useCallback((condition: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = (prev.condition as string[]).includes(condition)
         ? prev.condition.filter((c) => c !== condition)
         : [...prev.condition, condition as typeof prev.condition[number]];
       return { ...prev, condition: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleDeviceTypeToggle = useCallback((type: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = (prev.deviceTypes as string[]).includes(type)
         ? prev.deviceTypes.filter((t) => t !== type)
         : [...prev.deviceTypes, type as typeof prev.deviceTypes[number]];
       return { ...prev, deviceTypes: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleUsageToggle = useCallback((usage: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = (prev.usage as string[]).includes(usage)
         ? prev.usage.filter((u) => u !== usage)
         : [...prev.usage, usage as typeof prev.usage[number]];
       return { ...prev, usage: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleTagToggle = useCallback((tag: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = (prev.tags as string[]).includes(tag)
         ? prev.tags.filter((t) => t !== tag)
         : [...prev.tags, tag as typeof prev.tags[number]];
       return { ...prev, tags: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleRamToggle = useCallback((ram: number) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = prev.ram.includes(ram)
         ? prev.ram.filter((r) => r !== ram)
         : [...prev.ram, ram];
       return { ...prev, ram: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleStorageToggle = useCallback((storage: number) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = prev.storage.includes(storage)
         ? prev.storage.filter((s) => s !== storage)
         : [...prev.storage, storage];
       return { ...prev, storage: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleGpuToggle = useCallback((gpu: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = (prev.gpuType as string[]).includes(gpu)
         ? prev.gpuType.filter((g) => g !== gpu)
         : [...prev.gpuType, gpu as typeof prev.gpuType[number]];
       return { ...prev, gpuType: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleProcessorToggle = useCallback((proc: string) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = (prev.processorModel as string[]).includes(proc)
         ? prev.processorModel.filter((p) => p !== proc)
         : [...prev.processorModel, proc as typeof prev.processorModel[number]];
       return { ...prev, processorModel: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleScreenSizeToggle = useCallback((size: number) => {
-    setFilters((prev) => {
+    setFiltersTracked((prev) => {
       const next = prev.displaySize.includes(size)
         ? prev.displaySize.filter((s) => s !== size)
         : [...prev.displaySize, size];
       return { ...prev, displaySize: next };
     });
-  }, []);
+  }, [setFiltersTracked]);
 
   const handleQuotaRangeChange = useCallback((min: number, max: number) => {
-    setFilters((prev) => ({ ...prev, quotaRange: [min, max] }));
-  }, []);
+    setFiltersTracked((prev) => ({ ...prev, quotaRange: [min, max] }));
+  }, [setFiltersTracked]);
 
   const handleClearFilters = useCallback(() => {
-    setFilters(defaultFilterState);
+    setFiltersTracked(defaultFilterState);
     setSearchQuery('');
     setSort('recommended');
     analytics.trackFilterClearAll({ source: 'gamer_clear_all' });
-  }, [analytics]);
+  }, [analytics, setFiltersTracked]);
 
   const handleLoadMore = useCallback(() => {
     analytics.trackLoadMore({ visible_count: products.length, total_count: total });
