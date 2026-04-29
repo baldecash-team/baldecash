@@ -452,6 +452,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
         updateFilter('quotaRange', [dynamicQuotaRange.min, dynamicQuotaRange.max]);
         break;
     }
+    if (category !== 'search') {
+      analytics.track('filter_clear_single', { filter_code: category, value: value ?? null });
+    }
   };
 
   const handleClearAll = () => {

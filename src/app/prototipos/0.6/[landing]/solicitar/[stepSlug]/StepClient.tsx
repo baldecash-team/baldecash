@@ -685,7 +685,10 @@ function StepContent() {
                 key={s.id}
                 icon={IconComponent}
                 title={s.title}
-                onEdit={() => navigateToStep(sSlug)}
+                onEdit={() => {
+                  tracker?.track('summary_edit_click', { section: s.code });
+                  navigateToStep(sSlug);
+                }}
               >
                 {visibleFields.map((field) => {
                   const value = getFieldValue(field.code);
