@@ -14,11 +14,12 @@
  * Solo visible en desktop (lg:). En mobile se oculta.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { WizardStepId } from '../../../types/solicitar';
 import { WizardMotivational } from '../../../../../services/wizardApi';
 import { getVipToken } from '../../../../../components/hero/DniModal';
+import { fetchLandingConfig } from '../../../../../services/landingConfigApi';
 
 interface MotivationalCardProps {
   currentStep: WizardStepId;
@@ -31,7 +32,18 @@ interface MotivationalCardProps {
 export const MotivationalCard: React.FC<MotivationalCardProps> = ({ motivational, firstName }) => {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
-  const isVip = !!getVipToken(landing);
+  const hasVipToken = !!getVipToken(landing);
+
+  // VIP style only when token exists AND landing has vip_countdown configured
+  const [hasVipCountdown, setHasVipCountdown] = useState(false);
+  useEffect(() => {
+    if (!hasVipToken) return;
+    fetchLandingConfig(landing).then(cfg => {
+      setHasVipCountdown(!!cfg.features.vip_countdown);
+    });
+  }, [landing, hasVipToken]);
+
+  const isVip = hasVipToken && hasVipCountdown;
 
   // Si no hay contenido motivacional desde la API, no renderizar
   if (!motivational) return null;
