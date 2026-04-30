@@ -104,6 +104,7 @@ function ProductDetailContent() {
           landing={landing}
           promoBannerData={navbarProps?.promoBannerData}
           logoUrl={navbarProps?.logoUrl}
+          logoClassName={navbarProps?.logoClassName}
           customerPortalUrl={navbarProps?.customerPortalUrl}
           portalButtonText={navbarProps?.portalButtonText}
           navbarItems={navbarProps?.navbarItems}
@@ -136,6 +137,7 @@ function ProductDetailContent() {
         landing={landing}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
+        logoClassName={navbarProps?.logoClassName}
         customerPortalUrl={navbarProps?.customerPortalUrl}
         navbarItems={navbarProps?.navbarItems}
         megamenuItems={navbarProps?.megamenuItems}

@@ -397,6 +397,7 @@ export function LibroReclamacionesClient() {
       <Navbar
         promoBannerData={navbarProps.promoBannerData}
         logoUrl={navbarProps.logoUrl}
+        logoClassName={navbarProps.logoClassName}
         customerPortalUrl={navbarProps.customerPortalUrl}
         portalButtonText={navbarProps.portalButtonText}
         navbarItems={navbarProps.navbarItems}

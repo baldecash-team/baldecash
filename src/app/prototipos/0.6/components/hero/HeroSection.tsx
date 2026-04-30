@@ -68,6 +68,7 @@ interface HeroSectionProps {
   activeSections?: string[];
   hasCta?: boolean;
   logoUrl?: string;
+  logoClassName?: string;
   customerPortalUrl?: string;
   portalButtonText?: string;
   footerData?: FooterData | null;
@@ -98,6 +99,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   activeSections = [],
   hasCta = true,
   logoUrl,
+  logoClassName,
   customerPortalUrl,
   portalButtonText,
   footerData,
@@ -238,7 +240,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     <div className="min-h-screen flex flex-col">
       {/* Navbar - shared between normal and convenio */}
       <div id="navbar">
-        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} primaryColor={primaryColor} />
+        <Navbar activeSections={activeSections} promoBannerData={promoBannerData} logoUrl={logoUrl} logoClassName={logoClassName} customerPortalUrl={customerPortalUrl} portalButtonText={portalButtonText} navbarItems={navbarItems} megamenuItems={megamenuItems} landing={landing} previewBannerOffset={previewBannerOffset} institutionLogo={agreementData?.institution_logo} institutionName={agreementData?.institution_name} primaryColor={primaryColor} />
       </div>
 
       {/* Main Content - pad for all fixed headers (preview + promo + navbar) */}

@@ -10,8 +10,9 @@
  * Protects /catalogo, /producto, /solicitar and all sub-routes.
  */
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
@@ -43,10 +44,18 @@ const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
+interface SiblingMatch {
+  slug: string;
+  name: string;
+  firstName: string;
+}
+
 function useDniValidation(landing: string, onValidated: () => void) {
   const [dni, setDni] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [siblingMatch, setSiblingMatch] = useState<SiblingMatch | null>(null);
+  const [showRegister, setShowRegister] = useState(false);
 
   const isValidDni = dni.length >= DOC_MIN_LENGTH && /^\d{8,12}$/.test(dni);
 
@@ -54,19 +63,33 @@ function useDniValidation(landing: string, onValidated: () => void) {
     const cleaned = value.replace(/\D/g, '').slice(0, DOC_MAX_LENGTH);
     setDni(cleaned);
     if (errorMsg) setErrorMsg(null);
-  }, [errorMsg]);
+    if (siblingMatch) setSiblingMatch(null);
+    if (showRegister) setShowRegister(false);
+  }, [errorMsg, siblingMatch, showRegister]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValidDni || submitting) return;
     setSubmitting(true);
     setErrorMsg(null);
+    setSiblingMatch(null);
+    setShowRegister(false);
     try {
       const res = await fetch(
         `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}`,
       );
       const data = await res.json();
       if (!data.valid) {
-        setErrorMsg('No encontramos un registro con este DNI.');
+        if (data.found_in_sibling && data.sibling_landing_slug) {
+          setSiblingMatch({
+            slug: data.sibling_landing_slug,
+            name: data.sibling_landing_name || data.sibling_landing_slug,
+            firstName: data.first_name || '',
+          });
+        } else if (data.found_in_sibling === false && data.register_url !== undefined) {
+          setShowRegister(true);
+        } else {
+          setErrorMsg('No encontramos un registro con este número de documento.');
+        }
         setSubmitting(false);
         return;
       }
@@ -79,7 +102,7 @@ function useDniValidation(landing: string, onValidated: () => void) {
     }
   }, [isValidDni, submitting, landing, dni, onValidated]);
 
-  return { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit };
+  return { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister };
 }
 
 // ── Default inline DNI gate ───────────────────────────────────────────────
@@ -132,6 +155,94 @@ function InlineDniGate({ landing, onValidated }: { landing: string; onValidated:
   );
 }
 
+// ── Floating particles ───────────────────────────────────────────────────
+
+function FloatingParticles({ color = '#00BFB3' }: { color?: string }) {
+  const particles = useMemo(() => {
+    const subtle = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      size: 4 + Math.random() * 8,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      duration: 12 + Math.random() * 18,
+      delay: Math.random() * -20,
+      opacity: 0.12 + Math.random() * 0.18,
+    }));
+    const solid = Array.from({ length: 12 }, (_, i) => ({
+      id: 100 + i,
+      size: 3 + Math.random() * 5,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      duration: 14 + Math.random() * 16,
+      delay: Math.random() * -20,
+      opacity: 1,
+    }));
+    return [...subtle, ...solid];
+  }, []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+      {particles.map(p => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            width: p.size,
+            height: p.size,
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            backgroundColor: color,
+            opacity: p.opacity,
+          }}
+          animate={{
+            y: [0, -30, 0, 20, 0],
+            x: [0, 15, -10, 5, 0],
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: p.delay,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Baldi illustration with load-triggered animation ─────────────────────
+
+function BaldiIllustration({ currentBaldiSrc }: { currentBaldiSrc: string }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <motion.div
+      className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10 relative"
+      style={{ width: 410, height: 544 }}
+      initial={{ opacity: 0, x: -60 }}
+      animate={loaded ? { opacity: 1, x: 0 } : { opacity: 0, x: -60 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={currentBaldiSrc}
+          src={currentBaldiSrc}
+          alt="Baldi CADE"
+          width={410}
+          height={544}
+          fetchPriority="high"
+          className="h-[28rem] lg:h-[34rem] w-auto object-contain drop-shadow-xl"
+          initial={{ opacity: 0, x: -40 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 40 }}
+          transition={{ duration: 0.3 }}
+          onLoad={() => setLoaded(true)}
+        />
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 // ── CADE overlay gate ─────────────────────────────────────────────────────
 
 function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; onValidated: () => void; deadline?: string }) {
@@ -149,43 +260,75 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
     setView('welcome');
   }, [landing]);
 
-  const { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit } = useDniValidation(landing, handleDniValidated);
+  const { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister } = useDniValidation(landing, handleDniValidated);
 
   const CADE_TEAL = '#00BFB3';
   const BALDI_CADE_VALIDATE = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-validate.webp';
   const BALDI_CADE_WELCOME = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-welcome.webp';
   const BALDI_CADE_EXPIRED = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-expired.webp';
+  const CADE_OVERLAY_BG = 'https://baldecash.s3.amazonaws.com/illustrations/cade-overlay-bg.webp';
+  const CADE_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo-cade-2026.webp';
+
+  const currentBaldiSrc = view === 'form' ? BALDI_CADE_VALIDATE : view === 'expired' ? BALDI_CADE_EXPIRED : BALDI_CADE_WELCOME;
+
+  // Preload critical images: current mascot, next mascot, background, logo
+  const preloadedRef = useRef(false);
+  useEffect(() => {
+    if (preloadedRef.current) return;
+    preloadedRef.current = true;
+    const nextBaldiSrc = view === 'form' ? BALDI_CADE_WELCOME : null;
+    const urls = [currentBaldiSrc, CADE_OVERLAY_BG, CADE_LOGO, nextBaldiSrc].filter(Boolean) as string[];
+    for (const href of urls) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = href;
+      document.head.appendChild(link);
+    }
+  }, [currentBaldiSrc]);
 
   return (
     <div
       className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
-      style={{ backgroundColor: '#F0F2F5', backgroundImage: 'url(https://baldecash.s3.amazonaws.com/illustrations/cade-overlay-bg.webp)', backgroundSize: 'cover', backgroundPosition: 'center' }}
+      style={{ backgroundColor: '#F0F2F5', backgroundImage: `url(${CADE_OVERLAY_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
+      <FloatingParticles color={CADE_TEAL} />
       <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto">
         {/* Illustration — hidden on mobile/tablet, visible on md+ */}
-        <div className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10">
-          <img
-            src={view === 'form' ? BALDI_CADE_VALIDATE : view === 'expired' ? BALDI_CADE_EXPIRED : BALDI_CADE_WELCOME}
-            alt="Baldi CADE"
-            className="h-96 lg:h-[28rem] w-auto object-contain drop-shadow-xl"
-          />
-        </div>
+        <BaldiIllustration currentBaldiSrc={currentBaldiSrc} />
 
         {/* Card */}
-        <div className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative">
+        <motion.div
+          className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
+          initial={{ opacity: 0, x: 60 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+        >
           <img
-            src="https://baldecash.s3.amazonaws.com/company/logo-cade-2026.webp"
+            src={CADE_LOGO}
             alt="CADE Universitario 2026"
-            className="w-40 sm:w-56 h-auto mx-auto"
+            width={224}
+            height={80}
+            fetchPriority="high"
+            className="w-40 sm:w-56 h-auto mx-auto mb-4"
           />
 
+          <AnimatePresence mode="wait">
           {view === 'form' && (
-            <>
+            <motion.div
+              key="form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               {/* Mobile illustration */}
-              <div className="flex md:hidden justify-center mb-3">
+              <div className="flex md:hidden justify-center mb-3" style={{ height: 144 }}>
                 <img
                   src={BALDI_CADE_VALIDATE}
                   alt="Baldi CADE"
+                  width={112}
+                  height={144}
                   className="h-28 sm:h-36 w-auto object-contain"
                 />
               </div>
@@ -202,7 +345,7 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
 
               <div className="mb-4">
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  DNI
+                  Número de documento
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -217,7 +360,7 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                     value={dni}
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-                    placeholder="Ingresa tu DNI"
+                    placeholder="Ingresa tu número de documento"
                     maxLength={12}
                     disabled={submitting}
                     className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl text-base text-gray-800 font-medium outline-none focus:ring-2 placeholder:text-gray-400 disabled:opacity-70"
@@ -229,26 +372,68 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                 )}
               </div>
 
-              <button
-                onClick={handleSubmit}
-                disabled={!isValidDni || submitting}
-                className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
-                style={{ backgroundColor: CADE_TEAL }}
-              >
-                {submitting ? (
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" role="status">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  <>
-                    Validar acceso
+              {/* Found in sibling landing */}
+              {siblingMatch && (
+                <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: 'rgba(0,191,179,0.08)', border: '1px solid rgba(0,191,179,0.2)' }}>
+                  <p className="text-sm text-gray-700 mb-1">
+                    Hola <span className="font-semibold">{siblingMatch.firstName}</span>, tu acceso está en:
+                  </p>
+                  <p className="text-base font-bold" style={{ color: CADE_TEAL }}>{siblingMatch.name}</p>
+                  <a
+                    href={routes.catalogo(siblingMatch.slug)}
+                    className="mt-3 w-full py-3 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                    style={{ backgroundColor: CADE_TEAL }}
+                  >
+                    Empezar
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                     </svg>
-                  </>
-                )}
-              </button>
+                  </a>
+                </div>
+              )}
+
+              {/* Not found anywhere — show register CTA */}
+              {showRegister && (
+                <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: 'rgba(0,191,179,0.08)', border: '1px solid rgba(0,191,179,0.2)' }}>
+                  <p className="text-sm text-gray-700 mb-2">
+                    No encontramos tu registro. ¿Quieres solicitar acceso?
+                  </p>
+                  <a
+                    href="#"
+                    className="w-full py-3 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                    style={{ backgroundColor: CADE_TEAL }}
+                  >
+                    Solicitar acceso
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </a>
+                </div>
+              )}
+
+              {/* Validate button — hide when sibling or register is shown */}
+              {!siblingMatch && !showRegister && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={!isValidDni || submitting}
+                  className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: CADE_TEAL }}
+                >
+                  {submitting ? (
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" role="status">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <>
+                      Validar acceso
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              )}
 
               <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -256,13 +441,20 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                 </svg>
                 Tus datos están protegidos.
               </p>
-            </>
+            </motion.div>
           )}
 
           {view === 'welcome' && (
-            <div className="text-center">
+            <motion.div
+              key="welcome"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-center"
+            >
               <div className="flex md:hidden justify-center mb-3">
-                <img src={BALDI_CADE_WELCOME} alt="Baldi CADE" className="h-28 sm:h-36 w-auto object-contain" />
+                <img src={BALDI_CADE_WELCOME} alt="Baldi CADE" width={112} height={144} className="h-28 sm:h-36 w-auto object-contain" />
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#1B2A4A' }}>
@@ -300,13 +492,20 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                 </svg>
                 Tus datos están protegidos.
               </p>
-            </div>
+            </motion.div>
           )}
 
           {view === 'expired' && (
-            <div className="text-center">
+            <motion.div
+              key="expired"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-center"
+            >
               <div className="flex md:hidden justify-center mb-3">
-                <img src={BALDI_CADE_EXPIRED} alt="Baldi CADE" className="h-28 sm:h-36 w-auto object-contain" />
+                <img src={BALDI_CADE_EXPIRED} alt="Baldi CADE" width={112} height={144} className="h-28 sm:h-36 w-auto object-contain" />
               </div>
 
               <div className="flex justify-center mb-3">
@@ -353,9 +552,10 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
               >
                 Ver catálogo completo
               </a>
-            </div>
+            </motion.div>
           )}
-        </div>
+          </AnimatePresence>
+        </motion.div>
       </div>
     </div>
   );
@@ -395,7 +595,7 @@ function DniInputRow({
           placeholder="Número de documento"
           maxLength={DOC_MAX_LENGTH}
           disabled={submitting}
-          aria-label="DNI"
+          aria-label="Número de documento"
           aria-invalid={!!errorMsg}
           className="flex-1 min-w-0 py-3.5 px-4 bg-white rounded-xl text-base font-medium outline-none focus:ring-2 placeholder:text-gray-400 disabled:opacity-70"
           style={{ color: textColor, '--tw-ring-color': accentColor } as React.CSSProperties}
@@ -445,6 +645,8 @@ const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: 
  */
 function VipGate({ landing, children }: { landing: string; children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isPublicPage = pathname.includes('/legal/') || pathname.includes('/proximamente');
   const [status, setStatus] = useState<'loading' | 'allowed' | 'blocked' | 'redirecting'>('loading');
   const [captureMode, setCaptureMode] = useState<'modal' | 'inline'>('modal');
   const [overlayVariant, setOverlayVariant] = useState('');
@@ -515,6 +717,9 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   const handleValidated = useCallback(() => {
     window.location.reload();
   }, []);
+
+  // Public pages (legal, próximamente) are always accessible — skip the gate
+  if (isPublicPage) return <>{children}</>;
 
   // Block render while checking access or redirecting
   if (status === 'loading' || status === 'redirecting') return null;

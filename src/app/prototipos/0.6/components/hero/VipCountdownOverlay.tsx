@@ -124,7 +124,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
         if (!data.valid) {
           tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay' });
           if (landingSlug) clearVipData(landingSlug);
-          setErrorMsg('No encontramos un registro con este DNI.');
+          setErrorMsg('No encontramos un registro con este número de documento.');
           setSubmitting(false);
           return;
         }
@@ -146,7 +146,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
     } catch {
       tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay', reason: 'network_error' });
       if (landingSlug) clearVipData(landingSlug);
-      setErrorMsg('No encontramos un registro con este DNI.');
+      setErrorMsg('No encontramos un registro con este número de documento.');
       setSubmitting(false);
     }
   }, [isValidDni, submitting, landingSlug, validateWhitelist, dni, onValidated, tracker]);

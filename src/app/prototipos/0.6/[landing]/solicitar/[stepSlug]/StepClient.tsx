@@ -55,7 +55,8 @@ import { useEventTrackerOptional } from '../context/EventTrackerContext';
 // Route builder
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
-import { getVipName } from '@/app/prototipos/0.6/components/hero/DniModal';
+import { getVipName, getVipToken } from '@/app/prototipos/0.6/components/hero/DniModal';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 
 
 // Helper function to get Lucide icon by name
@@ -209,9 +210,17 @@ function StepContent() {
   }, [formData]);
 
   // Override motivational when check-person finds data (personalized greeting)
-  // For VIP landings, the MotivationalCard handles the "Hola, [Nombre]" greeting,
+  // For VIP countdown landings, the MotivationalCard handles the "Hola, [Nombre]" greeting,
   // so we skip this override to keep the original BD text.
-  const isVipLanding = !!(() => { try { return localStorage.getItem(`baldecash-vip-token-${landing}`); } catch { return null; } })();
+  const hasVipToken = !!getVipToken(landing);
+  const [hasVipCountdown, setHasVipCountdown] = useState(false);
+  useEffect(() => {
+    if (!hasVipToken) return;
+    fetchLandingConfig(landing).then(cfg => {
+      setHasVipCountdown(!!cfg.features.vip_countdown);
+    });
+  }, [landing, hasVipToken]);
+  const isVipLanding = hasVipToken && hasVipCountdown;
 
   const stepMotivational = useMemo((): WizardMotivational | null => {
     if (!step) return null;

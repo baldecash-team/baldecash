@@ -69,6 +69,11 @@ export interface LandingConfigResponse {
   config: Partial<LandingConfig> & Record<string, Record<string, unknown>>;
 }
 
+/** Logo overrides per overlay variant. */
+export const OVERLAY_VARIANT_LOGOS: Record<string, string> = {
+  cade: 'https://baldecash.s3.amazonaws.com/company/logo-cade-2026.webp',
+};
+
 /** Default config used when the API is unreachable or returns null/empty. */
 export const DEFAULT_LANDING_CONFIG: LandingConfig = {
   layout: {

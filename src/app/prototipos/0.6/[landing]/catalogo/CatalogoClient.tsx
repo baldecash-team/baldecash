@@ -307,11 +307,13 @@ function CatalogoContent() {
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const previewBannerOffset = previewKey ? 24 : 0;
 
-  // VIP countdown banner - fetch landing config for vip_countdown date
+  // VIP countdown banner + overlay variant - fetch landing config
   const [vipCountdownDate, setVipCountdownDate] = useState<string | null>(null);
+  const [overlayVariant, setOverlayVariant] = useState('');
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
       setVipCountdownDate(cfg.features.vip_countdown || '');
+      setOverlayVariant(cfg.features.overlay_variant || '');
     });
   }, [landing]);
 
@@ -1553,6 +1555,7 @@ function CatalogoContent() {
           landing={landing}
           promoBannerData={navbarProps?.promoBannerData}
           logoUrl={navbarProps?.logoUrl}
+          logoClassName={navbarProps?.logoClassName}
           customerPortalUrl={navbarProps?.customerPortalUrl}
           portalButtonText={navbarProps?.portalButtonText}
           navbarItems={navbarProps?.navbarItems}
@@ -1604,6 +1607,7 @@ function CatalogoContent() {
         landing={landing}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
+        logoClassName={navbarProps?.logoClassName}
         customerPortalUrl={navbarProps?.customerPortalUrl}
         portalButtonText={navbarProps?.portalButtonText}
         navbarItems={navbarProps?.navbarItems}
@@ -1700,6 +1704,7 @@ function CatalogoContent() {
         gridRef={gridRef}
         catalogBanner={catalogBanner}
         vipCountdownDate={vipCountdownDate}
+        overlayVariant={overlayVariant}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
         {searchCorrected && !isProductsLoading && (
