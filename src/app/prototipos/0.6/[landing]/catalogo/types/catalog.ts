@@ -852,6 +852,8 @@ export interface CatalogLayoutProps {
   catalogBanner?: Record<string, unknown> | null;
   // VIP countdown date (ISO string) — shows VIP banner when set and not expired
   vipCountdownDate?: string | null;
+  // Overlay variant slug (e.g. 'cade') for showing promo disclaimer
+  overlayVariant?: string;
 }
 
 export interface BrandFilterProps {

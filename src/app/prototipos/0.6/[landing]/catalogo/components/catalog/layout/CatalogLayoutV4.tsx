@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
-import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search } from 'lucide-react';
+import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
+import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
@@ -61,6 +62,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   gridRef,
   catalogBanner,
   vipCountdownDate,
+  overlayVariant,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -617,6 +619,50 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
               desktopImageUrl={catalogBanner.desktop_image_url as string}
               mobileImageUrl={catalogBanner.mobile_image_url as string}
             />
+          </div>
+        )}
+
+        {/* CADE promo disclaimer */}
+        {overlayVariant === 'cade' && (
+          <div className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
+            <div
+              className="rounded-xl p-4 sm:p-5"
+              style={{
+                backgroundColor: 'rgba(0,191,179,0.06)',
+                border: '1px solid rgba(0,191,179,0.2)',
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={{ backgroundColor: 'rgba(0,191,179,0.12)' }}
+                >
+                  <Tag className="w-4.5 h-4.5" style={{ color: '#00BFB3' }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold mb-1" style={{ color: '#00BFB3' }}>
+                    Promoción exclusiva CADE
+                  </p>
+                  <p className="text-sm text-neutral-600 leading-relaxed">
+                    Los productos de este catálogo cuentan con <strong className="text-neutral-800">precios promocionales exclusivos</strong> para participantes de <strong className="text-neutral-800">CADE Universitario 2026</strong>. También puedes explorar nuestro catálogo general, pero <strong className="text-neutral-800">los precios promocionales de CADE solo aplican aquí</strong>.
+                  </p>
+                  <a
+                    href={routes.catalogo('home')}
+                    className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:shadow-md active:scale-[0.98]"
+                    style={{
+                      color: '#00BFB3',
+                      border: '1.5px solid rgba(0,191,179,0.3)',
+                      backgroundColor: 'rgba(0,191,179,0.04)',
+                    }}
+                  >
+                    Ver catálogo completo
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
