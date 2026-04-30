@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, X, Monitor } from 'lucide-react';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
@@ -13,6 +14,8 @@ interface Laptop {
   n: string;
   s: string;
   p: string;
+  slug: string;
+  img: string;
 }
 
 const GAME_ICONS = [
@@ -34,44 +37,67 @@ const GAME_ICONS = [
   <svg key="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 4l-4 4-4-4"/><path d="M10 8v12"/><path d="M6 14l4 4 4-4"/></svg>,
 ];
 
+// Imágenes reales del backend (CDN baldecash) — match por slug del producto.
+// Nota: usamos `.png` (full size) en vez de `_thumb.webp` porque los thumbs
+// aún no están abiertos públicamente (devuelven 403). Como son ~50KB no es problema.
+const LAPTOP_IMG: Record<string, string> = {
+  'loq-15iax9-8gb-512gb-lplegm0000934':
+    'https://baldecash.s3.amazonaws.com/images/productos/laptops/lenovo-loq-15iax9/frontal_sin_fondo.png',
+  'laptop-rog-g614fm-rv009w-lpasgm0001334':
+    'https://baldecash.s3.amazonaws.com/images/productos/laptops/asus-rog-g614fm/frontal_sin_fondo.png',
+  'laptop-omen-17-db1001la-lphpgm0001337':
+    'https://baldecash.s3.amazonaws.com/images/productos/laptops/hp-omen-17/frontal_sin_fondo.png',
+  'laptop-legion-5-pro-lplegm0001338':
+    'https://baldecash.s3.amazonaws.com/images/productos/laptops/lenovo-legion-5-pro/frontal_sin_fondo.png',
+  'laptop-omen-16-ap0001la-lphpgm0001339':
+    'https://baldecash.s3.amazonaws.com/images/productos/laptops/hp-omen-16/frontal_sin_fondo.png',
+  'laptop-gaming-victus-15-fb3019la-lphpme0001003':
+    'https://baldecash.s3.amazonaws.com/images/productos/laptops/hp-victus-fb3019la/frontal_sin_fondo.png',
+  'laptop-legion-7-lplegm0001340':
+    'https://baldecash.s3.amazonaws.com/images/productos/laptops/lenovo-legion-7/frontal_sin_fondo.png',
+  'lap-hp-victus-15-fb3013la':
+    'https://baldecash.s3.amazonaws.com/images/productos/laptops/hp-victus-15/frontal_sin_fondo.png',
+};
+
 const GAMES = [
   {
     name: 'Valorant', genre: 'FPS Táctico', pct: 35, bar: 92, color: '#ff2d55', iconIdx: 0,
     laptops: [
-      { n: 'Legion 5 Pro', s: 'RTX 4060 · 165Hz · Alta calidad', p: 'S/89/mes' },
-      { n: 'Victus 15', s: 'RTX 4050 · 144Hz · Media-alta', p: 'S/59/mes' },
-      { n: 'IdeaPad Gaming 3', s: 'RTX 3050 · 120Hz · Calidad media', p: 'S/49/mes' },
+      { n: 'HP Victus 15 fb3013la', s: 'Ryzen 7 · 16GB · 144Hz competitivo', p: 'S/383/mes', slug: 'lap-hp-victus-15-fb3013la', img: LAPTOP_IMG['lap-hp-victus-15-fb3013la'] },
+      { n: 'Legion 5 Pro', s: 'Core i9 · 32GB · QHD · máximos fps', p: 'S/705/mes', slug: 'laptop-legion-5-pro-lplegm0001338', img: LAPTOP_IMG['laptop-legion-5-pro-lplegm0001338'] },
+      { n: 'Victus 15-FB3019LA', s: 'Ryzen 7 · RTX 3050 · sobra para Valorant', p: 'S/330/mes', slug: 'laptop-gaming-victus-15-fb3019la-lphpme0001003', img: LAPTOP_IMG['laptop-gaming-victus-15-fb3019la-lphpme0001003'] },
     ],
   },
   {
     name: 'Counter-Strike 2', genre: 'FPS Competitivo', pct: 25, bar: 72, color: '#ff9500', iconIdx: 2,
     laptops: [
-      { n: 'TUF Gaming A15', s: 'RTX 4050 · 200+ fps · Competitivo', p: 'S/65/mes' },
-      { n: 'Legion 5 Pro', s: 'RTX 4060 · 300+ fps · Máximos', p: 'S/89/mes' },
-      { n: 'Victus 15', s: 'RTX 4050 · 144Hz · Alta calidad', p: 'S/59/mes' },
+      { n: 'ROG G614FM', s: 'Ryzen 9 · 16GB · top tier para CS2', p: 'S/795/mes', slug: 'laptop-rog-g614fm-rv009w-lpasgm0001334', img: LAPTOP_IMG['laptop-rog-g614fm-rv009w-lpasgm0001334'] },
+      { n: 'OMEN 16', s: 'Ryzen 7 · 16GB · panel 2K', p: 'S/540/mes', slug: 'laptop-omen-16-ap0001la-lphpgm0001339', img: LAPTOP_IMG['laptop-omen-16-ap0001la-lphpgm0001339'] },
+      { n: 'HP Victus 15 fb3013la', s: 'Ryzen 7 · 144Hz · entry competitivo', p: 'S/383/mes', slug: 'lap-hp-victus-15-fb3013la', img: LAPTOP_IMG['lap-hp-victus-15-fb3013la'] },
     ],
   },
   {
     name: 'Dota 2', genre: 'MOBA', pct: 18, bar: 56, color: '#a855f7', iconIdx: 4,
     laptops: [
-      { n: 'IdeaPad Gaming 3', s: 'RTX 3050 · Ultra · 60fps estable', p: 'S/49/mes' },
-      { n: 'TUF Gaming A15', s: 'RTX 4050 · Máximos sin drops', p: 'S/65/mes' },
-      { n: 'Victus 15', s: 'RTX 4050 · Ultra + streaming', p: 'S/59/mes' },
+      { n: 'Legion 7', s: 'Core i9 · 32GB · OLED 2K · jugar y stream', p: 'S/848/mes', slug: 'laptop-legion-7-lplegm0001340', img: LAPTOP_IMG['laptop-legion-7-lplegm0001340'] },
+      { n: 'HP Victus 15 fb3013la', s: 'Ryzen 7 · 144Hz · ultra estable', p: 'S/383/mes', slug: 'lap-hp-victus-15-fb3013la', img: LAPTOP_IMG['lap-hp-victus-15-fb3013la'] },
+      { n: 'LOQ 15IAX9', s: 'Core i5 · entry-level · corre Dota fácil', p: 'S/270/mes', slug: 'loq-15iax9-8gb-512gb-lplegm0000934', img: LAPTOP_IMG['loq-15iax9-8gb-512gb-lplegm0000934'] },
     ],
   },
   {
     name: 'Fortnite', genre: 'Battle Royale', pct: 12, bar: 44, color: '#00ffd5', iconIdx: 3,
     laptops: [
-      { n: 'TUF Gaming A15', s: 'RTX 4050 · Alta calidad · 120fps', p: 'S/65/mes' },
-      { n: 'Legion 5 Pro', s: 'RTX 4060 · Épico · 165Hz', p: 'S/89/mes' },
-      { n: 'ROG Strix G16', s: 'RTX 4060 · Ultra · Competitivo', p: 'S/95/mes' },
+      { n: 'Legion 5 Pro', s: 'Core i9 · 32GB · QHD · épico sin drops', p: 'S/705/mes', slug: 'laptop-legion-5-pro-lplegm0001338', img: LAPTOP_IMG['laptop-legion-5-pro-lplegm0001338'] },
+      { n: 'ROG G614FM', s: 'Ryzen 9 · 16GB · alternativa top', p: 'S/795/mes', slug: 'laptop-rog-g614fm-rv009w-lpasgm0001334', img: LAPTOP_IMG['laptop-rog-g614fm-rv009w-lpasgm0001334'] },
+      { n: 'OMEN 17', s: 'Ryzen 7 · 17.3" pantalla grande · inmersivo', p: 'S/667/mes', slug: 'laptop-omen-17-db1001la-lphpgm0001337', img: LAPTOP_IMG['laptop-omen-17-db1001la-lphpgm0001337'] },
     ],
   },
   {
     name: 'FC 25', genre: 'Deportes', pct: 10, bar: 38, color: '#34d399', iconIdx: 5,
     laptops: [
-      { n: 'IdeaPad Gaming 3', s: 'RTX 3050 · Ultra · 60fps estable', p: 'S/49/mes' },
-      { n: 'Victus 15', s: 'RTX 4050 · Máximos sin drops', p: 'S/59/mes' },
+      { n: 'OMEN 17', s: 'Ryzen 7 · 17.3" · pantalla más grande del catálogo', p: 'S/667/mes', slug: 'laptop-omen-17-db1001la-lphpgm0001337', img: LAPTOP_IMG['laptop-omen-17-db1001la-lphpgm0001337'] },
+      { n: 'OMEN 16', s: 'Ryzen 7 · 16GB · panel 2K para gráficos', p: 'S/540/mes', slug: 'laptop-omen-16-ap0001la-lphpgm0001339', img: LAPTOP_IMG['laptop-omen-16-ap0001la-lphpgm0001339'] },
+      { n: 'HP Victus 15 fb3013la', s: 'Ryzen 7 · 144Hz · fluido en menús', p: 'S/383/mes', slug: 'lap-hp-victus-15-fb3013la', img: LAPTOP_IMG['lap-hp-victus-15-fb3013la'] },
     ],
   },
 ];
@@ -80,6 +106,7 @@ const RANK_COLORS = ['#ff8800', '#94a3b8', '#cd7f32'];
 
 export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
   const isDark = theme === 'dark';
+  const router = useRouter();
   const tracker = useEventTrackerOptional();
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
@@ -345,13 +372,35 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = border;
                     }}
+                    onClick={() => {
+                      tracker?.track('product_click', {
+                        laptop_name: l.n,
+                        laptop_slug: l.slug,
+                        game_name: game.name,
+                        source: 'zona_gamer_ranking_modal',
+                      });
+                      closeModal();
+                      router.push(`/prototipos/0.6/zona-gamer/producto/${l.slug}`);
+                    }}
                   >
-                    {/* Laptop icon */}
+                    {/* Laptop image */}
                     <div
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center shrink-0"
+                      className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
                       style={{ background: 'rgba(99,102,241,0.06)' }}
                     >
-                      <Monitor className="w-5 h-4 sm:w-7 sm:h-5" style={{ color: textMuted, opacity: 0.4 }} />
+                      {l.img ? (
+                        <img
+                          src={l.img}
+                          alt={l.n}
+                          loading="lazy"
+                          className="w-full h-full object-contain p-1"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <Monitor className="w-5 h-4 sm:w-7 sm:h-5" style={{ color: textMuted, opacity: 0.4 }} />
+                      )}
                     </div>
 
                     {/* Info */}

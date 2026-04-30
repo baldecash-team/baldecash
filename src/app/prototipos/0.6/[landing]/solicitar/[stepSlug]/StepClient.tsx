@@ -891,7 +891,7 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
   // Hydrate theme from localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+      const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
       if (saved) setTheme(saved);
     } catch {}
     setHydrated(true);
@@ -899,7 +899,7 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
   // Persist theme (solo después de hidratar para no sobrescribir el valor previo en el mount)
   useEffect(() => {
     if (!hydrated) return;
-    try { localStorage.setItem('baldecash-theme', theme); } catch {}
+    try { localStorage.setItem('baldecash-zona-gamer-theme', theme); } catch {}
   }, [theme, hydrated]);
 
   const isDark = theme === 'dark';

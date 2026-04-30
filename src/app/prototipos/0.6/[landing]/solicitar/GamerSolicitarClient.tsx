@@ -26,6 +26,8 @@ import { SectionRenderer } from './components/solicitar/sections';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { formatMoneyNoDecimals } from './utils/formatMoney';
 import type { Accessory } from './types/upsell';
+import { findAccessoryOverride } from '@/app/prototipos/0.6/[landing]/producto/data/accessoryOverrides';
+import { GamerAccessoryDetailModal } from '@/app/prototipos/0.6/[landing]/producto/components/detail/GamerAccessoryDetailModal';
 
 // API base URL for coupon validation
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -83,11 +85,11 @@ function SolicitarContent() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [themeHydrated, setThemeHydrated] = useState(false);
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
     setThemeHydrated(true);
   }, []);
-  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-theme', theme); }, [theme, themeHydrated]);
+  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-zona-gamer-theme', theme); }, [theme, themeHydrated]);
   const isDark = theme === 'dark';
   const T = gamerTheme(isDark);
 
@@ -306,21 +308,26 @@ function SolicitarContent() {
         const data = await getLandingAccessories(landing, deviceTypes, currentTerm, previewKey);
         if (cancelled) return;
         if (data && data.length > 0) {
-          const mapped: Accessory[] = data.map((acc) => ({
-            id: acc.id,
-            name: acc.name,
-            description: acc.description || '',
-            price: acc.price,
-            monthlyQuota: acc.monthlyQuota,
-            term: acc.term,
-            image: acc.image,
-            thumbnailUrl: acc.thumbnail_url,
-            category: acc.category || null,
-            isRecommended: acc.isRecommended || false,
-            compatibleWith: acc.compatibleWith || ['all'],
-            specs: acc.specs || [],
-            brand: acc.brand,
-          }));
+          const mapped: Accessory[] = data.map((acc) => {
+            const override = findAccessoryOverride(acc.name);
+            return {
+              id: acc.id,
+              name: acc.name,
+              description: override?.description || acc.description || '',
+              price: acc.price,
+              monthlyQuota: acc.monthlyQuota,
+              term: acc.term,
+              // Preferir `image` (.png) sobre `thumbnail_url` (_thumb.webp): los thumbs
+              // del bucket /productos/accesorios/ aún devuelven 403. La .png sí está abierta.
+              image: acc.image || acc.thumbnail_url || '',
+              thumbnailUrl: acc.image || acc.thumbnail_url,
+              category: acc.category || null,
+              isRecommended: acc.isRecommended || false,
+              compatibleWith: acc.compatibleWith || ['all'],
+              specs: override?.specs ?? (acc.specs || []),
+              brand: acc.brand,
+            };
+          });
           setAccessories(mapped);
         } else {
           setAccessories([]);
@@ -342,38 +349,13 @@ function SolicitarContent() {
     if (product?.months) setSelectedMonths(product.months);
   }, [product?.months]);
 
-  // Scroll lock + Escape handler when accessory detail modal is open.
-  // Saves/restores scrollY so iOS doesn't jump to the top on close.
+  // El scroll lock + Escape del modal de detalle ahora vive dentro de
+  // GamerAccessoryDetailModal (NextUI maneja Escape en desktop, el bottom sheet
+  // de mobile maneja su propio body scroll lock). Solo cerramos el bottom bar
+  // expandido cuando se abre el modal para evitar dos overlays competiendo.
   useEffect(() => {
-    if (!accDetailId) return;
-    // Close mobile product bottom bar if expanded to avoid two overlays
-    // competing for scroll lock.
-    if (mobileProductExpanded) setMobileProductExpanded(false);
-    const savedY = window.scrollY;
-    const prev = {
-      position: document.body.style.position,
-      top: document.body.style.top,
-      left: document.body.style.left,
-      right: document.body.style.right,
-      overflow: document.body.style.overflow,
-    };
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${savedY}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAccDetailId(null); };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.position = prev.position;
-      document.body.style.top = prev.top;
-      document.body.style.left = prev.left;
-      document.body.style.right = prev.right;
-      document.body.style.overflow = prev.overflow;
-      window.scrollTo(0, savedY);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [accDetailId]);
+    if (accDetailId && mobileProductExpanded) setMobileProductExpanded(false);
+  }, [accDetailId, mobileProductExpanded]);
 
   // Close term dropdown on Escape or outside click
   useEffect(() => {
@@ -1136,80 +1118,22 @@ function SolicitarContent() {
       {/* Mobile bottom bar spacer */}
       {product && <div className="sm:hidden" style={{ height: 'calc(80px + env(safe-area-inset-bottom))' }} />}
 
-      {/* Accessory detail modal — data real del backend */}
-      {accDetailId && (() => {
-        const acc = accessories.find((a) => a.id === accDetailId);
-        if (!acc) return null;
-        const isSelected = isAccSelected(acc.id);
-        const months = acc.term || currentTerm;
-        const categoryLabel = acc.category?.name || 'Accesorio';
-        return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setAccDetailId(null)}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }} />
-            <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 448, maxHeight: 'calc(100svh - 8rem)', display: 'flex', flexDirection: 'column', background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
-              {/* Header */}
-              <div style={{
-                background: isDark ? '#1e1e1e' : '#f5f5f5',
-                borderBottom: `1px solid ${T.border}`,
-                padding: '16px 20px',
-                display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
-              }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: isDark ? 'rgba(0,255,213,0.12)' : 'rgba(0,137,122,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Package size={20} style={{ color: T.neonCyan }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</h2>
-                  <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{categoryLabel}</p>
-                </div>
-                <button onClick={() => setAccDetailId(null)} aria-label="Cerrar detalle del accesorio" style={{ width: 40, height: 40, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                  <X size={16} style={{ color: T.textSecondary }} />
-                </button>
-              </div>
-              {/* Body */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* Image */}
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
-                  {acc.image ? (
-                    <Image src={acc.image} alt={acc.name} width={112} height={112} style={{ objectFit: 'contain', maxHeight: 112 }} />
-                  ) : (
-                    <Package size={80} style={{ color: T.textMuted }} />
-                  )}
-                </div>
-                {/* Description */}
-                {acc.description && (
-                  <p style={{ fontSize: 13, color: T.textSecondary, margin: 0 }}>{acc.description}</p>
-                )}
-                {/* Specs — solo si el backend los trae */}
-                {acc.specs && acc.specs.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {acc.specs.map((spec) => (
-                      <div key={spec.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                        <Check size={14} style={{ color: T.neonCyan, flexShrink: 0, marginTop: 2 }} />
-                        <span style={{ fontSize: 12, color: T.textSecondary }}>
-                          <strong style={{ color: T.textPrimary }}>{spec.label}:</strong> {spec.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* Price card — monthlyQuota + price totales del backend */}
-                <div style={{ background: cyanAlpha(0.06), borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: T.neonCyan }}>S/ {formatMoneyNoDecimals(Math.floor(acc.monthlyQuota))}</span>
-                    <span style={{ fontSize: 14, color: T.textMuted, marginLeft: 4 }}>/mes</span>
-                  </div>
-                  <span style={{ fontSize: 12, color: T.textMuted }}>S/ {formatMoneyNoDecimals(Math.floor(acc.price))} · {months} cuotas</span>
-                </div>
-                {/* Add button */}
-                <button onClick={() => { toggleAcc(acc); setAccDetailId(null); }} style={{ width: '100%', height: 44, borderRadius: 10, border: 'none', background: T.neonCyan, color: isDark ? '#0a0a0a' : '#fff', fontWeight: 500, fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  {isSelected ? <Check size={16} /> : <Plus size={16} />}
-                  {isSelected ? 'Quitar accesorio' : 'Agregar accesorio'}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Accessory detail modal — usa el componente compartido del detalle gamer */}
+      <GamerAccessoryDetailModal
+        accessory={accDetailId ? accessories.find((a) => a.id === accDetailId) ?? null : null}
+        isOpen={!!accDetailId}
+        onClose={() => setAccDetailId(null)}
+        isSelected={accDetailId ? isAccSelected(accDetailId) : false}
+        onToggle={() => {
+          if (!accDetailId) return;
+          const acc = accessories.find((a) => a.id === accDetailId);
+          if (!acc) return;
+          toggleAcc(acc);
+        }}
+        badgeText="+15,000 estudiantes confían en nosotros"
+        T={T}
+        isDark={isDark}
+      />
 
       {/* Mobile product bottom bar */}
       {product && mobileProductExpanded && (

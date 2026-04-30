@@ -24,7 +24,7 @@ export function ZonaGamerLanding() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
   }, []);
 
@@ -42,7 +42,7 @@ export function ZonaGamerLanding() {
     const next = theme === 'dark' ? 'light' : 'dark';
     tracker?.track('view_mode_change', { mode: next, source: 'zona_gamer_landing' });
     setTheme(next);
-    localStorage.setItem('baldecash-theme', next);
+    localStorage.setItem('baldecash-zona-gamer-theme', next);
   };
 
   const catalogUrl = routes.catalogo(LANDING_SLUG);

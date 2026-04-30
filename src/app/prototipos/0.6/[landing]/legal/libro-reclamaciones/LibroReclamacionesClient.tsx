@@ -82,13 +82,13 @@ export function LibroReclamacionesClient() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   useEffect(() => {
     if (!isGamer) return;
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
   }, [isGamer]);
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
-    localStorage.setItem('baldecash-theme', next);
+    localStorage.setItem('baldecash-zona-gamer-theme', next);
   };
   const isDark = theme === 'dark';
 

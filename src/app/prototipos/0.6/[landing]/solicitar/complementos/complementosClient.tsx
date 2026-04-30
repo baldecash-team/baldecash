@@ -423,7 +423,7 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+      const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
       if (saved) setTheme(saved);
     } catch {}
     setHydrated(true);
@@ -432,7 +432,7 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
   const handleToggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
-    try { localStorage.setItem('baldecash-theme', next); } catch {}
+    try { localStorage.setItem('baldecash-zona-gamer-theme', next); } catch {}
   };
   const isDark = theme === 'dark';
 

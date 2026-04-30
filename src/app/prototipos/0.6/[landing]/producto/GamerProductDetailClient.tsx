@@ -30,8 +30,11 @@ import type { ProductSpec, ProductPort, SimilarProduct } from './types/detail';
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
 const getCartProductsKey = (landing: string) => `baldecash-${landing}-solicitar-cart-products`;
 const getAccessoriesKey = (landing: string) => `baldecash-${landing}-solicitar-selected-accessories`;
+
+import { findAccessoryOverride } from './data/accessoryOverrides';
 import { generateSpecSheetPDF } from './utils/generateSpecSheetPDF';
 import { generateCronogramaPDF } from './utils/generateCronogramaPDF';
+import { GamerAccessoryDetailModal } from './components/detail/GamerAccessoryDetailModal';
 import { getLandingAccessories } from '@/app/prototipos/0.6/services/landingApi';
 import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6/types/landingConfig';
@@ -145,11 +148,11 @@ function DetailContent() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [themeHydrated, setThemeHydrated] = useState(false);
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
     setThemeHydrated(true);
   }, []);
-  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-theme', theme); }, [theme, themeHydrated]);
+  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-zona-gamer-theme', theme); }, [theme, themeHydrated]);
   const isDark = theme === 'dark';
   const T = gamerTheme(isDark);
 
@@ -401,21 +404,26 @@ function DetailContent() {
     const paymentFrequency = data?.paymentFrequencies?.[0];
     getLandingAccessories(landing, deviceType, term, previewKey, paymentFrequency).then((items) => {
       if (cancelled || !items?.length) return;
-      setAccessories(items.map((a) => ({
-        id: a.id,
-        name: a.name,
-        description: a.description || '',
-        price: a.price || 0,
-        image: a.thumbnail_url || a.image,
-        thumbnailUrl: a.thumbnail_url,
-        monthlyQuota: a.monthlyQuota,
-        term: a.term,
-        category: a.category ?? null,
-        isRecommended: a.isRecommended,
-        compatibleWith: a.compatibleWith,
-        specs: a.specs,
-        brand: a.brand ?? null,
-      })));
+      setAccessories(items.map((a) => {
+        const override = findAccessoryOverride(a.name);
+        return {
+          id: a.id,
+          name: a.name,
+          description: override?.description || a.description || '',
+          price: a.price || 0,
+          // Preferir `image` (.png) sobre `thumbnail_url` (_thumb.webp): los thumbs
+          // del bucket /productos/accesorios/ aún devuelven 403. La .png sí está abierta.
+          image: a.image || a.thumbnail_url || '',
+          thumbnailUrl: a.image || a.thumbnail_url,
+          monthlyQuota: a.monthlyQuota,
+          term: a.term,
+          category: a.category ?? null,
+          isRecommended: a.isRecommended,
+          compatibleWith: a.compatibleWith,
+          specs: override?.specs ?? a.specs,
+          brand: a.brand ?? null,
+        };
+      }));
     }).catch((err) => {
       // Accessories are optional — log for visibility but don't break the page.
       console.warn('[GamerProductDetail] Failed to load accessories:', err);
@@ -1270,7 +1278,13 @@ function DetailContent() {
                         aria-pressed={isSelected}
                         aria-label={`Plazo de ${term} meses — cuota S/${opt ? Math.round(opt.monthlyQuota) : 'no disponible'} mensual`}
                         style={{
-                          position: 'relative', padding: 12, borderRadius: 10, cursor: 'pointer', transition: 'all 0.3s', textAlign: 'center',
+                          position: 'relative',
+                          padding: 'clamp(8px, 1.5vw, 12px) clamp(6px, 1vw, 10px)',
+                          borderRadius: 10,
+                          cursor: 'pointer',
+                          transition: 'all 0.3s',
+                          textAlign: 'center',
+                          minWidth: 0,
                           background: isSelected ? T.neonCyan : T.bgSurface,
                           border: isSelected ? `2px solid ${T.neonCyan}` : `2px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'}`,
                           transform: isSelected ? 'scale(1.05)' : 'scale(1)',
@@ -1284,9 +1298,18 @@ function DetailContent() {
                           {term}<br />meses
                         </p>
                         {originalOpt && !isSelected && (
-                          <p style={{ fontSize: 11, textDecoration: 'line-through', color: isDark ? 'rgba(255,255,255,0.5)' : '#999', fontFamily: F.mono, marginBottom: 3 }}>S/{Math.round(originalOpt)}</p>
+                          <p style={{ fontSize: 11, textDecoration: 'line-through', color: isDark ? 'rgba(255,255,255,0.5)' : '#999', fontFamily: F.mono, marginBottom: 3, whiteSpace: 'nowrap' }}>S/{Math.round(originalOpt)}</p>
                         )}
-                        <p style={{ fontFamily: F.orb, fontSize: 18, fontWeight: 800, color: isSelected ? (isDark ? '#0a0a0a' : '#fff') : T.neonCyan, textShadow: !isSelected && isDark ? '0 0 10px rgba(0,255,213,0.5)' : 'none', margin: 0, wordBreak: 'break-word' }}>
+                        <p style={{
+                          fontFamily: F.orb,
+                          fontSize: 'clamp(14px, 2.2vw, 18px)',
+                          fontWeight: 800,
+                          color: isSelected ? (isDark ? '#0a0a0a' : '#fff') : T.neonCyan,
+                          textShadow: !isSelected && isDark ? '0 0 10px rgba(0,255,213,0.5)' : 'none',
+                          margin: 0,
+                          whiteSpace: 'nowrap',
+                          letterSpacing: '-0.02em',
+                        }}>
                           S/{opt ? Math.round(opt.monthlyQuota) : '—'}
                         </p>
                         <p style={{ fontSize: 11, color: isSelected ? (isDark ? 'rgba(10,10,10,0.8)' : 'rgba(255,255,255,0.85)') : T.textSecondary, fontFamily: F.raj, marginTop: 3 }}>al mes</p>
@@ -2471,35 +2494,6 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView
   const { selectedAccessories, toggleAccessory } = useProduct();
   const selectedIds = useMemo(() => new Set(selectedAccessories.map((a) => a.id)), [selectedAccessories]);
 
-  // Scroll lock + Escape when the accessory detail modal is open
-  useEffect(() => {
-    if (!accDetailId) return;
-    const savedY = window.scrollY;
-    const prev = {
-      position: document.body.style.position,
-      top: document.body.style.top,
-      left: document.body.style.left,
-      right: document.body.style.right,
-      overflow: document.body.style.overflow,
-    };
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${savedY}px`;
-    document.body.style.left = '0';
-    document.body.style.right = '0';
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setAccDetailId(null); };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      document.body.style.position = prev.position;
-      document.body.style.top = prev.top;
-      document.body.style.left = prev.left;
-      document.body.style.right = prev.right;
-      document.body.style.overflow = prev.overflow;
-      window.scrollTo(0, savedY);
-      window.removeEventListener('keydown', onKey);
-    };
-  }, [accDetailId]);
-
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -2669,52 +2663,26 @@ function AccessoriesCarousel({ T, isDark, accessories, selectedTerm, onTrackView
       </div>
 
       {/* Accessory Detail Modal */}
-      {accDetailId && (() => {
-        const acc = accessories.find((a) => a.id === accDetailId);
-        if (!acc) return null;
-        return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={() => setAccDetailId(null)}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)' }} />
-            <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', zIndex: 50, width: '100%', maxWidth: 448, maxHeight: 'calc(100svh - 8rem)', display: 'flex', flexDirection: 'column', background: isDark ? T.bgCard : '#fff', borderRadius: 16, overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.5)', border: `1px solid ${T.border}` }}>
-              {/* Header */}
-              <div style={{
-                background: isDark ? '#1e1e1e' : '#f5f5f5',
-                borderBottom: `1px solid ${T.border}`,
-                padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
-              }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: isDark ? 'rgba(0,255,213,0.12)' : 'rgba(0,137,122,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Package size={20} style={{ color: T.neonCyan }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: T.textPrimary, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.name}</h2>
-                  <p style={{ fontSize: 12, color: T.textMuted, margin: 0 }}>{acc.category?.name || acc.brand?.name || 'Accesorio'}</p>
-                </div>
-                <button onClick={() => setAccDetailId(null)} aria-label="Cerrar detalle del accesorio" style={{ width: 40, height: 40, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                  <X size={16} style={{ color: T.textSecondary }} />
-                </button>
-              </div>
-              {/* Body */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
-                  <Image src={acc.image} alt={acc.name} width={112} height={112} style={{ objectFit: 'contain', maxHeight: 112 }} />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, justifyContent: 'center' }}>
-                  <span style={{ fontSize: 28, fontWeight: 800, color: T.neonCyan, fontFamily: "'Rajdhani', sans-serif" }}>+S/{Math.round(acc.monthlyQuota)}</span>
-                  <span style={{ fontSize: 14, color: T.textMuted }}>/mes</span>
-                </div>
-                {acc.price > 0 && (
-                  <p style={{ textAlign: 'center', fontSize: 12, color: T.textMuted, margin: 0 }}>Precio: S/{Math.round(acc.price)} {acc.term ? `en ${acc.term} cuotas` : ''}</p>
-                )}
-                {acc.description && (
-                  <div style={{ fontSize: 13, lineHeight: 1.6, color: T.textSecondary, whiteSpace: 'pre-line' }}>
-                    {acc.description}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      <GamerAccessoryDetailModal
+        accessory={accDetailId ? accessories.find((a) => a.id === accDetailId) ?? null : null}
+        isOpen={!!accDetailId}
+        onClose={() => setAccDetailId(null)}
+        isSelected={accDetailId ? selectedIds.has(accDetailId) : false}
+        onToggle={() => {
+          if (!accDetailId) return;
+          const acc = accessories.find((a) => a.id === accDetailId);
+          if (!acc) return;
+          const wasSelected = selectedIds.has(acc.id);
+          toggleAccessory(acc);
+          onToggleFeedback?.(
+            wasSelected ? 'Accesorio quitado' : 'Se agregará al financiamiento de tu laptop',
+            wasSelected ? 'info' : 'success',
+          );
+        }}
+        badgeText="+15,000 estudiantes confían en nosotros"
+        T={T}
+        isDark={isDark}
+      />
     </section>
   );
 }

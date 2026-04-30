@@ -67,7 +67,7 @@ function LoadingFallback() {
   const [bg, setBg] = useState<string | null>(null);
   useEffect(() => {
     if (window.location.pathname.includes('zona-gamer')) {
-      const saved = localStorage.getItem('baldecash-theme');
+      const saved = localStorage.getItem('baldecash-zona-gamer-theme');
       setBg(saved === 'light' ? '#f2f2f2' : '#0e0e0e');
     } else {
       setBg('#fafafa');
@@ -93,12 +93,12 @@ function ProximamenteContent() {
   const [themeHydrated, setThemeHydrated] = useState(false);
   useEffect(() => {
     if (!isGamer) { setThemeHydrated(true); return; }
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
     setThemeHydrated(true);
   }, [isGamer]);
   useEffect(() => {
-    if (themeHydrated && isGamer) localStorage.setItem('baldecash-theme', theme);
+    if (themeHydrated && isGamer) localStorage.setItem('baldecash-zona-gamer-theme', theme);
   }, [theme, themeHydrated, isGamer]);
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   const isDark = theme === 'dark';

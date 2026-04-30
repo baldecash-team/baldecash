@@ -113,7 +113,7 @@ export const GamerStepSuccess: React.FC<GamerStepSuccessProps> = ({
     return () => clearTimeout(timer);
   }, [onComplete]);
 
-  const isLight = typeof window !== 'undefined' && localStorage.getItem('baldecash-theme') === 'light';
+  const isLight = typeof window !== 'undefined' && localStorage.getItem('baldecash-zona-gamer-theme') === 'light';
   const bg = isLight ? '#f5f5f5' : '#0e0e0e';
   const bgCard = isLight ? 'rgba(255,255,255,0.85)' : 'rgba(20,20,20,0.6)';
   const xpTrack = isLight ? '#d4d4d4' : '#2a2a2a';

@@ -141,11 +141,11 @@ function GamerCatalogoContent() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [themeHydrated, setThemeHydrated] = useState(false);
   useEffect(() => {
-    const saved = localStorage.getItem('baldecash-theme') as 'dark' | 'light' | null;
+    const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
     if (saved) setTheme(saved);
     setThemeHydrated(true);
   }, []);
-  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-theme', theme); }, [theme, themeHydrated]);
+  useEffect(() => { if (themeHydrated) localStorage.setItem('baldecash-zona-gamer-theme', theme); }, [theme, themeHydrated]);
   const isDark = theme === 'dark';
   const T = gamerTheme(isDark);
 
