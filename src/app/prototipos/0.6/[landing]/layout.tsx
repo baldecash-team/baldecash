@@ -10,7 +10,7 @@
  * Protects /catalogo, /producto, /solicitar and all sub-routes.
  */
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
@@ -133,6 +133,94 @@ function InlineDniGate({ landing, onValidated }: { landing: string; onValidated:
   );
 }
 
+// ── Floating particles ───────────────────────────────────────────────────
+
+function FloatingParticles({ color = '#00BFB3' }: { color?: string }) {
+  const particles = useMemo(() => {
+    const subtle = Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      size: 4 + Math.random() * 8,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      duration: 12 + Math.random() * 18,
+      delay: Math.random() * -20,
+      opacity: 0.12 + Math.random() * 0.18,
+    }));
+    const solid = Array.from({ length: 12 }, (_, i) => ({
+      id: 100 + i,
+      size: 3 + Math.random() * 5,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      duration: 14 + Math.random() * 16,
+      delay: Math.random() * -20,
+      opacity: 1,
+    }));
+    return [...subtle, ...solid];
+  }, []);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+      {particles.map(p => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            width: p.size,
+            height: p.size,
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            backgroundColor: color,
+            opacity: p.opacity,
+          }}
+          animate={{
+            y: [0, -30, 0, 20, 0],
+            x: [0, 15, -10, 5, 0],
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: p.delay,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Baldi illustration with load-triggered animation ─────────────────────
+
+function BaldiIllustration({ currentBaldiSrc }: { currentBaldiSrc: string }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <motion.div
+      className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10 relative"
+      style={{ width: 410, height: 544 }}
+      initial={{ opacity: 0, x: -60 }}
+      animate={loaded ? { opacity: 1, x: 0 } : { opacity: 0, x: -60 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={currentBaldiSrc}
+          src={currentBaldiSrc}
+          alt="Baldi CADE"
+          width={410}
+          height={544}
+          fetchPriority="high"
+          className="h-[28rem] lg:h-[34rem] w-auto object-contain drop-shadow-xl"
+          initial={{ opacity: 0, x: -40 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 40 }}
+          transition={{ duration: 0.3 }}
+          onLoad={() => setLoaded(true)}
+        />
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
 // ── CADE overlay gate ─────────────────────────────────────────────────────
 
 function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; onValidated: () => void; deadline?: string }) {
@@ -182,33 +270,18 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
       className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
       style={{ backgroundColor: '#F0F2F5', backgroundImage: `url(${CADE_OVERLAY_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <motion.div
-        className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto"
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-      >
+      <FloatingParticles color={CADE_TEAL} />
+      <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto">
         {/* Illustration — hidden on mobile/tablet, visible on md+ */}
-        <div className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10 relative" style={{ width: 410, height: 544 }}>
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={currentBaldiSrc}
-              src={currentBaldiSrc}
-              alt="Baldi CADE"
-              width={410}
-              height={544}
-              fetchPriority="high"
-              className="h-[28rem] lg:h-[34rem] w-auto object-contain drop-shadow-xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            />
-          </AnimatePresence>
-        </div>
+        <BaldiIllustration currentBaldiSrc={currentBaldiSrc} />
 
         {/* Card */}
-        <div className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative">
+        <motion.div
+          className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
+          initial={{ opacity: 0, x: 60 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+        >
           <img
             src={CADE_LOGO}
             alt="CADE Universitario 2026"
@@ -418,8 +491,8 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
             </motion.div>
           )}
           </AnimatePresence>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }
