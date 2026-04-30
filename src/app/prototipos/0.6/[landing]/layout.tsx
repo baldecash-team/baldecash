@@ -44,10 +44,18 @@ const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
+interface SiblingMatch {
+  slug: string;
+  name: string;
+  firstName: string;
+}
+
 function useDniValidation(landing: string, onValidated: () => void) {
   const [dni, setDni] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [siblingMatch, setSiblingMatch] = useState<SiblingMatch | null>(null);
+  const [showRegister, setShowRegister] = useState(false);
 
   const isValidDni = dni.length >= DOC_MIN_LENGTH && /^\d{8,12}$/.test(dni);
 
@@ -55,19 +63,33 @@ function useDniValidation(landing: string, onValidated: () => void) {
     const cleaned = value.replace(/\D/g, '').slice(0, DOC_MAX_LENGTH);
     setDni(cleaned);
     if (errorMsg) setErrorMsg(null);
-  }, [errorMsg]);
+    if (siblingMatch) setSiblingMatch(null);
+    if (showRegister) setShowRegister(false);
+  }, [errorMsg, siblingMatch, showRegister]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValidDni || submitting) return;
     setSubmitting(true);
     setErrorMsg(null);
+    setSiblingMatch(null);
+    setShowRegister(false);
     try {
       const res = await fetch(
         `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}`,
       );
       const data = await res.json();
       if (!data.valid) {
-        setErrorMsg('No encontramos un registro con este número de documento.');
+        if (data.found_in_sibling && data.sibling_landing_slug) {
+          setSiblingMatch({
+            slug: data.sibling_landing_slug,
+            name: data.sibling_landing_name || data.sibling_landing_slug,
+            firstName: data.first_name || '',
+          });
+        } else if (data.found_in_sibling === false && data.register_url !== undefined) {
+          setShowRegister(true);
+        } else {
+          setErrorMsg('No encontramos un registro con este número de documento.');
+        }
         setSubmitting(false);
         return;
       }
@@ -80,7 +102,7 @@ function useDniValidation(landing: string, onValidated: () => void) {
     }
   }, [isValidDni, submitting, landing, dni, onValidated]);
 
-  return { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit };
+  return { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister };
 }
 
 // ── Default inline DNI gate ───────────────────────────────────────────────
@@ -238,7 +260,7 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
     setView('welcome');
   }, [landing]);
 
-  const { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit } = useDniValidation(landing, handleDniValidated);
+  const { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister } = useDniValidation(landing, handleDniValidated);
 
   const CADE_TEAL = '#00BFB3';
   const BALDI_CADE_VALIDATE = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-validate.webp';
@@ -350,26 +372,68 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                 )}
               </div>
 
-              <button
-                onClick={handleSubmit}
-                disabled={!isValidDni || submitting}
-                className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
-                style={{ backgroundColor: CADE_TEAL }}
-              >
-                {submitting ? (
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" role="status">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                  </svg>
-                ) : (
-                  <>
-                    Validar acceso
+              {/* Found in sibling landing */}
+              {siblingMatch && (
+                <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: 'rgba(0,191,179,0.08)', border: '1px solid rgba(0,191,179,0.2)' }}>
+                  <p className="text-sm text-gray-700 mb-1">
+                    Hola <span className="font-semibold">{siblingMatch.firstName}</span>, tu acceso está en:
+                  </p>
+                  <p className="text-base font-bold" style={{ color: CADE_TEAL }}>{siblingMatch.name}</p>
+                  <a
+                    href={routes.catalogo(siblingMatch.slug)}
+                    className="mt-3 w-full py-3 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                    style={{ backgroundColor: CADE_TEAL }}
+                  >
+                    Empezar
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                     </svg>
-                  </>
-                )}
-              </button>
+                  </a>
+                </div>
+              )}
+
+              {/* Not found anywhere — show register CTA */}
+              {showRegister && (
+                <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: 'rgba(0,191,179,0.08)', border: '1px solid rgba(0,191,179,0.2)' }}>
+                  <p className="text-sm text-gray-700 mb-2">
+                    No encontramos tu registro. ¿Quieres solicitar acceso?
+                  </p>
+                  <a
+                    href="#"
+                    className="w-full py-3 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                    style={{ backgroundColor: CADE_TEAL }}
+                  >
+                    Solicitar acceso
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </a>
+                </div>
+              )}
+
+              {/* Validate button — hide when sibling or register is shown */}
+              {!siblingMatch && !showRegister && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={!isValidDni || submitting}
+                  className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: CADE_TEAL }}
+                >
+                  {submitting ? (
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" role="status">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                  ) : (
+                    <>
+                      Validar acceso
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              )}
 
               <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
