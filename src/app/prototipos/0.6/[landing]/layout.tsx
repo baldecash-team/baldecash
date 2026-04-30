@@ -12,7 +12,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
@@ -67,7 +67,7 @@ function useDniValidation(landing: string, onValidated: () => void) {
       );
       const data = await res.json();
       if (!data.valid) {
-        setErrorMsg('No encontramos un registro con este DNI.');
+        setErrorMsg('No encontramos un registro con este número de documento.');
         setSubmitting(false);
         return;
       }
@@ -323,7 +323,7 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
 
               <div className="mb-4">
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                  DNI
+                  Número de documento
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -338,7 +338,7 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                     value={dni}
                     onChange={(e) => handleChange(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-                    placeholder="Ingresa tu DNI"
+                    placeholder="Ingresa tu número de documento"
                     maxLength={12}
                     disabled={submitting}
                     className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-xl text-base text-gray-800 font-medium outline-none focus:ring-2 placeholder:text-gray-400 disabled:opacity-70"
@@ -531,7 +531,7 @@ function DniInputRow({
           placeholder="Número de documento"
           maxLength={DOC_MAX_LENGTH}
           disabled={submitting}
-          aria-label="DNI"
+          aria-label="Número de documento"
           aria-invalid={!!errorMsg}
           className="flex-1 min-w-0 py-3.5 px-4 bg-white rounded-xl text-base font-medium outline-none focus:ring-2 placeholder:text-gray-400 disabled:opacity-70"
           style={{ color: textColor, '--tw-ring-color': accentColor } as React.CSSProperties}
@@ -581,6 +581,8 @@ const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: 
  */
 function VipGate({ landing, children }: { landing: string; children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isPublicPage = pathname.includes('/legal/') || pathname.includes('/proximamente');
   const [status, setStatus] = useState<'loading' | 'allowed' | 'blocked' | 'redirecting'>('loading');
   const [captureMode, setCaptureMode] = useState<'modal' | 'inline'>('modal');
   const [overlayVariant, setOverlayVariant] = useState('');
@@ -651,6 +653,9 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   const handleValidated = useCallback(() => {
     window.location.reload();
   }, []);
+
+  // Public pages (legal, próximamente) are always accessible — skip the gate
+  if (isPublicPage) return <>{children}</>;
 
   // Block render while checking access or redirecting
   if (status === 'loading' || status === 'redirecting') return null;

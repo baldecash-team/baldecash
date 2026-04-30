@@ -12,12 +12,16 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { getLandingLayout, type LandingLayoutResponse } from '@/app/prototipos/0.6/services/landingApi';
+import { fetchLandingConfig } from '@/app/prototipos/0.6/services/landingConfigApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
+
+import { OVERLAY_VARIANT_LOGOS } from '@/app/prototipos/0.6/types/landingConfig';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
   logoUrl?: string;
+  logoClassName?: string;
   customerPortalUrl?: string;
   portalButtonText?: string;
   navbarItems?: { label: string; href: string; section: string | null; has_megamenu?: boolean }[];
@@ -82,6 +86,14 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const [layoutData, setLayoutData] = useState<LandingLayoutResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [overlayVariant, setOverlayVariant] = useState<string | null>(null);
+
+  // Fetch landing config for overlay variant (logo override)
+  useEffect(() => {
+    fetchLandingConfig(landing).then(cfg => {
+      setOverlayVariant(cfg.features.overlay_variant || '');
+    });
+  }, [landing]);
 
   // Fetch layout data once on mount (wait for preview context to hydrate first)
   useEffect(() => {
@@ -148,9 +160,13 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     // Agreement data for co-branding (convenio landings)
     const agreement = layoutData.agreement;
 
+    const variantLogo = overlayVariant !== null ? OVERLAY_VARIANT_LOGOS[overlayVariant] : undefined;
+    const logoResolved = overlayVariant !== null;
+
     return {
       promoBannerData,
-      logoUrl: layoutData.company?.logo_url,
+      logoUrl: logoResolved ? (variantLogo || layoutData.company?.logo_url) : undefined,
+      logoClassName: variantLogo ? 'h-12 object-contain' : undefined,
       customerPortalUrl: layoutData.company?.customer_portal_url,
       portalButtonText: (navbarConfig?.portal_button_text as string) || undefined,
       navbarItems: navbarItems || [],
@@ -162,7 +178,7 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
       institutionLogo: agreement?.institution_logo || undefined,
       institutionName: agreement?.institution_name || undefined,
     };
-  }, [layoutData]);
+  }, [layoutData, overlayVariant]);
 
   // Transform layout data for Footer props
   const footerData = useMemo((): FooterData | null => {

@@ -23,7 +23,7 @@ import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../types/hero';
-import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '../types/landingConfig';
+import { DEFAULT_LANDING_CONFIG, OVERLAY_VARIANT_LOGOS, type LandingConfig } from '../types/landingConfig';
 import { FloatingCtaButton } from '../components/FloatingCtaButton';
 
 // Product landing pages (imported directly for instant render)
@@ -431,7 +431,8 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
             testimonialsSubtitle={heroData.testimonialsSubtitle}
             activeSections={heroData.activeSections}
             hasCta={heroData.hasCta}
-            logoUrl={heroData.logoUrl}
+            logoUrl={OVERLAY_VARIANT_LOGOS[landingConfig.features.overlay_variant] || heroData.logoUrl}
+            logoClassName={OVERLAY_VARIANT_LOGOS[landingConfig.features.overlay_variant] ? 'h-12 object-contain' : undefined}
             customerPortalUrl={heroData.customerPortalUrl}
             portalButtonText={heroData.portalButtonText}
             footerData={mergedFooterData}

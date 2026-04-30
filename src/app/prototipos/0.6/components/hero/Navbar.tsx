@@ -110,6 +110,7 @@ interface NavbarProps {
   activeSections?: string[];
   promoBannerData?: PromoBannerData | null;
   logoUrl?: string;
+  logoClassName?: string;
   customerPortalUrl?: string;
   portalButtonText?: string;
   navbarItems?: NavbarItemData[];
@@ -153,7 +154,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor }) => {
   // Auto-detect preview banner offset based on whether THIS landing is being previewed
   const { isPreviewingLanding } = usePreview();
   const isThisLandingPreviewed = isPreviewingLanding(landing);
@@ -279,11 +280,13 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
         }}
       >
         <div className="flex justify-center py-5">
-          <img
-            src={logoUrl}
-            alt="BaldeCash"
-            className="h-12 object-contain brightness-0 invert"
-          />
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt="BaldeCash"
+              className={logoClassName || "h-12 object-contain brightness-0 invert"}
+            />
+          )}
         </div>
       </nav>
     );
@@ -354,11 +357,13 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <a href={heroUrl} className="flex items-center gap-3">
-              <img
-                src={logoUrl}
-                alt="BaldeCash"
-                className="h-8 object-contain"
-              />
+              {logoUrl && (
+                <img
+                  src={logoUrl}
+                  alt="BaldeCash"
+                  className={logoClassName || "h-8 object-contain"}
+                />
+              )}
               {institutionLogo && (
                 <>
                   <span className="text-neutral-300 text-lg font-light">×</span>

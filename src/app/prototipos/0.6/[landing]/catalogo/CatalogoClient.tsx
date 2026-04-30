@@ -1553,6 +1553,7 @@ function CatalogoContent() {
           landing={landing}
           promoBannerData={navbarProps?.promoBannerData}
           logoUrl={navbarProps?.logoUrl}
+          logoClassName={navbarProps?.logoClassName}
           customerPortalUrl={navbarProps?.customerPortalUrl}
           portalButtonText={navbarProps?.portalButtonText}
           navbarItems={navbarProps?.navbarItems}
@@ -1604,6 +1605,7 @@ function CatalogoContent() {
         landing={landing}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
+        logoClassName={navbarProps?.logoClassName}
         customerPortalUrl={navbarProps?.customerPortalUrl}
         portalButtonText={navbarProps?.portalButtonText}
         navbarItems={navbarProps?.navbarItems}
