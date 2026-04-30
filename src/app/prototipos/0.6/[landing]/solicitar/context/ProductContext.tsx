@@ -13,6 +13,7 @@ import { fetchProductPaymentPlans } from '@/app/prototipos/0.6/[landing]/product
 import { fetchProductsByIds } from '@/app/prototipos/0.6/services/catalogApi';
 import { getLandingAccessories, getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { useSessionOptional } from './SessionContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
@@ -156,6 +157,8 @@ interface ProductProviderProps {
 export const ProductProvider: React.FC<ProductProviderProps> = ({ children, landingSlug }) => {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landingSlug) ? preview.previewKey : null;
+  const session = useSessionOptional();
+  const sessionUuid = session?.sessionUuid ?? null;
   const { settings, landingId } = useLayout();
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
@@ -605,7 +608,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
       const productPrice = activeProduct?.price || 0;
       const termMonthsForInsurance = activeProduct?.months ?? term;
       if (productPrice > 0) {
-        getLandingInsurances(landingSlug, deviceType, productPrice, termMonthsForInsurance, previewKey)
+        getLandingInsurances(landingSlug, deviceType, productPrice, termMonthsForInsurance, previewKey, sessionUuid)
           .then((apiPlans) => {
             if (!apiPlans || apiPlans.length === 0) return;
             const plansMap = new Map(apiPlans.map(p => [p.id, p]));
@@ -624,7 +627,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
           .catch(err => console.error('[ProductContext] Error refreshing insurances for new term:', err));
       }
     }
-  }, [getAllProducts, cartProducts, selectedProduct, setCartProducts, setSelectedProduct, selectedAccessories, setSelectedAccessories, selectedInsurances, landingSlug, previewKey, insuranceKey]);
+  }, [getAllProducts, cartProducts, selectedProduct, setCartProducts, setSelectedProduct, selectedAccessories, setSelectedAccessories, selectedInsurances, landingSlug, previewKey, sessionUuid, insuranceKey]);
 
   /**
    * Get available initial payment options for a specific product
