@@ -14,6 +14,7 @@ import { InsuranceCards } from '../../upsell';
 import { useProduct } from '../../../context/ProductContext';
 import { getLandingInsurances } from '@/app/prototipos/0.6/services/landingApi';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
+import { useSessionOptional } from '../../../context/SessionContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import type { InsurancePlan } from '../../../types/upsell';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -32,6 +33,8 @@ export function InsuranceSection({
 
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
+  const session = useSessionOptional();
+  const sessionUuid = session?.sessionUuid ?? null;
 
   const { badgeText } = useWizardConfig();
   const { selectedInsurances, toggleInsurance, selectedProduct, cartProducts } = useProduct();
@@ -55,7 +58,7 @@ export function InsuranceSection({
       setIsLoading(true);
       try {
         const formattedDeviceType = deviceType.charAt(0).toUpperCase() + deviceType.slice(1).toLowerCase();
-        const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, termMonths, previewKey);
+        const plans = await getLandingInsurances(landing, formattedDeviceType, productPrice, termMonths, previewKey, sessionUuid);
         const mappedPlans: InsurancePlan[] = plans.map((plan) => ({
           id: plan.id,
           code: plan.code,
@@ -82,7 +85,7 @@ export function InsuranceSection({
     }
 
     fetchInsurancePlans();
-  }, [landing, deviceType, productPrice, termMonths, previewKey]);
+  }, [landing, deviceType, productPrice, termMonths, previewKey, sessionUuid]);
 
   if (!isLoading && insurancePlans.length === 0) {
     return null;

@@ -1143,6 +1143,7 @@ interface ApiInsurancePlan {
  * @param slug - Landing slug
  * @param deviceType - Tipo de dispositivo (e.g. "Laptop", "Celular", "Tablet")
  * @param productPrice - Precio del producto
+ * @param sessionUuid - UUID de la tracking_session (mismo que se manda en submit). El backend lo usa para backfill de yield/risk; sin él cae al fallback de yield 200.
  */
 export async function getLandingInsurances(
   slug: string,
@@ -1150,6 +1151,7 @@ export async function getLandingInsurances(
   productPrice: number,
   termMonths?: number,
   previewKey?: string | null,
+  sessionUuid?: string | null,
 ): Promise<ApiInsurancePlan[]> {
   try {
     const params = new URLSearchParams({
@@ -1164,6 +1166,7 @@ export async function getLandingInsurances(
     }
     const insurancesUrl = appendVipToken(`${API_BASE_URL}/public/landing/${slug}/insurances?${params}`, slug);
     const response = await fetch(insurancesUrl, {
+      headers: sessionUuid ? { 'X-Session-Id': sessionUuid } : undefined,
       ...(previewKey ? { cache: 'no-store' as const } : { next: { revalidate: 60 } }),
     });
 
