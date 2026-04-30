@@ -10,7 +10,8 @@
  * Protects /catalogo, /producto, /solicitar and all sub-routes.
  */
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
@@ -155,37 +156,84 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
   const BALDI_CADE_VALIDATE = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-validate.webp';
   const BALDI_CADE_WELCOME = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-welcome.webp';
   const BALDI_CADE_EXPIRED = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-cade-expired.webp';
+  const CADE_OVERLAY_BG = 'https://baldecash.s3.amazonaws.com/illustrations/cade-overlay-bg.webp';
+  const CADE_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo-cade-2026.webp';
+
+  const currentBaldiSrc = view === 'form' ? BALDI_CADE_VALIDATE : view === 'expired' ? BALDI_CADE_EXPIRED : BALDI_CADE_WELCOME;
+
+  // Preload critical images: current mascot, next mascot, background, logo
+  const preloadedRef = useRef(false);
+  useEffect(() => {
+    if (preloadedRef.current) return;
+    preloadedRef.current = true;
+    const nextBaldiSrc = view === 'form' ? BALDI_CADE_WELCOME : null;
+    const urls = [currentBaldiSrc, CADE_OVERLAY_BG, CADE_LOGO, nextBaldiSrc].filter(Boolean) as string[];
+    for (const href of urls) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = href;
+      document.head.appendChild(link);
+    }
+  }, [currentBaldiSrc]);
 
   return (
     <div
       className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
-      style={{ backgroundColor: '#F0F2F5', backgroundImage: 'url(https://baldecash.s3.amazonaws.com/illustrations/cade-overlay-bg.webp)', backgroundSize: 'cover', backgroundPosition: 'center' }}
+      style={{ backgroundColor: '#F0F2F5', backgroundImage: `url(${CADE_OVERLAY_BG})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto">
+      <motion.div
+        className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+      >
         {/* Illustration — hidden on mobile/tablet, visible on md+ */}
-        <div className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10">
-          <img
-            src={view === 'form' ? BALDI_CADE_VALIDATE : view === 'expired' ? BALDI_CADE_EXPIRED : BALDI_CADE_WELCOME}
-            alt="Baldi CADE"
-            className="h-96 lg:h-[28rem] w-auto object-contain drop-shadow-xl"
-          />
+        <div className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10 relative" style={{ width: 410, height: 544 }}>
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={currentBaldiSrc}
+              src={currentBaldiSrc}
+              alt="Baldi CADE"
+              width={410}
+              height={544}
+              fetchPriority="high"
+              className="h-[28rem] lg:h-[34rem] w-auto object-contain drop-shadow-xl"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            />
+          </AnimatePresence>
         </div>
 
         {/* Card */}
         <div className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative">
           <img
-            src="https://baldecash.s3.amazonaws.com/company/logo-cade-2026.webp"
+            src={CADE_LOGO}
             alt="CADE Universitario 2026"
-            className="w-40 sm:w-56 h-auto mx-auto"
+            width={224}
+            height={80}
+            fetchPriority="high"
+            className="w-40 sm:w-56 h-auto mx-auto mb-4"
           />
 
+          <AnimatePresence mode="wait">
           {view === 'form' && (
-            <>
+            <motion.div
+              key="form"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
               {/* Mobile illustration */}
-              <div className="flex md:hidden justify-center mb-3">
+              <div className="flex md:hidden justify-center mb-3" style={{ height: 144 }}>
                 <img
                   src={BALDI_CADE_VALIDATE}
                   alt="Baldi CADE"
+                  width={112}
+                  height={144}
                   className="h-28 sm:h-36 w-auto object-contain"
                 />
               </div>
@@ -256,13 +304,20 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                 </svg>
                 Tus datos están protegidos.
               </p>
-            </>
+            </motion.div>
           )}
 
           {view === 'welcome' && (
-            <div className="text-center">
+            <motion.div
+              key="welcome"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-center"
+            >
               <div className="flex md:hidden justify-center mb-3">
-                <img src={BALDI_CADE_WELCOME} alt="Baldi CADE" className="h-28 sm:h-36 w-auto object-contain" />
+                <img src={BALDI_CADE_WELCOME} alt="Baldi CADE" width={112} height={144} className="h-28 sm:h-36 w-auto object-contain" />
               </div>
 
               <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={{ color: '#1B2A4A' }}>
@@ -300,13 +355,20 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                 </svg>
                 Tus datos están protegidos.
               </p>
-            </div>
+            </motion.div>
           )}
 
           {view === 'expired' && (
-            <div className="text-center">
+            <motion.div
+              key="expired"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-center"
+            >
               <div className="flex md:hidden justify-center mb-3">
-                <img src={BALDI_CADE_EXPIRED} alt="Baldi CADE" className="h-28 sm:h-36 w-auto object-contain" />
+                <img src={BALDI_CADE_EXPIRED} alt="Baldi CADE" width={112} height={144} className="h-28 sm:h-36 w-auto object-contain" />
               </div>
 
               <div className="flex justify-center mb-3">
@@ -353,10 +415,11 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
               >
                 Ver catálogo completo
               </a>
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
