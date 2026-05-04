@@ -398,14 +398,12 @@ function DetailContent() {
     let cancelled = false;
     const deviceType = data?.product?.deviceType;
     if (!deviceType) return;
-    // Accessories API expects term in MONTHS regardless of payment frequency, so
-    // convert the native-unit `selectedTerm` (e.g. 48 weeks / 24 fortnights) to its
-    // month-equivalent via the active plan's `termMonths`.
-    const plans = data?.paymentPlans || [];
-    const activePlan = plans.find((p) => p.term === selectedTerm) || plans[0];
-    const termMonths = activePlan?.termMonths ?? activePlan?.term ?? selectedTerm;
+    // Accessories API expects term as the LITERAL cuotas count (same N que se
+    // muestra al usuario): para semanal manda semanas, para quincenal quincenas,
+    // para mensual meses. `selectedTerm` ya está en native units así que se manda tal cual.
+    const term = selectedTerm || data?.paymentPlans?.[0]?.term;
     const paymentFrequency = data?.paymentFrequencies?.[0];
-    getLandingAccessories(landing, deviceType, termMonths, previewKey, paymentFrequency).then((items) => {
+    getLandingAccessories(landing, deviceType, term, previewKey, paymentFrequency).then((items) => {
       if (cancelled || !items?.length) return;
       setAccessories(items.map((a) => {
         const override = findAccessoryOverride(a.name);

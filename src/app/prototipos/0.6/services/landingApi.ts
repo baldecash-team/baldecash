@@ -1040,10 +1040,13 @@ interface ApiAccessory {
  * Obtiene los accesorios disponibles para una landing
  * @param slug - Landing slug
  * @param deviceType - Device type to filter accessories (e.g., 'laptop', 'celular', 'tablet')
- * @param term - Optional financing term in MONTHS (not native units). The API normalizes by month
- *               regardless of payment_frequency, so for a 48-week semanal plan pass 12, for a
- *               24-fortnight quincenal plan pass 12, etc.
- * @param paymentFrequency - Optional payment frequency to pair the accessory installment with the product ('semanal' | 'quincenal' | 'mensual')
+ * @param term - Optional financing term as the LITERAL number of cuotas (raw period count),
+ *               same N que se muestra al usuario. El backend NO convierte: para una UI que
+ *               muestra "48 semanas" se manda term=48 con payment_frequency=semanal; para
+ *               "24 quincenas" → term=24&payment_frequency=quincenal; para "12 meses" →
+ *               term=12&payment_frequency=mensual. Valores válidos:
+ *               semanal ∈ {12,24,36,48}, quincenal ∈ {12,24}, mensual = múltiplo de 4.
+ * @param paymentFrequency - Optional payment frequency ('semanal' | 'quincenal' | 'mensual')
  */
 export async function getLandingAccessories(
   slug: string,
@@ -1063,22 +1066,8 @@ export async function getLandingAccessories(
         queryParams.set('product_types', filtered.join(','));
       }
     }
-    // Guardrail: el backend valida term ∈ {12,24,36} (en meses) cuando hay
-    // payment_frequency=semanal|quincenal. Si llega un term en unidades nativas
-    // (48 / 96 / 144 semanas, 24 / 48 / 72 quincenas), lo convertimos a meses
-    // para no enviar 400. Esto blinda el endpoint contra call sites que pasen
-    // por error el valor en unidades nativas.
-    let termMonths = term;
-    if (termMonths && termMonths > 0 && paymentFrequency) {
-      const freq = paymentFrequency.toLowerCase();
-      if (freq === 'semanal' && termMonths % 4 === 0 && termMonths > 36) {
-        termMonths = termMonths / 4;
-      } else if (freq === 'quincenal' && termMonths % 2 === 0 && termMonths > 36) {
-        termMonths = termMonths / 2;
-      }
-    }
-    if (termMonths && termMonths > 0) {
-      queryParams.set('term', termMonths.toString());
+    if (term && term > 0) {
+      queryParams.set('term', term.toString());
     }
     queryParams.set('all', 'true');
     if (paymentFrequency) {

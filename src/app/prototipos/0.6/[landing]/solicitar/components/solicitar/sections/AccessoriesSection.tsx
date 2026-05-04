@@ -118,13 +118,22 @@ export function AccessoriesSection({
     return types.length > 0 ? types : ['laptop'];
   }, [cartProducts, selectedProduct]);
 
-  // Get current term from cart (use first product's term or default 24)
+  // Term en cuotas literales (native units): semanas para semanal, quincenas
+  // para quincenal, meses para mensual. Es lo que espera el endpoint de accesorios
+  // (mismo N que muestra la UI). Si el producto no trae `term` raw (p.ej. desde
+  // el card legacy del catálogo), se deriva multiplicando los meses por el factor
+  // de la frecuencia.
   const currentTerm = useMemo(() => {
     const products = getAllProducts();
-    if (products.length > 0 && products[0].months) {
-      return products[0].months;
+    const p = products[0];
+    if (!p) return 24;
+    if (p.term) return p.term;
+    if (p.months) {
+      if (p.paymentFrequency === 'semanal') return p.months * 4;
+      if (p.paymentFrequency === 'quincenal') return p.months * 2;
+      return p.months;
     }
-    return 24; // Default term
+    return 24;
   }, [getAllProducts]);
 
   // Payment frequency from the first product in the cart

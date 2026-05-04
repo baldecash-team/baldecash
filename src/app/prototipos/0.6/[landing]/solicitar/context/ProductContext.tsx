@@ -575,16 +575,25 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     }
 
     // Re-fetch accessories with new term to update their monthly quotas.
-    // Accessories API expects the term in MONTHS regardless of payment_frequency,
-    // so use the normalized `months` value (not the native-unit `term`).
+    // Accessories API expects the term as the LITERAL cuotas count (native unit:
+    // weeks for semanal, fortnights for quincenal, months for mensual), so se
+    // pasa el `term` raw del producto (no el `months` normalizado).
     const deviceTypes = [...new Set(
       products.map(p => p.type?.toLowerCase()).filter(Boolean) as string[]
     )];
     if (selectedAccessories.length > 0) {
       const activeProduct = updatedProducts[0];
       const activePaymentFrequency = activeProduct?.paymentFrequency;
-      const termMonths = activeProduct?.months ?? term;
-      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], termMonths, previewKey, activePaymentFrequency)
+      // Si no hay `term` raw, derivarlo desde months × factor de la frecuencia
+      // (semanal → ×4, quincenal → ×2, mensual → ×1).
+      let rawTerm = activeProduct?.term;
+      if (!rawTerm) {
+        const months = activeProduct?.months ?? term;
+        if (activePaymentFrequency === 'semanal') rawTerm = months * 4;
+        else if (activePaymentFrequency === 'quincenal') rawTerm = months * 2;
+        else rawTerm = months;
+      }
+      getLandingAccessories(landingSlug, deviceTypes.length > 0 ? deviceTypes : ['laptop'], rawTerm, previewKey, activePaymentFrequency)
         .then((apiAccessories) => {
           if (!apiAccessories || apiAccessories.length === 0) return;
           const accessoriesMap = new Map(apiAccessories.map(a => [a.id, a]));
