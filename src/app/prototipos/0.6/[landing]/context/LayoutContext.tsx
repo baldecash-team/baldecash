@@ -52,6 +52,8 @@ interface LayoutContextValue {
   /** Public system configuration flags from backend */
   settings: Record<string, string>;
   catalogBanner: Record<string, unknown> | null;
+  /** Overlay variant from landing config (e.g. 'cade') */
+  overlayVariant: string | null;
 }
 
 /**
@@ -286,7 +288,8 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     previewLandingId,
     settings,
     catalogBanner,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner]);
+    overlayVariant,
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, overlayVariant]);
 
   return (
     <LayoutContext.Provider value={value}>

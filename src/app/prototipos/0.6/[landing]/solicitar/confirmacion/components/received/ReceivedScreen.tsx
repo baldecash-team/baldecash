@@ -1,11 +1,5 @@
 'use client';
 
-/**
- * ReceivedScreen - Pantalla principal de solicitud recibida
- * Orquesta todos los componentes
- * Adapted from v0.5 for v0.6
- */
-
 import React from 'react';
 import { ReceivedData } from '../../types/received';
 import { Illustration } from './illustration';
@@ -17,25 +11,17 @@ import { ContactInfo } from './contact';
 interface ReceivedScreenProps {
   data: ReceivedData;
   onGoToHome?: () => void;
+  overlayVariant?: string | null;
 }
 
-export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome }) => {
+export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome, overlayVariant }) => {
   return (
     <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-white to-neutral-50">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
-        {/* Illustration */}
-        <Illustration />
-
-        {/* Message */}
-        <ReceivedMessage data={data} />
-
-        {/* Application Status */}
+        <Illustration overlayVariant={overlayVariant} />
+        <ReceivedMessage data={data} overlayVariant={overlayVariant} />
         <ApplicationStatus notificationChannels={data.notificationChannels} />
-
-        {/* Product Summary */}
         <ProductSummary data={data} />
-
-        {/* Contact Info */}
         <ContactInfo onGoToHome={onGoToHome} />
       </div>
     </div>

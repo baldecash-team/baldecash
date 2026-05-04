@@ -1,19 +1,18 @@
 'use client';
 
-/**
- * ReceivedMessage - Mensaje de solicitud recibida
- * Adapted from v0.5 for v0.6
- */
-
 import React from 'react';
 import { motion } from 'framer-motion';
+import { PartyPopper } from 'lucide-react';
 import { ReceivedData } from '../../../types/received';
 
 interface ReceivedMessageProps {
   data: ReceivedData;
+  overlayVariant?: string | null;
 }
 
-export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data }) => {
+export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data, overlayVariant }) => {
+  const isCade = overlayVariant === 'cade';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -22,7 +21,10 @@ export const ReceivedMessage: React.FC<ReceivedMessageProps> = ({ data }) => {
       className="text-center mb-6 sm:mb-8"
     >
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 mb-2 font-['Baloo_2',_sans-serif] leading-tight break-words">
-        ¡Hemos recibido tu solicitud, {data.userName}!
+        {isCade
+          ? <>¡Gracias por ser parte del CADE, {data.userName}! <PartyPopper className="inline w-6 h-6 sm:w-7 sm:h-7 text-[var(--color-primary)]" /></>
+          : <>¡Hemos recibido tu solicitud, {data.userName}!</>
+        }
       </h1>
       <p className="text-sm sm:text-base text-neutral-600 mb-4 px-2">
         Estamos revisando tu información. Te notificaremos el resultado en un máximo de{' '}

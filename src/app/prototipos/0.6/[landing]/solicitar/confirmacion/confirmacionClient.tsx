@@ -224,12 +224,14 @@ function RealConfirmationContent({
   isLoading,
   searchParams,
   onGoHome,
+  overlayVariant,
 }: {
   applicationCode: string;
   applicationData: ApplicationStatusData | null;
   isLoading: boolean;
   searchParams: URLSearchParams;
   onGoHome: () => void;
+  overlayVariant?: string | null;
 }) {
   if (isLoading) {
     return <LoadingFallback />;
@@ -237,7 +239,7 @@ function RealConfirmationContent({
 
   const receivedData = buildReceivedData(applicationCode, applicationData, searchParams);
 
-  return <ReceivedScreen data={receivedData} onGoToHome={onGoHome} />;
+  return <ReceivedScreen data={receivedData} onGoToHome={onGoHome} overlayVariant={overlayVariant} />;
 }
 
 /**
@@ -329,7 +331,7 @@ function ConfirmacionContent() {
   useScrollToTop();
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant } = useLayout();
 
   // Fetch application status when code is present
   useEffect(() => {
@@ -390,6 +392,7 @@ function ConfirmacionContent() {
             isLoading={isLoadingStatus}
             searchParams={searchParams}
             onGoHome={handleGoHome}
+            overlayVariant={overlayVariant}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />
@@ -422,6 +425,7 @@ function ConfirmacionContent() {
             isLoading={isLoadingStatus}
             searchParams={searchParams}
             onGoHome={handleGoHome}
+            overlayVariant={overlayVariant}
           />
         ) : (
           <DemoContent onSelectResult={handleSelectResult} />
