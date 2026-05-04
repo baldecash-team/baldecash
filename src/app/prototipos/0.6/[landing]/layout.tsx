@@ -664,6 +664,14 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       const overlayDl = cfg.features.overlay_deadline || '';
       const variant = cfg.features.overlay_variant || '';
 
+      // Overlay deadline expired — block access regardless of whitelist
+      if (variant && overlayDl && new Date().getTime() >= new Date(overlayDl).getTime()) {
+        setOverlayVariant(variant);
+        setOverlayDeadline(overlayDl);
+        setStatus('blocked');
+        return;
+      }
+
       if (hasWhitelist && !getVipToken(landing)) {
         if (vipCountdown) {
           setStatus('redirecting');
@@ -674,14 +682,6 @@ function VipGate({ landing, children }: { landing: string; children: React.React
           setOverlayDeadline(overlayDl);
           setStatus('blocked');
         }
-        return;
-      }
-
-      // Overlay deadline expired even with valid token — block access
-      if (variant && overlayDl && new Date().getTime() >= new Date(overlayDl).getTime()) {
-        setOverlayVariant(variant);
-        setOverlayDeadline(overlayDl);
-        setStatus('blocked');
         return;
       }
 
