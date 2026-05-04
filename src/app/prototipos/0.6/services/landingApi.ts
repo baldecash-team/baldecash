@@ -1040,7 +1040,9 @@ interface ApiAccessory {
  * Obtiene los accesorios disponibles para una landing
  * @param slug - Landing slug
  * @param deviceType - Device type to filter accessories (e.g., 'laptop', 'celular', 'tablet')
- * @param term - Optional financing term in native units (semanas, quincenas or meses) to calculate the installment
+ * @param term - Optional financing term in MONTHS (not native units). The API normalizes by month
+ *               regardless of payment_frequency, so for a 48-week semanal plan pass 12, for a
+ *               24-fortnight quincenal plan pass 12, etc.
  * @param paymentFrequency - Optional payment frequency to pair the accessory installment with the product ('semanal' | 'quincenal' | 'mensual')
  */
 export async function getLandingAccessories(

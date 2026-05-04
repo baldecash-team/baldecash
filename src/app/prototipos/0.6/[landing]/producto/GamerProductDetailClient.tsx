@@ -398,11 +398,14 @@ function DetailContent() {
     let cancelled = false;
     const deviceType = data?.product?.deviceType;
     if (!deviceType) return;
-    // Use the user-selected term (falls back to the first plan's term on first render
-    // before defaults settle).
-    const term = selectedTerm || data?.paymentPlans?.[0]?.term;
+    // Accessories API expects term in MONTHS regardless of payment frequency, so
+    // convert the native-unit `selectedTerm` (e.g. 48 weeks / 24 fortnights) to its
+    // month-equivalent via the active plan's `termMonths`.
+    const plans = data?.paymentPlans || [];
+    const activePlan = plans.find((p) => p.term === selectedTerm) || plans[0];
+    const termMonths = activePlan?.termMonths ?? activePlan?.term ?? selectedTerm;
     const paymentFrequency = data?.paymentFrequencies?.[0];
-    getLandingAccessories(landing, deviceType, term, previewKey, paymentFrequency).then((items) => {
+    getLandingAccessories(landing, deviceType, termMonths, previewKey, paymentFrequency).then((items) => {
       if (cancelled || !items?.length) return;
       setAccessories(items.map((a) => {
         const override = findAccessoryOverride(a.name);
