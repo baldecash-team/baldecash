@@ -1040,8 +1040,13 @@ interface ApiAccessory {
  * Obtiene los accesorios disponibles para una landing
  * @param slug - Landing slug
  * @param deviceType - Device type to filter accessories (e.g., 'laptop', 'celular', 'tablet')
- * @param term - Optional financing term in native units (semanas, quincenas or meses) to calculate the installment
- * @param paymentFrequency - Optional payment frequency to pair the accessory installment with the product ('semanal' | 'quincenal' | 'mensual')
+ * @param term - Optional financing term as the LITERAL number of cuotas (raw period count),
+ *               same N que se muestra al usuario. El backend NO convierte: para una UI que
+ *               muestra "48 semanas" se manda term=48 con payment_frequency=semanal; para
+ *               "24 quincenas" → term=24&payment_frequency=quincenal; para "12 meses" →
+ *               term=12&payment_frequency=mensual. Valores válidos:
+ *               semanal ∈ {12,24,36,48}, quincenal ∈ {12,24}, mensual = múltiplo de 4.
+ * @param paymentFrequency - Optional payment frequency ('semanal' | 'quincenal' | 'mensual')
  */
 export async function getLandingAccessories(
   slug: string,

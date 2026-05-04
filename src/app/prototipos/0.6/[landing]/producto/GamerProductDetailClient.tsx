@@ -398,8 +398,9 @@ function DetailContent() {
     let cancelled = false;
     const deviceType = data?.product?.deviceType;
     if (!deviceType) return;
-    // Use the user-selected term (falls back to the first plan's term on first render
-    // before defaults settle).
+    // Accessories API expects term as the LITERAL cuotas count (same N que se
+    // muestra al usuario): para semanal manda semanas, para quincenal quincenas,
+    // para mensual meses. `selectedTerm` ya está en native units así que se manda tal cual.
     const term = selectedTerm || data?.paymentPlans?.[0]?.term;
     const paymentFrequency = data?.paymentFrequencies?.[0];
     getLandingAccessories(landing, deviceType, term, previewKey, paymentFrequency).then((items) => {
