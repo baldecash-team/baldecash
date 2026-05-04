@@ -1063,8 +1063,22 @@ export async function getLandingAccessories(
         queryParams.set('product_types', filtered.join(','));
       }
     }
-    if (term && term > 0) {
-      queryParams.set('term', term.toString());
+    // Guardrail: el backend valida term ∈ {12,24,36} (en meses) cuando hay
+    // payment_frequency=semanal|quincenal. Si llega un term en unidades nativas
+    // (48 / 96 / 144 semanas, 24 / 48 / 72 quincenas), lo convertimos a meses
+    // para no enviar 400. Esto blinda el endpoint contra call sites que pasen
+    // por error el valor en unidades nativas.
+    let termMonths = term;
+    if (termMonths && termMonths > 0 && paymentFrequency) {
+      const freq = paymentFrequency.toLowerCase();
+      if (freq === 'semanal' && termMonths % 4 === 0 && termMonths > 36) {
+        termMonths = termMonths / 4;
+      } else if (freq === 'quincenal' && termMonths % 2 === 0 && termMonths > 36) {
+        termMonths = termMonths / 2;
+      }
+    }
+    if (termMonths && termMonths > 0) {
+      queryParams.set('term', termMonths.toString());
     }
     queryParams.set('all', 'true');
     if (paymentFrequency) {
