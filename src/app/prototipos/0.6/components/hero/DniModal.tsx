@@ -121,10 +121,9 @@ export function consumeVipWelcomePending(slug: string): boolean {
   }
 }
 
-/** Clear all VIP-related localStorage keys for a landing */
+/** Clear VIP session keys for a landing (preserves saved DNI for form pre-fill) */
 export function clearVipData(slug: string): void {
   try {
-    localStorage.removeItem(getStorageKey(slug));
     localStorage.removeItem(getVipTokenKey(slug));
     localStorage.removeItem(getVipNameKey(slug));
     localStorage.removeItem(getVipWelcomePendingKey(slug));
