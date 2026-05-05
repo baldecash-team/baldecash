@@ -622,7 +622,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           </div>
         )}
 
-        {/* CADE promo disclaimer */}
+        {/* CADE promo disclaimer — deshabilitado temporalmente
         {overlayVariant === 'cade' && (
           <div className="w-full px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4">
             <div
@@ -665,6 +665,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
             </div>
           </div>
         )}
+        */}
 
         {/* Content with Sidebar and Products */}
         <div className="flex items-start">
