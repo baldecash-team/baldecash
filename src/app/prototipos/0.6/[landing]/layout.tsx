@@ -95,6 +95,7 @@ function useDniValidation(landing: string, onValidated: () => void) {
       }
       if (data.access_token) saveVipToken(landing, data.access_token);
       if (data.first_name) saveVipName(landing, data.first_name);
+      try { localStorage.setItem(`baldecash-dni-${landing}`, dni); } catch {}
       onValidated();
     } catch {
       setErrorMsg('Error de conexión. Intenta de nuevo.');

@@ -314,9 +314,8 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   const dniRequired = landingConfig.features.dni_required;
 
   useEffect(() => {
-    // Inline capture only skips modal when VIP overlay is active (it owns the DNI UX).
-    // Without vip_countdown, fall through to the regular modal.
-    if (isInlineCapture && isVipLanding) return;
+    // Inline capture owns the DNI UX — the modal never auto-opens in this mode.
+    if (isInlineCapture) return;
     // VIP landing: don't auto-open DNI modal, it's triggered by the countdown overlay button
     if (isVipLanding) return;
 
