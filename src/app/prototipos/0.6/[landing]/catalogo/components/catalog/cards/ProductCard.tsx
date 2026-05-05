@@ -287,7 +287,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </motion.div>
               )}
               <span
-                className="text-base font-black tracking-widest uppercase"
+                className="text-sm font-black tracking-wide uppercase text-center"
                 style={{ color: promoBannerTextColor, textShadow: '0 2px 4px rgba(0,0,0,0.4)' }}
               >
                 {promoTemplate.bannerText}
