@@ -13,8 +13,17 @@ import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { WizardField } from '../../../../../services/wizardApi';
 import { useWizard } from '../../../context/WizardContext';
 import { useCheckPerson } from '../../../hooks/useCheckPerson';
+import { useLayout } from '../../../../context/LayoutContext';
 import { TextInput } from './TextInput';
 import { PrefillData } from '../../../../../services/applicationApi';
+
+function getSavedDni(slug: string): string | null {
+  try {
+    return localStorage.getItem(`baldecash-dni-${slug}`);
+  } catch {
+    return null;
+  }
+}
 
 interface DocumentNumberFieldProps {
   field: WizardField;
@@ -37,7 +46,21 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
   showError = false,
 }) => {
   const { getFieldValue, getFieldError, updateField, formData } = useWizard();
+  const { landing, overlayVariant } = useLayout();
   const prefilledRef = useRef(false);
+  const [lockedByModal, setLockedByModal] = useState(false);
+
+  // Pre-fill from DNI modal for CADE landings
+  useEffect(() => {
+    if (overlayVariant !== 'cade') return;
+    const savedDni = getSavedDni(landing);
+    if (!savedDni) return;
+    const current = getFieldValue(field.code) as string;
+    if (!current) {
+      updateField(field.code, savedDni);
+    }
+    setLockedByModal(true);
+  }, []);
 
   // Get prefill config from field configuration
   const prefillConfig = field.prefill_config;
@@ -206,7 +229,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       onChange={handleChange}
       error={error}
       required={field.required}
-      disabled={field.readonly}
+      disabled={field.readonly || lockedByModal}
       tooltip={tooltip}
       type="text"
       inputMode={isPassport ? 'text' : 'numeric'}
