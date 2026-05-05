@@ -196,9 +196,10 @@ export const DniModal: React.FC<DniModalProps> = ({
         }
         tracker?.track('dni_validated', { landing_slug: landingSlug });
         setIsValidating(false);
+        // Always save DNI immediately after successful validation
+        try { localStorage.setItem(getStorageKey(landingSlug), dni); } catch { /* */ }
         // If parent handles the validated state (VIP flow), delegate to it
         if (onWhitelistValidated) {
-          try { localStorage.setItem(getStorageKey(landingSlug), dni); } catch { /* */ }
           onWhitelistValidated({
             firstName: data.first_name || '',
             lastName: data.last_name || '',
