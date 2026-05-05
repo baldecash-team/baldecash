@@ -287,14 +287,13 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     }
   }, [isLoading, heroData]);
 
-  // VIP Countdown overlay - driven by landing config preset (features.vip_countdown or features.overlay_deadline)
-  const vipDate = landingConfig.features.vip_countdown || landingConfig.features.overlay_deadline;
-  const isVipLanding = !!vipDate;
+  // VIP Countdown overlay - driven by landing config preset (features.vip_countdown)
+  const isVipLanding = !!landingConfig.features.vip_countdown;
   const hasWhitelist = landingConfig.features.has_dni_whitelist;
   const [countdownActive, setCountdownActive] = useState(isVipLanding);
   const [vipExpired, setVipExpired] = useState(() => {
     if (!isVipLanding) return false;
-    const end = new Date(vipDate);
+    const end = new Date(landingConfig.features.vip_countdown);
     return new Date().getTime() >= end.getTime();
   });
 
@@ -315,8 +314,9 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   const dniRequired = landingConfig.features.dni_required;
 
   useEffect(() => {
-    // Inline capture owns the DNI UX — the modal never auto-opens in this mode.
-    if (isInlineCapture) return;
+    // Inline capture only skips modal when VIP overlay is active (it owns the DNI UX).
+    // Without vip_countdown, fall through to the regular modal.
+    if (isInlineCapture && isVipLanding) return;
     // VIP landing: don't auto-open DNI modal, it's triggered by the countdown overlay button
     if (isVipLanding) return;
 
@@ -412,7 +412,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
       {/* VIP expired: only overlay, no content */}
       {vipExpired ? (
         <VipCountdownOverlay
-          endDate={vipDate}
+          endDate={landingConfig.features.vip_countdown}
           catalogSlug={slug}
         />
       ) : (
@@ -464,7 +464,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
           {/* VIP Countdown overlay - blocks page until countdown expires */}
           {isVipLanding && (
             <VipCountdownOverlay
-              endDate={vipDate}
+              endDate={landingConfig.features.vip_countdown}
               onExpired={() => { setCountdownActive(false); setVipExpired(true); }}
               landingSlug={slug}
               validateWhitelist={hasWhitelist}
