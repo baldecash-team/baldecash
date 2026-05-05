@@ -287,13 +287,14 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     }
   }, [isLoading, heroData]);
 
-  // VIP Countdown overlay - driven by landing config preset (features.vip_countdown)
-  const isVipLanding = !!landingConfig.features.vip_countdown;
+  // VIP Countdown overlay - driven by landing config preset (features.vip_countdown or features.overlay_deadline)
+  const vipDate = landingConfig.features.vip_countdown || landingConfig.features.overlay_deadline;
+  const isVipLanding = !!vipDate;
   const hasWhitelist = landingConfig.features.has_dni_whitelist;
   const [countdownActive, setCountdownActive] = useState(isVipLanding);
   const [vipExpired, setVipExpired] = useState(() => {
     if (!isVipLanding) return false;
-    const end = new Date(landingConfig.features.vip_countdown);
+    const end = new Date(vipDate);
     return new Date().getTime() >= end.getTime();
   });
 
@@ -411,7 +412,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
       {/* VIP expired: only overlay, no content */}
       {vipExpired ? (
         <VipCountdownOverlay
-          endDate={landingConfig.features.vip_countdown}
+          endDate={vipDate}
           catalogSlug={slug}
         />
       ) : (
@@ -463,7 +464,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
           {/* VIP Countdown overlay - blocks page until countdown expires */}
           {isVipLanding && (
             <VipCountdownOverlay
-              endDate={landingConfig.features.vip_countdown}
+              endDate={vipDate}
               onExpired={() => { setCountdownActive(false); setVipExpired(true); }}
               landingSlug={slug}
               validateWhitelist={hasWhitelist}
