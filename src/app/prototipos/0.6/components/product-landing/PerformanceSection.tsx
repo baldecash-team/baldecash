@@ -164,7 +164,7 @@ export default function PerformanceSection() {
             <p className="text-[17px] sm:text-xl md:text-2xl text-[#f5f5f7] m-0 mb-4">
               Desde{' '}
               <span className="font-bold" style={{ color: BC.primary, fontFamily: "'Baloo 2', cursive" }}>
-                S/199
+                S/249
               </span>
               <span className="text-[#86868b]">/mes</span>
             </p>

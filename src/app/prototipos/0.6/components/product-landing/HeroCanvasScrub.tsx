@@ -186,7 +186,7 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
               >
                 Desde{' '}
                 <span className="font-bold text-xl sm:text-2xl md:text-[40px]" style={{ color: isMobile ? '#03DBD0' : BC.primary }}>
-                  S/199
+                  S/249
                 </span>
                 <span style={{ color: isMobile ? '#f5f5f7' : '#6e6e73' }}>/mes</span>
               </p>
