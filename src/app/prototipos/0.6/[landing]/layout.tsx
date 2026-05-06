@@ -400,7 +400,7 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
                     No encontramos tu registro. ¿Quieres solicitar acceso?
                   </p>
                   <a
-                    href="#"
+                    href="https://cade.baldecash.com/"
                     className="w-full py-3 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
                     style={{ backgroundColor: CADE_TEAL }}
                   >
