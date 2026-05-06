@@ -114,13 +114,13 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             Tu MacBook, a tu ritmo
           </h2>
           <p className="text-[13px] sm:text-[15px] text-[#86868b] max-w-[540px] mx-auto leading-[1.5]">
-            Desde <span className="text-[#f5f5f7] font-semibold">S/199/mes</span>. Sin inicial.
+            Desde <span className="text-[#f5f5f7] font-semibold">S/249/mes</span>. Sin inicial.
           </p>
         </div>
 
         {/* Plan cards */}
         <div ref={cardsRef} className="flex flex-col md:flex-row gap-5 md:gap-4 items-stretch justify-center">
-          {financingPlans.map((plan) => {
+          {financingPlans.filter((p) => p.id !== 'avanzado').map((plan) => {
             const Icon = ICON_MAP[plan.icono] || Zap;
             const accent = plan.colorAccent;
             const isDestacado = plan.destacado;

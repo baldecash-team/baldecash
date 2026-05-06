@@ -81,7 +81,7 @@ export const financingPlans: V5FinancingPlan[] = [
     nombre: 'Esencial',
     subtitulo: 'Pack entrada',
     descripcion: 'MacBook Neo 256GB',
-    cuotaMensual: 199,
+    cuotaMensual: 249,
     plazoMeses: 24,
     cuotaInicial: 0,
     icono: 'Zap',
