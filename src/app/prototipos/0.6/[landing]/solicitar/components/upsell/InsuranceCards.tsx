@@ -39,7 +39,7 @@ function getDescription(type: string): string {
 function getBenefits(type: string): string[] {
   switch (type) {
     case 'garantia_extendida': return [
-      '3 años de cobertura adicional',
+      '3 años de cobertura',
       'Sin deducibles ni papeleos',
       'Cobertura mundial 100% digital',
     ];
