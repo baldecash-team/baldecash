@@ -95,11 +95,11 @@ export const financingPlans: V5FinancingPlan[] = [
     ],
     ahorroText: '',
     colorAccent: '#B8B8B8',
-    productUrl: '/macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/',
+    productUrl: '/macbook-neo/producto/laptop-macbook-neo-lpappr0001350/',
     colorOptions: [
-      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-sola.jpg' },
+      { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/macbook-neo/producto/laptop-macbook-neo-lpappr0001350/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-sola.jpg' },
       { id: 'blush', label: 'Blush', hex: '#F2A7B0', productUrl: '/macbook-neo/producto/laptop-macbook-neo-blush-lpappr0001353/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-sola.jpg' },
-      { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/macbook-neo/producto/macbook-neo-indigo-256/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-sola.jpg' },
+      { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-sola.jpg' },
     ],
   },
   {
@@ -107,7 +107,7 @@ export const financingPlans: V5FinancingPlan[] = [
     nombre: 'Combo Apple',
     subtitulo: 'Pack premium',
     descripcion: 'MacBook Neo 256GB + AirPods',
-    cuotaMensual: 279,
+    cuotaMensual: 299,
     plazoMeses: 24,
     cuotaInicial: 0,
     icono: 'Crown',
