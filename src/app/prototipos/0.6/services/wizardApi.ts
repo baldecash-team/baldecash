@@ -3,10 +3,16 @@
  * Servicio para consumir configuración de formularios dinámicos desde el backend
  */
 
-import { getVipToken } from '../components/hero/DniModal';
+import { getVipToken, clearVipData } from '../components/hero/DniModal';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
+
+function handleVip403(slug: string): void {
+  if (typeof window === 'undefined') return;
+  clearVipData(slug);
+  window.location.reload();
+}
 
 function appendVipToken(url: string, slug: string): string {
   if (typeof window === 'undefined') return url;
@@ -228,9 +234,8 @@ export async function getWizardConfig(slug: string, previewKey?: string | null):
     });
 
     if (!response.ok) {
-      if (response.status === 404 || response.status === 403) {
-        return null;
-      }
+      if (response.status === 403) { handleVip403(slug); return null; }
+      if (response.status === 404) return null;
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -258,9 +263,7 @@ export async function getWizardConfigById(landingId: number, previewKey: string 
     });
 
     if (!response.ok) {
-      if (response.status === 404 || response.status === 403) {
-        return null;
-      }
+      if (response.status === 403 || response.status === 404) return null;
       throw new Error(`API error: ${response.status}`);
     }
 

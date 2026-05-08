@@ -24,7 +24,7 @@ import type {
   CtaQuickLink,
 } from '../types/hero';
 
-import { getVipToken } from '../components/hero/DniModal';
+import { getVipToken, clearVipData } from '../components/hero/DniModal';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -39,6 +39,12 @@ function appendVipToken(url: string, slug: string): string {
   if (!token) return url;
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}vip_token=${encodeURIComponent(token)}`;
+}
+
+function handleVip403(slug: string): void {
+  if (typeof window === 'undefined') return;
+  clearVipData(slug);
+  window.location.reload();
 }
 
 // Slugs conocidos para pre-generar como páginas estáticas (fallback si el API no responde)
@@ -213,9 +219,8 @@ export async function getLandingBySlug(slug: string): Promise<LandingResponse | 
     });
 
     if (!response.ok) {
-      if (response.status === 404 || response.status === 403) {
-        return null;
-      }
+      if (response.status === 403) { handleVip403(slug); return null; }
+      if (response.status === 404) return null;
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -249,9 +254,8 @@ export async function getLandingHeroData(slug: string, preview: boolean = false,
     });
 
     if (!response.ok) {
-      if (response.status === 404 || response.status === 403) {
-        return null;
-      }
+      if (response.status === 403) { handleVip403(slug); return null; }
+      if (response.status === 404) return null;
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -279,9 +283,7 @@ export async function getLandingHeroDataById(landingId: number, previewKey: stri
     });
 
     if (!response.ok) {
-      if (response.status === 404 || response.status === 403) {
-        return null;
-      }
+      if (response.status === 403 || response.status === 404) return null;
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -355,9 +357,8 @@ export async function getLandingLayout(slug: string, previewKey?: string | null)
     });
 
     if (!response.ok) {
-      if (response.status === 404 || response.status === 403) {
-        return null;
-      }
+      if (response.status === 403) { handleVip403(slug); return null; }
+      if (response.status === 404) return null;
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -453,9 +454,7 @@ export async function getLandingLayoutById(landingId: number, previewKey: string
     });
 
     if (!response.ok) {
-      if (response.status === 404 || response.status === 403) {
-        return null;
-      }
+      if (response.status === 403 || response.status === 404) return null;
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -1084,9 +1083,8 @@ export async function getLandingAccessories(
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return [];
-      }
+      if (response.status === 403) { handleVip403(slug); return []; }
+      if (response.status === 404) return [];
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -1176,9 +1174,8 @@ export async function getLandingInsurances(
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return [];
-      }
+      if (response.status === 403) { handleVip403(slug); return []; }
+      if (response.status === 404) return [];
       throw new Error(`API error: ${response.status}`);
     }
 
@@ -1299,9 +1296,8 @@ export async function getSolicitarConfig(
     );
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return DEFAULT_SOLICITAR_FLOW;
-      }
+      if (response.status === 403) { handleVip403(slug); return DEFAULT_SOLICITAR_FLOW; }
+      if (response.status === 404) return DEFAULT_SOLICITAR_FLOW;
       throw new Error(`API error: ${response.status}`);
     }
 
