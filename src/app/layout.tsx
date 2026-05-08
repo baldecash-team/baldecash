@@ -98,8 +98,9 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Preconnect a orígenes en ruta crítica del LCP. next/font ya self-hostea
+            las fuentes de Google, así que NO se requiere preconnect a fonts.* */}
+        <link rel="preconnect" href="https://baldecash.s3.amazonaws.com" crossOrigin="anonymous" />
         {/* Tema gamer: (1) aplicar data-bc-theme ANTES del primer paint leyendo localStorage.
             (2) wrappear localStorage.setItem para que cualquier cambio de tema sincronice el atributo en <html>.
             Así las pantallas de carga siempre heredan el tema actual aun cuando el user haya toggleado mid-flow. */}
@@ -124,7 +125,7 @@ export default function RootLayout({
             </Script>
           </>
         )}
-        <Script id="gtm-script" strategy="afterInteractive">
+        <Script id="gtm-script" strategy="lazyOnload">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
