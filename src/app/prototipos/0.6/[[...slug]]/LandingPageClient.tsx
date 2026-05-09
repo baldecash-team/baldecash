@@ -10,7 +10,7 @@
 import { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { HeroSection } from '../components/hero/HeroSection';
-import { DniModal, hasSavedDni, clearVipData, type WhitelistValidationResult } from '../components/hero/DniModal';
+import { DniModal, hasSavedDni, clearVipData, saveVipToken, type WhitelistValidationResult } from '../components/hero/DniModal';
 import { ZonaGamerLanding } from '../components/zona-gamer/ZonaGamerLanding';
 import { fetchHeroData } from '../services/landingApi';
 import { usePreviewListener } from '../hooks/usePreviewListener';
@@ -297,11 +297,22 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
     return new Date().getTime() >= end.getTime();
   });
 
-  // Clear VIP localStorage on landing index load so user must re-validate each visit
+  // On landing index load: if vip_auto param is present, save it as the VIP token and go
+  // straight to catalog. Otherwise clear any stale VIP data so the user must re-validate.
   useEffect(() => {
-    if (hasWhitelist) {
-      clearVipData(slug);
+    if (!hasWhitelist) return;
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const vipAuto = params.get('vip_auto');
+      if (vipAuto) {
+        saveVipToken(slug, vipAuto);
+        window.location.href = routes.catalogo(slug);
+        return;
+      }
     }
+
+    clearVipData(slug);
   }, [slug, hasWhitelist]);
 
   // DNI capture: mode decides whether DNI is captured via popup modal or inline in the overlay

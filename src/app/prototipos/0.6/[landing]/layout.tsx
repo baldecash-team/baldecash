@@ -17,6 +17,7 @@ import { LayoutProvider } from './context/LayoutContext';
 import { SessionProvider } from './solicitar/context/SessionContext';
 import { EventTrackerProvider } from './solicitar/context/EventTrackerContext';
 import { DniModal, getVipToken, getVipName, consumeVipWelcomePending, saveVipToken, saveVipName } from '../components/hero/DniModal';
+import { useSessionOptional } from './solicitar/context/SessionContext';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
 import { routes } from '../utils/routes';
@@ -51,6 +52,7 @@ interface SiblingMatch {
 }
 
 function useDniValidation(landing: string, onValidated: () => void) {
+  const session = useSessionOptional();
   const [dni, setDni] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -74,9 +76,8 @@ function useDniValidation(landing: string, onValidated: () => void) {
     setSiblingMatch(null);
     setShowRegister(false);
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}`,
-      );
+      const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/validate-dni/${dni}${session?.sessionUuid ? `?session_uuid=${session.sessionUuid}` : ''}`;
+      const res = await fetch(validateUrl);
       const data = await res.json();
       if (!data.valid) {
         if (data.found_in_sibling && data.sibling_landing_slug) {
@@ -647,6 +648,7 @@ const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: 
 function VipGate({ landing, children }: { landing: string; children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const session = useSessionOptional();
   const isPublicPage = pathname.includes('/legal/') || pathname.includes('/proximamente');
   const [status, setStatus] = useState<'loading' | 'allowed' | 'blocked' | 'redirecting'>('loading');
   const [captureMode, setCaptureMode] = useState<'modal' | 'inline'>('modal');
@@ -656,6 +658,44 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   const [welcomeName, setWelcomeName] = useState<{ firstName: string } | null>(null);
   const [countdownDate, setCountdownDate] = useState('');
   const [vipExpired, setVipExpired] = useState(false);
+  const infoFetchedRef = useRef(false);
+  const sessionLinkedRef = useRef(false);
+
+  // Fetch lead info (name, dni) as soon as we have a token — no session needed
+  useEffect(() => {
+    if (infoFetchedRef.current) return;
+    const token = getVipToken(landing);
+    if (!token) return;
+    infoFetchedRef.current = true;
+    fetch(`${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/link-token-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, session_uuid: null }),
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data?.linked) return;
+        if (data.first_name) saveVipName(landing, data.first_name);
+        if (data.dni) {
+          try { localStorage.setItem(`baldecash-dni-${landing}`, data.dni); } catch {}
+        }
+      })
+      .catch(() => {});
+  }, [landing]);
+
+  // Link token ↔ tracking session once session is ready
+  useEffect(() => {
+    if (sessionLinkedRef.current) return;
+    const token = getVipToken(landing);
+    const uuid = session?.sessionUuid;
+    if (!token || !uuid) return;
+    sessionLinkedRef.current = true;
+    fetch(`${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/link-token-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, session_uuid: uuid }),
+    }).catch(() => {});
+  }, [landing, session?.sessionUuid]);
 
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
@@ -671,6 +711,14 @@ function VipGate({ landing, children }: { landing: string; children: React.React
         setOverlayDeadline(overlayDl);
         setStatus('blocked');
         return;
+      }
+
+      if (hasWhitelist && typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const vipAuto = params.get('vip_auto');
+        if (vipAuto && !getVipToken(landing)) {
+          saveVipToken(landing, vipAuto);
+        }
       }
 
       if (hasWhitelist && !getVipToken(landing)) {

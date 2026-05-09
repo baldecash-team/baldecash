@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { saveVipToken, saveVipName, setVipWelcomePending, clearVipData } from './DniModal';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext';
 
 interface TimeLeft {
   days: number;
@@ -91,6 +92,7 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
   onOpenDniModal,
 }) => {
   const tracker = useEventTrackerOptional();
+  const session = useSessionOptional();
   const targetDate = new Date(endDate);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [countdownFinished, setCountdownFinished] = useState(false);
@@ -117,9 +119,8 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
     setErrorMsg(null);
     try {
       if (validateWhitelist) {
-        const res = await fetch(
-          `${API_BASE_URL}/public/landing/${encodeURIComponent(landingSlug)}/validate-dni/${dni}`,
-        );
+        const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landingSlug)}/validate-dni/${dni}${session?.sessionUuid ? `?session_uuid=${session.sessionUuid}` : ''}`;
+        const res = await fetch(validateUrl);
         const data = await res.json();
         if (!data.valid) {
           tracker?.track('dni_rejected', { landing_slug: landingSlug, source: 'vip_overlay' });

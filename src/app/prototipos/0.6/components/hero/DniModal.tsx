@@ -15,6 +15,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, Check, AlertCircle, ShieldX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext';
 
 const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
@@ -142,6 +143,7 @@ export const DniModal: React.FC<DniModalProps> = ({
   onWhitelistValidated,
 }) => {
   const tracker = useEventTrackerOptional();
+  const session = useSessionOptional();
   const [dni, setDni] = useState('');
   // Modal view: 'form' | 'rejected' | 'confirmed'
   const [view, setView] = useState<'form' | 'rejected' | 'confirmed'>('form');
@@ -172,9 +174,8 @@ export const DniModal: React.FC<DniModalProps> = ({
     if (validateWhitelist) {
       setIsValidating(true);
       try {
-        const res = await fetch(
-          `${API_BASE_URL}/public/landing/${encodeURIComponent(landingSlug)}/validate-dni/${dni}`,
-        );
+        const validateUrl = `${API_BASE_URL}/public/landing/${encodeURIComponent(landingSlug)}/validate-dni/${dni}${session?.sessionUuid ? `?session_uuid=${session.sessionUuid}` : ''}`;
+        const res = await fetch(validateUrl);
         const data = await res.json();
         if (!data.valid) {
           tracker?.track('dni_rejected', { landing_slug: landingSlug });
