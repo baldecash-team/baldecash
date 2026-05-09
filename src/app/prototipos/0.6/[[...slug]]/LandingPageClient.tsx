@@ -307,7 +307,11 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
       const vipAuto = params.get('vip_auto');
       if (vipAuto) {
         saveVipToken(slug, vipAuto);
-        window.location.href = routes.catalogo(slug);
+        const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+        const utmParams = new URLSearchParams();
+        utmKeys.forEach((k) => { const v = params.get(k); if (v) utmParams.set(k, v); });
+        const qs = utmParams.toString();
+        window.location.href = `${routes.catalogo(slug)}${qs ? `?${qs}` : ''}`;
         return;
       }
     }

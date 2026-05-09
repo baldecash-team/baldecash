@@ -267,6 +267,11 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
 
         const uuid = existingUuid || generateUUID();
 
+        // Persist UUID immediately so it survives page redirects (e.g. vip_auto)
+        if (!existingUuid && typeof window !== 'undefined') {
+          localStorage.setItem(sessionKey, uuid);
+        }
+
         // ALWAYS call API (creates new or recovers existing session)
         const result = await createSession(uuid, slug);
 
