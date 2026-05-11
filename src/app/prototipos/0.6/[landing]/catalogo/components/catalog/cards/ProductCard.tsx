@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, type LucideProps } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, type LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
@@ -32,6 +32,25 @@ const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
   lightning: Zap,
   star: Star,
   gift: Gift,
+  trophy: Trophy,
+  heart: Heart,
+  sparkles: Sparkles,
+  crown: Crown,
+  rocket: Rocket,
+  party: PartyPopper,
+  bell: Bell,
+  percent: BadgePercent,
+  cart: ShoppingCart,
+  timer: Timer,
+  megaphone: Megaphone,
+  thumbsup: ThumbsUp,
+  award: Award,
+  dollar: CircleDollarSign,
+  ticket: Ticket,
+  tag: Tag,
+  trending: TrendingDown,
+  shield: Shield,
+  eye: Eye,
 };
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
@@ -523,7 +542,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
                     {displayDiscount && displayDiscount > 0 && (
                       <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
-                        -{Math.round(displayDiscount)}%
+                        {product.promotion?.discountType === 'fixed'
+                          ? `-S/${Math.round(product.promotion.discountValue)}`
+                          : `-${Math.round(displayDiscount)}%`}
                       </span>
                     )}
                   </>
