@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { WizardLayout } from '../../components/wizard-solicitud/wizard';
 import { WizardStepId } from '../../types/wizard-solicitud';
 import { useWizard } from '../../context/WizardContext';
-import { User, GraduationCap, Wallet, AlertCircle, Edit2, Code, ArrowLeft, CreditCard } from 'lucide-react';
+import { User, GraduationCap, Wallet, AlertCircle, Edit2, Code, ArrowLeft, CreditCard, CalendarDays } from 'lucide-react';
 import { SelectInput } from '../../components/wizard-solicitud/fields';
 import { Button } from '@nextui-org/react';
 import { FeedbackButton, CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
@@ -49,6 +49,32 @@ const REFERRAL_SOURCE_OPTIONS = [
   { value: '18', label: 'Llamada telefónica' },
   { value: '6', label: 'Otros' },
 ];
+
+const MONTH_NAMES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+function getFirstPaymentDate(selectedDay: number): string {
+  const today = new Date();
+  const currentDay = today.getDate();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  let targetMonth = currentMonth;
+  let targetYear = currentYear;
+
+  // Si ya pasó el día seleccionado en este mes, la primera fecha es el mes siguiente
+  if (currentDay >= selectedDay) {
+    targetMonth += 1;
+    if (targetMonth > 11) {
+      targetMonth = 0;
+      targetYear += 1;
+    }
+  }
+
+  return `${selectedDay} de ${MONTH_NAMES[targetMonth]} ${targetYear !== currentYear ? targetYear : ''}`.trim();
+}
 
 function ResumenContent() {
   const router = useRouter();
@@ -430,7 +456,7 @@ function ResumenContent() {
                 value={paymentTerm}
                 onChange={(value) => {
                   setPaymentTerm(value);
-                  if (value) setPaymentTermError(null); // Limpiar error al seleccionar
+                  if (value) setPaymentTermError(null);
                 }}
                 options={PAYMENT_DAY_OPTIONS}
                 placeholder="Selecciona un día"
@@ -443,6 +469,14 @@ function ResumenContent() {
                   recommendation: 'Te recomendamos elegir una fecha cercana a cuando recibes tus ingresos.',
                 }}
               />
+              {paymentTerm && (
+                <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
+                  <CalendarDays className="w-5 h-5 text-[#4654CD] flex-shrink-0" />
+                  <p className="text-sm text-neutral-700">
+                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{getFirstPaymentDate(Number(paymentTerm))}</span>
+                  </p>
+                </div>
+              )}
               <SelectInput
                 id="referralSource"
                 label="¿Cómo te enteraste de nosotros?"
