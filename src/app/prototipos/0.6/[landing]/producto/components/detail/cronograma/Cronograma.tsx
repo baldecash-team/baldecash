@@ -20,7 +20,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 
 // Cálculo de amortización francesa (cuota fija)
 const calculateAmortization = (principal: number, annualRate: number, months: number) => {
-  const monthlyRate = annualRate / 100 / 12;
+  const monthlyRate = Math.pow(1 + annualRate / 100, 1 / 12) - 1;
   const schedule = [];
   let balance = principal;
 
@@ -93,7 +93,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   // Override TEA/TCEA from selected option if available (backend returns per term+initial%)
   const planForRates = paymentPlans.find(p => p.term === selectedTerm) ?? paymentPlans[0];
   const selectedOption = planForRates?.options.find(o => o.initialPercent === selectedInitialPercent) ?? planForRates?.options[0];
-  const effectiveTea = selectedOption?.teaIrr ?? selectedOption?.tea;
+  const effectiveTea = selectedOption?.tea ?? selectedOption?.teaIrr;
   if (effectiveTea != null) {
     FINANCIAL_DATA.tea = effectiveTea;
   }
@@ -169,7 +169,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   const amortizationSchedule = useMemo(() => {
     // Derivar principal real desde la cuota usando fórmula inversa de amortización francesa
     // principal = cuota × [(1+r)^n - 1] / [r × (1+r)^n]
-    const monthlyRate = FINANCIAL_DATA.tea / 100 / 12;
+    const monthlyRate = Math.pow(1 + FINANCIAL_DATA.tea / 100, 1 / 12) - 1;
     const n = selectedTerm;
     const quota = commissionAmount != null ? adjustedQuota - commissionAmount : adjustedQuota;
     const principal = monthlyRate > 0

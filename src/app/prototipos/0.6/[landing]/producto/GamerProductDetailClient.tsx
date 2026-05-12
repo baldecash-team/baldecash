@@ -2303,7 +2303,7 @@ function CronogramaSection({
     // Sin TEA del backend no calculamos amortización (evitamos data falsa)
     if (effectiveTea == null) return [];
     // Replicate light-mode Cronograma.tsx logic exactly for consistency
-    const monthlyRate = effectiveTea / 100 / 12;
+    const monthlyRate = Math.pow(1 + effectiveTea / 100, 1 / 12) - 1;
     const n = selectedTerm;
     // Derive principal from quota minus commission (exact float)
     const quotaNoComm = monthlyQuota - comisionMensual;
