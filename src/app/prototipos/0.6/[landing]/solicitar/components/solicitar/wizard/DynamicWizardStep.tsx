@@ -6,9 +6,31 @@
  */
 
 import React, { useEffect, useMemo, useRef } from 'react';
+import { CalendarDays } from 'lucide-react';
 import { WizardStep, evaluateFieldVisibility, getPrefillTargetFieldCodes } from '../../../../../services/wizardApi';
 import { DynamicField } from '../fields/DynamicField';
 import { useWizard } from '../../../context/WizardContext';
+
+const MONTH_NAMES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+function getFirstPaymentDate(selectedDay: number): string {
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  let targetMonth = currentMonth + 1;
+  let targetYear = currentYear;
+
+  if (targetMonth > 11) {
+    targetMonth = 0;
+    targetYear += 1;
+  }
+
+  return `${selectedDay} de ${MONTH_NAMES[targetMonth]} del ${targetYear}`;
+}
 
 interface DynamicWizardStepProps {
   step: WizardStep;
@@ -152,6 +174,8 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
     prevValuesRef.current = vals;
   }, [fieldVisibility, step.fields, formData, updateField]);
 
+  const paymentDayValue = getFieldValue('payment_day') as string;
+
   // Fields come already ordered by display_order from the API
   return (
     <div className="grid grid-cols-12 gap-x-4 gap-y-1">
@@ -168,16 +192,25 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
         const colMobileClass = GRID_COL_MOBILE_CLASSES[colsMobile] || 'col-span-12';
 
         return (
-          <div
-            key={field.code}
-            className={`${colMobileClass} ${colClass}`}
-          >
-            <DynamicField
-              field={field}
-              showError={showErrors}
-              stepOrder={stepOrder}
-            />
-          </div>
+          <React.Fragment key={field.code}>
+            <div className={`${colMobileClass} ${colClass}`}>
+              <DynamicField
+                field={field}
+                showError={showErrors}
+                stepOrder={stepOrder}
+              />
+            </div>
+            {field.code === 'payment_day' && paymentDayValue && (
+              <div className="col-span-12">
+                <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
+                  <CalendarDays className="w-5 h-5 text-[#4654CD] flex-shrink-0" />
+                  <p className="text-sm text-neutral-700">
+                    Tu primera fecha de pago será el <span className="font-semibold text-[#4654CD]">{getFirstPaymentDate(Number(paymentDayValue))}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+          </React.Fragment>
         );
       })}
     </div>
