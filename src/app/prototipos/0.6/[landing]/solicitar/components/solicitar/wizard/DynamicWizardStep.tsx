@@ -201,7 +201,7 @@ export const DynamicWizardStep: React.FC<DynamicWizardStepProps> = ({
               />
             </div>
             {field.code === 'payment_day' && paymentDayValue && (
-              <div className="col-span-12">
+              <div className="col-span-12 -mt-1 mb-2">
                 <div className="flex items-center gap-3 bg-[#4654CD]/5 border border-[#4654CD]/20 rounded-xl px-4 py-3">
                   <CalendarDays className="w-5 h-5 text-[#4654CD] flex-shrink-0" />
                   <p className="text-sm text-neutral-700">
