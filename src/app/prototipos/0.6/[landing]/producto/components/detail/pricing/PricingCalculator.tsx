@@ -100,6 +100,31 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
   const isHoverCapable = useHoverCapable();
 
+  // On mount: if default frequency differs from mensual, fetch correct plans
+  useEffect(() => {
+    if (defaultFrequency === 'mensual' || !landing || !productSlug) return;
+    let cancelled = false;
+    setIsLoadingPlans(true);
+    fetchProductDetail(landing, productSlug, defaultFrequency)
+      .then((result) => {
+        if (cancelled) return;
+        if (result?.paymentPlans && result.paymentPlans.length > 0) {
+          setPaymentPlans(result.paymentPlans);
+          onPlansChange?.(result.paymentPlans);
+          const maxTerm = Math.max(...result.paymentPlans.map(p => p.term));
+          setSelectedTerm(maxTerm);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) console.error('[PricingCalculator] Error fetching initial plans', err);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingPlans(false);
+      });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Re-fetch payment plans when frequency changes
   const handleFrequencyChange = useCallback(async (freq: string) => {
     if (freq === selectedFrequency) return;
