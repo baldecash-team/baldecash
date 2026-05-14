@@ -52,7 +52,7 @@ export interface ApiProductPricing {
   available_terms: number[];
   available_initials: number[];
   payment_frequencies?: string[]; // e.g. ['quincenal', 'semanal'] for celulares
-  payment_hooks?: Record<string, number>; // e.g. {semanal: 15, quincenal: 26}
+  payment_hooks?: Record<string, number | {price: number; term_months: number | null; initial_percent: number}>;
 }
 
 export interface ApiBrand {
@@ -594,7 +594,15 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
     paymentFrequency: hook.payment_frequency || undefined,
     paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
-    paymentHooks: pricing.payment_hooks ?? undefined,
+    paymentHooks: pricing.payment_hooks
+      ? Object.fromEntries(
+          Object.entries(pricing.payment_hooks).map(([freq, val]) =>
+            typeof val === 'number'
+              ? [freq, { price: val, termMonths: null, initialPercent: null }]
+              : [freq, { price: (val as {price: number}).price, termMonths: (val as {term_months: number | null}).term_months, initialPercent: (val as {initial_percent: number}).initial_percent }]
+          )
+        )
+      : undefined,
     hookInitialPercent: hook.initial_percent > 0 ? Math.round(hook.initial_percent) : undefined,
     variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),

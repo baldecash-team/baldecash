@@ -80,8 +80,8 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   // Determine default frequency from the initial plans' structure or from paymentFrequencies
   const defaultFrequency = useMemo(() => {
     if (paymentFrequencies && paymentFrequencies.length > 0) {
-      // Default to semanal if available, otherwise first
-      return paymentFrequencies.includes('semanal') ? 'semanal' : paymentFrequencies[0];
+      if (paymentFrequencies.includes('quincenal')) return 'quincenal';
+      return paymentFrequencies[0];
     }
     return 'mensual';
   }, [paymentFrequencies]);
@@ -232,7 +232,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {paymentPlans.map((plan) => {
+          {[...paymentPlans].sort((a, b) => a.term - b.term).map((plan) => {
             const option = getOptionForTerm(plan.term);
             if (!option) return null;
 

@@ -692,7 +692,7 @@ export interface CatalogProduct {
   maxTermMonths: number;
   paymentFrequency?: string; // Frecuencia de la cuota hook: 'mensual' | 'semanal' | 'quincenal'
   paymentFrequencies?: string[]; // Frecuencias disponibles (solo celulares: ['quincenal', 'semanal'])
-  paymentHooks?: Record<string, number>; // Cuota hook por frecuencia: {semanal: 15, quincenal: 26}
+  paymentHooks?: Record<string, { price: number; termMonths: number | null; initialPercent: number | null }>;
   hookInitialPercent?: number; // % de inicial del hook (ej: 20 para celulares)
   /** Variant ID del producto base (viene del API como `variant.id`). Fallback cuando no hay colores. */
   variantId?: string;

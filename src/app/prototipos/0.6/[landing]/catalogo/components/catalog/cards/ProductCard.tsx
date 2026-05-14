@@ -194,18 +194,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const hookFrequency = product.paymentFrequency || 'mensual';
   const [selectedFrequency, setSelectedFrequency] = useState(hookFrequency);
 
-  // Cuota para la frecuencia seleccionada (desde payment_hooks, fallback al hook principal)
-  const displayQuotaForFreq = (product.paymentHooks && product.paymentHooks[selectedFrequency] != null)
-    ? product.paymentHooks[selectedFrequency]
-    : displayQuota;
+  // Per-frequency hook data (price + term + initial)
+  const freqHook = product.paymentHooks?.[selectedFrequency];
+  const displayQuotaForFreq = freqHook?.price ?? displayQuota;
 
   const freqShort = selectedFrequency === 'semanal' ? '/sem' : selectedFrequency === 'quincenal' ? '/qcn' : '/mes';
-  // Plazo máximo en meses: semanal ÷4, quincenal ÷2
-  const displayTermMonths = hookFrequency === 'semanal'
-    ? Math.round(selectedTerm / 4)
-    : hookFrequency === 'quincenal'
-      ? Math.round(selectedTerm / 2)
-      : selectedTerm;
+  const displayTermMonths = freqHook?.termMonths
+    ?? (selectedFrequency === 'semanal' ? Math.round(selectedTerm / 4)
+       : selectedFrequency === 'quincenal' ? Math.round(selectedTerm / 2)
+       : selectedTerm);
+  const displayInitialPercent = freqHook?.initialPercent ?? selectedInitial;
+  const { initialAmount: displayInitialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, displayInitialPercent);
 
   const originalQuota = displayOriginalQuota;
 
@@ -559,7 +558,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
               {/* Info adicional */}
               <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words">
-                en {displayTermMonths} meses{initialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(initialAmount))}` : ' · sin inicial'}
+                en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
               </p>
             </div>
 
