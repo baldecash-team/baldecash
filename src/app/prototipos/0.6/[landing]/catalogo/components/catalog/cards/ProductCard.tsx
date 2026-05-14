@@ -203,7 +203,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     ?? (selectedFrequency === 'semanal' ? Math.round(selectedTerm / 4)
        : selectedFrequency === 'quincenal' ? Math.round(selectedTerm / 2)
        : selectedTerm);
-  const displayInitialPercent = freqHook?.initialPercent ?? selectedInitial;
+  const displayInitialPercent = (freqHook?.initialPercent ?? selectedInitial) as InitialPaymentPercent;
   const { initialAmount: displayInitialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, displayInitialPercent);
 
   const originalQuota = displayOriginalQuota;
