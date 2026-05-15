@@ -2373,6 +2373,7 @@ function CronogramaSection({
           date: r.fecha,
           capital: r.capital,
           interest: r.interes,
+          commission: r.comision,
           quota: r.monto,
           balance: r.saldo,
         })),
@@ -2388,6 +2389,7 @@ function CronogramaSection({
         primaryColor: isDark ? [0, 255, 213] : [0, 137, 122],
         logoUrl: `${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`,
         darkMode: isDark,
+        commissionAmount: commission,
       });
     } catch (e) {
       console.error('Error generando cronograma PDF:', e);

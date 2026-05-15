@@ -25,6 +25,7 @@ interface AmortizationRow {
   date: string;
   capital: number;
   interest: number;
+  commission: number;
   quota: number;
   balance: number;
 }
@@ -64,6 +65,7 @@ interface CronogramaPDFData {
   logoHeight?: number;
   /** Dark mode: renders PDF on black background with light text (gamer-dark). */
   darkMode?: boolean;
+  commissionAmount?: number | null;
 }
 
 /**
@@ -253,8 +255,13 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   y += 6;
 
   // Header de tabla
-  const tableHeaders = ['Cuota', 'Fecha', 'Capital', 'Interés', 'Monto', 'Saldo'];
-  const colWidths = [20, 45, 30, 30, 30, 30];
+  const hasCommission = data.commissionAmount != null && data.commissionAmount > 0;
+  const tableHeaders = hasCommission
+    ? ['Cuota', 'Fecha', 'Capital', 'Interés', 'Comisión', 'Monto', 'Saldo']
+    : ['Cuota', 'Fecha', 'Capital', 'Interés', 'Monto', 'Saldo'];
+  const colWidths = hasCommission
+    ? [18, 40, 27, 27, 27, 27, 27]
+    : [20, 45, 30, 30, 30, 30];
   const headerHeight = 12;
   let x = margin;
 
@@ -329,12 +336,19 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
     doc.text(formatMoney(row.interest), x + 2, y + 3);
     x += colWidths[3];
 
+    // Comisión (condicional)
+    if (hasCommission) {
+      doc.setTextColor(...textMuted);
+      doc.text(formatMoney(row.commission), x + 2, y + 3);
+      x += colWidths[4];
+    }
+
     // Monto (cuota)
     doc.setTextColor(...text);
     doc.setFont('Asap', 'bold');
     doc.text(formatMoney(row.quota), x + 2, y + 3);
     doc.setFont('Asap', 'normal');
-    x += colWidths[4];
+    x += colWidths[hasCommission ? 5 : 4];
 
     // Saldo
     doc.setTextColor(...textMuted);

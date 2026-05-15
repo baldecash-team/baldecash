@@ -219,14 +219,21 @@ export const Cronograma: React.FC<CronogramaProps> = ({
     setIsGeneratingPDF(true);
     try {
       // Generar datos para el PDF
-      const pdfSchedule = amortizationSchedule.map((row, index) => ({
-        month: row.month,
-        date: getPaymentDate(index),
-        capital: row.capital,
-        interest: row.interest,
-        quota: adjustedQuota,
-        balance: row.balance,
-      }));
+      const pdfCommission = commissionAmount != null && commissionAmount > 0 ? Math.floor(commissionAmount) : 0;
+      const pdfSchedule = amortizationSchedule.map((row, index) => {
+        const monto = Math.floor(adjustedQuota);
+        const interest = Math.floor(row.interest);
+        const capital = monto - interest - pdfCommission;
+        return {
+          month: row.month,
+          date: getPaymentDate(index),
+          capital,
+          interest,
+          commission: pdfCommission,
+          quota: monto,
+          balance: row.balance,
+        };
+      });
 
       await generateCronogramaPDF({
         productName,
@@ -242,6 +249,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
         // Cuota inicial (si aplica)
         initialAmount: selectedInitialPercent > 0 ? initialAmount : undefined,
         initialPercent: selectedInitialPercent > 0 ? selectedInitialPercent : undefined,
+        commissionAmount: commissionAmount,
       });
 
       setShowToast(true);
@@ -713,15 +721,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
                     <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-[var(--color-primary)]" />
-                      Comisiones y Seguros
+                      Seguros
                     </h4>
                     <div className="space-y-2">
-                      <div className="flex justify-between py-2 border-b border-neutral-100">
-                        <span className="text-sm text-neutral-600">Comisión de desembolso</span>
-                        <span className="text-sm font-medium text-neutral-900">
-                          {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
-                        </span>
-                      </div>
                       {showPlatformCommission && commissionAmount != null && commissionAmount > 0 && (
                         <div className="flex justify-between py-2 border-b border-neutral-100">
                           <span className="text-sm text-neutral-600">Comisión de plataformas digitales</span>
@@ -732,12 +734,6 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                         <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
                         <span className="text-sm font-medium text-neutral-900">
                           {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-neutral-100">
-                        <span className="text-sm text-neutral-600">Gastos notariales</span>
-                        <span className="text-sm font-medium text-neutral-900">
-                          {FINANCIAL_DATA.gastoNotarial > 0 ? `S/${FINANCIAL_DATA.gastoNotarial}` : 'Sin costo'}
                         </span>
                       </div>
                     </div>
@@ -871,15 +867,9 @@ export const Cronograma: React.FC<CronogramaProps> = ({
 
                 <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-[var(--color-primary)]" />
-                  Comisiones y Seguros
+                  Seguros
                 </h4>
                 <div className="space-y-2">
-                  <div className="flex justify-between py-2 border-b border-neutral-100">
-                    <span className="text-sm text-neutral-600">Comisión de desembolso</span>
-                    <span className="text-sm font-medium text-neutral-900">
-                      {FINANCIAL_DATA.comisionDesembolso > 0 ? `S/${FINANCIAL_DATA.comisionDesembolso}` : 'Sin costo'}
-                    </span>
-                  </div>
                   {showPlatformCommission && commissionAmount != null && commissionAmount > 0 && (
                     <div className="flex justify-between py-2 border-b border-neutral-100">
                       <span className="text-sm text-neutral-600">Comisión de plataformas digitales</span>
@@ -890,12 +880,6 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     <span className="text-sm text-neutral-600">Seguro multiriesgo</span>
                     <span className="text-sm font-medium text-neutral-900">
                       {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-2 border-b border-neutral-100">
-                    <span className="text-sm text-neutral-600">Gastos notariales</span>
-                    <span className="text-sm font-medium text-neutral-900">
-                      {FINANCIAL_DATA.gastoNotarial > 0 ? `S/${FINANCIAL_DATA.gastoNotarial}` : 'Sin costo'}
                     </span>
                   </div>
                 </div>
