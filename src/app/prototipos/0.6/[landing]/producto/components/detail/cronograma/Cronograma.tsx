@@ -677,7 +677,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
                 >
                   {/* Summary */}
-                  <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-6">
+                  <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-1">
                     {productPrice > 0 && (
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-neutral-600">Precio de lista del equipo</span>
@@ -700,6 +700,13 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                     </div>
                   </div>
 
+                  <div className="flex items-start gap-1.5 mb-4">
+                    <Info className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0 mt-px" />
+                    <p className="text-xs text-neutral-400">
+                      La cuota está compuesta por capital + interés{commissionAmount != null && commissionAmount > 0 ? ' + comisión' : ''}.
+                    </p>
+                  </div>
+
                   {/* Financial Details */}
                   <div className="space-y-4">
                     <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
@@ -717,7 +724,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       </div>
                     </div>
 
-                    <div className="border-t border-neutral-200 my-4" />
+                    {/* <div className="border-t border-neutral-200 my-4" />
 
                     <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-[var(--color-primary)]" />
@@ -736,7 +743,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                           {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
                         </span>
                       </div>
-                    </div>
+                    </div> */}
 
                     <div className="border-t border-neutral-200 my-4" />
 
@@ -823,7 +830,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             </ModalHeader>
             <ModalBody className="p-5 pt-6 overflow-y-auto">
               {/* Summary */}
-              <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-6">
+              <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl p-4 mb-1">
                 {productPrice > 0 && (
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-neutral-600">Precio de lista del equipo</span>
@@ -846,6 +853,13 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                 </div>
               </div>
 
+              <div className="flex items-start gap-1.5 mb-4">
+                <Info className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0 mt-px" />
+                <p className="text-xs text-neutral-400">
+                  La cuota está compuesta por capital + interés{commissionAmount != null && commissionAmount > 0 ? ' + comisión' : ''}.
+                </p>
+              </div>
+
               {/* Financial Details */}
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
@@ -863,7 +877,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                   </div>
                 </div>
 
-                <Divider className="my-4" />
+                {/* <Divider className="my-4" />
 
                 <h4 className="text-sm font-semibold text-neutral-700 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-[var(--color-primary)]" />
@@ -882,7 +896,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
                       {FINANCIAL_DATA.seguroMultiriesgo > 0 ? `S/${FINANCIAL_DATA.seguroMultiriesgo}` : 'No aplica'}
                     </span>
                   </div>
-                </div>
+                </div> */}
 
                 <Divider className="my-4" />
 
