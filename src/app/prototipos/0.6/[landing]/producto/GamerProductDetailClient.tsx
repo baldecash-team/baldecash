@@ -1576,6 +1576,7 @@ function DetailContent() {
           commission={showPlatformCommission ? (lowestOption?.commissionAmount || null) : null}
           productName={product.displayName || product.name}
           productBrand={product.brand}
+          paymentFrequency={data?.paymentFrequencies?.[0]}
           /* TEA/TCEA priority: selected option first (backend may set it per initial%), then plan,
              then null (no amortization). Matches Cronograma normal behavior. */
           tea={lowestOption?.tea ?? activePlan?.tea ?? null}
@@ -2277,6 +2278,7 @@ function CronogramaSection({
   onTrackDownload,
   onTrackModal,
   onTrackExpand,
+  paymentFrequency,
 }: {
   T: Theme;
   isDark: boolean;
@@ -2291,6 +2293,7 @@ function CronogramaSection({
   onTrackDownload?: () => void;
   onTrackModal?: (open: boolean) => void;
   onTrackExpand?: (expanded: boolean) => void;
+  paymentFrequency?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
@@ -2390,7 +2393,7 @@ function CronogramaSection({
         logoUrl: `${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`,
         darkMode: isDark,
         commissionAmount: commission,
-        paymentFrequency: data?.paymentFrequencies?.[0],
+        paymentFrequency,
       });
     } catch (e) {
       console.error('Error generando cronograma PDF:', e);
