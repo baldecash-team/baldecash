@@ -250,6 +250,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
         initialAmount: selectedInitialPercent > 0 ? initialAmount : undefined,
         initialPercent: selectedInitialPercent > 0 ? selectedInitialPercent : undefined,
         commissionAmount: commissionAmount,
+        paymentFrequency,
       });
 
       setShowToast(true);

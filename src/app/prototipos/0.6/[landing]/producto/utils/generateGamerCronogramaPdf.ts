@@ -38,6 +38,7 @@ export interface GamerCronogramaData {
   monthlyQuota: number;
   tea?: number;
   tcea?: number;
+  paymentFrequency?: string;
 }
 
 export function generateGamerCronogramaPdf(data: GamerCronogramaData) {
@@ -45,6 +46,10 @@ export function generateGamerCronogramaPdf(data: GamerCronogramaData) {
   const W = 210;
   const m = 16;
   const cW = W - m * 2;
+
+  const freq = data.paymentFrequency || 'mensual';
+  const freqSuffix = freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
+  const freqUnit = freq === 'semanal' ? 'semanas' : freq === 'quincenal' ? 'quincenas' : 'meses';
 
   // Build amortization rows
   const tasaMensual = 0.049;
@@ -108,7 +113,7 @@ export function generateGamerCronogramaPdf(data: GamerCronogramaData) {
 
   doc.setFontSize(9);
   tc(doc, MUTED);
-  doc.text(`${data.productBrand} \u2022 Precio: S/${data.price.toLocaleString('es-PE')} \u2022 ${data.term} meses \u2022 Cuota: S/${Math.round(data.monthlyQuota)}/mes`, m + 8, y + 19);
+  doc.text(`${data.productBrand} \u2022 Precio: S/${data.price.toLocaleString('es-PE')} \u2022 ${data.term} ${freqUnit} \u2022 Cuota: S/${Math.round(data.monthlyQuota)}${freqSuffix}`, m + 8, y + 19);
 
   y += 34;
 
@@ -236,7 +241,8 @@ export function generateGamerCronogramaPdf(data: GamerCronogramaData) {
 
   // ── Save ──
   const slug = data.productName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
-  doc.save(`cronograma-${slug}-${data.term}meses.pdf`);
+  const freqFileLabel = freq === 'semanal' ? 'sem' : freq === 'quincenal' ? 'qcn' : 'meses';
+  doc.save(`cronograma-${slug}-${data.term}${freqFileLabel}.pdf`);
 }
 
 function drawPageFooter(doc: jsPDF, m: number, W: number) {

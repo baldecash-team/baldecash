@@ -66,6 +66,7 @@ interface CronogramaPDFData {
   /** Dark mode: renders PDF on black background with light text (gamer-dark). */
   darkMode?: boolean;
   commissionAmount?: number | null;
+  paymentFrequency?: string;
 }
 
 /**
@@ -113,6 +114,10 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   const accentBg: readonly [number, number, number] = data.primaryColor ? primaryLight : SUCCESS_BG_DEFAULT;
   // Header button text color (text sobre fondo primary): negro en dark (cyan), blanco en light
   const onPrimary: readonly [number, number, number] = isDark ? [10, 10, 10] : [255, 255, 255];
+
+  const freq = data.paymentFrequency || 'mensual';
+  const freqSuffix = freq === 'semanal' ? '/sem' : freq === 'quincenal' ? '/qcn' : '/mes';
+  const freqUnit = freq === 'semanal' ? 'semanas' : freq === 'quincenal' ? 'quincenas' : 'meses';
 
   // Registrar fuente Asap (misma que usa la web)
   registerAsapFont(doc);
@@ -178,7 +183,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   doc.text('Plazo:', pageWidth / 2, y);
   doc.setTextColor(...text);
   doc.setFont('Asap', 'bold');
-  doc.text(`${data.term} meses`, pageWidth / 2 + 25, y);
+  doc.text(`${data.term} ${freqUnit}`, pageWidth / 2 + 25, y);
   y += 8;
 
   doc.setFont('Asap', 'normal');
@@ -186,7 +191,7 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   doc.text('Cuota:', margin + 5, y);
   doc.setTextColor(...primary);
   doc.setFont('Asap', 'bold');
-  doc.text(`${formatMoney(data.monthlyQuota)}/mes`, margin + 35, y);
+  doc.text(`${formatMoney(data.monthlyQuota)}${freqSuffix}`, margin + 35, y);
 
   // Cuota inicial (si aplica)
   if (data.initialAmount && data.initialPercent) {
@@ -362,7 +367,8 @@ export const generateCronogramaPDF = async (data: CronogramaPDFData): Promise<vo
   addFootersToAllPages(doc, LEGAL_TEXTS.cronograma, qrBase64, { darkMode: isDark });
 
   // Descargar
-  const fileName = `cronograma-${data.productBrand.toLowerCase().replace(/\s+/g, '-')}-${data.term}meses.pdf`;
+  const freqFileLabel = freq === 'semanal' ? 'sem' : freq === 'quincenal' ? 'qcn' : 'meses';
+  const fileName = `cronograma-${data.productBrand.toLowerCase().replace(/\s+/g, '-')}-${data.term}${freqFileLabel}.pdf`;
   doc.save(fileName);
 };
 

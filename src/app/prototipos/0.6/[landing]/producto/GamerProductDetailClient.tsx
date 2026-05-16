@@ -2390,6 +2390,7 @@ function CronogramaSection({
         logoUrl: `${ZONA_GAMER_ASSETS}/branding/logo-ofi.png`,
         darkMode: isDark,
         commissionAmount: commission,
+        paymentFrequency: data?.paymentFrequencies?.[0],
       });
     } catch (e) {
       console.error('Error generando cronograma PDF:', e);
