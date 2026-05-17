@@ -592,7 +592,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     quotaMonthly,
     quotaBiweekly,
     quotaWeekly,
-    originalQuotaMonthly: apiProduct.promotion?.discount_value > 0
+    originalQuotaMonthly: apiProduct.promotion?.discount_value != null && apiProduct.promotion.discount_value > 0
       ? Math.round(hook.monthly_price / (1 - apiProduct.promotion.discount_value / 100))
       : hook.original_monthly_price ?? undefined,
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
