@@ -536,7 +536,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
               {/* Precio anterior + descuento (altura reservada siempre) */}
               <div className="h-5 flex items-center justify-center gap-1.5">
-                {originalQuota && originalQuota > quota ? (
+                {originalQuota && originalQuota > quota && (!product.promotion || product.promotion.discountValue > 0) ? (
                   <>
                     <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
                     {displayDiscount && displayDiscount > 0 && (

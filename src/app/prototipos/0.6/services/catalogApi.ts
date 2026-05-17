@@ -586,11 +586,15 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     deviceType: mapDeviceType(apiProduct.type),
     price: pricing.final_price,
     originalPrice: pricing.list_price > pricing.final_price ? pricing.list_price : undefined,
-    discount: pricing.discount_percent > 0 ? pricing.discount_percent : undefined,
+    discount: apiProduct.promotion != null
+      ? (apiProduct.promotion.discount_value > 0 ? apiProduct.promotion.discount_value : undefined)
+      : pricing.discount_percent > 0 ? pricing.discount_percent : undefined,
     quotaMonthly,
     quotaBiweekly,
     quotaWeekly,
-    originalQuotaMonthly: hook.original_monthly_price ?? undefined,
+    originalQuotaMonthly: apiProduct.promotion?.discount_value > 0
+      ? Math.round(hook.monthly_price / (1 - apiProduct.promotion.discount_value / 100))
+      : hook.original_monthly_price ?? undefined,
     maxTermMonths: Math.max(...pricing.available_terms) as TermMonths,
     paymentFrequency: hook.payment_frequency || undefined,
     paymentFrequencies: pricing.payment_frequencies?.length ? pricing.payment_frequencies : undefined,
