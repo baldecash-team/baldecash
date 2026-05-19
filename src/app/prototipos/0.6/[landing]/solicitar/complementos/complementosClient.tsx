@@ -64,9 +64,10 @@ function ComplementosContent() {
   }, []);
 
   // Submit application hook
-  const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded } = useSubmitApplication({
+  const { submit: submitApplication, isSubmitting, submitMessage, submitStage, submitSucceeded, error: submitError } = useSubmitApplication({
     onToast: showToast,
   });
+  const isProductDisabled = submitError?.includes('ya no están disponibles') ?? false;
 
   // Redirect to /solicitar if no product selected (e.g. direct URL access)
   useEffect(() => {
@@ -334,6 +335,22 @@ function ComplementosContent() {
             {isSubmitting ? (submitMessage || 'Enviando...') : 'Enviar Solicitud'}
           </Button>
         </motion.div>
+
+        {/* Error persistente cuando el producto ya no está disponible */}
+        {isProductDisabled && (
+          <div className="mt-4 flex flex-col items-center gap-2 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-center">
+            <p className="text-sm font-medium text-red-700">
+              El equipo que seleccionaste ya no está disponible.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push(routes.catalogo(landing))}
+              className="text-xs font-semibold text-red-700 underline underline-offset-2 cursor-pointer hover:text-red-900 transition-colors"
+            >
+              Volver al catálogo
+            </button>
+          </div>
+        )}
 
         {/* Optional Note */}
         <p className="text-xs text-neutral-400 text-center mt-4">
