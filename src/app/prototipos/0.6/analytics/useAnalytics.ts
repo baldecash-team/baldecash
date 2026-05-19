@@ -60,7 +60,7 @@ export interface UseAnalyticsReturn {
   // Filtros
   trackFilterToggle: (args: {
     filter_code: FilterCode;
-    value: string | number | boolean;
+    filter_value: string | number | boolean;
     active: boolean;
     section?: string;
   }) => void;
@@ -206,8 +206,8 @@ export function useAnalytics(): UseAnalyticsReturn {
 
   // Filtros
   const trackFilterToggle = useCallback<UseAnalyticsReturn['trackFilterToggle']>(
-    ({ filter_code, value, active, section = 'catalog' }) => {
-      track('filter_toggle', { filter_code, value, active, section });
+    ({ filter_code, filter_value, active, section = 'catalog' }) => {
+      track('filter_toggle', { filter_code, filter_value, active, section });
     },
     [track]
   );

@@ -1743,6 +1743,17 @@ function CatalogoContent() {
                     trigger: 'lo_quiero',
                   });
 
+                  // Track Lo quiero click from catalog card
+                  analytics.track('product_cta_click', {
+                    product_id: cartItem.productId,
+                    product_name: cartItem.name,
+                    brand: cartItem.brand,
+                    months: cartItem.months,
+                    monthly_quota: Math.floor(cartItem.monthlyPayment),
+                    initial_percent: cartItem.initialPercent,
+                    location: 'catalog_card',
+                  });
+
                   if (!ALLOW_MULTI_PRODUCT) {
                     // Single-product mode: go directly to solicitar
                     const target = findProductOrSibling(cartItem.productId) || product;

@@ -81,12 +81,12 @@ export function diffAndEmitFilterChanges(
 
     for (const value of nextArr) {
       if (!prevSet.has(value)) {
-        analytics.trackFilterToggle({ filter_code: code, value, active: true });
+        analytics.trackFilterToggle({ filter_code: code, filter_value: value, active: true });
       }
     }
     for (const value of prevArr) {
       if (!nextSet.has(value)) {
-        analytics.trackFilterToggle({ filter_code: code, value, active: false });
+        analytics.trackFilterToggle({ filter_code: code, filter_value: value, active: false });
       }
     }
   }
@@ -98,7 +98,7 @@ export function diffAndEmitFilterChanges(
     if (before !== after) {
       analytics.trackFilterToggle({
         filter_code: code,
-        value: after === null ? 'any' : String(after),
+        filter_value: after === null ? 'any' : String(after),
         active: after !== null,
       });
     }
@@ -108,7 +108,7 @@ export function diffAndEmitFilterChanges(
   if (prev.minUSBPorts !== next.minUSBPorts) {
     analytics.trackFilterToggle({
       filter_code: 'tags',
-      value: next.minUSBPorts ?? 'any',
+      filter_value: next.minUSBPorts ?? 'any',
       active: next.minUSBPorts !== null,
     });
   }
@@ -131,7 +131,7 @@ export function diffAndEmitFilterChanges(
   if (prev.quotaFrequency !== next.quotaFrequency) {
     analytics.trackFilterToggle({
       filter_code: 'quota_range',
-      value: next.quotaFrequency,
+      filter_value: next.quotaFrequency,
       active: next.quotaFrequency !== 'monthly',
     });
   }
