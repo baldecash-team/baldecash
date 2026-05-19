@@ -6,9 +6,23 @@
  */
 
 import React from 'react';
+import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { MessageCircle, HelpCircle, Home, ArrowRight } from 'lucide-react';
 import { useEventTrackerOptional } from '../../../../context/EventTrackerContext';
+import { sendEventsBatch } from '../../../../../../services/eventsApi';
+
+function getStoredSessionUuid(landing: string): string | null {
+  try {
+    return (
+      localStorage.getItem(`baldecash-${landing}-wizard-session-uuid`) ||
+      localStorage.getItem('baldecash-wizard-session-uuid') ||
+      null
+    );
+  } catch {
+    return null;
+  }
+}
 
 interface ContactInfoProps {
   onGoToHome?: () => void;
@@ -16,6 +30,23 @@ interface ContactInfoProps {
 
 export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
   const tracker = useEventTrackerOptional();
+  const params = useParams();
+  const landing = (params?.landing as string) || 'home';
+
+  const trackCtaClick = (ctaType: string) => {
+    const sessionId = getStoredSessionUuid(landing);
+    if (sessionId) {
+      sendEventsBatch(sessionId, [
+        {
+          event_type: 'confirmation_cta_click',
+          client_ts: Date.now(),
+          page_url: window.location.pathname,
+          properties: { cta_type: ctaType },
+        },
+      ]);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -36,6 +67,7 @@ export const ContactInfo: React.FC<ContactInfoProps> = ({ onGoToHome }) => {
           <button
             onClick={() => {
               tracker?.track('cta_click', { cta_name: 'whatsapp_support', location: 'confirmacion' });
+              trackCtaClick('whatsapp');
               window.open('https://wa.link/osgxjf', '_blank', 'noopener,noreferrer');
             }}
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 min-h-[44px] bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-semibold rounded-xl cursor-pointer transition-colors"

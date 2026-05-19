@@ -9,7 +9,7 @@
  * - Derecha: Pricing sticky + CTA + Certifications
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ShoppingCart, Check, Heart, Package, Gift } from 'lucide-react';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
@@ -111,6 +111,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const params = useParams();
   const landing = params.landing as string || 'home';
   const analytics = useAnalytics();
+
+  // Timestamp when product detail page was loaded — used to compute time_on_detail_ms in cart_add
+  const pageViewTsRef = useRef<number>(Date.now());
+  useEffect(() => { pageViewTsRef.current = Date.now(); }, [product.id]);
 
   // Color siblings: use family siblings if available, otherwise variant colors
   const hasSiblings = product.colorSiblings && product.colorSiblings.length > 1;
@@ -517,6 +521,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                         monthly_payment: pricingSelection?.monthlyQuota,
                         initial_percent: pricingSelection?.initialPercent,
                         source: 'product_detail',
+                        time_on_detail_ms: Date.now() - pageViewTsRef.current,
                       });
                     } else if (configChanged && onUpdateCart && pricingSelection) {
                       onUpdateCart(product.id, {

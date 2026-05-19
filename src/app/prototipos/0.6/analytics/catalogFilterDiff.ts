@@ -132,7 +132,58 @@ export function diffAndEmitFilterChanges(
     analytics.trackFilterToggle({
       filter_code: 'quota_range',
       value: next.quotaFrequency,
-      active: true,
+      active: next.quotaFrequency !== 'monthly',
     });
   }
+}
+
+/**
+ * Builds a serializable summary of active filters for analytics snapshots.
+ * Only includes filters that differ from their empty/default state.
+ */
+export function buildFilterSnapshot(
+  filters: FilterState,
+  defaultQuotaRange: [number, number]
+): { active_filters: Record<string, unknown>; active_count: number } {
+  const active: Record<string, unknown> = {};
+  let count = 0;
+
+  // Arrays
+  for (const [key, code] of Object.entries(ARRAY_FIELD_TO_CODE) as [ArrayFilterKey, FilterCode][]) {
+    const arr = (filters[key] || []) as readonly (string | number)[];
+    if (arr.length > 0) {
+      active[code] = arr;
+      count++;
+    }
+  }
+
+  // Booleans
+  for (const [key, code] of Object.entries(BOOL_FIELD_TO_CODE) as [BoolTriKey, FilterCode][]) {
+    if (filters[key] !== null) {
+      active[`${code}_${key}`] = filters[key];
+      count++;
+    }
+  }
+
+  // minUSBPorts
+  if (filters.minUSBPorts !== null) {
+    active['min_usb_ports'] = filters.minUSBPorts;
+    count++;
+  }
+
+  // quotaRange
+  const [defMin, defMax] = defaultQuotaRange;
+  const [curMin, curMax] = filters.quotaRange;
+  if (curMin > defMin || curMax < defMax) {
+    active['quota_range'] = [curMin, curMax];
+    count++;
+  }
+
+  // quotaFrequency
+  if (filters.quotaFrequency !== 'monthly') {
+    active['quota_frequency'] = filters.quotaFrequency;
+    count++;
+  }
+
+  return { active_filters: active, active_count: count };
 }

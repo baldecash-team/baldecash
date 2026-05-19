@@ -47,6 +47,7 @@ export type EventType =
   | 'filter_clear_all'
   | 'filter_range_change'
   | 'filter_section_toggle'
+  | 'filter_snapshot'
   | 'sort_change'
   | 'catalog_load_more'
   | 'search_focus'
@@ -126,6 +127,7 @@ export type EventType =
   | 'file_removed'
   | 'file_upload_error'
   | 'complementos_back'
+  | 'cart_state'
   // Phase 8: Home / Landing sections
   | 'hero_cta_click'
   | 'section_cta_click'
@@ -150,7 +152,10 @@ export type EventType =
   | 'dni_retry'
   | 'dni_skip'
   | 'vip_start_click'
-  | 'error';
+  | 'error'
+  // Phase 11: Confirmation page
+  | 'application_submitted'
+  | 'confirmation_cta_click';
 
 /** Properties that are BLOCKED for privacy reasons */
 const BLOCKED_PROPERTIES = new Set([

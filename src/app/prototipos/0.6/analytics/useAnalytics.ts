@@ -73,6 +73,12 @@ export interface UseAnalyticsReturn {
   trackFilterClearSingle: (args: { filter_code: FilterCode; value?: string | number }) => void;
   trackFilterClearAll: (args?: { source?: string }) => void;
   trackFilterSectionToggle: (args: { filter_code: FilterCode; expanded: boolean }) => void;
+  trackFilterSnapshot: (args: {
+    active_filters: Record<string, unknown>;
+    active_count: number;
+    results_shown: number;
+    trigger: 'lo_quiero' | 'page_exit';
+  }) => void;
 
   // Sort + paginado + vista
   trackSortChange: (args: { from: string; to: string }) => void;
@@ -164,6 +170,17 @@ export interface UseAnalyticsReturn {
     total_monthly?: number | null;
   }) => void;
 
+  trackCartState: (args: {
+    page: string;
+    products_count: number;
+    product_ids: string[];
+    has_accessories: boolean;
+    accessories_count: number;
+    has_insurance: boolean;
+    insurance_count: number;
+    total_monthly_payment: number | null;
+  }) => void;
+
   // Landing / Home
   trackHeroCtaClick: (args: { landing_slug: string; cta_id?: string | null; variant?: string | null }) => void;
   trackSectionCtaClick: (args: { section_name: string; cta_id?: string | null; href?: string | null }) => void;
@@ -227,6 +244,14 @@ export function useAnalytics(): UseAnalyticsReturn {
       track('filter_section_toggle', { filter_code, expanded });
     },
     [track]
+  );
+
+  const trackFilterSnapshot = useCallback<UseAnalyticsReturn['trackFilterSnapshot']>(
+    (args) => {
+      if (!tracker) return;
+      tracker.track('filter_snapshot', { landing, ...args });
+    },
+    [tracker, landing]
   );
 
   // Sort + paginado (debounce: NextUI Select dispara onSelectionChange dos veces)
@@ -588,6 +613,13 @@ export function useAnalytics(): UseAnalyticsReturn {
     [track]
   );
 
+  const trackCartState = useCallback<UseAnalyticsReturn['trackCartState']>(
+    (args) => {
+      track('cart_state', { ...args });
+    },
+    [track]
+  );
+
   // ============================================================================
   // Landing / Home sections
   // ============================================================================
@@ -628,6 +660,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackFilterClearSingle,
       trackFilterClearAll,
       trackFilterSectionToggle,
+      trackFilterSnapshot,
       // Sort / paginado / vista
       trackSortChange,
       trackLoadMore,
@@ -686,6 +719,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackInsuranceViewTerms,
       trackSummaryEditClick,
       trackSummarySubmit,
+      trackCartState,
       // Landing / Home
       trackHeroCtaClick,
       trackSectionCtaClick,
@@ -698,6 +732,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackFilterClearSingle,
       trackFilterClearAll,
       trackFilterSectionToggle,
+      trackFilterSnapshot,
       trackSortChange,
       trackLoadMore,
       trackViewModeChange,
@@ -749,6 +784,7 @@ export function useAnalytics(): UseAnalyticsReturn {
       trackInsuranceViewTerms,
       trackSummaryEditClick,
       trackSummarySubmit,
+      trackCartState,
       trackHeroCtaClick,
       trackSectionCtaClick,
       trackPromoCardClick,

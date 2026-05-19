@@ -92,7 +92,7 @@ import {
 import { useCatalogSharedState } from './hooks/useCatalogSharedState';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { useAnalytics, type FilterCode } from '@/app/prototipos/0.6/analytics/useAnalytics';
-import { diffAndEmitFilterChanges } from '@/app/prototipos/0.6/analytics/catalogFilterDiff';
+import { diffAndEmitFilterChanges, buildFilterSnapshot } from '@/app/prototipos/0.6/analytics/catalogFilterDiff';
 
 
 // API Hooks for loading products and filters
@@ -1735,6 +1735,14 @@ function CatalogoContent() {
                 hideColors
                 needsPromoSpacer={promoSpacerFlags[index]}
                 onAddToCart={(cartItem: CartItem) => {
+                  // Fire filter snapshot before the user leaves or opens the modal
+                  const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);
+                  analytics.trackFilterSnapshot({
+                    ...snap,
+                    results_shown: totalProducts,
+                    trigger: 'lo_quiero',
+                  });
+
                   if (!ALLOW_MULTI_PRODUCT) {
                     // Single-product mode: go directly to solicitar
                     const target = findProductOrSibling(cartItem.productId) || product;

@@ -285,6 +285,7 @@ export function useCatalogSharedState(landingSlug: string, previewKey?: string |
       months: item.months,
       monthly_payment: item.monthlyPayment,
       initial_percent: item.initialPercent,
+      source: 'product_catalog',
     });
   }, [tracker]);
 

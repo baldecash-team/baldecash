@@ -23,8 +23,26 @@ import { GamerNewsletter } from '@/app/prototipos/0.6/components/zona-gamer/Game
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getApplicationStatus } from '../../../services/applicationApi';
+import { sendEventsBatch } from '../../../services/eventsApi';
 import { ReceivedScreen } from './components/received';
 import type { ReceivedData } from './types/received';
+
+/**
+ * Reads the wizard session UUID from localStorage.
+ * The key is landing-scoped: `baldecash-{landing}-wizard-session-uuid`.
+ * Falls back to a plain `baldecash-wizard-session-uuid` key for safety.
+ */
+function getStoredSessionUuid(landing: string): string | null {
+  try {
+    return (
+      localStorage.getItem(`baldecash-${landing}-wizard-session-uuid`) ||
+      localStorage.getItem('baldecash-wizard-session-uuid') ||
+      null
+    );
+  } catch {
+    return null;
+  }
+}
 
 // Types
 interface ApplicationStatusData {
@@ -344,6 +362,30 @@ function ConfirmacionContent() {
         if (cancelled) return;
         if (data) {
           setApplicationData(data);
+
+          // Fire-and-forget: track application_submitted
+          const sessionId = getStoredSessionUuid(landing);
+          if (sessionId) {
+            sendEventsBatch(sessionId, [
+              {
+                event_type: 'application_submitted',
+                client_ts: Date.now(),
+                page_url: window.location.pathname,
+                properties: {
+                  application_code: data.code,
+                  status: data.status,
+                  products_count: data.products?.length ?? 0,
+                  has_accessories: (data.accessories?.length ?? 0) > 0,
+                  accessories_count: data.accessories?.length ?? 0,
+                  has_insurance:
+                    !!data.insurance || (data.insurances?.length ?? 0) > 0,
+                  term_months: data.term_months ?? null,
+                  payment_frequency: data.payment_frequency ?? null,
+                  total_monthly_payment: data.total_monthly_payment ?? null,
+                },
+              },
+            ]);
+          }
         }
       })
       .catch((err) => {
@@ -359,10 +401,32 @@ function ConfirmacionContent() {
 
   // Navigation handlers
   const handleSelectResult = (path: string) => {
+    const sessionId = getStoredSessionUuid(landing);
+    if (sessionId) {
+      sendEventsBatch(sessionId, [
+        {
+          event_type: 'confirmation_cta_click',
+          client_ts: Date.now(),
+          page_url: window.location.pathname,
+          properties: { cta_type: 'demo_result', path },
+        },
+      ]);
+    }
     router.push(path);
   };
 
   const handleGoHome = () => {
+    const sessionId = getStoredSessionUuid(landing);
+    if (sessionId) {
+      sendEventsBatch(sessionId, [
+        {
+          event_type: 'confirmation_cta_click',
+          client_ts: Date.now(),
+          page_url: window.location.pathname,
+          properties: { cta_type: 'go_home' },
+        },
+      ]);
+    }
     router.push(routes.landingHome(landing));
   };
 

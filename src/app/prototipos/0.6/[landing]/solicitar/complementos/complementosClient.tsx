@@ -31,6 +31,7 @@ import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useSubmitApplication } from '../hooks/useSubmitApplication';
 import { useEventTrackerOptional } from '../context/EventTrackerContext';
+import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { SectionRenderer } from '../components/solicitar/sections';
 import { SubmitOverlay } from '../components/solicitar/submit/SubmitOverlay';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
@@ -40,6 +41,7 @@ function ComplementosContent() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const tracker = useEventTrackerOptional();
+  const analytics = useAnalytics();
 
   // Scroll to top on page load
   useScrollToTop();
@@ -76,6 +78,23 @@ function ComplementosContent() {
       router.replace(routes.solicitar(landing));
     }
   }, [isProductHydrated, selectedProduct, cartProducts.length, landing, router, submitSucceeded]);
+
+  // Fire cart_state once after hydration to capture the cart snapshot on page entry
+  useEffect(() => {
+    if (!isProductHydrated) return;
+    const allProducts = getAllProducts();
+    analytics.trackCartState({
+      page: 'complementos',
+      products_count: allProducts.length,
+      product_ids: allProducts.map(p => p.id),
+      has_accessories: selectedAccessories.length > 0,
+      accessories_count: selectedAccessories.length,
+      has_insurance: selectedInsurances.length > 0,
+      insurance_count: selectedInsurances.length,
+      total_monthly_payment: getTotalMonthlyPayment?.() ?? null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isProductHydrated]); // fire once after hydration
 
   // Get layout data from context
   const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
