@@ -144,6 +144,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         ? { ...heroData.heroContent.primaryCta, text: preview.ctaText, href: preview.ctaUrl || heroData.heroContent.primaryCta.href }
         : heroData.heroContent.primaryCta,
       backgroundImage: preview.backgroundUrl || heroData.heroContent.backgroundImage,
+      backgroundMobileImage: heroData.heroContent.backgroundMobileImage,
       minQuota: preview.minQuota ?? heroData.heroContent.minQuota,
       badgeText: preview.badgeText || heroData.heroContent.badgeText,
       trustSignals: preview.trustSignals
@@ -288,7 +289,9 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   }, [isLoading, heroData]);
 
   // VIP Countdown overlay - driven by landing config preset (features.vip_countdown)
-  const isVipLanding = !!landingConfig.features.vip_countdown;
+  // Skip entirely when admin preview is active for this slug
+  const isAdminPreview = preview.isPreviewingLanding(slug);
+  const isVipLanding = !!landingConfig.features.vip_countdown && !isAdminPreview;
   const hasWhitelist = landingConfig.features.has_dni_whitelist;
   const [countdownActive, setCountdownActive] = useState(isVipLanding);
   const [vipExpired, setVipExpired] = useState(() => {

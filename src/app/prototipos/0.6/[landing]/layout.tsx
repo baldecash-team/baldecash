@@ -21,6 +21,7 @@ import { useSessionOptional } from './solicitar/context/SessionContext';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
 import { routes } from '../utils/routes';
+import { usePreview } from '../context/PreviewContext';
 
 /**
  * Persists ?keepData=true from URL to sessionStorage.
@@ -649,6 +650,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   const router = useRouter();
   const pathname = usePathname();
   const session = useSessionOptional();
+  const preview = usePreview();
   const isPublicPage = pathname.includes('/legal/') || pathname.includes('/proximamente');
   const [status, setStatus] = useState<'loading' | 'allowed' | 'blocked' | 'redirecting'>('loading');
   const [captureMode, setCaptureMode] = useState<'modal' | 'inline'>('modal');
@@ -767,8 +769,8 @@ function VipGate({ landing, children }: { landing: string; children: React.React
     window.location.reload();
   }, []);
 
-  // Public pages (legal, próximamente) are always accessible — skip the gate
-  if (isPublicPage) return <>{children}</>;
+  // Public pages (legal, próximamente) and admin preview are always accessible — skip the gate
+  if (isPublicPage || preview.isPreviewingLanding(landing)) return <>{children}</>;
 
   // Block render while checking access or redirecting
   if (status === 'loading' || status === 'redirecting') return null;
