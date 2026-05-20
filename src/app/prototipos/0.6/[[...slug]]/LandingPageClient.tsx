@@ -144,7 +144,6 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         ? { ...heroData.heroContent.primaryCta, text: preview.ctaText, href: preview.ctaUrl || heroData.heroContent.primaryCta.href }
         : heroData.heroContent.primaryCta,
       backgroundImage: preview.backgroundUrl || heroData.heroContent.backgroundImage,
-      backgroundMobileImage: heroData.heroContent.backgroundMobileImage,
       minQuota: preview.minQuota ?? heroData.heroContent.minQuota,
       badgeText: preview.badgeText || heroData.heroContent.badgeText,
       trustSignals: preview.trustSignals
