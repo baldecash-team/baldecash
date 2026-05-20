@@ -302,6 +302,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   minQuota={heroContent.minQuota}
                   quotaSuffix={heroContent.quotaSuffix}
                   imageSrc={heroContent.backgroundImage}
+                  mobileImageSrc={heroContent.backgroundMobileImage}
                   imagePositionX={heroContent.backgroundPositionX}
                   imagePositionY={heroContent.backgroundPositionY}
                   imageZoom={heroContent.backgroundZoom}

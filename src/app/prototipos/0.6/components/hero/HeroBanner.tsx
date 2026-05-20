@@ -21,6 +21,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   minQuota,
   quotaSuffix = '/mes',
   imageSrc,
+  mobileImageSrc,
   imagePositionX = 50,
   imagePositionY = 50,
   imageZoom = 1.0,
@@ -150,23 +151,45 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         height: 'max(520px, calc(100vh - var(--header-total-height, 6.5rem)))',
       }}
     >
-      {/* Background Image - next/image with priority for LCP optimization */}
-      {imageSrc && <Image
-        src={imageSrc}
-        alt="Estudiantes trabajando"
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover"
-        style={{
-          objectPosition: `${posX}% ${posY}%`,
-          transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
-        }}
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.style.opacity = '0';
-        }}
-      />}
+      {/* Background Image */}
+      {imageSrc && (
+        mobileImageSrc ? (
+          // Two distinct URLs: use <picture> so the browser picks the right source per viewport
+          <picture>
+            <source media="(max-width: 639px)" srcSet={mobileImageSrc} />
+            <source media="(min-width: 640px)" srcSet={imageSrc} />
+            <img
+              src={imageSrc}
+              alt="Estudiantes trabajando"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{
+                objectPosition: `${posX}% ${posY}%`,
+                transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
+              }}
+              fetchPriority="high"
+              onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+            />
+          </picture>
+        ) : (
+          // Single URL: keep next/image for LCP optimization
+          <Image
+            src={imageSrc}
+            alt="Estudiantes trabajando"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+            style={{
+              objectPosition: `${posX}% ${posY}%`,
+              transform: zoomVal !== 1 ? `scale(${zoomVal})` : undefined,
+            }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.opacity = '0';
+            }}
+          />
+        )
+      )}
 
       {/* Overlay — stronger gradient on mobile where text overlaps the image center */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/20 sm:to-transparent" />

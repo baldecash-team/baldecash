@@ -98,7 +98,7 @@ interface LandingResponse {
   hero_cta_text?: string;
   hero_cta_url?: string;
   hero_cta_url_params?: string;
-  banner_images?: { url: string; alt?: string; position_x?: number; position_y?: number; zoom?: number; mobile_position_x?: number; mobile_position_y?: number; mobile_zoom?: number }[];
+  banner_images?: { url: string; mobile_url?: string; alt?: string; position_x?: number; position_y?: number; zoom?: number; mobile_position_x?: number; mobile_position_y?: number; mobile_zoom?: number }[];
   logo_url: string;
   primary_color: string;
   secondary_color: string;
@@ -582,12 +582,13 @@ export function transformLandingData(data: LandingHeroResponse): {
     const bannerImages = data.landing.banner_images || [];
     const firstBanner = bannerImages.length > 0 ? bannerImages[0] : null;
     const backgroundImage = firstBanner?.url;
+    const backgroundMobileImage = firstBanner?.mobile_url || undefined;
     const backgroundPositionX = firstBanner?.position_x ?? 50;
     const backgroundPositionY = firstBanner?.position_y ?? 50;
     const backgroundZoom = firstBanner?.zoom ?? 1.0;
-    const mobilePositionX = firstBanner?.mobile_position_x ?? 50;
-    const mobilePositionY = firstBanner?.mobile_position_y ?? 50;
-    const mobileZoom = firstBanner?.mobile_zoom ?? 1.0;
+    const mobilePositionX = firstBanner?.mobile_position_x;
+    const mobilePositionY = firstBanner?.mobile_position_y;
+    const mobileZoom = firstBanner?.mobile_zoom;
 
     // Combinar hero_cta_url + hero_cta_url_params si existen
     const heroBaseUrl = data.landing.hero_cta_url || ctaPrimary?.href || '#';
@@ -611,6 +612,7 @@ export function transformLandingData(data: LandingHeroResponse): {
         is_visible: signal.is_visible,
       })),
       backgroundImage,
+      backgroundMobileImage,
       backgroundPositionX,
       backgroundPositionY,
       backgroundZoom,

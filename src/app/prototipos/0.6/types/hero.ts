@@ -83,6 +83,7 @@ export interface HeroContent {
   quotaSuffix?: string;
   trustSignals: TrustSignal[];
   backgroundImage?: string;
+  backgroundMobileImage?: string;
   backgroundPositionX?: number;
   backgroundPositionY?: number;
   backgroundZoom?: number;
@@ -108,6 +109,7 @@ export interface HeroBannerProps {
   minQuota: number;
   quotaSuffix?: string;
   imageSrc?: string;
+  mobileImageSrc?: string;
   imagePositionX?: number;
   imagePositionY?: number;
   imageZoom?: number;
