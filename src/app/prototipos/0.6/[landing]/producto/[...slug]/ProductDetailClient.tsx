@@ -220,20 +220,22 @@ function ProductDetailContent() {
     return { deviceType, cronogramaVersion };
   });
 
-  // Read pricing defaults from URL params (passed from catalog card)
+  // Read pricing defaults from URL params
   const defaultTerm = (() => {
-    const termParam = searchParams.get('term');
-    if (!termParam) return undefined;
-    const parsed = parseInt(termParam);
+    const raw = searchParams.get('term');
+    if (!raw) return undefined;
+    const parsed = parseInt(raw);
     return isNaN(parsed) ? undefined : parsed;
   })();
 
   const defaultInitialPercent = (() => {
-    const initialParam = searchParams.get('initial');
-    if (!initialParam) return undefined;
-    const parsed = parseInt(initialParam);
+    const raw = searchParams.get('initial');
+    if (!raw) return undefined;
+    const parsed = parseInt(raw);
     return isNaN(parsed) ? undefined : parsed;
   })();
+
+  const defaultFrequency = searchParams.get('frecuency') ?? undefined;
 
   // Fetch product data from API (NO fallback to mock data)
   useEffect(() => {
@@ -380,6 +382,7 @@ function ProductDetailContent() {
           isAvailable={isAvailable}
           defaultTerm={defaultTerm ?? apiData.defaultTerm}
           defaultInitialPercent={defaultInitialPercent ?? apiData.defaultInitial}
+          defaultFrequency={defaultFrequency}
           paymentFrequencies={apiData.paymentFrequencies}
           showPlatformCommission={landingConfig.features.show_platform_commission}
           onAddToCart={isAvailable && ALLOW_MULTI_PRODUCT ? handleAddToCart : undefined}

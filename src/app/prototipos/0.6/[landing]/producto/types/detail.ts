@@ -324,6 +324,7 @@ export interface PricingCalculatorProps {
   paymentPlans: PaymentPlan[];
   defaultTerm?: number;
   defaultInitialPercent?: number;
+  defaultFrequency?: string;
   productPrice?: number;
   paymentFrequencies?: string[]; // Available frequencies (e.g. ['quincenal', 'semanal'])
   landing?: string;              // Landing slug — needed to re-fetch plans on frequency change

@@ -1,31 +1,84 @@
 'use client';
 
-/**
- * PricingCalculator - Cards por plazo con animacion (basado en V4)
- * Usa datos de ejemplo (paymentPlans) para mostrar cuotas diferentes por plazo
- */
-
-import { useState, useMemo } from 'react';
-import { PricingCalculatorProps, PaymentPlan } from '../../../types/detail';
+import { useState, useMemo, useEffect } from 'react';
+import { PricingCalculatorProps, PaymentPlan, FrequencyType, InitialPaymentPercentage, frequencyLabels } from '../../../types/detail';
 import { formatMoney } from '../../../../utils/formatMoney';
 
-const INITIAL_PAYMENT_PERCENTAGES = [0, 10, 20, 30];
+const INITIAL_PAYMENT_PERCENTAGES = [0, 10, 20, 30] as InitialPaymentPercentage[];
+const FREQUENCY_ORDER: FrequencyType[] = ['mensual', 'quincenal', 'semanal'];
 
 export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
   paymentPlans,
   defaultTerm = 36,
   productPrice: productPriceProp,
+  defaultFrequency = 'mensual',
+  defaultInitialPercent = 0,
+  onSelectionChange,
 }) => {
-  // Compute product price from prop or derive from first plan
   const productPrice = productPriceProp || (paymentPlans[0]?.monthlyQuota || 0) * (paymentPlans[0]?.term || 24);
-  const [selectedTerm, setSelectedTerm] = useState(defaultTerm);
-  const [initialPayment, setInitialPayment] = useState('0');
+
+  const [frequency, setFrequency] = useState<FrequencyType>(
+    FREQUENCY_ORDER.includes(defaultFrequency) ? defaultFrequency : FREQUENCY_ORDER[0]
+  );
+
+  const [selectedTerm, setSelectedTerm] = useState<number>(() => {
+    const cuotasPerMonth = frequencyLabels[defaultFrequency].cuotasPerMonth;
+    const validTerms = paymentPlans.map((p) => p.term * cuotasPerMonth);
+    return validTerms.includes(defaultTerm) ? defaultTerm : validTerms[0];
+  });
+
+  const [initialPayment, setInitialPayment] = useState<InitialPaymentPercentage>(() => {
+    return INITIAL_PAYMENT_PERCENTAGES.includes(defaultInitialPercent)
+      ? defaultInitialPercent
+      : INITIAL_PAYMENT_PERCENTAGES[0];
+  });
+
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
 
-  // Generate initial payment options in soles
+  // Notify parent when selection changes
+  useEffect(() => {
+    onSelectionChange?.({ frequency, plazo: selectedTerm, inicial: initialPayment });
+  }, [frequency, selectedTerm, initialPayment]);
+
+  // Compute cuota based on frequency (divisor vs monthly)
+  const getQuotaForPlan = (plan: PaymentPlan): { quota: number; originalQuota?: number } => {
+    const divisor = frequencyLabels[frequency].divisor;
+    const baseQuota = Math.ceil(plan.monthlyQuota / divisor * (1 - initialPayment / 100));
+    const originalQuota = plan.originalQuota
+      ? Math.ceil(plan.originalQuota / divisor * (1 - initialPayment / 100))
+      : undefined;
+    return { quota: baseQuota, originalQuota };
+  };
+
+  // Convert plans: number of cuotas changes by frequency
+  const plansForFrequency = useMemo(() => {
+    const cuotasPerMonth = frequencyLabels[frequency].cuotasPerMonth;
+    return paymentPlans.map((p) => ({
+      ...p,
+      displayTerm: p.term * cuotasPerMonth,
+    }));
+  }, [paymentPlans, frequency]);
+
+  // When frequency changes, keep equivalent duration snapping to nearest valid plan
+  const handleFrequencyChange = (newFreq: FrequencyType) => {
+    const oldCuotas = frequencyLabels[frequency].cuotasPerMonth;
+    const newCuotas = frequencyLabels[newFreq].cuotasPerMonth;
+    const months = selectedTerm / oldCuotas;
+    const target = Math.round(months * newCuotas);
+    const validTerms = paymentPlans.map((p) => p.term * newCuotas);
+    const closest = validTerms.reduce((prev, curr) =>
+      Math.abs(curr - target) < Math.abs(prev - target) ? curr : prev
+    );
+    setSelectedTerm(closest);
+    setFrequency(newFreq);
+  };
+
+  const selectedPlanDisplay = plansForFrequency.find((p) => p.displayTerm === selectedTerm);
+  const selectedQuota = selectedPlanDisplay ? getQuotaForPlan(selectedPlanDisplay) : { quota: 0 };
+
   const initialPaymentOptions = useMemo(() => {
     return INITIAL_PAYMENT_PERCENTAGES.map((percent) => ({
-      value: String(percent),
+      value: percent,
       label: percent === 0
         ? 'Sin inicial'
         : `S/${Math.round(productPrice * percent / 100).toLocaleString()}`,
@@ -33,32 +86,38 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
     }));
   }, [productPrice]);
 
-  // Obtener cuota del plan según el plazo
-  const getQuotaForTerm = (term: number): { quota: number; originalQuota?: number } => {
-    const plan = paymentPlans.find(p => p.term === term);
-    if (!plan) return { quota: 0 };
-
-    const initialPercent = parseInt(initialPayment);
-    // Aplicar descuento por cuota inicial
-    const quota = Math.ceil(plan.monthlyQuota * (1 - initialPercent / 100));
-    const originalQuota = plan.originalQuota
-      ? Math.ceil(plan.originalQuota * (1 - initialPercent / 100))
-      : undefined;
-
-    return { quota, originalQuota };
-  };
-
-  // Cuota del plazo seleccionado
-  const selectedPlan = useMemo(() => getQuotaForTerm(selectedTerm), [selectedTerm, initialPayment, paymentPlans]);
+  const frequencyLabel = frequencyLabels[frequency];
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-white rounded-2xl shadow-lg">
       <h3 className="text-xl font-semibold text-neutral-800 mb-2">
-        Calcula tu cuota mensual
+        Calcula tu cuota
       </h3>
       <p className="text-sm text-neutral-500 mb-6">
-        Selecciona el plazo que mejor se ajuste a tu presupuesto
+        Elige frecuencia, plazo e inicial que se ajusten a tu presupuesto
       </p>
+
+      {/* Frequency Selector */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-neutral-700 mb-3">
+          Frecuencia de pago
+        </label>
+        <div className="flex gap-2">
+          {FREQUENCY_ORDER.map((freq) => (
+            <button
+              key={freq}
+              onClick={() => handleFrequencyChange(freq)}
+              className={`flex-1 py-2.5 px-4 text-sm font-medium rounded-xl transition-all cursor-pointer ${
+                frequency === freq
+                  ? 'bg-[#4654CD] text-white shadow-md'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+              }`}
+            >
+              {frequencyLabels[freq].name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Initial Payment Selection */}
       <div className="mb-6">
@@ -84,16 +143,16 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
 
       {/* Term Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {paymentPlans.map((plan) => {
-          const { quota, originalQuota: originalQuotaForTerm } = getQuotaForTerm(plan.term);
-          const isSelected = selectedTerm === plan.term;
-          const isHovered = hoveredTerm === plan.term;
+        {plansForFrequency.map((plan) => {
+          const { quota, originalQuota: originalQuotaForTerm } = getQuotaForPlan(plan);
+          const isSelected = selectedTerm === plan.displayTerm;
+          const isHovered = hoveredTerm === plan.displayTerm;
 
           return (
             <div
-              key={plan.term}
-              onClick={() => setSelectedTerm(plan.term)}
-              onMouseEnter={() => setHoveredTerm(plan.term)}
+              key={plan.displayTerm}
+              onClick={() => setSelectedTerm(plan.displayTerm)}
+              onMouseEnter={() => setHoveredTerm(plan.displayTerm)}
               onMouseLeave={() => setHoveredTerm(null)}
               className={`
                 relative p-4 rounded-xl cursor-pointer transition-all duration-300
@@ -117,7 +176,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                     isSelected ? 'text-white/80' : 'text-neutral-500'
                   }`}
                 >
-                  {plan.term} meses
+                  {plan.displayTerm} {frequency === 'mensual' ? 'meses' : frequency === 'quincenal' ? 'quincenas' : 'semanas'}
                 </p>
 
                 {originalQuotaForTerm && (
@@ -143,7 +202,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
                     isSelected ? 'text-white/80' : 'text-neutral-500'
                   }`}
                 >
-                  al mes
+                  c/u
                 </p>
               </div>
             </div>
@@ -155,16 +214,17 @@ export const PricingCalculator: React.FC<PricingCalculatorProps> = ({
       <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
         <div className="text-center">
           <p className="text-sm text-neutral-600 mb-2">Pagarías</p>
-          {selectedPlan.originalQuota && (
+          {selectedQuota.originalQuota && (
             <p className="line-through text-neutral-400 text-xl mb-1">
-              S/{formatMoney(selectedPlan.originalQuota)}/mes
+              S/{formatMoney(selectedQuota.originalQuota)}/{frequencyLabel.name.toLowerCase()}
             </p>
           )}
           <p className="text-4xl font-bold text-[#4654CD]">
-            S/{formatMoney(selectedPlan.quota)}/mes
+            S/{formatMoney(selectedQuota.quota)}/{frequencyLabel.name.toLowerCase()}
           </p>
           <p className="text-sm text-neutral-500 mt-2">
-            durante {selectedTerm} meses
+            durante {selectedTerm}{' '}
+            {frequency === 'mensual' ? 'meses' : frequency === 'quincenal' ? 'quincenas' : 'semanas'}
           </p>
         </div>
       </div>

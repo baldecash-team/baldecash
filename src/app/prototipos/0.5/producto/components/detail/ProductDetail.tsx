@@ -1,19 +1,10 @@
 'use client';
 
-/**
- * ProductDetail - Wrapper component v0.5
- * Supports multiple device types: laptop, tablet, celular
- *
- * Layout: 2 columnas
- * - Izquierda: Card unificada (Gallery + Brand + Rating + Nombre + ColorSelector)
- * - Derecha: Pricing sticky + CTA + Certifications
- */
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShoppingCart, Check } from 'lucide-react';
 import { useProduct } from '@/app/prototipos/0.5/wizard-solicitud/context/ProductContext';
-import { DeviceType, CronogramaVersion } from '../../types/detail';
+import { DeviceType, CronogramaVersion, FrequencyType, InitialPaymentPercentage } from '../../types/detail';
 import {
   getProductByDeviceType,
   getSimilarProductsByDeviceType,
@@ -41,6 +32,9 @@ interface ProductDetailProps {
   isInCart?: boolean;
 }
 
+const VALID_FREQUENCIES: FrequencyType[] = ['mensual', 'quincenal', 'semanal'];
+const VALID_INITIALS: InitialPaymentPercentage[] = [0, 10, 20, 30];
+
 export const ProductDetail: React.FC<ProductDetailProps> = ({
   deviceType = 'laptop',
   cronogramaVersion = 1,
@@ -51,6 +45,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   const searchParams = useSearchParams();
   const isCleanMode = searchParams.get('mode') === 'clean';
   const { setSelectedProduct } = useProduct();
+
+  // Read query params — PricingCalculator hace el fallback al primer valor disponible
+  const initialFrequency = (searchParams.get('frecuency') as FrequencyType | null) ?? undefined;
+  const initialPlazo = (() => { const n = parseInt(searchParams.get('plazo') ?? '', 10); return n > 0 ? n : undefined; })();
+  const initialInicial = (() => { const n = parseInt(searchParams.get('inicial') ?? '', 10); return VALID_INITIALS.includes(n as InitialPaymentPercentage) ? (n as InitialPaymentPercentage) : undefined; })();
+
+  const handlePricingChange = useCallback(
+    ({ frequency, plazo, inicial }: { frequency: FrequencyType; plazo: number; inicial: InitialPaymentPercentage }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('frecuency', frequency);
+      params.set('plazo', String(plazo));
+      params.set('inicial', String(inicial));
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router]
+  );
 
   // Get data based on device type
   const product = getProductByDeviceType(deviceType);
@@ -127,7 +137,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             <div id="section-pricing" className="space-y-4">
               <PricingCalculator
                 paymentPlans={mockPaymentPlans}
-                defaultTerm={36}
+                defaultTerm={initialPlazo}
+                defaultFrequency={initialFrequency}
+                defaultInitialPercent={initialInicial}
+                onSelectionChange={handlePricingChange}
               />
               {/* CTA Buttons */}
               <div className="flex gap-3">

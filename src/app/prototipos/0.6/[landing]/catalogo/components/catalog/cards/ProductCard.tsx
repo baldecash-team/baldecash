@@ -65,7 +65,7 @@ interface ProductCardProps {
   onFavorite?: (item: WishlistItem) => void;
   onViewDetail?: (slug?: string) => void;
   /** Builder opcional del href de detalle — cuando se pasa, el título y el botón "Detalle" se renderizan como <a> para soportar Ctrl/Cmd+click y middle-click */
-  getDetailHref?: (slug?: string) => string;
+  getDetailHref?: (slug?: string, frecuency?: string) => string;
   onMouseEnter?: () => void;
   isFavorite?: boolean;
   isFavoriteCheck?: (productId: string) => boolean;
@@ -428,7 +428,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="relative group/title min-h-[3rem] sm:min-h-[3.5rem] mb-3">
               {getDetailHref ? (
                 <Link
-                  href={getDetailHref(selectedColor?.slug)}
+                  href={getDetailHref(selectedColor?.slug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
                   onClick={() => {
                     if (promoTemplate) {
                       analytics.trackPromoCardClick({ promo_id: String(product.id), title: product.displayName, href: selectedColor?.slug || product.slug });
@@ -568,7 +568,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <Button
                   id={detailButtonId}
                   as={Link}
-                  href={getDetailHref(selectedColor?.slug)}
+                  href={getDetailHref(selectedColor?.slug, selectedFrequency !== 'mensual' ? selectedFrequency : undefined)}
                   size="lg"
                   variant="bordered"
                   className="flex-1 border-[var(--color-primary)] text-[var(--color-primary)] font-bold cursor-pointer hover:bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl"

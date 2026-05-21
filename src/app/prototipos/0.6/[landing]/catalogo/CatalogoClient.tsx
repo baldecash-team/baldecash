@@ -129,12 +129,13 @@ const getWizardUrl = (landing: string) => {
   return routes.solicitar(landing);
 };
 
-const getDetailUrl = (landing: string, productSlug: string, params?: { term?: number; initial?: number }) => {
+const getDetailUrl = (landing: string, productSlug: string, params?: { term?: number; initial?: number; frecuency?: string }) => {
   const base = routes.producto(landing, productSlug);
   if (!params) return base;
   const searchParams = new URLSearchParams();
   if (params.term != null) searchParams.set('term', String(params.term));
   if (params.initial != null) searchParams.set('initial', String(params.initial));
+  if (params.frecuency && params.frecuency !== 'mensual') searchParams.set('frecuency', params.frecuency);
   const qs = searchParams.toString();
   return qs ? `${base}?${qs}` : base;
 };
@@ -1772,7 +1773,7 @@ function CatalogoContent() {
                 }}
                 isFavoriteCheck={(id) => wishlist.includes(id)}
                 isInCartCheck={ALLOW_MULTI_PRODUCT ? (id) => cart.includes(id) : () => false}
-                getDetailHref={(siblingSlug) => getDetailUrl(landing, siblingSlug || product.slug)}
+                getDetailHref={(siblingSlug, frecuency) => getDetailUrl(landing, siblingSlug || product.slug, frecuency ? { frecuency } : undefined)}
                 onViewDetail={(siblingSlug) => {
                   tracker?.track('product_click', {
                     product_id: product.id,

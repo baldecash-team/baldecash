@@ -142,6 +142,14 @@ export interface ProductDetail {
 // Payment Types
 // ============================================
 
+export type FrequencyType = 'mensual' | 'quincenal' | 'semanal';
+
+export const frequencyLabels: Record<FrequencyType, { name: string; divisor: number; cuotasPerMonth: number }> = {
+  mensual:   { name: 'Mensual',   divisor: 1,  cuotasPerMonth: 1  },
+  quincenal: { name: 'Quincenal', divisor: 2,  cuotasPerMonth: 2  },
+  semanal:   { name: 'Semanal',   divisor: 4,  cuotasPerMonth: 4  },
+};
+
 export type InitialPaymentPercentage = 0 | 10 | 20 | 30;
 
 export interface PaymentPlan {
@@ -234,6 +242,9 @@ export interface PricingCalculatorProps {
   paymentPlans: PaymentPlan[];
   defaultTerm?: number;
   productPrice?: number;
+  defaultFrequency?: FrequencyType;
+  defaultInitialPercent?: InitialPaymentPercentage;
+  onSelectionChange?: (params: { frequency: FrequencyType; plazo: number; inicial: InitialPaymentPercentage }) => void;
 }
 
 export interface SimilarProductsProps {

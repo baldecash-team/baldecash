@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { ShoppingCart, Check, Heart, Package, Gift } from 'lucide-react';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
@@ -70,9 +70,10 @@ interface ProductDetailProps {
   cartItems?: string[];
   // Availability flag - when false, disables cart/solicitar actions
   isAvailable?: boolean;
-  // Default pricing from catalog card
+  // Default pricing from catalog card or URL params
   defaultTerm?: number;
   defaultInitialPercent?: number;
+  defaultFrequency?: string;
   // Payment frequencies (e.g. ['quincenal', 'semanal'] for celulares)
   paymentFrequencies?: string[];
   // Landing config flags
@@ -104,11 +105,13 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   isAvailable = true,
   defaultTerm,
   defaultInitialPercent,
+  defaultFrequency,
   paymentFrequencies,
   showPlatformCommission = false,
 }) => {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const landing = params.landing as string || 'home';
   const analytics = useAnalytics();
 
@@ -216,7 +219,27 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       }
       return selection;
     });
-  }, [analytics, product.id]);
+
+    // Sync selection to URL so the page is shareable
+    const params = new URLSearchParams(searchParams.toString());
+    const maxTerm = activePlans.length > 0 ? Math.max(...activePlans.map(p => p.term)) : null;
+    if (maxTerm != null && selection.term !== maxTerm) {
+      params.set('term', String(selection.term));
+    } else {
+      params.delete('term');
+    }
+    if (selection.initialPercent > 0) {
+      params.set('initial', String(selection.initialPercent));
+    } else {
+      params.delete('initial');
+    }
+    if (selection.paymentFrequency && selection.paymentFrequency !== 'mensual') {
+      params.set('frecuency', selection.paymentFrequency);
+    } else {
+      params.delete('frecuency');
+    }
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [analytics, product.id, searchParams, router]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] format — use activePlans so frequency switch is reflected
   const cartPaymentPlans: CartPaymentPlan[] = useMemo(() => {
@@ -477,6 +500,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 paymentPlans={paymentPlans}
                 defaultTerm={defaultTerm}
                 defaultInitialPercent={defaultInitialPercent ?? 0}
+                defaultFrequency={defaultFrequency}
                 productPrice={product.price}
                 paymentFrequencies={paymentFrequencies}
                 landing={landing}

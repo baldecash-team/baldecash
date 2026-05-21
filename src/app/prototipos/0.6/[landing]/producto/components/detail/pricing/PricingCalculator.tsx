@@ -6,7 +6,7 @@
  * Soporta selector de frecuencia (semanal / quincenal / mensual) para celulares.
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { PricingCalculatorProps, PaymentPlan, InitialPaymentOption, InitialPaymentPercentage } from '../../../types/detail';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 import { fetchProductDetail } from '../../../api/productDetailApi';
@@ -66,6 +66,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   paymentPlans: initialPaymentPlans,
   defaultTerm,
   defaultInitialPercent = 0,
+  defaultFrequency: defaultFrequencyProp,
   productPrice: productPriceProp,
   paymentFrequencies,
   landing,
@@ -77,28 +78,36 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   const [paymentPlans, setPaymentPlans] = useState<PaymentPlan[]>(initialPaymentPlans);
   const [isLoadingPlans, setIsLoadingPlans] = useState(false);
 
-  // Determine default frequency from the initial plans' structure or from paymentFrequencies
+  // Determine default frequency: URL param > paymentFrequencies hint > 'mensual'
   const defaultFrequency = useMemo(() => {
+    if (defaultFrequencyProp && (!paymentFrequencies || paymentFrequencies.includes(defaultFrequencyProp))) {
+      return defaultFrequencyProp;
+    }
     if (paymentFrequencies && paymentFrequencies.length > 0) {
       if (paymentFrequencies.includes('quincenal')) return 'quincenal';
       return paymentFrequencies[0];
     }
     return 'mensual';
-  }, [paymentFrequencies]);
+  }, [defaultFrequencyProp, paymentFrequencies]);
 
   const [selectedFrequency, setSelectedFrequency] = useState(defaultFrequency);
 
   const [selectedTerm, setSelectedTerm] = useState(() => {
     if (defaultTerm != null) {
-      const hasDefaultTerm = initialPaymentPlans.some(p => p.term === defaultTerm);
-      if (hasDefaultTerm) return defaultTerm;
+      // Exact match (cuotas nativas)
+      if (initialPaymentPlans.some(p => p.term === defaultTerm)) return defaultTerm;
+      // Fallback: defaultTerm puede venir en meses — buscar por termMonths
+      const byMonths = initialPaymentPlans.find(p => p.termMonths === defaultTerm);
+      if (byMonths) return byMonths.term;
     }
+    // Default: plan más largo disponible
     if (initialPaymentPlans.length > 0) return Math.max(...initialPaymentPlans.map(p => p.term));
     return defaultTerm ?? 36;
   });
   const [selectedInitialPercent, setSelectedInitialPercent] = useState<InitialPaymentPercentage>(defaultInitialPercent as InitialPaymentPercentage);
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
   const isHoverCapable = useHoverCapable();
+  const isMountedRef = useRef(false);
 
   // On mount: if default frequency differs from mensual, fetch correct plans
   useEffect(() => {
@@ -111,8 +120,14 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
         if (result?.paymentPlans && result.paymentPlans.length > 0) {
           setPaymentPlans(result.paymentPlans);
           onPlansChange?.(result.paymentPlans);
-          const maxTerm = Math.max(...result.paymentPlans.map(p => p.term));
-          setSelectedTerm(maxTerm);
+          // Intentar respetar defaultTerm: primero match exacto, luego por termMonths, luego el más largo
+          const plans = result.paymentPlans;
+          const resolved = defaultTerm != null
+            ? (plans.find(p => p.term === defaultTerm)?.term
+              ?? plans.find(p => p.termMonths === defaultTerm)?.term
+              ?? Math.max(...plans.map(p => p.term)))
+            : Math.max(...plans.map(p => p.term));
+          setSelectedTerm(resolved);
         }
       })
       .catch((err) => {
@@ -138,16 +153,28 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
       if (result?.paymentPlans && result.paymentPlans.length > 0) {
         setPaymentPlans(result.paymentPlans);
         onPlansChange?.(result.paymentPlans);
-        // Default to longest term for new frequency
         const maxTerm = Math.max(...result.paymentPlans.map(p => p.term));
         setSelectedTerm(maxTerm);
+        // Notificar directamente — no esperar el useEffect que puede tener timing issues
+        const newOption = result.paymentPlans.find(p => p.term === maxTerm)?.options
+          ?.find(o => o.initialPercent === selectedInitialPercent)
+          ?? result.paymentPlans.find(p => p.term === maxTerm)?.options?.[0];
+        if (newOption && onSelectionChange) {
+          onSelectionChange({
+            term: maxTerm,
+            initialPercent: selectedInitialPercent,
+            monthlyQuota: newOption.monthlyQuota,
+            initialAmount: newOption.initialAmount,
+            paymentFrequency: freq,
+          });
+        }
       }
     } catch (err) {
       console.error('[PricingCalculator] Error fetching plans for frequency', freq, err);
     } finally {
       setIsLoadingPlans(false);
     }
-  }, [selectedFrequency, landing, productSlug, onPlansChange]);
+  }, [selectedFrequency, selectedInitialPercent, landing, productSlug, onPlansChange, onSelectionChange]);
 
   // Obtener opciones de pago inicial del primer plan (son iguales para todos los plazos)
   const initialPaymentOptions = useMemo(() => {
@@ -176,8 +203,12 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
     return getOptionForTerm(selectedTerm);
   }, [selectedTerm, selectedInitialPercent, paymentPlans]);
 
-  // Notify parent of selection changes
+  // Notify parent only when user changes selection (skip initial mount)
   useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
     if (onSelectionChange && selectedOption) {
       onSelectionChange({
         term: selectedTerm,
