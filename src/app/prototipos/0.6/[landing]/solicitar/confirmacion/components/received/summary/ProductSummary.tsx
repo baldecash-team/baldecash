@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Shield, Tag, ShoppingCart, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import { ReceivedData } from '../../../types/received';
+import { displayMonths, periodUnitLabel } from '../../../../../../utils/paymentTerm';
 
 interface ProductSummaryProps {
   data: ReceivedData;
@@ -28,6 +29,15 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
     data.paymentFrequency === 'semanal' ? '/sem'
     : data.paymentFrequency === 'quincenal' ? '/qcn'
     : '/mes';
+
+  // Plazo a mostrar: número real de cuotas (`term`) si está disponible. Para no-mensual
+  // mostramos también la equivalencia en meses calendario para contexto del usuario.
+  const periodCount = data.term ?? data.termMonths;
+  const periodLabel = periodUnitLabel(data.paymentFrequency, periodCount !== 1);
+  const isNonMonthly = data.paymentFrequency && data.paymentFrequency !== 'mensual';
+  const equivalentMonths = isNonMonthly && data.term
+    ? displayMonths(data.term, data.paymentFrequency)
+    : null;
 
   // Calcular subtotal de productos (suma exacta, floor al final)
   const productsSubtotal = data.products.reduce(
@@ -149,7 +159,10 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
                     {formatPrice(product.monthlyQuota)}{freqSuffix}
                   </p>
                   <p className="text-xs text-neutral-500">
-                    {data.termMonths} meses · {product.initialPayment && product.initialPayment > 0
+                    {periodCount} {periodLabel}
+                    {equivalentMonths ? ` (${equivalentMonths} meses)` : ''}
+                    {' · '}
+                    {product.initialPayment && product.initialPayment > 0
                       ? `Inicial ${formatPrice(product.initialPayment)}`
                       : 'Sin inicial'}
                   </p>
@@ -272,7 +285,10 @@ export const ProductSummary: React.FC<ProductSummaryProps> = ({ data }) => {
           </div>
         </div>
         <p className="text-xs text-neutral-500 mt-1 break-words">
-          {data.termMonths} cuotas · {totalInitialPayment > 0
+          {periodCount} cuotas
+          {equivalentMonths ? ` (${equivalentMonths} meses)` : ''}
+          {' · '}
+          {totalInitialPayment > 0
             ? `Inicial ${formatPrice(totalInitialPayment)}`
             : 'Sin inicial'}
         </p>

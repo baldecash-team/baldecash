@@ -122,6 +122,8 @@ import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { captureLandingParams, consumePendingCategoria } from '@/app/prototipos/0.6/utils/landingParams';
+import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
 // URLs - now with landing context
@@ -294,7 +296,22 @@ function CatalogoContent() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const isMobile = useIsMobile();
-  const { setSelectedProduct, setCartProducts: setContextCartProducts, clearCartProducts, clearAccessories } = useProduct();
+  const {
+    setSelectedProduct,
+    setCartProducts: setContextCartProducts,
+    clearCartProducts,
+    clearAccessories,
+    appliedCoupon,
+  } = useProduct();
+
+  // Cupón de campaña (?coupon=) — validación temprana y precios en vitrina
+  const { couponCode, isValidating: isCampaignCouponValidating } = useCampaignCoupon(landing);
+
+  useEffect(() => {
+    captureLandingParams(landing);
+  }, [landing]);
+
+  const campaignCoupon = appliedCoupon?.lockedFromUrl ? appliedCoupon : null;
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
 
@@ -321,8 +338,20 @@ function CatalogoContent() {
   // Blip Chat control
   const blipChat = useBlipChat();
 
-  // Parse URL params once for initial state
-  const initialUrlFilters = useMemo(() => parseFiltersFromParams(searchParams), []);
+  // Parse URL params once for initial state.
+  // Si la URL no trae filtro `device` pero la landing capturó un `categoria`
+  // desde el ad (?categoria=laptops), lo consumimos como filtro por defecto.
+  const initialUrlFilters = useMemo(() => {
+    const parsed = parseFiltersFromParams(searchParams);
+    if (!parsed.deviceTypes || parsed.deviceTypes.length === 0) {
+      const pendingCategoria = consumePendingCategoria(landing);
+      if (pendingCategoria) {
+        parsed.deviceTypes = [pendingCategoria];
+      }
+    }
+    return parsed;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filter and sort state - initialized from URL params
   const [filters, setFilters] = useState<FilterState>(() =>
@@ -625,6 +654,7 @@ function CatalogoContent() {
     enabled: isReadyToFetchProducts,
     previewKey,
     gridColumns,
+    couponCode,
   });
 
 
@@ -1706,6 +1736,8 @@ function CatalogoContent() {
         catalogBanner={catalogBanner}
         vipCountdownDate={vipCountdownDate}
         overlayVariant={overlayVariant}
+        campaignCoupon={campaignCoupon}
+        isCampaignCouponValidating={isCampaignCouponValidating}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
         {searchCorrected && !isProductsLoading && (
@@ -1735,6 +1767,7 @@ function CatalogoContent() {
                 colorSelectorVersion={config.colorSelectorVersion}
                 hideColors
                 needsPromoSpacer={promoSpacerFlags[index]}
+                campaignCoupon={campaignCoupon}
                 onAddToCart={(cartItem: CartItem) => {
                   // Fire filter snapshot before the user leaves or opens the modal
                   const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);

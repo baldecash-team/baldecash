@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import type { CatalogFiltersResponse } from '../../../types/filters';
+import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 
 // ============================================
 // Enums y tipos base
@@ -854,6 +855,9 @@ export interface CatalogLayoutProps {
   vipCountdownDate?: string | null;
   // Overlay variant slug (e.g. 'cade') for showing promo disclaimer
   overlayVariant?: string;
+  /** Cupón de campaña (?coupon=) — banner bajo filtros de uso */
+  campaignCoupon?: AppliedCoupon | null;
+  isCampaignCouponValidating?: boolean;
 }
 
 export interface BrandFilterProps {

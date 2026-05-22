@@ -24,6 +24,7 @@ import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext'
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
 import { getApplicationStatus } from '../../../services/applicationApi';
 import { sendEventsBatch } from '../../../services/eventsApi';
+import { displayMonths } from '../../../utils/paymentTerm';
 import { ReceivedScreen } from './components/received';
 import type { ReceivedData } from './types/received';
 
@@ -78,6 +79,9 @@ interface ApplicationStatusData {
     initial_payment?: number;
   }>;
 
+  /** Número real de cuotas en la frecuencia natural (preferido sobre `term_months`). */
+  term?: number;
+  /** @deprecated Usar `term` + `payment_frequency`. */
   term_months?: number;
   payment_frequency?: string;
 
@@ -155,7 +159,13 @@ function buildReceivedData(
   applicationData: ApplicationStatusData | null,
   searchParams: URLSearchParams
 ): ReceivedData {
-  const termMonths = applicationData?.term_months || 12;
+  // Preferir `term` + `payment_frequency` (convención nueva). Fallback a `term_months`
+  // mientras BE no haga el drop. Para no-mensual `term_months` legacy no representa
+  // el número de cuotas, así que derivamos los meses calendario desde `term`.
+  const paymentFrequency = applicationData?.payment_frequency || undefined;
+  const rawTerm = applicationData?.term;
+  const derivedMonths = rawTerm ? displayMonths(rawTerm, paymentFrequency) : undefined;
+  const termMonths = derivedMonths ?? applicationData?.term_months ?? 12;
   const userName = applicationData?.applicant_name || searchParams.get('name') || 'Usuario';
 
   // Mapear productos desde API (v0.6.1: incluye variant info y initial payment)
@@ -219,8 +229,9 @@ function buildReceivedData(
       : new Date(),
     estimatedResponseHours: 24,
     products,
+    term: rawTerm,
     termMonths,
-    paymentFrequency: applicationData?.payment_frequency || undefined,
+    paymentFrequency,
     // v0.6.1: Initial payment info
     initialPaymentPercent: applicationData?.initial_payment_percent || 0,
     initialPayment: applicationData?.initial_payment || 0,

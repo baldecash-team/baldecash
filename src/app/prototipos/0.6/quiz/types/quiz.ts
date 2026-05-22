@@ -73,7 +73,9 @@ export interface QuizProduct {
   thumbnail: string;
   price: number;
   lowestQuota: number;
-  termMonths: number;       // Plazo en meses (e.g., 24)
+  /** Número real de cuotas en la frecuencia natural (cuando viene del BE). */
+  term?: number;
+  termMonths: number;       // Plazo en meses (derivado para display)
   initialPercent: number;   // Porcentaje de inicial (e.g., 0)
   specs: {
     ram: number | null;

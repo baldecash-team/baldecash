@@ -37,6 +37,8 @@ export interface UseCatalogProductsOptions {
   gridColumns?: number;
   /** Override initial load limit (bypasses default INITIAL_LOAD_LIMIT). Useful for landings that need to fetch all products in one shot. */
   initialLimitOverride?: number;
+  /** Cupón de campaña para precios con descuento en la vitrina */
+  couponCode?: string | null;
 }
 
 export interface UseCatalogProductsResult {
@@ -84,6 +86,7 @@ export function useCatalogProducts({
   previewKey,
   gridColumns,
   initialLimitOverride,
+  couponCode,
 }: UseCatalogProductsOptions): UseCatalogProductsResult {
   // Round limits to fill complete rows
   const baseInitialLimit = initialLimitOverride ?? INITIAL_LOAD_LIMIT;
@@ -108,7 +111,7 @@ export function useCatalogProducts({
 
   // Track filter + sort changes to trigger re-fetch
   // sortBy is included so changing the sort order also triggers a fresh API fetch
-  const filtersKey = JSON.stringify({ f: filters || {}, s: sortBy });
+  const filtersKey = JSON.stringify({ f: filters || {}, s: sortBy, c: couponCode ?? null });
   const lastFiltersKeyRef = useRef<string>(filtersKey);
 
   // AbortController to cancel in-flight requests when filters change
@@ -128,9 +131,13 @@ export function useCatalogProducts({
     setSuggestions([]); // Clear previous suggestions
     setSearchCorrected(null); // Clear previous search correction
 
+    const filtersWithCoupon = couponCode
+      ? { ...filters, coupon_code: couponCode }
+      : filters;
+
     try {
       const result = await fetchCatalogData(landingSlug, {
-        filters,
+        filters: filtersWithCoupon,
         sort_by: sortBy,
         limit: initialLimit,
         offset: 0,
@@ -180,7 +187,7 @@ export function useCatalogProducts({
         setIsLoading(false);
       }
     }
-  }, [landingSlug, filters, sortBy, previewKey, initialLimit]);
+  }, [landingSlug, filters, sortBy, previewKey, initialLimit, couponCode]);
 
   // Load more products
   const loadMore = useCallback(async () => {
@@ -188,9 +195,13 @@ export function useCatalogProducts({
 
     setIsLoadingMore(true);
 
+    const filtersWithCoupon = couponCode
+      ? { ...filters, coupon_code: couponCode }
+      : filters;
+
     try {
       const result = await fetchCatalogData(landingSlug, {
-        filters,
+        filters: filtersWithCoupon,
         sort_by: sortBy,
         limit: loadMoreLimit,
         offset: offset,
@@ -210,7 +221,7 @@ export function useCatalogProducts({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [landingSlug, filters, sortBy, offset, hasMore, isLoadingMore, isFromApi, loadMoreLimit]);
+  }, [landingSlug, filters, sortBy, offset, hasMore, isLoadingMore, isFromApi, loadMoreLimit, couponCode, previewKey]);
 
   // Load products on mount (only if enabled)
   useEffect(() => {

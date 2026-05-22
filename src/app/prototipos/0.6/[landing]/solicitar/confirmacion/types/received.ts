@@ -56,6 +56,16 @@ export interface ReceivedData {
 
   // Productos (múltiples)
   products: ProductItem[];
+  /**
+   * Número real de cuotas en la frecuencia natural (`paymentFrequency`).
+   * Para mensual coincide con `termMonths`; para semanal/quincenal NO.
+   */
+  term?: number;
+  /**
+   * Plazo expresado en meses calendario (derivado para mostrar al usuario).
+   * @deprecated En no-mensual conviene usar `term` + `paymentFrequency` y derivar
+   * meses con `displayMonths()`. Se mantiene por compatibilidad con consumidores legacy.
+   */
   termMonths: number;
   /** Frecuencia de pago del producto principal: 'semanal' | 'quincenal' | 'mensual' */
   paymentFrequency?: string;

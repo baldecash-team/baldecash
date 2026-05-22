@@ -17,6 +17,8 @@ import { useSessionOptional } from './SessionContext';
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { getMaxMonthlyQuota } from '@/app/prototipos/0.6/utils/featureFlags';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { getPendingCoupon, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
+import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 
 // Dynamic storage keys based on landing slug
 const getStorageKey = (landing: string) => `baldecash-${landing}-solicitar-selected-product`;
@@ -79,6 +81,8 @@ export interface AppliedCoupon {
   label: string;
   couponType?: 'fixed' | 'percent_quotas';
   quotasAffected?: number;
+  /** Cupón de URL de campaña (?coupon=) — no se puede quitar ni se limpia al cambiar producto */
+  lockedFromUrl?: boolean;
 }
 
 interface ProductContextValue {
@@ -362,12 +366,15 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
   }, [couponKey]);
 
   const clearCoupon = useCallback(() => {
-    setAppliedCouponState(null);
-    try {
-      localStorage.removeItem(couponKey);
-    } catch {
-      // localStorage not available
-    }
+    setAppliedCouponState((prev) => {
+      if (prev?.lockedFromUrl) return prev;
+      try {
+        localStorage.removeItem(couponKey);
+      } catch {
+        // localStorage not available
+      }
+      return null;
+    });
   }, [couponKey]);
 
   // Track previous product ID to detect changes
@@ -383,13 +390,52 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
     if (
       prevProductIdRef.current !== null &&
       prevProductIdRef.current !== currentProductId &&
-      appliedCoupon
+      appliedCoupon &&
+      !appliedCoupon.lockedFromUrl
     ) {
       clearCoupon();
     }
 
     prevProductIdRef.current = currentProductId;
   }, [selectedProduct?.id, cartProducts, isHydrated, appliedCoupon, clearCoupon]);
+
+  // Auto-aplica cupón pendiente capturado desde ?coupon=... en la URL de la
+  // landing. Se valida apenas hay producto (o carrito) y no hay cupón aplicado.
+  // Falla silenciosamente: si el código es inválido/expirado, solo lo descarta.
+  const autoCouponAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (!isHydrated || autoCouponAttemptedRef.current || appliedCoupon) return;
+
+    const productId = selectedProduct?.id
+      ? parseInt(selectedProduct.id, 10)
+      : cartProducts[0]?.id
+        ? parseInt(cartProducts[0].id, 10)
+        : undefined;
+    if (!productId) return;
+
+    const pendingCode = getPendingCoupon(landingSlug);
+    if (!pendingCode) return;
+
+    autoCouponAttemptedRef.current = true;
+
+    (async () => {
+      const result = await validateCoupon({
+        code: pendingCode,
+        productId,
+        landingId: landingId ?? undefined,
+      });
+
+      if (result.ok) {
+        setAppliedCoupon({
+          ...result.coupon,
+          lockedFromUrl: true,
+        });
+        clearPendingCoupon(landingSlug);
+      } else {
+        autoCouponAttemptedRef.current = false;
+      }
+    })();
+  }, [isHydrated, appliedCoupon, selectedProduct?.id, cartProducts, landingSlug, landingId, setAppliedCoupon]);
 
   // Get all products (cart or single)
   const getAllProducts = useCallback((): SelectedProduct[] => {

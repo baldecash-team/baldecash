@@ -19,6 +19,7 @@ import { NotFoundContent } from '../components/NotFoundContent';
 import { PreviewBanner } from '../components/PreviewBanner';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { captureLandingParams } from '@/app/prototipos/0.6/utils/landingParams';
 import { HomeSkeleton } from './HomeSkeleton';
 import { SessionProvider } from '../[landing]/solicitar/context/SessionContext';
 import { EventTrackerProvider } from '../[landing]/solicitar/context/EventTrackerContext';
@@ -73,6 +74,12 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
 
   // Preview mode from query param (?preview=true)
   const isPreviewParam = searchParams.get('preview') === 'true';
+
+  // Captura params de campaña (categoria, coupon) para aplicarlos en
+  // el catálogo y el wizard de solicitar. Una sola vez por landing.
+  useEffect(() => {
+    captureLandingParams(slug);
+  }, [slug]);
 
   // Preview mode listener - receives live updates from admin
   const { previewData, isPreviewMode } = usePreviewListener();

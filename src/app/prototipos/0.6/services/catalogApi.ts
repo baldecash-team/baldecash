@@ -249,6 +249,8 @@ export interface CatalogFilters {
   is_featured?: boolean;
   // Specs (JSON object)
   specs?: Record<string, unknown>;
+  /** Código de cupón de campaña para precios con descuento en vitrina */
+  coupon_code?: string;
 }
 
 export type SortBy = 'display_order' | 'price_asc' | 'price_desc' | 'featured' | 'newest';
@@ -312,6 +314,10 @@ export async function getCatalogProducts(
     }
 
     if (options.sort_by) params.set('sort_by', options.sort_by);
+
+    if (options.filters?.coupon_code?.trim()) {
+      params.set('coupon_code', options.filters.coupon_code.trim().toUpperCase());
+    }
 
     // Prefer limit/offset over page/page_size
     if (options.limit !== undefined) params.set('limit', String(options.limit));
