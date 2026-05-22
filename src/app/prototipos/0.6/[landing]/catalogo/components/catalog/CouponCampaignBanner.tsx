@@ -83,9 +83,6 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
               <span className="font-mono text-base sm:text-lg font-black tracking-wider text-[var(--color-primary)] bg-white px-3 py-1 rounded-full uppercase shadow-sm">
                 {coupon.code}
               </span>
-              <span className="text-xs sm:text-sm font-bold text-[var(--color-primary)] bg-white/95 px-3 py-1 rounded-full">
-                Aplicado automáticamente ✓
-              </span>
             </div>
 
             {firstQuotaOnly && (
@@ -95,7 +92,7 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
               </p>
             )}
 
-            <p className="text-xs sm:text-sm text-white/75 mt-2">
+            <p className="hidden sm:block text-xs sm:text-sm text-white/75 mt-2">
               🔒 No se puede quitar en esta campaña · Las tarjetas muestran la oferta de 1.ª cuota
             </p>
           </>
