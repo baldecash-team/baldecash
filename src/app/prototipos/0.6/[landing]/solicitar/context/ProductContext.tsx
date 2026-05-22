@@ -83,6 +83,8 @@ export interface AppliedCoupon {
   quotasAffected?: number;
   /** Cupón de URL de campaña (?coupon=) — no se puede quitar ni se limpia al cambiar producto */
   lockedFromUrl?: boolean;
+  /** Nombre del referido (cliente que generó el cupón) — para personalizar el banner */
+  referrerName?: string;
 }
 
 interface ProductContextValue {

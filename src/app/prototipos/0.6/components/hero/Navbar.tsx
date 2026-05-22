@@ -269,24 +269,35 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
     };
   }, [previewBannerOffset, promoBannerHeight]);
 
-  // Logo Only mode: blue background with centered white logo
+  // Logo Only mode: navbar normal con logo no clickeable (usado en cupón de campaña)
   if (logoOnly) {
     return (
       <nav
-        className="fixed top-0 left-0 right-0 z-50 shadow-lg"
-        style={{
-          backgroundColor: 'var(--color-primary, #4654CD)',
-          boxShadow: '0 10px 15px -3px color-mix(in srgb, var(--color-primary, #4654CD) 20%, transparent)',
-        }}
+        className="fixed left-0 right-0 z-50 bg-white shadow-sm"
+        style={{ top: previewBannerOffset }}
       >
-        <div className="flex justify-center py-5">
-          {logoUrl && (
-            <img
-              src={logoUrl}
-              alt="BaldeCash"
-              className={logoClassName || "h-12 object-contain brightness-0 invert"}
-            />
-          )}
+        <div className={fullWidth ? "px-4 lg:px-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3" aria-label="BaldeCash">
+              {logoUrl && (
+                <img
+                  src={logoUrl}
+                  alt="BaldeCash"
+                  className={logoClassName || "h-8 object-contain"}
+                />
+              )}
+              {institutionLogo && (
+                <>
+                  <span className="text-neutral-300 text-lg font-light">×</span>
+                  <img
+                    src={institutionLogo}
+                    alt={institutionName || 'Institución'}
+                    className="h-7 object-contain"
+                  />
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </nav>
     );

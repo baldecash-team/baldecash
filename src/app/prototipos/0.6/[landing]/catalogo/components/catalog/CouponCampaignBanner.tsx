@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Tag, Lock, Info } from 'lucide-react';
+import { Sparkles, Crown, Gift } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 
 interface CouponCampaignBannerProps {
@@ -9,75 +9,99 @@ interface CouponCampaignBannerProps {
   isValidating?: boolean;
 }
 
+/** Devuelve solo el primer nombre, capitalizado. "joseph david" → "Joseph" */
+function formatFirstName(name: string): string {
+  const first = name.trim().split(/\s+/)[0] ?? '';
+  return first.length > 0 ? first[0].toUpperCase() + first.slice(1).toLowerCase() : '';
+}
+
 /**
- * Banner bajo los filtros de uso: indica cupón de campaña activo y restricciones.
+ * Banner de campaña de cupón referido: gradient azul primario con
+ * elementos decorativos flotantes (estilo ReferralHero).
  */
 export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
   coupon,
   isValidating = false,
 }) => {
   const firstQuotaOnly = (coupon.quotasAffected ?? 1) <= 1;
+  const referrerDisplay = coupon.referrerName ? formatFirstName(coupon.referrerName) : null;
 
   return (
-    <div
-      className="mt-4 rounded-xl border-2 border-[rgba(var(--color-primary-rgb),0.25)] bg-[rgba(var(--color-primary-rgb),0.06)] overflow-hidden"
+    <section
+      className="relative overflow-hidden rounded-2xl shadow-md"
+      style={{
+        backgroundImage:
+          'linear-gradient(to bottom right, var(--color-primary), color-mix(in srgb, var(--color-primary) 90%, white), color-mix(in srgb, var(--color-primary) 70%, white))',
+      }}
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3.5">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center shrink-0">
-            <Tag className="w-5 h-5 text-white" aria-hidden />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-neutral-800 flex flex-wrap items-center gap-2">
-              {isValidating ? (
-                'Validando cupón de campaña…'
-              ) : (
-                <>
-                  <span>Cupón</span>
-                  <span className="font-mono tracking-wide text-[var(--color-primary)] uppercase">
-                    {coupon.code}
-                  </span>
-                  <span className="text-xs font-semibold text-white bg-[var(--color-primary)] px-2 py-0.5 rounded-full">
-                    Aplicado automáticamente
-                  </span>
-                </>
-              )}
-            </p>
-            {!isValidating && (
-              <p className="text-xs text-neutral-600 mt-1 leading-relaxed">
-                {coupon.label}
-                {firstQuotaOnly && (
-                  <span className="block mt-0.5 text-neutral-500">
-                    El descuento aplica solo en tu <strong className="text-neutral-700">primera cuota</strong>.
-                    Las siguientes cuotas mantienen el precio de lista.
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
-        </div>
+      <style>{`
+        @keyframes coupon-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .coupon-banner-float { animation: coupon-float 3s ease-in-out infinite; }
+        .coupon-banner-float-slow { animation: coupon-float 4.5s ease-in-out infinite; }
+      `}</style>
 
-        {!isValidating && (
-          <div className="flex items-center gap-2 shrink-0 sm:pl-2 sm:border-l sm:border-[rgba(var(--color-primary-rgb),0.15)]">
-            <Lock className="w-4 h-4 text-neutral-400" aria-hidden />
-            <span className="text-xs font-medium text-neutral-500">
-              No se puede quitar en esta campaña
-            </span>
-          </div>
-        )}
+      {/* Capa decorativa flotante (no clickeable) */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
+        <div className="absolute top-6 left-8 w-3 h-3 bg-white/25 rounded-full animate-pulse" />
+        <div className="absolute top-10 right-16 w-2.5 h-2.5 bg-amber-300/60 rounded-full coupon-banner-float" />
+        <div className="absolute bottom-8 left-1/4 w-4 h-4 bg-white/15 rounded-full coupon-banner-float-slow" />
+        <div className="absolute top-4 right-1/3 w-1.5 h-1.5 bg-white/30 rounded-full animate-pulse" />
+        <Sparkles className="absolute top-8 right-1/4 w-6 h-6 text-amber-200/50 coupon-banner-float" />
+        <Sparkles className="absolute bottom-6 left-10 w-5 h-5 text-white/30 coupon-banner-float-slow" />
+        <Gift className="absolute top-1/2 left-6 -translate-y-1/2 w-7 h-7 text-white/15 coupon-banner-float-slow" />
+        <Crown className="absolute bottom-4 right-6 w-10 h-10 text-amber-200/20" />
       </div>
 
-      {!isValidating && firstQuotaOnly && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-white/70 border-t border-[rgba(var(--color-primary-rgb),0.12)]">
-          <Info className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" aria-hidden />
-          <p className="text-[11px] text-neutral-600">
-            Los precios en las tarjetas muestran la <strong>oferta de primera cuota</strong> con el precio de lista tachado.
+      {/* Contenido */}
+      <div className="relative z-10 px-4 py-6 sm:px-6 sm:py-7 text-center">
+        {isValidating ? (
+          <p className="text-base font-semibold text-white">
+            ✨ Validando cupón de campaña…
           </p>
-        </div>
-      )}
-    </div>
+        ) : (
+          <>
+            {/* Título personalizado con nombre del referido */}
+            <div className="flex flex-col items-center justify-center gap-1 mb-3">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl sm:text-3xl" aria-hidden>🎉</span>
+                <p className="text-sm sm:text-base font-bold text-white/80 uppercase tracking-wide">
+                  Eres referido de
+                </p>
+                <span className="text-2xl sm:text-3xl" aria-hidden>🎁</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white font-['Baloo_2',_sans-serif] leading-tight drop-shadow-sm break-words max-w-2xl">
+                {referrerDisplay || '¡Tu cupón está activo!'}
+              </h2>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+              <span className="text-sm sm:text-base font-bold text-white">
+                Cupón
+              </span>
+              <span className="font-mono text-base sm:text-lg font-black tracking-wider text-[var(--color-primary)] bg-white px-3 py-1 rounded-full uppercase shadow-sm">
+                {coupon.code}
+              </span>
+              <span className="text-xs sm:text-sm font-bold text-[var(--color-primary)] bg-white/95 px-3 py-1 rounded-full">
+                Aplicado automáticamente ✓
+              </span>
+            </div>
+
+            {firstQuotaOnly && (
+              <p className="text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
+                El descuento aplica solo en tu <strong>primera cuota</strong>.
+                Las siguientes mantienen el precio de lista.
+              </p>
+            )}
+
+            <p className="text-xs sm:text-sm text-white/75 mt-2">
+              🔒 No se puede quitar en esta campaña · Las tarjetas muestran la oferta de 1.ª cuota
+            </p>
+          </>
+        )}
+      </div>
+    </section>
   );
 };
 

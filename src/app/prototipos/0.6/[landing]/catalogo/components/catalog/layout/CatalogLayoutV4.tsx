@@ -549,6 +549,17 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   return (
     <div className="min-h-screen bg-neutral-50">
       <div className="min-h-screen">
+        {/* Campaign Coupon Banner — sobre el header del catálogo
+            (nada se muestra mientras se valida; aparece sólo cuando hay cupón válido) */}
+        {campaignCoupon && (
+          <div className="w-full px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4">
+            <CouponCampaignBanner
+              coupon={campaignCoupon}
+              isValidating={isCampaignCouponValidating}
+            />
+          </div>
+        )}
+
         {/* Full Width Header Section - Inside Card */}
         <div className="w-full p-3 sm:p-4 lg:p-6">
           <Card className="bg-white/95 backdrop-blur-sm shadow-lg border border-neutral-200/50">
@@ -591,17 +602,6 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                 />
               </div>
 
-              {isCampaignCouponValidating && !campaignCoupon && (
-                <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
-                  Validando cupón de campaña…
-                </div>
-              )}
-              {campaignCoupon && (
-                <CouponCampaignBanner
-                  coupon={campaignCoupon}
-                  isValidating={isCampaignCouponValidating}
-                />
-              )}
             </CardBody>
           </Card>
         </div>

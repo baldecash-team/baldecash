@@ -1631,10 +1631,11 @@ function CatalogoContent() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Navbar from Hero */}
+      {/* Navbar from Hero — para cupón de campaña: solo logo, no clickeable */}
       <Navbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
+        logoOnly={!!campaignCoupon}
         landing={landing}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
@@ -1649,7 +1650,8 @@ function CatalogoContent() {
         previewBannerOffset={previewBannerOffset}
       />
 
-      {/* Secondary Navbar with Search, Wishlist, Cart */}
+      {/* Secondary Navbar with Search, Wishlist, Cart — oculta para usuarios con cupón */}
+      {!campaignCoupon && (
       <CatalogSecondaryNavbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
@@ -1703,13 +1705,16 @@ function CatalogoContent() {
         config={catalogSecondaryNavbarConfig}
         showCart={ALLOW_MULTI_PRODUCT}
       />
+      )}
 
       {/* Main Content — padding driven by CSS variables so it always matches
           the real height of the fixed headers (preview banner + promo banner
           + main navbar + secondary navbar). */}
       <main
         style={{
-          paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
+          paddingTop: campaignCoupon
+            ? 'var(--header-total-height, 4rem)'
+            : 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}
       >
         {/* Catalog Layout with Products */}

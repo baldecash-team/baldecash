@@ -528,7 +528,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="bg-[rgba(var(--color-primary-rgb),0.05)] rounded-xl sm:rounded-2xl py-3 sm:py-4 px-4 sm:px-6 mb-4">
               {/* Frequency chips — shown when product has semanal/quincenal options */}
               {product.paymentFrequencies && product.paymentFrequencies.length > 1 && (
-                <div className="flex justify-center gap-1.5 mb-2">
+                <div className="flex justify-center gap-1.5 mb-4">
                   {product.paymentFrequencies.map((freq) => (
                     <button
                       key={freq}
@@ -547,23 +547,46 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
               {showCampaignFirstQuota && couponQuotaDisplay ? (
                 <>
-                  <div className="rounded-lg bg-white/80 border border-[rgba(var(--color-primary-rgb),0.2)] px-3 py-2.5 mb-2.5">
-                    <p className="text-[11px] font-semibold text-[var(--color-primary)] text-center mb-1">
-                      Tu 1.ª cuota
-                    </p>
-                    <div className="flex items-baseline justify-center gap-0.5 min-w-0">
-                      <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">
+                  <div
+                    className="relative rounded-xl px-3 pt-4 pb-3 mb-2 text-center shadow-md overflow-visible"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(to right, var(--color-primary), color-mix(in srgb, var(--color-primary) 90%, white), var(--color-primary))',
+                    }}
+                  >
+                    {/* Badge "SOLO 1.ª CUOTA" sobresaliendo */}
+                    <span
+                      className="absolute -top-2.5 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 bg-amber-300 text-[var(--color-primary)] text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-sm whitespace-nowrap"
+                      aria-label="Solo primera cuota"
+                    >
+                      <span aria-hidden>⚡</span>
+                      Solo 1.ª cuota
+                    </span>
+
+                    <div className="flex items-baseline justify-center gap-0.5 min-w-0 mt-1">
+                      <span className="text-3xl sm:text-4xl font-black text-white break-words leading-none">
                         S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.firstQuota))}
                       </span>
-                      <span className="text-base sm:text-lg text-neutral-400">{freqShort}</span>
+                      <span className="text-base sm:text-lg text-white/80">{freqShort}</span>
+                    </div>
+                    <p className="text-[11px] sm:text-xs font-semibold text-white/90 mt-1">
+                      Tu primera cuota con cupón
+                    </p>
+                  </div>
+
+                  {/* Cuotas siguientes — visualmente atenuadas */}
+                  <div className="flex flex-col items-center gap-0.5 text-center mt-2">
+                    <span className="text-[10px] sm:text-xs uppercase tracking-wide text-neutral-400 font-semibold">
+                      Cuotas 2 en adelante
+                    </span>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-sm sm:text-base font-bold text-neutral-500">
+                        S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.listQuota))}
+                      </span>
+                      <span className="text-xs text-neutral-400">{freqShort}</span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-center gap-1.5 text-center">
-                    <span className="text-[11px] text-neutral-500">Resto de cuotas</span>
-                    <span className="text-xs text-neutral-400 line-through">
-                      S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.listQuota))}{freqShort}
-                    </span>
-                  </div>
+
                   <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words text-center">
                     en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
                   </p>
@@ -632,8 +655,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 className={`flex-1 font-bold rounded-xl ${
                   resolvedIsInCart
                     ? 'bg-emerald-500 text-white cursor-default'
-                    : 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
+                    : campaignCoupon
+                      ? 'text-white cursor-pointer hover:brightness-95 shadow-md'
+                      : 'bg-[var(--color-primary)] text-white cursor-pointer hover:brightness-90'
                 }`}
+                style={
+                  !resolvedIsInCart && campaignCoupon
+                    ? {
+                        backgroundImage:
+                          'linear-gradient(to right, var(--color-primary), color-mix(in srgb, var(--color-primary) 90%, white), var(--color-primary))',
+                      }
+                    : undefined
+                }
                 onPress={!resolvedIsInCart ? () => onAddToCart?.(createCartItem()) : undefined}
                 isDisabled={resolvedIsInCart}
               >
