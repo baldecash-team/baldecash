@@ -15,6 +15,7 @@ import { FilterChips } from '../filters/FilterChips';
 import { TagsFilter } from '../filters/TagsFilter';
 import { SortDropdown } from '../sorting/SortDropdown';
 import { QuickUsageCards } from '../QuickUsageCards';
+import { CouponCampaignBanner } from '../CouponCampaignBanner';
 import CatalogBanner from '../CatalogBanner';
 import VipCountdownBanner from '../VipCountdownBanner';
 import {
@@ -63,6 +64,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
   catalogBanner,
   vipCountdownDate,
   overlayVariant,
+  campaignCoupon,
+  isCampaignCouponValidating,
 }) => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -587,6 +590,18 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   className=""
                 />
               </div>
+
+              {isCampaignCouponValidating && !campaignCoupon && (
+                <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+                  Validando cupón de campaña…
+                </div>
+              )}
+              {campaignCoupon && (
+                <CouponCampaignBanner
+                  coupon={campaignCoupon}
+                  isValidating={isCampaignCouponValidating}
+                />
+              )}
             </CardBody>
           </Card>
         </div>

@@ -14,24 +14,13 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tag, Loader2, Check, X, Sparkles } from 'lucide-react';
+import { Tag, Loader2, Check, X, Sparkles, Lock } from 'lucide-react';
+import { validateCoupon } from '@/app/prototipos/0.6/utils/couponApi';
 import { useProduct } from '../../../context/ProductContext';
 import { useWizardConfig } from '../../../context/WizardConfigContext';
 import { useEventTrackerOptional } from '../../../context/EventTrackerContext';
 
 type CouponState = 'idle' | 'validating' | 'success' | 'error';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
-
-interface CouponValidateResponse {
-  valid: boolean;
-  code: string | null;
-  coupon_type: 'fixed' | 'percent_quotas' | null;
-  value: string | null;
-  quotas_affected: number | null;
-  label: string | null;
-  error_message: string | null;
-}
 
 interface CouponInputProps {
   /**
@@ -73,40 +62,26 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
           ? parseInt(cartProducts[0].id, 10)
           : undefined;
 
-      const response = await fetch(`${API_BASE_URL}/public/coupons/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: couponCode.trim(),
-          product_id: productId,
-          landing_id: config?.landing?.id ?? config?.landing_id,
-        }),
+      const result = await validateCoupon({
+        code: couponCode.trim(),
+        productId,
+        landingId: config?.landing?.id ?? config?.landing_id,
       });
 
-      const data: CouponValidateResponse = await response.json();
-
-      if (data.valid && data.code && data.value && data.label) {
+      if (result.ok) {
         setState('success');
-        setAppliedCoupon({
-          code: data.code,
-          discount: parseFloat(data.value),
-          label: data.label,
-          couponType: data.coupon_type || 'fixed',
-          quotasAffected: data.quotas_affected || undefined,
-        });
+        setAppliedCoupon(result.coupon);
         tracker?.track('coupon_applied', {
-          coupon_code: data.code,
-          coupon_type: data.coupon_type,
-          discount_value: data.value,
+          coupon_code: result.coupon.code,
+          coupon_type: result.coupon.couponType,
+          discount_value: String(result.coupon.discount),
         });
       } else {
         setState('error');
-        setErrorMessage(data.error_message || 'Cupón no válido o expirado');
+        setErrorMessage(result.error || 'Cupón no válido o expirado');
         tracker?.track('coupon_error', {
           coupon_code: couponCode.trim(),
-          error_message: data.error_message ?? 'invalid',
+          error_message: result.error ?? 'invalid',
         });
         setTimeout(() => setState('idle'), 2000);
       }
@@ -134,6 +109,9 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
     }
   };
 
+  const isLockedCampaign = appliedCoupon?.lockedFromUrl === true;
+  const firstQuotaOnly = (appliedCoupon?.quotasAffected ?? 1) <= 1;
+
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {
     return (
@@ -153,7 +131,7 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
               <Check className="w-5 h-5 text-green-600" />
             </motion.div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-bold text-green-700">{appliedCoupon.code}</span>
                 <motion.span
                   initial={{ opacity: 0, x: -10 }}
@@ -161,10 +139,15 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                   transition={{ delay: 0.2 }}
                   className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full"
                 >
-                  Aplicado
+                  {isLockedCampaign ? 'Aplicado automáticamente' : 'Aplicado'}
                 </motion.span>
               </div>
               <p className="text-sm text-green-600">{appliedCoupon.label}</p>
+              {isLockedCampaign && firstQuotaOnly && (
+                <p className="text-xs text-green-700/80 mt-1">
+                  Descuento solo en tu primera cuota. No se puede quitar en esta campaña.
+                </p>
+              )}
             </div>
           </div>
 
@@ -179,19 +162,30 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                 -S/{getDiscountAmount().toFixed(0)}
               </p>
               <p className="text-xs text-green-500">
-                {appliedCoupon.quotasAffected
-                  ? `en ${appliedCoupon.quotasAffected} cuotas`
-                  : 'por mes'}
+                {firstQuotaOnly
+                  ? 'solo en 1.ª cuota'
+                  : appliedCoupon.quotasAffected
+                    ? `en ${appliedCoupon.quotasAffected} cuotas`
+                    : 'por mes'}
               </p>
             </motion.div>
 
-            <button
-              onClick={handleRemoveCoupon}
-              className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-              title="Quitar cupón"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {isLockedCampaign ? (
+              <div
+                className="p-2 text-neutral-400 rounded-lg"
+                title="Cupón de campaña — no se puede quitar"
+              >
+                <Lock className="w-4 h-4" aria-hidden />
+              </div>
+            ) : (
+              <button
+                onClick={handleRemoveCoupon}
+                className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                title="Quitar cupón"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 

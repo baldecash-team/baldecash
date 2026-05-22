@@ -4,6 +4,7 @@
  */
 
 import type { QuizQuestion, QuizOption, QuizAnswer, QuizResult, QuizProduct } from '../quiz/types/quiz';
+import { displayMonths } from '../utils/paymentTerm';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -286,6 +287,11 @@ interface ProductRecommendation {
   list_price: number;
   original_price: number | null;
   monthly_payment: number;
+  /** Número real de cuotas en la frecuencia natural. Preferido sobre `term_months`. */
+  term?: number;
+  /** Frecuencia de pago: 'mensual' | 'quincenal' | 'semanal'. */
+  payment_frequency?: string;
+  /** @deprecated Usar `term` + `payment_frequency`. */
   term_months: number;
   gama: string | null;
   condition: string;
@@ -308,6 +314,11 @@ export interface RecommendResponse {
   products: ProductRecommendation[];
   filters_applied: Record<string, unknown>;
   total_matches: number;
+  /** Número real de cuotas en la frecuencia natural. Preferido sobre `term_months`. */
+  term?: number;
+  /** Frecuencia de pago del recomendador: 'mensual' | 'quincenal' | 'semanal'. */
+  payment_frequency?: string;
+  /** @deprecated Usar `term` + `payment_frequency`. */
   term_months: number;
   ui_config: QuizUIConfig;
 }
@@ -342,10 +353,25 @@ function formatStorageType(type: string | null): string {
 }
 
 /**
- * Transform API recommendation response to frontend QuizResult format
+ * Transform API recommendation response to frontend QuizResult format.
+ *
+ * Convención de plazos: BE emite `term` (nº cuotas en frecuencia natural) +
+ * `payment_frequency`. `term_months` queda como legacy y NO equivale al nº de
+ * cuotas para semanal/quincenal — derivamos meses calendario con `displayMonths`.
  */
 export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[] {
-  return apiResponse.products.map((product) => ({
+  const fallbackFreq = apiResponse.payment_frequency;
+  const fallbackTerm = apiResponse.term;
+  const fallbackTermMonths = apiResponse.term_months;
+
+  return apiResponse.products.map((product) => {
+    const paymentFrequency = product.payment_frequency ?? fallbackFreq;
+    const term = product.term ?? fallbackTerm;
+    const termMonths = term
+      ? displayMonths(term, paymentFrequency)
+      : (product.term_months || fallbackTermMonths || 24);
+
+    return {
     matchScore: product.match_score,
     product: {
       id: String(product.id),
@@ -356,7 +382,9 @@ export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[
       thumbnail: product.image_url || '/images/placeholder-laptop.jpg',
       price: product.list_price,
       lowestQuota: product.monthly_payment,
-      termMonths: product.term_months || apiResponse.term_months || 24,
+      term,
+      termMonths,
+      paymentFrequency,
       initialPercent: 0, // Quiz siempre muestra el precio gancho (0% inicial)
       specs: {
         ram: product.specs.ram,
@@ -374,7 +402,8 @@ export function mapApiToQuizResults(apiResponse: RecommendResponse): QuizResult[
       matchScore: product.match_score
     } as QuizProduct,
     reasons: product.match_reasons
-  }));
+    };
+  });
 }
 
 /**

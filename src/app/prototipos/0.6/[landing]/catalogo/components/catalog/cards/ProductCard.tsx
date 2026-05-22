@@ -14,6 +14,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardBody, Button } from '@nextui-org/react';
 import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, type LucideProps } from 'lucide-react';
+import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
+import { getCouponQuotaDisplay } from '@/app/prototipos/0.6/utils/couponPricing';
 import { motion } from 'framer-motion';
 import {
   CatalogProduct,
@@ -87,6 +89,8 @@ interface ProductCardProps {
   hideColors?: boolean;
   /** Agregar spacer arriba cuando otra card en la misma fila tiene banner promo */
   needsPromoSpacer?: boolean;
+  /** Cupón de campaña URL — muestra oferta de 1.ª cuota y precio de lista tachado */
+  campaignCoupon?: AppliedCoupon | null;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -111,6 +115,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   addToCartButtonId,
   hideColors = true,
   needsPromoSpacer = false,
+  campaignCoupon = null,
 }) => {
   const analytics = useAnalytics();
 
@@ -207,6 +212,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const { initialAmount: displayInitialAmount } = calculateQuotaWithInitial(displayPrice, selectedTerm, displayInitialPercent);
 
   const originalQuota = displayOriginalQuota;
+
+  const couponQuotaDisplay = campaignCoupon
+    ? getCouponQuotaDisplay(displayQuotaForFreq, campaignCoupon, originalQuota)
+    : null;
+  const showCampaignFirstQuota = couponQuotaDisplay?.hasFirstQuotaOffer ?? false;
 
   // ============================================
   // Crear CartItem completo para onAddToCart
@@ -534,32 +544,59 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                   ))}
                 </div>
               )}
-              {/* Precio anterior + descuento (altura reservada siempre) */}
-              <div className="h-5 flex items-center justify-center gap-1.5">
-                {originalQuota && originalQuota > quota && (!product.promotion || product.promotion.discountValue > 0) ? (
-                  <>
-                    <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
-                    {displayDiscount && displayDiscount > 0 && (
-                      <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
-                        {product.promotion?.discountType === 'fixed'
-                          ? `-S/${Math.round(product.promotion.discountValue)}`
-                          : `-${Math.round(displayDiscount)}%`}
+
+              {showCampaignFirstQuota && couponQuotaDisplay ? (
+                <>
+                  <div className="rounded-lg bg-white/80 border border-[rgba(var(--color-primary-rgb),0.2)] px-3 py-2.5 mb-2.5">
+                    <p className="text-[11px] font-semibold text-[var(--color-primary)] text-center mb-1">
+                      Tu 1.ª cuota
+                    </p>
+                    <div className="flex items-baseline justify-center gap-0.5 min-w-0">
+                      <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">
+                        S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.firstQuota))}
                       </span>
+                      <span className="text-base sm:text-lg text-neutral-400">{freqShort}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 text-center">
+                    <span className="text-[11px] text-neutral-500">Resto de cuotas</span>
+                    <span className="text-xs text-neutral-400 line-through">
+                      S/{formatMoneyNoDecimals(Math.floor(couponQuotaDisplay.listQuota))}{freqShort}
+                    </span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words text-center">
+                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="h-5 flex items-center justify-center gap-1.5">
+                    {originalQuota && originalQuota > quota && (!product.promotion || product.promotion.discountValue > 0) ? (
+                      <>
+                        <span className="text-xs text-neutral-400 line-through">S/{formatMoneyNoDecimals(Math.floor(originalQuota))}{freqShort}</span>
+                        {displayDiscount && displayDiscount > 0 && (
+                          <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
+                            {product.promotion?.discountType === 'fixed'
+                              ? `-S/${Math.round(product.promotion.discountValue)}`
+                              : `-${Math.round(displayDiscount)}%`}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-neutral-400">Cuota {selectedFrequency !== 'mensual' ? selectedFrequency : 'mensual'}</span>
                     )}
-                  </>
-                ) : (
-                  <span className="text-xs text-neutral-400">Cuota {selectedFrequency !== 'mensual' ? selectedFrequency : 'mensual'}</span>
-                )}
-              </div>
-              {/* Precio actual — graduado para cards estrechas */}
-              <div className="flex items-baseline justify-center gap-0.5 mt-1 min-w-0">
-                <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">S/{formatMoneyNoDecimals(Math.floor(displayQuotaForFreq))}</span>
-                <span className="text-base sm:text-lg text-neutral-400">{freqShort}</span>
-              </div>
-              {/* Info adicional */}
-              <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words">
-                en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
-              </p>
+                  </div>
+                  <div className="flex items-baseline justify-center gap-0.5 mt-1 min-w-0">
+                    <span className="text-2xl sm:text-3xl font-black text-[var(--color-primary)] break-words">
+                      S/{formatMoneyNoDecimals(Math.floor(displayQuotaForFreq))}
+                    </span>
+                    <span className="text-base sm:text-lg text-neutral-400">{freqShort}</span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-neutral-500 mt-2 break-words">
+                    en {displayTermMonths} meses{displayInitialAmount > 0 ? ` · inicial S/${formatMoneyNoDecimals(Math.floor(displayInitialAmount))}` : ' · sin inicial'}
+                  </p>
+                </>
+              )}
             </div>
 
             {/* CTAs */}

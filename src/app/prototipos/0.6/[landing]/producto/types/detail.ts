@@ -1,6 +1,8 @@
 // Detail Section Types - BaldeCash v0.6
 // Copied from v0.5 with mock data support
 
+import type { PaymentFrequency } from '../../../utils/paymentTerm';
+
 // ============================================
 // Device Type Configuration (Iterable)
 // ============================================
@@ -201,7 +203,9 @@ export interface InitialPaymentOption {
 /** Plan de pago con opciones precalculadas para cada % de inicial */
 export interface PaymentPlan {
   term: number;
-  termMonths?: number | null; // month equivalent for semanal/quincenal (e.g. term=48 → 12)
+  termMonths?: number | null; // month equivalent for semanal/quincenal (DEPRECATED — prefer term + paymentFrequency)
+  /** Frecuencia del plan. Opcional para backward-compat; tratar undefined como 'mensual'. */
+  paymentFrequency?: PaymentFrequency;
   tea?: number | null;
   tcea?: number | null;
   options: InitialPaymentOption[];

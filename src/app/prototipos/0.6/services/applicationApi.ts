@@ -281,6 +281,12 @@ export interface ApplicationStatusResponse {
     } | null;
   }>;
 
+  /**
+   * Número real de cuotas en la frecuencia natural (`payment_frequency`).
+   * BE lo emite desde Phase 5.2 — preferirlo sobre `term_months`.
+   */
+  term?: number;
+  /** @deprecated Usar `term` + `payment_frequency`. Para no-mensual no es nº de cuotas. */
   term_months?: number;
   /** Payment frequency of the primary product: 'semanal' | 'quincenal' | 'mensual' */
   payment_frequency?: string;

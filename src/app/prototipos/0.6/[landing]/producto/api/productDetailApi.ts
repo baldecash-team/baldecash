@@ -146,6 +146,7 @@ interface ApiInitialPaymentOption {
 interface ApiPaymentPlan {
   term: number;
   term_months?: number | null;
+  payment_frequency?: 'mensual' | 'quincenal' | 'semanal';
   tea?: number | null;
   tcea?: number | null;
   options: ApiInitialPaymentOption[];
@@ -337,6 +338,7 @@ function transformPaymentPlan(apiPlan: ApiPaymentPlan): PaymentPlan {
   return {
     term: apiPlan.term,
     termMonths: apiPlan.term_months ?? null,
+    paymentFrequency: apiPlan.payment_frequency,
     tea: apiPlan.tea ?? null,
     tcea: apiPlan.tcea ?? null,
     options: apiPlan.options.map((opt): InitialPaymentOption => ({
