@@ -72,7 +72,7 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
                 <span className="text-2xl sm:text-3xl" aria-hidden>🎁</span>
               </div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white font-['Baloo_2',_sans-serif] leading-tight drop-shadow-sm break-words max-w-2xl">
-                {referrerDisplay || '¡Tu cupón está activo!'}
+                {referrerDisplay || 'Cupón canjeado'}
               </h2>
             </div>
 
