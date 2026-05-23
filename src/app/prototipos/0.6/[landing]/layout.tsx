@@ -399,7 +399,7 @@ function CadeOverlayGate({ landing, onValidated, deadline }: { landing: string; 
               {showRegister && (
                 <div className="rounded-xl p-4 mb-3" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
                   <p className="text-sm text-gray-700">
-                    Tu documento no está registrado para esta campaña. Si crees que es un error, acércate a nuestro stand.
+                    Tu documento no tiene acceso a esta promoción.
                   </p>
                 </div>
               )}
