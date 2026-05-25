@@ -302,6 +302,8 @@ function CatalogoContent() {
     clearCartProducts,
     clearAccessories,
     appliedCoupon,
+    setAppliedCoupon,
+    isHydrated: isProductContextHydrated,
   } = useProduct();
 
   // Cupón de campaña (?coupon=) — validación temprana y precios en vitrina
@@ -326,15 +328,22 @@ function CatalogoContent() {
   const previewBannerOffset = previewKey ? 24 : 0;
 
   // Si el usuario entra al catálogo sin `?coupon=` en la URL, descartamos
-  // cualquier cupón pendiente capturado en una visita anterior. Evita que el
-  // wizard auto-aplique un cupón que ya no es parte de la intención actual.
+  // cualquier cupón de campaña almacenado (pendiente o ya aplicado con
+  // lockedFromUrl). Evita que el banner/vitrina y el wizard apliquen un
+  // cupón heredado de una sesión anterior cuando la intención actual no
+  // incluye cupón. Esperamos a que ProductContext hidrate para poder
+  // detectar el cupón aplicado proveniente de localStorage.
+  const hasCouponParam = !!searchParams.get('coupon');
   useEffect(() => {
-    if (!searchParams.get('coupon')) {
-      clearPendingCoupon(landing);
+    if (hasCouponParam || !isProductContextHydrated) return;
+    clearPendingCoupon(landing);
+    if (appliedCoupon?.lockedFromUrl) {
+      setAppliedCoupon(null);
     }
-    // Solo en el mount inicial — no re-disparar al cambiar searchParams (filtros).
+    // hasCouponParam queda fijo en el mount; isProductContextHydrated pasa
+    // de false→true una vez. appliedCoupon se evalúa cuando hidrata.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [landing]);
+  }, [landing, isProductContextHydrated]);
 
   // VIP countdown banner + overlay variant - fetch landing config
   const [vipCountdownDate, setVipCountdownDate] = useState<string | null>(null);
