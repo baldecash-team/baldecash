@@ -23,7 +23,6 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
   coupon,
   isValidating = false,
 }) => {
-  const firstQuotaOnly = (coupon.quotasAffected ?? 1) <= 1;
   const referrerDisplay = coupon.referrerName ? formatFirstName(coupon.referrerName) : null;
 
   return (
@@ -85,16 +84,6 @@ export const CouponCampaignBanner: React.FC<CouponCampaignBannerProps> = ({
               </span>
             </div>
 
-            {firstQuotaOnly && (
-              <p className="text-sm sm:text-base text-white/90 max-w-2xl mx-auto leading-relaxed">
-                El descuento aplica solo en tu <strong>primera cuota</strong>.
-                Las siguientes mantienen el precio de lista.
-              </p>
-            )}
-
-            <p className="hidden sm:block text-xs sm:text-sm text-white/75 mt-2">
-              🔒 No se puede quitar en esta campaña · Las tarjetas muestran la oferta de 1.ª cuota
-            </p>
           </>
         )}
       </div>
