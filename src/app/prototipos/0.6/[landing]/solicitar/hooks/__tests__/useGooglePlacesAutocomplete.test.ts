@@ -37,8 +37,7 @@ const setupGoogleMapsMock = () => {
     clearInstanceListeners: jest.fn(),
   };
 
-  // @ts-expect-error - Setting mock google object for test
-  global.google = {
+  (global as unknown as Record<string, unknown>).google = {
     maps: {
       places: {
         Autocomplete: jest.fn().mockImplementation(() => {
@@ -49,13 +48,13 @@ const setupGoogleMapsMock = () => {
           });
           return mockAutocomplete;
         }),
-      },
+      } as unknown as typeof google.maps.places,
       Geocoder: jest.fn().mockImplementation(() => mockGeocoder),
       LatLng: jest.fn().mockImplementation((lat: number, lng: number) => ({
         lat: () => lat,
         lng: () => lng,
       })),
-      event: mockMapsEvent,
+      event: mockMapsEvent as unknown as typeof google.maps.event,
     },
   };
 };

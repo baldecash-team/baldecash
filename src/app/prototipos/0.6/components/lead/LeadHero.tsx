@@ -50,7 +50,7 @@ export const LeadHero: React.FC<LeadHeroProps> = ({
           <LeadHeroBanner
             heroContent={heroContent}
             bannerImages={bannerImages}
-            studyCenters={studyCenters}
+            landing={landing}
             primaryColor={primaryColor}
           />
         </div>

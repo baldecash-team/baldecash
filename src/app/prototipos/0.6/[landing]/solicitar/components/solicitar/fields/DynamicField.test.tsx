@@ -146,7 +146,7 @@ function createField(overrides: Partial<WizardField> = {}): WizardField {
     options_filter: null,
     options: [],
     validations: [],
-    dependencies: [],
+    dependency_groups: [],
     accepted_file_types: null,
     max_file_size_mb: null,
     max_files: 1,
@@ -364,12 +364,17 @@ describe('DynamicField', () => {
     it('does not render when conditional visibility is false', () => {
       const field = createField({
         label: 'Conditional Field',
-        dependencies: [
+        dependency_groups: [
           {
-            depends_on_field: 'show_extra',
-            operator: 'equals',
-            value: 'yes',
             action: 'show',
+            logic: 'and',
+            conditions: [
+              {
+                depends_on_field: 'show_extra',
+                operator: 'equals',
+                value: 'yes',
+              },
+            ],
           },
         ],
       });

@@ -1,12 +1,11 @@
 /**
  * Tests para la extracción de leadProductsConfig en transformLandingData.
  *
- * Valida que el componente lead_products de la BD se extrae correctamente,
- * que el fallback funciona cuando no existe el componente, y que los
- * campos numéricos se mapean bien (quota_amount, oka_price, etc.).
+ * LeadProductsConfig usa product_ids (array de IDs numéricos) — los productos
+ * se cargan dinámicamente desde /public/landing/{slug}/products en el cliente.
  */
 
-import type { LeadProduct, LeadProductsConfig } from '../../types/hero';
+import type { LeadProductsConfig } from '../../types/hero';
 
 // ─── helpers: replica la lógica de extracción de landingApi.ts ───────────────
 
@@ -18,26 +17,14 @@ interface RawComponent {
 
 function extractLeadProductsConfig(components: RawComponent[]): LeadProductsConfig | null {
   const leadProductsComponent = components.find(c => c.component_code === 'lead_products');
-  const rawLeadProducts = (leadProductsComponent?.content_config || {}) as Record<string, unknown>;
-
   if (!leadProductsComponent) return null;
+
+  const rawLeadProducts = (leadProductsComponent.content_config || {}) as Record<string, unknown>;
 
   return {
     title: (rawLeadProducts.title as string) || 'Encuentra tu equipo ideal',
     subtitle: (rawLeadProducts.subtitle as string) || 'Financiamiento simple. Aprobación en 24h.',
-    products: ((rawLeadProducts.products as LeadProduct[]) || []).map((p) => ({
-      id: p.id || String(Math.random()),
-      brand: p.brand || '',
-      category: p.category || 'laptop',
-      name: p.name || '',
-      specs: p.specs || '',
-      code: p.code || '',
-      quotas: p.quotas || 12,
-      quota_amount: p.quota_amount || 0,
-      oka_price: p.oka_price || 0,
-      tcea: p.tcea || 0,
-      regular_price: p.regular_price || 0,
-    })),
+    product_ids: ((rawLeadProducts.product_ids as number[]) || []),
   };
 }
 
@@ -64,21 +51,7 @@ describe('landingApi — leadProductsConfig extraction', () => {
       content_config: {
         title: 'Nuestros equipos',
         subtitle: 'Los mejores modelos',
-        products: [
-          {
-            id: 'p1',
-            brand: 'Lenovo',
-            category: 'laptop',
-            name: 'IdeaPad 3',
-            specs: '15.6" 512GB SSD · 8GB RAM',
-            code: 'CÓD. LNV-001',
-            quotas: 12,
-            quota_amount: 89.5,
-            oka_price: 1799,
-            tcea: 48.5,
-            regular_price: 2199,
-          },
-        ],
+        product_ids: [101, 202, 303],
       },
     };
 
@@ -88,73 +61,39 @@ describe('landingApi — leadProductsConfig extraction', () => {
       expect(result?.subtitle).toBe('Los mejores modelos');
     });
 
-    it('extrae la lista de productos', () => {
+    it('extrae la lista de product_ids', () => {
       const result = extractLeadProductsConfig([baseComponent]);
-      expect(result?.products).toHaveLength(1);
-    });
-
-    it('mapea todos los campos numéricos del producto', () => {
-      const result = extractLeadProductsConfig([baseComponent]);
-      const p = result?.products[0];
-      expect(p?.quota_amount).toBe(89.5);
-      expect(p?.oka_price).toBe(1799);
-      expect(p?.tcea).toBe(48.5);
-      expect(p?.regular_price).toBe(2199);
-      expect(p?.quotas).toBe(12);
-    });
-
-    it('mapea brand y category correctamente', () => {
-      const result = extractLeadProductsConfig([baseComponent]);
-      const p = result?.products[0];
-      expect(p?.brand).toBe('Lenovo');
-      expect(p?.category).toBe('laptop');
+      expect(result?.product_ids).toEqual([101, 202, 303]);
     });
 
     it('usa defaults cuando title y subtitle están vacíos', () => {
       const result = extractLeadProductsConfig([{
         component_code: 'lead_products',
-        content_config: { products: [] },
+        content_config: { product_ids: [] },
       }]);
       expect(result?.title).toBe('Encuentra tu equipo ideal');
       expect(result?.subtitle).toBe('Financiamiento simple. Aprobación en 24h.');
     });
 
-    it('devuelve lista vacía cuando products no existe en content_config', () => {
+    it('devuelve product_ids vacío cuando no existe en content_config', () => {
       const result = extractLeadProductsConfig([{
         component_code: 'lead_products',
         content_config: { title: 'Test' },
       }]);
-      expect(result?.products).toEqual([]);
+      expect(result?.product_ids).toEqual([]);
     });
 
-    it('maneja múltiples productos', () => {
+    it('maneja múltiples product_ids', () => {
       const result = extractLeadProductsConfig([{
         component_code: 'lead_products',
         content_config: {
           title: 'Test',
           subtitle: 'Sub',
-          products: [
-            { id: '1', brand: 'HP', category: 'laptop', name: 'HP 14', specs: '14"', code: 'HP-001', quotas: 12, quota_amount: 79, oka_price: 1599, tcea: 46.8, regular_price: 1899 },
-            { id: '2', brand: 'Samsung', category: 'celular', name: 'A55', specs: '6.6"', code: 'SAM-001', quotas: 12, quota_amount: 59, oka_price: 1199, tcea: 47.2, regular_price: 1499 },
-          ],
+          product_ids: [1, 2, 3, 4, 5],
         },
       }]);
-      expect(result?.products).toHaveLength(2);
-      expect(result?.products[1].category).toBe('celular');
-    });
-
-    it('usa defaults para campos faltantes en un producto', () => {
-      const result = extractLeadProductsConfig([{
-        component_code: 'lead_products',
-        content_config: {
-          products: [{ id: 'p1' }],
-        },
-      }]);
-      const p = result?.products[0];
-      expect(p?.brand).toBe('');
-      expect(p?.category).toBe('laptop');
-      expect(p?.quotas).toBe(12);
-      expect(p?.quota_amount).toBe(0);
+      expect(result?.product_ids).toHaveLength(5);
+      expect(result?.product_ids[4]).toBe(5);
     });
 
     it('ignora otros componentes y extrae solo lead_products', () => {
@@ -162,45 +101,36 @@ describe('landingApi — leadProductsConfig extraction', () => {
         { component_code: 'hero', content_config: { title: 'No soy lead_products' } },
         {
           component_code: 'lead_products',
-          content_config: { title: 'Soy lead_products', products: [] },
+          content_config: { title: 'Soy lead_products', product_ids: [42] },
         },
         { component_code: 'footer' },
       ]);
       expect(result?.title).toBe('Soy lead_products');
+      expect(result?.product_ids).toEqual([42]);
     });
   });
 });
 
-// ─── tests de LeadProductsSection: lógica de fallback ───────────────────────
+// ─── tests de LeadProductsSection: lógica de fuente de productos ─────────────
 
-describe('LeadProductsSection — lógica de fuente de productos', () => {
-  const FALLBACK_COUNT = 7; // número de productos en FALLBACK_PRODUCTS
-
-  function resolveProducts(config: LeadProductsConfig | null | undefined): number {
-    const fallback = new Array(FALLBACK_COUNT).fill(null);
-    const all = config?.products && config.products.length > 0
-      ? config.products
-      : fallback;
-    return all.length;
+describe('LeadProductsSection — lógica de product_ids', () => {
+  function hasProductIds(config: LeadProductsConfig | null | undefined): boolean {
+    return (config?.product_ids?.length ?? 0) > 0;
   }
 
-  it('usa fallback cuando config es null', () => {
-    expect(resolveProducts(null)).toBe(FALLBACK_COUNT);
+  it('no tiene product_ids cuando config es null', () => {
+    expect(hasProductIds(null)).toBe(false);
   });
 
-  it('usa fallback cuando config es undefined', () => {
-    expect(resolveProducts(undefined)).toBe(FALLBACK_COUNT);
+  it('no tiene product_ids cuando config es undefined', () => {
+    expect(hasProductIds(undefined)).toBe(false);
   });
 
-  it('usa fallback cuando products es array vacío', () => {
-    expect(resolveProducts({ title: 'T', subtitle: 'S', products: [] })).toBe(FALLBACK_COUNT);
+  it('no tiene product_ids cuando el array está vacío', () => {
+    expect(hasProductIds({ title: 'T', subtitle: 'S', product_ids: [] })).toBe(false);
   });
 
-  it('usa productos del admin cuando hay al menos uno', () => {
-    const adminProducts: LeadProduct[] = [
-      { id: '1', brand: 'HP', category: 'laptop', name: 'Test', specs: '', code: '', quotas: 12, quota_amount: 79, oka_price: 1599, tcea: 46, regular_price: 1899 },
-      { id: '2', brand: 'ASUS', category: 'laptop', name: 'Test2', specs: '', code: '', quotas: 12, quota_amount: 99, oka_price: 1999, tcea: 50, regular_price: 2399 },
-    ];
-    expect(resolveProducts({ title: 'T', subtitle: 'S', products: adminProducts })).toBe(2);
+  it('tiene product_ids cuando hay al menos uno', () => {
+    expect(hasProductIds({ title: 'T', subtitle: 'S', product_ids: [101, 202] })).toBe(true);
   });
 });

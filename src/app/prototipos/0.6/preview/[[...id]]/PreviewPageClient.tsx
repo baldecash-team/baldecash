@@ -326,8 +326,8 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   // Lead landing: formulario de captura + sección productos
   if (heroData.landingType === 'lead') {
     return (
-      <SessionProvider landingId={heroData.landingId} landing={landingSlug}>
-        <EventTrackerProvider landingId={heroData.landingId} landing={landingSlug}>
+      <SessionProvider landingSlug={landingSlug}>
+        <EventTrackerProvider>
           <div
             style={{
               '--color-primary': heroData.primaryColor || '#4654CD',

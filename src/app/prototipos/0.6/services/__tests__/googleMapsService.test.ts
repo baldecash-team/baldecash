@@ -44,7 +44,6 @@ describe('googleMapsService', () => {
     process.env = { ...originalEnv };
 
     // Clear google from global
-    // @ts-expect-error - Clearing global for test
     delete (global as Record<string, unknown>).google;
   });
 

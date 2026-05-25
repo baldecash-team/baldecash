@@ -23,6 +23,8 @@ import type {
   AgreementData,
   CtaQuickLink,
   LeadProductsConfig,
+  LeadFormConfig,
+  BannerImage,
 } from '../types/hero';
 
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
@@ -491,9 +493,12 @@ export function transformLandingData(data: LandingHeroResponse): {
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  landingType?: string;
+  bannerImages: BannerImage[];
+  leadFormConfig: LeadFormConfig | null;
+  leadProductsConfig?: LeadProductsConfig | null;
   primaryColor: string;
   secondaryColor: string;
-  leadProductsConfig?: LeadProductsConfig | null;
 } {
   const components = data.components || [];
 
@@ -1042,6 +1047,10 @@ export async function fetchHeroData(slug: string, preview: boolean = false, prev
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  landingType?: string;
+  bannerImages: BannerImage[];
+  leadFormConfig: LeadFormConfig | null;
+  leadProductsConfig?: LeadProductsConfig | null;
   primaryColor: string;
   secondaryColor: string;
 } | null> {
