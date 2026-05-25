@@ -690,6 +690,12 @@ function VipGate({ landing, children }: { landing: string; children: React.React
   }, [landing, session?.sessionUuid]);
 
   useEffect(() => {
+    // Wait for sessionStorage hydration before evaluating access.
+    // Without this guard, fetchLandingConfig may resolve before PreviewContext
+    // reads sessionStorage, making isPreviewingLanding() return false and
+    // triggering a redirect even when preview mode is active.
+    if (!preview.isHydrated) return;
+
     fetchLandingConfig(landing).then((cfg) => {
       // Admin preview bypasses all access checks — no redirect, no block
       if (preview.isPreviewingLanding(landing)) {
@@ -755,7 +761,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
 
       setStatus('allowed');
     });
-  }, [landing, router, preview]);
+  }, [landing, router, preview, preview.isHydrated]);
 
   const handleDismiss = () => {
     setShowWelcome(false);

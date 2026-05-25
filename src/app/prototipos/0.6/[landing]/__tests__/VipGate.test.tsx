@@ -25,6 +25,7 @@ jest.mock('next/navigation', () => ({
 // ── PreviewContext ────────────────────────────────────────────────────────────
 const previewContextMock = {
   isPreviewingLanding: (_slug: string) => false,
+  isHydrated: true,
 };
 
 jest.mock('../../context/PreviewContext', () => ({
@@ -32,6 +33,7 @@ jest.mock('../../context/PreviewContext', () => ({
     isPreviewingLanding: (slug: string) => previewContextMock.isPreviewingLanding(slug),
     isPreviewMode: false,
     previewKey: null,
+    isHydrated: previewContextMock.isHydrated,
   }),
 }));
 
@@ -139,10 +141,20 @@ function VipGateIsolated({
   const preview = usePreview();
 
   React.useEffect(() => {
-    fetchLandingConfig(landing).then((cfg: LandingConfig) => setConfig(cfg));
-  }, [landing]);
+    // Replica la guarda de hydration del VipGate real:
+    // no evaluar acceso hasta que sessionStorage haya sido leído.
+    if (!preview.isHydrated) return;
 
-  // Preview bypass
+    fetchLandingConfig(landing).then((cfg: LandingConfig) => {
+      if (preview.isPreviewingLanding(landing)) {
+        setConfig(cfg); // permite pasar sin bloquear
+        return;
+      }
+      setConfig(cfg);
+    });
+  }, [landing, preview, preview.isHydrated]);
+
+  // Preview bypass antes de tener config
   if (preview.isPreviewingLanding(landing)) return <>{children}</>;
 
   // Cargando
@@ -187,6 +199,7 @@ function renderGate(landing = 'renueva-tu-equipo') {
 beforeEach(() => {
   jest.clearAllMocks();
   previewContextMock.isPreviewingLanding = (_slug: string) => false;
+  previewContextMock.isHydrated = true;
 });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -233,6 +246,36 @@ describe('VipGate — comportamiento sin preview', () => {
 
     renderGate();
 
+    await waitFor(() => {
+      expect(screen.getByTestId('protected-content')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('vip-countdown-overlay')).not.toBeInTheDocument();
+  });
+});
+
+describe('VipGate — race condition: hydration antes de fetchLandingConfig', () => {
+  it('no redirige cuando preview activa llega después de que fetchLandingConfig resuelve', async () => {
+    // Simula: isHydrated=false al inicio → fetchLandingConfig no corre → luego isHydrated=true + preview activo
+    previewContextMock.isHydrated = false;
+    previewContextMock.isPreviewingLanding = (_slug: string) => true;
+    mockFetchLandingConfig.mockResolvedValue(VIP_EXPIRED_CONFIG);
+
+    const { rerender } = renderGate();
+
+    // Con isHydrated=false, el efecto no corre → no hay fetch ni redirect
+    expect(mockFetchLandingConfig).not.toHaveBeenCalled();
+
+    // Simula hidratación completada
+    previewContextMock.isHydrated = true;
+    rerender(
+      <TestWrapper>
+        <VipGateIsolated landing="renueva-tu-equipo">
+          <div data-testid="protected-content">Catálogo</div>
+        </VipGateIsolated>
+      </TestWrapper>
+    );
+
+    // Ahora sí corre pero con preview activo → children visibles, sin overlay
     await waitFor(() => {
       expect(screen.getByTestId('protected-content')).toBeInTheDocument();
     });
