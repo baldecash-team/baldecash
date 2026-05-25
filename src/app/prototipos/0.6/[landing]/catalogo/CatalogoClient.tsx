@@ -333,15 +333,19 @@ function CatalogoContent() {
   // cupón heredado de una sesión anterior cuando la intención actual no
   // incluye cupón. Esperamos a que ProductContext hidrate para poder
   // detectar el cupón aplicado proveniente de localStorage.
-  const hasCouponParam = !!searchParams.get('coupon');
+  //
+  // Importante: `hasCouponParam` se congela en el mount. El useEffect que
+  // sincroniza la URL con los filtros (más abajo) hace router.replace y
+  // elimina `?coupon=` del URL después del primer render; si releyéramos
+  // searchParams aquí, borraríamos el cupón recién capturado.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const hasCouponParam = useMemo(() => !!searchParams.get('coupon'), []);
   useEffect(() => {
     if (hasCouponParam || !isProductContextHydrated) return;
     clearPendingCoupon(landing);
     if (appliedCoupon?.lockedFromUrl) {
       setAppliedCoupon(null);
     }
-    // hasCouponParam queda fijo en el mount; isProductContextHydrated pasa
-    // de false→true una vez. appliedCoupon se evalúa cuando hidrata.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [landing, isProductContextHydrated]);
 
