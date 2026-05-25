@@ -28,15 +28,16 @@ export function useCampaignCoupon(landingSlug: string): UseCampaignCouponResult 
   useEffect(() => {
     if (!isHydrated || attemptedRef.current) return;
 
-    // Cupón ya aplicado (p. ej. recarga de página)
-    if (appliedCoupon?.lockedFromUrl) {
-      attemptedRef.current = true;
+    const pendingCode = getPendingCoupon(landingSlug);
+
+    // Sin pending y con cupón ya aplicado (recarga de página sin ?coupon=): reusar.
+    if (!pendingCode) {
+      if (appliedCoupon?.lockedFromUrl) attemptedRef.current = true;
       return;
     }
 
-    const pendingCode = getPendingCoupon(landingSlug);
-    if (!pendingCode) return;
-
+    // Hay pending (URL trajo ?coupon=) — siempre re-validar para refrescar
+    // datos como referrerName aunque haya un appliedCoupon previo en cache.
     attemptedRef.current = true;
     setIsValidating(true);
     setValidationFailed(false);
