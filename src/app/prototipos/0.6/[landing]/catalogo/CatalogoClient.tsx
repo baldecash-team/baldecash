@@ -122,7 +122,7 @@ import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
 import { AppliedFilter } from './types/empty';
 import { useProduct, ProductProvider } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
-import { captureLandingParams, consumePendingCategoria } from '@/app/prototipos/0.6/utils/landingParams';
+import { captureLandingParams, consumePendingCategoria, clearPendingCoupon } from '@/app/prototipos/0.6/utils/landingParams';
 import { useCampaignCoupon } from './hooks/useCampaignCoupon';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
@@ -324,6 +324,17 @@ function CatalogoContent() {
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
   const previewBannerOffset = previewKey ? 24 : 0;
+
+  // Si el usuario entra al catálogo sin `?coupon=` en la URL, descartamos
+  // cualquier cupón pendiente capturado en una visita anterior. Evita que el
+  // wizard auto-aplique un cupón que ya no es parte de la intención actual.
+  useEffect(() => {
+    if (!searchParams.get('coupon')) {
+      clearPendingCoupon(landing);
+    }
+    // Solo en el mount inicial — no re-disparar al cambiar searchParams (filtros).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [landing]);
 
   // VIP countdown banner + overlay variant - fetch landing config
   const [vipCountdownDate, setVipCountdownDate] = useState<string | null>(null);

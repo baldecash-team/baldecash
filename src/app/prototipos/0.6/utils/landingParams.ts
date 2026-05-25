@@ -8,8 +8,8 @@
  *
  *   → categoria=laptops se aplica como filtro `device=laptop` al
  *     primer ingreso al catálogo de esta landing.
- *   → coupon=UNIV2026 se valida al entrar al catálogo (banner + precios
- *     en cards) y se mantiene bloqueado en /solicitar.
+ *   → coupon=UNIV2026 se auto-valida en el wizard /solicitar cuando
+ *     ya hay producto seleccionado.
  */
 
 import type { CatalogDeviceType } from '../[landing]/catalogo/types/catalog';
