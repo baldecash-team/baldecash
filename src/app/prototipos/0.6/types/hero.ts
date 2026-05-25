@@ -446,3 +446,54 @@ export interface AgreementData {
   institution_short_name?: string;
   institution_logo?: string;
 }
+
+// ============================================
+// Lead Landing Types
+// ============================================
+
+export interface BannerImage {
+  url: string;
+  mobile_url?: string;
+  alt?: string;
+  position_x?: number;
+  position_y?: number;
+  zoom?: number;
+  mobile_position_x?: number;
+  mobile_position_y?: number;
+  mobile_zoom?: number;
+}
+
+export interface LeadFormConfig {
+  title_count: number;
+  title: string;
+  description: string;
+  cta_text: string;
+}
+
+export interface LeadProductsConfig {
+  title: string;
+  subtitle: string;
+  product_ids: number[];
+}
+
+// Producto del catálogo mapeado para la card de la landing lead
+export interface LeadCatalogProduct {
+  id: number;
+  name: string;
+  brand: string;
+  brandLogo?: string;
+  type: 'laptop' | 'tablet' | 'celular' | string;
+  specs: {
+    processor?: string;
+    ram?: number;
+    storage?: number;
+    storage_type?: string;
+    screen_size?: number;
+  };
+  slug: string;
+  thumbnail_url: string | null;
+  monthly_price: number;
+  term_months: number;
+  final_price: number;
+  list_price: number;
+}

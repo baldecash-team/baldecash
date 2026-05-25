@@ -155,7 +155,16 @@ export type EventType =
   | 'error'
   // Phase 11: Confirmation page
   | 'application_submitted'
-  | 'confirmation_cta_click';
+  | 'confirmation_cta_click'
+  // Phase 12: Lead landing
+  | 'lead_form_start'
+  | 'lead_form_field_complete'
+  | 'lead_form_submit'
+  | 'lead_form_success'
+  | 'lead_form_error'
+  | 'lead_products_filter'
+  | 'lead_products_scroll'
+  | 'lead_banner_slide_change';
 
 /** Properties that are BLOCKED for privacy reasons */
 const BLOCKED_PROPERTIES = new Set([

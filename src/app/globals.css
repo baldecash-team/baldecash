@@ -220,6 +220,16 @@ html[data-bc-theme="light"] .gamer-theme-bg {
   animation: slide-left 0.3s ease-out;
 }
 
+/* Lead landing marquee */
+@keyframes lead-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.lead-marquee {
+  animation: lead-marquee linear infinite;
+}
+
 /* Hide scrollbar utility */
 .scrollbar-hide {
   -ms-overflow-style: none;
@@ -324,4 +334,19 @@ select:focus-visible {
 
 .pac-matched {
   font-weight: 600 !important;
+}
+
+@keyframes lead-form-shake {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  15%       { transform: rotate(-1.5deg) scale(1.01); }
+  30%       { transform: rotate(1.5deg) scale(1.01); }
+  45%       { transform: rotate(-1deg) scale(1.005); }
+  60%       { transform: rotate(1deg) scale(1.005); }
+  75%       { transform: rotate(-0.5deg) scale(1); }
+  90%       { transform: rotate(0.5deg) scale(1); }
+}
+
+.lead-form-shake {
+  animation: lead-form-shake 0.6s ease-in-out;
+  transform-origin: center;
 }

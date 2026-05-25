@@ -57,6 +57,9 @@ import { useOnboarding } from './hooks/useOnboarding';
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
+// Lead guard
+import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
+
 // Layout context for shared data
 import { useLayout } from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
@@ -295,6 +298,11 @@ function CatalogoContent() {
   const searchParams = useSearchParams();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  // Lead guard — bloquea acceso si es landing tipo lead y no llenó el form
+  // DEBE ir antes de cualquier otro hook para cumplir reglas de hooks
+  const hasLeadAccess = useLeadGuard(landing);
+
   const isMobile = useIsMobile();
   const {
     setSelectedProduct,
@@ -1558,6 +1566,9 @@ function CatalogoContent() {
   }, [compareList.length, tracker]);
 
   // compareProducts is now a state loaded from API via useEffect (see above)
+
+  // Lead guard — redirige si no tiene acceso (landing tipo lead sin form llenado)
+  if (!hasLeadAccess) return <LoadingFallback />;
 
   // Show loading only while page preloads or layout data is loading
   // NOTE: isProductsLoading is NOT included here - when filters change,

@@ -8,6 +8,7 @@
 
 import React, { Suspense, useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 import { AnimatePresence } from 'framer-motion';
 import { AlertCircle, Edit2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
@@ -84,6 +85,9 @@ function StepContent() {
   const params = useParams();
   const landing = (params.landing as string) || 'home';
   const stepSlug = params.stepSlug as string;
+
+  // Lead guard
+  const hasLeadAccess = useLeadGuard(landing);
 
   // Scroll to top on page load
   useScrollToTop();
@@ -567,6 +571,9 @@ function StepContent() {
   const navigateToStep = (stepPath: string) => {
     router.push(routes.solicitarStep(landing, stepPath));
   };
+
+  // Lead guard
+  if (!hasLeadAccess) return <LoadingFallback />;
 
   // Loading state (include flow config loading and availability check)
   if (isLayoutLoading || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {

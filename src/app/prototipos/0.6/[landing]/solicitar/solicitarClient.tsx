@@ -7,6 +7,7 @@
 
 import React, { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 import { FileText, Clock, Shield, ArrowRight, ArrowLeft, Check, ShoppingCart, AlertTriangle, X } from 'lucide-react';
 import { TermSelect, getTermUnit } from './components/solicitar/product/TermSelect';
 import { useProduct } from './context/ProductContext';
@@ -96,6 +97,9 @@ function WizardPreviewContent() {
   const router = useRouter();
   const params = useParams();
   const landing = (params.landing as string) || 'home';
+
+  // Lead guard — redirige al form si no tiene lead_id
+  const hasLeadAccess = useLeadGuard(landing);
 
   // Scroll to top on page load
   useScrollToTop();
@@ -782,6 +786,9 @@ function WizardPreviewContent() {
       </div>
     </div>
   );
+
+  // Lead guard — show loading while verifying access
+  if (!hasLeadAccess) return <LoadingFallback />;
 
   // Show loading while checking hydration, layout loading, config loading, availability check, or if no product selected (redirect will happen)
   if (!isHydrated || !selectedProduct || isLayoutLoading || isConfigLoading || isFlowConfigLoading || isValidatingAvailability) {

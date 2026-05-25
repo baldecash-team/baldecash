@@ -12,6 +12,9 @@ import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 
+// Lead guard
+import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
+
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
@@ -55,6 +58,9 @@ function ProductDetailContent() {
   const slugArray = params.slug as string[];
   const slug = slugArray?.[0] || '';
   const landing = (params.landing as string) || 'home';
+
+  // Lead guard — DEBE ir antes de otros hooks (no puede haber return antes de hooks)
+  const hasLeadAccess = useLeadGuard(landing);
 
   // Get layout data from context (fetched once at [landing] level)
   const { navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, settings } = useLayout();
@@ -280,6 +286,9 @@ function ProductDetailContent() {
     }, 300);
     return () => clearTimeout(timer);
   }, []);
+
+  // Lead guard — redirige si no tiene acceso (landing tipo lead sin form llenado)
+  if (!hasLeadAccess) return <LoadingFallback />;
 
   // Show loading while page preloads, layout data or API data is loading
   if (isPageLoading || isLayoutLoading || isApiLoading) {

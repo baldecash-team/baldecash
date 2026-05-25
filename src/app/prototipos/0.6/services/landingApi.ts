@@ -22,6 +22,7 @@ import type {
   BenefitItem,
   AgreementData,
   CtaQuickLink,
+  LeadProductsConfig,
 } from '../types/hero';
 
 import { getVipToken, clearVipData } from '../components/hero/DniModal';
@@ -116,6 +117,7 @@ interface LandingResponse {
     logo_url: string;
   };
   features?: Record<string, unknown>;
+  landing_type?: string;
 }
 
 interface HomeComponentResponse {
@@ -491,6 +493,7 @@ export function transformLandingData(data: LandingHeroResponse): {
   agreementData: AgreementData | null;
   primaryColor: string;
   secondaryColor: string;
+  leadProductsConfig?: LeadProductsConfig | null;
 } {
   const components = data.components || [];
 
@@ -567,6 +570,13 @@ export function transformLandingData(data: LandingHeroResponse): {
   }
   if (benefitsComponent && visibleNavbarSections.includes('beneficios')) {
     activeSections.push('beneficios');
+  }
+  // Para landing lead: secciones propias (hero, productos) que no tienen componente mapeado
+  // se incluyen directamente si están en el navbar
+  for (const section of ['hero', 'productos'] as const) {
+    if (visibleNavbarSections.includes(section) && !activeSections.includes(section)) {
+      activeSections.push(section);
+    }
   }
 
   // Flag para CTA
@@ -915,6 +925,41 @@ export function transformLandingData(data: LandingHeroResponse): {
     };
   }
 
+  // Extract landing_type
+  const landingType: string | undefined = data.landing.landing_type || undefined;
+
+  // Extract full banner_images array (for lead landing carousel)
+  const bannerImages: import('../types/hero').BannerImage[] = (data.landing.banner_images || []).map((img) => ({
+    url: img.url,
+    mobile_url: img.mobile_url || undefined,
+    alt: img.alt || undefined,
+    position_x: img.position_x ?? undefined,
+    position_y: img.position_y ?? undefined,
+    zoom: img.zoom ?? undefined,
+    mobile_position_x: img.mobile_position_x ?? undefined,
+    mobile_position_y: img.mobile_position_y ?? undefined,
+    mobile_zoom: img.mobile_zoom ?? undefined,
+  }));
+
+  // Extract lead form config from hero component (for lead landings)
+  const heroContentConfig = (heroComponent?.content_config || {}) as Record<string, unknown>;
+  const rawLeadForm = heroContentConfig.lead_form as Record<string, unknown> | null | undefined;
+  const leadFormConfig: import('../types/hero').LeadFormConfig | null = rawLeadForm ? {
+    title_count: (rawLeadForm.title_count as number) ?? 0,
+    title: (rawLeadForm.title as string) ?? '',
+    description: (rawLeadForm.description as string) ?? '',
+    cta_text: (rawLeadForm.cta_text as string) ?? '',
+  } : null;
+
+  // Extract lead products config from lead_products component (for lead landings)
+  const leadProductsComponent = components.find(c => c.component_code === 'lead_products');
+  const rawLeadProducts = (leadProductsComponent?.content_config || {}) as Record<string, unknown>;
+  const leadProductsConfig: LeadProductsConfig | null = leadProductsComponent ? {
+    title: (rawLeadProducts.title as string) ?? '',
+    subtitle: (rawLeadProducts.subtitle as string) ?? '',
+    product_ids: ((rawLeadProducts.product_ids as number[]) || []),
+  } : null;
+
   // Extract agreement data (for convenio landings)
   const landingData = data.landing as unknown as Record<string, unknown>;
   const agreementRaw = landingData.agreement as Record<string, unknown> | null | undefined;
@@ -961,6 +1006,10 @@ export function transformLandingData(data: LandingHeroResponse): {
     footerData,
     benefitsData,
     agreementData,
+    landingType,
+    bannerImages,
+    leadFormConfig,
+    leadProductsConfig,
     primaryColor: data.landing.primary_color || '#4654CD',
     secondaryColor: data.landing.secondary_color || '#03DBD0',
   };

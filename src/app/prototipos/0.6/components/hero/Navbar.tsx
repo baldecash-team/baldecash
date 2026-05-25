@@ -69,8 +69,8 @@ const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string)
   // Normalize paths by removing trailing slash for comparison
   const normalizePath = (path: string) => path.replace(/\/$/, '');
 
-  // Only do smooth scroll if we're on the exact target page (landing home)
-  const isOnTargetPage = pathBeforeAnchor && normalizePath(currentPath) === normalizePath(pathBeforeAnchor);
+  // Scroll if we're on the target page, or if href is anchor-only (no path prefix)
+  const isOnTargetPage = !pathBeforeAnchor || normalizePath(currentPath) === normalizePath(pathBeforeAnchor);
 
   if (isOnTargetPage) {
     e.preventDefault();
@@ -125,6 +125,8 @@ interface NavbarProps {
   institutionName?: string;
   /** Primary brand color hex for contrast calculations */
   primaryColor?: string;
+  /** If provided, intercepts clicks on catalog links instead of navigating */
+  onCatalogClick?: () => void;
 }
 
 // Map de iconos para megamenu (sincronizado con admin MEGAMENU_ICONS)
@@ -154,7 +156,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   ArrowRight,
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor }) => {
+export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWidth = false, minimal = false, logoOnly = false, rightContent, mobileRightContent, activeSections = [], promoBannerData, logoUrl, logoClassName, customerPortalUrl, portalButtonText, navbarItems = [], megamenuItems = [], landing = 'home', previewBannerOffset: previewBannerOffsetProp, institutionLogo, institutionName, primaryColor, onCatalogClick }) => {
   // Auto-detect preview banner offset based on whether THIS landing is being previewed
   const { isPreviewingLanding } = usePreview();
   const isThisLandingPreviewed = isPreviewingLanding(landing);
@@ -276,7 +278,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
         className="fixed left-0 right-0 z-50 bg-white shadow-sm"
         style={{ top: previewBannerOffset }}
       >
-        <div className={fullWidth ? "px-4 lg:px-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
+        <div className={fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3" aria-label="BaldeCash">
               {logoUrl && (
@@ -327,9 +329,15 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
             <span className="pr-8 sm:pr-0">
               {promoBannerData.highlight && <strong>{promoBannerData.highlight}</strong>} {promoBannerData.text}
               {promoBannerData.ctaText && promoBannerData.ctaUrl && (
-                <a href={transformLink(promoBannerData.ctaUrl)} className="underline font-semibold ml-2 hover:no-underline">
-                  {promoBannerData.ctaText}
-                </a>
+                onCatalogClick && promoBannerData.ctaUrl && (promoBannerData.ctaUrl === 'catalogo' || promoBannerData.ctaUrl.includes('catalogo')) ? (
+                  <button onClick={onCatalogClick} className="underline font-semibold ml-2 hover:no-underline bg-transparent border-0 p-0 cursor-pointer">
+                    {promoBannerData.ctaText}
+                  </button>
+                ) : (
+                  <a href={transformLink(promoBannerData.ctaUrl)} className="underline font-semibold ml-2 hover:no-underline">
+                    {promoBannerData.ctaText}
+                  </a>
+                )
               )}
             </span>
             {promoBannerData.dismissible !== false && (
@@ -364,7 +372,7 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
         className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
         style={{ top: showPromo && !hidePromoBanner && hasPromoBannerContent ? (promoBannerHeight + previewBannerOffset) : previewBannerOffset }}
       >
-        <div className={fullWidth ? "px-4 lg:px-6" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
+        <div className={fullWidth ? "px-6 lg:px-10" : "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"}>
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <a href={heroUrl} className="flex items-center gap-3">
@@ -644,7 +652,6 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                         {...(isExternalLink(item.href) && { target: '_blank', rel: 'noopener noreferrer' })}
                         onClick={(e) => {
                           tracker?.track('nav_click', { label: item.label, href: item.href, location: 'mobile' });
-                          // External links don't need special handling
                           if (isExternalLink(item.href)) {
                             setIsMenuOpen(false);
                             return;
@@ -654,16 +661,19 @@ export const Navbar: React.FC<NavbarProps> = ({ hidePromoBanner = false, fullWid
                             const anchor = item.href.substring(hashIndex);
                             const pathBeforeAnchor = item.href.substring(0, hashIndex);
                             const currentPath = window.location.pathname;
-
-                            // Normalize paths by removing trailing slash
                             const normalizePath = (path: string) => path.replace(/\/$/, '');
-                            const isOnTargetPage = pathBeforeAnchor && normalizePath(currentPath) === normalizePath(pathBeforeAnchor);
-
+                            const isOnTargetPage = !pathBeforeAnchor || normalizePath(currentPath) === normalizePath(pathBeforeAnchor);
                             if (isOnTargetPage) {
                               e.preventDefault();
                               setIsMenuOpen(false);
                               setTimeout(() => {
-                                const element = document.querySelector(anchor);
+                                const sectionId = anchor.substring(1);
+                                // Find all elements matching by id or data-section, pick the visible one
+                                const candidates = [
+                                  ...Array.from(document.querySelectorAll(`[data-section="${sectionId}"]`)),
+                                  ...Array.from(document.querySelectorAll(anchor)),
+                                ];
+                                const element = candidates.find(el => (el as HTMLElement).offsetParent !== null) || candidates[0];
                                 if (element) {
                                   element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                                 }

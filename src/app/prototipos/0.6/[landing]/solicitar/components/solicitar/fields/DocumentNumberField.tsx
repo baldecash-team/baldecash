@@ -62,6 +62,15 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     setLockedByModal(true);
   }, []);
 
+  // Pre-fill + lock DNI from lead form capture
+  useEffect(() => {
+    const leadDni = localStorage.getItem(`baldecash-${landing}-wizard-field-document_number`);
+    if (!leadDni) return;
+    const current = getFieldValue(field.code) as string;
+    if (!current) updateField(field.code, leadDni);
+    setLockedByModal(true);
+  }, []);
+
   // Get prefill config from field configuration
   const prefillConfig = field.prefill_config;
 

@@ -25,8 +25,11 @@ interface PreviewBannerProps {
 }
 
 export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName, stepName, showCloseButton = true }: PreviewBannerProps) {
-  const { isPreviewMode, landingId: contextLandingId, slug: contextSlug, clearPreviewMode, isPreviewingLanding } = usePreview();
+  const { isPreviewMode, isHydrated, slug: contextSlug, clearPreviewMode, isPreviewingLanding } = usePreview();
   const pathname = usePathname();
+
+  // Wait for sessionStorage to be read before deciding visibility (avoids hydration mismatch)
+  if (!isHydrated) return null;
 
   // For admin preview pages that pass landingId directly, always show the banner
   // For regular pages with landingSlug, only show if that specific landing is being previewed
@@ -77,8 +80,8 @@ export function PreviewBanner({ landingSlug, landingId: propLandingId, pageName,
  * Hook to get preview banner offset for layout adjustments
  */
 export function usePreviewBannerOffset(): number {
-  const { isPreviewMode } = usePreview();
-  return isPreviewMode ? 24 : 0; // Banner height is 24px
+  const { isPreviewMode, isHydrated } = usePreview();
+  return isHydrated && isPreviewMode ? 24 : 0; // Banner height is 24px
 }
 
 export default PreviewBanner;

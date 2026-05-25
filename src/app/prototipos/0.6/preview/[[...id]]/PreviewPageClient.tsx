@@ -14,10 +14,13 @@ import { usePreview } from '../../context/PreviewContext';
 import { NotFoundContent } from '../../components/NotFoundContent';
 import { PreviewBanner } from '../../components/PreviewBanner';
 import MacBookNeoLanding from '../../components/product-landing/MacBookNeoLanding';
+import { LeadLanding } from '../../components/lead/LeadLanding';
+import { SessionProvider } from '../../[landing]/solicitar/context/SessionContext';
+import { EventTrackerProvider } from '../../[landing]/solicitar/context/EventTrackerContext';
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
-import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData } from '../../types/hero';
+import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData, BannerImage, LeadFormConfig, LeadProductsConfig } from '../../types/hero';
 
 function LoadingFallback() {
   return (
@@ -55,6 +58,10 @@ interface HeroData {
   primaryColor?: string;
   secondaryColor?: string;
   slug?: string;
+  landingType?: string;
+  bannerImages?: BannerImage[];
+  leadFormConfig?: LeadFormConfig | null;
+  leadProductsConfig?: LeadProductsConfig | null;
 }
 
 function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
@@ -314,6 +321,50 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
 
   if (error || !heroData || !isValidId) {
     return <NotFoundContent homeUrl={routes.home()} />;
+  }
+
+  // Lead landing: formulario de captura + sección productos
+  if (heroData.landingType === 'lead') {
+    return (
+      <SessionProvider landingId={heroData.landingId} landing={landingSlug}>
+        <EventTrackerProvider landingId={heroData.landingId} landing={landingSlug}>
+          <div
+            style={{
+              '--color-primary': heroData.primaryColor || '#4654CD',
+              '--color-secondary': heroData.secondaryColor || '#03DBD0',
+            } as React.CSSProperties}
+          >
+            <PreviewBanner landingSlug={landingSlug} landingId={heroData.landingId} />
+            <LeadLanding
+              landingId={heroData.landingId}
+              heroContent={mergedHeroContent}
+              socialProof={mergedSocialProof}
+              howItWorksData={mergedHowItWorks}
+              faqData={mergedFaq}
+              ctaData={mergedCta}
+              promoBannerData={heroData.promoBannerData}
+              footerData={mergedFooterData}
+              benefitsData={heroData.benefitsData}
+              testimonials={heroData.testimonials}
+              navbarItems={mergedNavbarItems}
+              megamenuItems={heroData.megamenuItems}
+              activeSections={heroData.activeSections}
+              hasCta={heroData.hasCta}
+              logoUrl={heroData.logoUrl}
+              customerPortalUrl={heroData.customerPortalUrl}
+              portalButtonText={heroData.portalButtonText}
+              bannerImages={heroData.bannerImages || []}
+              leadFormConfig={heroData.leadFormConfig || null}
+              leadProductsConfig={heroData.leadProductsConfig || null}
+              landing={landingSlug}
+              previewBannerOffset={24}
+              primaryColor={heroData.primaryColor}
+              secondaryColor={heroData.secondaryColor}
+            />
+          </div>
+        </EventTrackerProvider>
+      </SessionProvider>
+    );
   }
 
   // MacBook Neo (ID 150) has its own specialized landing component.

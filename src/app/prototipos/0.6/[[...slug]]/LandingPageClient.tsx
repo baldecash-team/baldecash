@@ -30,6 +30,8 @@ import { FloatingCtaButton } from '../components/FloatingCtaButton';
 // Product landing pages (imported directly for instant render)
 import MacBookNeoLanding from '../components/product-landing/MacBookNeoLanding';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
+import { LeadLanding } from '../components/lead/LeadLanding';
+import type { BannerImage, LeadFormConfig, LeadProductsConfig } from '../types/hero';
 
 interface LandingPageClientProps {
   slug: string;
@@ -59,6 +61,10 @@ interface HeroData {
   footerData: FooterData | null;
   benefitsData: BenefitsData | null;
   agreementData: AgreementData | null;
+  landingType?: string;
+  bannerImages?: BannerImage[];
+  leadFormConfig?: LeadFormConfig | null;
+  leadProductsConfig?: LeadProductsConfig | null;
   primaryColor?: string;
   secondaryColor?: string;
 }
@@ -390,6 +396,62 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
   // Uses slug here (not landingId) because it renders before any API fetch
   if (slug === 'zona-gamer') {
     return <ZonaGamerLanding />;
+  }
+
+  // Lead landing: formulario de captura + sección productos + secciones estándar
+  console.log('[LeadLanding DEBUG]', {
+    slug,
+    landingType: heroData?.landingType,
+    landingId: heroData?.landingId,
+    heroContent: heroData ? {
+      headline: mergedHeroContent?.headline,
+      subheadline: mergedHeroContent?.subheadline,
+      backgroundImage: mergedHeroContent?.backgroundImage,
+      badgeText: mergedHeroContent?.badgeText,
+    } : null,
+    bannerImages: heroData?.bannerImages,
+    leadFormConfig: heroData?.leadFormConfig,
+    leadProductsConfig: heroData?.leadProductsConfig,
+    primaryColor: heroData?.primaryColor,
+    activeSections: heroData?.activeSections,
+  });
+  if (heroData?.landingType === 'lead') {
+    return (
+      <div
+        style={{
+          '--color-primary': heroData.primaryColor || '#4654CD',
+          '--color-secondary': heroData.secondaryColor || '#03DBD0',
+        } as React.CSSProperties}
+      >
+        {showPreviewBanner && <PreviewBanner landingSlug={slug} />}
+        <LeadLanding
+          landingId={heroData.landingId}
+          heroContent={mergedHeroContent}
+          socialProof={mergedSocialProof}
+          howItWorksData={mergedHowItWorks}
+          faqData={mergedFaq}
+          ctaData={mergedCta}
+          promoBannerData={heroData.promoBannerData}
+          footerData={mergedFooterData}
+          benefitsData={heroData.benefitsData}
+          testimonials={heroData.testimonials}
+          navbarItems={mergedNavbarItems}
+          megamenuItems={heroData.megamenuItems}
+          activeSections={heroData.activeSections}
+          hasCta={heroData.hasCta}
+          logoUrl={heroData.logoUrl}
+          customerPortalUrl={heroData.customerPortalUrl}
+          portalButtonText={heroData.portalButtonText}
+          bannerImages={heroData.bannerImages || []}
+          leadFormConfig={heroData.leadFormConfig || null}
+          leadProductsConfig={heroData.leadProductsConfig || null}
+          landing={slug}
+          previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0}
+          primaryColor={heroData.primaryColor}
+          secondaryColor={heroData.secondaryColor}
+        />
+      </div>
+    );
   }
 
   // MacBook Neo has its own specialized landing component.

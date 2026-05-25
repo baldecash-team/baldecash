@@ -42,9 +42,10 @@ interface FooterProps {
   data?: FooterData | null;
   landing?: string;
   agreementData?: AgreementData | null;
+  onCatalogClick?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData }) => {
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, onCatalogClick }) => {
   const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
 
@@ -332,18 +333,29 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
               <h4 className="font-semibold text-sm uppercase tracking-wider mb-4">{column.title}</h4>
               <ul className="space-y-2">
                 {column.links.map((link) => {
-                  const href = transformLink(link.href || '#');
+                  const rawHref = link.href || '#';
+                  const isCatalogLink = rawHref === 'catalogo' || rawHref.startsWith('catalogo');
+                  const href = transformLink(rawHref);
                   const isInternalLink = href.startsWith('/') || href.startsWith('#');
                   return (
                     <li key={link.label}>
-                      <a
-                        href={href}
-                        className="text-sm text-neutral-400 hover:text-white transition-colors"
-                        onClick={() => tracker?.track('nav_click', { label: link.label, href, location: 'footer' })}
-                        {...(!isInternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                      >
-                        {link.label}
-                      </a>
+                      {onCatalogClick && isCatalogLink ? (
+                        <button
+                          onClick={() => { tracker?.track('nav_click', { label: link.label, href, location: 'footer' }); onCatalogClick(); }}
+                          className="text-sm text-neutral-400 hover:text-white transition-colors bg-transparent border-0 p-0 cursor-pointer text-left"
+                        >
+                          {link.label}
+                        </button>
+                      ) : (
+                        <a
+                          href={href}
+                          className="text-sm text-neutral-400 hover:text-white transition-colors"
+                          onClick={() => tracker?.track('nav_click', { label: link.label, href, location: 'footer' })}
+                          {...(!isInternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                        >
+                          {link.label}
+                        </a>
+                      )}
                     </li>
                   );
                 })}

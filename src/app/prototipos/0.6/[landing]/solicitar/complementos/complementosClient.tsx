@@ -9,6 +9,7 @@
 
 import React, { Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
 import { motion } from 'framer-motion';
 import { Button } from '@nextui-org/react';
 import { Loader2, Shield, Package } from 'lucide-react';
@@ -42,6 +43,9 @@ function ComplementosContent() {
   const landing = (params.landing as string) || 'home';
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
+
+  // Lead guard
+  const hasLeadAccess = useLeadGuard(landing);
 
   // Scroll to top on page load
   useScrollToTop();
@@ -395,6 +399,9 @@ function ComplementosContent() {
       </GamerComplementosWrapper>
     );
   }
+
+  // Lead guard
+  if (!hasLeadAccess) return <LoadingFallback />;
 
   // Show loading while data is loading
   if (isLayoutLoading || isFlowConfigLoading || isValidatingAvailability) {
