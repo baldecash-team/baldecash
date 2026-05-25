@@ -691,6 +691,12 @@ function VipGate({ landing, children }: { landing: string; children: React.React
 
   useEffect(() => {
     fetchLandingConfig(landing).then((cfg) => {
+      // Admin preview bypasses all access checks — no redirect, no block
+      if (preview.isPreviewingLanding(landing)) {
+        setStatus('allowed');
+        return;
+      }
+
       const hasWhitelist = cfg.features.has_dni_whitelist;
       const vipCountdown = cfg.features.vip_countdown;
 
@@ -749,7 +755,7 @@ function VipGate({ landing, children }: { landing: string; children: React.React
 
       setStatus('allowed');
     });
-  }, [landing, router]);
+  }, [landing, router, preview]);
 
   const handleDismiss = () => {
     setShowWelcome(false);
