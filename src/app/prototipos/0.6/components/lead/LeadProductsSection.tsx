@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ChevronRight as ArrowRight } from 'lucide-react';
 import { useEventTrackerOptional } from '../../[landing]/solicitar/context/EventTrackerContext';
+import type { EventType } from '../../services/eventsApi';
 import type { LeadProductsConfig, LeadCatalogProduct } from '../../types/hero';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
@@ -63,7 +64,7 @@ function OfertaCard({
   landing: string;
   onCtaClick?: () => void;
   secondaryColor?: string;
-  tracker?: { track: (event: string, props?: Record<string, unknown>) => void } | null;
+  tracker?: { track: (event: EventType, props?: Record<string, unknown>) => void } | null;
 }) {
   const [imgError, setImgError] = useState(false);
 
