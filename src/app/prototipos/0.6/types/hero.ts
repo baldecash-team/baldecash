@@ -491,6 +491,7 @@ export interface LeadCatalogProduct {
     screen_size?: number;
   };
   slug: string;
+  image_url: string | null;
   thumbnail_url: string | null;
   monthly_price: number;
   term_months: number;

@@ -166,9 +166,9 @@ function OfertaCard({
 
           {/* ── Imagen derecha ── */}
           <div className="w-28 sm:w-32 flex-shrink-0 flex items-center justify-center self-stretch">
-            {product.thumbnail_url && !imgError ? (
+            {(product.image_url || product.thumbnail_url) && !imgError ? (
               <img
-                src={product.thumbnail_url}
+                src={(product.image_url || product.thumbnail_url)!}
                 alt={product.name}
                 className="w-full h-36 object-contain drop-shadow-md"
                 loading="lazy"
@@ -288,6 +288,7 @@ export const LeadProductsSection: React.FC<LeadProductsSectionProps> = ({
             type: p.type,
             specs: p.specs || {},
             slug: p.slug,
+            image_url: (p.images && p.images.length > 0 ? p.images[0] : null),
             thumbnail_url: p.thumbnail_url || null,
             monthly_price: p.pricing?.hook?.monthly_price || 0,
             term_months: p.pricing?.hook?.term_months || 0,
