@@ -90,15 +90,16 @@ function OfertaCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 40 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.12, ease: 'easeOut' }}
-      className="relative"
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      className="relative h-full"
     >
       <div
-        className="bg-white rounded-[24px] p-5 sm:p-6 cursor-pointer h-full flex flex-col"
+        className="bg-white rounded-[24px] p-5 sm:p-6 cursor-pointer h-full flex flex-col transition-shadow duration-200"
         style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}
+        onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 16px 56px rgba(0,0,0,0.28)')}
+        onMouseLeave={e => (e.currentTarget.style.boxShadow = '0 8px 40px rgba(0,0,0,0.18)')}
       >
         {/* Header: badge tipo + badge ahorro */}
         <div className="flex items-center justify-between mb-3">
@@ -151,17 +152,6 @@ function OfertaCard({
               </span>
             </div>
 
-            {/* Precios */}
-            <div className="flex flex-col gap-0.5 mt-2">
-              <p className="text-[11px] text-gray-400 font-['Asap',_sans-serif]">
-                Precio BaldeCash: <span className="font-semibold text-gray-600">S/{product.final_price.toLocaleString('es-PE')}</span>
-              </p>
-              {product.list_price > product.final_price && (
-                <p className="text-[11px] text-gray-300 line-through font-['Asap',_sans-serif]">
-                  Precio regular: S/{product.list_price.toLocaleString('es-PE')}
-                </p>
-              )}
-            </div>
           </div>
 
           {/* ── Imagen derecha ── */}
@@ -498,20 +488,21 @@ export const LeadProductsSection: React.FC<LeadProductsSectionProps> = ({
         {/* DESKTOP: carousel horizontal con flechas */}
         {productIds.length > 0 && !isLoading && filtered.length > 0 && (
           <div className="relative hidden lg:block">
-            {/* Flecha izquierda */}
-            <button
-              onClick={() => handleArrow('left')}
-              disabled={currentIndex === 0}
-              className="absolute -left-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white disabled:opacity-20 transition-all cursor-pointer"
-              aria-label="Anterior"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            {/* Flechas — posicionadas fuera del track, relativas al wrapper de sección */}
+            {currentIndex > 0 && (
+              <button
+                onClick={() => handleArrow('left')}
+                className="absolute -left-8 top-1/2 -translate-y-1/2 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-all cursor-pointer"
+                aria-label="Anterior"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
 
-            {/* Track */}
-            <div className="overflow-hidden">
+            {/* Track — mx/px negativo para dar espacio a las sombras de las cards */}
+            <div className="overflow-hidden -mx-4 px-4">
               <div
-                className="grid gap-6 transition-transform duration-350 ease-in-out"
+                className="grid gap-6 py-4 transition-transform duration-300 ease-in-out"
                 style={{
                   gridTemplateColumns: `repeat(${filtered.length}, calc(50% - 0.75rem))`,
                   transform: filtered.length > 1 ? `translateX(calc(-${currentIndex} * (50% - 0.375rem + 0.75rem)))` : 'none',
@@ -523,21 +514,21 @@ export const LeadProductsSection: React.FC<LeadProductsSectionProps> = ({
               </div>
             </div>
 
-            {/* Flecha derecha */}
-            <button
-              onClick={() => handleArrow('right')}
-              disabled={currentIndex >= maxIndex}
-              className="absolute -right-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white disabled:opacity-20 transition-all cursor-pointer"
-              aria-label="Siguiente"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            {currentIndex < maxIndex && (
+              <button
+                onClick={() => handleArrow('right')}
+                className="absolute -right-8 top-1/2 -translate-y-1/2 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-all cursor-pointer"
+                aria-label="Siguiente"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            )}
           </div>
         )}
 
-        {/* Dots — solo desktop y solo si hay más de 2 cards */}
-        {productIds.length > 0 && !isLoading && maxIndex > 0 && filtered.length > 2 && (
-          <div className="hidden lg:flex justify-center gap-2 mt-8">
+        {/* Dots desktop — siempre que haya más de 1 página */}
+        {productIds.length > 0 && !isLoading && maxIndex > 0 && (
+          <div className="hidden lg:flex justify-center gap-2 mt-4">
             {Array.from({ length: maxIndex + 1 }).map((_, i) => (
               <button
                 key={i}
