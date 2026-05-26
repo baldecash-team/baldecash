@@ -201,29 +201,29 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           onBlur={() => handleBlur('document_number', form.document_number)}
         />
 
-        {/* Nombre + Apellido */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <TextInput
-            id="lead-nombre"
-            label="Nombre"
-            placeholder="Tus nombres"
-            value={form.first_name}
-            compact
-            error={errors.first_name}
-            onChange={(v) => handleChange('first_name', v)}
-            onBlur={() => handleBlur('first_name', form.first_name)}
-          />
-          <TextInput
-            id="lead-apellido"
-            label="Apellido"
-            placeholder="Tus apellidos"
-            value={form.last_name}
-            compact
-            error={errors.last_name}
-            onChange={(v) => handleChange('last_name', v)}
-            onBlur={() => handleBlur('last_name', form.last_name)}
-          />
-        </div>
+        {/* Nombre */}
+        <TextInput
+          id="lead-nombre"
+          label="Nombre"
+          placeholder="Tus nombres"
+          value={form.first_name}
+          compact
+          error={errors.first_name}
+          onChange={(v) => handleChange('first_name', v)}
+          onBlur={() => handleBlur('first_name', form.first_name)}
+        />
+
+        {/* Apellido */}
+        <TextInput
+          id="lead-apellido"
+          label="Apellido"
+          placeholder="Tus apellidos"
+          value={form.last_name}
+          compact
+          error={errors.last_name}
+          onChange={(v) => handleChange('last_name', v)}
+          onBlur={() => handleBlur('last_name', form.last_name)}
+        />
 
         {/* Celular */}
         <TextInput
