@@ -55,11 +55,15 @@ function OfertaCard({
   index,
   landing,
   onCtaClick,
+  secondaryColor = '#03DBD0',
+  tracker,
 }: {
   product: LeadCatalogProduct;
   index: number;
   landing: string;
   onCtaClick?: () => void;
+  secondaryColor?: string;
+  tracker?: { track: (event: string, props?: Record<string, unknown>) => void } | null;
 }) {
   const [imgError, setImgError] = useState(false);
 
@@ -75,6 +79,14 @@ function OfertaCard({
 
   const handleCta = (e: React.MouseEvent) => {
     e.stopPropagation();
+    tracker?.track('product_click', {
+      product_id: product.id,
+      product_name: product.name,
+      product_slug: product.slug,
+      product_type: product.type,
+      landing,
+      source: 'lead_products_cta',
+    });
     if (onCtaClick) {
       onCtaClick();
     } else {
@@ -110,7 +122,7 @@ function OfertaCard({
             {typeLabel}
           </span>
           {savings > 0 && (
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white font-['Asap',_sans-serif] bg-green-500">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white font-['Asap',_sans-serif]" style={{ backgroundColor: secondaryColor }}>
               Ahorras S/{savings.toLocaleString('es-PE')}
             </span>
           )}
@@ -122,16 +134,16 @@ function OfertaCard({
           {/* ── Columna izquierda ── */}
           <div className="flex-1 min-w-0 flex flex-col">
             {/* Nombre */}
-            <p className="text-base font-black text-gray-900 leading-tight mb-2 font-['Baloo_2',_sans-serif] line-clamp-2">
+            <p className="text-sm sm:text-base font-black text-gray-900 leading-tight mb-2 font-['Baloo_2',_sans-serif] line-clamp-2">
               {product.brand} {product.name}
             </p>
 
             {/* Specs con íconos */}
-            <div className="flex flex-col gap-1 mb-4">
+            <div className="flex flex-col gap-1 mb-3">
               {specs.slice(0, 3).map((s, i) => (
                 <div key={i} className="flex items-center gap-1.5">
                   {s.icon}
-                  <span className="text-[11px] text-gray-400 font-['Asap',_sans-serif]">{s.label}</span>
+                  <span className="text-[10px] sm:text-[11px] text-gray-400 font-['Asap',_sans-serif] whitespace-nowrap">{s.label}</span>
                 </div>
               ))}
             </div>
@@ -144,9 +156,9 @@ function OfertaCard({
               <span className="relative inline-block">
                 <span
                   className="absolute inset-0 rounded-sm -mx-1"
-                  style={{ backgroundColor: '#22c55e', top: '25%', bottom: '5%' }}
+                  style={{ backgroundColor: secondaryColor, top: '25%', bottom: '5%' }}
                 />
-                <span className="relative text-[2rem] font-black text-gray-900 leading-none font-['Baloo_2',_sans-serif] px-1">
+                <span className="relative text-[1.6rem] sm:text-[2rem] font-black text-gray-900 leading-none font-['Baloo_2',_sans-serif] px-1 whitespace-nowrap">
                   S/ {product.monthly_price.toFixed(0)}
                 </span>
               </span>
@@ -155,17 +167,17 @@ function OfertaCard({
           </div>
 
           {/* ── Imagen derecha ── */}
-          <div className="w-36 sm:w-44 flex-shrink-0 flex items-center justify-center self-stretch">
+          <div className="w-24 sm:w-36 lg:w-44 flex-shrink-0 flex items-center justify-center self-stretch">
             {(product.image_url || product.thumbnail_url) && !imgError ? (
               <img
                 src={(product.image_url || product.thumbnail_url)!}
                 alt={product.name}
-                className="w-full h-44 object-contain drop-shadow-md"
+                className="w-full h-32 sm:h-44 object-contain drop-shadow-md"
                 loading="lazy"
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="w-full h-44 rounded-xl bg-gray-100 flex items-center justify-center">
+              <div className="w-full h-32 sm:h-44 rounded-xl bg-gray-100 flex items-center justify-center">
                 <p className="text-xs font-bold text-gray-300 text-center leading-tight px-2">
                   {product.brand}
                 </p>
@@ -240,6 +252,7 @@ export const LeadProductsSection: React.FC<LeadProductsSectionProps> = ({
   onCtaClick,
   sectionId = 'productos',
   contained = false,
+  secondaryColor = '#03DBD0',
 }) => {
   const [products, setProducts] = useState<LeadCatalogProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -459,7 +472,7 @@ export const LeadProductsSection: React.FC<LeadProductsSectionProps> = ({
               >
                 {isInView && filtered.map((product, i) => (
                   <div key={product.id} className="w-full flex-shrink-0">
-                    <OfertaCard product={product} index={i} landing={landing} onCtaClick={onCtaClick} />
+                    <OfertaCard product={product} index={i} landing={landing} onCtaClick={onCtaClick} secondaryColor={secondaryColor} tracker={tracker} />
                   </div>
                 ))}
               </div>
@@ -470,7 +483,10 @@ export const LeadProductsSection: React.FC<LeadProductsSectionProps> = ({
                 {filtered.map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => goTo(i)}
+                    onClick={() => {
+                      goTo(i);
+                      tracker?.track('lead_products_scroll', { direction: 'dot', index: i, category: activeCategory });
+                    }}
                     className="rounded-full transition-all cursor-pointer"
                     style={{
                       width: i === currentIndex ? '24px' : '8px',
@@ -487,42 +503,42 @@ export const LeadProductsSection: React.FC<LeadProductsSectionProps> = ({
 
         {/* DESKTOP: carousel horizontal con flechas */}
         {productIds.length > 0 && !isLoading && filtered.length > 0 && (
-          <div className="relative hidden lg:block">
-            {/* Flechas — posicionadas fuera del track, relativas al wrapper de sección */}
-            {currentIndex > 0 && (
+          <div className="hidden lg:block">
+            {/* Flechas fuera del track, sin overflow-hidden que las corte */}
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => handleArrow('left')}
-                className="absolute -left-8 top-1/2 -translate-y-1/2 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-all cursor-pointer"
+                disabled={currentIndex === 0}
+                className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                 aria-label="Anterior"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-            )}
 
-            {/* Track — mx/px negativo para dar espacio a las sombras de las cards */}
-            <div className="overflow-hidden -mx-4 px-4">
-              <div
-                className="grid gap-6 py-4 transition-transform duration-300 ease-in-out"
-                style={{
-                  gridTemplateColumns: `repeat(${filtered.length}, calc(50% - 0.75rem))`,
-                  transform: filtered.length > 1 ? `translateX(calc(-${currentIndex} * (50% - 0.375rem + 0.75rem)))` : 'none',
-                }}
-              >
-                {isInView && filtered.map((product, i) => (
-                  <OfertaCard key={product.id} product={product} index={i} landing={landing} onCtaClick={onCtaClick} />
-                ))}
+              {/* Track */}
+              <div className="flex-1 overflow-hidden">
+                <div
+                  className="grid gap-6 py-4 transition-transform duration-300 ease-in-out"
+                  style={{
+                    gridTemplateColumns: `repeat(${filtered.length}, calc(50% - 0.75rem))`,
+                    transform: `translateX(calc(-${currentIndex} * (50% - 0.75rem + 1.5rem)))`,
+                  }}
+                >
+                  {isInView && filtered.map((product, i) => (
+                    <OfertaCard key={product.id} product={product} index={i} landing={landing} onCtaClick={onCtaClick} secondaryColor={secondaryColor} tracker={tracker} />
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {currentIndex < maxIndex && (
               <button
                 onClick={() => handleArrow('right')}
-                className="absolute -right-8 top-1/2 -translate-y-1/2 z-20 w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-all cursor-pointer"
+                disabled={currentIndex >= maxIndex}
+                className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                 aria-label="Siguiente"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
-            )}
+            </div>
           </div>
         )}
 
@@ -532,7 +548,10 @@ export const LeadProductsSection: React.FC<LeadProductsSectionProps> = ({
             {Array.from({ length: maxIndex + 1 }).map((_, i) => (
               <button
                 key={i}
-                onClick={() => goTo(i)}
+                onClick={() => {
+                  goTo(i);
+                  tracker?.track('lead_products_scroll', { direction: 'dot', index: i, category: activeCategory });
+                }}
                 className="rounded-full transition-all duration-200 cursor-pointer"
                 style={{
                   width: i === currentIndex ? '24px' : '8px',
