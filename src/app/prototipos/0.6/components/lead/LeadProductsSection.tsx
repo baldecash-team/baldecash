@@ -165,17 +165,17 @@ function OfertaCard({
           </div>
 
           {/* ── Imagen derecha ── */}
-          <div className="w-28 sm:w-32 flex-shrink-0 flex items-center justify-center self-stretch">
+          <div className="w-36 sm:w-44 flex-shrink-0 flex items-center justify-center self-stretch">
             {(product.image_url || product.thumbnail_url) && !imgError ? (
               <img
                 src={(product.image_url || product.thumbnail_url)!}
                 alt={product.name}
-                className="w-full h-36 object-contain drop-shadow-md"
+                className="w-full h-44 object-contain drop-shadow-md"
                 loading="lazy"
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="w-full h-36 rounded-xl bg-gray-100 flex items-center justify-center">
+              <div className="w-full h-44 rounded-xl bg-gray-100 flex items-center justify-center">
                 <p className="text-xs font-bold text-gray-300 text-center leading-tight px-2">
                   {product.brand}
                 </p>
