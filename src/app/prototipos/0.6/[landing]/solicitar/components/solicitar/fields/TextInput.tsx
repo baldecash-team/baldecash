@@ -33,6 +33,8 @@ interface TextInputProps {
   maxLength?: number;
   showCounter?: boolean;
   compact?: boolean;
+  /** Smaller height variant for tight layouts (h-9 instead of h-11) */
+  small?: boolean;
   inputMode?: 'text' | 'tel' | 'numeric' | 'email' | 'decimal' | 'search' | 'url' | 'none';
   /** Show loading spinner (e.g., while checking person data) */
   isLoading?: boolean;
@@ -66,6 +68,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   maxLength,
   showCounter = true,
   compact = false,
+  small = false,
   inputMode: inputModeProp,
   isLoading = false,
   startContent,
@@ -102,9 +105,9 @@ export const TextInput: React.FC<TextInputProps> = ({
   };
 
   return (
-    <div id={id} className="space-y-1.5">
+    <div id={id} className={small ? 'space-y-1' : 'space-y-1.5'}>
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+      <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
         {label}
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
@@ -118,8 +121,9 @@ export const TextInput: React.FC<TextInputProps> = ({
       {/* Input */}
       <div
         className={`
-          flex items-center gap-2 h-11 px-3
+          flex items-center gap-2 px-3
           rounded-lg border-2 transition-all duration-200 bg-white
+          ${small ? 'h-9' : 'h-11'}
           ${getBorderColor()}
           ${disabled ? 'opacity-50 bg-neutral-50' : ''}
         `}

@@ -48,6 +48,8 @@ interface SelectInputProps {
   searchPrompt?: string;
   /** Saved label from localStorage (for lazy-loaded fields after refresh) */
   savedLabel?: string;
+  /** Smaller height variant for tight layouts (h-9 instead of h-11) */
+  small?: boolean;
 }
 
 export const SelectInput: React.FC<SelectInputProps> = ({
@@ -71,6 +73,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   minSearchLength = 0,
   searchPrompt,
   savedLabel,
+  small = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,9 +127,9 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   };
 
   return (
-    <div id={id} className="space-y-1.5">
+    <div id={id} className={small ? 'space-y-1' : 'space-y-1.5'}>
       {/* Label */}
-      <label className="flex items-center gap-1.5 text-sm font-medium text-neutral-700">
+      <label className={`flex items-center gap-1.5 font-medium text-neutral-700 ${small ? 'text-xs' : 'text-sm'}`}>
         {label}
         {!required && <span className="text-neutral-400 text-xs">(Opcional)</span>}
         {tooltip && <FieldTooltip tooltip={tooltip} />}
@@ -164,8 +167,9 @@ export const SelectInput: React.FC<SelectInputProps> = ({
             }
           }}
           className={`
-            w-full h-11 px-3 flex items-center justify-between gap-2
+            w-full px-3 flex items-center justify-between gap-2
             rounded-lg border-2 transition-all cursor-pointer text-left
+            ${small ? 'h-9' : 'h-11'}
             ${getBorderColor()}
             ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
           `}

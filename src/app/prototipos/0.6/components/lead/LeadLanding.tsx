@@ -274,15 +274,15 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
             {/* Columna derecha 30% — formulario sticky */}
             <div className="w-[30%] flex-shrink-0 relative z-10">
               <div
-                className="sticky flex flex-col justify-center px-8 xl:px-12 py-12"
+                className="sticky flex flex-col justify-center px-6 xl:px-10 py-8"
                 style={{ top: `calc(var(--header-total-height, 6.5rem) + ${previewBannerOffset}px)` }}
               >
                 <div
                   id="lead-form"
-                  className="bg-white rounded-[24px] p-8 border border-white/80"
-                  style={{ boxShadow: '0 24px 48px rgba(66, 71, 210, 0.15)' }}
+                  className="bg-white rounded-[20px] p-5 border border-white/80"
+                  style={{ boxShadow: '0 16px 40px rgba(66, 71, 210, 0.13)' }}
                 >
-                  <h2 className="font-['Baloo_2',_sans-serif] text-[28px] font-bold text-[#131b2e] leading-tight mb-8">
+                  <h2 className="font-['Baloo_2',_sans-serif] text-[22px] font-bold text-[#131b2e] leading-tight mb-4">
                     {(formConfig.title || 'Explora más de 20 modelos').replace(/<[^>]+>/g, '')}
                   </h2>
                   <LeadLeadForm
@@ -292,8 +292,8 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
                     studyCenters={studyCenters}
                     primaryColor={primaryColor}
                   />
-                  <div className="mt-6 flex items-center justify-center gap-2 text-[#767686] text-xs font-['Asap',_sans-serif]">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <div className="mt-3 flex items-center justify-center gap-1.5 text-[#767686] text-xs font-['Asap',_sans-serif]">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
