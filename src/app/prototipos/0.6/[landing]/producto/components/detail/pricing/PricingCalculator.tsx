@@ -62,6 +62,7 @@ function termToMonths(term: number, frequency: string): number {
 
 export const PricingCalculator: React.FC<PricingCalculatorProps & {
   onSelectionChange?: (selection: PricingSelection) => void;
+  controlledTerm?: number;
 }> = ({
   paymentPlans: initialPaymentPlans,
   defaultTerm,
@@ -73,6 +74,7 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   productSlug,
   onPlansChange,
   onSelectionChange,
+  controlledTerm,
 }) => {
   // Active plans (may change when frequency is switched)
   const [paymentPlans, setPaymentPlans] = useState<PaymentPlan[]>(initialPaymentPlans);
@@ -108,6 +110,14 @@ export const PricingCalculator: React.FC<PricingCalculatorProps & {
   const [hoveredTerm, setHoveredTerm] = useState<number | null>(null);
   const isHoverCapable = useHoverCapable();
   const isMountedRef = useRef(false);
+
+  // Sync term from external controller (e.g. Cronograma chips)
+  useEffect(() => {
+    if (controlledTerm == null) return;
+    if (paymentPlans.some(p => p.term === controlledTerm)) {
+      setSelectedTerm(controlledTerm);
+    }
+  }, [controlledTerm, paymentPlans]);
 
   // On mount: if default frequency differs from mensual, fetch correct plans
   useEffect(() => {

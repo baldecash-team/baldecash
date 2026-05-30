@@ -187,6 +187,22 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return plan?.termMonths ?? pricingSelection.term;
   }, [pricingSelection, activePlans]);
 
+  // Handle term change from Cronograma chips (bidirectional sync)
+  const handleCronogramaTermChange = useCallback((term: number) => {
+    setPricingSelection((prev) => {
+      if (!prev) return prev;
+      if (prev.term === term) return prev;
+      analytics.trackPricingTermChange({
+        product_id: product.id,
+        from: prev.term,
+        to: term,
+        context: 'detail',
+        frequency: prev.paymentFrequency,
+      });
+      return { ...prev, term };
+    });
+  }, [analytics, product.id]);
+
   // Handle pricing selection changes from PricingCalculator
   const handlePricingSelectionChange = useCallback((selection: PricingSelection) => {
     setPricingSelection((prev) => {
@@ -507,6 +523,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
                 productSlug={product.slug}
                 onPlansChange={setActivePlans}
                 onSelectionChange={handlePricingSelectionChange}
+                controlledTerm={pricingSelection?.term}
               />
               {/* CTA Buttons or Unavailable banner */}
               {!isAvailable ? (
@@ -700,6 +717,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
             selectedTerm={pricingSelection?.term}
             selectedInitialPercent={pricingSelection?.initialPercent}
             paymentFrequency={pricingSelection?.paymentFrequency}
+            onTermChange={handleCronogramaTermChange}
             financialData={product.tea != null && product.tcea != null ? { tea: product.tea, tcea: product.tcea } : undefined}
             showPlatformCommission={showPlatformCommission}
           />

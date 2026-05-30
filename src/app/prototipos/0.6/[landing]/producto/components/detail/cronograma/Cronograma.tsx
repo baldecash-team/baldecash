@@ -67,6 +67,7 @@ export const Cronograma: React.FC<CronogramaProps> = ({
   selectedTerm: externalSelectedTerm,
   selectedInitialPercent: externalInitialPercent,
   paymentFrequency = 'mensual',
+  onTermChange,
   financialData: externalFinancialData,
   showPlatformCommission = false,
 }) => {
@@ -277,24 +278,29 @@ export const Cronograma: React.FC<CronogramaProps> = ({
             </div>
           </div>
 
-          {/* Term Pills - Ocultos si está sincronizado con PricingCalculator */}
-          {!isSynced && (
-            <div className="flex gap-1 flex-wrap">
-              {paymentPlans.map((plan) => (
-                <button
-                  key={plan.term}
-                  onClick={() => { setInternalSelectedTerm(plan.term); setShowAll(false); }}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
-                    selectedTerm === plan.term
-                      ? 'bg-[var(--color-primary)] text-white'
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                  }`}
-                >
-                  {plan.term}m
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Term Pills */}
+          <div className="flex gap-1 flex-wrap">
+            {paymentPlans.map((plan) => (
+              <button
+                key={plan.term}
+                onClick={() => {
+                  setShowAll(false);
+                  if (isSynced) {
+                    onTermChange?.(plan.term);
+                  } else {
+                    setInternalSelectedTerm(plan.term);
+                  }
+                }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
+                  selectedTerm === plan.term
+                    ? 'bg-[var(--color-primary)] text-white'
+                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
+              >
+                {plan.term}m
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Payment Table - Version 1: Simple.

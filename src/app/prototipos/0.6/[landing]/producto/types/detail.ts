@@ -367,6 +367,7 @@ export interface CronogramaProps {
   selectedTerm?: number;
   selectedInitialPercent?: InitialPaymentPercentage;
   paymentFrequency?: string;
+  onTermChange?: (term: number) => void;
   // Datos financieros del backend (opcional, si no se pasan usa valores por defecto)
   financialData?: {
     tea: number;
