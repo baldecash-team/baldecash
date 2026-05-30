@@ -111,6 +111,21 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
 
   const isLockedCampaign = appliedCoupon?.lockedFromUrl === true;
   const firstQuotaOnly = (appliedCoupon?.quotasAffected ?? 1) <= 1;
+  // Cupón de regalo: no aplica descuento monetario sino que entrega un producto.
+  // Se muestra "Cantidad asociada" + el regalo en vez de "-S/x".
+  //
+  // HARDCODE FE: el backend aún no envía el regalo (solo value=0.00), así que
+  // tratamos todo cupón con descuento 0 que NO sea de referido como cupón de
+  // regalo y mostramos un nombre/cantidad fijos. Si en el futuro el API envía
+  // gift_name/gift_quantity, esos valores reales tienen prioridad.
+  const FALLBACK_GIFT_NAME = 'Audífonos Samsung Galaxy Buds';
+  const FALLBACK_GIFT_QUANTITY = 1;
+  const isReferralCoupon = !!appliedCoupon?.referrerName;
+  const isGiftCoupon =
+    !isReferralCoupon &&
+    (!!appliedCoupon?.giftName || appliedCoupon?.discount === 0);
+  const giftName = appliedCoupon?.giftName || FALLBACK_GIFT_NAME;
+  const giftQuantity = appliedCoupon?.giftQuantity ?? FALLBACK_GIFT_QUANTITY;
 
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {
@@ -142,8 +157,12 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                   {isLockedCampaign ? 'Aplicado automáticamente' : 'Aplicado'}
                 </motion.span>
               </div>
-              <p className="text-sm text-green-600">{appliedCoupon.label}</p>
-              {isLockedCampaign && firstQuotaOnly && (
+              {isGiftCoupon ? (
+                <p className="text-sm text-green-600">Cantidad asociada: {giftQuantity}</p>
+              ) : (
+                <p className="text-sm text-green-600">{appliedCoupon.label}</p>
+              )}
+              {!isGiftCoupon && isLockedCampaign && firstQuotaOnly && (
                 <p className="text-xs text-green-700/80 mt-1">
                   Descuento solo en tu primera cuota. No se puede quitar en esta campaña.
                 </p>
@@ -158,16 +177,27 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
               transition={{ delay: 0.3, type: 'spring' }}
               className="text-right"
             >
-              <p className="text-lg font-bold text-green-600">
-                -S/{getDiscountAmount().toFixed(0)}
-              </p>
-              <p className="text-xs text-green-500">
-                {firstQuotaOnly
-                  ? 'solo en 1.ª cuota'
-                  : appliedCoupon.quotasAffected
-                    ? `en ${appliedCoupon.quotasAffected} cuotas`
-                    : 'por mes'}
-              </p>
+              {isGiftCoupon ? (
+                <>
+                  <p className="text-base font-bold text-green-600 leading-tight">
+                    + {giftName}
+                  </p>
+                  <p className="text-xs text-green-500">S/0</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-green-600">
+                    -S/{getDiscountAmount().toFixed(0)}
+                  </p>
+                  <p className="text-xs text-green-500">
+                    {firstQuotaOnly
+                      ? 'solo en 1.ª cuota'
+                      : appliedCoupon.quotasAffected
+                        ? `en ${appliedCoupon.quotasAffected} cuotas`
+                        : 'por mes'}
+                  </p>
+                </>
+              )}
             </motion.div>
 
             {isLockedCampaign ? (

@@ -85,6 +85,14 @@ export interface AppliedCoupon {
   lockedFromUrl?: boolean;
   /** Nombre del referido (cliente que generó el cupón) — para personalizar el banner */
   referrerName?: string;
+  /**
+   * Nombre del regalo asociado al cupón (cupón tipo "gift", offer_type='gift').
+   * Cuando está presente, el cupón no aplica descuento monetario (discount=0) sino
+   * que entrega un producto de regalo. Ej: "Audífonos Samsung Galaxy Buds".
+   */
+  giftName?: string;
+  /** Cantidad de unidades del regalo asociadas al cupón (por defecto 1). */
+  giftQuantity?: number;
 }
 
 interface ProductContextValue {
