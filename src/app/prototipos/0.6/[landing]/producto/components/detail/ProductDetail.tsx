@@ -22,6 +22,7 @@ import {
   ProductLimitation,
   Certification,
   ComboInfo,
+  InitialPaymentPercentage,
 } from '../../types/detail';
 import type { SelectedProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import type { CartItem, WishlistItem, TermMonths, InitialPaymentPercent, CartPaymentPlan } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
@@ -174,8 +175,24 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     setSelectedColorId(colorId);
   }, [hasSiblings, product.colorSiblings, product.colors, product.slug, product.id, landing, router, analytics]);
 
-  // Pricing selection state (from PricingCalculator)
-  const [pricingSelection, setPricingSelection] = useState<PricingSelection | null>(null);
+  // Pricing selection state — initialized eagerly so Cronograma chips are synced from first render
+  const [pricingSelection, setPricingSelection] = useState<PricingSelection | null>(() => {
+    if (!paymentPlans.length) return null;
+    const term = defaultTerm != null && paymentPlans.some(p => p.term === defaultTerm)
+      ? defaultTerm
+      : Math.max(...paymentPlans.map(p => p.term));
+    const plan = paymentPlans.find(p => p.term === term) ?? paymentPlans[0];
+    const initialPct = (defaultInitialPercent ?? 0) as InitialPaymentPercentage;
+    const option = plan?.options?.find(o => o.initialPercent === initialPct) ?? plan?.options?.[0];
+    if (!option) return null;
+    return {
+      term,
+      initialPercent: initialPct,
+      monthlyQuota: option.monthlyQuota,
+      initialAmount: option.initialAmount,
+      paymentFrequency: defaultFrequency ?? 'mensual',
+    };
+  });
   // Active payment plans — updated when user switches frequency
   const [activePlans, setActivePlans] = useState(paymentPlans);
 
