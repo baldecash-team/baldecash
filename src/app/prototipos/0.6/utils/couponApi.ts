@@ -33,6 +33,10 @@ export interface CouponValidateLegacyResponse {
   error_message: string | null;
   /** Nombre del cliente que generó el cupón (cupón de referido) */
   customer_name?: string | null;
+  /** Nombre del regalo asociado (cupón tipo gift, offer_type='gift'). Ej: "Audífonos Samsung Galaxy Buds" */
+  gift_name?: string | null;
+  /** Cantidad de unidades del regalo (por defecto 1) */
+  gift_quantity?: number | null;
 }
 
 type CouponValidateResponse =
@@ -82,18 +86,24 @@ export async function validateCoupon(
       };
     }
 
-    // Formato legacy (puede incluir customer_name para cupones de referido)
-    if ('valid' in data && data.valid && data.code && data.value && data.label) {
+    // Formato legacy (puede incluir customer_name para cupones de referido
+    // y gift_name/gift_quantity para cupones de regalo, offer_type='gift').
+    // Para cupones de regalo el descuento monetario es 0 y puede no venir `value`
+    // ni `label`, por eso solo exigimos `valid` + `code`.
+    if ('valid' in data && data.valid && data.code) {
       const referrerName = data.customer_name?.trim() || undefined;
+      const giftName = data.gift_name?.trim() || undefined;
       return {
         ok: true,
         coupon: {
           code: data.code,
-          discount: parseFloat(data.value),
-          label: data.label,
+          discount: data.value != null ? parseFloat(data.value) : 0,
+          label: data.label ?? '',
           couponType: data.coupon_type || 'fixed',
           quotasAffected: data.quotas_affected ?? undefined,
           referrerName,
+          giftName,
+          giftQuantity: giftName ? data.gift_quantity ?? 1 : undefined,
         },
       };
     }

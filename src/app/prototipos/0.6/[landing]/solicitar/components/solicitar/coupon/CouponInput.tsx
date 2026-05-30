@@ -111,6 +111,11 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
 
   const isLockedCampaign = appliedCoupon?.lockedFromUrl === true;
   const firstQuotaOnly = (appliedCoupon?.quotasAffected ?? 1) <= 1;
+  // Cupón de regalo (offer_type='gift'): no aplica descuento monetario sino que
+  // entrega un producto. Se muestra "Cantidad asociada" + el regalo en vez de "-S/x".
+  const giftName = appliedCoupon?.giftName;
+  const isGiftCoupon = !!giftName;
+  const giftQuantity = appliedCoupon?.giftQuantity ?? 1;
 
   // Si ya hay un cupón aplicado, mostrar estado de éxito
   if (appliedCoupon) {
@@ -142,8 +147,12 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
                   {isLockedCampaign ? 'Aplicado automáticamente' : 'Aplicado'}
                 </motion.span>
               </div>
-              <p className="text-sm text-green-600">{appliedCoupon.label}</p>
-              {isLockedCampaign && firstQuotaOnly && (
+              {isGiftCoupon ? (
+                <p className="text-sm text-green-600">Cantidad asociada: {giftQuantity}</p>
+              ) : (
+                <p className="text-sm text-green-600">{appliedCoupon.label}</p>
+              )}
+              {!isGiftCoupon && isLockedCampaign && firstQuotaOnly && (
                 <p className="text-xs text-green-700/80 mt-1">
                   Descuento solo en tu primera cuota. No se puede quitar en esta campaña.
                 </p>
@@ -158,16 +167,27 @@ export const CouponInput: React.FC<CouponInputProps> = ({ isRequired = false }) 
               transition={{ delay: 0.3, type: 'spring' }}
               className="text-right"
             >
-              <p className="text-lg font-bold text-green-600">
-                -S/{getDiscountAmount().toFixed(0)}
-              </p>
-              <p className="text-xs text-green-500">
-                {firstQuotaOnly
-                  ? 'solo en 1.ª cuota'
-                  : appliedCoupon.quotasAffected
-                    ? `en ${appliedCoupon.quotasAffected} cuotas`
-                    : 'por mes'}
-              </p>
+              {isGiftCoupon ? (
+                <>
+                  <p className="text-base font-bold text-green-600 leading-tight">
+                    + {giftName}
+                  </p>
+                  <p className="text-xs text-green-500">S/0</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-green-600">
+                    -S/{getDiscountAmount().toFixed(0)}
+                  </p>
+                  <p className="text-xs text-green-500">
+                    {firstQuotaOnly
+                      ? 'solo en 1.ª cuota'
+                      : appliedCoupon.quotasAffected
+                        ? `en ${appliedCoupon.quotasAffected} cuotas`
+                        : 'por mes'}
+                  </p>
+                </>
+              )}
             </motion.div>
 
             {isLockedCampaign ? (
