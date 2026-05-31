@@ -183,6 +183,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
         const data = await res.json().catch(() => ({}));
         tracker?.track('lead_form_error', { landing, error_code: res.status });
         showToast(data.detail || 'Ocurrió un error. Intenta de nuevo.');
+        setIsLoading(false);
         return;
       }
       const data = await res.json();
@@ -197,10 +198,10 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
         });
       }
       router.push(data.redirect_url);
+      // No apagar el loading — el spinner se mantiene hasta que el redirect completa
     } catch {
       tracker?.track('lead_form_error', { landing, error_code: 0, detail: 'network_error' });
       showToast('Error de conexión. Intenta de nuevo.');
-    } finally {
       setIsLoading(false);
     }
   };
