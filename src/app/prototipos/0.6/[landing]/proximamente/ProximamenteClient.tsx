@@ -84,7 +84,7 @@ function ProximamenteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const seccion = searchParams.get('seccion') || '';
-  const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing, newsletterData } = useLayout();
   const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
   const tracker = useEventTrackerOptional();
 
@@ -325,7 +325,7 @@ function ProximamenteContent() {
             </div>
           </div>
         </main>
-        <GamerNewsletter theme={theme} />
+        <GamerNewsletter theme={theme} data={newsletterData} />
         <GamerFooter theme={theme} footerData={footerData} />
       </div>
     );

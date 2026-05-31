@@ -9,11 +9,13 @@ import { GamerSeries } from './GamerSeries';
 import { GamerGamesRanking } from './GamerGamesRanking';
 import { GamerStories } from './GamerStories';
 import { GamerCta } from './GamerCta';
-import { GamerNewsletter } from './GamerNewsletter';
+import { GamerNewsletter, type GamerNewsletterData } from './GamerNewsletter';
 import { GamerFooter } from './GamerFooter';
 import { LazySection } from './LazySection';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { getLandingLayout } from '@/app/prototipos/0.6/services/landingApi';
+import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 
 const LANDING_SLUG = 'zona-gamer';
 
@@ -22,6 +24,38 @@ const GOOGLE_FONTS_URL =
 
 export function ZonaGamerLanding() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [portalButtonText, setPortalButtonText] = useState<string | undefined>(undefined);
+  const [customerPortalUrl, setCustomerPortalUrl] = useState<string | undefined>(undefined);
+  const [promoBannerData, setPromoBannerData] = useState<PromoBannerData | null>(null);
+  const [newsletterData, setNewsletterData] = useState<GamerNewsletterData | null>(null);
+
+  useEffect(() => {
+    getLandingLayout(LANDING_SLUG).then((layout) => {
+      if (!layout) return;
+      const navbarConfig = layout.navbar?.content_config as Record<string, unknown> | undefined;
+      setPortalButtonText((navbarConfig?.portal_button_text as string) || undefined);
+      setCustomerPortalUrl((layout.company?.customer_portal_url as string) || undefined);
+      const promoConfig = layout.promo_banner?.content_config as Record<string, unknown> | undefined;
+      if (promoConfig && (promoConfig.text || promoConfig.highlight) && promoConfig.is_visible !== false) {
+        setPromoBannerData({
+          text: (promoConfig.text as string) || '',
+          highlight: (promoConfig.highlight as string) || undefined,
+          ctaText: (promoConfig.cta_text as string) || undefined,
+          ctaUrl: (promoConfig.cta_url as string) || undefined,
+          dismissible: (promoConfig.dismissible as boolean) ?? true,
+        });
+      }
+      const footerNl = (layout.footer?.content_config as Record<string, unknown> | undefined)?.newsletter as Record<string, unknown> | undefined;
+      if (footerNl && footerNl.enabled !== false) {
+        setNewsletterData({
+          title: (footerNl.title as string) || undefined,
+          subtitle: (footerNl.description as string) || undefined,
+          button_text: (footerNl.button_text as string) || undefined,
+          placeholder: (footerNl.placeholder as string) || undefined,
+        });
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('baldecash-zona-gamer-theme') as 'dark' | 'light' | null;
@@ -103,7 +137,9 @@ export function ZonaGamerLanding() {
           }}
         />
 
-        <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={catalogUrl} hideSecondaryBar />
+        <GamerNavbar theme={theme} onToggleTheme={toggleTheme} catalogUrl={catalogUrl} hideSecondaryBar portalButtonText={portalButtonText} customerPortalUrl={customerPortalUrl} promoBannerData={promoBannerData} />
+        {/* Spacer to compensate for fixed navbar */}
+        <div style={{ height: 'var(--gamer-nav-height, clamp(52px,10vw,64px))' }} />
         <GamerHero theme={theme} catalogUrl={catalogUrl} />
         <GamerPacks theme={theme} catalogUrl={catalogUrl} />
 
@@ -119,15 +155,19 @@ export function ZonaGamerLanding() {
           <GamerGamesRanking theme={theme} />
         </LazySection>
 
+        {/* TODO: activar cuando haya testimonios reales configurados en BD
         <LazySection minHeight={400}>
           <GamerStories theme={theme} />
         </LazySection>
+        */}
 
         <GamerCta theme={theme} catalogUrl={catalogUrl} />
-        <GamerNewsletter theme={theme} />
+        <GamerNewsletter theme={theme} data={newsletterData} />
 
         <LazySection minHeight={300}>
-          <GamerFooter theme={theme} />
+          <div id="footer">
+            <GamerFooter theme={theme} />
+          </div>
         </LazySection>
       </div>
     </>

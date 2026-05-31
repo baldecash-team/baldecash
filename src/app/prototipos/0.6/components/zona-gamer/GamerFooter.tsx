@@ -245,7 +245,7 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
             className="text-[11px] font-bold uppercase tracking-[2px] mb-3"
             style={{ fontFamily: "'Share Tech Mono', monospace", color: neonCyan }}
           >
-            {contactTitle || 'Contáctanos'}
+            {contactTitle}
           </p>
           <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2">
             {mainPhone && (
@@ -304,13 +304,13 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
               {libroReclamacionesHref && (
                 <a
                   href={libroReclamacionesHref}
-                  title={libroReclamacionesLabel || 'Libro de reclamaciones'}
+                  title={libroReclamacionesLabel}
                   className="shrink-0 opacity-80 hover:opacity-100 transition-opacity"
                   onClick={() => tracker?.track('nav_click', { label: 'libro_reclamaciones', location: 'footer' })}
                 >
                   <Image
                     src={LIBRO_RECLAMACIONES_IMG}
-                    alt={libroReclamacionesLabel || 'Libro de reclamaciones'}
+                    alt={libroReclamacionesLabel}
                     width={90}
                     height={48}
                     loading="lazy"

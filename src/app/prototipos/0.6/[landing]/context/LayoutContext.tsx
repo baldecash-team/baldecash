@@ -52,6 +52,8 @@ interface LayoutContextValue {
   /** Public system configuration flags from backend */
   settings: Record<string, string>;
   catalogBanner: Record<string, unknown> | null;
+  /** Newsletter component config from layout */
+  newsletterData: { title?: string; subtitle?: string; button_text?: string; placeholder?: string } | null;
   /** Overlay variant from landing config (e.g. 'cade') */
   overlayVariant: string | null;
 }
@@ -264,6 +266,18 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   // Extract catalog banner data
   const catalogBanner = useMemo(() => (layoutData?.catalog_banner?.content_config as Record<string, unknown>) ?? null, [layoutData]);
 
+  // Newsletter lives inside footer.content_config.newsletter (set from admin Footer tab)
+  const newsletterData = useMemo(() => {
+    const nl = footerData?.newsletter;
+    if (!nl || nl.enabled === false) return null;
+    return {
+      title: nl.title || undefined,
+      subtitle: nl.description || undefined,
+      button_text: nl.button_text || undefined,
+      placeholder: nl.placeholder || undefined,
+    };
+  }, [footerData]);
+
   // Extract agreement data for convenio pages
   const agreementData = useMemo((): AgreementData | null => {
     if (!layoutData) return null;
@@ -288,8 +302,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     previewLandingId,
     settings,
     catalogBanner,
+    newsletterData,
     overlayVariant,
-  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, overlayVariant]);
+  }), [layoutData, navbarProps, footerData, agreementData, isLoading, hasError, landing, landingId, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb, isPreviewMode, previewLandingId, settings, catalogBanner, newsletterData, overlayVariant]);
 
   return (
     <LayoutContext.Provider value={value}>

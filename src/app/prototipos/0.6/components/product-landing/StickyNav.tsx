@@ -2,27 +2,44 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, User } from 'lucide-react';
+import { Menu, X, User, Zap } from 'lucide-react';
 import { navLinks } from './data/v5Data';
 import { BC } from './lib/constants';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import type { PromoBannerData } from '../../types/hero';
 
 interface StickyNavV5Props {
   videoEnded: boolean;
   landing?: string;
   previewBannerOffset?: number;
+  promoBannerData?: PromoBannerData | null;
 }
 
 const LOGO_WHITE = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
 const LOGO_DARK = 'https://baldecash.s3.amazonaws.com/company/logo.png';
 
-export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo', previewBannerOffset = 0 }: StickyNavV5Props) {
+export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo', previewBannerOffset = 0, promoBannerData }: StickyNavV5Props) {
   const tracker = useEventTrackerOptional();
   const [scrolledPastHero, setScrolledPastHero] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('hero');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showPromo, setShowPromo] = useState(true);
+  const promoBannerRef = useRef<HTMLDivElement>(null);
+  const [promoBannerHeight, setPromoBannerHeight] = useState(0);
+
+  const hasPromoBanner = !!(promoBannerData && (promoBannerData.text || promoBannerData.highlight));
+
+  useEffect(() => {
+    if (showPromo && hasPromoBanner && promoBannerRef.current) {
+      setPromoBannerHeight(promoBannerRef.current.offsetHeight);
+    } else {
+      setPromoBannerHeight(0);
+    }
+  }, [showPromo, hasPromoBanner]);
+
+  const totalTopOffset = previewBannerOffset + promoBannerHeight;
   const observersRef = useRef<IntersectionObserver[]>([]);
 
   useEffect(() => {
@@ -111,9 +128,43 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
   // ═══════════════════════════════════════════════════════════
   // MOBILE: Navbar blanco estilo home (siempre visible)
   // ═══════════════════════════════════════════════════════════
+  const promoBannerEl = hasPromoBanner && showPromo ? (
+    <div
+      ref={promoBannerRef}
+      className="fixed left-0 right-0 z-[60] text-white text-center py-1.5 sm:py-2.5 px-4 text-xs sm:text-sm"
+      style={{
+        top: previewBannerOffset,
+        paddingTop: `calc(0.375rem + env(safe-area-inset-top))`,
+        background: `linear-gradient(to right, var(--color-primary, #4654CD), color-mix(in srgb, var(--color-primary, #4654CD) 85%, white))`,
+      }}
+    >
+      <div className="max-w-7xl mx-auto flex items-center justify-center gap-2 relative">
+        <Zap className="w-4 h-4 shrink-0 hidden sm:block" style={{ color: 'var(--color-secondary, #03DBD0)' }} />
+        <span className="pr-8 sm:pr-0">
+          {promoBannerData!.highlight && <strong>{promoBannerData!.highlight}</strong>}{promoBannerData!.highlight ? ' ' : ''}{promoBannerData!.text}
+          {promoBannerData!.ctaText && promoBannerData!.ctaUrl && (
+            <a href={promoBannerData!.ctaUrl} className="underline font-semibold ml-2 hover:no-underline">
+              {promoBannerData!.ctaText}
+            </a>
+          )}
+        </span>
+        {promoBannerData!.dismissible !== false && (
+          <button
+            className="absolute right-0 top-1/2 -translate-y-1/2 p-1.5 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+            onClick={() => setShowPromo(false)}
+            aria-label="Cerrar promoción"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   if (isMobile) {
     return (
       <>
+        {promoBannerEl}
         {/* Backdrop tap-outside-to-close */}
         <AnimatePresence>
           {mobileMenuOpen && (
@@ -131,7 +182,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
 
         <nav
           className="fixed left-0 right-0 z-50 bg-white shadow-sm transition-all duration-200"
-          style={{ top: previewBannerOffset }}
+          style={{ top: totalTopOffset }}
         >
           <div className="px-4">
             <div className="flex items-center justify-between h-16">
@@ -235,11 +286,12 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
   // ═══════════════════════════════════════════════════════════
   return (
     <>
+      {promoBannerEl}
       {/* Initial header: logo centrado sobre hero */}
       <div
         style={{
           position: 'fixed',
-          top: previewBannerOffset,
+          top: totalTopOffset,
           left: 0,
           right: 0,
           zIndex: 9998,
@@ -269,7 +321,7 @@ export default function StickyNav({ videoEnded, landing = 'baldecash-macbook-neo
       <nav
         style={{
           position: 'fixed',
-          top: previewBannerOffset,
+          top: totalTopOffset,
           left: 0,
           right: 0,
           zIndex: 9999,

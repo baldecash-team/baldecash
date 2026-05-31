@@ -288,13 +288,15 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
     if (!isLoading && !isPageLoading && heroData && typeof window !== 'undefined') {
       const hash = window.location.hash;
       if (hash) {
-        const timeoutId = setTimeout(() => {
+        const scrollToHash = () => {
           const element = document.querySelector(hash);
-          if (element) {
-            element.scrollIntoView({ behavior: 'instant', block: 'start' });
-          }
-        }, 300);
-        return () => clearTimeout(timeoutId);
+          if (element) element.scrollIntoView({ behavior: 'instant', block: 'start' });
+        };
+        // Retry scroll multiple times — lazy sections and product landings need extra time
+        const t1 = setTimeout(scrollToHash, 300);
+        const t2 = setTimeout(scrollToHash, 900);
+        const t3 = setTimeout(scrollToHash, 1800);
+        return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
       }
     }
   }, [isLoading, isPageLoading, heroData]);
@@ -379,7 +381,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         } as React.CSSProperties}
       >
         <PreviewBanner landingSlug={landingSlug} landingId={heroData.landingId} />
-        <MacBookNeoLanding footerData={mergedFooterData} landing={landingSlug} previewBannerOffset={24} />
+        <MacBookNeoLanding footerData={mergedFooterData} landing={landingSlug} previewBannerOffset={24} promoBannerData={heroData.promoBannerData} />
       </div>
     );
   }

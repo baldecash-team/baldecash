@@ -12,6 +12,7 @@ export function GamerPromoBanner({
   ctaText,
   ctaUrl,
   dismissible = true,
+  onDismiss,
 }: {
   isDark: boolean;
   T: GamerTheme;
@@ -20,6 +21,7 @@ export function GamerPromoBanner({
   ctaText?: string;
   ctaUrl?: string;
   dismissible?: boolean;
+  onDismiss?: () => void;
 }) {
   const [visible, setVisible] = useState(true);
   if (!visible) return null;
@@ -50,7 +52,7 @@ export function GamerPromoBanner({
         </span>
         {dismissible && (
           <button
-            onClick={() => setVisible(false)}
+            onClick={() => { setVisible(false); onDismiss?.(); }}
             className="absolute right-0 p-1.5 bg-transparent border-none text-white cursor-pointer rounded-full hover:bg-white/20 transition-colors"
           >
             <X className="w-4 h-4" />

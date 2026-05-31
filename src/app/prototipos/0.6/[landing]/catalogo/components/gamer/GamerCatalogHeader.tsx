@@ -152,7 +152,7 @@ export function GamerCatalogHeader({
       {/* Right: Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         {/* Customer portal button (desde layout.company.customer_portal_url) */}
-        {mounted && customerPortalUrl && (
+        {mounted && customerPortalUrl && portalButtonText !== undefined && (
           <a
             href={customerPortalUrl}
             target="_blank"
@@ -176,7 +176,7 @@ export function GamerCatalogHeader({
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
             </svg>
-            <span>{portalButtonText || 'Mi zona'}</span>
+            <span>{portalButtonText}</span>
           </a>
         )}
 

@@ -7,7 +7,7 @@ import StickyNav from './StickyNav';
 import HeroCanvasScrub from './HeroCanvasScrub';
 import MediaCardGallery from './MediaCardGallery';
 import { Footer } from '../hero/Footer';
-import type { FooterData, HeroContent } from '../../types/hero';
+import type { FooterData, HeroContent, PromoBannerData } from '../../types/hero';
 
 // Lazy load below-fold sections
 const TextOverMediaDesign = lazy(() => import('./TextOverMediaDesign'));
@@ -51,15 +51,18 @@ interface MacBookNeoLandingProps {
   heroContent?: HeroContent | null;
   landing?: string;
   previewBannerOffset?: number;
+  promoBannerData?: PromoBannerData | null;
 }
 
-export default function MacBookNeoLanding({ footerData, heroContent, landing = 'baldecash-macbook-neo', previewBannerOffset = 0 }: MacBookNeoLandingProps) {
+export default function MacBookNeoLanding({ footerData, heroContent, landing = 'baldecash-macbook-neo', previewBannerOffset = 0, promoBannerData }: MacBookNeoLandingProps) {
   useLenis();
   const { tier } = useDeviceCapabilities();
   const [videoEnded, setVideoEnded] = useState(tier === 'base');
 
-  // Always scroll to top on mount (page refresh) and clear hash
+  // Scroll to top on mount and clear hash — skip in preview mode to allow hash-based section navigation
   useEffect(() => {
+    const isPreview = window.location.pathname.includes('/preview/') || window.location.search.includes('preview_key');
+    if (isPreview) return;
     if ('scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
@@ -78,7 +81,7 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
       <link rel="preconnect" href="https://baldecash.s3.amazonaws.com" />
       <link rel="dns-prefetch" href="https://baldecash.s3.amazonaws.com" />
 
-      <StickyNav videoEnded={videoEnded} landing={landing} previewBannerOffset={previewBannerOffset} />
+      <StickyNav videoEnded={videoEnded} landing={landing} previewBannerOffset={previewBannerOffset} promoBannerData={promoBannerData} />
 
       {/* S1: Hero — loads immediately */}
       <HeroCanvasScrub tier={tier} onVideoEnd={() => setVideoEnded(true)} onVideoReplay={() => setVideoEnded(false)} />
@@ -117,7 +120,9 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
       </LazySection> */}
 
       {/* S10: Footer */}
-      <Footer data={footerData} landing={landing} />
+      <div id="footer">
+        <Footer data={footerData} landing={landing} />
+      </div>
     </div>
   );
 }

@@ -86,7 +86,6 @@ import { CartLimitModal } from './components/catalog/CartLimitModal';
 import {
   gamerTheme,
   GamerProductCard,
-  GamerPromoBanner,
   GamerHelpButton,
   GamerCardSkeleton,
   GamerCompareModal,
@@ -176,9 +175,21 @@ function GamerCatalogoContent() {
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const secondaryNavRef = useRef<HTMLDivElement>(null);
+
+  // Expose secondary nav height so sidebar top and main padding can adapt
+  useEffect(() => {
+    const el = secondaryNavRef.current;
+    if (!el) return;
+    const update = () => document.documentElement.style.setProperty('--gamer-secondary-height', `${el.offsetHeight}px`);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => { ro.disconnect(); document.documentElement.style.removeProperty('--gamer-secondary-height'); };
+  }, []);
 
   // Layout data (navbar items, promo banner) desde /landing/zona-gamer/layout
-  const { navbarProps, isLoading: isLayoutLoading, hasError: hasLayoutError, settings } = useLayout();
+  const { navbarProps, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, newsletterData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
 
@@ -1135,6 +1146,8 @@ function GamerCatalogoContent() {
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
           fullWidth
+          portalButtonText={navbarProps?.portalButtonText}
+          customerPortalUrl={navbarProps?.customerPortalUrl}
         />
         <main style={{ paddingTop: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 80px)' }}>
           <div style={{ maxWidth: 480, margin: '0 auto', padding: '48px 24px', textAlign: 'center' }}>
@@ -1172,7 +1185,7 @@ function GamerCatalogoContent() {
   }
 
   return (
-    <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Rajdhani', sans-serif" }}>
+    <div style={{ background: T.bg, minHeight: '100vh', fontFamily: "'Rajdhani', sans-serif", paddingTop: 'calc(var(--gamer-nav-height, clamp(52px,10vw,64px)) + var(--gamer-secondary-height, 56px))' }}>
       {/* Google Fonts */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;500;600;700&display=swap');
@@ -1196,20 +1209,7 @@ function GamerCatalogoContent() {
         }
       `}</style>
 
-      {/* ====== PROMO BANNER ====== (solo se muestra si el backend devuelve data) */}
-      {navbarProps?.promoBannerData && (navbarProps.promoBannerData.text || navbarProps.promoBannerData.highlight) && (
-        <GamerPromoBanner
-          isDark={isDark}
-          T={T}
-          text={navbarProps.promoBannerData.text}
-          highlight={navbarProps.promoBannerData.highlight}
-          ctaText={navbarProps.promoBannerData.ctaText}
-          ctaUrl={navbarProps.promoBannerData.ctaUrl || routes.catalogo(landing)}
-          dismissible={navbarProps.promoBannerData.dismissible}
-        />
-      )}
-
-      {/* ====== HEADER ====== */}
+      {/* ====== HEADER (promo banner incluido dentro del sticky wrapper de GamerNavbar) ====== */}
       <GamerNavbar
         theme={theme}
         onToggleTheme={() => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))}
@@ -1217,18 +1217,24 @@ function GamerCatalogoContent() {
         hideSecondaryBar
         fullWidth
         onMobileMenuChange={setMobileMenuOpen}
+        portalButtonText={navbarProps?.portalButtonText}
+        customerPortalUrl={navbarProps?.customerPortalUrl}
+        promoBannerData={navbarProps?.promoBannerData}
       />
 
       {/* ====== SECONDARY NAV ====== */}
       <div
+        ref={secondaryNavRef}
         className={mobileMenuOpen ? 'max-md:hidden' : ''}
         style={{
           background: isDark ? 'rgba(14,14,14,0.95)' : 'rgba(255,255,255,0.95)',
           borderBottom: `1px solid ${T.border}`,
           padding: '0 24px',
           backdropFilter: 'blur(20px)',
-          position: 'sticky',
-          top: 'clamp(52px, 10vw, 64px)',
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          top: 'var(--gamer-nav-height, clamp(52px, 10vw, 64px))',
           zIndex: 99,
         }}
       >
@@ -1643,8 +1649,8 @@ function GamerCatalogoContent() {
           style={{
             width: 260,
             position: 'sticky',
-            top: 130,
-            maxHeight: 'calc(100svh - 150px)',
+            top: 'calc(var(--gamer-nav-height, clamp(52px,10vw,64px)) + var(--gamer-secondary-height, 56px) + 16px)',
+            maxHeight: 'calc(100svh - var(--gamer-nav-height, clamp(52px,10vw,64px)) - var(--gamer-secondary-height, 56px) - 32px)',
             overflow: 'hidden',
           }}
         >
@@ -2635,7 +2641,7 @@ function GamerCatalogoContent() {
         </div>
       )}
 
-      <GamerNewsletter theme={theme} />
+      <GamerNewsletter theme={theme} data={newsletterData} />
       <GamerFooter theme={theme} />
 
       {/* Blip Chat (hidden button, opened from help menu) */}

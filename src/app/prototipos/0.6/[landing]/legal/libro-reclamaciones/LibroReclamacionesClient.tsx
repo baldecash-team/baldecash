@@ -200,6 +200,8 @@ export function LibroReclamacionesClient() {
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
+          portalButtonText={navbarProps?.portalButtonText}
+          customerPortalUrl={navbarProps?.customerPortalUrl}
         />
 
         {/* Main Content */}

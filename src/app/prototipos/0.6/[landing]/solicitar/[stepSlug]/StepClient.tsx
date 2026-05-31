@@ -100,7 +100,7 @@ function StepContent() {
   const [summaryFieldValues, setSummaryFieldValues] = useState<Record<string, string>>({});
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData } = useLayout();
 
   // Get wizard config from API
   const {
@@ -903,6 +903,7 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
+  const { newsletterData } = useLayout();
 
   // Hydrate theme from localStorage
   useEffect(() => {
@@ -1453,9 +1454,11 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
+          portalButtonText={navbarProps?.portalButtonText}
+          customerPortalUrl={navbarProps?.customerPortalUrl}
         />
         {children}
-        <GamerNewsletter theme={theme} />
+        <GamerNewsletter theme={theme} data={newsletterData} />
         <GamerFooter theme={theme} footerData={footerData} />
       </div>
     </div>

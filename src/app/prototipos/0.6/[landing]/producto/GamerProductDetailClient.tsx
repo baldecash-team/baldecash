@@ -140,7 +140,7 @@ function DetailContent() {
 
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
-  const { settings } = useLayout();
+  const { settings, newsletterData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();
@@ -973,6 +973,8 @@ function DetailContent() {
         theme={theme}
         onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')}
         catalogUrl={routes.catalogo(landing)}
+        portalButtonText={navbarProps?.portalButtonText}
+        customerPortalUrl={navbarProps?.customerPortalUrl}
       />
 
       {/* SIDE NAV - only visible on xl+ */}
@@ -1733,7 +1735,7 @@ function DetailContent() {
       )}
 
       {/* Newsletter — before footer */}
-      <GamerNewsletter theme={theme} />
+      <GamerNewsletter theme={theme} data={newsletterData} />
 
       <GamerFooter theme={theme} />
       {/* Spacer for mobile fixed CTA bar */}

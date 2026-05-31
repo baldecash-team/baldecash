@@ -17,6 +17,8 @@ import { getAllowMultiProduct } from '@/app/prototipos/0.6/utils/featureFlags';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import LayoutContext from '@/app/prototipos/0.6/[landing]/context/LayoutContext';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
+import { GamerPromoBanner } from '@/app/prototipos/0.6/[landing]/catalogo/components/gamer/GamerPromoBanner';
 
 interface GamerNavbarProps {
   theme: 'dark' | 'light';
@@ -25,6 +27,9 @@ interface GamerNavbarProps {
   hideSecondaryBar?: boolean;
   fullWidth?: boolean;
   onMobileMenuChange?: (open: boolean) => void;
+  portalButtonText?: string;
+  customerPortalUrl?: string;
+  promoBannerData?: PromoBannerData | null;
 }
 
 const NAV_SECTIONS = [
@@ -32,7 +37,8 @@ const NAV_SECTIONS = [
   { id: 'brands', label: 'Marcas' },
   { id: 'linea-combate', label: 'Series' },
   { id: 'games', label: 'Top Games' },
-  { id: 'stories', label: 'Historias Reales' },
+  // TODO: activar cuando haya testimonios reales configurados en BD
+  // { id: 'stories', label: 'Historias Reales' },
 ];
 
 const LANDING_SLUG = 'zona-gamer';
@@ -48,7 +54,7 @@ interface SearchResult {
   maxTermMonths: number;
 }
 
-export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth, onMobileMenuChange }: GamerNavbarProps) {
+export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar, fullWidth, onMobileMenuChange, portalButtonText, customerPortalUrl, promoBannerData }: GamerNavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const setMobileOpenAndNotify = useCallback((open: boolean) => {
     setMobileOpen(open);
@@ -61,6 +67,21 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
 
   const isDark = theme === 'dark';
   const V = cssVars(isDark);
+
+  const [showPromo, setShowPromo] = useState(true);
+  const stickyWrapperRef = useRef<HTMLDivElement>(null);
+  const hasPromoBanner = !!(promoBannerData && (promoBannerData.text || promoBannerData.highlight) && showPromo);
+
+  // Expose sticky wrapper height as CSS var so secondary navs outside GamerNavbar can position themselves
+  useEffect(() => {
+    const el = stickyWrapperRef.current;
+    if (!el) return;
+    const update = () => document.documentElement.style.setProperty('--gamer-nav-height', `${el.offsetHeight}px`);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => { ro.disconnect(); document.documentElement.style.removeProperty('--gamer-nav-height'); };
+  }, []);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,11 +207,27 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
   return (
     <>
 
+      {/* Fixed wrapper — keeps promo banner + header at the top always */}
+      <div ref={stickyWrapperRef} className="fixed left-0 right-0 top-0 z-[100]">
+
+      {/* Promo Banner */}
+      {hasPromoBanner && (
+        <GamerPromoBanner
+          isDark={isDark}
+          T={V}
+          text={promoBannerData!.text}
+          highlight={promoBannerData!.highlight}
+          ctaText={promoBannerData!.ctaText}
+          ctaUrl={promoBannerData!.ctaUrl}
+          dismissible={promoBannerData!.dismissible}
+          onDismiss={() => setShowPromo(false)}
+        />
+      )}
+
       {/* Header */}
       <header
-        className="sticky z-[100] backdrop-blur-[20px] border-b"
+        className="backdrop-blur-[20px] border-b"
         style={{
-          top: 0,
           height: 'clamp(52px, 10vw, 64px)',
           background: isDark ? 'rgba(14,14,14,0.85)' : 'rgba(255,255,255,0.92)',
           borderColor: V.border,
@@ -272,8 +309,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         {/* header-right */}
         <div className="flex items-center" style={{ gap: 'clamp(6px, 2vw, 12px)' }}>
           {/* zona-estudiantes */}
+          {portalButtonText !== undefined && (
           <a
-            href="#"
+            href={customerPortalUrl || '#'}
             className="hidden md:flex items-center no-underline transition-all"
             style={{
               gap: 6,
@@ -287,8 +325,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
             }}
           >
             <User className="w-3.5 h-3.5" />
-            Zona Gamers
+            {portalButtonText}
           </a>
+          )}
 
           {/* theme-toggle */}
           <button
@@ -326,11 +365,13 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
         </div>{/* close max-w container */}
       </header>
 
+      </div>{/* end sticky wrapper */}
+
       {/* Secondary Navbar */}
       {!hideSecondaryBar && <div
         className="sticky z-[99] border-b backdrop-blur-[20px]"
         style={{
-          top: 'clamp(52px, 10vw, 64px)',
+          top: 'var(--gamer-nav-height, clamp(52px, 10vw, 64px))',
           background: isDark ? 'rgba(14,14,14,0.95)' : 'rgba(255,255,255,0.95)',
           borderColor: V.border,
         }}
@@ -948,7 +989,7 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.25, ease: 'easeOut' }}
               style={{
-                top: 'clamp(52px, 10vw, 64px)',
+                top: 'var(--gamer-nav-height, clamp(52px, 10vw, 64px))',
                 background: isDark ? '#0e0e0e' : '#fff',
                 borderBottom: `1px solid ${V.border}`,
                 boxShadow: isDark ? '0 12px 40px rgba(0,0,0,0.5)' : '0 12px 40px rgba(0,0,0,0.12)',
@@ -985,8 +1026,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                     </a>
                   )
                 )}
+                {portalButtonText !== undefined && (
                 <a
-                  href="#"
+                  href={customerPortalUrl || '#'}
                   className="flex items-center justify-center gap-2 mt-4 py-2.5 rounded-xl no-underline text-sm font-semibold"
                   style={{
                     border: '2px solid rgba(0,255,213,0.3)',
@@ -995,8 +1037,9 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
                   }}
                 >
                   <User className="w-3.5 h-3.5" />
-                  Zona Gamers
+                  {portalButtonText}
                 </a>
+                )}
               </div>
             </motion.div>
           </>

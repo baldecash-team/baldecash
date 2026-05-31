@@ -101,7 +101,7 @@ function ComplementosContent() {
   }, [isProductHydrated]); // fire once after hydration
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData } = useLayout();
 
   // Get wizard config for back navigation and cross-step validation
   const { steps } = useWizardConfig();
@@ -463,6 +463,7 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
+  const { newsletterData } = useLayout();
 
   useEffect(() => {
     try {
@@ -719,9 +720,11 @@ function GamerComplementosWrapper({ children, footerData }: { children: React.Re
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
+          portalButtonText={navbarProps?.portalButtonText}
+          customerPortalUrl={navbarProps?.customerPortalUrl}
         />
         {children}
-        <GamerNewsletter theme={theme} />
+        <GamerNewsletter theme={theme} data={newsletterData} />
         <GamerFooter theme={theme} footerData={footerData} />
       </div>
     </div>

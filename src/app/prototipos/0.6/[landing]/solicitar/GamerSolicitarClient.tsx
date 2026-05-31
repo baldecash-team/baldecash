@@ -124,7 +124,7 @@ function SolicitarContent() {
   const { steps, isLoading: isConfigLoading, displayStepsCount, displayEstimatedMinutes, config: wizardConfigData } = useWizardConfig();
 
   // Layout context (navbar/footer data, preview banner, 404 state)
-  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError } = useLayout();
+  const { navbarProps, footerData, isLoading: isLayoutLoading, hasError: hasLayoutError, newsletterData } = useLayout();
 
   // ── Preview mode for API calls ──
   const preview = usePreview();
@@ -543,7 +543,7 @@ function SolicitarContent() {
       `}</style>
 
       {/* NAVBAR */}
-      <GamerNavbar theme={theme} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} catalogUrl={routes.catalogo(landing)} hideSecondaryBar />
+      <GamerNavbar theme={theme} onToggleTheme={() => setTheme(isDark ? 'light' : 'dark')} catalogUrl={routes.catalogo(landing)} hideSecondaryBar portalButtonText={navbarProps?.portalButtonText} customerPortalUrl={navbarProps?.customerPortalUrl} />
 
       {/* MAIN */}
       <main style={{ maxWidth: 896, margin: '0 auto', padding: '56px 16px 80px' }}>
@@ -1370,7 +1370,7 @@ function SolicitarContent() {
         );
       })()}
 
-      <GamerNewsletter theme={theme} />
+      <GamerNewsletter theme={theme} data={newsletterData} />
       <GamerFooter theme={theme} footerData={footerData} />
     </div>
   );

@@ -35,7 +35,7 @@ function LoadingFallback() {
 }
 
 export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayoutProps) {
-  const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading, hasError, landing, newsletterData } = useLayout();
   const isConvenio = !!agreementData;
   const isGamer = landingId === LANDING_IDS.ZONA_GAMER;
 
@@ -102,6 +102,8 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
           onToggleTheme={toggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
+          portalButtonText={navbarProps?.portalButtonText}
+          customerPortalUrl={navbarProps?.customerPortalUrl}
         />
 
         {/* Main Content */}
@@ -150,7 +152,7 @@ export function LegalPageLayout({ children, title, lastUpdated }: LegalPageLayou
           </div>
         </main>
 
-        <GamerNewsletter theme={theme} />
+        <GamerNewsletter theme={theme} data={newsletterData} />
         <GamerFooter theme={theme} footerData={footerData} />
       </div>
     );

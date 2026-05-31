@@ -468,7 +468,7 @@ function LandingPageClientInner({ slug, initialData, landingConfig = DEFAULT_LAN
         } as React.CSSProperties}
       >
         {showPreviewBanner && <PreviewBanner landingSlug={slug} />}
-        <MacBookNeoLanding footerData={mergedFooterData} landing={slug} previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0} />
+        <MacBookNeoLanding footerData={mergedFooterData} landing={slug} previewBannerOffset={showPreviewBanner ? previewBannerHeight : 0} promoBannerData={heroData?.promoBannerData} />
         <FloatingCtaButton config={landingConfig.features.floating_cta} />
       </div>
     );

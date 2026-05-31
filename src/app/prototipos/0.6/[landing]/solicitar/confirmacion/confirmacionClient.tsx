@@ -360,7 +360,7 @@ function ConfirmacionContent() {
   useScrollToTop();
 
   // Get layout data from context
-  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant } = useLayout();
+  const { navbarProps, footerData, agreementData, landingId, isLoading: isLayoutLoading, hasError: hasLayoutError, overlayVariant, newsletterData } = useLayout();
 
   // Fetch application status when code is present
   useEffect(() => {
@@ -546,6 +546,7 @@ function GamerConfirmacionWrapper({ children, footerData }: { children: React.Re
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
+  const { newsletterData } = useLayout();
 
   useEffect(() => {
     try {
@@ -714,9 +715,11 @@ function GamerConfirmacionWrapper({ children, footerData }: { children: React.Re
           onToggleTheme={handleToggleTheme}
           catalogUrl={routes.catalogo(landing)}
           hideSecondaryBar
+          portalButtonText={navbarProps?.portalButtonText}
+          customerPortalUrl={navbarProps?.customerPortalUrl}
         />
         {children}
-        <GamerNewsletter theme={theme} />
+        <GamerNewsletter theme={theme} data={newsletterData} />
         <GamerFooter theme={theme} footerData={footerData} />
       </div>
     </div>
