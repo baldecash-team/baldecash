@@ -546,7 +546,7 @@ function GamerConfirmacionWrapper({ children, footerData }: { children: React.Re
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
-  const { newsletterData } = useLayout();
+  const { newsletterData, navbarProps } = useLayout();
 
   useEffect(() => {
     try {

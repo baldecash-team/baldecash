@@ -903,7 +903,7 @@ function GamerWizardWrapper({ children, footerData }: { children: React.ReactNod
   const [hydrated, setHydrated] = useState(false);
   const params = useParams();
   const landing = (params.landing as string) || 'zona-gamer';
-  const { newsletterData } = useLayout();
+  const { newsletterData, navbarProps } = useLayout();
 
   // Hydrate theme from localStorage
   useEffect(() => {

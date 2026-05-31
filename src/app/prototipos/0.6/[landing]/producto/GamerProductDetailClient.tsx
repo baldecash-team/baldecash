@@ -140,7 +140,7 @@ function DetailContent() {
 
   const preview = usePreview();
   const previewKey = preview.isPreviewingLanding(landing) ? preview.previewKey : null;
-  const { settings, newsletterData } = useLayout();
+  const { settings, newsletterData, navbarProps } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const tracker = useEventTrackerOptional();
   const analytics = useAnalytics();

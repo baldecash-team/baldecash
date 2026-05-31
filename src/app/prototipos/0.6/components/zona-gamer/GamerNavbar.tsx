@@ -1180,6 +1180,8 @@ export function GamerNavbar({ theme, onToggleTheme, catalogUrl, hideSecondaryBar
 
 function cssVars(isDark: boolean) {
   return {
+    bg: isDark ? '#0e0e0e' : '#f5f5f5',
+    bgCard: isDark ? '#1a1a1a' : '#ffffff',
     bgDarkest: isDark ? '#0e0e0e' : '#f2f2f2',
     bgSurface: isDark ? '#1e1e1e' : '#f0f0f0',
     neonCyan: isDark ? '#00ffd5' : '#00897a',

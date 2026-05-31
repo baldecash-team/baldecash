@@ -147,7 +147,7 @@ export function GamerFooter({ theme, footerData: footerDataProp }: GamerFooterPr
   const sbsText = footerData?.sbs_text;
   const copyrightText = footerData?.copyright_text;
   const contactTitle = footerData?.contact_title;
-  const libroReclamacionesLabel = footerData?.libro_reclamaciones_label;
+  const libroReclamacionesLabel = footerData?.libro_reclamaciones_label ?? 'Libro de reclamaciones';
   const mainPhone = footerData?.company?.main_phone;
   const libroReclamacionesHref = landingSlug
     ? routes.legal(landingSlug, 'libro-reclamaciones')
