@@ -468,6 +468,7 @@ export interface LeadFormConfig {
   title: string;
   description: string;
   cta_text: string;
+  redirect_url?: string;
 }
 
 export interface LeadProductsConfig {

@@ -169,16 +169,49 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
         </>
       )}
 
-      {/* ── DESKTOP: Marcas — absolute solo en modo 70/30 ── */}
-      {logos.length > 0 && !contained && (
-        <div className="hidden lg:block absolute bottom-8 left-10 z-20" style={{ width: 'min(560px, 55vw)' }}>
+      {/* ── DESKTOP: Marcas — absolute en ambos modos ── */}
+      {logos.length > 0 && (
+        <div className={`hidden lg:block absolute bottom-8 z-20 ${contained ? 'left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' : 'left-10'}`}>
+          <div style={{ width: 'min(560px, 55vw)' }}>
+            <p className="text-white/70 text-xs font-['Asap',_sans-serif] mb-2 uppercase tracking-wider">Marcas disponibles</p>
+            <div className="relative overflow-hidden group" style={{ maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
+              <div className="flex gap-3 group-hover:[animation-play-state:paused]" style={{ animation: 'lead-marquee 28s linear infinite', width: 'max-content' }}>
+                {[...logos, ...logos].map((logo, i) => (
+                  <div key={`${logo.id}-${i}`} className="bg-white rounded-xl shadow-md flex items-center justify-center px-3 py-2 flex-shrink-0" style={{ minWidth: '72px', height: '44px' }}>
+                    <img src={logo.url} alt={logo.name} className="max-h-6 max-w-[56px] object-contain grayscale hover:grayscale-0 transition-all"
+                      onError={(e) => { const t = e.target as HTMLImageElement; t.style.display = 'none'; const span = document.createElement('span'); span.className = 'text-[10px] font-bold text-neutral-500'; span.textContent = logo.name; t.parentNode?.appendChild(span); }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE: Marcas — absolute bottom ── */}
+      {logos.length > 0 && (
+        <div className="lg:hidden absolute bottom-6 left-0 right-0 z-20 px-4">
           <p className="text-white/70 text-xs font-['Asap',_sans-serif] mb-2 uppercase tracking-wider">Marcas disponibles</p>
-          <div className="relative overflow-hidden group" style={{ maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
-            <div className="flex gap-3 group-hover:[animation-play-state:paused]" style={{ animation: 'lead-marquee 28s linear infinite', width: 'max-content' }}>
+          <div
+            className="relative overflow-hidden"
+            style={{
+              maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
+            }}
+          >
+            <div className="flex gap-2" style={{ animation: 'lead-marquee 18s linear infinite', width: 'max-content' }}>
               {[...logos, ...logos].map((logo, i) => (
-                <div key={`${logo.id}-${i}`} className="bg-white rounded-xl shadow-md flex items-center justify-center px-3 py-2 flex-shrink-0" style={{ minWidth: '72px', height: '44px' }}>
-                  <img src={logo.url} alt={logo.name} className="max-h-6 max-w-[56px] object-contain grayscale hover:grayscale-0 transition-all"
-                    onError={(e) => { const t = e.target as HTMLImageElement; t.style.display = 'none'; const span = document.createElement('span'); span.className = 'text-[10px] font-bold text-neutral-500'; span.textContent = logo.name; t.parentNode?.appendChild(span); }}
+                <div
+                  key={`${logo.id}-${i}`}
+                  className="bg-white rounded-xl shadow-md flex items-center justify-center px-3 flex-shrink-0"
+                  style={{ height: '36px', minWidth: '56px' }}
+                >
+                  <img
+                    src={logo.url}
+                    alt={logo.name}
+                    className="max-h-5 max-w-[44px] object-contain grayscale hover:grayscale-0 transition-all"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                   />
                 </div>
               ))}
@@ -267,54 +300,6 @@ export const LeadHeroBanner: React.FC<LeadHeroBannerProps> = ({
             </div>
           )}
 
-          {/* Marcas — en modo contained se muestran aquí (desktop + mobile) */}
-          {logos.length > 0 && contained && (
-            <div className="hidden lg:block mt-6" style={{ maxWidth: '560px' }}>
-              <p className="text-white/70 text-xs font-['Asap',_sans-serif] mb-2 uppercase tracking-wider">Marcas disponibles</p>
-              <div className="relative overflow-hidden group" style={{ maskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
-                <div className="flex gap-3 group-hover:[animation-play-state:paused]" style={{ animation: 'lead-marquee 28s linear infinite', width: 'max-content' }}>
-                  {[...logos, ...logos].map((logo, i) => (
-                    <div key={`${logo.id}-${i}`} className="bg-white rounded-xl shadow-md flex items-center justify-center px-3 py-2 flex-shrink-0" style={{ minWidth: '72px', height: '44px' }}>
-                      <img src={logo.url} alt={logo.name} className="max-h-6 max-w-[56px] object-contain grayscale hover:grayscale-0 transition-all"
-                        onError={(e) => { const t = e.target as HTMLImageElement; t.style.display = 'none'; const span = document.createElement('span'); span.className = 'text-[10px] font-bold text-neutral-500'; span.textContent = logo.name; t.parentNode?.appendChild(span); }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Logos marquee — solo mobile */}
-          {logos.length > 0 && (
-            <div
-              className="lg:hidden relative overflow-hidden"
-              style={{
-                maskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)',
-              }}
-            >
-              <div
-                className="flex gap-2"
-                style={{ animation: 'lead-marquee 18s linear infinite', width: 'max-content' }}
-              >
-                {[...logos, ...logos].map((logo, i) => (
-                  <div
-                    key={`${logo.id}-${i}`}
-                    className="bg-white/90 backdrop-blur rounded-lg px-3 flex items-center justify-center flex-shrink-0"
-                    style={{ height: '32px', minWidth: '52px' }}
-                  >
-                    <img
-                      src={logo.url}
-                      alt={logo.name}
-                      className="max-h-4 max-w-[40px] object-contain"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

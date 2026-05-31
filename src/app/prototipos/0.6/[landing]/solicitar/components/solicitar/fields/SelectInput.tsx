@@ -50,6 +50,8 @@ interface SelectInputProps {
   savedLabel?: string;
   /** Smaller height variant for tight layouts (h-9 instead of h-11) */
   small?: boolean;
+  /** Suppress error text below the field (border stays red) */
+  hideErrorText?: boolean;
 }
 
 export const SelectInput: React.FC<SelectInputProps> = ({
@@ -74,6 +76,7 @@ export const SelectInput: React.FC<SelectInputProps> = ({
   searchPrompt,
   savedLabel,
   small = false,
+  hideErrorText = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -293,14 +296,16 @@ export const SelectInput: React.FC<SelectInputProps> = ({
       )}
 
       {/* Error message - always reserve space for alignment in multi-column grids */}
-      <div className="min-h-[20px]">
-        {error && (
-          <p className="text-sm text-[#ef4444] flex items-center gap-1">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            {error}
-          </p>
-        )}
-      </div>
+      {!hideErrorText && (
+        <div className="min-h-[20px]">
+          {error && (
+            <p className="text-sm text-[#ef4444] flex items-center gap-1">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

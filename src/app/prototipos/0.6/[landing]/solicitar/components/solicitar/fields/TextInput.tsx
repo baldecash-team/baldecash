@@ -36,6 +36,8 @@ interface TextInputProps {
   /** Smaller height variant for tight layouts (h-9 instead of h-11) */
   small?: boolean;
   inputMode?: 'text' | 'tel' | 'numeric' | 'email' | 'decimal' | 'search' | 'url' | 'none';
+  /** Suppress error text below the field (border stays red) */
+  hideErrorText?: boolean;
   /** Show loading spinner (e.g., while checking person data) */
   isLoading?: boolean;
   /** Content rendered before the input (e.g., currency symbol, country code) */
@@ -69,6 +71,7 @@ export const TextInput: React.FC<TextInputProps> = ({
   showCounter = true,
   compact = false,
   small = false,
+  hideErrorText = false,
   inputMode: inputModeProp,
   isLoading = false,
   startContent,
@@ -173,7 +176,7 @@ export const TextInput: React.FC<TextInputProps> = ({
       </div>
 
       {/* Error message & Character counter */}
-      {(!compact || error || (showCounter && maxLength)) && (
+      {(!compact || error || (showCounter && maxLength)) && !hideErrorText && (
         <div className={`flex items-center justify-between gap-2 ${compact ? '' : 'min-h-[20px]'}`}>
           {error ? (
             <p className="text-sm text-[#ef4444] flex items-center gap-1">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { LeadFormConfig, StudyCenter } from '../../types/hero';
 import { useSessionOptional } from '../../[landing]/solicitar/context/SessionContext';
@@ -52,6 +52,14 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   const tracker = useEventTrackerOptional();
   const hasStarted = useRef(false);
   const partialLeadIdRef = useRef<number | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   const [form, setForm] = useState<FormState>({
     document_number: '',
@@ -64,6 +72,16 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showToast = (msg: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast(msg);
+    toastTimerRef.current = setTimeout(() => setToast(null), 3500);
+  };
+
+  useEffect(() => () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); }, []);
   const [studyCenterOptions, setStudyCenterOptions] = useState<{ value: string; label: string }[]>(() =>
     studyCenters.map((sc) => ({ value: String(sc.id), label: sc.shortName || sc.name }))
   );
@@ -89,7 +107,9 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     if (!form.study_center_id) newErrors.study_center_id = 'Selecciona tu lugar de estudio';
     if (!form.accepts_terms) newErrors.accepts_terms = 'Debes aceptar los términos para continuar';
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const hasErrors = Object.keys(newErrors).length > 0;
+    if (hasErrors) showToast('Completa todos los campos para continuar');
+    return !hasErrors;
   };
 
   const trackStart = (field: string) => {
@@ -162,7 +182,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         tracker?.track('lead_form_error', { landing, error_code: res.status });
-        setErrors({ general: data.detail || 'Ocurrió un error. Intenta de nuevo.' });
+        showToast(data.detail || 'Ocurrió un error. Intenta de nuevo.');
         return;
       }
       const data = await res.json();
@@ -179,7 +199,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
       router.push(data.redirect_url);
     } catch {
       tracker?.track('lead_form_error', { landing, error_code: 0, detail: 'network_error' });
-      setErrors({ general: 'Error de conexión. Intenta de nuevo.' });
+      showToast('Error de conexión. Intenta de nuevo.');
     } finally {
       setIsLoading(false);
     }
@@ -187,7 +207,18 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
 
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
+      {/* Toast de validación — solo desktop */}
+      {toast && isDesktop && (
+        <div className="absolute -top-12 left-0 right-0 z-50 flex justify-center pointer-events-none">
+          <div className="bg-[#1a1a2e] text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-2 animate-fade-in">
+            <svg className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            {toast}
+          </div>
+        </div>
+      )}
       {/* Descripción — renderiza HTML directo desde BD, sin fallback */}
       {config.description && (
         <div
@@ -208,6 +239,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           showCounter={false}
           compact
           small
+          hideErrorText={isDesktop}
           error={errors.document_number}
           onChange={(v) => handleChange('document_number', v.replace(/\D/g, ''))}
           onBlur={() => handleBlur('document_number', form.document_number)}
@@ -221,6 +253,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           value={form.first_name}
           compact
           small
+          hideErrorText={isDesktop}
           error={errors.first_name}
           onChange={(v) => handleChange('first_name', v)}
           onBlur={() => handleBlur('first_name', form.first_name)}
@@ -234,6 +267,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           value={form.last_name}
           compact
           small
+          hideErrorText={isDesktop}
           error={errors.last_name}
           onChange={(v) => handleChange('last_name', v)}
           onBlur={() => handleBlur('last_name', form.last_name)}
@@ -250,6 +284,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           showCounter={false}
           compact
           small
+          hideErrorText={isDesktop}
           error={errors.phone}
           onChange={(v) => handleChange('phone', v.replace(/\D/g, ''))}
           onBlur={() => handleBlur('phone', form.phone)}
@@ -264,6 +299,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           options={studyCenterOptions}
           error={errors.study_center_id}
           small
+          hideErrorText={isDesktop}
           onChange={(v) => {
             handleChange('study_center_id', v);
             handleBlur('study_center_id', v);
@@ -327,9 +363,6 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
               </a>
             </span>
           </label>
-          {errors.accepts_terms && (
-            <p className="text-xs text-[#ef4444] mt-1 ml-6">{errors.accepts_terms}</p>
-          )}
         </div>
 
         {/* Checkbox 2: Promociones (opcional) */}
@@ -361,19 +394,12 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
           </span>
         </label>
 
-        {/* Error general */}
-        {errors.general && (
-          <p className="text-sm text-[#ef4444] bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            {errors.general}
-          </p>
-        )}
-
         {/* Submit */}
         <button
           type="submit"
           disabled={isLoading}
           style={{ backgroundColor: primaryColor }}
-          className="w-full h-10 rounded-lg text-white font-semibold text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed mt-1"
+          className="w-full h-10 rounded-lg text-white font-semibold text-sm flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer mt-1"
         >
           {isLoading ? (
             <>
