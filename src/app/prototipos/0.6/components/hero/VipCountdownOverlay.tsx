@@ -319,14 +319,14 @@ export const VipCountdownOverlay: React.FC<VipCountdownOverlayProps> = ({
                 className="max-w-md w-full flex flex-col gap-3"
               >
                 <a
-                  href={`/prototipos/0.6/home/catalogo`}
+                  href={`${BASE_PATH}/home/catalogo`}
                   className="w-full py-3.5 bg-white rounded-xl text-base font-semibold text-center transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer block"
                   style={{ color: '#4654CD' }}
                 >
                   Ver catálogo general
                 </a>
                 <a
-                  href="/prototipos/0.6/"
+                  href={`${BASE_PATH}/`}
                   className="w-full py-3 text-white/70 hover:text-white text-sm font-medium text-center transition-colors cursor-pointer block"
                 >
                   Volver al inicio
