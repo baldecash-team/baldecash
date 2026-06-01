@@ -20,6 +20,9 @@ import { EventTrackerProvider } from '../../[landing]/solicitar/context/EventTra
 import { CubeGridSpinner } from '@/app/prototipos/_shared';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { LANDING_IDS } from '@/app/prototipos/0.6/utils/landingIds';
+import { FloatingCtaButton } from '../../components/FloatingCtaButton';
+import { fetchLandingConfig } from '../../services/landingConfigApi';
+import type { FloatingCtaConfig } from '../../types/landingConfig';
 import type { HeroContent, SocialProofData, HowItWorksData, FaqData, Testimonial, CtaData, PromoBannerData, FooterData, BenefitsData, AgreementData, BannerImage, LeadFormConfig, LeadProductsConfig } from '../../types/hero';
 
 function LoadingFallback() {
@@ -71,6 +74,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [landingSlug, setLandingSlug] = useState<string>('preview');
+  const [floatingCtaConfig, setFloatingCtaConfig] = useState<FloatingCtaConfig | null>(null);
 
   // Get ID from path param first, then fall back to query param
   const queryId = searchParams.get('id');
@@ -122,6 +126,10 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         // Store the slug from the API response for routing
         const slug = rawData.landing.slug || 'preview';
         setLandingSlug(slug);
+
+        // Fetch landing config for feature flags (floating CTA, etc.)
+        const landingConfig = await fetchLandingConfig(slug);
+        setFloatingCtaConfig(landingConfig.features.floating_cta ?? null);
 
         // Save preview state to context (persists in sessionStorage)
         // This allows navigation to catalog/product/solicitar to maintain preview mode
@@ -382,6 +390,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
       >
         <PreviewBanner landingSlug={landingSlug} landingId={heroData.landingId} />
         <MacBookNeoLanding footerData={mergedFooterData} landing={landingSlug} previewBannerOffset={24} promoBannerData={heroData.promoBannerData} />
+        <FloatingCtaButton config={floatingCtaConfig} />
       </div>
     );
   }
@@ -421,6 +430,7 @@ function PreviewPageClientInner({ pathId }: PreviewPageClientProps) {
         previewKey={previewKey}
         primaryColor={heroData.primaryColor}
       />
+      <FloatingCtaButton config={floatingCtaConfig} />
     </div>
   );
 }

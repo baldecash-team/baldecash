@@ -2,8 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { type FloatingCtaConfig } from '../types/landingConfig';
-import { GraduationCap, X, ArrowRight } from 'lucide-react';
+import {
+  GraduationCap, ExternalLink, Star, Heart, Zap, Headphones, Award,
+  Gift, BookOpen, HelpCircle, MessageCircle, Bell, Info, Sparkles,
+  X, ArrowRight, type LucideIcon,
+} from 'lucide-react';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  GraduationCap, ExternalLink, Star, Heart, Zap, Headphones, Award,
+  Gift, BookOpen, HelpCircle, MessageCircle, Bell, Info, Sparkles,
+};
 
 interface FloatingCtaButtonProps {
   config: FloatingCtaConfig | null;
@@ -30,7 +39,7 @@ export function FloatingCtaButton({ config }: FloatingCtaButtonProps) {
 
   if (!config) return null;
 
-  const Icon = GraduationCap;
+  const Icon = (config.icon && ICON_MAP[config.icon]) || GraduationCap;
   const hiddenClasses = isFooterVisible
     ? 'opacity-0 pointer-events-none translate-y-2'
     : 'opacity-100 translate-y-0';
