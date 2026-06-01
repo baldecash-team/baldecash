@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, X, Monitor } from 'lucide-react';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
+import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 
 interface GamerGamesRankingProps {
   theme: 'dark' | 'light';
@@ -380,7 +381,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
                         source: 'zona_gamer_ranking_modal',
                       });
                       closeModal();
-                      router.push(`/prototipos/0.6/zona-gamer/producto/${l.slug}`);
+                      router.push(`${BASE_PATH}/zona-gamer/producto/${l.slug}`);
                     }}
                   >
                     {/* Laptop image */}

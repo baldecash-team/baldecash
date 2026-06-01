@@ -77,8 +77,8 @@ jest.mock('../../components/hero/DniModal', () => ({
 // ── routes ────────────────────────────────────────────────────────────────────
 jest.mock('../../utils/routes', () => ({
   routes: {
-    landingHome: (slug: string) => `/prototipos/0.6/${slug}`,
-    catalogo: (slug: string) => `/prototipos/0.6/${slug}/catalogo`,
+    landingHome: (slug: string) => `/${slug}`,
+    catalogo: (slug: string) => `/${slug}/catalogo`,
   },
 }));
 
