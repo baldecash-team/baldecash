@@ -90,10 +90,14 @@ export const FaqSection: React.FC<FaqSectionProps> = ({ data, underlineStyle = 4
           viewport={{ once: true, margin: '-10% 0px' }}
           className="text-center mb-8 sm:mb-12"
         >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] mb-3 sm:mb-4 leading-tight">
-            {data.title || ''}
-          </h2>
-          <p className="text-sm sm:text-base text-neutral-600">{data.subtitle || ''}</p>
+          <h2
+            className="text-2xl sm:text-3xl md:text-4xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] mb-3 sm:mb-4 leading-tight [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: data.title || '' }}
+          />
+          <div
+            className="text-sm sm:text-base text-neutral-600 [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: data.subtitle || '' }}
+          />
         </motion.div>
 
         <motion.div

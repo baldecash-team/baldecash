@@ -343,16 +343,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             {hasCta && (
               <section id="cta" className="py-12 sm:py-16 md:py-20 bg-neutral-50">
                 <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-900 mb-2 sm:mb-3 font-['Baloo_2',_sans-serif] leading-tight">
-                    {ctaData?.sectionTitle?.split('{highlightWord}')[0]}
-                    <UnderlinedText style={UNDERLINE_STYLE} color="primary">
-                      {ctaData?.highlightWord}
-                    </UnderlinedText>
-                    {ctaData?.sectionTitle?.split('{highlightWord}')[1]}
-                  </h2>
-                  <p className="text-sm sm:text-base text-neutral-600 mb-6 sm:mb-8">
-                    {ctaData?.sectionSubtitle}
-                  </p>
+                  <h2
+                    className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-900 mb-2 sm:mb-3 font-['Baloo_2',_sans-serif] leading-tight [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+                    dangerouslySetInnerHTML={{ __html: ctaData?.sectionTitle || '' }}
+                  />
+                  <div
+                    className="text-sm sm:text-base text-neutral-600 mb-6 sm:mb-8 [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+                    dangerouslySetInnerHTML={{ __html: ctaData?.sectionSubtitle || '' }}
+                  />
 
                   {/* CTA Component */}
                   <div className="flex justify-center mb-6">

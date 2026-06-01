@@ -16,7 +16,6 @@ import {
   Quote,
 } from 'lucide-react';
 import { SocialProofProps, Testimonial } from '../../types/hero';
-import { UnderlinedText } from './common/UnderlinedText';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface ExtendedSocialProofProps extends SocialProofProps {
@@ -24,7 +23,7 @@ interface ExtendedSocialProofProps extends SocialProofProps {
   testimonialsTitle?: string;
 }
 
-export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimonials = [], testimonialsTitle, underlineStyle = 4 }) => {
+export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimonials = [], testimonialsTitle }) => {
   const tracker = useEventTrackerOptional();
   // Filtrar study centers activos y testimonios visibles
   const activeStudyCenters = data.studyCenters.filter((sc) => sc.is_active !== false);
@@ -54,31 +53,6 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
   const marqueeDuration = Math.max(20, Math.min(60, repeatedLogos.length * marqueeBaseSpeed));
 
   // Renderizar título con palabra destacada
-  const renderTitle = () => {
-    const template = data.titleTemplate || '';
-    const highlightWord = data.highlightWord || '';
-
-    // Reemplazar {institutionCount} con el valor real
-    const withCount = template.replace('{institutionCount}', data.institutionCount.toString());
-
-    // Dividir por {highlightWord} para insertar el componente UnderlinedText
-    const parts = withCount.split('{highlightWord}');
-
-    if (parts.length === 2) {
-      return (
-        <>
-          {parts[0]}
-          <UnderlinedText style={underlineStyle} color="primary">
-            {highlightWord}
-          </UnderlinedText>
-          {parts[1]}
-        </>
-      );
-    }
-
-    // Fallback si no hay placeholder
-    return withCount;
-  };
 
   const [page, setPage] = useState(0);
   const testimonialsPerPage = 2;
@@ -150,13 +124,15 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
             </Chip>
           </div>
 
-          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] mb-2 sm:mb-3 leading-tight">
-            {renderTitle()}
-          </h3>
+          <h3
+            className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] mb-2 sm:mb-3 leading-tight [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: data.titleTemplate || '' }}
+          />
 
-          <p className="text-sm sm:text-base text-neutral-500 max-w-xl mx-auto">
-            {data.subtitle || ''}
-          </p>
+          <div
+            className="text-sm sm:text-base text-neutral-500 max-w-xl mx-auto [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: data.subtitle || '' }}
+          />
         </motion.div>
       </div>
 
@@ -226,13 +202,14 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
       {visibleTestimonials.length > 0 && (
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
-          <h3 className="text-xl md:text-2xl font-bold text-neutral-800 font-['Baloo_2'] mb-2">
-            {testimonialsTitle || ''}
-          </h3>
-          <p className="text-neutral-500 text-sm">
-            {(data.testimonialsSubtitle || '')
-              .replace('{studentCount}', data.studentCount.toLocaleString('es-PE'))}
-          </p>
+          <h3
+            className="text-xl md:text-2xl font-bold text-neutral-800 font-['Baloo_2'] mb-2 [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: testimonialsTitle || '' }}
+          />
+          <div
+            className="text-neutral-500 text-sm [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: data.testimonialsSubtitle || '' }}
+          />
         </div>
 
         <div className="relative">

@@ -81,14 +81,14 @@ export const ConvenioFaq: React.FC<ConvenioFaqProps> = ({ data, agreementData })
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
           <h2
-            className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight"
+            className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight [&_p]:inline [&_strong]:font-bold [&_em]:italic"
             style={{ color: 'var(--color-primary, #4654CD)' }}
-          >
-            {data.title}
-          </h2>
-          <p className="text-sm sm:text-base text-neutral-600">
-            {data.subtitle}
-          </p>
+            dangerouslySetInnerHTML={{ __html: data.title || '' }}
+          />
+          <div
+            className="text-sm sm:text-base text-neutral-600 [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: data.subtitle || '' }}
+          />
         </div>
 
         {/* FAQ Accordion */}

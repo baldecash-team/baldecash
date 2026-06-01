@@ -103,12 +103,14 @@ export const HowItWorks: React.FC<HowItWorksProps> = ({ data, underlineStyle = 4
           viewport={{ once: true, margin: '-10% 0px' }}
           className="text-center mb-10 sm:mb-16"
         >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 text-neutral-800 font-['Baloo_2',_sans-serif] leading-tight">
-            {data.title || ''}
-          </h2>
-          <p className="text-sm sm:text-base text-neutral-600 max-w-2xl mx-auto">
-            {data.subtitle || ''}
-          </p>
+          <h2
+            className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 text-neutral-800 font-['Baloo_2',_sans-serif] leading-tight [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: data.title || '' }}
+          />
+          <div
+            className="text-sm sm:text-base text-neutral-600 max-w-2xl mx-auto [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            dangerouslySetInnerHTML={{ __html: data.subtitle || '' }}
+          />
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">

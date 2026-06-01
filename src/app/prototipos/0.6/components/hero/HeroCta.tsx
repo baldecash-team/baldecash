@@ -165,9 +165,10 @@ export const HeroCta: React.FC<HeroCtaProps> = ({ data, onCtaClick, onQuizOpen, 
           <span className="text-wrap text-left leading-tight">{data?.buttons.whatsapp.text || ''}</span>
         </Button>
       </div>
-      <p className="text-xs sm:text-sm text-neutral-400 text-center">
-        {data?.responseTime || ''}
-      </p>
+      <div
+        className="text-xs sm:text-sm text-neutral-400 text-center [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+        dangerouslySetInnerHTML={{ __html: data?.responseTime || '' }}
+      />
     </div>
   );
 };

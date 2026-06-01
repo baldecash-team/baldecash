@@ -95,12 +95,14 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
         <div className="grid lg:grid-cols-2 gap-6 lg:gap-8 items-center">
           {/* Left: Text + WhatsApp */}
           <div className="text-white">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight">
-              {ctaData?.sectionTitle}
-            </h2>
-            <p className="text-base sm:text-lg text-white/80 mb-5 sm:mb-6">
-              {ctaData?.sectionSubtitle}
-            </p>
+            <h2
+              className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+              dangerouslySetInnerHTML={{ __html: ctaData?.sectionTitle || '' }}
+            />
+            <div
+              className="text-base sm:text-lg text-white/80 mb-5 sm:mb-6 [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+              dangerouslySetInnerHTML={{ __html: ctaData?.sectionSubtitle || '' }}
+            />
 
             {/* Advisors — show when at least one advisor exists */}
             {ctaData?.advisors && ctaData.advisors.length > 0 && (
@@ -132,9 +134,10 @@ export const ConvenioCta: React.FC<ConvenioCtaProps> = ({
               </div>
               <div>
                 <p className="text-sm text-white/90">Asesores en línea</p>
-                <p className="text-xs text-white/60">
-                  {ctaData?.responseTime}
-                </p>
+                <div
+                  className="text-xs text-white/60 [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+                  dangerouslySetInnerHTML={{ __html: ctaData?.responseTime || '' }}
+                />
               </div>
             </div>
             )}

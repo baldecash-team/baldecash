@@ -22,13 +22,16 @@ export const Benefits: React.FC<BenefitsProps> = ({ data }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight" style={{ color: 'var(--color-primary, #4654CD)' }}>
-            {data.title}
-          </h2>
+          <h2
+            className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 font-['Baloo_2',_sans-serif] leading-tight [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+            style={{ color: 'var(--color-primary, #4654CD)' }}
+            dangerouslySetInnerHTML={{ __html: data.title || '' }}
+          />
           {data.subtitle && (
-            <p className="text-sm sm:text-base text-neutral-600 max-w-2xl mx-auto">
-              {data.subtitle}
-            </p>
+            <div
+              className="text-sm sm:text-base text-neutral-600 max-w-2xl mx-auto [&_p]:inline [&_strong]:font-bold [&_em]:italic"
+              dangerouslySetInnerHTML={{ __html: data.subtitle }}
+            />
           )}
         </div>
 
