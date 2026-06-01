@@ -16,14 +16,16 @@ import {
   Quote,
 } from 'lucide-react';
 import { SocialProofProps, Testimonial } from '../../types/hero';
+import { UnderlinedText } from './common/UnderlinedText';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 
 interface ExtendedSocialProofProps extends SocialProofProps {
   testimonials?: Testimonial[];
   testimonialsTitle?: string;
+  underlineStyle?: number;
 }
 
-export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimonials = [], testimonialsTitle }) => {
+export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimonials = [], testimonialsTitle, underlineStyle = 4 }) => {
   const tracker = useEventTrackerOptional();
   // Filtrar study centers activos y testimonios visibles
   const activeStudyCenters = data.studyCenters.filter((sc) => sc.is_active !== false);
@@ -52,7 +54,25 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
   const marqueeBaseSpeed = 3; // segundos por logo
   const marqueeDuration = Math.max(20, Math.min(60, repeatedLogos.length * marqueeBaseSpeed));
 
-  // Renderizar título con palabra destacada
+  // Renderizar título con palabra destacada — titleTemplate usa variables {institutionCount} y {highlightWord}
+  const renderTitle = () => {
+    const template = data.titleTemplate || '';
+    const highlightWord = data.highlightWord || '';
+    const withCount = template.replace('{institutionCount}', data.institutionCount.toString());
+    const parts = withCount.split('{highlightWord}');
+    if (parts.length === 2) {
+      return (
+        <>
+          {parts[0]}
+          <UnderlinedText style={underlineStyle} color="primary">
+            {highlightWord}
+          </UnderlinedText>
+          {parts[1]}
+        </>
+      );
+    }
+    return withCount;
+  };
 
   const [page, setPage] = useState(0);
   const testimonialsPerPage = 2;
@@ -125,9 +145,10 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
           </div>
 
           <h3
-            className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] mb-2 sm:mb-3 leading-tight [&_p]:inline [&_strong]:font-bold [&_em]:italic"
-            dangerouslySetInnerHTML={{ __html: data.titleTemplate || '' }}
-          />
+            className="text-xl sm:text-2xl md:text-3xl font-bold text-neutral-800 font-['Baloo_2',_sans-serif] mb-2 sm:mb-3 leading-tight"
+          >
+            {renderTitle()}
+          </h3>
 
           <div
             className="text-sm sm:text-base text-neutral-500 max-w-xl mx-auto [&_p]:inline [&_strong]:font-bold [&_em]:italic"
@@ -206,10 +227,9 @@ export const SocialProof: React.FC<ExtendedSocialProofProps> = ({ data, testimon
             className="text-xl md:text-2xl font-bold text-neutral-800 font-['Baloo_2'] mb-2 [&_p]:inline [&_strong]:font-bold [&_em]:italic"
             dangerouslySetInnerHTML={{ __html: testimonialsTitle || '' }}
           />
-          <div
-            className="text-neutral-500 text-sm [&_p]:inline [&_strong]:font-bold [&_em]:italic"
-            dangerouslySetInnerHTML={{ __html: data.testimonialsSubtitle || '' }}
-          />
+          <p className="text-neutral-500 text-sm">
+            {(data.testimonialsSubtitle || '').replace('{studentCount}', data.studentCount.toLocaleString('es-PE'))}
+          </p>
         </div>
 
         <div className="relative">
