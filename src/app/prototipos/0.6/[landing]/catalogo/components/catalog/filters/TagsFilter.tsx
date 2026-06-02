@@ -91,7 +91,7 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
                 >
                   {opt.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <><img src={opt.logo.replace('-white.svg', '-green.svg').replace(/https:\/\/baldecash\.s3\.amazonaws\.com\/brands\//g, '/brands/')} alt={opt.label} style={{ height: 10, width: 'auto', objectFit: 'contain', display: 'inline-block' }} />{showCounts && ` (${opt.count})`}</>
+                    <><img src={opt.logo.replace('-white.svg', '-green.svg').replace(/https:\/\/baldecash\.s3\.amazonaws\.com\/brands\//g, `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/brands/`)} alt={opt.label} style={{ height: 10, width: 'auto', objectFit: 'contain', display: 'inline-block' }} />{showCounts && ` (${opt.count})`}</>
                   ) : (
                     <>{opt.label}{showCounts && ` (${opt.count})`}</>
                   )}
