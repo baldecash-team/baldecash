@@ -16,18 +16,7 @@ interface RibbonLabelProps {
   style?: React.CSSProperties;
 }
 
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
-
-const LOCAL_IMAGE_MAP: Record<string, string> = {
-  'nvidia-logo-white.svg': `${BASE}/brands/nvidia-logo-white.svg`,
-  'nvidia-logo-green.svg': `${BASE}/brands/nvidia-logo-green.svg`,
-};
-
 function resolveImageUrl(url: string | null | undefined): string | null | undefined {
-  if (!url) return url;
-  for (const [filename, local] of Object.entries(LOCAL_IMAGE_MAP)) {
-    if (url.includes(filename)) return local;
-  }
   return url;
 }
 

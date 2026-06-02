@@ -689,7 +689,7 @@ export function GamerSidebar({
                   {lbl.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={(isDark ? lbl.image_url : lbl.image_url.replace('-white.svg', '-green.svg')).replace(/https:\/\/baldecash\.s3\.amazonaws\.com\/brands\//g, `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/brands/`)}
+                      src={(isDark ? lbl.image_url : lbl.image_url.replace('-white.svg', '-green.svg'))}
                       alt={lbl.name}
                       style={{ height: 11, width: 'auto', objectFit: 'contain' }}
                     />
