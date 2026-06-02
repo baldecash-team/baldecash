@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { type GamerTheme, BADGE_COLORS } from './gamerTheme';
+import { RibbonLabel } from '../catalog/RibbonLabel';
 import type { CatalogProduct } from '../../types/catalog';
 
 interface GamerProductCardProps {
@@ -106,9 +107,12 @@ export function GamerProductCard({
           padding: '20px 20px 12px',
         }}
       >
-        {/* Badges top-left */}
-        {product.tags.length > 0 && (
+        {/* Labels top-left: ribbon partner badges + regular tags, stacked */}
+        {((product.ribbonLabels && product.ribbonLabels.length > 0) || product.tags.length > 0) && (
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
+            {product.ribbonLabels && product.ribbonLabels.map(r => (
+              <RibbonLabel key={r.code} ribbon={r} />
+            ))}
             {product.tags.slice(0, 2).map((tag) => {
               const colors = BADGE_COLORS[tag] || { bg: 'rgba(99,102,241,0.2)', text: '#818cf8', border: 'rgba(99,102,241,0.55)' };
               return (

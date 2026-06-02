@@ -82,6 +82,7 @@ export interface LabelFilter {
   code: string;
   name: string;
   color: string;
+  image_url?: string | null;
   count: number;
 }
 

@@ -686,7 +686,14 @@ export function GamerSidebar({
                     fontFamily: "'Rajdhani', sans-serif",
                   }}
                 >
-                  {lbl.name}
+                  {lbl.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={isDark ? lbl.image_url : lbl.image_url.replace('-white.svg', '-green.svg')}
+                      alt={lbl.name}
+                      style={{ height: 11, width: 'auto', objectFit: 'contain' }}
+                    />
+                  ) : lbl.name}
                   <span style={{ opacity: 0.7, fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }}>({lbl.count})</span>
                 </span>
               );

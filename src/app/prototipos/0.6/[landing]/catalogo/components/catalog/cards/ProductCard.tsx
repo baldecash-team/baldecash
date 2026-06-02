@@ -56,6 +56,7 @@ const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
 };
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
+import { RibbonLabel } from '../RibbonLabel';
 import { ColorSelector } from '../color-selector';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 
@@ -419,10 +420,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
 
-            {/* Product Tags */}
-            {product.tags && product.tags.length > 0 && (
-              <div className="absolute top-3 left-3 z-10">
-                <ProductTags tags={product.tags} />
+            {/* Labels: ribbon partner badges + regular tags, stacked top-left */}
+            {((product.ribbonLabels && product.ribbonLabels.length > 0) || (product.tags && product.tags.length > 0)) && (
+              <div className="absolute top-3 left-3 z-10 flex flex-col gap-1">
+                {product.ribbonLabels && product.ribbonLabels.map(r => (
+                  <RibbonLabel key={r.code} ribbon={r} />
+                ))}
+                {product.tags && product.tags.length > 0 && (
+                  <ProductTags tags={product.tags} />
+                )}
               </div>
             )}
           </div>

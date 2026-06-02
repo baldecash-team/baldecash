@@ -100,6 +100,17 @@ export interface ApiColorSibling {
   } | null;
 }
 
+export interface ApiProductLabel {
+  code: string;
+  display_text: string;
+  label_type: 'badge' | 'ribbon' | 'text';
+  background_color: string;
+  text_color: string;
+  icon?: string | null;
+  image_url?: string | null;
+  partner_name?: string | null;
+}
+
 export interface ApiCatalogProduct {
   id: number;
   landing_product_id?: number;
@@ -117,7 +128,7 @@ export interface ApiCatalogProduct {
   badge_text?: string;
   pricing: ApiProductPricing;
   specs?: Record<string, string | number | boolean>;
-  labels?: string[];
+  labels?: ApiProductLabel[];
   image_url?: string;
   thumbnail_url?: string;
   micro_url?: string;
@@ -533,11 +544,16 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   // Determine tags from BD labels + automatic derivations
   const labels = apiProduct.labels || [];
   const validTagTypes: Set<string> = new Set(['nuevo', 'premium', 'destacado', 'economico', 'mas_vendido', 'recomendado', 'cuota_baja', 'oferta']);
-  const tags: ProductTagType[] = labels.filter(l => validTagTypes.has(l)) as ProductTagType[];
+  const badgeLabels = labels.filter(l => l.label_type !== 'ribbon');
+  const tags: ProductTagType[] = badgeLabels
+    .filter(l => validTagTypes.has(l.code))
+    .map(l => l.code as ProductTagType);
   // Automatic: is_featured → recomendado (if not already from labels)
   if (apiProduct.is_featured && !tags.includes('recomendado')) tags.push('recomendado');
   // Automatic: discount → oferta (if not already from labels)
   if (pricing.discount_percent > 0 && !tags.includes('oferta')) tags.push('oferta');
+  // Ribbon labels (partner badges like NVIDIA) — passed through separately
+  const ribbonLabels = labels.filter(l => l.label_type === 'ribbon');
 
   // Use real EAV specs when available, fallback to parsing from name
   const specs = apiProduct.specs && Object.keys(apiProduct.specs).length > 0
@@ -623,6 +639,14 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     isFeatured: apiProduct.is_featured,
     isNew: false, // Not in API response
     tags,
+    ribbonLabels: ribbonLabels.length > 0 ? ribbonLabels.map(l => ({
+      code: l.code,
+      displayText: l.display_text,
+      backgroundColor: l.background_color,
+      textColor: l.text_color,
+      imageUrl: l.image_url,
+      partnerName: l.partner_name,
+    })) : undefined,
     specs: productSpecs,
     rawSpecs: specs || undefined,
     createdAt: new Date().toISOString(),

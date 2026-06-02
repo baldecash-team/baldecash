@@ -26,6 +26,13 @@ const tagColors: Record<string, { bg: string; text: string; border: string }> = 
 // Default colors for unknown tags
 const defaultTagColors = { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-300' };
 
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
+}
+
 export const TagsFilter: React.FC<TagsFilterProps> = ({
   tagOptions,
   selectedTags,
@@ -55,8 +62,44 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
         ) : (
           tagOptions.map((opt) => {
             const isSelected = selectedTags.includes(opt.value as ProductTagType);
-            const colors = tagColors[opt.value] || defaultTagColors;
+            const hardcoded = tagColors[opt.value];
 
+            // For tags with a dynamic color from API (e.g. nvidia), use it inline
+            if (!hardcoded && opt.color) {
+              const { r, g, b } = hexToRgb(opt.color);
+              return (
+                <Chip
+                  key={opt.value}
+                  size="sm"
+                  radius="sm"
+                  variant="bordered"
+                  className="cursor-pointer transition-all"
+                  classNames={{
+                    base: 'px-3 py-1 h-auto',
+                    content: 'text-xs font-medium flex items-center gap-1',
+                  }}
+                  style={isSelected ? {
+                    backgroundColor: opt.color,
+                    color: '#fff',
+                    borderColor: opt.color,
+                  } : {
+                    backgroundColor: `rgba(${r},${g},${b},0.08)`,
+                    color: opt.color,
+                    borderColor: `rgba(${r},${g},${b},0.4)`,
+                  }}
+                  onClick={() => toggleTag(opt.value as ProductTagType)}
+                >
+                  {opt.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <><img src={opt.logo} alt={opt.label} style={{ height: 10, width: 'auto', objectFit: 'contain', display: 'inline-block' }} />{showCounts && ` (${opt.count})`}</>
+                  ) : (
+                    <>{opt.label}{showCounts && ` (${opt.count})`}</>
+                  )}
+                </Chip>
+              );
+            }
+
+            const colors = hardcoded || defaultTagColors;
             return (
               <Chip
                 key={opt.value}

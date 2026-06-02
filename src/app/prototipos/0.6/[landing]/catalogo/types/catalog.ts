@@ -313,6 +313,7 @@ export interface FilterOption {
   icon?: string;
   logo?: string;
   primaryColor?: string;  // Hex color for brand identity (e.g., "#0096D6")
+  color?: string;         // Dynamic color from API (e.g. partner label color)
   disabled?: boolean;
 }
 
@@ -705,6 +706,7 @@ export interface CatalogProduct {
   isFeatured: boolean;
   isNew: boolean;
   tags: ProductTagType[]; // New: 1-4 tags per product
+  ribbonLabels?: { code: string; displayText: string; backgroundColor: string; textColor: string; imageUrl?: string | null; partnerName?: string | null }[];
   specs: ProductSpecs;
   rawSpecs?: Record<string, string | number | boolean>;
   createdAt: string;
