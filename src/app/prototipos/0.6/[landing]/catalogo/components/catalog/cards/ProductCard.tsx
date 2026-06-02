@@ -495,7 +495,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
 
             {/* Specs técnicas con iconos - solo muestra specs con dato real */}
-            <div className="space-y-2 min-h-[100px]">
+            <div className="space-y-2 min-h-[120px]">
               {displaySpecs?.processor?.model && (
                 <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                   <Cpu className="w-3.5 h-3.5 text-[var(--color-primary)]" />
@@ -517,6 +517,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
                   <HardDrive className="w-3.5 h-3.5 text-[var(--color-primary)]" />
                   <span>{displaySpecs.storage.size}GB {displaySpecs.storage.type.toUpperCase()}</span>
+                </div>
+              )}
+              {displaySpecs?.gpu?.model && String(displaySpecs.gpu.model) !== 'null' && (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-600">
+                  <svg className="w-3.5 h-3.5 text-[var(--color-primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                    <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01"/>
+                    <path d="M6 14h.01M10 14h.01M14 14h.01M18 14h.01"/>
+                  </svg>
+                  <span>
+                    {displaySpecs.gpu.model}
+                    {displaySpecs.gpu.vram ? ` ${displaySpecs.gpu.vram}GB` : ''}
+                  </span>
                 </div>
               )}
               {displaySpecs?.display && (

@@ -249,6 +249,19 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
     return processorModelOptions;
   }, [apiFilters]);
+  const dynamicGpuOptions = React.useMemo(() => {
+    if (apiFilters) {
+      if (apiFilters.specs?.gpu?.values && apiFilters.specs.gpu.values.length > 0) {
+        return apiFilters.specs.gpu.values.map(v => ({
+          value: String(v.value),
+          label: v.display,
+          count: v.count || 0,
+        }));
+      }
+      return [];
+    }
+    return [];
+  }, [apiFilters]);
 
   const updateFilter = <K extends keyof typeof filters>(key: K, value: (typeof filters)[K]) => {
     onFiltersChange({ ...filters, [key]: value });
@@ -318,9 +331,10 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       applied.push({ id: `displayType-${type}`, category: 'Tipo Pantalla', label: opt?.label || type, value: type });
     });
 
-    if (filters.gpuType.includes('dedicated')) {
-      applied.push({ id: 'gpu-dedicated', category: 'GPU', label: 'GPU Dedicada', value: 'dedicated' });
-    }
+    filters.gpuType.forEach((gpu) => {
+      const opt = dynamicGpuOptions.find(o => o.value === gpu);
+      applied.push({ id: `gpu-${gpu}`, category: 'GPU', label: opt?.label || gpu, value: gpu });
+    });
 
     if (filters.touchScreen) {
       applied.push({ id: 'touch-true', category: 'Pantalla', label: 'Táctil', value: true });
@@ -360,7 +374,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
     }
 
     return applied;
-  }, [filters, searchQuery]);
+  }, [filters, searchQuery, dynamicGpuOptions]);
 
   const appliedFiltersCount = React.useMemo(() => {
     return (
@@ -375,7 +389,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       filters.displaySize.length +
       filters.resolution.length +
       filters.displayType.length +
-      (filters.gpuType.includes('dedicated') ? 1 : 0) +
+      filters.gpuType.length +
       (filters.touchScreen ? 1 : 0) +
       (filters.backlitKeyboard ? 1 : 0) +
       (filters.numericKeypad ? 1 : 0) +
@@ -427,8 +441,8 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       case 'displayType':
         updateFilter('displayType', filters.displayType.filter((t) => t !== value));
         break;
-      case 'gpu':
-        updateFilter('gpuType', []);
+      case 'GPU':
+        updateFilter('gpuType', filters.gpuType.filter((g) => g !== value));
         break;
       case 'touch':
         updateFilter('touchScreen', false);
@@ -854,6 +868,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                       <TechnicalFiltersStyled
                         version={config.technicalFiltersVersion}
                         showFilters="advanced"
+                        gpuOptions={dynamicGpuOptions}
+                        selectedGpuType={filters.gpuType}
+                        onGpuTypeChange={(values) => updateFilter('gpuType', values)}
                         ramOptions={dynamicRamOptions}
                         selectedRam={filters.ram}
                         onRamChange={(ram) => updateFilter('ram', ram)}
@@ -1086,6 +1103,9 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
                   <TechnicalFiltersStyled
                     version={config.technicalFiltersVersion}
                     showFilters="advanced"
+                    gpuOptions={dynamicGpuOptions}
+                    selectedGpuType={filters.gpuType}
+                    onGpuTypeChange={(values) => updateFilter('gpuType', values)}
                     ramOptions={dynamicRamOptions}
                     selectedRam={filters.ram}
                     onRamChange={(ram) => updateFilter('ram', ram)}

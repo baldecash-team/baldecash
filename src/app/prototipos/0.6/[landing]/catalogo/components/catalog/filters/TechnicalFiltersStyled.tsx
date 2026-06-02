@@ -70,6 +70,10 @@ interface TechnicalFiltersStyledProps {
   processorOptions?: FilterOption[];
   selectedProcessor?: ProcessorModel[];
   onProcessorChange?: (models: ProcessorModel[]) => void;
+  // GPU
+  gpuOptions?: FilterOption[];
+  selectedGpuType?: string[];
+  onGpuTypeChange?: (values: any[]) => void;
   // Counts
   showCounts?: boolean;
 }
@@ -112,6 +116,9 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
   processorOptions = [],
   selectedProcessor = [],
   onProcessorChange,
+  gpuOptions = [],
+  selectedGpuType = [],
+  onGpuTypeChange,
   showCounts = true,
 }) => {
   const showMain = showFilters === 'all' || showFilters === 'main';
@@ -169,6 +176,29 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
       )}
 
       {/* Advanced Filters */}
+      {showAdvanced && gpuOptions.length > 1 && onGpuTypeChange && (
+        <FilterSection title="Tarjeta gráfica" defaultExpanded={false}>
+          <div className="space-y-2">
+            {gpuOptions.map((opt) => (
+              <label
+                key={opt.value}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+              >
+                <Checkbox
+                  isSelected={selectedGpuType.includes(opt.value)}
+                  onValueChange={() => toggleArrayValue(selectedGpuType, opt.value, onGpuTypeChange)}
+                  classNames={{
+                    base: 'cursor-pointer',
+                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    icon: 'text-white',
+                  }}
+                />
+                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+              </label>
+            ))}
+          </div>
+        </FilterSection>
+      )}
       {showAdvanced && ramOptions.length > 1 && onRamChange && (
         <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
           <div className="space-y-2">
@@ -382,6 +412,9 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
   processorOptions = [],
   selectedProcessor = [],
   onProcessorChange,
+  gpuOptions = [],
+  selectedGpuType = [],
+  onGpuTypeChange,
   showCounts = true,
 }) => {
   const showMain = showFilters === 'all' || showFilters === 'main';
@@ -413,6 +446,17 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
       {/* Advanced Filters */}
+      {showAdvanced && gpuOptions.length > 1 && onGpuTypeChange && (
+        <FilterSection title="Tarjeta gráfica" defaultExpanded={false}>
+          <ChipFilterContent
+            options={gpuOptions}
+            selected={selectedGpuType}
+            onToggle={(val) => toggleArrayValue(selectedGpuType, val, onGpuTypeChange)}
+            parseValue={(v) => v}
+            showCounts={showCounts}
+          />
+        </FilterSection>
+      )}
       {showAdvanced && ramOptions.length > 1 && onRamChange && (
         <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
           <ChipFilterContent
@@ -599,6 +643,9 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
   processorOptions = [],
   selectedProcessor = [],
   onProcessorChange,
+  gpuOptions = [],
+  selectedGpuType = [],
+  onGpuTypeChange,
   showCounts = true,
 }) => {
   const showMain = showFilters === 'all' || showFilters === 'main';
@@ -636,6 +683,19 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
         </FilterSection>
       )}
       {/* Advanced Filters */}
+      {showAdvanced && gpuOptions.length > 1 && onGpuTypeChange && (
+        <FilterSection title="Tarjeta gráfica" defaultExpanded={false}>
+          <IconCardFilterContent
+            icon={Cpu}
+            options={gpuOptions}
+            selected={selectedGpuType}
+            onToggle={(val) => toggleArrayValue(selectedGpuType, val, onGpuTypeChange)}
+            parseValue={(v) => v}
+            columns={2}
+            showCounts={showCounts}
+          />
+        </FilterSection>
+      )}
       {showAdvanced && ramOptions.length > 1 && onRamChange && (
         <FilterSection title="RAM" tooltip={filterTooltips.ram} defaultExpanded={false}>
           <IconCardFilterContent
