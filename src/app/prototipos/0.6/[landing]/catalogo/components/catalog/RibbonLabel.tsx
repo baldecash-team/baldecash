@@ -16,7 +16,21 @@ interface RibbonLabelProps {
   style?: React.CSSProperties;
 }
 
+const LOCAL_IMAGE_MAP: Record<string, string> = {
+  'nvidia-logo-white.svg': '/brands/nvidia-logo-white.svg',
+  'nvidia-logo-green.svg': '/brands/nvidia-logo-green.svg',
+};
+
+function resolveImageUrl(url: string | null | undefined): string | null | undefined {
+  if (!url) return url;
+  for (const [filename, local] of Object.entries(LOCAL_IMAGE_MAP)) {
+    if (url.includes(filename)) return local;
+  }
+  return url;
+}
+
 export const RibbonLabel: React.FC<RibbonLabelProps> = ({ ribbon, style }) => {
+  const imageUrl = resolveImageUrl(ribbon.imageUrl);
   return (
     <span
       style={{
@@ -32,16 +46,18 @@ export const RibbonLabel: React.FC<RibbonLabelProps> = ({ ribbon, style }) => {
         ...style,
       }}
     >
-      {ribbon.imageUrl && (
+      {imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={ribbon.imageUrl}
+          src={imageUrl}
           alt={ribbon.partnerName || ribbon.code}
           style={{ width: 68, height: 15, objectFit: 'contain', objectPosition: 'left center', display: 'block' }}
         />
       )}
       <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>
-        {ribbon.displayText}
+        {imageUrl && ribbon.displayText
+          ? 'GeForce ' + ribbon.displayText.replace(/nvidia\s*/i, '').replace(/geforce\s*/i, '').replace(/\s+de\s+\d+\s*GB\b.*/i, '').replace(/\s*\([\w\W]*?\)/g, '').trim()
+          : ribbon.displayText}
       </span>
     </span>
   );

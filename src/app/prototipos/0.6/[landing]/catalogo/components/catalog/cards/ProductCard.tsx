@@ -428,7 +428,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
             {/* Ribbon partner badges — bottom-left (10% from bottom) */}
             {product.ribbonLabels && product.ribbonLabels.length > 0 && (
-              <div className="absolute left-3 z-10 flex flex-col gap-1" style={{ bottom: '40%' }}>
+              <div className="absolute left-3 z-10 flex flex-col gap-1" style={{ bottom: '25%' }}>
                 {product.ribbonLabels.map(r => (
                   <RibbonLabel key={r.code} ribbon={r} />
                 ))}

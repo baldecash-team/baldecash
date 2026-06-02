@@ -140,7 +140,7 @@ export function GamerProductCard({
         )}
         {/* Ribbon partner badges — bottom-left (40% from bottom) */}
         {product.ribbonLabels && product.ribbonLabels.length > 0 && (
-          <div style={{ position: 'absolute', bottom: '40%', left: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
+          <div style={{ position: 'absolute', bottom: '25%', left: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
             {product.ribbonLabels.map(r => (
               <RibbonLabel key={r.code} ribbon={r} />
             ))}
