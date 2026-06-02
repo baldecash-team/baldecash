@@ -396,8 +396,15 @@ function GamerCatalogoContent() {
     gridColumns,
   });
 
-  // Productos tal cual vienen del endpoint, sin filtros frontend ni overrides de thumbnail
-  const allProducts = products;
+  // Ribbon labels (e.g. NVIDIA) always first when filtering by tags (Destacados)
+  const allProducts = useMemo(() => {
+    if (filters.tags.length === 0) return products;
+    return [...products].sort((a, b) => {
+      const aHasRibbon = (a.ribbonLabels?.length ?? 0) > 0 ? 0 : 1;
+      const bHasRibbon = (b.ribbonLabels?.length ?? 0) > 0 ? 0 : 1;
+      return aHasRibbon - bHasRibbon;
+    });
+  }, [products, filters.tags]);
   const displayTotal = total;
 
   // Derive applied filters for contextual counts (each filter option count reflects

@@ -58,7 +58,7 @@ export function GamerProductCard({
   const [isHovered, setIsHovered] = useState(false);
   const hasFiredHoverRef = useRef(false);
 
-  // Spec items helper
+  // Spec items helper — order: Procesador, RAM, GPU, Storage, Pantalla
   const specItems: { icon: React.ReactNode; label: string }[] = [];
   if (product.specs?.processor?.model) {
     specItems.push({ icon: <Cpu className="w-3.5 h-3.5 shrink-0" />, label: product.specs.processor.model });
@@ -66,11 +66,11 @@ export function GamerProductCard({
   if (product.specs?.ram?.size && String(product.specs.ram.size) !== 'null') {
     specItems.push({ icon: <MemoryStick className="w-3.5 h-3.5 shrink-0" />, label: `${product.specs.ram.size}GB DDR${product.specs.ram.type?.includes('5') ? '5' : '4'}` });
   }
-  if (product.specs?.storage?.size && String(product.specs.storage.size) !== 'null') {
-    specItems.push({ icon: <HardDrive className="w-3.5 h-3.5 shrink-0" />, label: `${product.specs.storage.size}GB ${product.specs.storage.type ? product.specs.storage.type.toUpperCase() : 'SSD'}` });
-  }
   if (product.specs?.gpu?.model && String(product.specs.gpu.model) !== 'null') {
     specItems.push({ icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01"/><path d="M10 12h.01"/><path d="M14 12h.01"/><path d="M18 12h.01"/><path d="M6 2v4"/><path d="M10 2v4"/><path d="M14 2v4"/><path d="M18 2v4"/></svg>, label: `${product.specs.gpu.model}${product.specs.gpu.vram ? ` ${product.specs.gpu.vram}GB` : ''}` });
+  }
+  if (product.specs?.storage?.size && String(product.specs.storage.size) !== 'null') {
+    specItems.push({ icon: <HardDrive className="w-3.5 h-3.5 shrink-0" />, label: `${product.specs.storage.size}GB ${product.specs.storage.type ? product.specs.storage.type.toUpperCase() : 'SSD'}` });
   }
   if (product.specs?.display?.size && String(product.specs.display.size) !== 'null') {
     specItems.push({ icon: <Monitor className="w-3.5 h-3.5 shrink-0" />, label: `${product.specs.display.size}" ${product.specs.display.resolution || 'FHD'} ${product.specs.display.refreshRate ? product.specs.display.refreshRate + 'Hz' : ''} ${product.specs.display.type || ''}`.replace(/null/gi, '').trim() });
@@ -107,12 +107,9 @@ export function GamerProductCard({
           padding: '20px 20px 12px',
         }}
       >
-        {/* Labels top-left: ribbon partner badges + regular tags, stacked */}
-        {((product.ribbonLabels && product.ribbonLabels.length > 0) || product.tags.length > 0) && (
+        {/* Regular tags — top-left */}
+        {product.tags.length > 0 && (
           <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
-            {product.ribbonLabels && product.ribbonLabels.map(r => (
-              <RibbonLabel key={r.code} ribbon={r} />
-            ))}
             {product.tags.slice(0, 2).map((tag) => {
               const colors = BADGE_COLORS[tag] || { bg: 'rgba(99,102,241,0.2)', text: '#818cf8', border: 'rgba(99,102,241,0.55)' };
               return (
@@ -139,6 +136,14 @@ export function GamerProductCard({
                 </span>
               );
             })}
+          </div>
+        )}
+        {/* Ribbon partner badges — bottom-left (40% from bottom) */}
+        {product.ribbonLabels && product.ribbonLabels.length > 0 && (
+          <div style={{ position: 'absolute', bottom: '40%', left: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
+            {product.ribbonLabels.map(r => (
+              <RibbonLabel key={r.code} ribbon={r} />
+            ))}
           </div>
         )}
 

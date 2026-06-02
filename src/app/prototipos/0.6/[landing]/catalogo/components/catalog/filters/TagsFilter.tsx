@@ -60,7 +60,7 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
             ))}
           </>
         ) : (
-          tagOptions.map((opt) => {
+          [...tagOptions].sort((a, b) => (b.logo ? 1 : 0) - (a.logo ? 1 : 0)).map((opt) => {
             const isSelected = selectedTags.includes(opt.value as ProductTagType);
             const hardcoded = tagColors[opt.value];
 
@@ -91,7 +91,7 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
                 >
                   {opt.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <><img src={opt.logo} alt={opt.label} style={{ height: 10, width: 'auto', objectFit: 'contain', display: 'inline-block' }} />{showCounts && ` (${opt.count})`}</>
+                    <><img src={opt.logo.replace('-white.svg', '-green.svg')} alt={opt.label} style={{ height: 10, width: 'auto', objectFit: 'contain', display: 'inline-block' }} />{showCounts && ` (${opt.count})`}</>
                   ) : (
                     <>{opt.label}{showCounts && ` (${opt.count})`}</>
                   )}

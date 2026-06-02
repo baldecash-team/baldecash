@@ -1484,7 +1484,7 @@ function DetailContent() {
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }} className="gamer-specs-grid">
             {product.specs.map((spec, idx) => (
-              <SpecCard key={idx} spec={spec} />
+              <SpecCard key={idx} spec={spec} isDark={isDark} />
             ))}
           </div>
         </section>
@@ -2992,7 +2992,7 @@ function SimilarProductsSection({
 // Spec Card
 // ============================================
 
-function SpecCard({ spec }: { spec: ProductSpec }) {
+function SpecCard({ spec, isDark = false }: { spec: ProductSpec; isDark?: boolean }) {
   const icon = SPEC_ICONS[spec.category.toLowerCase()] || <Cpu size={20} />;
   return (
     <div className="spec-card">
@@ -3005,7 +3005,15 @@ function SpecCard({ spec }: { spec: ProductSpec }) {
         {spec.specs.map((item, i) => (
           <div key={i} className="spec-row">
             <span className="spec-row-label" title={item.tooltip || undefined} style={item.tooltip ? { cursor: 'help', borderBottom: '1px dotted currentColor' } : undefined}>{item.label}</span>
-            <span className={`spec-row-value${item.highlight ? ' primary' : ''}`}>{item.value}</span>
+            {/tarjeta\s*gr[aá]fica/i.test(item.label) && /nvidia/i.test(item.value) ? (
+              <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, backgroundColor: '#76b900', color: '#fff', borderRadius: 6, padding: '4px 8px', lineHeight: 1, whiteSpace: 'nowrap' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="https://baldecash.s3.amazonaws.com/brands/nvidia-logo-white.svg" alt="NVIDIA" style={{ width: 68, height: 15, objectFit: 'contain', objectPosition: 'left center', display: 'block' }} />
+                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>{item.value.replace(/nvidia/i, '').trim()}</span>
+              </span>
+            ) : (
+              <span className={`spec-row-value${item.highlight ? ' primary' : ''}`}>{item.value}</span>
+            )}
           </div>
         ))}
       </div>

@@ -657,7 +657,7 @@ export function GamerSidebar({
       {apiFilters?.labels && apiFilters.labels.length > 0 && (
         <FilterSection title="Destacados" T={T} expanded={expandedSections.destacados !== false} onToggle={() => onToggleSection('destacados')}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {apiFilters.labels.map((lbl) => {
+            {[...apiFilters.labels].sort((a, b) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)).map((lbl) => {
               const isActive = (filters.tags as string[]).includes(lbl.code);
               const preset = destacadosOptions.find((o) => o.value === lbl.code);
               const chipBg = preset?.chipBg || `${lbl.color}22`;

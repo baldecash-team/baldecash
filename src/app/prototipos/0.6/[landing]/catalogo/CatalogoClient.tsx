@@ -1378,8 +1378,17 @@ function CatalogoContent() {
       products = products.filter((p) => wishlist.includes(p.id));
     }
 
+    // Ribbon labels (e.g. NVIDIA) always first when filtering by tags (Destacados)
+    if (filters.tags.length > 0) {
+      products = [...products].sort((a, b) => {
+        const aHasRibbon = (a.ribbonLabels?.length ?? 0) > 0 ? 0 : 1;
+        const bHasRibbon = (b.ribbonLabels?.length ?? 0) > 0 ? 0 : 1;
+        return aHasRibbon - bHasRibbon;
+      });
+    }
+
     return products;
-  }, [viewMode, filteredProducts, wishlist]);
+  }, [viewMode, filteredProducts, wishlist, filters.tags]);
 
   // filterCounts removed - use apiFilters counts instead (static from all products)
 
