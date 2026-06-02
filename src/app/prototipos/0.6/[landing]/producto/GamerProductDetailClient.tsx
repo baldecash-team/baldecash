@@ -469,6 +469,23 @@ function DetailContent() {
     return plan?.termMonths ?? selectedTerm;
   }, [paymentPlans, selectedTerm]);
 
+  // Sync URL params when pricing changes (term, initial)
+  const syncUrlParams = useCallback((term: number, initial: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const maxTerm = paymentPlans.length > 0 ? Math.max(...paymentPlans.map(p => p.term)) : null;
+    if (maxTerm != null && term !== maxTerm) {
+      params.set('term', String(term));
+    } else {
+      params.delete('term');
+    }
+    if (initial > 0) {
+      params.set('initial', String(initial));
+    } else {
+      params.delete('initial');
+    }
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [searchParams, router, paymentPlans]);
+
   // Tracked setters: emit analytics when the user (not the URL/API default) changes pricing.
   const handleTermChange = useCallback((nextTerm: number) => {
     if (nextTerm === selectedTerm || !product) return;
@@ -480,7 +497,8 @@ function DetailContent() {
       frequency: data?.paymentFrequencies?.[0],
     });
     setSelectedTerm(nextTerm);
-  }, [analytics, selectedTerm, product, data]);
+    syncUrlParams(nextTerm, selectedInitialPercent);
+  }, [analytics, selectedTerm, selectedInitialPercent, product, data, syncUrlParams]);
 
   const handleInitialChange = useCallback((nextInitial: number) => {
     if (nextInitial === selectedInitialPercent || !product) return;
@@ -491,7 +509,8 @@ function DetailContent() {
       context: 'detail',
     });
     setSelectedInitialPercent(nextInitial);
-  }, [analytics, selectedInitialPercent, product]);
+    syncUrlParams(selectedTerm, nextInitial);
+  }, [analytics, selectedInitialPercent, selectedTerm, product, syncUrlParams]);
 
   // Transform PaymentPlan[] to CartPaymentPlan[] so persisted items match
   // the shape the solicitar flow expects (parity with ProductDetail normal).
@@ -1600,6 +1619,8 @@ function DetailContent() {
               term: selectedTerm,
             });
           }}
+          paymentPlans={paymentPlans}
+          onTermChange={handleTermChange}
         />
       </div>
 
@@ -2281,6 +2302,8 @@ function CronogramaSection({
   onTrackModal,
   onTrackExpand,
   paymentFrequency,
+  paymentPlans,
+  onTermChange,
 }: {
   T: Theme;
   isDark: boolean;
@@ -2296,6 +2319,8 @@ function CronogramaSection({
   onTrackModal?: (open: boolean) => void;
   onTrackExpand?: (expanded: boolean) => void;
   paymentFrequency?: string;
+  paymentPlans?: { term: number }[];
+  onTermChange?: (term: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
@@ -2418,6 +2443,36 @@ function CronogramaSection({
               <p style={{ fontSize: 14, color: isDark ? '#707070' : '#737373', margin: 0 }}>{selectedTerm} pagos mensuales</p>
             </div>
           </div>
+          {/* Term chips — sync con selector de plazo */}
+          {paymentPlans && paymentPlans.length > 1 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {paymentPlans.map((plan) => {
+                const isActive = plan.term === selectedTerm;
+                return (
+                  <button
+                    key={plan.term}
+                    onClick={() => onTermChange?.(plan.term)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 999,
+                      border: `1.5px solid ${isActive ? T.neonCyan : (isDark ? 'rgba(255,255,255,0.12)' : '#e0e0e0')}`,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      background: isActive ? T.neonCyan : 'transparent',
+                      color: isActive
+                        ? (isDark ? '#0a0a0a' : '#ffffff')
+                        : T.textSecondary,
+                      boxShadow: isActive ? (isDark ? `0 0 10px ${T.neonCyan}55` : `0 0 10px ${T.neonCyan}44`) : 'none',
+                    }}
+                  >
+                    {plan.term}m
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Empty state when backend doesn't provide TEA (we can't compute amortization without it) */}
