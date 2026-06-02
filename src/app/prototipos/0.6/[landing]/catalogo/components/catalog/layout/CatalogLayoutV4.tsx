@@ -228,7 +228,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
           label: l.name,
           count: l.count || 0,
           color: l.color,
-          logo: l.image_url,
+          logo: l.image_url ?? undefined,
         }));
       }
       return []; // API returned empty - no fallback to mock
