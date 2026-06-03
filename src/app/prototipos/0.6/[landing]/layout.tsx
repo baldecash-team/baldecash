@@ -618,10 +618,21 @@ function DniInputRow({
   );
 }
 
+// ── Locker Truck overlay gate ─────────────────────────────────────────────
+
+function LockertruckOverlayGate({ landing, onValidated }: { landing: string; onValidated: () => void }) {
+  const { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister } =
+    useDniValidation(landing, onValidated);
+
+  // TODO: diseño a cargo del equipo
+  return <InlineDniGate landing={landing} onValidated={onValidated} />;
+}
+
 // ── Overlay variant registry ──────────────────────────────────────────────
 
 const OVERLAY_VARIANTS: Record<string, React.FC<{ landing: string; onValidated: () => void; deadline?: string }>> = {
   cade: CadeOverlayGate,
+  lockertruck: LockertruckOverlayGate,
 };
 
 // ── VipGate ───────────────────────────────────────────────────────────────
