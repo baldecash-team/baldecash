@@ -94,6 +94,41 @@ function getDeviceType(): 'mobile' | 'tablet' | 'desktop' {
 }
 
 /**
+ * Get OS info from user agent
+ */
+function getOsInfo(): { os: string; osVersion: string } {
+  if (typeof window === 'undefined') {
+    return { os: 'unknown', osVersion: '' };
+  }
+
+  const ua = navigator.userAgent;
+  let os = 'unknown';
+  let osVersion = '';
+
+  if (/android/i.test(ua)) {
+    os = 'Android';
+    const match = ua.match(/Android\s([0-9.]+)/);
+    osVersion = match?.[1] || '';
+  } else if (/iphone|ipad|ipod/i.test(ua)) {
+    os = 'iOS';
+    const match = ua.match(/OS\s([0-9_]+)/);
+    osVersion = match?.[1]?.replace(/_/g, '.') || '';
+  } else if (/windows/i.test(ua)) {
+    os = 'Windows';
+    const match = ua.match(/Windows NT\s([0-9.]+)/);
+    osVersion = match?.[1] || '';
+  } else if (/mac os x/i.test(ua)) {
+    os = 'macOS';
+    const match = ua.match(/Mac OS X\s([0-9_.]+)/);
+    osVersion = match?.[1]?.replace(/_/g, '.') || '';
+  } else if (/linux/i.test(ua)) {
+    os = 'Linux';
+  }
+
+  return { os, osVersion };
+}
+
+/**
  * Get browser info
  */
 function getBrowserInfo(): { browser: string; browserVersion: string } {
@@ -184,6 +219,7 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
       }
 
       const { browser, browserVersion } = getBrowserInfo();
+      const { os, osVersion } = getOsInfo();
       const utmParams = getUtmParams();
       const referrer = getReferrerInfo();
 
@@ -193,6 +229,8 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
         device_type: getDeviceType(),
         browser,
         browser_version: browserVersion,
+        os,
+        os_version: osVersion,
         screen_width: window.screen.width,
         screen_height: window.screen.height,
         ...utmParams,
