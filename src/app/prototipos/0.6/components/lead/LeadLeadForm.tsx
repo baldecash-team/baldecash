@@ -52,6 +52,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
   const tracker = useEventTrackerOptional();
   const hasStarted = useRef(false);
   const partialLeadIdRef = useRef<number | null>(null);
+  const isSubmittingRef = useRef(false);
   const [isDesktop, setIsDesktop] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -159,7 +160,9 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
     if (!validate()) return;
+    isSubmittingRef.current = true;
     tracker?.track('lead_form_submit', { landing, study_center_id: form.study_center_id });
     setIsLoading(true);
     setErrors({});
@@ -183,6 +186,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
         const data = await res.json().catch(() => ({}));
         tracker?.track('lead_form_error', { landing, error_code: res.status });
         showToast(data.detail || 'Ocurrió un error. Intenta de nuevo.');
+        isSubmittingRef.current = false;
         setIsLoading(false);
         return;
       }
@@ -202,6 +206,7 @@ export const LeadLeadForm: React.FC<LeadLeadFormProps> = ({
     } catch {
       tracker?.track('lead_form_error', { landing, error_code: 0, detail: 'network_error' });
       showToast('Error de conexión. Intenta de nuevo.');
+      isSubmittingRef.current = false;
       setIsLoading(false);
     }
   };
