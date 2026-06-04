@@ -222,6 +222,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // ============================================
   // Crear CartItem completo para onAddToCart
   // ============================================
+  // Frecuencia sub-mensual (celulares): semanal/quincenal. Para estas se arrastra
+  // la frecuencia elegida + el plazo en su unidad nativa (semanas/quincenas) y la
+  // cuota/inicial del hook de ESA frecuencia, para no perder la selección al pasar
+  // a /solicitar. Para mensual se mantiene el comportamiento previo (sin frequency/term).
+  const isSubMonthlyFreq = selectedFrequency === 'semanal' || selectedFrequency === 'quincenal';
+  const nativeTerm = isSubMonthlyFreq
+    ? displayTermMonths * (selectedFrequency === 'semanal' ? 4 : 2)
+    : undefined;
+
   const createCartItem = (): CartItem => ({
     productId: activeProductId,
     slug: selectedColor?.slug || product.slug,  // For API calls when fetching payment plans
@@ -234,10 +243,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     variantId: selectedColor?.variantId || product.variantId,
     colorName: selectedColor?.name,
     colorHex: selectedColor?.hex,
-    months: selectedTerm,
-    initialPercent: selectedInitial,
-    initialAmount,
-    monthlyPayment: quota,
+    months: displayTermMonths as TermMonths,
+    term: nativeTerm,
+    paymentFrequency: isSubMonthlyFreq ? selectedFrequency : undefined,
+    initialPercent: displayInitialPercent,
+    initialAmount: displayInitialAmount,
+    monthlyPayment: displayQuotaForFreq,
     specs: {
       processor: displaySpecs?.processor?.model,
       ram: displaySpecs?.ram ? `${displaySpecs.ram.size}GB` : undefined,

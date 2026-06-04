@@ -613,10 +613,13 @@ export async function getProductDetail(landing: string, slug: string, paymentFre
  * @param productId - Product ID
  * @returns Payment plans array or null if not found
  */
-export async function fetchProductPaymentPlans(landing: string, productId: string): Promise<PaymentPlan[] | null> {
+export async function fetchProductPaymentPlans(landing: string, productId: string, paymentFrequency?: string): Promise<PaymentPlan[] | null> {
   try {
-    // Use the detail endpoint but only extract payment_plans
-    const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${productId}/detail`, {
+    // Use the detail endpoint but only extract payment_plans. Pasar la frecuencia
+    // (semanal/quincenal) es obligatorio para celulares: sin ella el backend
+    // devuelve los planes de la frecuencia default y la cuota/plazo no coinciden.
+    const params = paymentFrequency ? `?payment_frequency=${encodeURIComponent(paymentFrequency)}` : '';
+    const response = await fetch(`${API_BASE_URL}/public/landing/${landing}/products/${productId}/detail${params}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

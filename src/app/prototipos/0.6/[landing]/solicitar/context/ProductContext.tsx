@@ -774,7 +774,7 @@ export const ProductProvider: React.FC<ProductProviderProps> = ({ children, land
         const slug = product.slug || slugMap.get(product.id);
         if (!slug) return { productId: product.id, plans: null, slug: null };
 
-        const plans = await fetchProductPaymentPlans(landingSlug, slug);
+        const plans = await fetchProductPaymentPlans(landingSlug, slug, product.paymentFrequency);
         return { productId: product.id, plans, slug };
       });
 
