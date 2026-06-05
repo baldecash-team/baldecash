@@ -555,13 +555,12 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
   // Ribbon labels (partner badges like NVIDIA) — passed through separately
   const ribbonLabels = labels.filter(l => l.label_type === 'ribbon');
 
-  // Use real EAV specs when available, fallback to parsing from name
   const specs = apiProduct.specs && Object.keys(apiProduct.specs).length > 0
     ? apiProduct.specs
     : null;
   const productSpecs = specs
     ? createSpecsFromEav(specs, apiProduct.type || 'laptop')
-    : createDefaultSpecs(apiProduct);
+    : {};
 
   return {
     id: String(apiProduct.id),
