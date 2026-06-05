@@ -19,7 +19,7 @@ interface RibbonLabelProps {
 }
 
 export const RibbonLabel: React.FC<RibbonLabelProps> = ({ ribbon, style }) => {
-  const isNvidia = !!ribbon.imageUrl && !!ribbon.displayText && !!parseNvidiaModel(ribbon.displayText);
+  const isNvidia = !!ribbon.imageUrl && /nvidia/i.test(ribbon.imageUrl);
 
   if (isNvidia) {
     return <NvidiaBadge value={ribbon.displayText} size="sm" style={style} />;

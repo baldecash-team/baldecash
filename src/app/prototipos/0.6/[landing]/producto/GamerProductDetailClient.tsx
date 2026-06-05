@@ -3063,7 +3063,7 @@ function SpecCard({ spec, isDark = false }: { spec: ProductSpec; isDark?: boolea
           <div key={i} className="spec-row">
             <span className="spec-row-label" title={item.tooltip || undefined} style={item.tooltip ? { cursor: 'help', borderBottom: '1px dotted currentColor' } : undefined}>{item.label}</span>
             {/tarjeta\s*gr[aá]fica/i.test(item.label) && parseNvidiaModel(item.value) ? (
-              <NvidiaBadge value={item.value} size="lg" />
+              <NvidiaBadge value={item.value} size="md" />
             ) : (
               <span className={`spec-row-value${item.highlight ? ' primary' : ''}`}>{item.value}</span>
             )}
