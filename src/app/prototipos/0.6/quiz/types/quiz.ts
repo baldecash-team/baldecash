@@ -36,6 +36,14 @@ export interface QuizOption {
   weight: Record<string, string | number | boolean | string[]>;
 }
 
+export interface QuizQuestionCondition {
+  id: number;
+  /** Numeric ID of the earlier question whose answer determines visibility */
+  dependsOnQuestionId: number;
+  /** Question is shown if the user selected ANY of these option codes */
+  requiredOptionCodes: string[];
+}
+
 export interface QuizQuestion {
   id: string;
   numericId?: number; // ID numérico del backend para API calls
@@ -43,6 +51,8 @@ export interface QuizQuestion {
   helpText?: string;
   options: QuizOption[];
   type: QuestionType;
+  /** Skip-logic conditions — empty means always shown */
+  conditions?: QuizQuestionCondition[];
 }
 
 // ============================================

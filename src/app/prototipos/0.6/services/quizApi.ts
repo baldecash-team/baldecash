@@ -23,6 +23,12 @@ interface ApiQuizOption {
   display_order: number;
 }
 
+interface ApiQuizQuestionCondition {
+  id: number;
+  depends_on_question_id: number;
+  required_option_codes: string[];
+}
+
 interface ApiQuizQuestion {
   id: number;
   code: string;
@@ -33,6 +39,7 @@ interface ApiQuizQuestion {
   display_order: number;
   is_required: boolean;
   options: ApiQuizOption[];
+  conditions?: ApiQuizQuestionCondition[];
 }
 
 interface ApiQuizFull {
@@ -129,6 +136,11 @@ function transformQuestion(apiQuestion: ApiQuizQuestion): QuizQuestion {
     helpText: apiQuestion.help_text || undefined,
     type: apiQuestion.question_type,
     options: apiQuestion.options.map(transformOption),
+    conditions: (apiQuestion.conditions || []).map((c) => ({
+      id: c.id,
+      dependsOnQuestionId: c.depends_on_question_id,
+      requiredOptionCodes: c.required_option_codes,
+    })),
   };
 }
 

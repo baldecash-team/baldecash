@@ -239,8 +239,31 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   // Get questions from API (all questions come from backend)
   const questions = apiQuestions;
 
-  const totalSteps = questions.length;
-  const currentQuestion = questions[currentStep];
+  // Skip-logic: returns true if a question should be shown given current answers
+  const isQuestionVisible = useCallback((question: typeof questions[0], answeredSoFar: QuizAnswer[]): boolean => {
+    if (!question.conditions || question.conditions.length === 0) return true;
+    return question.conditions.every((cond) => {
+      const answer = answeredSoFar.find((a) => {
+        // Match by numericId (conditions use numeric IDs from backend)
+        const q = questions.find((qq) => qq.id === a.questionId);
+        return q?.numericId === cond.dependsOnQuestionId;
+      });
+      if (!answer) return false;
+      return cond.requiredOptionCodes.some((code) => {
+        // Match option code against selected option IDs (frontend uses codes as IDs)
+        return answer.selectedOptions.includes(code);
+      });
+    });
+  }, [questions]);
+
+  // Visible questions based on answers given so far
+  const visibleQuestions = useMemo(
+    () => questions.filter((q) => isQuestionVisible(q, answers)),
+    [questions, answers, isQuestionVisible]
+  );
+
+  const totalSteps = visibleQuestions.length;
+  const currentQuestion = visibleQuestions[currentStep];
 
   // Emit quiz_start / quiz_abandon based on modal visibility.
   // El start se dispara solo la primera vez que se abre con preguntas cargadas.
@@ -347,7 +370,7 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       setCurrentStep((prev) => prev + 1);
       setSelectedOption(null);
     }
-  }, [selectedOption, currentQuestion, answers, currentStep, totalSteps, quizId, questions, resultsCount, landingId, context]);
+  }, [selectedOption, currentQuestion, answers, currentStep, totalSteps, quizId, questions, visibleQuestions, resultsCount, landingId, context]);
 
   // Handle back
   const handleBack = useCallback(() => {
