@@ -91,6 +91,34 @@ export function home(): string {
   return `${BASE_PATH}/home`;
 }
 
+/**
+ * Normaliza una URL absoluta devuelta por /evaluate al path navegable en el
+ * entorno actual.
+ *
+ * En dev (BASE_PATH !== ''): extrae el pathname de la URL absoluta y lo
+ * prefija con BASE_PATH. Así, por ejemplo,
+ * "https://baldecash.com/locker-truck/catalogo" se convierte en
+ * "/prototipos/0.6/locker-truck/catalogo".
+ *
+ * En prod (BASE_PATH === ''): devuelve la URL absoluta tal cual (passthrough).
+ *
+ * Decisión 5 del diseño locker-truck-gate.
+ */
+export function normalizeCatalogUrl(absoluteUrl: string): string {
+  if (BASE_PATH === '') {
+    // Producción: passthrough, la URL absoluta ya es correcta
+    return absoluteUrl;
+  }
+  // Dev local: extraer pathname y anteponer BASE_PATH
+  try {
+    const { pathname } = new URL(absoluteUrl);
+    return `${BASE_PATH}${pathname}`;
+  } catch {
+    // Si absoluteUrl no es parseable, devolverla sin modificar
+    return absoluteUrl;
+  }
+}
+
 // ─── Convenience namespace ───────────────────────────────────────────────────
 export const routes = {
   BASE_PATH,
@@ -107,6 +135,7 @@ export const routes = {
   proximamente,
   preview,
   previewWizard,
+  normalizeCatalogUrl,
 };
 
 export default routes;
