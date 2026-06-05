@@ -690,11 +690,13 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   // Preload de assets — a nivel de componente para cumplir Rules of Hooks
   const imagePreloadRef = useRef(false);
 
-  // Asset constants — empty src until EXT-2 assets are uploaded to S3.
-  // WHY: The S3 URLs for the Baldi+food-truck illustration do not exist yet (EXT-2).
-  // The shell renders immediately; the illustration slot is hidden while BALDI_TRUCK is empty.
-  // Background uses FloatingParticles instead of a static S3 asset (EXT-2 eliminated for bg).
-  const BALDI_TRUCK = '';  // TODO EXT-2: 'https://baldecash.s3.amazonaws.com/illustrations/baldi-locker-truck.webp'
+  // Asset constants.
+  // BALDI_TRUCK: temporary asset served from the repo's public/ so the team can
+  // see it without S3 access. TODO EXT-2: upload to S3
+  // ('https://baldecash.s3.amazonaws.com/illustrations/baldi-locker-truck.webp'),
+  // then point this constant at the S3 URL and delete public/illustrations/baldi-locker-truck.png.
+  // Background uses FloatingParticles instead of a static S3 asset (no bg asset needed).
+  const BALDI_TRUCK = '/illustrations/baldi-locker-truck.png';
   // Standard BaldeCash logo — the same logo used in JsonLd, StickyNav, and product landing constants.
   const BALDECASH_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo.png';
   const LOCKER_TEAL = '#00BFB3';
