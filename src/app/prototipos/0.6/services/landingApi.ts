@@ -1402,8 +1402,12 @@ export function isSectionEnabled(
 /**
  * Payload para POST /public/landing/{slug}/evaluate.
  * Mutuamente excluyente: se envía accessToken XOR dni, nunca ambos.
+ * sessionUuid (opcional): si se envía, el backend ata el DNI resuelto a esa
+ * sesión de tracking — cubre tanto el caso token como el de DNI manual (D1).
  */
-export type EvaluatePayload = { accessToken: string } | { dni: string };
+export type EvaluatePayload = ({ accessToken: string } | { dni: string }) & {
+  sessionUuid?: string;
+};
 
 /**
  * Respuesta tipada de /evaluate.
@@ -1437,6 +1441,11 @@ export async function evaluateLandingAccess(
     'accessToken' in payload
       ? { access_token: payload.accessToken }
       : { dni: payload.dni };
+
+  // Si hay sesión de tracking, el backend ata el DNI a esa sesión.
+  if (payload.sessionUuid) {
+    body.session_uuid = payload.sessionUuid;
+  }
 
   const response = await fetch(
     `${API_BASE_URL}/public/landing/${encodeURIComponent(slug)}/evaluate`,
