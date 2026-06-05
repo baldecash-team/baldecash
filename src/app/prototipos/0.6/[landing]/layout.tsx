@@ -20,7 +20,9 @@ import { DniModal, getVipToken, getVipName, consumeVipWelcomePending, saveVipTok
 import { useSessionOptional } from './solicitar/context/SessionContext';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
-import { routes } from '../utils/routes';
+import { routes, normalizeCatalogUrl } from '../utils/routes';
+import { evaluateLandingAccess } from '../services/landingApi';
+import type { EvaluatePayload } from '../services/landingApi';
 import { usePreview } from '../context/PreviewContext';
 
 /**
@@ -618,14 +620,410 @@ function DniInputRow({
   );
 }
 
-// ── Locker Truck overlay gate ─────────────────────────────────────────────
+// ── Locker Truck: helpers anti-loop de sessionStorage (B-1) ──────────────────
+// Key por-slug para evitar afectar otras landings.
+// hasLockertruckPass: guarda contra SSR con typeof window check.
 
-function LockertruckOverlayGate({ landing, onValidated }: { landing: string; onValidated: () => void }) {
-  const { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister } =
-    useDniValidation(landing, onValidated);
+function hasLockertruckPass(slug: string): boolean {
+  if (typeof window === 'undefined') return false;
+  return sessionStorage.getItem(`baldecash-lockertruck-pass-${slug}`) === '1';
+}
 
-  // TODO: diseño a cargo del equipo
-  return <InlineDniGate landing={landing} onValidated={onValidated} />;
+function setLockertruckPass(slug: string): void {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(`baldecash-lockertruck-pass-${slug}`, '1');
+}
+
+// ── Locker Truck: tipos de la máquina de estados (D-1) ───────────────────────
+
+/**
+ * Estados internos del gate locker-truck.
+ *
+ * d1          → formulario de captura de DNI (sin token)
+ * d2-loading  → evaluando acceso (spinner, /evaluate en vuelo)
+ * d2-result   → acceso permitido, botón "Ver catálogo" visible
+ * waiting     → no_normal sin catalog_url ("pronto te contactamos")
+ * d3          → no_access (sin acceso al catálogo)
+ * error       → error de red en /evaluate (con botón Reintentar)
+ */
+type LockertruckState = 'd1' | 'd2-loading' | 'd2-result' | 'waiting' | 'd3' | 'error';
+
+interface LockertruckGateCtx {
+  state: LockertruckState;
+  firstName: string | null;
+  catalogUrl: string | null;
+  errorMsg: string | null;
+  /** Valor del input DNI en D1 */
+  dni: string;
+  /** Token leído de ?vip_auto= al montar el componente */
+  accessToken: string | null;
+}
+
+// ── Locker Truck overlay gate (D-2 + E-1..E-4) ───────────────────────────────
+
+function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landing: string; onValidated: () => void }) {
+  // Leer vip_auto de la URL al montar — determina el estado inicial.
+  // Se lee solo una vez (valor inicial del estado) para evitar re-lectura en renders.
+  const [ctx, setCtx] = useState<LockertruckGateCtx>(() => {
+    const token =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('vip_auto')
+        : null;
+    return {
+      state: token ? 'd2-loading' : 'd1',
+      firstName: null,
+      catalogUrl: null,
+      errorMsg: null,
+      dni: '',
+      accessToken: token,
+    };
+  });
+
+  // Validación local del DNI en D1: 8-12 dígitos numéricos
+  const isDniValid = /^\d{8,12}$/.test(ctx.dni);
+
+  // Ref-guard para evitar doble disparo en StrictMode (D-2)
+  // Se resetea cuando el estado sale de 'd2-loading' (permite reintentar)
+  const evaluateCalledRef = useRef(false);
+
+  // Preload de assets — a nivel de componente para cumplir Rules of Hooks
+  const imagePreloadRef = useRef(false);
+
+  // Constantes de assets — src vacíos hasta EXT-2
+  // WHY: las URLs de S3 para fondo geométrico e ilustración Baldi+food-truck
+  // aún no existen. Se cablea la estructura ahora; cuando se suban los assets
+  // en EXT-2, se reemplazan las cadenas vacías por las URLs reales.
+  const LOCKER_OVERLAY_BG = '';  // TODO EXT-2: 'https://baldecash.s3.amazonaws.com/illustrations/locker-truck-bg.webp'
+  const BALDI_TRUCK = '';         // TODO EXT-2: 'https://baldecash.s3.amazonaws.com/illustrations/baldi-locker-truck.webp'
+  const BALDECASH_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo-vip-v2.png';
+  const LOCKER_TEAL = '#00BFB3';
+
+  // Preload de imágenes disponibles (E-1)
+  useEffect(() => {
+    if (imagePreloadRef.current) return;
+    imagePreloadRef.current = true;
+    const urls = [LOCKER_OVERLAY_BG, BALDI_TRUCK, BALDECASH_LOGO].filter(Boolean);
+    for (const href of urls) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = href;
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  // Disparar /evaluate al entrar en d2-loading (D-2)
+  useEffect(() => {
+    if (ctx.state !== 'd2-loading') {
+      // Resetear el guard al salir de 'd2-loading' para que retry funcione
+      evaluateCalledRef.current = false;
+      return;
+    }
+    if (evaluateCalledRef.current) return;
+    evaluateCalledRef.current = true;
+
+    const payload: EvaluatePayload = ctx.accessToken
+      ? { accessToken: ctx.accessToken }
+      : { dni: ctx.dni };
+
+    evaluateLandingAccess(landing, payload)
+      .then((resp) => {
+        if (
+          (resp.status === 'normal' || resp.status === 'no_normal') &&
+          resp.catalog_url
+        ) {
+          // Acceso normal o no_normal con catálogo → mostrar botón "Ver catálogo"
+          setCtx((prev) => ({
+            ...prev,
+            state: 'd2-result',
+            firstName: resp.first_name ?? null,
+            catalogUrl: resp.catalog_url,
+          }));
+        } else if (resp.status === 'no_normal' && !resp.catalog_url) {
+          // No_normal sin catálogo → mensaje de espera
+          // Flag anti-loop: no re-evaluar en refresh (Decisión 2)
+          setLockertruckPass(landing);
+          setCtx((prev) => ({ ...prev, state: 'waiting' }));
+        } else {
+          // no_access → D3
+          // Flag anti-loop: no re-evaluar en refresh (Decisión 2)
+          setLockertruckPass(landing);
+          setCtx((prev) => ({ ...prev, state: 'd3' }));
+        }
+      })
+      .catch(() => {
+        setCtx((prev) => ({
+          ...prev,
+          state: 'error',
+          errorMsg: 'No pudimos verificar tu acceso. Por favor, intentá de nuevo.',
+        }));
+      });
+  }, [ctx.state, ctx.accessToken, ctx.dni, landing]);
+
+  // Transición D1 → d2-loading: valida el DNI antes de disparar
+  const handleD1Submit = useCallback(() => {
+    if (!isDniValid) return;
+    setCtx((prev) => ({ ...prev, state: 'd2-loading' }));
+  }, [isDniValid]);
+
+  // Transición error → reintentar: vuelve a d2-loading
+  const handleRetry = useCallback(() => {
+    setCtx((prev) => ({ ...prev, state: 'd2-loading', errorMsg: null }));
+  }, []);
+
+  // Navegación al catálogo desde d2-result: set flag anti-loop antes de navegar
+  const handleViewCatalog = useCallback(() => {
+    if (!ctx.catalogUrl) return;
+    setLockertruckPass(landing);
+    window.location.assign(normalizeCatalogUrl(ctx.catalogUrl));
+  }, [ctx.catalogUrl, landing]);
+
+  // ── Render por estado ─────────────────────────────────────────────────────
+
+  // D1: captura de DNI (placeholder funcional sin estilos decorativos)
+  // Estilos definitivos: pendiente de diseño (EXT-2 / diseñadora)
+  if (ctx.state === 'd1') {
+    return (
+      <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-6">
+        {/* D1: placeholder funcional. Estilos definitivos: pendiente de diseño. */}
+        <div className="max-w-sm w-full space-y-4">
+          <p className="text-sm text-gray-600">
+            Ingresa tu número de documento para acceder al catálogo.
+          </p>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            value={ctx.dni}
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/\D/g, '').slice(0, 12);
+              setCtx((prev) => ({ ...prev, dni: cleaned }));
+            }}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleD1Submit(); }}
+            placeholder="Número de documento"
+            maxLength={12}
+            aria-label="Número de documento"
+          />
+          {/* Error inline de validación — no expone el valor del DNI (REQ-11) */}
+          {ctx.dni.length > 0 && !isDniValid && (
+            <p className="text-sm text-red-500">
+              Ingresa un documento válido (8 a 12 dígitos numéricos).
+            </p>
+          )}
+          <button
+            onClick={handleD1Submit}
+            disabled={!isDniValid}
+          >
+            Continuar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // D2-loading / D2-result: pantalla de revisión con stepper (E-1)
+  if (ctx.state === 'd2-loading' || ctx.state === 'd2-result') {
+    const isLoading = ctx.state === 'd2-loading';
+
+    return (
+      <div
+        className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
+        style={{
+          backgroundColor: '#F0F2F5',
+          // WHY: LOCKER_OVERLAY_BG está vacío hasta EXT-2; cuando se suba el asset
+          // la imagen de fondo se aplicará automáticamente.
+          backgroundImage: LOCKER_OVERLAY_BG ? `url(${LOCKER_OVERLAY_BG})` : undefined,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto">
+          {/* Ilustración Baldi + food truck — oculta en móvil, visible md+ */}
+          {/* WHY: BALDI_TRUCK vacío hasta EXT-2; el bloque no se renderiza. */}
+          {BALDI_TRUCK && (
+            <div className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10 relative">
+              <img
+                src={BALDI_TRUCK}
+                alt="Baldi Locker Truck"
+                width={380}
+                height={500}
+                className="h-[28rem] lg:h-[34rem] w-auto object-contain drop-shadow-xl"
+              />
+            </div>
+          )}
+
+          {/* Card principal */}
+          <motion.div
+            className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
+            initial={{ opacity: 0, x: 60 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+          >
+            {/* Logo BaldeCash */}
+            <img
+              src={BALDECASH_LOGO}
+              alt="BaldeCash"
+              width={160}
+              height={56}
+              className="w-32 sm:w-40 h-auto mx-auto mb-5"
+            />
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={ctx.state}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Título y saludo */}
+                <div className="text-center mb-5">
+                  <h2 className="text-xl sm:text-2xl font-bold" style={{ color: '#1B2A4A' }}>
+                    {isLoading
+                      ? (ctx.firstName ? `Hola, ${ctx.firstName}` : 'Estamos revisando tu solicitud')
+                      : (ctx.firstName ? `¡Listo, ${ctx.firstName}!` : '¡Listo!')}
+                  </h2>
+                  {isLoading && (
+                    <p className="text-gray-400 text-xs sm:text-sm mt-1">
+                      Validando tu acceso al catálogo exclusivo.
+                    </p>
+                  )}
+                </div>
+
+                {/* Chip "puede tardar unos segundos" — solo en d2-loading */}
+                {isLoading && (
+                  <div className="flex justify-center mb-4">
+                    <span
+                      className="text-xs font-medium px-3 py-1 rounded-full"
+                      style={{ backgroundColor: 'rgba(0,191,179,0.1)', color: LOCKER_TEAL }}
+                    >
+                      Puede tardar unos segundos
+                    </span>
+                  </div>
+                )}
+
+                {/* Stepper de 3 pasos */}
+                <div className="space-y-3 mb-5">
+                  {/* Paso 1: Solicitud enviada — siempre completado (teal ✓) */}
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: LOCKER_TEAL }}
+                    >
+                      ✓
+                    </span>
+                    <span className="text-sm text-gray-700 font-medium">Solicitud enviada</span>
+                  </div>
+
+                  {/* Paso 2: En revisión — spinner animado en loading, ✓ en result */}
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: LOCKER_TEAL }}
+                    >
+                      {isLoading ? (
+                        <svg
+                          className="animate-spin h-3.5 w-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          role="status"
+                          aria-label="En revisión"
+                        >
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                      ) : '✓'}
+                    </span>
+                    <span className="text-sm text-gray-700 font-medium">En revisión</span>
+                  </div>
+
+                  {/* Paso 3: Resultado — gris punteado en loading, teal ✓ en result */}
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 border-dashed"
+                      style={
+                        isLoading
+                          ? { borderColor: '#D1D5DB', color: '#9CA3AF' }
+                          : { backgroundColor: LOCKER_TEAL, borderColor: LOCKER_TEAL, color: 'white' }
+                      }
+                    >
+                      {isLoading ? '3' : '✓'}
+                    </span>
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: isLoading ? '#9CA3AF' : '#1B2A4A' }}
+                    >
+                      Resultado
+                    </span>
+                  </div>
+                </div>
+
+                {/* Botón "Ver catálogo" — visible solo en d2-result */}
+                {!isLoading && ctx.catalogUrl && (
+                  <button
+                    onClick={handleViewCatalog}
+                    className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                    style={{ backgroundColor: LOCKER_TEAL }}
+                  >
+                    Ver catálogo
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </button>
+                )}
+
+                {/* Pie de privacidad */}
+                <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  Tus datos están protegidos.
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Waiting: no_normal sin catalog_url (E-2)
+  // Placeholder funcional sin estilos decorativos — diseño pendiente
+  if (ctx.state === 'waiting') {
+    return (
+      <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-6">
+        {/* Waiting: placeholder funcional. Estilos definitivos: pendiente de diseño. */}
+        <p className="text-base text-gray-700">
+          Pronto nos comunicaremos con vos.
+        </p>
+      </div>
+    );
+  }
+
+  // D3: no_access (E-3)
+  // Placeholder funcional sin estilos decorativos — diseño pendiente
+  if (ctx.state === 'd3') {
+    return (
+      <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-6">
+        {/* D3: placeholder funcional. Estilos definitivos: pendiente de diseño. */}
+        <p className="text-base text-gray-700">
+          No tenés acceso a este catálogo en este momento.
+        </p>
+      </div>
+    );
+  }
+
+  // Error: error de red en /evaluate (E-4)
+  return (
+    <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-6">
+      <p className="text-base text-gray-700 mb-4">
+        {ctx.errorMsg ?? 'No pudimos verificar tu acceso.'}
+      </p>
+      <button onClick={handleRetry}>
+        Reintentar
+      </button>
+    </div>
+  );
 }
 
 // ── Overlay variant registry ──────────────────────────────────────────────
@@ -723,6 +1121,24 @@ function VipGate({ landing, children }: { landing: string; children: React.React
       // Overlay deadline expired — block access regardless of whitelist
       if (variant && overlayDl && new Date().getTime() >= new Date(overlayDl).getTime()) {
         setOverlayVariant(variant);
+        setOverlayDeadline(overlayDl);
+        setStatus('blocked');
+        return;
+      }
+
+      // C-1: bypass del auto-allow keyed off overlay_variant === 'lockertruck'
+      // Se ejecuta ANTES del bloque de auto-allow para que locker-truck
+      // siempre corra /evaluate, incluso cuando llega con ?vip_auto=.
+      // El token vip_auto queda disponible en la URL para que
+      // LockertruckOverlayGate lo lea directamente.
+      // Decisión 1 del diseño locker-truck-gate.
+      if (variant === 'lockertruck') {
+        if (hasLockertruckPass(landing)) {
+          // El usuario ya fue evaluado en esta sesión → acceso directo
+          setStatus('allowed');
+          return;
+        }
+        setOverlayVariant('lockertruck');
         setOverlayDeadline(overlayDl);
         setStatus('blocked');
         return;
