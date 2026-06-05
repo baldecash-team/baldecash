@@ -344,7 +344,7 @@ function VipGateIsolatedLockertruck({
         return;
       }
 
-      const variant = (cfg.features as Record<string, unknown>).overlay_variant as string || '';
+      const variant = cfg.features.overlay_variant || '';
 
       // Replica la guarda de lockertruck (C-1)
       if (variant === 'lockertruck') {
