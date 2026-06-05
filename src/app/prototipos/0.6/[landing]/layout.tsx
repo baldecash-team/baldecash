@@ -11,6 +11,7 @@
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Search, ShieldCheck, Clock, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
@@ -689,20 +690,22 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   // Preload de assets — a nivel de componente para cumplir Rules of Hooks
   const imagePreloadRef = useRef(false);
 
-  // Constantes de assets — src vacíos hasta EXT-2
-  // WHY: las URLs de S3 para fondo geométrico e ilustración Baldi+food-truck
-  // aún no existen. Se cablea la estructura ahora; cuando se suban los assets
-  // en EXT-2, se reemplazan las cadenas vacías por las URLs reales.
-  const LOCKER_OVERLAY_BG = '';  // TODO EXT-2: 'https://baldecash.s3.amazonaws.com/illustrations/locker-truck-bg.webp'
-  const BALDI_TRUCK = '';         // TODO EXT-2: 'https://baldecash.s3.amazonaws.com/illustrations/baldi-locker-truck.webp'
-  const BALDECASH_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo-vip-v2.png';
+  // Asset constants — empty src until EXT-2 assets are uploaded to S3.
+  // WHY: The S3 URLs for the Baldi+food-truck illustration do not exist yet (EXT-2).
+  // The shell renders immediately; the illustration slot is hidden while BALDI_TRUCK is empty.
+  // Background uses FloatingParticles instead of a static S3 asset (EXT-2 eliminated for bg).
+  const BALDI_TRUCK = '';  // TODO EXT-2: 'https://baldecash.s3.amazonaws.com/illustrations/baldi-locker-truck.webp'
+  // Standard BaldeCash logo — the same logo used in JsonLd, StickyNav, and product landing constants.
+  const BALDECASH_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo.png';
   const LOCKER_TEAL = '#00BFB3';
+  const LOCKER_BLUE = '#4654CD';
+  const LOCKER_NAVY = '#1B2A4A';
 
-  // Preload de imágenes disponibles (E-1)
+  // Preload the logo (the only available image asset at this stage)
   useEffect(() => {
     if (imagePreloadRef.current) return;
     imagePreloadRef.current = true;
-    const urls = [LOCKER_OVERLAY_BG, BALDI_TRUCK, BALDECASH_LOGO].filter(Boolean);
+    const urls = [BALDECASH_LOGO, BALDI_TRUCK].filter(Boolean);
     for (const href of urls) {
       const link = document.createElement('link');
       link.rel = 'preload';
@@ -755,7 +758,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
         setCtx((prev) => ({
           ...prev,
           state: 'error',
-          errorMsg: 'No pudimos verificar tu acceso. Por favor, intentá de nuevo.',
+          errorMsg: 'No pudimos verificar tu acceso. Por favor, intenta de nuevo.',
         }));
       });
   }, [ctx.state, ctx.accessToken, ctx.dni, landing]);
@@ -778,250 +781,335 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     window.location.assign(normalizeCatalogUrl(ctx.catalogUrl));
   }, [ctx.catalogUrl, landing]);
 
-  // ── Render por estado ─────────────────────────────────────────────────────
+  // ── Stepper helpers ───────────────────────────────────────────────────────
 
-  // D1: captura de DNI (placeholder funcional sin estilos decorativos)
-  // Estilos definitivos: pendiente de diseño (EXT-2 / diseñadora)
-  if (ctx.state === 'd1') {
-    return (
-      <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-6">
-        {/* D1: placeholder funcional. Estilos definitivos: pendiente de diseño. */}
-        <div className="max-w-sm w-full space-y-4">
-          <p className="text-sm text-gray-600">
-            Ingresa tu número de documento para acceder al catálogo.
-          </p>
-          <input
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            value={ctx.dni}
-            onChange={(e) => {
-              const cleaned = e.target.value.replace(/\D/g, '').slice(0, 12);
-              setCtx((prev) => ({ ...prev, dni: cleaned }));
-            }}
-            onKeyDown={(e) => { if (e.key === 'Enter') handleD1Submit(); }}
-            placeholder="Número de documento"
-            maxLength={12}
-            aria-label="Número de documento"
-          />
-          {/* Error inline de validación — no expone el valor del DNI (REQ-11) */}
-          {ctx.dni.length > 0 && !isDniValid && (
-            <p className="text-sm text-red-500">
-              Ingresa un documento válido (8 a 12 dígitos numéricos).
-            </p>
-          )}
-          <button
-            onClick={handleD1Submit}
-            disabled={!isDniValid}
-          >
-            Continuar
-          </button>
-        </div>
-      </div>
-    );
+  // Map state to which stepper step is "active" (0-indexed).
+  // d1 → step 0 active; d2-loading → step 1 active; d2-result/waiting/d3/error → step 2 active.
+  const activeStep: 0 | 1 | 2 =
+    ctx.state === 'd1' ? 0
+    : ctx.state === 'd2-loading' ? 1
+    : 2;
+
+  // ── Per-state title / subtitle copy ───────────────────────────────────────
+
+  function stateTitle(): string {
+    switch (ctx.state) {
+      case 'd1':         return 'Accede a tu catálogo exclusivo';
+      case 'd2-loading': return 'Estamos revisando tu solicitud';
+      case 'd2-result':  return ctx.firstName ? `¡Todo listo, ${ctx.firstName}!` : '¡Todo listo!';
+      case 'waiting':    return 'Tu solicitud está en proceso';
+      case 'd3':         return 'Acceso no disponible';
+      case 'error':      return 'Ocurrió un error';
+    }
   }
 
-  // D2-loading / D2-result: pantalla de revisión con stepper (E-1)
-  if (ctx.state === 'd2-loading' || ctx.state === 'd2-result') {
-    const isLoading = ctx.state === 'd2-loading';
+  function stateSubtitle(): string | null {
+    switch (ctx.state) {
+      case 'd1':
+        return 'Ingresa tu documento para verificar tu acceso.';
+      case 'd2-loading':
+        return 'Tu información fue enviada correctamente.\nEstamos validando tus datos para mostrarte las mejores opciones disponibles para ti.';
+      case 'd2-result':
+        return 'Tu acceso fue verificado. Ya puedes explorar el catálogo.';
+      case 'waiting':
+        return 'Pronto nos comunicaremos contigo.';
+      case 'd3':
+        return 'Tu documento no tiene acceso a esta promoción.';
+      case 'error':
+        return ctx.errorMsg ?? 'No pudimos verificar tu acceso. Por favor, intenta de nuevo.';
+    }
+  }
 
-    return (
-      <div
-        className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
-        style={{
-          backgroundColor: '#F0F2F5',
-          // WHY: LOCKER_OVERLAY_BG está vacío hasta EXT-2; cuando se suba el asset
-          // la imagen de fondo se aplicará automáticamente.
-          backgroundImage: LOCKER_OVERLAY_BG ? `url(${LOCKER_OVERLAY_BG})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto">
-          {/* Ilustración Baldi + food truck — oculta en móvil, visible md+ */}
-          {/* WHY: BALDI_TRUCK vacío hasta EXT-2; el bloque no se renderiza. */}
-          {BALDI_TRUCK && (
-            <div className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 z-10 relative">
-              <img
-                src={BALDI_TRUCK}
-                alt="Baldi Locker Truck"
-                width={380}
-                height={500}
-                className="h-[28rem] lg:h-[34rem] w-auto object-contain drop-shadow-xl"
-              />
-            </div>
-          )}
+  // ── Single persistent shell ────────────────────────────────────────────────
+  //
+  // The shell (background + Baldi slot + card) is ALWAYS rendered across every
+  // state. Only the card body changes per step via AnimatePresence.
 
-          {/* Card principal */}
+  return (
+    <div
+      className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
+      style={{ backgroundColor: '#F0F2F5' }}
+    >
+      {/* Animated particle background — reuses FloatingParticles from CadeOverlayGate */}
+      <FloatingParticles color={LOCKER_TEAL} />
+      {/* Secondary color layer for brand depth */}
+      <FloatingParticles color={LOCKER_BLUE} />
+
+      <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto relative z-10">
+
+        {/* ── Baldi + food truck illustration slot ──────────────────────────
+            Hidden on mobile (md+ only). Block is not rendered until EXT-2
+            asset is uploaded — BALDI_TRUCK is empty until then. */}
+        {BALDI_TRUCK && (
           <motion.div
-            className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
-            initial={{ opacity: 0, x: 60 }}
+            className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 relative"
+            style={{ width: 380, height: 500 }}
+            initial={{ opacity: 0, x: -60 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            {/* Logo BaldeCash */}
             <img
-              src={BALDECASH_LOGO}
-              alt="BaldeCash"
-              width={160}
-              height={56}
-              className="w-32 sm:w-40 h-auto mx-auto mb-5"
+              src={BALDI_TRUCK}
+              alt="Baldi Locker Truck"
+              width={380}
+              height={500}
+              className="h-[28rem] lg:h-[34rem] w-auto object-contain drop-shadow-xl"
+            />
+          </motion.div>
+        )}
+
+        {/* ── White card ────────────────────────────────────────────────── */}
+        <motion.div
+          className="max-w-sm w-full md:w-[440px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
+          initial={{ opacity: 0, x: 60 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+        >
+          {/* 1. Standard BaldeCash logo */}
+          <img
+            src={BALDECASH_LOGO}
+            alt="BaldeCash"
+            width={160}
+            height={56}
+            fetchPriority="high"
+            className="w-32 sm:w-40 h-auto mx-auto mb-5"
+          />
+
+          {/* 2. Title + subtitle */}
+          <div className="text-center mb-5">
+            <h2 className="text-xl sm:text-2xl font-bold" style={{ color: LOCKER_NAVY }}>
+              {stateTitle()}
+            </h2>
+            {stateSubtitle() && (
+              <p className="text-gray-400 text-xs sm:text-sm mt-1 whitespace-pre-line">
+                {stateSubtitle()}
+              </p>
+            )}
+          </div>
+
+          {/* 3. Horizontal 3-step stepper */}
+          <div className="flex items-start justify-between mb-6 px-1" aria-label="Progreso de verificación">
+
+            {/* Step 1: Solicitud enviada */}
+            <div className="flex flex-col items-center flex-1">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={
+                  activeStep > 0
+                    ? { backgroundColor: LOCKER_TEAL }           // completed
+                    : activeStep === 0
+                      ? { backgroundColor: LOCKER_TEAL }          // active (same teal)
+                      : { backgroundColor: '#E5E7EB' }            // pending
+                }
+                aria-label="Solicitud enviada"
+              >
+                {activeStep > 0 ? (
+                  <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                ) : (
+                  <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                )}
+              </div>
+              <span
+                className="text-[10px] sm:text-xs font-medium mt-1.5 text-center leading-tight"
+                style={{ color: activeStep >= 0 ? LOCKER_NAVY : '#9CA3AF' }}
+              >
+                Solicitud<br />enviada
+              </span>
+            </div>
+
+            {/* Connector line 1→2 */}
+            <div
+              className="h-[2px] flex-1 mt-[18px] mx-1"
+              style={{ backgroundColor: activeStep >= 1 ? LOCKER_TEAL : '#D1D5DB' }}
+              aria-hidden
             />
 
-            <AnimatePresence mode="wait">
+            {/* Step 2: En revisión */}
+            <div className="flex flex-col items-center flex-1">
               <motion.div
-                key={ctx.state}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={
+                  activeStep > 1
+                    ? { backgroundColor: LOCKER_BLUE }            // completed
+                    : activeStep === 1
+                      ? { backgroundColor: LOCKER_BLUE }           // active
+                      : { backgroundColor: '#E5E7EB' }             // pending
+                }
+                animate={activeStep === 1 ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                transition={{ duration: 1.4, repeat: activeStep === 1 ? Infinity : 0, ease: 'easeInOut' }}
+                aria-label="En revisión"
               >
-                {/* Título y saludo */}
-                <div className="text-center mb-5">
-                  <h2 className="text-xl sm:text-2xl font-bold" style={{ color: '#1B2A4A' }}>
-                    {isLoading
-                      ? (ctx.firstName ? `Hola, ${ctx.firstName}` : 'Estamos revisando tu solicitud')
-                      : (ctx.firstName ? `¡Listo, ${ctx.firstName}!` : '¡Listo!')}
-                  </h2>
-                  {isLoading && (
-                    <p className="text-gray-400 text-xs sm:text-sm mt-1">
-                      Validando tu acceso al catálogo exclusivo.
-                    </p>
-                  )}
-                </div>
-
-                {/* Chip "puede tardar unos segundos" — solo en d2-loading */}
-                {isLoading && (
-                  <div className="flex justify-center mb-4">
-                    <span
-                      className="text-xs font-medium px-3 py-1 rounded-full"
-                      style={{ backgroundColor: 'rgba(0,191,179,0.1)', color: LOCKER_TEAL }}
-                    >
-                      Puede tardar unos segundos
-                    </span>
-                  </div>
+                {activeStep > 1 ? (
+                  <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                ) : (
+                  <Search
+                    className="w-4 h-4"
+                    style={{ color: activeStep === 1 ? 'white' : '#9CA3AF' }}
+                    strokeWidth={2}
+                  />
                 )}
+              </motion.div>
+              <span
+                className="text-[10px] sm:text-xs font-medium mt-1.5 text-center leading-tight"
+                style={{ color: activeStep >= 1 ? LOCKER_NAVY : '#9CA3AF' }}
+              >
+                En<br />revisión
+              </span>
+            </div>
 
-                {/* Stepper de 3 pasos */}
-                <div className="space-y-3 mb-5">
-                  {/* Paso 1: Solicitud enviada — siempre completado (teal ✓) */}
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                      style={{ backgroundColor: LOCKER_TEAL }}
-                    >
-                      ✓
-                    </span>
-                    <span className="text-sm text-gray-700 font-medium">Solicitud enviada</span>
+            {/* Connector line 2→3 (dotted while step 3 is pending) */}
+            <div
+              className="h-[2px] flex-1 mt-[18px] mx-1"
+              style={{
+                backgroundColor: activeStep >= 2 ? LOCKER_TEAL : 'transparent',
+                backgroundImage: activeStep < 2
+                  ? 'repeating-linear-gradient(to right, #D1D5DB 0px, #D1D5DB 6px, transparent 6px, transparent 12px)'
+                  : undefined,
+              }}
+              aria-hidden
+            />
+
+            {/* Step 3: Resultado */}
+            <div className="flex flex-col items-center flex-1">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border-2"
+                style={
+                  activeStep === 2
+                    ? { backgroundColor: LOCKER_TEAL, borderColor: LOCKER_TEAL }  // active/completed
+                    : { backgroundColor: 'transparent', borderColor: '#D1D5DB', borderStyle: 'dashed' }
+                }
+                aria-label="Resultado"
+              >
+                {activeStep === 2 ? (
+                  <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                ) : (
+                  <span className="text-xs text-gray-300 font-medium">3</span>
+                )}
+              </div>
+              <span
+                className="text-[10px] sm:text-xs font-medium mt-1.5 text-center leading-tight"
+                style={{ color: activeStep >= 2 ? LOCKER_NAVY : '#9CA3AF' }}
+              >
+                Resultado
+              </span>
+            </div>
+          </div>
+
+          {/* 4. Card body — changes per state */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={ctx.state}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+            >
+              {/* D1: DNI input + Continuar button */}
+              {ctx.state === 'd1' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                      Número de documento
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={ctx.dni}
+                      onChange={(e) => {
+                        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        setCtx((prev) => ({ ...prev, dni: cleaned }));
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleD1Submit(); }}
+                      placeholder="Ingresa tu número de documento"
+                      maxLength={12}
+                      aria-label="Número de documento"
+                      className="w-full px-4 py-3 bg-gray-100 rounded-xl text-base text-gray-800 font-medium outline-none focus:ring-2 placeholder:text-gray-400"
+                      style={{ '--tw-ring-color': LOCKER_TEAL } as React.CSSProperties}
+                    />
+                    {/* Inline validation error — value not exposed (REQ-11) */}
+                    {ctx.dni.length > 0 && !isDniValid && (
+                      <p className="mt-1.5 text-sm text-red-500">
+                        Ingresa un documento válido (8 a 12 dígitos numéricos).
+                      </p>
+                    )}
                   </div>
-
-                  {/* Paso 2: En revisión — spinner animado en loading, ✓ en result */}
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                      style={{ backgroundColor: LOCKER_TEAL }}
-                    >
-                      {isLoading ? (
-                        <svg
-                          className="animate-spin h-3.5 w-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          role="status"
-                          aria-label="En revisión"
-                        >
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                        </svg>
-                      ) : '✓'}
-                    </span>
-                    <span className="text-sm text-gray-700 font-medium">En revisión</span>
-                  </div>
-
-                  {/* Paso 3: Resultado — gris punteado en loading, teal ✓ en result */}
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 border-dashed"
-                      style={
-                        isLoading
-                          ? { borderColor: '#D1D5DB', color: '#9CA3AF' }
-                          : { backgroundColor: LOCKER_TEAL, borderColor: LOCKER_TEAL, color: 'white' }
-                      }
-                    >
-                      {isLoading ? '3' : '✓'}
-                    </span>
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: isLoading ? '#9CA3AF' : '#1B2A4A' }}
-                    >
-                      Resultado
-                    </span>
-                  </div>
-                </div>
-
-                {/* Botón "Ver catálogo" — visible solo en d2-result */}
-                {!isLoading && ctx.catalogUrl && (
                   <button
-                    onClick={handleViewCatalog}
-                    className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                    onClick={handleD1Submit}
+                    disabled={!isDniValid}
+                    className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ backgroundColor: LOCKER_TEAL }}
                   >
-                    Ver catálogo
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                    </svg>
+                    Continuar
+                    <ArrowRight className="w-5 h-5" strokeWidth={2} />
                   </button>
-                )}
+                </div>
+              )}
 
-                {/* Pie de privacidad */}
-                <p className="mt-4 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
-                  Tus datos están protegidos.
+              {/* D2-loading: chip "Este proceso puede tardar unos segundos" */}
+              {ctx.state === 'd2-loading' && (
+                <div className="flex justify-center py-2">
+                  <span
+                    className="flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full"
+                    style={{ backgroundColor: 'rgba(0,191,179,0.1)', color: LOCKER_TEAL }}
+                  >
+                    <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+                    Este proceso puede tardar unos segundos
+                  </span>
+                </div>
+              )}
+
+              {/* D2-result: "Ver catálogo" button */}
+              {ctx.state === 'd2-result' && (
+                <button
+                  onClick={handleViewCatalog}
+                  className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                  style={{ backgroundColor: LOCKER_TEAL }}
+                >
+                  Ver catálogo
+                  <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                </button>
+              )}
+
+              {/* Waiting: no_normal sin catalog_url */}
+              {ctx.state === 'waiting' && (
+                <p className="text-center text-sm text-gray-500 py-2">
+                  Pronto nos comunicaremos contigo.
                 </p>
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        </div>
-      </div>
-    );
-  }
+              )}
 
-  // Waiting: no_normal sin catalog_url (E-2)
-  // Placeholder funcional sin estilos decorativos — diseño pendiente
-  if (ctx.state === 'waiting') {
-    return (
-      <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-6">
-        {/* Waiting: placeholder funcional. Estilos definitivos: pendiente de diseño. */}
-        <p className="text-base text-gray-700">
-          Pronto nos comunicaremos con vos.
-        </p>
-      </div>
-    );
-  }
+              {/* D3: no_access */}
+              {ctx.state === 'd3' && (
+                <p className="text-center text-sm text-gray-500 py-2">
+                  Tu documento no tiene acceso a esta promoción.
+                </p>
+              )}
 
-  // D3: no_access (E-3)
-  // Placeholder funcional sin estilos decorativos — diseño pendiente
-  if (ctx.state === 'd3') {
-    return (
-      <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-6">
-        {/* D3: placeholder funcional. Estilos definitivos: pendiente de diseño. */}
-        <p className="text-base text-gray-700">
-          No tenés acceso a este catálogo en este momento.
-        </p>
-      </div>
-    );
-  }
+              {/* Error: red de /evaluate con botón Reintentar */}
+              {ctx.state === 'error' && (
+                <div className="space-y-3 text-center">
+                  <p className="text-sm text-red-500">
+                    {ctx.errorMsg ?? 'No pudimos verificar tu acceso.'}
+                  </p>
+                  <button
+                    onClick={handleRetry}
+                    className="w-full py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-200 hover:shadow-md active:scale-[0.98]"
+                    style={{ borderColor: LOCKER_TEAL, color: LOCKER_TEAL, backgroundColor: 'transparent' }}
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-  // Error: error de red en /evaluate (E-4)
-  return (
-    <div className="fixed inset-0 z-[10001] flex flex-col items-center justify-center p-6">
-      <p className="text-base text-gray-700 mb-4">
-        {ctx.errorMsg ?? 'No pudimos verificar tu acceso.'}
-      </p>
-      <button onClick={handleRetry}>
-        Reintentar
-      </button>
+          {/* 5. Footer: privacy note */}
+          <p className="mt-5 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
+            Tus datos están protegidos.
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
