@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { HelpCircle, GraduationCap, MessageSquare } from 'lucide-react';
+import { HelpCircle, GraduationCap, MessageSquare, Sparkles } from 'lucide-react';
 import { type GamerTheme } from './gamerTheme';
 
-export function GamerHelpButton({ isDark, T, onOpenChat, onStartTour }: { isDark: boolean; T: GamerTheme; onOpenChat: () => void; onStartTour: () => void }) {
+export function GamerHelpButton({ isDark, T, onOpenChat, onStartTour, hasQuiz, onStartQuiz, questionCount }: { isDark: boolean; T: GamerTheme; onOpenChat: () => void; onStartTour: () => void; hasQuiz?: boolean; onStartQuiz?: () => void; questionCount?: number }) {
   const [open, setOpen] = useState(false);
   const neonCyan = T.neonCyan;
   const border = T.border;
@@ -24,6 +24,24 @@ export function GamerHelpButton({ isDark, T, onOpenChat, onStartTour }: { isDark
             background: bgCard, border: `1px solid ${border}`,
             boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
           }}>
+            {hasQuiz && (
+              <button
+                onClick={() => { setOpen(false); onStartQuiz?.(); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px 16px', background: 'none', border: 'none', borderBottom: `1px solid ${border}`,
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <div style={{ width: 36, height: 36, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(0,255,213,0.08)' : 'rgba(0,137,122,0.08)', flexShrink: 0 }}>
+                  <Sparkles size={20} style={{ color: neonCyan }} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: textPrimary, margin: 0 }}>Encuentra tu equipo ideal</p>
+                  <p style={{ fontSize: 11, color: textMuted, margin: 0 }}>Responde {questionCount ?? '?'} preguntas</p>
+                </div>
+              </button>
+            )}
             <button
               onClick={() => { setOpen(false); onStartTour(); }}
               style={{

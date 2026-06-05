@@ -26,6 +26,7 @@ import {
   Laptop,
   AlertCircle,
   ShoppingCart,
+  Sparkles,
 } from 'lucide-react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 
@@ -93,6 +94,12 @@ import {
   GamerSortDropdown,
   GamerActiveFilters,
 } from './components/gamer';
+
+// Quiz
+import { HelpQuiz } from '@/app/prototipos/0.6/quiz/components/quiz/HelpQuiz';
+import type { QuizAnswer, QuizQuestion } from '@/app/prototipos/0.6/quiz/types/quiz';
+import { useQuiz } from '@/app/prototipos/0.6/quiz/hooks/useQuiz';
+import { mapQuizAnswersToFilters } from './utils/quizFilters';
 
 // ============================================
 // Main export
@@ -192,6 +199,11 @@ function GamerCatalogoContent() {
   const { navbarProps, isLoading: isLayoutLoading, hasError: hasLayoutError, settings, newsletterData } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
   const MAX_MONTHLY_QUOTA = getMaxMonthlyQuota(settings);
+
+  // Quiz
+  const { hasQuiz, questions: quizQuestions } = useQuiz({ landingSlug: landing });
+  const questionCount = quizQuestions.length;
+  const [isQuizOpen, setIsQuizOpen] = useState(false);
 
   // Onboarding tour (custom steps for zona-gamer)
   const [tourActive, setTourActive] = useState(false);
@@ -1949,6 +1961,44 @@ function GamerCatalogoContent() {
                   >
                     Volver al inicio
                   </button>
+                  {hasQuiz && (
+                    <div style={{
+                      marginTop: 24,
+                      padding: '20px 24px',
+                      borderRadius: 12,
+                      border: `1px solid ${T.border}`,
+                      background: isDark ? 'rgba(0,255,213,0.05)' : 'rgba(0,137,122,0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 12,
+                    }}>
+                      <p style={{ color: T.textPrimary, fontFamily: "'Rajdhani', sans-serif", fontSize: 16, fontWeight: 600, margin: 0 }}>
+                        ¿No encuentras lo que buscas?
+                      </p>
+                      <p style={{ color: T.textMuted, fontSize: 13, margin: 0 }}>
+                        Nuestro asistente te ayuda a encontrar el equipo ideal
+                      </p>
+                      <button
+                        onClick={() => setIsQuizOpen(true)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '10px 20px',
+                          background: T.neonCyan,
+                          border: 'none',
+                          borderRadius: 8,
+                          color: '#0a0a0a',
+                          fontFamily: "'Barlow Condensed', sans-serif",
+                          fontSize: 14,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Sparkles size={16} />
+                        Iniciar asistente
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -2686,7 +2736,17 @@ function GamerCatalogoContent() {
       `}</style>
 
       {/* Help button */}
-      {!showMobileFilters && !showCompareModal && <GamerHelpButton isDark={isDark} T={T} onOpenChat={() => blipChat.openChat()} onStartTour={handleStartTour} />}
+      {!showMobileFilters && !showCompareModal && !isQuizOpen && (
+        <GamerHelpButton
+          isDark={isDark}
+          T={T}
+          onOpenChat={() => blipChat.openChat()}
+          onStartTour={handleStartTour}
+          hasQuiz={hasQuiz}
+          onStartQuiz={() => setIsQuizOpen(true)}
+          questionCount={questionCount}
+        />
+      )}
 
       {/* Onboarding Tour */}
       <GamerOnboardingTour
@@ -2765,6 +2825,47 @@ function GamerCatalogoContent() {
           onRemoveItem={handleRemoveFromCart}
           attemptedProduct={attemptedCartProduct}
           totalMonthlyQuota={totalMonthlyQuota}
+        />
+      )}
+
+      {/* Help Quiz Modal - Solo cuando la landing tiene quiz activo */}
+      {hasQuiz && (
+        <HelpQuiz
+          isOpen={isQuizOpen}
+          onClose={() => setIsQuizOpen(false)}
+          context="catalog"
+          landing={landing}
+          onComplete={(results, answers, questions) => {
+            if (answers && answers.length > 0 && questions && questions.length > 0) {
+              const quizFilters = mapQuizAnswersToFilters(answers, questions, filters);
+              setFiltersTracked((prev) => ({
+                ...prev,
+                ...quizFilters,
+              }));
+            }
+          }}
+          onAddToCart={ALLOW_MULTI_PRODUCT ? (quizProduct) => {
+            const cartItem: CartItem = {
+              productId: quizProduct.id,
+              name: quizProduct.displayName,
+              shortName: quizProduct.name,
+              brand: quizProduct.brand,
+              image: quizProduct.thumbnail || quizProduct.image,
+              price: quizProduct.price,
+              months: (quizProduct.termMonths || 24) as TermMonths,
+              initialPercent: WIZARD_SELECTED_INITIAL,
+              initialAmount: 0,
+              monthlyPayment: quizProduct.lowestQuota,
+              addedAt: Date.now(),
+              specs: {
+                processor: quizProduct.specs?.processor || '',
+                ram: quizProduct.specs?.ram ? `${quizProduct.specs.ram}GB` : '',
+                storage: quizProduct.specs?.storage ? `${quizProduct.specs.storage}GB` : '',
+              },
+            };
+            handleAddToCart(quizProduct.id, undefined, cartItem);
+          } : undefined}
+          cartItems={ALLOW_MULTI_PRODUCT ? cartItems : []}
         />
       )}
     </div>
