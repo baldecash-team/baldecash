@@ -40,12 +40,16 @@ import {
 // Layout components
 import { QuizLayoutV4 } from './layout/QuizLayoutV4';
 import { QuizLayoutV5 } from './layout/QuizLayoutV5';
+import { QuizLayoutV4Gamer } from './layout/QuizLayoutV4Gamer';
+import { QuizLayoutV5Gamer } from './layout/QuizLayoutV5Gamer';
 
 // Question component
 import { QuizQuestionV1 } from './questions/QuizQuestionV1';
+import { QuizQuestionV1Gamer } from './questions/QuizQuestionV1Gamer';
 
 // Results component
 import { QuizResultsV1 } from './results/QuizResultsV1';
+import { QuizResultsV1Gamer } from './results/QuizResultsV1Gamer';
 
 // Data and API
 import { useQuiz } from '../../hooks/useQuiz';
@@ -148,7 +152,10 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
   landing,
   onAddToCart,
   cartItems = [],
+  gamerTheme: T,
+  isDark = false,
 }) => {
+  const isGamer = !!T;
   const router = useRouter();
   // Use optional hook - may be null if outside ProductProvider (e.g., Hero page)
   const productContext = useProductOptional();
@@ -254,8 +261,9 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, questions.length]);
 
-  // Get layout component based on device (mobile: V4 bottom sheet, desktop: V5 modal)
+  // Get layout component for non-gamer path
   const LayoutComponent = isMobile ? QuizLayoutV4 : QuizLayoutV5;
+  // Gamer layout components selected below at render time
 
   // Handle option selection
   const handleSelectOption = useCallback((optionId: string) => {
@@ -419,60 +427,59 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     }, 300);
   }, [onClose, handleRestart]);
 
+  const F_RAJ = "'Rajdhani', sans-serif";
+
   // Render content
   const renderContent = () => {
     // Mostrar loading mientras carga el quiz
     if (quizLoading) {
-      return (
+      return isGamer && T ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px' }}>
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+            <Loader2 size={40} style={{ color: T.neonCyan }} />
+          </motion.div>
+          <p style={{ marginTop: 16, color: T.textMuted, fontFamily: F_RAJ, fontSize: 14 }}>Cargando preguntas...</p>
+        </div>
+      ) : (
         <div className="flex flex-col items-center justify-center py-12">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          >
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
             <Loader2 className="w-12 h-12" style={{ color: 'var(--color-primary)' }} />
           </motion.div>
-          <p className="mt-4 text-neutral-600 font-medium">
-            Cargando preguntas...
-          </p>
+          <p className="mt-4 text-neutral-600 font-medium">Cargando preguntas...</p>
         </div>
       );
     }
 
     // Si no hay quiz para esta landing, cerrar el modal silenciosamente
     if (!hasQuiz && !quizError) {
-      // Cerrar automáticamente después de un breve momento
       setTimeout(() => handleClose(), 100);
       return null;
     }
 
     // Mostrar error solo si hubo un error real de carga
     if (quizError) {
-      return (
+      return isGamer && T ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px', textAlign: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,0,85,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <X size={28} style={{ color: '#ff0055' }} />
+          </div>
+          <p style={{ color: T.textPrimary, fontFamily: F_RAJ, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>No pudimos cargar el quiz</p>
+          <p style={{ color: T.textMuted, fontFamily: F_RAJ, fontSize: 13, marginBottom: 20 }}>{quizError}</p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={handleClose} style={{ padding: '8px 18px', borderRadius: 8, background: 'transparent', border: `1px solid ${T.border}`, color: T.textSecondary, fontFamily: F_RAJ, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cerrar</button>
+            <button onClick={() => refetchQuiz()} style={{ padding: '8px 18px', borderRadius: 8, background: T.neonCyan, border: 'none', color: isDark ? '#0a0a0a' : '#fff', fontFamily: F_RAJ, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Reintentar</button>
+          </div>
+        </div>
+      ) : (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
             <X className="w-8 h-8 text-red-500" />
           </div>
-          <p className="text-neutral-700 font-medium mb-2">
-            No pudimos cargar el quiz
-          </p>
-          <p className="text-sm text-neutral-500 mb-4">
-            {quizError}
-          </p>
+          <p className="text-neutral-700 font-medium mb-2">No pudimos cargar el quiz</p>
+          <p className="text-sm text-neutral-500 mb-4">{quizError}</p>
           <div className="flex gap-3">
-            <Button
-              variant="light"
-              onPress={handleClose}
-              className="cursor-pointer"
-            >
-              Cerrar
-            </Button>
-            <Button
-              className="text-white cursor-pointer"
-              style={{ backgroundColor: 'var(--color-primary)' }}
-              onPress={() => refetchQuiz()}
-            >
-              Reintentar
-            </Button>
+            <Button variant="light" onPress={handleClose} className="cursor-pointer">Cerrar</Button>
+            <Button className="text-white cursor-pointer" style={{ backgroundColor: 'var(--color-primary)' }} onPress={() => refetchQuiz()}>Reintentar</Button>
           </div>
         </div>
       );
@@ -480,7 +487,18 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
 
     // Mostrar resultados
     if (results) {
-      return (
+      return isGamer && T ? (
+        <QuizResultsV1Gamer
+          results={results}
+          onViewProduct={handleViewProduct}
+          onRestartQuiz={handleRestart}
+          onViewOtherOptions={handleViewOtherOptions}
+          onAddToCart={onAddToCart}
+          cartItems={cartItems}
+          T={T}
+          isDark={isDark}
+        />
+      ) : (
         <QuizResultsV1
           results={results}
           onViewProduct={handleViewProduct}
@@ -492,22 +510,23 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
       );
     }
 
-    // Mostrar loading
+    // Mostrar loading de cálculo
     if (isCalculating) {
-      return (
+      return isGamer && T ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 16px' }}>
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+            <Loader2 size={40} style={{ color: T.neonCyan }} />
+          </motion.div>
+          <p style={{ marginTop: 16, color: T.textPrimary, fontFamily: F_RAJ, fontSize: 14, fontWeight: 600 }}>Analizando tus respuestas...</p>
+          <p style={{ color: T.textMuted, fontFamily: F_RAJ, fontSize: 12, marginTop: 4 }}>Buscando el equipo ideal para ti</p>
+        </div>
+      ) : (
         <div className="flex flex-col items-center justify-center py-12">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          >
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
             <Loader2 className="w-12 h-12" style={{ color: 'var(--color-primary)' }} />
           </motion.div>
-          <p className="mt-4 text-neutral-600 font-medium">
-            Analizando tus respuestas...
-          </p>
-          <p className="text-sm text-neutral-400">
-            Buscando la laptop ideal para ti
-          </p>
+          <p className="mt-4 text-neutral-600 font-medium">Analizando tus respuestas...</p>
+          <p className="text-sm text-neutral-400">Buscando la laptop ideal para ti</p>
         </div>
       );
     }
@@ -523,11 +542,21 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <QuizQuestionV1
-              question={currentQuestion}
-              selectedOption={selectedOption}
-              onSelect={handleSelectOption}
-            />
+            {isGamer && T ? (
+              <QuizQuestionV1Gamer
+                question={currentQuestion}
+                selectedOption={selectedOption}
+                onSelect={handleSelectOption}
+                T={T}
+                isDark={isDark}
+              />
+            ) : (
+              <QuizQuestionV1
+                question={currentQuestion}
+                selectedOption={selectedOption}
+                onSelect={handleSelectOption}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
       );
@@ -538,32 +567,59 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
 
   // Render footer with navigation buttons (only for questions, not results)
   const renderFooter = () => {
-    if (results || isCalculating || !currentQuestion) {
-      return null;
+    if (results || isCalculating || !currentQuestion) return null;
+
+    if (isGamer && T) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          {currentStep === 0 ? (
+            <button
+              onClick={handleClose}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${T.border}`, color: T.textSecondary, fontFamily: F_RAJ, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <X size={14} /> Cancelar
+            </button>
+          ) : (
+            <button
+              onClick={handleBack}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, background: 'transparent', border: `1px solid ${T.border}`, color: T.textSecondary, fontFamily: F_RAJ, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <ArrowLeft size={14} /> Anterior
+            </button>
+          )}
+          <button
+            onClick={handleNext}
+            disabled={!selectedOption}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 22px', borderRadius: 10,
+              background: selectedOption ? T.neonCyan : T.border,
+              border: 'none',
+              color: selectedOption ? (isDark ? '#0a0a0a' : '#fff') : T.textMuted,
+              fontFamily: F_RAJ, fontSize: 15, fontWeight: 700,
+              cursor: selectedOption ? 'pointer' : 'not-allowed',
+              boxShadow: selectedOption ? `0 0 12px ${T.neonCyan}40` : 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            {currentStep >= totalSteps - 1 ? 'Ver resultados' : 'Siguiente'}
+            <ArrowRight size={15} />
+          </button>
+        </div>
+      );
     }
 
     return (
       <div className="flex items-center justify-between w-full">
         {currentStep === 0 ? (
-          <Button
-            variant="light"
-            startContent={<X className="w-4 h-4" />}
-            onPress={handleClose}
-            className="cursor-pointer"
-          >
+          <Button variant="light" startContent={<X className="w-4 h-4" />} onPress={handleClose} className="cursor-pointer">
             Cancelar
           </Button>
         ) : (
-          <Button
-            variant="light"
-            startContent={<ArrowLeft className="w-4 h-4" />}
-            onPress={handleBack}
-            className="cursor-pointer"
-          >
+          <Button variant="light" startContent={<ArrowLeft className="w-4 h-4" />} onPress={handleBack} className="cursor-pointer">
             Anterior
           </Button>
         )}
-
         <Button
           className="text-white font-semibold cursor-pointer"
           style={{ backgroundColor: 'var(--color-primary)' }}
@@ -578,14 +634,25 @@ export const HelpQuiz: React.FC<HelpQuizProps> = ({
     );
   };
 
+  const sharedLayoutProps = {
+    isOpen,
+    onClose: handleClose,
+    currentStep: results ? totalSteps : currentStep,
+    totalSteps,
+    footer: renderFooter(),
+  };
+
+  if (isGamer && T) {
+    const GamerLayout = isMobile ? QuizLayoutV4Gamer : QuizLayoutV5Gamer;
+    return (
+      <GamerLayout {...sharedLayoutProps} T={T} isDark={isDark}>
+        {renderContent()}
+      </GamerLayout>
+    );
+  }
+
   return (
-    <LayoutComponent
-      isOpen={isOpen}
-      onClose={handleClose}
-      currentStep={results ? totalSteps : currentStep}
-      totalSteps={totalSteps}
-      footer={renderFooter()}
-    >
+    <LayoutComponent {...sharedLayoutProps}>
       {renderContent()}
     </LayoutComponent>
   );

@@ -2835,6 +2835,8 @@ function GamerCatalogoContent() {
           onClose={() => setIsQuizOpen(false)}
           context="catalog"
           landing={landing}
+          gamerTheme={T}
+          isDark={isDark}
           onComplete={(results, answers, questions) => {
             if (answers && answers.length > 0 && questions && questions.length > 0) {
               const quizFilters = mapQuizAnswersToFilters(answers, questions, filters);

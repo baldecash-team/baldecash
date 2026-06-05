@@ -159,4 +159,7 @@ export interface HelpQuizProps {
   onAddToCart?: (product: QuizProduct) => void;
   /** Lista de IDs de productos en el carrito */
   cartItems?: string[];
+  /** Tema visual gamer — cuando se provee, se usan los layouts y componentes gamer */
+  gamerTheme?: import('@/app/prototipos/0.6/[landing]/catalogo/components/gamer/gamerTheme').GamerTheme;
+  isDark?: boolean;
 }
