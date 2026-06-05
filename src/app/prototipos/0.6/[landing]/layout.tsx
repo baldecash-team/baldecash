@@ -690,15 +690,20 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   // Preload de assets — a nivel de componente para cumplir Rules of Hooks
   const imagePreloadRef = useRef(false);
 
+  // Sesión de tracking — para atar el token vip_auto al DNI en la sesión.
+  const session = useSessionOptional();
+  const linkedRef = useRef(false);
+
   // Asset constants.
-  // BALDI_TRUCK: temporary asset served from the repo's public/ so the team can
-  // see it without S3 access. TODO EXT-2: upload to S3
-  // ('https://baldecash.s3.amazonaws.com/illustrations/baldi-locker-truck.webp'),
-  // then point this constant at the S3 URL and delete public/illustrations/baldi-locker-truck.png.
-  // Background uses FloatingParticles instead of a static S3 asset (no bg asset needed).
-  const BALDI_TRUCK = '/illustrations/baldi-locker-truck.png';
-  // Standard BaldeCash logo — the same logo used in JsonLd, StickyNav, and product landing constants.
-  const BALDECASH_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo.png';
+  // BALDI_TRUCK: ilustración Baldi + kiosco, ya subida a S3 por el equipo.
+  const BALDI_TRUCK = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-lockertruck.webp';
+  // LOCKER_BG: fondo geométrico estático. Temporal desde public/ del repo;
+  // pendiente subir a S3 (illustrations/), apuntar esta constante a esa URL y
+  // borrar public/illustrations/locker-truck-bg.png del repo.
+  const LOCKER_BG = '/illustrations/locker-truck-bg.png';
+  // BALDECASH_LOGO: logo isotipo + wordmark. Temporal desde public/ del repo;
+  // pendiente subir a S3 y apuntar esta constante a esa URL.
+  const BALDECASH_LOGO = '/illustrations/locker-truck-logo.png';
   const LOCKER_TEAL = '#00BFB3';
   const LOCKER_BLUE = '#4654CD';
   const LOCKER_NAVY = '#1B2A4A';
@@ -707,7 +712,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   useEffect(() => {
     if (imagePreloadRef.current) return;
     imagePreloadRef.current = true;
-    const urls = [BALDECASH_LOGO, BALDI_TRUCK].filter(Boolean);
+    const urls = [BALDECASH_LOGO, BALDI_TRUCK, LOCKER_BG].filter(Boolean);
     for (const href of urls) {
       const link = document.createElement('link');
       link.rel = 'preload';
@@ -716,6 +721,30 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
       document.head.appendChild(link);
     }
   }, []);
+
+  // Atar el token vip_auto a la sesión de tracking (guarda el DNI en la sesión).
+  // En locker-truck NO se hace saveVipToken (se saltea el auto-allow), así que el
+  // link-token-session del VipGate genérico no se dispara: lo hacemos aquí con el
+  // vip_auto leído de la URL. Sin esto la sesión queda sin DNI y se pierde la
+  // atribución campaña→conversión.
+  useEffect(() => {
+    if (linkedRef.current) return;
+    const uuid = session?.sessionUuid;
+    if (!ctx.accessToken || !uuid) return;
+    linkedRef.current = true;
+    fetch(`${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/link-token-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: ctx.accessToken, session_uuid: uuid }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.linked && data.first_name) {
+          setCtx((prev) => (prev.firstName ? prev : { ...prev, firstName: data.first_name }));
+        }
+      })
+      .catch(() => {});
+  }, [ctx.accessToken, session?.sessionUuid, landing]);
 
   // Disparar /evaluate al entrar en d2-loading (D-2)
   useEffect(() => {
@@ -728,8 +757,8 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     evaluateCalledRef.current = true;
 
     const payload: EvaluatePayload = ctx.accessToken
-      ? { accessToken: ctx.accessToken }
-      : { dni: ctx.dni };
+      ? { accessToken: ctx.accessToken, sessionUuid: session?.sessionUuid ?? undefined }
+      : { dni: ctx.dni, sessionUuid: session?.sessionUuid ?? undefined };
 
     evaluateLandingAccess(landing, payload)
       .then((resp) => {
@@ -745,14 +774,16 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
             catalogUrl: resp.catalog_url,
           }));
         } else if (resp.status === 'no_normal' && !resp.catalog_url) {
-          // No_normal sin catálogo → mensaje de espera
-          // Flag anti-loop: no re-evaluar en refresh (Decisión 2)
-          setLockertruckPass(landing);
+          // No_normal sin catálogo → mensaje de espera.
+          // NO se setea el flag anti-loop: ese flag concede acceso al catálogo y
+          // este usuario NO debe entrar. Al recargar se re-evalúa (Equifax queda
+          // cacheado en el backend) y se mantiene en espera.
           setCtx((prev) => ({ ...prev, state: 'waiting' }));
         } else {
-          // no_access → D3
-          // Flag anti-loop: no re-evaluar en refresh (Decisión 2)
-          setLockertruckPass(landing);
+          // no_access → D3.
+          // NO se setea el flag anti-loop: el flag concede acceso al catálogo, así
+          // que un usuario sin acceso NO debe entrar. Al recargar vuelve a quedar
+          // bloqueado en el gate (no en el catálogo).
           setCtx((prev) => ({ ...prev, state: 'd3' }));
         }
       })
@@ -763,7 +794,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
           errorMsg: 'No pudimos verificar tu acceso. Por favor, intenta de nuevo.',
         }));
       });
-  }, [ctx.state, ctx.accessToken, ctx.dni, landing]);
+  }, [ctx.state, ctx.accessToken, ctx.dni, landing, session?.sessionUuid]);
 
   // Transición D1 → d2-loading: valida el DNI antes de disparar
   const handleD1Submit = useCallback(() => {
@@ -779,8 +810,14 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   // Navegación al catálogo desde d2-result: set flag anti-loop antes de navegar
   const handleViewCatalog = useCallback(() => {
     if (!ctx.catalogUrl) return;
-    setLockertruckPass(landing);
-    window.location.assign(normalizeCatalogUrl(ctx.catalogUrl));
+    const target = normalizeCatalogUrl(ctx.catalogUrl);
+    // El flag anti-loop solo aplica cuando el destino es el catálogo de ESTA
+    // landing (caso normal/preaprobados). Si redirige a un convenio, el usuario
+    // sale de locker-truck y no debe quedar habilitado para reingresar.
+    if (target.includes(`/${landing}/catalogo`)) {
+      setLockertruckPass(landing);
+    }
+    window.location.assign(target);
   }, [ctx.catalogUrl, landing]);
 
   // ── Stepper helpers ───────────────────────────────────────────────────────
@@ -830,22 +867,27 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   return (
     <div
       className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
-      style={{ backgroundColor: '#F0F2F5' }}
+      style={{
+        backgroundColor: '#F0F2F5',
+        backgroundImage: `url(${LOCKER_BG})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
     >
       {/* Animated particle background — reuses FloatingParticles from CadeOverlayGate */}
       <FloatingParticles color={LOCKER_TEAL} />
       {/* Secondary color layer for brand depth */}
       <FloatingParticles color={LOCKER_BLUE} />
 
-      <div className="flex flex-col md:flex-row items-center max-w-5xl w-full justify-center my-auto relative z-10">
+      <div className="flex flex-col md:flex-row items-center max-w-7xl w-full justify-center my-auto relative z-10">
 
         {/* ── Baldi + food truck illustration slot ──────────────────────────
             Hidden on mobile (md+ only). Block is not rendered until EXT-2
             asset is uploaded — BALDI_TRUCK is empty until then. */}
         {BALDI_TRUCK && (
           <motion.div
-            className="hidden md:flex items-center justify-center flex-shrink-0 mr-6 relative"
-            style={{ width: 380, height: 500 }}
+            className="hidden md:flex items-center justify-center min-w-0 mr-4 lg:mr-8 relative"
             initial={{ opacity: 0, x: -60 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -853,16 +895,16 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
             <img
               src={BALDI_TRUCK}
               alt="Baldi Locker Truck"
-              width={380}
-              height={500}
-              className="h-[28rem] lg:h-[34rem] w-auto object-contain drop-shadow-xl"
+              width={620}
+              height={460}
+              className="w-[32rem] lg:w-[40rem] max-w-full h-auto object-contain drop-shadow-xl"
             />
           </motion.div>
         )}
 
         {/* ── White card ────────────────────────────────────────────────── */}
         <motion.div
-          className="max-w-sm w-full md:w-[440px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
+          className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
           initial={{ opacity: 0, x: 60 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
@@ -912,17 +954,21 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
                 )}
               </div>
               <span
-                className="text-[10px] sm:text-xs font-medium mt-1.5 text-center leading-tight"
-                style={{ color: activeStep >= 0 ? LOCKER_NAVY : '#9CA3AF' }}
+                className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
+                style={{ color: LOCKER_TEAL }}
               >
                 Solicitud<br />enviada
               </span>
             </div>
 
-            {/* Connector line 1→2 */}
+            {/* Connector line 1→2 — bicolor teal→azul al alcanzar revisión */}
             <div
               className="h-[2px] flex-1 mt-[18px] mx-1"
-              style={{ backgroundColor: activeStep >= 1 ? LOCKER_TEAL : '#D1D5DB' }}
+              style={
+                activeStep >= 1
+                  ? { backgroundImage: `linear-gradient(to right, ${LOCKER_TEAL} 0%, ${LOCKER_TEAL} 50%, ${LOCKER_BLUE} 50%, ${LOCKER_BLUE} 100%)` }
+                  : { backgroundColor: '#D1D5DB' }
+              }
               aria-hidden
             />
 
@@ -952,8 +998,8 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
                 )}
               </motion.div>
               <span
-                className="text-[10px] sm:text-xs font-medium mt-1.5 text-center leading-tight"
-                style={{ color: activeStep >= 1 ? LOCKER_NAVY : '#9CA3AF' }}
+                className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
+                style={{ color: activeStep >= 1 ? LOCKER_BLUE : '#9CA3AF' }}
               >
                 En<br />revisión
               </span>
@@ -977,20 +1023,18 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
                 className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border-2"
                 style={
                   activeStep === 2
-                    ? { backgroundColor: LOCKER_TEAL, borderColor: LOCKER_TEAL }  // active/completed
-                    : { backgroundColor: 'transparent', borderColor: '#D1D5DB', borderStyle: 'dashed' }
+                    ? { backgroundColor: LOCKER_TEAL, borderColor: LOCKER_TEAL }  // alcanzado
+                    : { backgroundColor: 'transparent', borderColor: '#D1D5DB', borderStyle: 'dotted' }
                 }
                 aria-label="Resultado"
               >
-                {activeStep === 2 ? (
+                {activeStep === 2 && (
                   <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
-                ) : (
-                  <span className="text-xs text-gray-300 font-medium">3</span>
                 )}
               </div>
               <span
-                className="text-[10px] sm:text-xs font-medium mt-1.5 text-center leading-tight"
-                style={{ color: activeStep >= 2 ? LOCKER_NAVY : '#9CA3AF' }}
+                className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
+                style={{ color: activeStep >= 2 ? LOCKER_TEAL : '#9CA3AF' }}
               >
                 Resultado
               </span>
