@@ -41,6 +41,8 @@ import { DEFAULT_LANDING_CONFIG, type LandingConfig } from '@/app/prototipos/0.6
 import { CubeGridSpinner, Toast, useToast, useScrollToTop } from '@/app/prototipos/_shared';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
+import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
+import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
 
 // Theme helper (same as GamerCatalogoClient)
 function gamerTheme(isDark: boolean) {
@@ -3060,12 +3062,8 @@ function SpecCard({ spec, isDark = false }: { spec: ProductSpec; isDark?: boolea
         {spec.specs.map((item, i) => (
           <div key={i} className="spec-row">
             <span className="spec-row-label" title={item.tooltip || undefined} style={item.tooltip ? { cursor: 'help', borderBottom: '1px dotted currentColor' } : undefined}>{item.label}</span>
-            {/tarjeta\s*gr[aá]fica/i.test(item.label) && /nvidia/i.test(item.value) ? (
-              <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, backgroundColor: '#76b900', color: '#fff', borderRadius: 6, padding: '4px 8px', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="https://baldecash.s3.amazonaws.com/brands/nvidia-logo-white.svg" alt="NVIDIA" style={{ width: 68, height: 15, objectFit: 'contain', objectPosition: 'left center', display: 'block' }} />
-                <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>{'GeForce ' + item.value.replace(/nvidia\s*/i, '').replace(/geforce\s*/i, '').replace(/\s+de\s+\d+\s*GB\b.*/i, '').replace(/\s*\([\w\W]*?\)/g, '').trim()}</span>
-              </span>
+            {/tarjeta\s*gr[aá]fica/i.test(item.label) && parseNvidiaModel(item.value) ? (
+              <NvidiaBadge value={item.value} size="lg" />
             ) : (
               <span className={`spec-row-value${item.highlight ? ' primary' : ''}`}>{item.value}</span>
             )}

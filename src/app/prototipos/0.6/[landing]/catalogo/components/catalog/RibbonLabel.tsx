@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
+import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 
 export interface RibbonLabelData {
   code: string;
@@ -16,12 +18,13 @@ interface RibbonLabelProps {
   style?: React.CSSProperties;
 }
 
-function resolveImageUrl(url: string | null | undefined): string | null | undefined {
-  return url;
-}
-
 export const RibbonLabel: React.FC<RibbonLabelProps> = ({ ribbon, style }) => {
-  const imageUrl = resolveImageUrl(ribbon.imageUrl);
+  const isNvidia = !!ribbon.imageUrl && !!ribbon.displayText && !!parseNvidiaModel(ribbon.displayText);
+
+  if (isNvidia) {
+    return <NvidiaBadge value={ribbon.displayText} size="sm" style={style} />;
+  }
+
   return (
     <span
       style={{
@@ -37,19 +40,11 @@ export const RibbonLabel: React.FC<RibbonLabelProps> = ({ ribbon, style }) => {
         ...style,
       }}
     >
-      {imageUrl && (
+      {ribbon.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={imageUrl}
-          alt={ribbon.partnerName || ribbon.code}
-          style={{ width: 68, height: 15, objectFit: 'contain', objectPosition: 'left center', display: 'block' }}
-        />
+        <img src={ribbon.imageUrl} alt={ribbon.partnerName || ribbon.code} style={{ width: 68, height: 15, objectFit: 'contain', objectPosition: 'left center', display: 'block' }} />
       )}
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>
-        {imageUrl && ribbon.displayText
-          ? 'GeForce ' + ribbon.displayText.replace(/nvidia\s*/i, '').replace(/geforce\s*/i, '').replace(/\s+de\s+\d+\s*GB\b.*/i, '').replace(/\s*\([\w\W]*?\)/g, '').trim()
-          : ribbon.displayText}
-      </span>
+      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>{ribbon.displayText}</span>
     </span>
   );
 };

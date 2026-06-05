@@ -116,14 +116,7 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                         </Tooltip>
                       )}
                     </div>
-                    {/tarjeta\s*gr[aá]fica/i.test(spec.label) && /nvidia/i.test(spec.value) ? (
-                      <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, backgroundColor: '#76b900', color: '#fff', borderRadius: 6, padding: '4px 8px', lineHeight: 1, whiteSpace: 'nowrap' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="https://baldecash.s3.amazonaws.com/brands/nvidia-logo-white.svg" alt="NVIDIA" style={{ width: 68, height: 15, objectFit: 'contain', objectPosition: 'left center', display: 'block' }} />
-                        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.05em' }}>{'GeForce ' + spec.value.replace(/nvidia\s*/i, '').replace(/geforce\s*/i, '').replace(/\s+de\s+\d+\s*GB\b.*/i, '').replace(/\s*\([\w\W]*?\)/g, '').trim()}</span>
-                      </span>
-                    ) : (
-                      <span
+                    <span
                         className={`text-sm font-medium font-['Asap',_sans-serif] text-right max-w-[40%] ${
                           spec.highlight
                             ? 'text-[var(--color-primary)]'
@@ -132,7 +125,6 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                       >
                         {spec.value}
                       </span>
-                    )}
                   </div>
                 ))}
               </div>
