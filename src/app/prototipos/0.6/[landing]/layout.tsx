@@ -647,7 +647,7 @@ function setLockertruckPass(slug: string): void {
  * d3          → no_access (sin acceso al catálogo)
  * error       → error de red en /evaluate (con botón Reintentar)
  */
-type LockertruckState = 'd1' | 'd2-loading' | 'd2-result' | 'waiting' | 'd3' | 'error';
+export type LockertruckState = 'd1' | 'd2-loading' | 'd2-result' | 'waiting' | 'd3' | 'error';
 
 interface LockertruckGateCtx {
   state: LockertruckState;
@@ -662,10 +662,21 @@ interface LockertruckGateCtx {
 
 // ── Locker Truck overlay gate (D-2 + E-1..E-4) ───────────────────────────────
 
-function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landing: string; onValidated: () => void }) {
+export function LockertruckOverlayGate({ landing, onValidated: _onValidated, previewState }: { landing: string; onValidated: () => void; previewState?: LockertruckState }) {
   // Leer vip_auto de la URL al montar — determina el estado inicial.
   // Se lee solo una vez (valor inicial del estado) para evitar re-lectura en renders.
+  // Si previewState está definido, se inicializa con datos de muestra para diseño.
   const [ctx, setCtx] = useState<LockertruckGateCtx>(() => {
+    if (previewState) {
+      return {
+        state: previewState,
+        firstName: 'Juan',
+        catalogUrl: '#',
+        errorMsg: previewState === 'error' ? 'No pudimos verificar tu acceso. Por favor, intenta de nuevo.' : null,
+        dni: '',
+        accessToken: null,
+      };
+    }
     const token =
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('vip_auto')
@@ -728,6 +739,8 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   // vip_auto leído de la URL. Sin esto la sesión queda sin DNI y se pierde la
   // atribución campaña→conversión.
   useEffect(() => {
+    // Sin backend en modo preview
+    if (previewState) return;
     if (linkedRef.current) return;
     const uuid = session?.sessionUuid;
     if (!ctx.accessToken || !uuid) return;
@@ -748,6 +761,8 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
 
   // Disparar /evaluate al entrar en d2-loading (D-2)
   useEffect(() => {
+    // Sin backend en modo preview
+    if (previewState) return;
     if (ctx.state !== 'd2-loading') {
       // Resetear el guard al salir de 'd2-loading' para que retry funcione
       evaluateCalledRef.current = false;
@@ -809,6 +824,8 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
 
   // Navegación al catálogo desde d2-result: set flag anti-loop antes de navegar
   const handleViewCatalog = useCallback(() => {
+    // Sin navegación en modo preview
+    if (previewState) return;
     if (!ctx.catalogUrl) return;
     const target = normalizeCatalogUrl(ctx.catalogUrl);
     // El flag anti-loop solo aplica cuando el destino es el catálogo de ESTA
