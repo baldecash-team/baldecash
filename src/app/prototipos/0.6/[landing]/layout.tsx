@@ -697,13 +697,10 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   // Asset constants.
   // BALDI_TRUCK: ilustración Baldi + kiosco, ya subida a S3 por el equipo.
   const BALDI_TRUCK = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-lockertruck.webp';
-  // LOCKER_BG: fondo geométrico estático. Temporal desde public/ del repo;
-  // pendiente subir a S3 (illustrations/), apuntar esta constante a esa URL y
-  // borrar public/illustrations/locker-truck-bg.png del repo.
-  const LOCKER_BG = '/illustrations/locker-truck-bg.png';
-  // BALDECASH_LOGO: logo isotipo + wordmark. Temporal desde public/ del repo;
-  // pendiente subir a S3 y apuntar esta constante a esa URL.
-  const BALDECASH_LOGO = '/illustrations/locker-truck-logo.png';
+  // LOCKER_BG: fondo geométrico estático, servido desde S3.
+  const LOCKER_BG = 'https://baldecash.s3.amazonaws.com/illustrations/locker-truck-bg.webp';
+  // BALDECASH_LOGO: logo isotipo + wordmark, servido desde S3.
+  const BALDECASH_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo-lockertruck.webp';
   const LOCKER_TEAL = '#00BFB3';
   const LOCKER_BLUE = '#4654CD';
   const LOCKER_NAVY = '#1B2A4A';
