@@ -2865,7 +2865,7 @@ function GamerCatalogoContent() {
             };
             handleAddToCart(quizProduct.id, undefined, cartItem);
           } : undefined}
-          cartItems={ALLOW_MULTI_PRODUCT ? cartItems : []}
+          cartItems={ALLOW_MULTI_PRODUCT ? cartIds : []}
         />
       )}
     </div>
