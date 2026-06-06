@@ -6,6 +6,8 @@
 
 import React from 'react';
 import { Card, CardBody, Tooltip } from '@nextui-org/react';
+import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
+import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import {
   Cpu,
   MemoryStick,
@@ -116,7 +118,10 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                         </Tooltip>
                       )}
                     </div>
-                    <span
+                    {/tarjeta\s*gr[aá]fica/i.test(spec.label) && parseNvidiaModel(spec.value) ? (
+                      <NvidiaBadge value={spec.value} size="md" />
+                    ) : (
+                      <span
                         className={`text-sm font-medium font-['Asap',_sans-serif] text-right max-w-[40%] ${
                           spec.highlight
                             ? 'text-[var(--color-primary)]'
@@ -125,6 +130,7 @@ export const SpecsDisplay: React.FC<SpecsProps> = ({ specs }) => {
                       >
                         {spec.value}
                       </span>
+                    )}
                   </div>
                 ))}
               </div>
