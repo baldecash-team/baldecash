@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
-import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 
 export interface RibbonLabelData {
   code: string;
@@ -19,12 +17,6 @@ interface RibbonLabelProps {
 }
 
 export const RibbonLabel: React.FC<RibbonLabelProps> = ({ ribbon, style }) => {
-  const isNvidia = !!ribbon.imageUrl && /nvidia/i.test(ribbon.imageUrl);
-
-  if (isNvidia) {
-    return <NvidiaBadge value={ribbon.displayText} size="sm" style={style} />;
-  }
-
   return (
     <span
       style={{
