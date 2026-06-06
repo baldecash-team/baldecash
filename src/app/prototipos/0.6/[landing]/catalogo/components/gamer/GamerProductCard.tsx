@@ -149,7 +149,7 @@ export function GamerProductCard({
           if (!nvidiaFromSpec && nonNvidiaRibbons.length === 0) return null;
           return (
             <div style={{ position: 'absolute', bottom: '25%', left: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
-              {nvidiaFromSpec && <NvidiaBadge value={gpuModel} size="sm" />}
+              {nvidiaFromSpec && <NvidiaBadge value={gpuModel} size="sm" isDark={isDark} />}
               {nonNvidiaRibbons.map(r => (
                 <RibbonLabel key={r.code} ribbon={r} />
               ))}
