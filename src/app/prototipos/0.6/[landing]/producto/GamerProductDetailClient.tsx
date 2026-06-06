@@ -1014,7 +1014,7 @@ function DetailContent() {
       />
 
       {/* MAIN CONTENT */}
-      <main style={{ maxWidth: 1280, margin: '0 auto', padding: 'clamp(12px, 3vw, 24px) clamp(8px, 3vw, 16px) 48px' }} className="detail-main product-font">
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: 'calc(var(--gamer-nav-height, 64px) + clamp(12px, 3vw, 24px)) clamp(8px, 3vw, 16px) 48px' }} className="detail-main product-font">
         {/* BREADCRUMB */}
         <nav style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'clamp(12px, 2.5vw, 14px)', fontFamily: F.raj, flexWrap: 'nowrap', marginBottom: 16, overflow: 'hidden' }}>
           <button onClick={() => router.push(routes.landingHome(landing))} style={{ background: 'none', border: 'none', color: isDark ? '#a0a0a0' : '#737373', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', padding: 0, textDecoration: 'none' }}>Inicio</button>
