@@ -11,6 +11,7 @@
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, Search, ShieldCheck, Clock, ArrowRight, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
@@ -20,7 +21,9 @@ import { DniModal, getVipToken, getVipName, consumeVipWelcomePending, saveVipTok
 import { useSessionOptional } from './solicitar/context/SessionContext';
 import { VipCountdownOverlay } from '../components/hero/VipCountdownOverlay';
 import { fetchLandingConfig } from '../services/landingConfigApi';
-import { routes } from '../utils/routes';
+import { routes, normalizeCatalogUrl } from '../utils/routes';
+import { evaluateLandingAccess } from '../services/landingApi';
+import type { EvaluatePayload } from '../services/landingApi';
 import { usePreview } from '../context/PreviewContext';
 
 /**
@@ -618,14 +621,747 @@ function DniInputRow({
   );
 }
 
-// ── Locker Truck overlay gate ─────────────────────────────────────────────
+// ── Locker Truck: helpers anti-loop de sessionStorage ──────────────────
+// Key por-slug para evitar afectar otras landings.
+//
+// VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW — "candado" para overlay_variants que NO
+// deben dejar pasar de una cuando la URL trae ?vip_auto=<token>.
+//
+// Por defecto, si una landing con whitelist recibe ?vip_auto=, VipGate guarda el
+// token y concede acceso directo (auto-allow) sin mostrar el overlay. Eso alcanza
+// para gates que solo validan pertenencia a la whitelist.
+//
+// Si tu overlay necesita correr su PROPIA validación antes de dejar entrar
+// (p.ej. locker-truck consulta Equifax vía /evaluate), agregá su overlay_variant
+// a este array: VipGate saltea el auto-allow y SIEMPRE muestra el overlay. A
+// partir de ahí, tu componente custom sigue con su lógica propia — puede leer el
+// vip_auto de la URL, validarlo como quiera y recién entonces decidir si deja pasar.
+//
+// En resumen, para un overlay nuevo con esta necesidad: registralo en
+// OVERLAY_VARIANTS y sumá su overlay_variant a este array.
+const VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW = ['lockertruck'];
 
-function LockertruckOverlayGate({ landing, onValidated }: { landing: string; onValidated: () => void }) {
-  const { dni, isValidDni, submitting, errorMsg, handleChange, handleSubmit, siblingMatch, showRegister } =
-    useDniValidation(landing, onValidated);
+// hasGatePass/setGatePass: flag por-slug que marca que el usuario ya pasó el gate
+// en esta sesión (lo setea el overlay tras conceder acceso). Evita el re-bloqueo
+// al navegar dentro de la landing. Guarda contra SSR con typeof window check.
 
-  // TODO: diseño a cargo del equipo
-  return <InlineDniGate landing={landing} onValidated={onValidated} />;
+function hasGatePass(slug: string): boolean {
+  if (typeof window === 'undefined') return false;
+  return sessionStorage.getItem(`baldecash-gate-pass-${slug}`) === '1';
+}
+
+function setGatePass(slug: string): void {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(`baldecash-gate-pass-${slug}`, '1');
+}
+
+// Caché del resultado de /evaluate por-slug (localStorage, ventana de 7 días).
+// A diferencia de gatePass (sessionStorage, por pestaña, y solo para acceso
+// normal), esto persiste el OUTCOME de la evaluación (status + destino) para que
+// un cliente que ya validó su DNI en este navegador no tenga que reingresarlo ni
+// re-evaluar Equifax al volver. Cubre todos los destinos (catálogo propio y
+// convenio), no solo el normal. Vencido el TTL, se vuelve a pedir DNI y evaluar.
+const LOCKERTRUCK_EVAL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+interface LockertruckEvalCache {
+  status: string;
+  catalogUrl: string | null;
+  firstName: string | null;
+  ts: number;
+}
+
+function getEvalCacheKey(slug: string): string {
+  return `baldecash-lockertruck-eval-${slug}`;
+}
+
+function getEvalCache(slug: string): LockertruckEvalCache | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(getEvalCacheKey(slug));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LockertruckEvalCache;
+    if (!parsed || typeof parsed.ts !== 'number') return null;
+    if (Date.now() - parsed.ts >= LOCKERTRUCK_EVAL_TTL_MS) {
+      localStorage.removeItem(getEvalCacheKey(slug));
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function setEvalCache(slug: string, value: Omit<LockertruckEvalCache, 'ts'>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(getEvalCacheKey(slug), JSON.stringify({ ...value, ts: Date.now() }));
+  } catch {
+    // Silently fail
+  }
+}
+
+// ── Locker Truck: tipos de la máquina de estados ───────────────────────
+
+/**
+ * Estados internos del gate locker-truck.
+ *
+ * d1          → formulario de captura de DNI (sin token)
+ * d2-loading  → evaluando acceso (spinner, /evaluate en vuelo)
+ * d2-result   → acceso permitido, botón "Ver catálogo" visible
+ * waiting     → no_normal sin catalog_url ("pronto te contactamos")
+ * d3          → no_access (sin acceso al catálogo)
+ * error       → error de red en /evaluate (con botón Reintentar)
+ */
+type LockertruckState = 'd1' | 'd2-loading' | 'd2-result' | 'waiting' | 'd3' | 'error';
+
+interface LockertruckGateCtx {
+  state: LockertruckState;
+  firstName: string | null;
+  catalogUrl: string | null;
+  errorMsg: string | null;
+  /**
+   * DNI a enviar en /evaluate (camino D1: viene del hook useDniValidation;
+   * camino vip_auto: queda vacío porque /evaluate usa accessToken).
+   */
+  dni: string;
+  /** Token leído de ?vip_auto= al montar el componente */
+  accessToken: string | null;
+}
+
+// ── Locker Truck overlay gate ───────────────────────────────
+
+function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landing: string; onValidated: () => void }) {
+  // Leer vip_auto de la URL al montar — determina el estado inicial.
+  // Se lee solo una vez (valor inicial del estado) para evitar re-lectura en renders.
+  const [ctx, setCtx] = useState<LockertruckGateCtx>(() => {
+    const token =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('vip_auto')
+        : null;
+    // Camino vip_auto: guardar el token antes de correr /evaluate para que
+    // appendVipToken lo encuentre disponible en las rutas protegidas posteriores.
+    // El guard del backend acepta este token vía fallback landing_dni_whitelist.access_token.
+    // El ?vip_auto= tiene prioridad sobre el caché: un link fresco re-evalúa.
+    if (token) {
+      saveVipToken(landing, token);
+      return { state: 'd2-loading', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: token };
+    }
+    // Reingreso sin ?vip_auto=: si hay un resultado de evaluación cacheado y
+    // vigente (7 días), se salta el DNI y el /evaluate y se arranca directo en el
+    // estado de resultado. El cliente ya validó su DNI en este navegador y
+    // Equifax sigue cacheado en backend, así que re-pedirlo es justo lo que se
+    // quiere evitar. Solo aplica a outcomes con acceso (normal/no_normal).
+    const cached = getEvalCache(landing);
+    if (cached && (cached.status === 'normal' || cached.status === 'no_normal')) {
+      return {
+        state: cached.catalogUrl ? 'd2-result' : 'waiting',
+        firstName: cached.firstName,
+        catalogUrl: cached.catalogUrl,
+        errorMsg: null,
+        dni: '',
+        accessToken: null,
+      };
+    }
+    return { state: 'd1', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: null };
+  });
+
+  // Ref-guard para evitar doble disparo en StrictMode
+  // Se resetea cuando el estado sale de 'd2-loading' (permite reintentar)
+  const evaluateCalledRef = useRef(false);
+
+  // Preload de assets — a nivel de componente para cumplir Rules of Hooks
+  const imagePreloadRef = useRef(false);
+
+  // Sesión de tracking — para atar el token vip_auto al DNI en la sesión.
+  const session = useSessionOptional();
+  const linkedRef = useRef(false);
+
+  // Callback que dispara useDniValidation cuando el DNI queda validado.
+  // En este punto el hook ya guardó access_token con saveVipToken y first_name
+  // con saveVipName. Solo hay que capturar el DNI del hook y avanzar a d2-loading.
+  const handleDniValidated = useCallback(() => {
+    // El hook ya llamó saveVipToken/saveVipName. Leer el DNI desde localStorage
+    // no es necesario: el hook lo expone directamente vía el valor `dni`.
+    // La transición se hace en el setter de ctx después de que el hook actualice
+    // su propio estado — la forma más limpia es que el callback sólo cambie el state.
+    setCtx((prev) => ({ ...prev, state: 'd2-loading' }));
+  }, []);
+
+  // Hook de validación DNI reutilizado de InlineDniGate / CadeOverlayGate.
+  // Al validar: guarda access_token con saveVipToken, first_name con saveVipName,
+  // y llama handleDniValidated → transición a d2-loading.
+  const {
+    dni: hookDni,
+    isValidDni,
+    submitting,
+    errorMsg: dniErrorMsg,
+    handleChange: handleDniChange,
+    handleSubmit: handleDniSubmit,
+    siblingMatch,
+    showRegister,
+  } = useDniValidation(landing, handleDniValidated);
+
+  // Sincronizar el DNI del hook en ctx.dni para que /evaluate lo use si llega
+  // el momento de construir el payload (camino D1 sin accessToken).
+  // Solo en estado d1 para evitar actualizaciones innecesarias.
+  useEffect(() => {
+    if (ctx.state !== 'd1') return;
+    setCtx((prev) => ({ ...prev, dni: hookDni }));
+  }, [hookDni, ctx.state]);
+
+  // Asset constants.
+  // BALDI_TRUCK: ilustración de Baldi del gate.
+  // TEMPORAL: servida desde public/ hasta que el equipo la suba a S3
+  // (mismo patrón que se usó antes para esta ilustración).
+  const BALDI_TRUCK = '/illustrations/baldi-lockertruck.png';
+  // LOCKER_BG: fondo geométrico estático, servido desde S3.
+  const LOCKER_BG = 'https://baldecash.s3.amazonaws.com/illustrations/locker-truck-bg.webp';
+  // BALDECASH_LOGO: logo isotipo + wordmark, servido desde S3.
+  const BALDECASH_LOGO = 'https://baldecash.s3.amazonaws.com/company/logo-lockertruck.webp';
+  const LOCKER_TEAL = '#00BFB3';
+  const LOCKER_BLUE = '#4654CD';
+  const LOCKER_NAVY = '#1B2A4A';
+
+  // Preload the logo (the only available image asset at this stage)
+  useEffect(() => {
+    if (imagePreloadRef.current) return;
+    imagePreloadRef.current = true;
+    const urls = [BALDECASH_LOGO, BALDI_TRUCK, LOCKER_BG].filter(Boolean);
+    for (const href of urls) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = href;
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  // Atar el token vip_auto a la sesión de tracking (guarda el DNI en la sesión).
+  // En locker-truck NO se hace saveVipToken (se saltea el auto-allow), así que el
+  // link-token-session del VipGate genérico no se dispara: lo hacemos aquí con el
+  // vip_auto leído de la URL. Sin esto la sesión queda sin DNI y se pierde la
+  // atribución campaña→conversión.
+  useEffect(() => {
+    if (linkedRef.current) return;
+    const uuid = session?.sessionUuid;
+    if (!ctx.accessToken || !uuid) return;
+    linkedRef.current = true;
+    fetch(`${API_BASE_URL}/public/landing/${encodeURIComponent(landing)}/link-token-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: ctx.accessToken, session_uuid: uuid }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.linked && data.first_name) {
+          setCtx((prev) => (prev.firstName ? prev : { ...prev, firstName: data.first_name }));
+        }
+      })
+      .catch(() => {});
+  }, [ctx.accessToken, session?.sessionUuid, landing]);
+
+  // Disparar /evaluate al entrar en d2-loading
+  useEffect(() => {
+    if (ctx.state !== 'd2-loading') {
+      // Resetear el guard al salir de 'd2-loading' para que retry funcione
+      evaluateCalledRef.current = false;
+      return;
+    }
+    if (evaluateCalledRef.current) return;
+    evaluateCalledRef.current = true;
+
+    const payload: EvaluatePayload = ctx.accessToken
+      ? { accessToken: ctx.accessToken, sessionUuid: session?.sessionUuid ?? undefined }
+      : { dni: ctx.dni, sessionUuid: session?.sessionUuid ?? undefined };
+
+    evaluateLandingAccess(landing, payload)
+      .then((resp) => {
+        if (
+          (resp.status === 'normal' || resp.status === 'no_normal') &&
+          resp.catalog_url
+        ) {
+          // Acceso normal o no_normal con catálogo → mostrar botón "Ver catálogo".
+          // Cacheamos el outcome (7 días) para no re-pedir DNI ni re-evaluar al
+          // reingresar a este navegador.
+          setEvalCache(landing, {
+            status: resp.status,
+            catalogUrl: resp.catalog_url,
+            firstName: resp.first_name ?? null,
+          });
+          setCtx((prev) => ({
+            ...prev,
+            state: 'd2-result',
+            firstName: resp.first_name ?? null,
+            catalogUrl: resp.catalog_url,
+          }));
+        } else if (resp.status === 'no_normal' && !resp.catalog_url) {
+          // No_normal sin catálogo → mensaje de espera.
+          // NO se setea el flag anti-loop: ese flag concede acceso al catálogo y
+          // este usuario NO debe entrar. Al recargar se re-evalúa (Equifax queda
+          // cacheado en el backend) y se mantiene en espera.
+          setCtx((prev) => ({ ...prev, state: 'waiting' }));
+        } else {
+          // no_access → D3.
+          // NO se setea el flag anti-loop: el flag concede acceso al catálogo, así
+          // que un usuario sin acceso NO debe entrar. Al recargar vuelve a quedar
+          // bloqueado en el gate (no en el catálogo).
+          setCtx((prev) => ({ ...prev, state: 'd3' }));
+        }
+      })
+      .catch(() => {
+        setCtx((prev) => ({
+          ...prev,
+          state: 'error',
+          errorMsg: 'No pudimos verificar tu acceso. Por favor, intenta de nuevo.',
+        }));
+      });
+  }, [ctx.state, ctx.accessToken, ctx.dni, landing, session?.sessionUuid]);
+
+  // Transición error → reintentar: vuelve a d2-loading
+  const handleRetry = useCallback(() => {
+    setCtx((prev) => ({ ...prev, state: 'd2-loading', errorMsg: null }));
+  }, []);
+
+  // Transición d3 → d1: por si el alumno tecleó mal su DNI.
+  // Limpia el DNI y el accessToken (vip_auto) para que la próxima evaluación
+  // use el documento reingresado en vez del token original.
+  const handleBackToD1 = useCallback(() => {
+    setCtx((prev) => ({ ...prev, state: 'd1', dni: '', accessToken: null, errorMsg: null }));
+  }, []);
+
+  // Navegación al catálogo desde d2-result: set flag anti-loop antes de navegar
+  const handleViewCatalog = useCallback(() => {
+    if (!ctx.catalogUrl) return;
+    let target = normalizeCatalogUrl(ctx.catalogUrl);
+    // El flag anti-loop solo aplica cuando el destino es el catálogo de ESTA
+    // landing (caso normal/preaprobados). Si redirige a un convenio, el usuario
+    // sale de locker-truck y no debe quedar habilitado para reingresar.
+    if (target.includes(`/${landing}/catalogo`)) {
+      setGatePass(landing);
+    }
+    // Reenviar el cupón de campaña (?coupon=) SOLO en el redirect del gate: el
+    // cupón acompaña al cliente a la URL que le corresponde según su clasificación
+    // Equifax (misma landing o convenio). normalizeCatalogUrl descarta el
+    // querystring, así que sin esto el cupón se perdería al salir del overlay.
+    // No altera la regla general: la navegación orgánica a otra landing sigue sin
+    // arrastrar cupón, porque únicamente este link del overlay lo reenvía. El
+    // catálogo destino lo captura de su propia URL y lo valida con su landing_id;
+    // si no aplica a esa landing, el backend responde valid:false y no se muestra.
+    const coupon =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('coupon')
+        : null;
+    if (coupon) {
+      const sep = target.includes('?') ? '&' : '?';
+      target = `${target}${sep}coupon=${encodeURIComponent(coupon)}`;
+    }
+    window.location.assign(target);
+  }, [ctx.catalogUrl, landing]);
+
+  // ── Stepper helpers ───────────────────────────────────────────────────────
+
+  // Map state to which stepper step is "active" (0-indexed).
+  // d1 → step 0 active; d2-loading → step 1 active; d2-result/waiting/d3/error → step 2 active.
+  const activeStep: 0 | 1 | 2 =
+    ctx.state === 'd1' ? 0
+    : ctx.state === 'd2-loading' ? 1
+    : 2;
+
+  // Resultado del paso 3 del stepper. Solo aplica cuando activeStep === 2; antes
+  // de eso el paso 3 está "pendiente" (no alcanzado). Hace que el ícono/color del
+  // último paso diga la verdad por estado y no marque "logrado" siempre.
+  //   success → entró (d2-result)   fail → sin acceso (d3)
+  //   pending → en espera (waiting) unknown → error de sistema
+  const step3Outcome: 'none' | 'success' | 'fail' | 'pending' | 'unknown' =
+    activeStep < 2 ? 'none'
+    : ctx.state === 'd2-result' ? 'success'
+    : ctx.state === 'd3' ? 'fail'
+    : ctx.state === 'waiting' ? 'pending'
+    : 'unknown';
+
+  // El paso 3 mantiene SIEMPRE el color de marca (teal); lo único que cambia
+  // entre estados es el ícono (check / X / reloj / alerta). Así no se introducen
+  // colores fuera de la paleta (rojo/ámbar) en el resultado.
+  const step3Color = LOCKER_TEAL;
+
+  // ── Per-state title / subtitle copy ───────────────────────────────────────
+
+  function stateTitle(): string {
+    switch (ctx.state) {
+      case 'd1':         return 'Tu laptop te espera en el Locker Truck';
+      case 'd2-loading': return 'Estamos revisando tu solicitud';
+      case 'd2-result':  return ctx.firstName ? `¡Todo listo, ${ctx.firstName}!` : '¡Todo listo!';
+      case 'waiting':    return 'Tu solicitud está en proceso';
+      case 'd3':         return 'Lo sentimos, no tienes acceso en este momento';
+      case 'error':      return 'Ocurrió un error';
+    }
+  }
+
+  function stateSubtitle(): string | null {
+    switch (ctx.state) {
+      case 'd1':
+        return 'Ingresa tu DNI y accede a tu catálogo exclusivo.';
+      case 'd2-loading':
+        return 'Tu información fue enviada correctamente.\nEstamos validando tus datos para mostrarte las mejores opciones disponibles para ti.';
+      case 'd2-result':
+        return 'Tu acceso fue verificado. Ya puedes explorar el catálogo.';
+      case 'waiting':
+        return 'Pronto nos comunicaremos contigo.';
+      case 'd3':
+        return 'Tu documento no tiene acceso a este catálogo exclusivo.';
+      case 'error':
+        return ctx.errorMsg ?? 'No pudimos verificar tu acceso. Por favor, intenta de nuevo.';
+    }
+  }
+
+  // ── Single persistent shell ────────────────────────────────────────────────
+  //
+  // The shell (background + Baldi slot + card) is ALWAYS rendered across every
+  // state. Only the card body changes per step via AnimatePresence.
+
+  return (
+    <div
+      className="fixed inset-0 z-[10001] flex items-center justify-center px-4 py-6 overflow-y-auto"
+      style={{
+        backgroundColor: '#F0F2F5',
+        backgroundImage: `url(${LOCKER_BG})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      {/* Animated particle background — reuses FloatingParticles from CadeOverlayGate */}
+      <FloatingParticles color={LOCKER_TEAL} />
+      {/* Secondary color layer for brand depth */}
+      <FloatingParticles color={LOCKER_BLUE} />
+
+      <div className="flex flex-col md:flex-row items-center max-w-7xl w-full justify-center my-auto relative z-10">
+
+        {/* ── Baldi + food truck illustration slot ──────────────────────────
+            Oculto en mobile (visible solo en md+). */}
+        {BALDI_TRUCK && (
+          <motion.div
+            className="hidden md:flex items-center justify-center min-w-0 mr-4 lg:mr-8 relative"
+            initial={{ opacity: 0, x: -60 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          >
+            <img
+              src={BALDI_TRUCK}
+              alt="Baldi"
+              width={799}
+              height={1086}
+              className="h-[26rem] lg:h-[32rem] w-auto max-h-[80vh] object-contain drop-shadow-xl"
+            />
+          </motion.div>
+        )}
+
+        {/* ── White card ────────────────────────────────────────────────── */}
+        <motion.div
+          className="max-w-sm w-full md:w-[400px] md:max-w-none md:flex-shrink-0 bg-white rounded-3xl shadow-md p-5 sm:p-8 relative"
+          initial={{ opacity: 0, x: 60 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
+        >
+          {/* 1. Standard BaldeCash logo */}
+          <img
+            src={BALDECASH_LOGO}
+            alt="BaldeCash"
+            width={160}
+            height={56}
+            fetchPriority="high"
+            className="w-32 sm:w-40 h-auto mx-auto mb-5"
+          />
+
+          {/* 2. Title + subtitle */}
+          <div className="text-center mb-5">
+            <h2 className="text-xl sm:text-2xl font-bold" style={{ color: LOCKER_NAVY }}>
+              {stateTitle()}
+            </h2>
+            {stateSubtitle() && (
+              <p className="text-gray-400 text-xs sm:text-sm mt-1 whitespace-pre-line">
+                {stateSubtitle()}
+              </p>
+            )}
+          </div>
+
+          {/* 3. Horizontal 3-step stepper */}
+          <div className="flex items-start justify-between mb-6 px-1" aria-label="Progreso de verificación">
+
+            {/* Step 1: Ingresa DNI */}
+            <div className="flex flex-col items-center flex-1">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: LOCKER_TEAL }}
+                aria-label="Ingresa DNI"
+              >
+                {activeStep > 0 ? (
+                  // Completado (ya envió el DNI): check
+                  <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                ) : (
+                  // Activo en D1 (aún no envía): número de paso, no check
+                  <span className="text-xs font-bold text-white leading-none">1</span>
+                )}
+              </div>
+              <span
+                className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
+                style={{ color: LOCKER_TEAL }}
+              >
+                Ingresa<br />DNI
+              </span>
+            </div>
+
+            {/* Connector line 1→2 — bicolor teal→azul al alcanzar revisión */}
+            <div
+              className="h-[2px] flex-1 mt-[18px] mx-1"
+              style={
+                activeStep >= 1
+                  ? { backgroundImage: `linear-gradient(to right, ${LOCKER_TEAL} 0%, ${LOCKER_TEAL} 50%, ${LOCKER_BLUE} 50%, ${LOCKER_BLUE} 100%)` }
+                  : { backgroundColor: '#D1D5DB' }
+              }
+              aria-hidden
+            />
+
+            {/* Step 2: En revisión */}
+            <div className="flex flex-col items-center flex-1">
+              <motion.div
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={
+                  activeStep > 1
+                    ? { backgroundColor: LOCKER_BLUE }            // completed
+                    : activeStep === 1
+                      ? { backgroundColor: LOCKER_BLUE }           // active
+                      : { backgroundColor: '#E5E7EB' }             // pending
+                }
+                animate={activeStep === 1 ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                transition={{ duration: 1.4, repeat: activeStep === 1 ? Infinity : 0, ease: 'easeInOut' }}
+                aria-label="Validando"
+              >
+                {activeStep > 1 ? (
+                  <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                ) : (
+                  <Search
+                    className="w-4 h-4"
+                    style={{ color: activeStep === 1 ? 'white' : '#9CA3AF' }}
+                    strokeWidth={2}
+                  />
+                )}
+              </motion.div>
+              <span
+                className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
+                style={{ color: activeStep >= 1 ? LOCKER_BLUE : '#9CA3AF' }}
+              >
+                Validando
+              </span>
+            </div>
+
+            {/* Connector line 2→3 (dotted while step 3 is pending; color by outcome once reached) */}
+            <div
+              className="h-[2px] flex-1 mt-[18px] mx-1"
+              style={{
+                backgroundColor: activeStep >= 2 ? step3Color : 'transparent',
+                backgroundImage: activeStep < 2
+                  ? 'repeating-linear-gradient(to right, #D1D5DB 0px, #D1D5DB 6px, transparent 6px, transparent 12px)'
+                  : undefined,
+              }}
+              aria-hidden
+            />
+
+            {/* Step 3: Resultado — ícono/color según outcome (success/fail/pending/unknown) */}
+            <div className="flex flex-col items-center flex-1">
+              <div
+                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border-2"
+                style={
+                  activeStep === 2
+                    ? { backgroundColor: step3Color, borderColor: step3Color }   // alcanzado: color por resultado
+                    : { backgroundColor: 'transparent', borderColor: '#D1D5DB', borderStyle: 'dotted' }  // pendiente
+                }
+                aria-label="Resultado"
+              >
+                {step3Outcome === 'success' && <Check className="w-4 h-4 text-white" strokeWidth={2.5} />}
+                {step3Outcome === 'fail' && <X className="w-4 h-4 text-white" strokeWidth={2.5} />}
+                {step3Outcome === 'pending' && <Clock className="w-4 h-4 text-white" strokeWidth={2} />}
+                {step3Outcome === 'unknown' && <AlertTriangle className="w-4 h-4 text-white" strokeWidth={2} />}
+              </div>
+              <span
+                className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
+                style={{ color: activeStep >= 2 ? step3Color : '#9CA3AF' }}
+              >
+                Resultado
+              </span>
+            </div>
+          </div>
+
+          {/* 4. Card body — changes per state */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={ctx.state}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+            >
+              {/* D1: DNI input + Validar button (vía useDniValidation).
+                  Al validar: el hook guarda access_token con saveVipToken y
+                  first_name con saveVipName; luego llama handleDniValidated
+                  que transiciona a d2-loading con el token ya persistido. */}
+              {ctx.state === 'd1' && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                      Número de documento
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={hookDni}
+                      onChange={(e) => handleDniChange(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleDniSubmit(); }}
+                      placeholder="Ingresa tu número de documento"
+                      maxLength={12}
+                      disabled={submitting}
+                      aria-label="Número de documento"
+                      className="w-full px-4 py-3 bg-gray-100 rounded-xl text-base text-gray-800 font-medium outline-none focus:ring-2 placeholder:text-gray-400 disabled:opacity-70"
+                      style={{ '--tw-ring-color': LOCKER_TEAL } as React.CSSProperties}
+                    />
+                    {/* Error de validación inline — no se expone el valor ingresado */}
+                    {hookDni.length > 0 && !isValidDni && !submitting && (
+                      <p className="mt-1.5 text-sm text-red-500">
+                        Ingresa un documento válido (8 a 12 dígitos numéricos).
+                      </p>
+                    )}
+                    {dniErrorMsg && (
+                      <p className="mt-1.5 text-sm text-red-500">{dniErrorMsg}</p>
+                    )}
+                  </div>
+
+                  {/* Tu acceso está en otra landing (sibling match) */}
+                  {siblingMatch && (
+                    <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(0,191,179,0.08)', border: '1px solid rgba(0,191,179,0.2)' }}>
+                      <p className="text-sm text-gray-700 mb-1">
+                        Hola <span className="font-semibold">{siblingMatch.firstName}</span>, tu acceso está en:
+                      </p>
+                      <p className="text-base font-bold mb-3" style={{ color: LOCKER_TEAL }}>{siblingMatch.name}</p>
+                      <a
+                        href={routes.catalogo(siblingMatch.slug)}
+                        className="w-full py-3 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                        style={{ backgroundColor: LOCKER_TEAL }}
+                      >
+                        Ir a mi acceso
+                        <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Documento sin acceso */}
+                  {showRegister && (
+                    <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                      <p className="text-sm text-gray-700">
+                        Tu documento no tiene acceso a esta promoción.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Botón de validación — se oculta cuando se muestra sibling o showRegister */}
+                  {!siblingMatch && !showRegister && (
+                    <button
+                      onClick={handleDniSubmit}
+                      disabled={!isValidDni || submitting}
+                      className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: LOCKER_TEAL }}
+                    >
+                      {submitting ? (
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" role="status">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <>
+                          Validar acceso
+                          <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* D2-loading: chip "Este proceso puede tardar unos segundos" */}
+              {ctx.state === 'd2-loading' && (
+                <div className="flex justify-center py-2">
+                  <span
+                    className="flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-full"
+                    style={{ backgroundColor: 'rgba(0,191,179,0.1)', color: LOCKER_TEAL }}
+                  >
+                    <Clock className="w-3.5 h-3.5" strokeWidth={2} />
+                    Este proceso puede tardar unos segundos
+                  </span>
+                </div>
+              )}
+
+              {/* D2-result: "Ver catálogo" button */}
+              {ctx.state === 'd2-result' && (
+                <button
+                  onClick={handleViewCatalog}
+                  className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                  style={{ backgroundColor: LOCKER_TEAL }}
+                >
+                  Ver catálogo
+                  <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                </button>
+              )}
+
+              {/* Waiting: no_normal sin catalog_url */}
+              {ctx.state === 'waiting' && (
+                <p className="text-center text-sm text-gray-500 py-2">
+                  Pronto nos comunicaremos contigo.
+                </p>
+              )}
+
+              {/* D3: no_access — mensaje en título + subtítulo; pregunta + botón para reingresar DNI */}
+              {ctx.state === 'd3' && (
+                <div className="space-y-2.5 text-center">
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    ¿Digitaste mal tu DNI? Vuelve a ingresarlo aquí.
+                  </p>
+                  <button
+                    onClick={handleBackToD1}
+                    className="w-full py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-200 hover:shadow-md active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                    style={{ borderColor: LOCKER_TEAL, color: LOCKER_TEAL, backgroundColor: 'transparent' }}
+                  >
+                    Volver a intentar
+                  </button>
+                </div>
+              )}
+
+              {/* Error: red de /evaluate con botón Reintentar */}
+              {ctx.state === 'error' && (
+                <div className="space-y-3 text-center">
+                  <p className="text-sm text-red-500">
+                    {ctx.errorMsg ?? 'No pudimos verificar tu acceso.'}
+                  </p>
+                  <button
+                    onClick={handleRetry}
+                    className="w-full py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-200 hover:shadow-md active:scale-[0.98]"
+                    style={{ borderColor: LOCKER_TEAL, color: LOCKER_TEAL, backgroundColor: 'transparent' }}
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* 5. Footer: privacy note */}
+          <p className="mt-5 text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+            <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
+            Tus datos están protegidos.
+          </p>
+        </motion.div>
+      </div>
+    </div>
+  );
 }
 
 // ── Overlay variant registry ──────────────────────────────────────────────
@@ -722,6 +1458,43 @@ function VipGate({ landing, children }: { landing: string; children: React.React
 
       // Overlay deadline expired — block access regardless of whitelist
       if (variant && overlayDl && new Date().getTime() >= new Date(overlayDl).getTime()) {
+        setOverlayVariant(variant);
+        setOverlayDeadline(overlayDl);
+        setStatus('blocked');
+        return;
+      }
+
+      // Bypass del auto-allow para variants que NO deben pasar directo con
+      // ?vip_auto= (ver VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW). Se ejecuta ANTES del
+      // bloque de auto-allow para que estos gates siempre se muestren y corran su
+      // propia validación (p.ej. locker-truck → /evaluate/Equifax), incluso si
+      // llega con ?vip_auto=. El token queda en la URL para que el overlay lo lea.
+      if (VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW.includes(variant)) {
+        if (hasGatePass(landing)) {
+          // El usuario ya pasó el gate en esta sesión → acceso directo
+          setStatus('allowed');
+          return;
+        }
+        // Reingreso dentro de la ventana de caché (7 días): si el outcome
+        // cacheado fue acceso normal a ESTA landing, se concede acceso directo
+        // al catálogo sin reabrir el overlay ni re-evaluar (equivalente
+        // persistente del gatePass). Los demás outcomes (convenio/espera) caen
+        // al overlay, que los rutea desde el caché sin re-pedir DNI.
+        // Se omite si llega ?vip_auto= en la URL: ese link fresco re-evalúa.
+        const hasVipAuto =
+          typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.search).has('vip_auto');
+        if (!hasVipAuto) {
+          const cachedEval = getEvalCache(landing);
+          if (
+            cachedEval?.status === 'normal' &&
+            cachedEval.catalogUrl &&
+            cachedEval.catalogUrl.includes(`/${landing}/catalogo`)
+          ) {
+            setStatus('allowed');
+            return;
+          }
+        }
         setOverlayVariant(variant);
         setOverlayDeadline(overlayDl);
         setStatus('blocked');
