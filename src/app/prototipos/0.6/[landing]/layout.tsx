@@ -11,7 +11,7 @@
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Search, ShieldCheck, Clock, ArrowRight } from 'lucide-react';
+import { Check, Search, ShieldCheck, Clock, ArrowRight, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { LayoutProvider } from './context/LayoutContext';
@@ -810,8 +810,10 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   }, [hookDni, ctx.state]);
 
   // Asset constants.
-  // BALDI_TRUCK: ilustración Baldi + kiosco, ya subida a S3 por el equipo.
-  const BALDI_TRUCK = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-lockertruck.webp';
+  // BALDI_TRUCK: ilustración de Baldi del gate.
+  // TEMPORAL: servida desde public/ hasta que el equipo la suba a S3
+  // (mismo patrón que se usó antes para esta ilustración).
+  const BALDI_TRUCK = '/illustrations/baldi-lockertruck.png';
   // LOCKER_BG: fondo geométrico estático, servido desde S3.
   const LOCKER_BG = 'https://baldecash.s3.amazonaws.com/illustrations/locker-truck-bg.webp';
   // BALDECASH_LOGO: logo isotipo + wordmark, servido desde S3.
@@ -920,6 +922,13 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     setCtx((prev) => ({ ...prev, state: 'd2-loading', errorMsg: null }));
   }, []);
 
+  // Transición d3 → d1: por si el alumno tecleó mal su DNI.
+  // Limpia el DNI y el accessToken (vip_auto) para que la próxima evaluación
+  // use el documento reingresado en vez del token original.
+  const handleBackToD1 = useCallback(() => {
+    setCtx((prev) => ({ ...prev, state: 'd1', dni: '', accessToken: null, errorMsg: null }));
+  }, []);
+
   // Navegación al catálogo desde d2-result: set flag anti-loop antes de navegar
   const handleViewCatalog = useCallback(() => {
     if (!ctx.catalogUrl) return;
@@ -958,15 +967,32 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     : ctx.state === 'd2-loading' ? 1
     : 2;
 
+  // Resultado del paso 3 del stepper. Solo aplica cuando activeStep === 2; antes
+  // de eso el paso 3 está "pendiente" (no alcanzado). Hace que el ícono/color del
+  // último paso diga la verdad por estado y no marque "logrado" siempre.
+  //   success → entró (d2-result)   fail → sin acceso (d3)
+  //   pending → en espera (waiting) unknown → error de sistema
+  const step3Outcome: 'none' | 'success' | 'fail' | 'pending' | 'unknown' =
+    activeStep < 2 ? 'none'
+    : ctx.state === 'd2-result' ? 'success'
+    : ctx.state === 'd3' ? 'fail'
+    : ctx.state === 'waiting' ? 'pending'
+    : 'unknown';
+
+  // El paso 3 mantiene SIEMPRE el color de marca (teal); lo único que cambia
+  // entre estados es el ícono (check / X / reloj / alerta). Así no se introducen
+  // colores fuera de la paleta (rojo/ámbar) en el resultado.
+  const step3Color = LOCKER_TEAL;
+
   // ── Per-state title / subtitle copy ───────────────────────────────────────
 
   function stateTitle(): string {
     switch (ctx.state) {
-      case 'd1':         return 'Accede a tu catálogo exclusivo';
+      case 'd1':         return 'Tu laptop te espera en el Locker Truck';
       case 'd2-loading': return 'Estamos revisando tu solicitud';
       case 'd2-result':  return ctx.firstName ? `¡Todo listo, ${ctx.firstName}!` : '¡Todo listo!';
       case 'waiting':    return 'Tu solicitud está en proceso';
-      case 'd3':         return 'Acceso no disponible';
+      case 'd3':         return 'Lo sentimos, no tienes acceso en este momento';
       case 'error':      return 'Ocurrió un error';
     }
   }
@@ -974,7 +1000,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   function stateSubtitle(): string | null {
     switch (ctx.state) {
       case 'd1':
-        return 'Ingresa tu documento para verificar tu acceso.';
+        return 'Ingresa tu DNI y accede a tu catálogo exclusivo.';
       case 'd2-loading':
         return 'Tu información fue enviada correctamente.\nEstamos validando tus datos para mostrarte las mejores opciones disponibles para ti.';
       case 'd2-result':
@@ -982,7 +1008,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
       case 'waiting':
         return 'Pronto nos comunicaremos contigo.';
       case 'd3':
-        return 'Tu documento no tiene acceso a esta promoción.';
+        return 'Tu documento no tiene acceso a este catálogo exclusivo.';
       case 'error':
         return ctx.errorMsg ?? 'No pudimos verificar tu acceso. Por favor, intenta de nuevo.';
     }
@@ -1022,10 +1048,10 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
           >
             <img
               src={BALDI_TRUCK}
-              alt="Baldi Locker Truck"
-              width={620}
-              height={460}
-              className="w-[32rem] lg:w-[40rem] max-w-full h-auto object-contain drop-shadow-xl"
+              alt="Baldi"
+              width={799}
+              height={1086}
+              className="h-[26rem] lg:h-[32rem] w-auto max-h-[80vh] object-contain drop-shadow-xl"
             />
           </motion.div>
         )}
@@ -1062,30 +1088,26 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
           {/* 3. Horizontal 3-step stepper */}
           <div className="flex items-start justify-between mb-6 px-1" aria-label="Progreso de verificación">
 
-            {/* Step 1: Solicitud enviada */}
+            {/* Step 1: Ingresa DNI */}
             <div className="flex flex-col items-center flex-1">
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                style={
-                  activeStep > 0
-                    ? { backgroundColor: LOCKER_TEAL }           // completed
-                    : activeStep === 0
-                      ? { backgroundColor: LOCKER_TEAL }          // active (same teal)
-                      : { backgroundColor: '#E5E7EB' }            // pending
-                }
-                aria-label="Solicitud enviada"
+                style={{ backgroundColor: LOCKER_TEAL }}
+                aria-label="Ingresa DNI"
               >
                 {activeStep > 0 ? (
+                  // Completado (ya envió el DNI): check
                   <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
                 ) : (
-                  <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  // Activo en D1 (aún no envía): número de paso, no check
+                  <span className="text-xs font-bold text-white leading-none">1</span>
                 )}
               </div>
               <span
                 className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
                 style={{ color: LOCKER_TEAL }}
               >
-                Solicitud<br />enviada
+                Ingresa<br />DNI
               </span>
             </div>
 
@@ -1113,7 +1135,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
                 }
                 animate={activeStep === 1 ? { scale: [1, 1.08, 1] } : { scale: 1 }}
                 transition={{ duration: 1.4, repeat: activeStep === 1 ? Infinity : 0, ease: 'easeInOut' }}
-                aria-label="En revisión"
+                aria-label="Validando"
               >
                 {activeStep > 1 ? (
                   <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -1129,15 +1151,15 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
                 className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
                 style={{ color: activeStep >= 1 ? LOCKER_BLUE : '#9CA3AF' }}
               >
-                En<br />revisión
+                Validando
               </span>
             </div>
 
-            {/* Connector line 2→3 (dotted while step 3 is pending) */}
+            {/* Connector line 2→3 (dotted while step 3 is pending; color by outcome once reached) */}
             <div
               className="h-[2px] flex-1 mt-[18px] mx-1"
               style={{
-                backgroundColor: activeStep >= 2 ? LOCKER_TEAL : 'transparent',
+                backgroundColor: activeStep >= 2 ? step3Color : 'transparent',
                 backgroundImage: activeStep < 2
                   ? 'repeating-linear-gradient(to right, #D1D5DB 0px, #D1D5DB 6px, transparent 6px, transparent 12px)'
                   : undefined,
@@ -1145,24 +1167,25 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
               aria-hidden
             />
 
-            {/* Step 3: Resultado */}
+            {/* Step 3: Resultado — ícono/color según outcome (success/fail/pending/unknown) */}
             <div className="flex flex-col items-center flex-1">
               <div
                 className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 border-2"
                 style={
                   activeStep === 2
-                    ? { backgroundColor: LOCKER_TEAL, borderColor: LOCKER_TEAL }  // alcanzado
-                    : { backgroundColor: 'transparent', borderColor: '#D1D5DB', borderStyle: 'dotted' }
+                    ? { backgroundColor: step3Color, borderColor: step3Color }   // alcanzado: color por resultado
+                    : { backgroundColor: 'transparent', borderColor: '#D1D5DB', borderStyle: 'dotted' }  // pendiente
                 }
                 aria-label="Resultado"
               >
-                {activeStep === 2 && (
-                  <Check className="w-4 h-4 text-white" strokeWidth={2.5} />
-                )}
+                {step3Outcome === 'success' && <Check className="w-4 h-4 text-white" strokeWidth={2.5} />}
+                {step3Outcome === 'fail' && <X className="w-4 h-4 text-white" strokeWidth={2.5} />}
+                {step3Outcome === 'pending' && <Clock className="w-4 h-4 text-white" strokeWidth={2} />}
+                {step3Outcome === 'unknown' && <AlertTriangle className="w-4 h-4 text-white" strokeWidth={2} />}
               </div>
               <span
                 className="text-[11px] sm:text-xs font-semibold mt-2 text-center leading-tight"
-                style={{ color: activeStep >= 2 ? LOCKER_TEAL : '#9CA3AF' }}
+                style={{ color: activeStep >= 2 ? step3Color : '#9CA3AF' }}
               >
                 Resultado
               </span>
@@ -1296,11 +1319,20 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
                 </p>
               )}
 
-              {/* D3: no_access */}
+              {/* D3: no_access — mensaje en título + subtítulo; pregunta + botón para reingresar DNI */}
               {ctx.state === 'd3' && (
-                <p className="text-center text-sm text-gray-500 py-2">
-                  Tu documento no tiene acceso a esta promoción.
-                </p>
+                <div className="space-y-2.5 text-center">
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    ¿Digitaste mal tu DNI? Vuelve a ingresarlo aquí.
+                  </p>
+                  <button
+                    onClick={handleBackToD1}
+                    className="w-full py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-200 hover:shadow-md active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                    style={{ borderColor: LOCKER_TEAL, color: LOCKER_TEAL, backgroundColor: 'transparent' }}
+                  >
+                    Volver a intentar
+                  </button>
+                </div>
               )}
 
               {/* Error: red de /evaluate con botón Reintentar */}
