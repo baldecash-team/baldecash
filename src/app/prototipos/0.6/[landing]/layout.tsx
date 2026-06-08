@@ -621,21 +621,41 @@ function DniInputRow({
   );
 }
 
-// ── Locker Truck: helpers anti-loop de sessionStorage (B-1) ──────────────────
+// ── Locker Truck: helpers anti-loop de sessionStorage ──────────────────
 // Key por-slug para evitar afectar otras landings.
-// hasLockertruckPass: guarda contra SSR con typeof window check.
+//
+// VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW — "candado" para overlay_variants que NO
+// deben dejar pasar de una cuando la URL trae ?vip_auto=<token>.
+//
+// Por defecto, si una landing con whitelist recibe ?vip_auto=, VipGate guarda el
+// token y concede acceso directo (auto-allow) sin mostrar el overlay. Eso alcanza
+// para gates que solo validan pertenencia a la whitelist.
+//
+// Si tu overlay necesita correr su PROPIA validación antes de dejar entrar
+// (p.ej. locker-truck consulta Equifax vía /evaluate), agregá su overlay_variant
+// a este array: VipGate saltea el auto-allow y SIEMPRE muestra el overlay. A
+// partir de ahí, tu componente custom sigue con su lógica propia — puede leer el
+// vip_auto de la URL, validarlo como quiera y recién entonces decidir si deja pasar.
+//
+// En resumen, para un overlay nuevo con esta necesidad: registralo en
+// OVERLAY_VARIANTS y sumá su overlay_variant a este array.
+const VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW = ['lockertruck'];
 
-function hasLockertruckPass(slug: string): boolean {
+// hasGatePass/setGatePass: flag por-slug que marca que el usuario ya pasó el gate
+// en esta sesión (lo setea el overlay tras conceder acceso). Evita el re-bloqueo
+// al navegar dentro de la landing. Guarda contra SSR con typeof window check.
+
+function hasGatePass(slug: string): boolean {
   if (typeof window === 'undefined') return false;
-  return sessionStorage.getItem(`baldecash-lockertruck-pass-${slug}`) === '1';
+  return sessionStorage.getItem(`baldecash-gate-pass-${slug}`) === '1';
 }
 
-function setLockertruckPass(slug: string): void {
+function setGatePass(slug: string): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.setItem(`baldecash-lockertruck-pass-${slug}`, '1');
+  sessionStorage.setItem(`baldecash-gate-pass-${slug}`, '1');
 }
 
-// ── Locker Truck: tipos de la máquina de estados (D-1) ───────────────────────
+// ── Locker Truck: tipos de la máquina de estados ───────────────────────
 
 /**
  * Estados internos del gate locker-truck.
@@ -654,13 +674,16 @@ interface LockertruckGateCtx {
   firstName: string | null;
   catalogUrl: string | null;
   errorMsg: string | null;
-  /** Valor del input DNI en D1 */
+  /**
+   * DNI a enviar en /evaluate (camino D1: viene del hook useDniValidation;
+   * camino vip_auto: queda vacío porque /evaluate usa accessToken).
+   */
   dni: string;
   /** Token leído de ?vip_auto= al montar el componente */
   accessToken: string | null;
 }
 
-// ── Locker Truck overlay gate (D-2 + E-1..E-4) ───────────────────────────────
+// ── Locker Truck overlay gate ───────────────────────────────
 
 function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landing: string; onValidated: () => void }) {
   // Leer vip_auto de la URL al montar — determina el estado inicial.
@@ -670,6 +693,12 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
       typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('vip_auto')
         : null;
+    // Camino vip_auto: guardar el token antes de correr /evaluate para que
+    // appendVipToken lo encuentre disponible en las rutas protegidas posteriores.
+    // El guard del backend acepta este token vía fallback landing_dni_whitelist.access_token.
+    if (token) {
+      saveVipToken(landing, token);
+    }
     return {
       state: token ? 'd2-loading' : 'd1',
       firstName: null,
@@ -680,10 +709,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     };
   });
 
-  // Validación local del DNI en D1: 8-12 dígitos numéricos
-  const isDniValid = /^\d{8,12}$/.test(ctx.dni);
-
-  // Ref-guard para evitar doble disparo en StrictMode (D-2)
+  // Ref-guard para evitar doble disparo en StrictMode
   // Se resetea cuando el estado sale de 'd2-loading' (permite reintentar)
   const evaluateCalledRef = useRef(false);
 
@@ -693,6 +719,39 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   // Sesión de tracking — para atar el token vip_auto al DNI en la sesión.
   const session = useSessionOptional();
   const linkedRef = useRef(false);
+
+  // Callback que dispara useDniValidation cuando el DNI queda validado.
+  // En este punto el hook ya guardó access_token con saveVipToken y first_name
+  // con saveVipName. Solo hay que capturar el DNI del hook y avanzar a d2-loading.
+  const handleDniValidated = useCallback(() => {
+    // El hook ya llamó saveVipToken/saveVipName. Leer el DNI desde localStorage
+    // no es necesario: el hook lo expone directamente vía el valor `dni`.
+    // La transición se hace en el setter de ctx después de que el hook actualice
+    // su propio estado — la forma más limpia es que el callback sólo cambie el state.
+    setCtx((prev) => ({ ...prev, state: 'd2-loading' }));
+  }, []);
+
+  // Hook de validación DNI reutilizado de InlineDniGate / CadeOverlayGate.
+  // Al validar: guarda access_token con saveVipToken, first_name con saveVipName,
+  // y llama handleDniValidated → transición a d2-loading.
+  const {
+    dni: hookDni,
+    isValidDni,
+    submitting,
+    errorMsg: dniErrorMsg,
+    handleChange: handleDniChange,
+    handleSubmit: handleDniSubmit,
+    siblingMatch,
+    showRegister,
+  } = useDniValidation(landing, handleDniValidated);
+
+  // Sincronizar el DNI del hook en ctx.dni para que /evaluate lo use si llega
+  // el momento de construir el payload (camino D1 sin accessToken).
+  // Solo en estado d1 para evitar actualizaciones innecesarias.
+  useEffect(() => {
+    if (ctx.state !== 'd1') return;
+    setCtx((prev) => ({ ...prev, dni: hookDni }));
+  }, [hookDni, ctx.state]);
 
   // Asset constants.
   // BALDI_TRUCK: ilustración Baldi + kiosco, ya subida a S3 por el equipo.
@@ -743,7 +802,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
       .catch(() => {});
   }, [ctx.accessToken, session?.sessionUuid, landing]);
 
-  // Disparar /evaluate al entrar en d2-loading (D-2)
+  // Disparar /evaluate al entrar en d2-loading
   useEffect(() => {
     if (ctx.state !== 'd2-loading') {
       // Resetear el guard al salir de 'd2-loading' para que retry funcione
@@ -793,12 +852,6 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
       });
   }, [ctx.state, ctx.accessToken, ctx.dni, landing, session?.sessionUuid]);
 
-  // Transición D1 → d2-loading: valida el DNI antes de disparar
-  const handleD1Submit = useCallback(() => {
-    if (!isDniValid) return;
-    setCtx((prev) => ({ ...prev, state: 'd2-loading' }));
-  }, [isDniValid]);
-
   // Transición error → reintentar: vuelve a d2-loading
   const handleRetry = useCallback(() => {
     setCtx((prev) => ({ ...prev, state: 'd2-loading', errorMsg: null }));
@@ -812,7 +865,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     // landing (caso normal/preaprobados). Si redirige a un convenio, el usuario
     // sale de locker-truck y no debe quedar habilitado para reingresar.
     if (target.includes(`/${landing}/catalogo`)) {
-      setLockertruckPass(landing);
+      setGatePass(landing);
     }
     window.location.assign(target);
   }, [ctx.catalogUrl, landing]);
@@ -880,8 +933,7 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
       <div className="flex flex-col md:flex-row items-center max-w-7xl w-full justify-center my-auto relative z-10">
 
         {/* ── Baldi + food truck illustration slot ──────────────────────────
-            Hidden on mobile (md+ only). Block is not rendered until EXT-2
-            asset is uploaded — BALDI_TRUCK is empty until then. */}
+            Oculto en mobile (visible solo en md+). */}
         {BALDI_TRUCK && (
           <motion.div
             className="hidden md:flex items-center justify-center min-w-0 mr-4 lg:mr-8 relative"
@@ -1047,7 +1099,10 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.25 }}
             >
-              {/* D1: DNI input + Continuar button */}
+              {/* D1: DNI input + Validar button (vía useDniValidation).
+                  Al validar: el hook guarda access_token con saveVipToken y
+                  first_name con saveVipName; luego llama handleDniValidated
+                  que transiciona a d2-loading con el token ya persistido. */}
               {ctx.state === 'd1' && (
                 <div className="space-y-3">
                   <div>
@@ -1058,34 +1113,75 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
                       type="text"
                       inputMode="numeric"
                       autoComplete="off"
-                      value={ctx.dni}
-                      onChange={(e) => {
-                        const cleaned = e.target.value.replace(/\D/g, '').slice(0, 12);
-                        setCtx((prev) => ({ ...prev, dni: cleaned }));
-                      }}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleD1Submit(); }}
+                      value={hookDni}
+                      onChange={(e) => handleDniChange(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleDniSubmit(); }}
                       placeholder="Ingresa tu número de documento"
                       maxLength={12}
+                      disabled={submitting}
                       aria-label="Número de documento"
-                      className="w-full px-4 py-3 bg-gray-100 rounded-xl text-base text-gray-800 font-medium outline-none focus:ring-2 placeholder:text-gray-400"
+                      className="w-full px-4 py-3 bg-gray-100 rounded-xl text-base text-gray-800 font-medium outline-none focus:ring-2 placeholder:text-gray-400 disabled:opacity-70"
                       style={{ '--tw-ring-color': LOCKER_TEAL } as React.CSSProperties}
                     />
-                    {/* Inline validation error — value not exposed (REQ-11) */}
-                    {ctx.dni.length > 0 && !isDniValid && (
+                    {/* Error de validación inline — no se expone el valor ingresado */}
+                    {hookDni.length > 0 && !isValidDni && !submitting && (
                       <p className="mt-1.5 text-sm text-red-500">
                         Ingresa un documento válido (8 a 12 dígitos numéricos).
                       </p>
                     )}
+                    {dniErrorMsg && (
+                      <p className="mt-1.5 text-sm text-red-500">{dniErrorMsg}</p>
+                    )}
                   </div>
-                  <button
-                    onClick={handleD1Submit}
-                    disabled={!isDniValid}
-                    className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: LOCKER_TEAL }}
-                  >
-                    Continuar
-                    <ArrowRight className="w-5 h-5" strokeWidth={2} />
-                  </button>
+
+                  {/* Tu acceso está en otra landing (sibling match) */}
+                  {siblingMatch && (
+                    <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(0,191,179,0.08)', border: '1px solid rgba(0,191,179,0.2)' }}>
+                      <p className="text-sm text-gray-700 mb-1">
+                        Hola <span className="font-semibold">{siblingMatch.firstName}</span>, tu acceso está en:
+                      </p>
+                      <p className="text-base font-bold mb-3" style={{ color: LOCKER_TEAL }}>{siblingMatch.name}</p>
+                      <a
+                        href={routes.catalogo(siblingMatch.slug)}
+                        className="w-full py-3 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+                        style={{ backgroundColor: LOCKER_TEAL }}
+                      >
+                        Ir a mi acceso
+                        <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Documento sin acceso */}
+                  {showRegister && (
+                    <div className="rounded-xl p-4" style={{ backgroundColor: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                      <p className="text-sm text-gray-700">
+                        Tu documento no tiene acceso a esta promoción.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Botón de validación — se oculta cuando se muestra sibling o showRegister */}
+                  {!siblingMatch && !showRegister && (
+                    <button
+                      onClick={handleDniSubmit}
+                      disabled={!isValidDni || submitting}
+                      className="w-full py-3.5 rounded-xl text-base font-semibold text-white transition-all duration-200 hover:shadow-lg active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: LOCKER_TEAL }}
+                    >
+                      {submitting ? (
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" role="status">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
+                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        <>
+                          Validar acceso
+                          <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -1257,19 +1353,18 @@ function VipGate({ landing, children }: { landing: string; children: React.React
         return;
       }
 
-      // C-1: bypass del auto-allow keyed off overlay_variant === 'lockertruck'
-      // Se ejecuta ANTES del bloque de auto-allow para que locker-truck
-      // siempre corra /evaluate, incluso cuando llega con ?vip_auto=.
-      // El token vip_auto queda disponible en la URL para que
-      // LockertruckOverlayGate lo lea directamente.
-      // Decisión 1 del diseño locker-truck-gate.
-      if (variant === 'lockertruck') {
-        if (hasLockertruckPass(landing)) {
-          // El usuario ya fue evaluado en esta sesión → acceso directo
+      // Bypass del auto-allow para variants que NO deben pasar directo con
+      // ?vip_auto= (ver VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW). Se ejecuta ANTES del
+      // bloque de auto-allow para que estos gates siempre se muestren y corran su
+      // propia validación (p.ej. locker-truck → /evaluate/Equifax), incluso si
+      // llega con ?vip_auto=. El token queda en la URL para que el overlay lo lea.
+      if (VARIANTS_WITHOUT_TOKEN_AUTO_ALLOW.includes(variant)) {
+        if (hasGatePass(landing)) {
+          // El usuario ya pasó el gate en esta sesión → acceso directo
           setStatus('allowed');
           return;
         }
-        setOverlayVariant('lockertruck');
+        setOverlayVariant(variant);
         setOverlayDeadline(overlayDl);
         setStatus('blocked');
         return;
