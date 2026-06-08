@@ -246,7 +246,7 @@ function ComplementosContent() {
   const pageContent = (
     <div className={`min-h-screen relative ${isGamer ? '' : 'bg-neutral-50'}`}>
       {/* Navbar */}
-      {!isGamer && <Navbar {...navbarProps} landing={landing} />}
+      {!isGamer && <Navbar {...navbarProps} landing={landing} logoOnly={!!appliedCoupon?.lockedFromUrl} />}
 
       {/* Spacer — dynamic height (gamer has its own navbar spacing) */}
       {!isGamer && <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />}
