@@ -860,12 +860,28 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   // Navegación al catálogo desde d2-result: set flag anti-loop antes de navegar
   const handleViewCatalog = useCallback(() => {
     if (!ctx.catalogUrl) return;
-    const target = normalizeCatalogUrl(ctx.catalogUrl);
+    let target = normalizeCatalogUrl(ctx.catalogUrl);
     // El flag anti-loop solo aplica cuando el destino es el catálogo de ESTA
     // landing (caso normal/preaprobados). Si redirige a un convenio, el usuario
     // sale de locker-truck y no debe quedar habilitado para reingresar.
     if (target.includes(`/${landing}/catalogo`)) {
       setGatePass(landing);
+    }
+    // Reenviar el cupón de campaña (?coupon=) SOLO en el redirect del gate: el
+    // cupón acompaña al cliente a la URL que le corresponde según su clasificación
+    // Equifax (misma landing o convenio). normalizeCatalogUrl descarta el
+    // querystring, así que sin esto el cupón se perdería al salir del overlay.
+    // No altera la regla general: la navegación orgánica a otra landing sigue sin
+    // arrastrar cupón, porque únicamente este link del overlay lo reenvía. El
+    // catálogo destino lo captura de su propia URL y lo valida con su landing_id;
+    // si no aplica a esa landing, el backend responde valid:false y no se muestra.
+    const coupon =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('coupon')
+        : null;
+    if (coupon) {
+      const sep = target.includes('?') ? '&' : '?';
+      target = `${target}${sep}coupon=${encodeURIComponent(coupon)}`;
     }
     window.location.assign(target);
   }, [ctx.catalogUrl, landing]);
