@@ -209,7 +209,6 @@ function CatalogoContent() {
     clearCartProducts,
     clearAccessories,
     appliedCoupon,
-    setAppliedCoupon,
     isHydrated: isProductContextHydrated,
   } = useProduct();
 
@@ -235,24 +234,26 @@ function CatalogoContent() {
   const previewBannerOffset = previewKey ? 24 : 0;
 
   // Si el usuario entra al catálogo sin `?coupon=` en la URL, descartamos
-  // cualquier cupón de campaña almacenado (pendiente o ya aplicado con
-  // lockedFromUrl). Evita que el banner/vitrina y el wizard apliquen un
-  // cupón heredado de una sesión anterior cuando la intención actual no
-  // incluye cupón. Esperamos a que ProductContext hidrate para poder
-  // detectar el cupón aplicado proveniente de localStorage.
+  // únicamente el cupón de campaña PENDIENTE (estado transitorio one-shot
+  // que pudiera haber quedado de una captura incompleta). NO tocamos el
+  // cupón ya aplicado (lockedFromUrl): debe persistir hasta que el cliente
+  // envíe la solicitud (useSubmitApplication lo limpia) o borre el
+  // localStorage manualmente. Antes este efecto llamaba setAppliedCoupon(null)
+  // y, como el efecto de filter-sync elimina `?coupon=` del URL tras el
+  // primer render, al recargar el catálogo se borraba el cupón aplicado:
+  // desaparecía el banner de referido y se perdía el pre-seteo en /solicitar/.
+  // Esperamos a que ProductContext hidrate para evitar carreras con la lectura
+  // del cupón aplicado proveniente de localStorage.
   //
   // Importante: `hasCouponParam` se congela en el mount. El useEffect que
   // sincroniza la URL con los filtros (más abajo) hace router.replace y
   // elimina `?coupon=` del URL después del primer render; si releyéramos
-  // searchParams aquí, borraríamos el cupón recién capturado.
+  // searchParams aquí, descartaríamos el cupón recién capturado.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const hasCouponParam = useMemo(() => !!searchParams.get('coupon'), []);
   useEffect(() => {
     if (hasCouponParam || !isProductContextHydrated) return;
     clearPendingCoupon(landing);
-    if (appliedCoupon?.lockedFromUrl) {
-      setAppliedCoupon(null);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [landing, isProductContextHydrated]);
 
