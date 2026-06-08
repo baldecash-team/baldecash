@@ -874,7 +874,7 @@ export function LockertruckOverlayGate({ landing, onValidated: _onValidated, pre
   function stateTitle(): string {
     switch (ctx.state) {
       case 'd1':         return 'Tu laptop te espera en el Locker Truck';
-      case 'd2-loading': return 'Estamos revisando tu solicitud';
+      case 'd2-loading': return 'Estamos procesando tu solicitud';
       case 'd2-result':  return ctx.firstName ? `¡Todo listo, ${ctx.firstName}!` : '¡Todo listo!';
       case 'waiting':    return 'Tu solicitud está en proceso';
       case 'd3':         return 'Lo sentimos, no tienes acceso en este momento';
