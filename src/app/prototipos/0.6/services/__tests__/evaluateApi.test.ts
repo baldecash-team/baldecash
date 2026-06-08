@@ -44,7 +44,7 @@ describe('evaluateLandingAccess', () => {
 
     global.fetch = jest.fn().mockResolvedValue(mockResponse);
 
-    // NOTA: no se loggea el valor del DNI en este test (REQ-11)
+    // NOTA: no se loggea el valor del DNI en este test
     await evaluateLandingAccess('locker-truck', { dni: '12345678' });
 
     const [, options] = (global.fetch as jest.Mock).mock.calls[0] as [string, RequestInit];

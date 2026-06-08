@@ -283,7 +283,7 @@ describe('VipGate — race condition: hydration antes de fetchLandingConfig', ()
   });
 });
 
-// ── Configs adicionales para tests de no-regresión lockertruck (T-2) ─────────
+// ── Configs adicionales para tests de no-regresión lockertruck ─────────
 
 const LOCKERTRUCK_CONFIG_NO_PASS = {
   layout: { has_catalog: true },
@@ -319,7 +319,7 @@ const CADE_CONFIG_WITH_TOKEN = {
  * VipGateIsolatedLockertruck: replica la guarda de lockertruck del VipGate real
  * para testear el bypass de sessionStorage sin montar el árbol completo.
  *
- * Refleja la lógica de C-1: si overlay_variant === 'lockertruck' y el flag
+ * Refleja la lógica del bypass: si overlay_variant === 'lockertruck' y el flag
  * anti-loop NO está seteado → status='blocked' (overlay renderiza).
  * Si el flag SÍ está seteado → status='allowed' (children visibles).
  */
@@ -346,7 +346,7 @@ function VipGateIsolatedLockertruck({
 
       const variant = cfg.features.overlay_variant || '';
 
-      // Replica la guarda de lockertruck (C-1)
+      // Replica la guarda de lockertruck
       if (variant === 'lockertruck') {
         if (sessionPassSet) {
           setStatus('allowed');
@@ -371,7 +371,7 @@ function VipGateIsolatedLockertruck({
   return <>{children}</>;
 }
 
-describe('VipGate — no-regresión bypass lockertruck (T-2)', () => {
+describe('VipGate — no-regresión bypass lockertruck', () => {
   it('Caso 1: overlay_variant=lockertruck sin flag sessionStorage → status=blocked (overlay renderiza)', async () => {
     mockFetchLandingConfig.mockResolvedValue(LOCKERTRUCK_CONFIG_NO_PASS);
 

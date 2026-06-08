@@ -1430,7 +1430,7 @@ export interface EvaluateResponse {
  * En caso de error de red o respuesta no-ok, relanza el error para que
  * la máquina de estados del gate lo capture y muestre el estado de error.
  *
- * NOTA: nunca loggear el valor del DNI (REQ-11).
+ * NOTA: nunca loggear el valor del DNI.
  */
 export async function evaluateLandingAccess(
   slug: string,

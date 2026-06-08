@@ -101,8 +101,6 @@ export function home(): string {
  * "/prototipos/0.6/locker-truck/catalogo".
  *
  * En prod (BASE_PATH === ''): devuelve la URL absoluta tal cual (passthrough).
- *
- * Decisión 5 del diseño locker-truck-gate.
  */
 export function normalizeCatalogUrl(absoluteUrl: string): string {
   if (BASE_PATH === '') {
