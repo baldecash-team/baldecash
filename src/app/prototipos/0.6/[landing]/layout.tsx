@@ -655,6 +655,51 @@ function setGatePass(slug: string): void {
   sessionStorage.setItem(`baldecash-gate-pass-${slug}`, '1');
 }
 
+// Caché del resultado de /evaluate por-slug (localStorage, ventana de 7 días).
+// A diferencia de gatePass (sessionStorage, por pestaña, y solo para acceso
+// normal), esto persiste el OUTCOME de la evaluación (status + destino) para que
+// un cliente que ya validó su DNI en este navegador no tenga que reingresarlo ni
+// re-evaluar Equifax al volver. Cubre todos los destinos (catálogo propio y
+// convenio), no solo el normal. Vencido el TTL, se vuelve a pedir DNI y evaluar.
+const LOCKERTRUCK_EVAL_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+interface LockertruckEvalCache {
+  status: string;
+  catalogUrl: string | null;
+  firstName: string | null;
+  ts: number;
+}
+
+function getEvalCacheKey(slug: string): string {
+  return `baldecash-lockertruck-eval-${slug}`;
+}
+
+function getEvalCache(slug: string): LockertruckEvalCache | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(getEvalCacheKey(slug));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LockertruckEvalCache;
+    if (!parsed || typeof parsed.ts !== 'number') return null;
+    if (Date.now() - parsed.ts >= LOCKERTRUCK_EVAL_TTL_MS) {
+      localStorage.removeItem(getEvalCacheKey(slug));
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function setEvalCache(slug: string, value: Omit<LockertruckEvalCache, 'ts'>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(getEvalCacheKey(slug), JSON.stringify({ ...value, ts: Date.now() }));
+  } catch {
+    // Silently fail
+  }
+}
+
 // ── Locker Truck: tipos de la máquina de estados ───────────────────────
 
 /**
@@ -696,17 +741,28 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
     // Camino vip_auto: guardar el token antes de correr /evaluate para que
     // appendVipToken lo encuentre disponible en las rutas protegidas posteriores.
     // El guard del backend acepta este token vía fallback landing_dni_whitelist.access_token.
+    // El ?vip_auto= tiene prioridad sobre el caché: un link fresco re-evalúa.
     if (token) {
       saveVipToken(landing, token);
+      return { state: 'd2-loading', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: token };
     }
-    return {
-      state: token ? 'd2-loading' : 'd1',
-      firstName: null,
-      catalogUrl: null,
-      errorMsg: null,
-      dni: '',
-      accessToken: token,
-    };
+    // Reingreso sin ?vip_auto=: si hay un resultado de evaluación cacheado y
+    // vigente (7 días), se salta el DNI y el /evaluate y se arranca directo en el
+    // estado de resultado. El cliente ya validó su DNI en este navegador y
+    // Equifax sigue cacheado en backend, así que re-pedirlo es justo lo que se
+    // quiere evitar. Solo aplica a outcomes con acceso (normal/no_normal).
+    const cached = getEvalCache(landing);
+    if (cached && (cached.status === 'normal' || cached.status === 'no_normal')) {
+      return {
+        state: cached.catalogUrl ? 'd2-result' : 'waiting',
+        firstName: cached.firstName,
+        catalogUrl: cached.catalogUrl,
+        errorMsg: null,
+        dni: '',
+        accessToken: null,
+      };
+    }
+    return { state: 'd1', firstName: null, catalogUrl: null, errorMsg: null, dni: '', accessToken: null };
   });
 
   // Ref-guard para evitar doble disparo en StrictMode
@@ -822,7 +878,14 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
           (resp.status === 'normal' || resp.status === 'no_normal') &&
           resp.catalog_url
         ) {
-          // Acceso normal o no_normal con catálogo → mostrar botón "Ver catálogo"
+          // Acceso normal o no_normal con catálogo → mostrar botón "Ver catálogo".
+          // Cacheamos el outcome (7 días) para no re-pedir DNI ni re-evaluar al
+          // reingresar a este navegador.
+          setEvalCache(landing, {
+            status: resp.status,
+            catalogUrl: resp.catalog_url,
+            firstName: resp.first_name ?? null,
+          });
           setCtx((prev) => ({
             ...prev,
             state: 'd2-result',
@@ -1379,6 +1442,26 @@ function VipGate({ landing, children }: { landing: string; children: React.React
           // El usuario ya pasó el gate en esta sesión → acceso directo
           setStatus('allowed');
           return;
+        }
+        // Reingreso dentro de la ventana de caché (7 días): si el outcome
+        // cacheado fue acceso normal a ESTA landing, se concede acceso directo
+        // al catálogo sin reabrir el overlay ni re-evaluar (equivalente
+        // persistente del gatePass). Los demás outcomes (convenio/espera) caen
+        // al overlay, que los rutea desde el caché sin re-pedir DNI.
+        // Se omite si llega ?vip_auto= en la URL: ese link fresco re-evalúa.
+        const hasVipAuto =
+          typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.search).has('vip_auto');
+        if (!hasVipAuto) {
+          const cachedEval = getEvalCache(landing);
+          if (
+            cachedEval?.status === 'normal' &&
+            cachedEval.catalogUrl &&
+            cachedEval.catalogUrl.includes(`/${landing}/catalogo`)
+          ) {
+            setStatus('allowed');
+            return;
+          }
         }
         setOverlayVariant(variant);
         setOverlayDeadline(overlayDl);
