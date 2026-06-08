@@ -139,7 +139,7 @@ function WizardPreviewContent() {
   }, [cartProducts, selectedProduct, setCartProducts, setSelectedProduct, router, fallbackRoute]);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [acceptPromos, setAcceptPromos] = useState(true);
+  const [acceptPromos, setAcceptPromos] = useState(false);
   const [isTermsHydrated, setIsTermsHydrated] = useState(false);
   const [termsError, setTermsError] = useState<string | null>(null);
   const [privacyError, setPrivacyError] = useState<string | null>(null);
@@ -345,9 +345,10 @@ function WizardPreviewContent() {
   // Content JSX (no es componente para evitar remount en cada render)
   const pageContent = (
     <div className="min-h-screen bg-neutral-50 relative">
-      {/* Navbar del Hero */}
+      {/* Navbar del Hero — para cupón de campaña: solo logo, no clickeable */}
       <Navbar
         landing={landing}
+        logoOnly={!!appliedCoupon?.lockedFromUrl}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
         logoClassName={navbarProps?.logoClassName}

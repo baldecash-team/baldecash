@@ -14,6 +14,8 @@ import {
 
 import { type GamerTheme, BADGE_COLORS } from './gamerTheme';
 import { RibbonLabel } from '../catalog/RibbonLabel';
+import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
+import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import type { CatalogProduct } from '../../types/catalog';
 
 interface GamerProductCardProps {
@@ -138,14 +140,22 @@ export function GamerProductCard({
             })}
           </div>
         )}
-        {/* Ribbon partner badges — bottom-left (40% from bottom) */}
-        {product.ribbonLabels && product.ribbonLabels.length > 0 && (
-          <div style={{ position: 'absolute', bottom: '25%', left: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
-            {product.ribbonLabels.map(r => (
-              <RibbonLabel key={r.code} ribbon={r} />
-            ))}
-          </div>
-        )}
+        {/* Badge NVIDIA derivado del spec GPU + ribbons de partners (no-NVIDIA) — bottom-left */}
+        {(() => {
+          const gpuModel = product.specs?.gpu?.model && String(product.specs.gpu.model) !== 'null' ? String(product.specs.gpu.model) : '';
+          const nvidiaFromSpec = gpuModel ? parseNvidiaModel(gpuModel) : null;
+          // Filtrar ribbons NVIDIA para no duplicar con el badge derivado del spec
+          const nonNvidiaRibbons = (product.ribbonLabels || []).filter(r => !(r.imageUrl && /nvidia/i.test(r.imageUrl)));
+          if (!nvidiaFromSpec && nonNvidiaRibbons.length === 0) return null;
+          return (
+            <div style={{ position: 'absolute', bottom: '25%', left: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>
+              {nvidiaFromSpec && <NvidiaBadge value={gpuModel} size="sm" isDark={isDark} />}
+              {nonNvidiaRibbons.map(r => (
+                <RibbonLabel key={r.code} ribbon={r} />
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Action buttons top-right */}
         <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', gap: 4, zIndex: 2 }}>

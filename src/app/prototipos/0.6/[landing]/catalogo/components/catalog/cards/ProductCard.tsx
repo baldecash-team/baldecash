@@ -57,6 +57,8 @@ const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { RibbonLabel } from '../RibbonLabel';
+import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
+import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 
@@ -437,14 +439,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 <ProductTags tags={product.tags} />
               </div>
             )}
-            {/* Ribbon partner badges — bottom-left (10% from bottom) */}
-            {product.ribbonLabels && product.ribbonLabels.length > 0 && (
-              <div className="absolute left-3 z-10 flex flex-col gap-1" style={{ bottom: '25%' }}>
-                {product.ribbonLabels.map(r => (
-                  <RibbonLabel key={r.code} ribbon={r} />
-                ))}
-              </div>
-            )}
+            {/* Badge NVIDIA derivado del spec GPU + ribbons de partners (no-NVIDIA) — bottom-left */}
+            {(() => {
+              const gpuModel = displaySpecs?.gpu?.model && String(displaySpecs.gpu.model) !== 'null' ? String(displaySpecs.gpu.model) : '';
+              const nvidiaFromSpec = gpuModel ? parseNvidiaModel(gpuModel) : null;
+              const nonNvidiaRibbons = (product.ribbonLabels || []).filter(r => !(r.imageUrl && /nvidia/i.test(r.imageUrl)));
+              if (!nvidiaFromSpec && nonNvidiaRibbons.length === 0) return null;
+              return (
+                <div className="absolute left-3 z-10 flex flex-col gap-1" style={{ bottom: '25%' }}>
+                  {nvidiaFromSpec && <NvidiaBadge value={gpuModel} size="sm" />}
+                  {nonNvidiaRibbons.map(r => (
+                    <RibbonLabel key={r.code} ribbon={r} />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Content - Centered */}

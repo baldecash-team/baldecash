@@ -75,14 +75,10 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
                   variant="bordered"
                   className="cursor-pointer transition-all"
                   classNames={{
-                    base: opt.logo && /nvidia/i.test(opt.logo ?? '') ? 'px-3 py-0 h-auto' : 'px-3 py-1 h-auto',
+                    base: 'px-3 py-1 h-auto',
                     content: 'text-xs font-medium flex items-center gap-1',
                   }}
-                  style={opt.logo && /nvidia/i.test(opt.logo) ? {
-                    backgroundColor: '#000',
-                    borderColor: isSelected ? '#76b900' : '#333',
-                    color: '#fff',
-                  } : isSelected ? {
+                  style={isSelected ? {
                     backgroundColor: opt.color,
                     color: '#fff',
                     borderColor: opt.color,
@@ -93,10 +89,7 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
                   }}
                   onClick={() => toggleTag(opt.value as ProductTagType)}
                 >
-                  {opt.logo && /nvidia/i.test(opt.logo) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <><img src="https://baldecash.s3.amazonaws.com/brands/nvidia-logo-black.png" alt="NVIDIA" style={{ height: 24, width: 'auto', objectFit: 'contain', display: 'inline-block' }} />{showCounts && ` (${opt.count})`}</>
-                  ) : opt.logo ? (
+                  {opt.logo ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <><img src={opt.logo.replace('-white.svg', '-green.svg')} alt={opt.label} style={{ height: 10, width: 'auto', objectFit: 'contain', display: 'inline-block' }} />{showCounts && ` (${opt.count})`}</>
                   ) : (

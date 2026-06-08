@@ -156,7 +156,7 @@ function SolicitarContent() {
   // ── Local UI state ──
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [acceptPromos, setAcceptPromos] = useState(true);
+  const [acceptPromos, setAcceptPromos] = useState(false);
   const [isTermsHydrated, setIsTermsHydrated] = useState(false);
   const [accFilter, setAccFilter] = useState<string>('Todos');
   const [accSearch, setAccSearch] = useState('');

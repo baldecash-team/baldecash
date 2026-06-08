@@ -672,28 +672,21 @@ export function GamerSidebar({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 4,
-                    padding: lbl.image_url && /nvidia/i.test(lbl.image_url) ? '0 12px' : '5px 12px',
+                    padding: '5px 12px',
                     borderRadius: 6,
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 0.3s',
-                    border: `1px solid ${lbl.image_url && /nvidia/i.test(lbl.image_url) ? (isActive ? '#76b900' : '#444') : (isActive ? T.neonCyan : chipBorder)}`,
+                    border: `1px solid ${isActive ? T.neonCyan : chipBorder}`,
                     letterSpacing: 0.3,
-                    background: lbl.image_url && /nvidia/i.test(lbl.image_url) ? '#000' : chipBg,
+                    background: chipBg,
                     color,
                     boxShadow: isActive ? `0 0 12px rgba(0,255,213,0.3)` : `0 0 6px ${chipShadow}`,
                     fontFamily: "'Rajdhani', sans-serif",
                   }}
                 >
-                  {lbl.image_url && /nvidia/i.test(lbl.image_url) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src="https://baldecash.s3.amazonaws.com/brands/nvidia-logo-black.png"
-                      alt="NVIDIA"
-                      style={{ height: 26, width: 'auto', objectFit: 'contain' }}
-                    />
-                  ) : lbl.image_url ? (
+                  {lbl.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={(isDark ? lbl.image_url : lbl.image_url.replace('-white.svg', '-green.svg'))}
@@ -701,7 +694,7 @@ export function GamerSidebar({
                       style={{ height: 11, width: 'auto', objectFit: 'contain' }}
                     />
                   ) : lbl.name}
-                  <span style={{ opacity: 0.7, fontSize: 10, fontFamily: "'Share Tech Mono', monospace", color: lbl.image_url && /nvidia/i.test(lbl.image_url) ? (isActive ? '#76b900' : '#fff') : 'inherit' }}>({lbl.count})</span>
+                  <span style={{ opacity: 0.7, fontSize: 10, fontFamily: "'Share Tech Mono', monospace" }}>({lbl.count})</span>
                 </span>
               );
             })}

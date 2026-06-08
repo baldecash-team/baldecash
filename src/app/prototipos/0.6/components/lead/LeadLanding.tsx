@@ -98,7 +98,11 @@ export const LeadLanding: React.FC<LeadLandingProps> = ({
 
   const handleProductCta = () => {
     if (getLeadId(landing) !== null) {
-      window.location.href = routes.catalogo(landing);
+      // Estudiante ya registrado: respetar la "URL de redirección tras el registro"
+      // configurada en el admin (misma que usa el formulario al enviarse). Si está
+      // vacía, fallback al catálogo de la landing.
+      const redirectUrl = leadFormConfig?.redirect_url?.trim();
+      window.location.href = redirectUrl || routes.catalogo(landing);
       return;
     }
     const isMobile = window.innerWidth < 1024;
