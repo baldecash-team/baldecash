@@ -810,10 +810,8 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
   }, [hookDni, ctx.state]);
 
   // Asset constants.
-  // BALDI_TRUCK: ilustración de Baldi del gate.
-  // TEMPORAL: servida desde public/ hasta que el equipo la suba a S3
-  // (mismo patrón que se usó antes para esta ilustración).
-  const BALDI_TRUCK = '/illustrations/baldi-lockertruck.png';
+  // BALDI_TRUCK: ilustración de Baldi del gate, servida desde S3.
+  const BALDI_TRUCK = 'https://baldecash.s3.amazonaws.com/illustrations/baldi-lockertruck-laptop.webp';
   // LOCKER_BG: fondo geométrico estático, servido desde S3.
   const LOCKER_BG = 'https://baldecash.s3.amazonaws.com/illustrations/locker-truck-bg.webp';
   // BALDECASH_LOGO: logo isotipo + wordmark, servido desde S3.
