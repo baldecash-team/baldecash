@@ -175,9 +175,6 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     prefilledRef.current = true;
   }, [prefillConfig, formData, updateField]);
 
-    prefilledRef.current = true;
-  }, [prefillConfig, formData, updateField]);
-
   // Handle clearing fields when no prefill data is available
   // Only clear if fields were previously auto-filled (not manually entered)
   const handleNoPrefillData = useCallback(() => {
