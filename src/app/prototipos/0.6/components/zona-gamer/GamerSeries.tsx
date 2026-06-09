@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ZONA_GAMER_ASSETS } from '@/app/prototipos/0.6/utils/assets';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
@@ -61,6 +61,19 @@ const SERIES = [
   },
 ];
 
+// Reveal con stagger a nivel de la fila: al entrar en viewport se animan TODAS las
+// tarjetas, incluidas las que están en overflow horizontal (Legion/Omen). Antes
+// cada tarjeta usaba whileInView por separado y las 2 fuera de pantalla quedaban
+// congeladas en opacity:0 porque nunca intersectaban el viewport.
+const containerReveal: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1 } },
+};
+const cardReveal: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } },
+};
+
 export function GamerSeries({ theme }: GamerSeriesProps) {
   const isDark = theme === 'dark';
   const tracker = useEventTrackerOptional();
@@ -119,18 +132,19 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
           </div>
 
           {/* Scroll horizontal: 4 visibles, 2 ocultas */}
-          <div
+          <motion.div
             ref={scrollRef}
             className="flex gap-4 mt-10 overflow-x-auto pb-2 scroll-smooth"
             style={{ scrollSnapType: 'x mandatory', scrollbarWidth: 'none' }}
+            variants={containerReveal}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
           >
-            {SERIES.map((s, i) => (
+            {SERIES.map((s) => (
               <motion.div
                 key={s.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: Math.min(i + 1, 4) * 0.1 }}
+                variants={cardReveal}
                 className="series-card relative rounded-2xl overflow-hidden border cursor-pointer group shrink-0"
                 style={{
                   width: 'clamp(160px, 42vw, calc(25% - 12px))',
@@ -183,7 +197,7 @@ export function GamerSeries({ theme }: GamerSeriesProps) {
                 </div>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 

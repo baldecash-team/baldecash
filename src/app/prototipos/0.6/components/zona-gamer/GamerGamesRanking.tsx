@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, X, Monitor } from 'lucide-react';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
+import { fetchCatalogData } from '@/app/prototipos/0.6/services/catalogApi';
+import type { CatalogProduct } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
 interface GamerGamesRankingProps {
   theme: 'dark' | 'light';
@@ -38,78 +40,131 @@ const GAME_ICONS = [
   <svg key="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 4l-4 4-4-4"/><path d="M10 8v12"/><path d="M6 14l4 4 4-4"/></svg>,
 ];
 
-// Imágenes reales del backend (CDN baldecash) — match por slug del producto.
-// Nota: usamos `.png` (full size) en vez de `_thumb.webp` porque los thumbs
-// aún no están abiertos públicamente (devuelven 403). Como son ~50KB no es problema.
-const LAPTOP_IMG: Record<string, string> = {
-  'loq-15iax9-8gb-512gb-lplegm0000934':
-    'https://baldecash.s3.amazonaws.com/images/productos/laptops/lenovo-loq-15iax9/frontal_sin_fondo.png',
-  'laptop-rog-g614fm-rv009w-lpasgm0001334':
-    'https://baldecash.s3.amazonaws.com/images/productos/laptops/asus-rog-g614fm/frontal_sin_fondo.png',
-  'laptop-omen-17-db1001la-lphpgm0001337':
-    'https://baldecash.s3.amazonaws.com/images/productos/laptops/hp-omen-17/frontal_sin_fondo.png',
-  'laptop-legion-5-pro-lplegm0001338':
-    'https://baldecash.s3.amazonaws.com/images/productos/laptops/lenovo-legion-5-pro/frontal_sin_fondo.png',
-  'laptop-omen-16-ap0001la-lphpgm0001339':
-    'https://baldecash.s3.amazonaws.com/images/productos/laptops/hp-omen-16/frontal_sin_fondo.png',
-  'laptop-gaming-victus-15-fb3019la-lphpme0001003':
-    'https://baldecash.s3.amazonaws.com/images/productos/laptops/hp-victus-fb3019la/frontal_sin_fondo.png',
-  'laptop-legion-7-lplegm0001340':
-    'https://baldecash.s3.amazonaws.com/images/productos/laptops/lenovo-legion-7/frontal_sin_fondo.png',
-  'lap-hp-victus-15-fb3013la':
-    'https://baldecash.s3.amazonaws.com/images/productos/laptops/hp-victus-15/frontal_sin_fondo.png',
-};
-
+// Metadata de los juegos (hardcoded). Las laptops YA NO viven aquí: se traen del
+// catálogo en runtime y se reparten con distributeProductsToGames (ver ALGORITHM.md).
 const GAMES = [
-  {
-    name: 'Valorant', genre: 'FPS Táctico', pct: 35, bar: 92, color: '#ff2d55', iconIdx: 0,
-    laptops: [
-      { n: 'HP Victus 15 fb3013la', s: 'Ryzen 7 · 16GB · 144Hz competitivo', p: 'S/383/mes', slug: 'lap-hp-victus-15-fb3013la', img: LAPTOP_IMG['lap-hp-victus-15-fb3013la'] },
-      { n: 'Legion 5 Pro', s: 'Core i9 · 32GB · QHD · máximos fps', p: 'S/705/mes', slug: 'laptop-legion-5-pro-lplegm0001338', img: LAPTOP_IMG['laptop-legion-5-pro-lplegm0001338'] },
-      { n: 'Victus 15-FB3019LA', s: 'Ryzen 7 · RTX 3050 · sobra para Valorant', p: 'S/330/mes', slug: 'laptop-gaming-victus-15-fb3019la-lphpme0001003', img: LAPTOP_IMG['laptop-gaming-victus-15-fb3019la-lphpme0001003'] },
-    ],
-  },
-  {
-    name: 'Counter-Strike 2', genre: 'FPS Competitivo', pct: 25, bar: 72, color: '#ff9500', iconIdx: 2,
-    laptops: [
-      { n: 'ROG G614FM', s: 'Ryzen 9 · 16GB · top tier para CS2', p: 'S/795/mes', slug: 'laptop-rog-g614fm-rv009w-lpasgm0001334', img: LAPTOP_IMG['laptop-rog-g614fm-rv009w-lpasgm0001334'] },
-      { n: 'OMEN 16', s: 'Ryzen 7 · 16GB · panel 2K', p: 'S/540/mes', slug: 'laptop-omen-16-ap0001la-lphpgm0001339', img: LAPTOP_IMG['laptop-omen-16-ap0001la-lphpgm0001339'] },
-      { n: 'HP Victus 15 fb3013la', s: 'Ryzen 7 · 144Hz · entry competitivo', p: 'S/383/mes', slug: 'lap-hp-victus-15-fb3013la', img: LAPTOP_IMG['lap-hp-victus-15-fb3013la'] },
-    ],
-  },
-  {
-    name: 'Dota 2', genre: 'MOBA', pct: 18, bar: 56, color: '#a855f7', iconIdx: 4,
-    laptops: [
-      { n: 'Legion 7', s: 'Core i9 · 32GB · OLED 2K · jugar y stream', p: 'S/848/mes', slug: 'laptop-legion-7-lplegm0001340', img: LAPTOP_IMG['laptop-legion-7-lplegm0001340'] },
-      { n: 'HP Victus 15 fb3013la', s: 'Ryzen 7 · 144Hz · ultra estable', p: 'S/383/mes', slug: 'lap-hp-victus-15-fb3013la', img: LAPTOP_IMG['lap-hp-victus-15-fb3013la'] },
-      { n: 'LOQ 15IAX9', s: 'Core i5 · entry-level · corre Dota fácil', p: 'S/270/mes', slug: 'loq-15iax9-8gb-512gb-lplegm0000934', img: LAPTOP_IMG['loq-15iax9-8gb-512gb-lplegm0000934'] },
-    ],
-  },
-  {
-    name: 'Fortnite', genre: 'Battle Royale', pct: 12, bar: 44, color: '#00ffd5', iconIdx: 3,
-    laptops: [
-      { n: 'Legion 5 Pro', s: 'Core i9 · 32GB · QHD · épico sin drops', p: 'S/705/mes', slug: 'laptop-legion-5-pro-lplegm0001338', img: LAPTOP_IMG['laptop-legion-5-pro-lplegm0001338'] },
-      { n: 'ROG G614FM', s: 'Ryzen 9 · 16GB · alternativa top', p: 'S/795/mes', slug: 'laptop-rog-g614fm-rv009w-lpasgm0001334', img: LAPTOP_IMG['laptop-rog-g614fm-rv009w-lpasgm0001334'] },
-      { n: 'OMEN 17', s: 'Ryzen 7 · 17.3" pantalla grande · inmersivo', p: 'S/667/mes', slug: 'laptop-omen-17-db1001la-lphpgm0001337', img: LAPTOP_IMG['laptop-omen-17-db1001la-lphpgm0001337'] },
-    ],
-  },
-  {
-    name: 'FC 25', genre: 'Deportes', pct: 10, bar: 38, color: '#34d399', iconIdx: 5,
-    laptops: [
-      { n: 'OMEN 17', s: 'Ryzen 7 · 17.3" · pantalla más grande del catálogo', p: 'S/667/mes', slug: 'laptop-omen-17-db1001la-lphpgm0001337', img: LAPTOP_IMG['laptop-omen-17-db1001la-lphpgm0001337'] },
-      { n: 'OMEN 16', s: 'Ryzen 7 · 16GB · panel 2K para gráficos', p: 'S/540/mes', slug: 'laptop-omen-16-ap0001la-lphpgm0001339', img: LAPTOP_IMG['laptop-omen-16-ap0001la-lphpgm0001339'] },
-      { n: 'HP Victus 15 fb3013la', s: 'Ryzen 7 · 144Hz · fluido en menús', p: 'S/383/mes', slug: 'lap-hp-victus-15-fb3013la', img: LAPTOP_IMG['lap-hp-victus-15-fb3013la'] },
-    ],
-  },
+  { name: 'Valorant', genre: 'FPS Táctico', pct: 35, bar: 92, color: '#ff2d55', iconIdx: 0 },
+  { name: 'Counter-Strike 2', genre: 'FPS Competitivo', pct: 25, bar: 72, color: '#ff9500', iconIdx: 2 },
+  { name: 'Dota 2', genre: 'MOBA', pct: 18, bar: 56, color: '#a855f7', iconIdx: 4 },
+  { name: 'Fortnite', genre: 'Battle Royale', pct: 12, bar: 44, color: '#00ffd5', iconIdx: 3 },
+  { name: 'FC 25', genre: 'Deportes', pct: 10, bar: 38, color: '#34d399', iconIdx: 5 },
 ];
 
-const RANK_COLORS = ['#ff8800', '#94a3b8', '#cd7f32'];
+// Orden de los juegos para el round-robin (debe coincidir con GAMES).
+const GAME_NAMES = GAMES.map((g) => g.name);
+const MIN_PER_GAME = 3; // objetivo por juego cuando hay menos productos que juegos
+const MAX_PER_GAME = 6; // tope visible por juego
+// Slug del que se traen los productos. Cambiar a 'nvidia' cuando tenga catálogo propio.
+const SOURCE_SLUG = 'zona-gamer';
+
+/** GPU como string: rawSpecs.gpu (string crudo) con fallback a specs.gpu.model. */
+function gpuStringOf(p: CatalogProduct): string {
+  const raw = p.rawSpecs?.gpu;
+  if (typeof raw === 'string' && raw) return raw;
+  return p.specs?.gpu?.model || '';
+}
+
+/** Rank por modelo RTX/GTX para ordenar por potencia (5060 > 5050 > 4050 > 3050). */
+function getGpuRank(gpu: string): number {
+  const m = gpu.match(/(?:RTX|GTX)\s*(\d{3,4})/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+/** Texto de specs corto desde el producto: "RTX 4050 · 16GB · 512GB SSD". */
+function buildSpecsText(p: CatalogProduct): string {
+  const gpu = gpuStringOf(p).replace(/NVIDIA\s+GeForce™?\s*/i, '').trim();
+  const ram = p.specs?.ram?.size;
+  const storage = p.specs?.storage?.size;
+  const storageType = p.specs?.storage?.type;
+  const parts = [
+    gpu,
+    ram ? `${ram}GB` : '',
+    storage ? `${storage}GB ${(storageType || 'SSD').toUpperCase()}` : '',
+  ];
+  return parts.filter(Boolean).join(' · ');
+}
+
+/** Convierte un producto del catálogo al shape interno de Laptop del modal. */
+function toLaptop(p: CatalogProduct): Laptop {
+  return {
+    n: p.displayName,
+    s: buildSpecsText(p),
+    p: `S/${p.quotaMonthly}/mes`,
+    slug: p.slug,
+    img: (p.images && p.images.length > 0 ? p.images[0] : p.thumbnail) || '',
+  };
+}
+
+/**
+ * Reparte los productos del catálogo entre los 5 juegos de forma balanceada y
+ * determinística (round-robin sobre el catálogo ordenado por potencia). Ver
+ * ALGORITHM.md. Retorna null si no hay productos (la sección se oculta).
+ */
+function distributeProductsToGames(products: CatalogProduct[]): Record<string, Laptop[]> | null {
+  const n = products.length;
+  const ng = GAME_NAMES.length;
+
+  // Sin productos -> ocultar sección.
+  if (n === 0) return null;
+
+  // Ordenar por potencia (GPU desc, RAM desc, cuota asc, slug). Determinístico.
+  const sorted = [...products].sort((a, b) => {
+    const gpuDiff = getGpuRank(gpuStringOf(b)) - getGpuRank(gpuStringOf(a));
+    if (gpuDiff !== 0) return gpuDiff;
+    const ramDiff = (b.specs?.ram?.size || 0) - (a.specs?.ram?.size || 0);
+    if (ramDiff !== 0) return ramDiff;
+    const priceDiff = (a.quotaMonthly || 0) - (b.quotaMonthly || 0);
+    if (priceDiff !== 0) return priceDiff;
+    return a.slug.localeCompare(b.slug);
+  });
+
+  const assigned: Record<string, Laptop[]> = {};
+  GAME_NAMES.forEach((g) => { assigned[g] = []; });
+
+  if (n >= ng) {
+    // Caso normal: round-robin SIN repetición, respetando MAX_PER_GAME.
+    let i = 0;
+    for (const product of sorted) {
+      let attempts = 0;
+      while (assigned[GAME_NAMES[i % ng]].length >= MAX_PER_GAME && attempts < ng) {
+        i++;
+        attempts++;
+      }
+      if (attempts >= ng) break; // todos al máximo, parar
+      assigned[GAME_NAMES[i % ng]].push(toLaptop(product));
+      i++;
+    }
+  } else {
+    // Caso extremo: menos productos que juegos -> repetir para no dejar ninguno vacío.
+    let idx = 0;
+    for (let round = 0; round < MIN_PER_GAME; round++) {
+      for (const game of GAME_NAMES) {
+        assigned[game].push(toLaptop(sorted[idx % n]));
+        idx++;
+      }
+    }
+  }
+
+  return assigned;
+}
 
 export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
   const isDark = theme === 'dark';
   const router = useRouter();
   const tracker = useEventTrackerOptional();
   const [selectedGame, setSelectedGame] = useState<number | null>(null);
+  // undefined = cargando · null = catálogo vacío (ocultar) · objeto = listo
+  const [productsByGame, setProductsByGame] = useState<Record<string, Laptop[]> | null | undefined>(undefined);
+
+  useEffect(() => {
+    let alive = true;
+    fetchCatalogData(SOURCE_SLUG, { limit: 200 }).then((data) => {
+      if (!alive) return;
+      setProductsByGame(distributeProductsToGames(data?.products ?? []));
+    });
+    return () => { alive = false; };
+  }, []);
+
   const neonCyan = isDark ? '#00ffd5' : '#00897a';
   const neonPurple = isDark ? '#00ffd5' : '#4f46e5';
   const textMuted = isDark ? '#707070' : '#888';
@@ -132,13 +187,20 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
     document.body.style.overflow = '';
   }, []);
 
+  // Sin productos en el catálogo -> ocultar la sección completa.
+  if (productsByGame === null) return null;
+
+  const isLoading = productsByGame === undefined;
   const game = selectedGame !== null ? GAMES[selectedGame] : null;
+  const gameLaptops = game && productsByGame ? (productsByGame[game.name] || []) : [];
 
   return (
     <>
       <style>{`
         .gamer-game-row { grid-template-columns: 36px 36px 1fr 40px 16px; }
         @media (min-width: 640px) { .gamer-game-row { grid-template-columns: 60px 52px 1fr 1fr 60px 28px; } }
+        @keyframes gamerSkelPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.85; } }
+        .gamer-skel-block { background: ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}; border-radius: 6px; animation: gamerSkelPulse 1.4s ease-in-out infinite; }
       `}</style>
       <hr className="border-none h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(99,102,241,0.15), transparent)' }} />
 
@@ -181,7 +243,22 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
 
           {/* Games list */}
           <div className="flex flex-col">
-            {GAMES.map((g, i) => (
+            {isLoading ? (
+              GAMES.map((g, i) => (
+                <div
+                  key={`skel-${g.name}`}
+                  className="gamer-game-row grid items-center gap-2 sm:gap-3.5 py-4 sm:py-5 px-3 sm:px-6 relative"
+                  style={{ borderBottom: `1px solid ${border}`, borderTop: i === 0 ? `1px solid ${border}` : 'none' }}
+                >
+                  <div className="gamer-skel-block" style={{ width: 20, height: 16 }} />
+                  <div className="gamer-skel-block w-[32px] h-[32px] sm:w-[42px] sm:h-[42px] !rounded-[10px]" />
+                  <div className="gamer-skel-block" style={{ width: '55%', height: 14 }} />
+                  <div className="gamer-skel-block hidden sm:block" style={{ width: '100%', height: 6 }} />
+                  <div className="gamer-skel-block justify-self-end" style={{ width: 28, height: 12 }} />
+                  <div />
+                </div>
+              ))
+            ) : GAMES.map((g, i) => (
               <motion.div
                 key={g.name}
                 initial={{ opacity: 0, y: 15 }}
@@ -359,7 +436,7 @@ export function GamerGamesRanking({ theme }: GamerGamesRankingProps) {
 
               {/* Laptops list */}
               <div className="flex flex-col gap-2.5">
-                {game.laptops.map((l: Laptop, i: number) => (
+                {gameLaptops.map((l: Laptop, i: number) => (
                   <div
                     key={i}
                     className="flex items-center gap-3.5 p-3.5 rounded-xl border transition-all cursor-pointer"
