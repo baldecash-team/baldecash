@@ -96,6 +96,8 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     // Set prefill status FIRST so visibility evaluates before cleanup runs
     updateField(`_prefill_status_${field.code}`, 'found');
 
+    let hasAnyInvalidNames = false;
+
     if (prefillConfig?.prefill_fields) {
       // Legacy mode: Record<target, source | source[]> from form builder.
       // Array values concatenate multiple API fields into one target (e.g.
@@ -113,6 +115,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
           const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(apiSource);
           const isValid = !isNameField || isValidName(strVal);
 
+          if (isNameField && !isValid) {
+            hasAnyInvalidNames = true;
+          }
+
           updateField(formFieldCode, isValid ? strVal : '');
           updateField(`_prefill_empty_${formFieldCode}`, isValid && strVal ? '' : 'true');
         }
@@ -125,6 +131,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         // Validate name fields: reject "-" and strings < 3 chars
         const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(formFieldCode);
         const isValid = !isNameField || isValidName(strVal);
+
+        if (isNameField && !isValid) {
+          hasAnyInvalidNames = true;
+        }
 
         updateField(formFieldCode, isValid ? strVal : '');
         updateField(`_prefill_empty_${formFieldCode}`, isValid && strVal ? '' : 'true');
@@ -147,6 +157,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
             const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(code);
             const isValid = !isNameField || isValidName(strVal);
 
+            if (isNameField && !isValid) {
+              hasAnyInvalidNames = true;
+            }
+
             updateField(code, isValid ? strVal : '');
             // Mark whether this field received a null/empty value from the API
             updateField(`_prefill_empty_${code}`, isValid && strVal ? '' : 'true');
@@ -154,6 +168,10 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
           }
         }
       }
+    }
+
+    if (hasAnyInvalidNames) {
+      updateField(`_prefill_status_${field.code}`, 'not_found');
     }
 
     prefilledRef.current = true;
