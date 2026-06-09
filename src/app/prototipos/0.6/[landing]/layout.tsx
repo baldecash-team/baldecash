@@ -49,6 +49,12 @@ const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.baldecash.com/api/v1';
 
+// Mensaje del caso "DNI validado pero sin registro" (fuera de whitelist, sin
+// sibling ni register_url). Se extrae a constante para que el gate de
+// locker-truck pueda distinguir este caso del de error de conexión y mostrar
+// el botón "Ver catálogo" solo aquí.
+const DNI_NOT_FOUND_MSG = 'No encontramos un registro con este número de documento.';
+
 interface SiblingMatch {
   slug: string;
   name: string;
@@ -93,7 +99,7 @@ function useDniValidation(landing: string, onValidated: () => void) {
         } else if (data.found_in_sibling === false && data.register_url !== undefined) {
           setShowRegister(true);
         } else {
-          setErrorMsg('No encontramos un registro con este número de documento.');
+          setErrorMsg(DNI_NOT_FOUND_MSG);
         }
         setSubmitting(false);
         return;
@@ -1281,6 +1287,21 @@ function LockertruckOverlayGate({ landing, onValidated: _onValidated }: { landin
                         </>
                       )}
                     </button>
+                  )}
+
+                  {/* Ver catálogo — solo cuando el DNI no está en la whitelist
+                      (mensaje "no encontrado"). Lleva al catálogo público /home;
+                      no se reenvía el cupón de campaña (eso es exclusivo del
+                      redirect del gate en handleViewCatalog). */}
+                  {dniErrorMsg === DNI_NOT_FOUND_MSG && (
+                    <a
+                      href={routes.catalogo('home')}
+                      className="w-full py-3.5 rounded-xl text-base font-semibold border-2 bg-white transition-all duration-200 hover:shadow-md active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+                      style={{ borderColor: LOCKER_TEAL, color: LOCKER_TEAL }}
+                    >
+                      Ver catálogo
+                      <ArrowRight className="w-5 h-5" strokeWidth={2} />
+                    </a>
                   )}
                 </div>
               )}
