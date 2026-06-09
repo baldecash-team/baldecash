@@ -93,10 +93,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
 
   // Handle prefill when data is received
   const handlePrefillReady = useCallback((data: PrefillData) => {
-    // Set prefill status FIRST so visibility evaluates before cleanup runs
-    updateField(`_prefill_status_${field.code}`, 'found');
-
-    let hasAnyInvalidNames = false;
+    let hasInvalidNames = false;
 
     if (prefillConfig?.prefill_fields) {
       // Legacy mode: Record<target, source | source[]> from form builder.
@@ -104,19 +101,26 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       // supporter_full_name = first_name + paternal_surname + maternal_surname).
       for (const [formFieldCode, apiSource] of Object.entries(prefillConfig.prefill_fields)) {
         if (Array.isArray(apiSource)) {
-          const parts = apiSource.map(key => data[key as keyof PrefillData]).filter(Boolean);
+          const parts = apiSource.map(key => {
+            const val = data[key as keyof PrefillData];
+            const str = val ? String(val) : '';
+            // Check if any source is an invalid name
+            if (['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(key) && !isValidName(str)) {
+              hasInvalidNames = true;
+            }
+            return str;
+          }).filter(Boolean);
           const joined = parts.join(' ');
           updateField(formFieldCode, joined);
           updateField(`_prefill_empty_${formFieldCode}`, joined ? '' : 'true');
         } else {
           const val = data[apiSource as keyof PrefillData];
           const strVal = val ? String(val) : '';
-          // Validate name fields: reject "-" and strings < 3 chars
           const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(apiSource);
           const isValid = !isNameField || isValidName(strVal);
 
           if (isNameField && !isValid) {
-            hasAnyInvalidNames = true;
+            hasInvalidNames = true;
           }
 
           updateField(formFieldCode, isValid ? strVal : '');
@@ -128,12 +132,11 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       for (const formFieldCode of prefillConfig.fields_to_fill) {
         const value = data[formFieldCode as keyof PrefillData];
         const strVal = value ? String(value) : '';
-        // Validate name fields: reject "-" and strings < 3 chars
         const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(formFieldCode);
         const isValid = !isNameField || isValidName(strVal);
 
         if (isNameField && !isValid) {
-          hasAnyInvalidNames = true;
+          hasInvalidNames = true;
         }
 
         updateField(formFieldCode, isValid ? strVal : '');
@@ -153,16 +156,14 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         for (const code of possibleCodes) {
           if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
             const strVal = prefillValue ? String(prefillValue) : '';
-            // Validate name fields: reject "-" and strings < 3 chars
             const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(code);
             const isValid = !isNameField || isValidName(strVal);
 
             if (isNameField && !isValid) {
-              hasAnyInvalidNames = true;
+              hasInvalidNames = true;
             }
 
             updateField(code, isValid ? strVal : '');
-            // Mark whether this field received a null/empty value from the API
             updateField(`_prefill_empty_${code}`, isValid && strVal ? '' : 'true');
             break;
           }
@@ -170,9 +171,9 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
       }
     }
 
-    if (hasAnyInvalidNames) {
-      updateField(`_prefill_status_${field.code}`, 'not_found');
-    }
+    updateField(`_prefill_status_${field.code}`, hasInvalidNames ? 'not_found' : 'found');
+    prefilledRef.current = true;
+  }, [prefillConfig, formData, updateField]);
 
     prefilledRef.current = true;
   }, [prefillConfig, formData, updateField]);
