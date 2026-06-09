@@ -16,6 +16,7 @@ import { CreditCard, Check, AlertCircle, ShieldX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
 import { useSessionOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/SessionContext';
+import { clearLockertruckGate } from '@/app/prototipos/0.6/utils/lockertruckGate';
 
 const DOC_MIN_LENGTH = 8;
 const DOC_MAX_LENGTH = 12;
@@ -129,6 +130,11 @@ export function clearVipData(slug: string): void {
     localStorage.removeItem(getVipNameKey(slug));
     localStorage.removeItem(getVipWelcomePendingKey(slug));
   } catch {}
+  // Limpiar también el estado del gate de locker-truck (eval cache + gate pass).
+  // El gate no se apoya en el token VIP, así que sin esto seguiría admitiendo al
+  // usuario sin token y la API respondería 403 → handleVip403 recarga en loop.
+  // Para landings no-locker-truck estas keys no existen → removeItem es no-op.
+  clearLockertruckGate(slug);
 }
 
 const API_BASE_URL =
