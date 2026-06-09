@@ -171,6 +171,13 @@ const comparatorConfig: ComparatorConfig = {
   defaultInitial: 10,
 };
 
+// Landings (landing_id de prod) donde NO se muestra la UI de cupón de referido
+// (banner de campaña + navbar simplificado). El cupón se sigue validando y
+// aplicando con normalidad: los precios de la vitrina mantienen el descuento y
+// el checkout también. Hardcodeado por ahora; se evaluará una configuración
+// escalable más adelante.
+const LANDINGS_SIN_BANNER_CUPON: number[] = [138, 140, 167, 174];
+
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
@@ -225,8 +232,16 @@ function CatalogoContent() {
 
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, landingId } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
+
+  // UI de referido (banner de campaña + navbar simplificado): visible solo si el
+  // cupón vino del ?coupon= (lockedFromUrl) y la landing actual no está excluida.
+  // En las landings excluidas el catálogo se ve normal (navbar completo, sin
+  // banner) PERO el descuento del cupón se mantiene en la vitrina y el checkout,
+  // porque `campaignCoupon` sigue llegando a las ProductCard.
+  const showCouponUi =
+    !!campaignCoupon && !LANDINGS_SIN_BANNER_CUPON.includes(landingId ?? -1);
 
   // Preview mode support
   const preview = usePreview();
@@ -1579,7 +1594,7 @@ function CatalogoContent() {
       <Navbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
-        logoOnly={!!campaignCoupon}
+        logoOnly={showCouponUi}
         landing={landing}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
@@ -1595,7 +1610,7 @@ function CatalogoContent() {
       />
 
       {/* Secondary Navbar with Search, Wishlist, Cart — oculta para usuarios con cupón */}
-      {!campaignCoupon && (
+      {!showCouponUi && (
       <CatalogSecondaryNavbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
@@ -1656,7 +1671,7 @@ function CatalogoContent() {
           + main navbar + secondary navbar). */}
       <main
         style={{
-          paddingTop: campaignCoupon
+          paddingTop: showCouponUi
             ? 'var(--header-total-height, 4rem)'
             : 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}
@@ -1685,7 +1700,7 @@ function CatalogoContent() {
         catalogBanner={catalogBanner}
         vipCountdownDate={vipCountdownDate}
         overlayVariant={overlayVariant}
-        campaignCoupon={campaignCoupon}
+        campaignCoupon={showCouponUi ? campaignCoupon : null}
         isCampaignCouponValidating={isCampaignCouponValidating}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
