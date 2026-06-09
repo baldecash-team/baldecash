@@ -17,6 +17,13 @@ import { useLayout } from '../../../../context/LayoutContext';
 import { TextInput } from './TextInput';
 import { PrefillData } from '../../../../../services/applicationApi';
 
+// Validate that a name is not "-" and has at least 3 characters
+const isValidName = (value: string): boolean => {
+  if (!value) return false;
+  const trimmed = value.trim();
+  return trimmed !== "-" && trimmed.length >= 3;
+};
+
 function getSavedDni(slug: string): string | null {
   try {
     return localStorage.getItem(`baldecash-dni-${slug}`);
@@ -101,16 +108,26 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
           updateField(`_prefill_empty_${formFieldCode}`, joined ? '' : 'true');
         } else {
           const val = data[apiSource as keyof PrefillData];
-          updateField(formFieldCode, val ? String(val) : '');
-          updateField(`_prefill_empty_${formFieldCode}`, val ? '' : 'true');
+          const strVal = val ? String(val) : '';
+          // Validate name fields: reject "-" and strings < 3 chars
+          const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(apiSource);
+          const isValid = !isNameField || isValidName(strVal);
+
+          updateField(formFieldCode, isValid ? strVal : '');
+          updateField(`_prefill_empty_${formFieldCode}`, isValid && strVal ? '' : 'true');
         }
       }
     } else if (prefillConfig?.fields_to_fill) {
       // New mode: identity mapping — each entry is both target and response key.
       for (const formFieldCode of prefillConfig.fields_to_fill) {
         const value = data[formFieldCode as keyof PrefillData];
-        updateField(formFieldCode, value ? String(value) : '');
-        updateField(`_prefill_empty_${formFieldCode}`, value ? '' : 'true');
+        const strVal = value ? String(value) : '';
+        // Validate name fields: reject "-" and strings < 3 chars
+        const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(formFieldCode);
+        const isValid = !isNameField || isValidName(strVal);
+
+        updateField(formFieldCode, isValid ? strVal : '');
+        updateField(`_prefill_empty_${formFieldCode}`, isValid && strVal ? '' : 'true');
       }
     } else {
       // Legacy mode: use DEFAULT_PREFILL_MAP for backward compatibility
@@ -125,13 +142,14 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
         // Find a matching field code in the form
         for (const code of possibleCodes) {
           if (formFieldCodes.includes(code) || code === possibleCodes[0]) {
-            if (prefillValue) {
-              updateField(code, String(prefillValue));
-            } else {
-              updateField(code, '');
-            }
+            const strVal = prefillValue ? String(prefillValue) : '';
+            // Validate name fields: reject "-" and strings < 3 chars
+            const isNameField = ['first_name', 'nombres', 'primer_nombre', 'paternal_surname', 'apellido_paterno', 'maternal_surname', 'apellido_materno'].includes(code);
+            const isValid = !isNameField || isValidName(strVal);
+
+            updateField(code, isValid ? strVal : '');
             // Mark whether this field received a null/empty value from the API
-            updateField(`_prefill_empty_${code}`, prefillValue ? '' : 'true');
+            updateField(`_prefill_empty_${code}`, isValid && strVal ? '' : 'true');
             break;
           }
         }
@@ -191,7 +209,7 @@ export const DocumentNumberField: React.FC<DocumentNumberFieldProps> = ({
     const cleanValue = value?.trim() || '';
 
     // Check based on document type
-    if (documentType === 'dni' && cleanValue.length === 8 && /^\d+$/.test(cleanValue)) {
+    if (documentType === 'dni' && cleanValue.length >= 8 && /^\d+$/.test(cleanValue)) {
       check(documentType, cleanValue);
     } else if (documentType === 'ce' && cleanValue.length >= 9) {
       check(documentType, cleanValue);
