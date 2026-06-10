@@ -46,6 +46,7 @@ import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 import { CartLimitModal } from './components/catalog/CartLimitModal';
+import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
 // Empty state
 import { EmptyState } from './components/empty';
@@ -628,6 +629,7 @@ function CatalogoContent() {
       initialAmount: variantInfo?.initialAmount ?? 0,
       image: product.images[0] || product.thumbnail,
       type: product.deviceType,
+      condition: product.conditionCode || product.condition,
       variantId: variantInfo?.variantId || product.variantId,
       colorName: variantInfo?.colorName,
       colorHex: variantInfo?.colorHex,
@@ -861,6 +863,8 @@ function CatalogoContent() {
   const [isBlipChatOpen, setIsBlipChatOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [selectedVariantForCart, setSelectedVariantForCart] = useState<CartItem | null>(null);  // v0.6.1: Store selected variant
+  // Reacondicionado: aviso de confirmación al dar "Lo quiero" en un card reacondicionado
+  const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
@@ -1420,6 +1424,41 @@ function CatalogoContent() {
     return null;
   }, [catalogProducts]);
 
+  // "Lo quiero" del card: dispara analítica y navega/abre el modal de carrito.
+  // Extraído del handler inline para poder diferirlo tras el aviso de reacondicionado.
+  const proceedAddToCart = useCallback((cartItem: CartItem, product: CatalogProduct) => {
+    // Fire filter snapshot before the user leaves or opens the modal
+    const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);
+    analytics.trackFilterSnapshot({
+      ...snap,
+      results_shown: totalProducts,
+      trigger: 'lo_quiero',
+    });
+
+    // Track Lo quiero click from catalog card
+    analytics.track('product_cta_click', {
+      product_id: cartItem.productId,
+      product_name: cartItem.name,
+      brand: cartItem.brand,
+      months: cartItem.months,
+      monthly_quota: Math.floor(cartItem.monthlyPayment),
+      initial_percent: cartItem.initialPercent,
+      location: 'catalog_card',
+    });
+
+    if (!ALLOW_MULTI_PRODUCT) {
+      // Single-product mode: go directly to solicitar
+      const target = findProductOrSibling(cartItem.productId) || product;
+      selectProductForWizard(target, cartItem);
+      router.push(getWizardUrl(landing));
+      return;
+    }
+    // Multi-product mode: open cart selection modal
+    setSelectedVariantForCart(cartItem);
+    const target = findProductOrSibling(cartItem.productId) || product;
+    handleOpenCartModal(target);
+  }, [filters, totalProducts, analytics, findProductOrSibling, selectProductForWizard, router, landing, handleOpenCartModal]);
+
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
     // Si tiene deviceType definido, usarlo. Si no, asumir 'laptop' (productos generados)
@@ -1732,37 +1771,14 @@ function CatalogoContent() {
                 hideColors
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
+                conditions={apiFilters?.conditions}
                 onAddToCart={(cartItem: CartItem) => {
-                  // Fire filter snapshot before the user leaves or opens the modal
-                  const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);
-                  analytics.trackFilterSnapshot({
-                    ...snap,
-                    results_shown: totalProducts,
-                    trigger: 'lo_quiero',
-                  });
-
-                  // Track Lo quiero click from catalog card
-                  analytics.track('product_cta_click', {
-                    product_id: cartItem.productId,
-                    product_name: cartItem.name,
-                    brand: cartItem.brand,
-                    months: cartItem.months,
-                    monthly_quota: Math.floor(cartItem.monthlyPayment),
-                    initial_percent: cartItem.initialPercent,
-                    location: 'catalog_card',
-                  });
-
-                  if (!ALLOW_MULTI_PRODUCT) {
-                    // Single-product mode: go directly to solicitar
-                    const target = findProductOrSibling(cartItem.productId) || product;
-                    selectProductForWizard(target, cartItem);
-                    router.push(getWizardUrl(landing));
+                  // Reacondicionado: confirmar aviso antes de continuar
+                  if (isRefurbishedCondition(product.conditionCode || product.condition)) {
+                    setPendingRefurb({ cartItem, product });
                     return;
                   }
-                  // Multi-product mode: open cart selection modal
-                  setSelectedVariantForCart(cartItem);
-                  const target = findProductOrSibling(cartItem.productId) || product;
-                  handleOpenCartModal(target);
+                  proceedAddToCart(cartItem, product);
                 }}
                 onFavorite={(wishlistItem: WishlistItem) => {
                   // v0.6.1: Pass full WishlistItem to store variant/color info
@@ -2361,6 +2377,16 @@ function CatalogoContent() {
           totalMonthlyQuota={totalMonthlyQuota}
         />
       )}
+
+      {/* Aviso de reacondicionado al dar "Lo quiero" en un card */}
+      <RefurbishedWarningModal
+        isOpen={!!pendingRefurb}
+        onClose={() => setPendingRefurb(null)}
+        onConfirm={() => {
+          if (pendingRefurb) proceedAddToCart(pendingRefurb.cartItem, pendingRefurb.product);
+        }}
+        productName={pendingRefurb?.product.displayName}
+      />
 
       {/* Toast para alertas de comparación */}
       {toast && (

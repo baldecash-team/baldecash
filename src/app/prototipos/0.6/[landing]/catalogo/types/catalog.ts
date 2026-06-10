@@ -700,6 +700,8 @@ export interface CatalogProduct {
   variantId?: string;
   gama: GamaTier;
   condition: ProductCondition;
+  /** Código de condición crudo del API ('nueva' | 'reacondicionada' | 'open_box'). Conserva el valor sin normalizar para el badge de condición y el match contra el facet. */
+  conditionCode?: string;
   stock: StockStatus;
   stockQuantity: number;
   usage: UsageType[];

@@ -58,6 +58,8 @@ export interface SelectedProduct {
   initialAmount: number;   // Calculated initial payment amount
   image: string;
   type?: string;           // Product type: "celular", "laptop", "tablet", etc. Used for accessory compatibility
+  /** Condición del equipo: 'nueva' | 'reacondicionada' | 'open_box'. Para el aviso de reacondicionado. */
+  condition?: string;
   specs?: {
     processor?: string;
     ram?: string;

@@ -632,6 +632,7 @@ export function mapApiProductToCatalogProduct(apiProduct: ApiCatalogProduct): Ca
     variantId: apiProduct.variant?.id != null ? String(apiProduct.variant.id) : undefined,
     gama: inferGamaTier(pricing.final_price),
     condition: mapCondition(apiProduct.condition),
+    conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
     stock: 'available' as StockStatus, // Default - not in API response
     stockQuantity: 10, // Default - not in API response
     usage: inferUsage(apiProduct.type, apiProduct.name),
@@ -1089,6 +1090,7 @@ export function mapDirectApiProductToCatalogProduct(apiProduct: DirectApiProduct
     maxTermMonths: 24,
     gama: inferGamaTier(price),
     condition: mapCondition(apiProduct.condition || 'nuevo'),
+    conditionCode: apiProduct.condition ? apiProduct.condition.toLowerCase() : undefined,
     stock: apiProduct.stock_available > 0 ? 'available' as StockStatus : 'out_of_stock' as StockStatus,
     stockQuantity: apiProduct.stock_available,
     usage: inferUsage(apiProduct.type || 'laptop', apiProduct.name),

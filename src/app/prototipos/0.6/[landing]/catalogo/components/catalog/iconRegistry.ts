@@ -17,6 +17,11 @@ import {
   Briefcase,
   Code,
   Package,
+  PackageOpen,
+  Box,
+  BadgeCheck,
+  Recycle,
+  Sparkles,
   CheckCircle2,
   LucideIcon,
 } from 'lucide-react';
@@ -64,6 +69,28 @@ export const conditionIconMap: Record<string, LucideIcon> = {
 };
 
 export const defaultConditionIcon: LucideIcon = Package;
+
+// ============================================
+// CONDITION FACET ICONS (badge en la card)
+// Keyed by the Lucide icon NAME sent in the conditions[] facet (e.g. "recycle"),
+// not by the condition code. Lets negocio cambiar el icono sin tocar el FE.
+// ============================================
+export const conditionFacetIconMap: Record<string, LucideIcon> = {
+  recycle: Recycle,
+  package: Package,
+  packageopen: PackageOpen,
+  box: Box,
+  badgecheck: BadgeCheck,
+  checkcircle: CheckCircle2,
+  checkcircle2: CheckCircle2,
+  sparkles: Sparkles,
+};
+
+export const defaultConditionFacetIcon: LucideIcon = Recycle;
+
+/** Normaliza el nombre de icono del facet a la clave de `conditionFacetIconMap`. */
+export const normalizeConditionIconKey = (iconName?: string | null): string =>
+  iconName ? iconName.toLowerCase().replace(/[\s_-]+/g, '') : '';
 
 // ============================================
 // HELPER FUNCTIONS
