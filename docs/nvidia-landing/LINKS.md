@@ -21,9 +21,41 @@ const PRODUCTS_LANDING = 'zona-gamer';
 
 ---
 
+## Anatomía de un link
+
+Un link de navegación se compone de 3 partes:
+
+```
+/prototipos/0.6  /  zona-gamer  /  producto/laptop-victus-15-fa2029la
+└─────┬───────┘    └────┬─────┘    └──────────────┬──────────────────┘
+   PREFIJO            SLANDING               RUTA + slug producto
+ (del .env)        (constante)
+```
+
+| Parte | De dónde sale | Quién la maneja |
+|---|---|---|
+| **Prefijo** (`/prototipos/0.6` en local, `''` en prod) | Variable `NEXT_PUBLIC_APP_BASE_PATH` del `.env` | ✅ El helper `routes` lo lee solo |
+| **Slug de landing** (`zona-gamer`) | Constante `PRODUCTS_LANDING` en el componente | ⚠️ Lo pasas tú |
+| **Ruta + slug producto** (`producto/{slug}`) | El helper + `product.slug` del API | ✅ El helper lo arma |
+
+**Conclusión:** si usas el helper `routes`, solo te preocupas por **2 cosas**: el slug de la landing (`PRODUCTS_LANDING`) y el `slug` del producto (viene del API). El prefijo local/prod lo resuelve el `.env` automáticamente — **nunca lo escribas a mano**.
+
+---
+
 ## Usar el helper `routes` (no construir URLs a mano)
 
-Existe un builder centralizado en `utils/routes.ts` que ya maneja el prefijo `/prototipos/0.6` (o el que aplique en producción). **Siempre usar estos helpers** en vez de concatenar strings.
+Existe un builder centralizado en `utils/routes.ts`. Internamente lee el prefijo del `.env`:
+
+```typescript
+// utils/routes.ts (referencia — ya existe, no tocar)
+export const BASE_PATH = process.env.NEXT_PUBLIC_APP_BASE_PATH ?? '/prototipos/0.6';
+
+export function producto(landing, slug, query?) {
+  return `${BASE_PATH}/${landing}/producto/${slug}`;  // arma el link completo
+}
+```
+
+Por eso **siempre usar estos helpers** en vez de concatenar strings:
 
 ```typescript
 import { routes } from '@/app/prototipos/0.6/utils/routes';
