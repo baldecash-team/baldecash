@@ -5,4 +5,5 @@
 export const LANDING_IDS = {
   MACBOOK_NEO: 150,
   ZONA_GAMER: 136,
+  NVIDIA: 168,
 } as const;

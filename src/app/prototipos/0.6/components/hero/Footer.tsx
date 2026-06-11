@@ -43,9 +43,11 @@ interface FooterProps {
   landing?: string;
   agreementData?: AgreementData | null;
   onCatalogClick?: () => void;
+  /** Optional logo URL that overrides the company logo (e.g. a co-branded partner lockup). */
+  logoOverride?: string;
 }
 
-export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, onCatalogClick }) => {
+export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreementData, onCatalogClick, logoOverride }) => {
   const tracker = useEventTrackerOptional();
   const heroUrl = routes.landingHome(landing || 'home');
 
@@ -119,7 +121,7 @@ export const Footer: React.FC<FooterProps> = ({ data, landing = 'home', agreemen
 
   // Logo URL from company - use white version for dark footer background
   const DEFAULT_LOGO_WHITE = 'https://baldecash.s3.amazonaws.com/company/logo.svg';
-  const logoUrl = data?.company?.logo_white_url || DEFAULT_LOGO_WHITE;
+  const logoUrl = logoOverride || data?.company?.logo_white_url || DEFAULT_LOGO_WHITE;
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
