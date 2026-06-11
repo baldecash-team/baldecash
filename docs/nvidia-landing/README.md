@@ -10,12 +10,13 @@ Contexto para implementar la landing especial de NVIDIA, encargada a Silvana.
 | [PERFORMANCE.md](./PERFORMANCE.md) | 12 reglas de rendimiento validadas en MacBook Neo y Zona Gamer (LazySection, lazy imports, imágenes, videos, scroll, fonts, etc.) |
 | [GPU_SECTION.md](./GPU_SECTION.md) | Sección "La laptop ideal para cada GeForce RTX" — endpoint, agrupación por GPU, imágenes de chips |
 | [ASSETS.md](./ASSETS.md) | Diccionario de todos los assets en S3 (GPUs, laptops, software, fondos, videos) con sus URLs |
+| [LINKS.md](./LINKS.md) | Cómo construir los links de los botones (catálogo y detalle de producto) con el helper `routes` |
 
 ## Resumen rápido
 
 - **Patrón:** igual a MacBook Neo — solo el HOME es especializado, el resto usa componentes genéricos
 - **Landing ID:** `168` (slug `nvidia`)
-- **Sin catálogo:** preset `catalog-off` ya configurado en BD
+- **Catálogo:** habilitado (el preset `catalog-off` fue eliminado). Por ahora los links de catálogo/detalle apuntan a `zona-gamer` — ver `LINKS.md`
 - **Rama:** `feature/nvidia-landing` — sin PR ni merge a main
 - **Sección de GPUs:** consume `/public/landing/zona-gamer/products?limit=200` (cambiar a `nvidia` cuando tenga productos)
 - **Assets:** todos en S3 bajo `https://baldecash.s3.amazonaws.com/images/nvidia/` (ver `ASSETS.md`)

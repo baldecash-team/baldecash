@@ -19,8 +19,9 @@ Implementar la landing de producto NVIDIA siguiendo el mismo patrón arquitectó
 **Presets activos:**
 | Preset | Efecto |
 |---|---|
-| `catalog-off` | `layout.has_catalog = false` — sin catálogo |
 | `floating-cta-on` | CTA flotante de Balde-up ya configurado |
+
+> El catálogo está **habilitado** (el preset `catalog-off` fue eliminado). Los links de catálogo/detalle apuntan por ahora a `zona-gamer` — ver [LINKS.md](./LINKS.md).
 
 ---
 
@@ -107,7 +108,7 @@ src/app/prototipos/0.6/[[...slug]]/LandingPageClient.tsx
 ```
 
 ### No tocar
-Catálogo está **desactivado** via preset en BD. Si alguien navega a `/nvidia/catalogo` es redirigido al home automáticamente.
+Catálogo, producto y solicitar son genéricos — funcionan automáticamente. El catálogo está **habilitado**. Por ahora los botones de catálogo/detalle apuntan a `zona-gamer` (ver [LINKS.md](./LINKS.md)) porque nvidia aún no tiene productos propios.
 
 ---
 
