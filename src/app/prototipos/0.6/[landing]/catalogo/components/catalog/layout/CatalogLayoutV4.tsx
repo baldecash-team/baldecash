@@ -5,6 +5,7 @@ import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import { Button, Card, CardBody, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter } from '@nextui-org/react';
 import { Trash2, ChevronDown, Settings2, SlidersHorizontal, Filter, Laptop, Tablet, Smartphone, Headphones, Check, Search, Tag } from 'lucide-react';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
+import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 import { motion } from 'framer-motion';
 import { CatalogLayoutProps, CatalogDeviceType, ProductTagType } from '../../../types/catalog';
 import type { CatalogFiltersResponse } from '../../../../../types/filters';
@@ -131,7 +132,7 @@ export const CatalogLayoutV4: React.FC<CatalogLayoutProps> = ({
       if (apiFilters.conditions && apiFilters.conditions.length > 0) {
         return apiFilters.conditions.map(c => ({
           value: c.value,
-          label: c.label,
+          label: conditionDisplayLabel(c.value, c.label),
           count: c.count || 0,
         }));
       }

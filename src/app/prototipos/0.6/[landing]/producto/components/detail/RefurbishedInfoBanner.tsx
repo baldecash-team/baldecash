@@ -37,7 +37,7 @@ export const RefurbishedInfoBanner: React.FC = () => {
     <div className="bg-gradient-to-r from-amber-50 to-amber-50/40 border border-amber-200 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <Recycle className="w-5 h-5 text-amber-600" />
-        <span className="font-semibold text-neutral-800">Producto reacondicionado</span>
+        <span className="font-semibold text-neutral-800">Producto semi nuevo</span>
       </div>
       <p className="text-sm text-neutral-600 mb-3">
         Equipo revisado y restaurado a su funcionamiento óptimo. Funciona como nuevo,

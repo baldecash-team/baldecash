@@ -57,14 +57,14 @@ export const RefurbishedAcceptanceModal: React.FC<RefurbishedAcceptanceModalProp
             </div>
             <div>
               <h2 className="text-lg font-bold text-neutral-800">Confirma tu solicitud</h2>
-              <p className="text-sm text-amber-600 font-medium">Equipo reacondicionado</p>
+              <p className="text-sm text-amber-600 font-medium">Equipo semi nuevo</p>
             </div>
           </div>
 
           <p className="text-sm text-neutral-600 mb-4">
             Estás por solicitar {productName ? (
               <span className="font-semibold text-neutral-800">{productName}</span>
-            ) : 'un equipo'}, que es un <span className="font-semibold">equipo reacondicionado</span>:
+            ) : 'un equipo'}, que es un <span className="font-semibold">equipo semi nuevo</span>:
             revisado y reparado por técnicos certificados, con garantía y posibles señales
             mínimas de uso.
           </p>
@@ -89,7 +89,7 @@ export const RefurbishedAcceptanceModal: React.FC<RefurbishedAcceptanceModalProp
               {accepted && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
             </span>
             <span className="text-sm text-neutral-700">
-              Entiendo y acepto que el equipo es reacondicionado y estoy de acuerdo en continuar
+              Entiendo y acepto que el equipo es semi nuevo y estoy de acuerdo en continuar
               con mi solicitud.
             </span>
           </button>

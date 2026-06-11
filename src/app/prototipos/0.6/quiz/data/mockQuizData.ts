@@ -165,10 +165,10 @@ export const quizQuestionsUsage: QuizQuestion[] = [
   },
   {
     id: 'laptop_condition',
-    question: '¿Equipo nuevo o reacondicionado?',
+    question: '¿Equipo nuevo o semi nuevo?',
     options: [
       { id: 'new', label: 'Solo nuevo', icon: 'Sparkles', weight: { condition: 'new' } },
-      { id: 'refurbished', label: 'Reacondicionado está bien', icon: 'Recycle', description: 'Ahorra hasta 40%', weight: { condition: 'any' } },
+      { id: 'refurbished', label: 'Semi nuevo está bien', icon: 'Recycle', description: 'Ahorra hasta 40%', weight: { condition: 'any' } },
     ],
     type: 'single',
   },

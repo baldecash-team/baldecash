@@ -2,9 +2,9 @@
 
 /**
  * RefurbishedWarningModal — Aviso de confirmación al dar "Lo quiero" sobre un
- * equipo reacondicionado. Informa al usuario (revisado, garantía, menor precio,
- * posibles señales de uso) y le pide confirmar antes de continuar al flujo de
- * solicitud.
+ * equipo semi nuevo (reacondicionado en BD). Informa al usuario (revisado,
+ * garantía, menor precio, posibles señales de uso) y le pide confirmar antes de
+ * continuar al flujo de solicitud.
  *
  * Compartido entre el card del catálogo y el detalle del producto.
  */
@@ -13,11 +13,8 @@ import React from 'react';
 import { Modal, ModalContent, ModalBody, Button } from '@nextui-org/react';
 import { Recycle, ShieldCheck, Tag, Sparkles } from 'lucide-react';
 
-/** ¿El código de condición corresponde a un reacondicionado? */
-export function isRefurbishedCondition(condition?: string | null): boolean {
-  const c = condition?.toLowerCase().trim();
-  return !!c && (c.includes('reacondicion') || c === 'refurbished');
-}
+// Re-export por compatibilidad: el helper vive ahora en utils/condition.
+export { isRefurbishedCondition } from '@/app/prototipos/0.6/utils/condition';
 
 interface RefurbishedWarningModalProps {
   isOpen: boolean;
@@ -64,7 +61,7 @@ export const RefurbishedWarningModal: React.FC<RefurbishedWarningModalProps> = (
               <Recycle className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-neutral-800">Este es un equipo reacondicionado</h2>
+              <h2 className="text-lg font-bold text-neutral-800">Este es un equipo semi nuevo</h2>
               <p className="text-sm text-amber-600 font-medium">Confirma antes de continuar</p>
             </div>
           </div>
@@ -72,9 +69,9 @@ export const RefurbishedWarningModal: React.FC<RefurbishedWarningModalProps> = (
           {/* Intro */}
           <p className="text-sm text-neutral-600 mb-4">
             {productName ? (
-              <><span className="font-semibold text-neutral-800">{productName}</span> es un equipo reacondicionado. </>
+              <><span className="font-semibold text-neutral-800">{productName}</span> es un equipo semi nuevo. </>
             ) : (
-              <>El equipo que elegiste es reacondicionado. </>
+              <>El equipo que elegiste es semi nuevo. </>
             )}
             Esto significa:
           </p>

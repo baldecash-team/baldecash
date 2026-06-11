@@ -15,7 +15,7 @@
 
 import React from 'react';
 import type { ConditionFilter } from '../../../../types/filters';
-import { conditionFacetIconMap, defaultConditionFacetIcon, normalizeConditionIconKey } from './iconRegistry';
+import { conditionDisplayLabel } from '@/app/prototipos/0.6/utils/condition';
 
 // Códigos tratados como "nuevo" → no se pinta badge.
 const NEW_CONDITION_CODES = new Set(['nueva', 'nuevo', 'new']);
@@ -43,17 +43,16 @@ export const ConditionBadge: React.FC<ConditionBadgeProps> = ({ conditionCode, c
 
   const facet = conditions?.find((c) => c.value?.toLowerCase() === code);
 
-  const label = facet?.label || `${code!.charAt(0).toUpperCase()}${code!.slice(1).replace(/_/g, ' ')}`;
+  // Para reacondicionados se muestra "Semi nuevo"; el resto usa el label del facet.
+  const label = conditionDisplayLabel(code, facet?.label);
   const color = facet?.color || FALLBACK_COLOR;
-  // Acceso por índice (no llamada) para no disparar react-hooks/static-components.
-  const Icon = conditionFacetIconMap[normalizeConditionIconKey(facet?.icon)] || defaultConditionFacetIcon;
 
+  // Sin ícono: solo texto. Los íconos flotantes son cosa del banner de promoción.
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md shadow-sm"
+      className="inline-flex items-center px-2 py-0.5 rounded-md shadow-sm"
       style={{ backgroundColor: color, color: '#ffffff' }}
     >
-      <Icon className="w-3 h-3 shrink-0" strokeWidth={2.5} />
       <span className="text-[10px] font-bold leading-none">{label}</span>
     </span>
   );

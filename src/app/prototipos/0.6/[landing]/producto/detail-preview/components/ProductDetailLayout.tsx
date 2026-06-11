@@ -54,7 +54,7 @@ export const ProductDetailLayout: React.FC<ProductDetailLayoutProps> = ({
                     ? 'bg-green-50 text-green-700'
                     : 'bg-amber-50 text-amber-700'
                 }`}>
-                  {condition === 'nuevo' || condition === 'nueva' ? 'Nuevo' : 'Reacondicionado'}
+                  {condition === 'nuevo' || condition === 'nueva' ? 'Nuevo' : 'Semi nuevo'}
                 </span>
               )}
               {stockAvailable !== undefined && stockAvailable > 0 && stockAvailable <= 5 && (
