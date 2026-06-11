@@ -984,7 +984,7 @@ function GamerCatalogoContent() {
           term: item.term ?? item.months,
           paymentFrequency: item.paymentFrequency,
           initialPercent: item.initialPercent,
-          initialAmount: Math.round((item.price * item.initialPercent) / 100),
+          initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,
           type: product?.deviceType || 'laptop',
           specs: product?.specs ? {
