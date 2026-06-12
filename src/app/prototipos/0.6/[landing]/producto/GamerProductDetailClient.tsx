@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import Image from 'next/image';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { Award, Calculator, Calendar, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Loader2, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, CircleAlert } from 'lucide-react';
+import { Award, Calculator, Calendar, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, Eye, FileText, Headphones, Heart, ImageIcon, Info, Laptop, Loader2, Maximize2, Minus, Network, Package, Percent, Play, Plus, Puzzle, Scale, Star, TrendingUp, Usb, X, Zap, Cpu, MemoryStick, HardDrive, Monitor, Wifi, Battery, ShieldCheck, CircleAlert, Keyboard, Camera, Music, Settings, Volume2, Fingerprint } from 'lucide-react';
 import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import { useCatalogSharedState } from '@/app/prototipos/0.6/[landing]/catalogo/hooks/useCatalogSharedState';
 import { ProductProvider, useProduct } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
@@ -62,16 +62,39 @@ function gamerTheme(isDark: boolean) {
 
 type Theme = ReturnType<typeof gamerTheme>;
 
-// Spec icon mapping
+// Spec icon mapping — claves en minúsculas; deben cubrir TODOS los nombres de
+// grupo que envía el backend (GROUP_NAMES en detail.py) para que cada categoría
+// tenga su propio ícono y no caiga al fallback. Se incluyen variantes con/sin
+// tilde y alias EN por robustez ante cambios de naming.
 const SPEC_ICONS: Record<string, React.ReactNode> = {
-  procesador: <Cpu size={20} />, processor: <Cpu size={20} />,
-  memoria: <MemoryStick size={20} />, ram: <MemoryStick size={20} />,
+  // Rendimiento / CPU / GPU
+  rendimiento: <Cpu size={20} />, procesador: <Cpu size={20} />, processor: <Cpu size={20} />, performance: <Cpu size={20} />,
+  gpu: <Zap size={20} />, 'tarjeta gráfica': <Zap size={20} />, 'tarjeta grafica': <Zap size={20} />,
+  // Memoria / Almacenamiento
+  memoria: <MemoryStick size={20} />, ram: <MemoryStick size={20} />, memory: <MemoryStick size={20} />,
   almacenamiento: <HardDrive size={20} />, storage: <HardDrive size={20} />,
+  // Pantalla
   pantalla: <Monitor size={20} />, display: <Monitor size={20} />,
-  gpu: <Zap size={20} />, 'tarjeta gráfica': <Zap size={20} />,
+  // Cámara
+  cámara: <Camera size={20} />, camara: <Camera size={20} />, camera: <Camera size={20} />,
+  // Conectividad
   conectividad: <Wifi size={20} />, connectivity: <Wifi size={20} />,
-  batería: <Battery size={20} />, battery: <Battery size={20} />,
-  garantía: <ShieldCheck size={20} />, warranty: <ShieldCheck size={20} />,
+  // Batería
+  batería: <Battery size={20} />, bateria: <Battery size={20} />, battery: <Battery size={20} />,
+  // Teclado
+  teclado: <Keyboard size={20} />, keyboard: <Keyboard size={20} />,
+  // Seguridad
+  seguridad: <Fingerprint size={20} />, security: <Fingerprint size={20} />,
+  // Características Físicas
+  'características físicas': <Scale size={20} />, 'caracteristicas fisicas': <Scale size={20} />, physical: <Scale size={20} />,
+  // Software
+  software: <Settings size={20} />,
+  // Audio / Multimedia
+  audio: <Volume2 size={20} />, multimedia: <Music size={20} />,
+  // Comercial
+  comercial: <Package size={20} />, commercial: <Package size={20} />,
+  // Garantía (badge legacy)
+  garantía: <ShieldCheck size={20} />, garantia: <ShieldCheck size={20} />, warranty: <ShieldCheck size={20} />,
 };
 
 const FONTS_CSS = `@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;500;600;700&family=Bebas+Neue&display=swap');`;
@@ -3050,7 +3073,7 @@ function SimilarProductsSection({
 // ============================================
 
 function SpecCard({ spec, isDark = false }: { spec: ProductSpec; isDark?: boolean }) {
-  const icon = SPEC_ICONS[spec.category.toLowerCase()] || <Cpu size={20} />;
+  const icon = SPEC_ICONS[spec.category.trim().toLowerCase()] || <Info size={20} />;
   return (
     <div className="spec-card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
