@@ -2,7 +2,7 @@
 
 /**
  * #catalogo — "La laptop ideal para cada GeForce RTX".
- * Sección DINÁMICA: trae productos de la API (zona-gamer por ahora) y los
+ * Sección DINÁMICA: trae productos de la API (landing nvidia, catálogo propio) y los
  * agrupa por modelo de GPU. Ver GPU_SECTION.md.
  */
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
@@ -13,8 +13,9 @@ import { changeTab } from './viewTransition';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import type { CatalogProduct } from '@/app/prototipos/0.6/[landing]/catalogo/types/catalog';
 
-// Slug del que se traen los productos. Cambiar a 'nvidia' cuando tenga catálogo propio.
-const SOURCE_SLUG = 'zona-gamer';
+// Slug del catálogo y de las rutas. nvidia ya tiene catálogo propio (mismos productos
+// y slugs que zona-gamer); los "Lo quiero" apuntan a /nvidia/producto/{slug}.
+const SOURCE_SLUG = 'nvidia';
 
 const fmt = (n: number) => 'S/ ' + new Intl.NumberFormat('es-PE').format(n);
 
