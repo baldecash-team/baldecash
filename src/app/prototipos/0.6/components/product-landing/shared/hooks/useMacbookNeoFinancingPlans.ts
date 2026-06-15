@@ -73,6 +73,7 @@ function siblingToColorOption(sib: ApiColorSibling): V5PlanColorOption {
     hex: sib.color_hex,
     productUrl: `/macbook-neo/producto/${sib.slug}/`,
     image: COLOR_IMAGES[colorKey] ?? sib.image_url ?? undefined,
+    monthlyPrice: sib.pricing.hook?.monthly_price,
   };
 }
 

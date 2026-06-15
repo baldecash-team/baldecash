@@ -138,6 +138,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             const rawUrl = selectedColorOption?.productUrl ?? plan.colorOptions?.[0]?.productUrl ?? '#';
             const ctaUrl = rawUrl.startsWith('/') ? `${BASE_PATH}${rawUrl}` : rawUrl;
             const displayImage = selectedColorOption?.image ?? plan.imagen;
+            const displayPrice = selectedColorOption?.monthlyPrice ?? plan.cuotaMensual;
 
             return (
               <div
@@ -260,7 +261,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
                         textShadow: isCombo ? `0 0 20px ${accent}4D` : undefined,
                       }}
                     >
-                      S/{plan.cuotaMensual}
+                      S/{displayPrice}
                     </span>
                     <span className="text-sm text-[#86868b] ml-1">/mes</span>
                   </p>

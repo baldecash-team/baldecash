@@ -49,6 +49,7 @@ export interface V5PlanColorOption {
   hex: string;
   productUrl: string;
   image?: string;
+  monthlyPrice?: number;
 }
 
 // Financing plans
