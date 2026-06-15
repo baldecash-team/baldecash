@@ -56,14 +56,23 @@ function resolvePlanId(item: ApiCatalogProduct): string | null {
   return null;
 }
 
+// Imágenes hardcodeadas por color (fuente de verdad para la sección financing)
+const COLOR_IMAGES: Record<string, string> = {
+  silver: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-sola.jpg',
+  indigo: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-sola.jpg',
+  blush:  'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-sola.jpg',
+  citrus: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-citrus-sola.jpg',
+};
+
 // Convierte un color_sibling en V5PlanColorOption
 function siblingToColorOption(sib: ApiColorSibling): V5PlanColorOption {
+  const colorKey = sib.color.toLowerCase();
   return {
-    id: sib.color.toLowerCase(),
+    id: colorKey,
     label: sib.color,
     hex: sib.color_hex,
     productUrl: `/macbook-neo/producto/${sib.slug}/`,
-    image: sib.image_url ?? undefined,
+    image: COLOR_IMAGES[colorKey] ?? sib.image_url ?? undefined,
   };
 }
 
