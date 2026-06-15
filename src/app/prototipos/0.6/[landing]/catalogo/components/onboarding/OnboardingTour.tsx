@@ -336,7 +336,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 
           {/* Tooltip Card */}
           <motion.div
-            className="fixed z-[10000] bg-white rounded-2xl shadow-2xl border border-neutral-200 p-5 pointer-events-auto"
+            className="fixed z-[10000] bg-[var(--surface,#fff)] rounded-2xl shadow-2xl border border-[var(--border-soft,#e5e7eb)] p-5 pointer-events-auto"
             style={{
               ...tooltipStyle,
               width: isMobile ? 'calc(100vw - 32px)' : 320,
@@ -350,9 +350,9 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
             {/* Skip button */}
             <button
               onClick={onSkipTracked}
-              className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
+              className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-[var(--surface-2,#f3f4f6)] transition-colors cursor-pointer"
             >
-              <X className="w-4 h-4 text-neutral-400" />
+              <X className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
             </button>
 
             {/* Step indicator - hidden in help only mode */}
@@ -365,10 +365,10 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
             )}
 
             {/* Content */}
-            <h3 className="text-lg font-bold text-neutral-800 mb-2 pr-6">
+            <h3 className="text-lg font-bold text-[var(--text-strong,#1f2937)] mb-2 pr-6">
               {currentStep.title}
             </h3>
-            <p className="text-sm text-neutral-600 mb-5">
+            <p className="text-sm text-[var(--text-muted,#4b5563)] mb-5">
               {currentStep.description}
             </p>
 
@@ -383,7 +383,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
                         ? 'w-6 bg-[var(--color-primary)]'
                         : idx < currentStepIndex
                           ? 'w-1.5 bg-[rgba(var(--color-primary-rgb),0.5)]'
-                          : 'w-1.5 bg-neutral-200'
+                          : 'w-1.5 bg-[var(--surface-2,#e5e7eb)]'
                     }`}
                   />
                 ))}
@@ -420,7 +420,7 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
             {!isHelpOnlyMode && (
               <button
                 onClick={onSkipTracked}
-                className="w-full text-center text-xs text-neutral-400 hover:text-neutral-600 mt-3 cursor-pointer"
+                className="w-full text-center text-xs text-[var(--text-faint,#9ca3af)] hover:text-[var(--text-muted,#4b5563)] mt-3 cursor-pointer"
               >
                 Saltar tour
               </button>

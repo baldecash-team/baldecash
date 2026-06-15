@@ -16,7 +16,7 @@ interface ReceivedScreenProps {
 
 export const ReceivedScreen: React.FC<ReceivedScreenProps> = ({ data, onGoToHome, overlayVariant }) => {
   return (
-    <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-white to-neutral-50">
+    <div className="bg-gradient-to-b from-[var(--color-primary)]/5 via-[var(--surface-bg,#ffffff)] to-[var(--surface-bg,#fafafa)]">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
         <Illustration overlayVariant={overlayVariant} />
         <ReceivedMessage data={data} overlayVariant={overlayVariant} />

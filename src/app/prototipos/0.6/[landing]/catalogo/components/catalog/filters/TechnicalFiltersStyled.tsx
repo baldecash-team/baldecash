@@ -125,7 +125,7 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
   const showAdvanced = showFilters === 'all' || showFilters === 'advanced';
 
   return (
-    <div className="space-y-0 bg-white">
+    <div className="space-y-0 bg-[var(--surface,#fff)]">
       {/* Main Filters: Usage & Condition */}
       {showMain && usageOptions.length > 1 && onUsageChange && (
         <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>
@@ -133,18 +133,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {usageOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedUsage.includes(opt.value as UsageType)}
                   onValueChange={() => toggleArrayValue(selectedUsage, opt.value as UsageType, onUsageChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -157,18 +157,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {conditionOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedCondition.includes(opt.value as ProductCondition)}
                   onValueChange={() => toggleArrayValue(selectedCondition, opt.value as ProductCondition, onConditionChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -182,18 +182,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {gpuOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedGpuType.includes(opt.value)}
                   onValueChange={() => toggleArrayValue(selectedGpuType, opt.value, onGpuTypeChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -205,18 +205,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {ramOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedRam.includes(parseInt(opt.value))}
                   onValueChange={() => toggleArrayValue(selectedRam, parseInt(opt.value), onRamChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -229,18 +229,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {storageOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedStorage.includes(parseInt(opt.value))}
                   onValueChange={() => toggleArrayValue(selectedStorage, parseInt(opt.value), onStorageChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -253,18 +253,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {displaySizeOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedDisplaySize.includes(parseFloat(opt.value))}
                   onValueChange={() => toggleArrayValue(selectedDisplaySize, parseFloat(opt.value), onDisplaySizeChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -277,18 +277,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {resolutionOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedResolution.includes(opt.value as Resolution)}
                   onValueChange={() => toggleArrayValue(selectedResolution, opt.value as Resolution, onResolutionChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -301,18 +301,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {displayTypeOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedDisplayType.includes(opt.value as DisplayType)}
                   onValueChange={() => toggleArrayValue(selectedDisplayType, opt.value as DisplayType, onDisplayTypeChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label.toUpperCase()} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label.toUpperCase()} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -325,18 +325,18 @@ const TechnicalFiltersV1: React.FC<TechnicalFiltersStyledProps> = ({
             {processorOptions.map((opt) => (
               <label
                 key={opt.value}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50 cursor-pointer"
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer"
               >
                 <Checkbox
                   isSelected={selectedProcessor.includes(opt.value as ProcessorModel)}
                   onValueChange={() => toggleArrayValue(selectedProcessor, opt.value as ProcessorModel, onProcessorChange)}
                   classNames={{
                     base: 'cursor-pointer',
-                    wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)]',
+                    wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)]',
                     icon: 'text-white',
                   }}
                 />
-                <span className="text-sm text-neutral-700 flex-1">{opt.label} ({opt.count})</span>
+                <span className="text-sm text-[var(--text,#374151)] flex-1">{opt.label} ({opt.count})</span>
               </label>
             ))}
           </div>
@@ -358,7 +358,7 @@ const ChipFilterContent: React.FC<{
   parseValue: (v: string) => any;
   showCounts: boolean;
 }> = ({ options, selected, onToggle, parseValue, showCounts }) => (
-  <div className="flex flex-wrap gap-2 bg-white">
+  <div className="flex flex-wrap gap-2 bg-[var(--surface,#fff)]">
     {options.map((opt) => {
       const value = parseValue(opt.value);
       const isSelected = selected.includes(value);
@@ -371,7 +371,7 @@ const ChipFilterContent: React.FC<{
           className={`cursor-pointer transition-all duration-200 ${
             isSelected
               ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] shadow-sm'
-              : 'bg-white text-neutral-600 border-neutral-200 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+              : 'bg-[var(--surface,#fff)] text-[var(--text-muted,#4b5563)] border-[var(--border-soft,#e5e7eb)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
           }`}
           classNames={{
             base: 'px-3 py-1.5 h-auto',
@@ -421,7 +421,7 @@ const TechnicalFiltersV2: React.FC<TechnicalFiltersStyledProps> = ({
   const showAdvanced = showFilters === 'all' || showFilters === 'advanced';
 
   return (
-    <div className="space-y-0 bg-white">
+    <div className="space-y-0 bg-[var(--surface,#fff)]">
       {/* Main Filters */}
       {showMain && usageOptions.length > 1 && onUsageChange && (
         <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>
@@ -543,7 +543,7 @@ const IconCardFilterWithMappingContent: React.FC<{
   columns: number;
   showCounts: boolean;
 }> = ({ iconMap, defaultIcon, options, selected, onToggle, parseValue, columns, showCounts }) => (
-  <div className={`grid gap-2 bg-white ${columns === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+  <div className={`grid gap-2 bg-[var(--surface,#fff)] ${columns === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
     {options.map((opt) => {
       const value = parseValue(opt.value);
       const isSelected = selected.includes(value);
@@ -555,7 +555,7 @@ const IconCardFilterWithMappingContent: React.FC<{
           className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
             isSelected
               ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)] shadow-sm'
-              : 'bg-white border-neutral-200 hover:border-[var(--color-primary)]/50 hover:bg-neutral-50'
+              : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)] hover:border-[var(--color-primary)]/50 hover:bg-[var(--surface-bg,#fafafa)]'
           }`}
         >
           {isSelected && (
@@ -563,11 +563,11 @@ const IconCardFilterWithMappingContent: React.FC<{
               <CheckCircle2 className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
           )}
-          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'}`} />
-          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-700'}`}>
+          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-faint,#9ca3af)]'}`} />
+          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text,#374151)]'}`}>
             {opt.label}
           </span>
-          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[var(--color-primary)]/70' : 'text-neutral-400'}`}>
+          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[var(--color-primary)]/70' : 'text-[var(--text-faint,#9ca3af)]'}`}>
             {opt.count} equipos
           </span>
         </button>
@@ -585,7 +585,7 @@ const IconCardFilterContent: React.FC<{
   columns: number;
   showCounts: boolean;
 }> = ({ icon: Icon, options, selected, onToggle, parseValue, columns, showCounts }) => (
-  <div className={`grid gap-2 bg-white ${columns === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+  <div className={`grid gap-2 bg-[var(--surface,#fff)] ${columns === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
     {options.map((opt) => {
       const value = parseValue(opt.value);
       const isSelected = selected.includes(value);
@@ -596,7 +596,7 @@ const IconCardFilterContent: React.FC<{
           className={`relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 cursor-pointer ${
             isSelected
               ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)] shadow-sm'
-              : 'bg-white border-neutral-200 hover:border-[var(--color-primary)]/50 hover:bg-neutral-50'
+              : 'bg-[var(--surface,#fff)] border-[var(--border-soft,#e5e7eb)] hover:border-[var(--color-primary)]/50 hover:bg-[var(--surface-bg,#fafafa)]'
           }`}
         >
           {isSelected && (
@@ -604,11 +604,11 @@ const IconCardFilterContent: React.FC<{
               <CheckCircle2 className="w-4 h-4 text-[var(--color-primary)]" />
             </div>
           )}
-          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-400'}`} />
-          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-700'}`}>
+          <Icon className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-faint,#9ca3af)]'}`} />
+          <span className={`text-xs font-medium text-center leading-tight ${isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text,#374151)]'}`}>
             {opt.label}
           </span>
-          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[var(--color-primary)]/70' : 'text-neutral-400'}`}>
+          <span className={`text-[10px] mt-0.5 ${isSelected ? 'text-[var(--color-primary)]/70' : 'text-[var(--text-faint,#9ca3af)]'}`}>
             {opt.count} equipos
           </span>
         </button>
@@ -652,7 +652,7 @@ const TechnicalFiltersV3: React.FC<TechnicalFiltersStyledProps> = ({
   const showAdvanced = showFilters === 'all' || showFilters === 'advanced';
 
   return (
-    <div className="space-y-0 bg-white">
+    <div className="space-y-0 bg-[var(--surface,#fff)]">
       {/* Main Filters */}
       {showMain && usageOptions.length > 1 && onUsageChange && (
         <FilterSection title="Uso recomendado" tooltip={filterTooltips.usage} defaultExpanded={false}>

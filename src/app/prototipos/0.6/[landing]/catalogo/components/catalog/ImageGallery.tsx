@@ -29,7 +29,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
       />
 
       {/* Texto referencial - siempre presente para mantener altura */}
-      <p className="text-[10px] text-neutral-400 uppercase tracking-wider text-center mt-2">
+      <p className="text-[10px] text-[var(--text-faint,#9ca3af)] uppercase tracking-wider text-center mt-2">
         Imagen referencial
       </p>
 
@@ -46,7 +46,7 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({ images, alt }) => {
               className={`w-10 h-10 rounded border-2 overflow-hidden transition-all cursor-pointer ${
                 index === currentIndex
                   ? 'border-[var(--color-primary)]'
-                  : 'border-transparent hover:border-neutral-300'
+                  : 'border-transparent hover:border-[var(--border-strong,#d1d5db)]'
               }`}
             >
               <img

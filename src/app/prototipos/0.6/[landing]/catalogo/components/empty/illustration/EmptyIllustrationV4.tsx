@@ -86,7 +86,7 @@ export const EmptyIllustrationV4: React.FC<EmptyIllustrationProps> = ({ classNam
 
       {/* Mensaje */}
       <motion.h3
-        className="text-xl font-bold text-neutral-800 mb-2"
+        className="text-xl font-bold text-[var(--text-strong,#1f2937)] mb-2"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -94,7 +94,7 @@ export const EmptyIllustrationV4: React.FC<EmptyIllustrationProps> = ({ classNam
         Sin resultados
       </motion.h3>
       <motion.p
-        className="text-neutral-600 max-w-md"
+        className="text-[var(--text-muted,#4b5563)] max-w-md"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}

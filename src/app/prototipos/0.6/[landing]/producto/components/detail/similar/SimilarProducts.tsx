@@ -54,7 +54,7 @@ function TruncatedTitle({ text, onClick }: { text: string; onClick?: () => void 
     <div className="relative group/title min-h-[3.5rem] mb-3">
       <h3
         ref={ref}
-        className="font-bold text-neutral-800 text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
+        className="font-bold text-[var(--text-strong,#1f2937)] text-lg line-clamp-2 cursor-pointer hover:text-[var(--color-primary)] transition-colors leading-tight"
         onClick={onClick}
       >
         {text}
@@ -241,12 +241,12 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
   const diffMinHeight = maxDiffCount > 0 ? maxDiffCount * 26 + Math.max(0, maxDiffCount - 1) * 6 : 0;
 
   return (
-    <div className="w-full bg-white rounded-2xl p-6 shadow-sm border border-neutral-200">
+    <div className="w-full bg-[var(--surface,#fff)] rounded-2xl p-6 shadow-sm border border-[var(--border-soft,#e5e7eb)]">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-bold text-neutral-900 mb-1">También te puede interesar</h3>
-          <p className="text-sm text-neutral-500">Desliza para explorar más opciones</p>
+          <h3 className="text-lg font-bold text-[var(--text-strong,#111827)] mb-1">También te puede interesar</h3>
+          <p className="text-sm text-[var(--text-muted,#6b7280)]">Desliza para explorar más opciones</p>
         </div>
 
         {/* Navigation Arrows */}
@@ -257,7 +257,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               canScrollLeft
                 ? 'bg-[var(--color-primary)] text-white hover:brightness-90 shadow-lg'
-                : 'bg-neutral-100 text-neutral-300'
+                : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-faint,#d4d4d4)]'
             }`}
           >
             <ChevronLeft className="w-5 h-5" />
@@ -268,7 +268,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
               canScrollRight
                 ? 'bg-[var(--color-primary)] text-white hover:brightness-90 shadow-lg'
-                : 'bg-neutral-100 text-neutral-300'
+                : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-faint,#d4d4d4)]'
             }`}
           >
             <ChevronRight className="w-5 h-5" />
@@ -302,11 +302,11 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
               transition={{ duration: 0.2 }}
             >
               <Card
-                className="h-full shadow-lg hover:shadow-xl transition-all overflow-hidden bg-white"
+                className="h-full shadow-lg hover:shadow-xl transition-all overflow-hidden bg-[var(--surface,#fff)]"
               >
                 <CardBody className="p-0 flex flex-col">
                   {/* Image Gallery - Estilo catálogo */}
-                  <div className="relative bg-gradient-to-b from-neutral-50 to-white p-4">
+                  <div className="relative bg-gradient-to-b from-[var(--surface-bg,#fafafa)] to-[var(--surface,#fff)] p-4">
                     {/* Main Image */}
                     <div className="aspect-[4/3] overflow-hidden rounded-xl mb-2">
                       <AnimatePresence mode="wait">
@@ -324,7 +324,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       </AnimatePresence>
                     </div>
 
-                    <p className="text-[10px] text-neutral-400 uppercase tracking-wider text-center mb-2">
+                    <p className="text-[10px] text-[var(--text-faint,#9ca3af)] uppercase tracking-wider text-center mb-2">
                       Imagen referencial
                     </p>
 
@@ -344,7 +344,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                             <img
                               src={imgUrl}
                               alt={`${product.name} ${idx + 1}`}
-                              className="w-full h-full object-contain bg-white"
+                              className="w-full h-full object-contain bg-[var(--surface,#fff)]"
                               onError={handleImageError}
                             />
                           </button>
@@ -354,9 +354,9 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
 
                     {/* Match Badge - Top Left */}
                     <div className="absolute top-3 left-3">
-                      <div className="px-3 py-1.5 bg-white/95 backdrop-blur-sm rounded-full shadow-md flex items-center gap-1.5">
+                      <div className="px-3 py-1.5 bg-[var(--surface,#fff)]/95 backdrop-blur-sm rounded-full shadow-md flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
-                        <span className="text-xs font-bold text-neutral-800">{product.matchScore}% match</span>
+                        <span className="text-xs font-bold text-[var(--text-strong,#1f2937)]">{product.matchScore}% match</span>
                       </div>
                     </div>
 
@@ -419,7 +419,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                       <div className="h-5 flex items-center justify-center gap-1.5 mb-1">
                         {discountValue > 0 ? (
                           <>
-                            <span className="text-xs text-neutral-400 line-through">
+                            <span className="text-xs text-[var(--text-faint,#9ca3af)] line-through">
                               S/{formatMoneyNoDecimals(Math.round(product.monthlyQuota / (1 - discountValue / 100)))}
                             </span>
                             <span className="text-xs font-bold text-white bg-[var(--color-primary)] px-1.5 py-0.5 rounded">
@@ -427,7 +427,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                             </span>
                           </>
                         ) : (
-                          <span className="text-xs text-neutral-500">Cuota mensual</span>
+                          <span className="text-xs text-[var(--text-muted,#6b7280)]">Cuota mensual</span>
                         )}
                       </div>
                       <div className="flex items-baseline justify-center gap-1">
@@ -436,7 +436,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
                         }`}>
                           S/{formatMoneyNoDecimals(product.monthlyQuota)}
                         </span>
-                        <span className="text-base text-neutral-400">/mes</span>
+                        <span className="text-base text-[var(--text-faint,#9ca3af)]">/mes</span>
                       </div>
                       {/* Comparison vs current */}
                       <div className={`inline-flex items-center justify-center gap-1 text-xs font-medium mt-1 ${
@@ -496,7 +496,7 @@ export const SimilarProducts: React.FC<SimilarProductsExtendedProps> = ({
       </div>
 
       {/* Mobile Scroll Hint */}
-      <p className="md:hidden text-center text-xs text-neutral-400 mt-3">
+      <p className="md:hidden text-center text-xs text-[var(--text-faint,#9ca3af)] mt-3">
         Desliza para ver más →
       </p>
 
@@ -560,8 +560,8 @@ const ModalContentShared: React.FC<{
   return (
     <div className="space-y-4">
       {/* Product Preview */}
-      <div className="flex items-center gap-4 p-3 bg-neutral-50 rounded-xl">
-        <div className="w-16 h-16 lg:w-20 lg:h-20 bg-white rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-neutral-200">
+      <div className="flex items-center gap-4 p-3 bg-[var(--surface-bg,#fafafa)] rounded-xl">
+        <div className="w-16 h-16 lg:w-20 lg:h-20 bg-[var(--surface,#fff)] rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 border border-[var(--border-soft,#e5e7eb)]">
           <img
             src={product.thumbnail}
             alt={product.displayName}
@@ -572,7 +572,7 @@ const ModalContentShared: React.FC<{
           <p className="text-xs text-[var(--color-primary)] font-medium uppercase tracking-wide">
             {product.brand}
           </p>
-          <h3 className="text-sm lg:text-base font-semibold text-neutral-800 line-clamp-2">
+          <h3 className="text-sm lg:text-base font-semibold text-[var(--text-strong,#1f2937)] line-clamp-2">
             {product.displayName}
           </h3>
           <p className="text-base lg:text-lg font-bold text-[var(--color-primary)] mt-0.5">
@@ -593,7 +593,7 @@ const ModalContentShared: React.FC<{
           }}
           className="w-full p-4 bg-[var(--color-primary)] text-white rounded-xl flex items-center gap-4 cursor-pointer hover:brightness-90 transition-colors"
         >
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 bg-[var(--surface,#fff)]/20 rounded-xl flex items-center justify-center flex-shrink-0">
             <ArrowRight className="w-6 h-6" />
           </div>
           <div className="flex-1 text-left">
@@ -611,14 +611,14 @@ const ModalContentShared: React.FC<{
           onClick={() => {
             onAddToCart();
           }}
-          className="w-full p-4 bg-white border-2 border-neutral-200 text-neutral-800 rounded-xl flex items-center gap-4 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] transition-all"
+          className="w-full p-4 bg-[var(--surface,#fff)] border-2 border-[var(--border-soft,#e5e7eb)] text-[var(--text-strong,#1f2937)] rounded-xl flex items-center gap-4 cursor-pointer hover:border-[var(--color-primary)] hover:bg-[rgba(var(--color-primary-rgb),0.05)] transition-all"
         >
-          <div className="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center flex-shrink-0">
-            <ShoppingCart className="w-6 h-6 text-neutral-600" />
+          <div className="w-12 h-12 bg-[var(--surface-2,#f3f4f6)] rounded-xl flex items-center justify-center flex-shrink-0">
+            <ShoppingCart className="w-6 h-6 text-[var(--text-muted,#4b5563)]" />
           </div>
           <div className="flex-1 text-left">
             <p className="font-semibold text-base">Añadir al carrito</p>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-[var(--text-muted,#6b7280)]">
               Guardar y seguir explorando
             </p>
           </div>
@@ -645,10 +645,10 @@ const SimilarProductDesktopModal: React.FC<SimilarProductModalProps> = ({
     classNames={{
       wrapper: 'z-[100]',
       backdrop: 'bg-black/50 backdrop-blur-sm z-[99]',
-      base: 'bg-white rounded-2xl shadow-2xl border border-neutral-200',
-      header: 'border-b border-neutral-100 pb-4',
+      base: 'bg-[var(--surface,#fff)] rounded-2xl shadow-2xl border border-[var(--border-soft,#e5e7eb)]',
+      header: 'border-b border-[var(--border-soft,#f3f4f6)] pb-4',
       body: 'p-0',
-      closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+      closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
     }}
   >
     <ModalContent>
@@ -657,8 +657,8 @@ const SimilarProductDesktopModal: React.FC<SimilarProductModalProps> = ({
           <ShoppingCart className="w-5 h-5 text-[var(--color-primary)]" />
         </div>
         <div>
-          <h2 className="text-lg font-bold text-neutral-800">¿Qué deseas hacer?</h2>
-          <p className="text-sm text-neutral-500">Elige una opción</p>
+          <h2 className="text-lg font-bold text-[var(--text-strong,#1f2937)]">¿Qué deseas hacer?</h2>
+          <p className="text-sm text-[var(--text-muted,#6b7280)]">Elige una opción</p>
         </div>
       </ModalHeader>
       <ModalBody className="p-6">
@@ -714,14 +714,14 @@ const SimilarProductMobileModal: React.FC<SimilarProductModalProps> = ({
                 onClose();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[9999] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 bg-[var(--surface,#fff)] rounded-t-3xl z-[9999] flex flex-col"
           >
             {/* Drag Handle */}
             <div
               onPointerDown={(e) => dragControls.start(e)}
               className="flex justify-center py-3 cursor-grab active:cursor-grabbing"
             >
-              <div className="w-10 h-1.5 bg-neutral-300 rounded-full" />
+              <div className="w-10 h-1.5 bg-[var(--surface-2,#d4d4d4)] rounded-full" />
             </div>
 
             {/* Header */}
@@ -731,10 +731,10 @@ const SimilarProductMobileModal: React.FC<SimilarProductModalProps> = ({
                   <ShoppingCart className="w-4 h-4 text-[var(--color-primary)]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-neutral-800">
+                  <h2 className="text-base font-bold text-[var(--text-strong,#1f2937)]">
                     ¿Qué deseas hacer?
                   </h2>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-[var(--text-muted,#6b7280)]">
                     Elige una opción
                   </p>
                 </div>

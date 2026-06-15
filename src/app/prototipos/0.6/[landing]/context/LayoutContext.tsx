@@ -17,6 +17,7 @@ import { usePreview } from '@/app/prototipos/0.6/context/PreviewContext';
 import type { PromoBannerData, FooterData, AgreementData } from '@/app/prototipos/0.6/types/hero';
 
 import { OVERLAY_VARIANT_LOGOS } from '@/app/prototipos/0.6/types/landingConfig';
+import { isDarkLanding, NVIDIA_GREEN, NVIDIA_TURQUOISE } from '@/app/prototipos/0.6/utils/theme';
 
 interface NavbarProps {
   promoBannerData?: PromoBannerData | null;
@@ -238,9 +239,12 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   // Extract landing ID for feature detection
   const landingId = layoutData?.landing_id ?? null;
 
-  // Extract colors from layout data
-  const primaryColor = layoutData?.primary_color || '#4654CD';
-  const secondaryColor = layoutData?.secondary_color || '#03DBD0';
+  // Extract colors from layout data.
+  // Landings oscuras (nvidia) fuerzan verde/turquesa NVIDIA → todos los botones
+  // que ya usan bg-[var(--color-primary)] quedan verdes sin tocarlos. Ver THEME_DARK.md §4.
+  const dark = isDarkLanding(landing);
+  const primaryColor = dark ? NVIDIA_GREEN : (layoutData?.primary_color || '#4654CD');
+  const secondaryColor = dark ? NVIDIA_TURQUOISE : (layoutData?.secondary_color || '#03DBD0');
   const primaryColorRgb = hexToRgb(primaryColor);
   const secondaryColorRgb = hexToRgb(secondaryColor);
 
@@ -251,14 +255,23 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.style.setProperty('--color-primary-rgb', primaryColorRgb);
     document.documentElement.style.setProperty('--color-secondary-rgb', secondaryColorRgb);
 
+    // Tema oscuro: data-theme en <html> para que los tokens de globals.css apliquen
+    // también a modales/drawers montados en portales (fuera del layout). THEME_DARK.md §5.5.
+    if (dark) {
+      document.documentElement.setAttribute('data-theme', 'nvidia');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+
     return () => {
       // Clean up on unmount
       document.documentElement.style.removeProperty('--color-primary');
       document.documentElement.style.removeProperty('--color-secondary');
       document.documentElement.style.removeProperty('--color-primary-rgb');
       document.documentElement.style.removeProperty('--color-secondary-rgb');
+      document.documentElement.removeAttribute('data-theme');
     };
-  }, [primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb]);
+  }, [dark, primaryColor, secondaryColor, primaryColorRgb, secondaryColorRgb]);
 
   // Extract public settings from layout data
   const settings = useMemo<Record<string, string>>(() => layoutData?.settings ?? {}, [layoutData]);

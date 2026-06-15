@@ -18,11 +18,11 @@ export const EmptyIllustrationV2: React.FC<EmptyIllustrationProps> = ({ classNam
         <div className="absolute inset-0 bg-[rgba(var(--color-primary-rgb),0.05)] rounded-full blur-xl" />
 
         {/* Escritorio */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-4 bg-neutral-200 rounded-t-lg" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-4 bg-[var(--surface-2,#e5e7eb)] rounded-t-lg" />
 
         {/* Laptop */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-24 h-16 bg-neutral-300 rounded-t-lg flex items-center justify-center">
-          <Laptop className="w-8 h-8 text-neutral-500" />
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-24 h-16 bg-[var(--surface-2,#d4d4d4)] rounded-t-lg flex items-center justify-center">
+          <Laptop className="w-8 h-8 text-[var(--text-muted,#6b7280)]" />
         </div>
 
         {/* Persona simplificada */}
@@ -36,10 +36,10 @@ export const EmptyIllustrationV2: React.FC<EmptyIllustrationProps> = ({ classNam
       </div>
 
       {/* Mensaje empático */}
-      <h3 className="text-xl font-bold text-neutral-800 mb-2">
+      <h3 className="text-xl font-bold text-[var(--text-strong,#1f2937)] mb-2">
         No hay resultados para tu búsqueda
       </h3>
-      <p className="text-neutral-600 max-w-md">
+      <p className="text-[var(--text-muted,#4b5563)] max-w-md">
         Entendemos que buscas algo específico. Ajusta los filtros para encontrar la laptop perfecta para ti
       </p>
     </div>

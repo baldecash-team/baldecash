@@ -37,17 +37,17 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   };
 
   return (
-    <div className="border-b border-neutral-200 py-4 bg-white">
+    <div className="border-b border-[var(--border-soft,#e5e7eb)] py-4 bg-[var(--surface,#fff)]">
       <button
         onClick={handleToggle}
         className="w-full flex items-center justify-between text-left cursor-pointer group"
       >
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-neutral-800 group-hover:text-[var(--color-primary)] transition-colors">
+          <h3 className="font-semibold text-[var(--text-strong,#1f2937)] group-hover:text-[var(--color-primary)] transition-colors">
             {title}
           </h3>
           {count !== undefined && count > 0 && (
-            <span className="text-xs text-neutral-400">({count})</span>
+            <span className="text-xs text-[var(--text-faint,#9ca3af)]">({count})</span>
           )}
           {tooltip && (
             <FieldTooltip
@@ -60,14 +60,14 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
           )}
         </div>
         {expanded ? (
-          <ChevronUp className="w-5 h-5 text-neutral-400 group-hover:text-[var(--color-primary)] transition-colors" />
+          <ChevronUp className="w-5 h-5 text-[var(--text-faint,#9ca3af)] group-hover:text-[var(--color-primary)] transition-colors" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-neutral-400 group-hover:text-[var(--color-primary)] transition-colors" />
+          <ChevronDown className="w-5 h-5 text-[var(--text-faint,#9ca3af)] group-hover:text-[var(--color-primary)] transition-colors" />
         )}
       </button>
 
       {expanded && (
-        <div className="mt-3 space-y-2 animate-in slide-in-from-top-2 duration-200 bg-white">
+        <div className="mt-3 space-y-2 animate-in slide-in-from-top-2 duration-200 bg-[var(--surface,#fff)]">
           {children}
         </div>
       )}

@@ -69,7 +69,7 @@ export default function EmptyPreviewClient() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+        <div className="min-h-screen flex items-center justify-center bg-[var(--surface-bg,#fafafa)]">
           <Spinner size="lg" color="primary" />
         </div>
       }
@@ -102,14 +102,14 @@ function EmptyStatePreviewContent() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 relative">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] relative">
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 py-6">
+      <header className="bg-[var(--surface,#fff)] border-b border-[var(--border-soft,#e5e7eb)] py-6">
         <div className="container mx-auto px-4">
-          <h1 className="text-2xl font-bold text-neutral-900">
+          <h1 className="text-2xl font-bold text-[var(--text-strong,#111827)]">
             Estado Vacío - Preview
           </h1>
-          <p className="text-neutral-600 mt-1">
+          <p className="text-[var(--text-muted,#4b5563)] mt-1">
             Componente que aparece cuando los filtros no devuelven resultados
           </p>
         </div>
@@ -117,7 +117,7 @@ function EmptyStatePreviewContent() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm min-h-[500px] flex items-center justify-center">
+        <div className="bg-[var(--surface,#fff)] rounded-2xl border border-[var(--border-soft,#e5e7eb)] shadow-sm min-h-[500px] flex items-center justify-center">
           <EmptyState
             appliedFilters={appliedFilters}
             onClearFilters={handleClearFilters}
@@ -144,7 +144,7 @@ function EmptyStatePreviewContent() {
         <section className="mt-12 mb-8">
           <div className="flex items-center gap-2 mb-6">
             <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
-            <h2 className="text-xl font-semibold text-neutral-800">
+            <h2 className="text-xl font-semibold text-[var(--text-strong,#1f2937)]">
               Productos que podrían interesarte
             </h2>
           </div>
@@ -153,13 +153,13 @@ function EmptyStatePreviewContent() {
             {relatedProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-md hover:border-[rgba(var(--color-primary-rgb),0.3)] transition-all cursor-pointer"
+                className="bg-[var(--surface,#fff)] rounded-xl border border-[var(--border-soft,#e5e7eb)] p-4 hover:shadow-md hover:border-[rgba(var(--color-primary-rgb),0.3)] transition-all cursor-pointer"
                 onClick={() => router.push(detailUrl)}
               >
                 <div className="flex gap-4">
                   {/* Placeholder image */}
-                  <div className="w-20 h-20 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-3xl font-bold text-neutral-300">
+                  <div className="w-20 h-20 bg-[var(--surface-2,#f3f4f6)] rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-3xl font-bold text-[var(--text-faint,#d4d4d4)]">
                       {product.brand.charAt(0)}
                     </span>
                   </div>
@@ -167,27 +167,27 @@ function EmptyStatePreviewContent() {
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-neutral-500">
+                      <span className="text-xs font-medium text-[var(--text-muted,#6b7280)]">
                         {product.brand}
                       </span>
                       <span className={`text-[10px] font-medium px-2 py-0.5 rounded ${product.gamaColor}`}>
                         {product.gama}
                       </span>
                     </div>
-                    <h3 className="text-sm font-medium text-neutral-800 line-clamp-2 mb-2">
+                    <h3 className="text-sm font-medium text-[var(--text-strong,#1f2937)] line-clamp-2 mb-2">
                       {product.name}
                     </h3>
                     <div className="flex items-baseline gap-1">
                       <span className="text-xl font-bold text-[var(--color-primary)]">
                         S/{product.price}
                       </span>
-                      <span className="text-sm text-neutral-500">/mes</span>
+                      <span className="text-sm text-[var(--text-muted,#6b7280)]">/mes</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Ver detalles link */}
-                <div className="mt-4 pt-3 border-t border-neutral-100">
+                <div className="mt-4 pt-3 border-t border-[var(--border-soft,#f3f4f6)]">
                   <button
                     className="flex items-center gap-1 text-sm font-medium text-[var(--color-primary)] hover:brightness-90 transition-colors cursor-pointer"
                     onClick={(e) => {
@@ -211,29 +211,29 @@ function EmptyStatePreviewContent() {
         <Button
           isIconOnly
           radius="md"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          className="bg-[var(--surface,#fff)] shadow-lg border border-[var(--border-soft,#e5e7eb)] cursor-pointer hover:bg-[var(--surface-2,#f3f4f6)] transition-colors"
           onPress={() => setShowConfigBadge(!showConfigBadge)}
         >
-          <Code className="w-5 h-5 text-neutral-600" />
+          <Code className="w-5 h-5 text-[var(--text-muted,#4b5563)]" />
         </Button>
         <Button
           isIconOnly
           radius="md"
-          className="bg-white shadow-lg border border-neutral-200 cursor-pointer hover:bg-neutral-100 transition-colors"
+          className="bg-[var(--surface,#fff)] shadow-lg border border-[var(--border-soft,#e5e7eb)] cursor-pointer hover:bg-[var(--surface-2,#f3f4f6)] transition-colors"
           onPress={() => router.push(routes.landingHome(landing))}
         >
-          <ArrowLeft className="w-5 h-5 text-neutral-600" />
+          <ArrowLeft className="w-5 h-5 text-[var(--text-muted,#4b5563)]" />
         </Button>
       </div>
 
       {/* Config Badge */}
       {showConfigBadge && (
-        <div className="fixed bottom-6 left-6 z-[100] bg-white/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-neutral-200">
-          <p className="text-xs text-neutral-500 mb-1">Configuración fija v0.6:</p>
-          <p className="text-xs font-mono text-neutral-700">
+        <div className="fixed bottom-6 left-6 z-[100] bg-[var(--surface,#fff)]/90 backdrop-blur rounded-lg shadow-lg px-4 py-2 border border-[var(--border-soft,#e5e7eb)]">
+          <p className="text-xs text-[var(--text-muted,#6b7280)] mb-1">Configuración fija v0.6:</p>
+          <p className="text-xs font-mono text-[var(--text,#374151)]">
             Ilustración: V5 (Split) | Acciones: V6 (CTA Grande)
           </p>
-          <p className="text-xs text-neutral-400 mt-1">Sin iteraciones</p>
+          <p className="text-xs text-[var(--text-faint,#9ca3af)] mt-1">Sin iteraciones</p>
         </div>
       )}
     </div>

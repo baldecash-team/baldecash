@@ -47,9 +47,9 @@ export const BrandFilterV4: React.FC<BrandFilterProps> = ({
       {/* Left Arrow */}
       <button
         onClick={() => scroll('left')}
-        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 bg-white shadow-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-neutral-50"
+        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 bg-[var(--surface,#fff)] shadow-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-[var(--surface-bg,#fafafa)]"
       >
-        <ChevronLeft className="w-4 h-4 text-neutral-600" />
+        <ChevronLeft className="w-4 h-4 text-[var(--text-muted,#4b5563)]" />
       </button>
 
       {/* Carousel */}
@@ -69,7 +69,7 @@ export const BrandFilterV4: React.FC<BrandFilterProps> = ({
               className={`relative flex-shrink-0 flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all cursor-pointer min-w-[80px] ${
                 isSelected
                   ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                  : 'border-neutral-200 bg-white hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                  : 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
               }`}
             >
               {isSelected && (
@@ -89,17 +89,17 @@ export const BrandFilterV4: React.FC<BrandFilterProps> = ({
                     onError={() => handleImageError(option.value)}
                   />
                 ) : (
-                  <span className="text-xs font-bold text-neutral-500 text-center">
+                  <span className="text-xs font-bold text-[var(--text-muted,#6b7280)] text-center">
                     {option.label}
                   </span>
                 )}
               </div>
 
-              <span className="text-[10px] text-neutral-600 truncate max-w-full">
+              <span className="text-[10px] text-[var(--text-muted,#4b5563)] truncate max-w-full">
                 {option.label}
               </span>
               {showCounts && (
-                <span className="text-[10px] text-neutral-400">({option.count})</span>
+                <span className="text-[10px] text-[var(--text-faint,#9ca3af)]">({option.count})</span>
               )}
             </button>
           );
@@ -109,9 +109,9 @@ export const BrandFilterV4: React.FC<BrandFilterProps> = ({
       {/* Right Arrow */}
       <button
         onClick={() => scroll('right')}
-        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 bg-white shadow-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-neutral-50"
+        className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-6 h-6 bg-[var(--surface,#fff)] shadow-md rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:bg-[var(--surface-bg,#fafafa)]"
       >
-        <ChevronRight className="w-4 h-4 text-neutral-600" />
+        <ChevronRight className="w-4 h-4 text-[var(--text-muted,#4b5563)]" />
       </button>
     </div>
   );

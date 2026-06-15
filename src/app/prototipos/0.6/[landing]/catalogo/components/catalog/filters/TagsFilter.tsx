@@ -24,7 +24,7 @@ const tagColors: Record<string, { bg: string; text: string; border: string }> = 
 };
 
 // Default colors for unknown tags
-const defaultTagColors = { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-300' };
+const defaultTagColors = { bg: 'bg-[var(--surface-bg,#fafafa)]', text: 'text-[var(--text,#374151)]', border: 'border-[var(--border-strong,#d1d5db)]' };
 
 function hexToRgb(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -56,7 +56,7 @@ export const TagsFilter: React.FC<TagsFilterProps> = ({
         {tagOptions === null ? (
           <>
             {[0, 1, 2, 3].map(i => (
-              <div key={`skel-tag-${i}`} className="h-7 rounded-md bg-neutral-100 animate-pulse" style={{ width: `${60 + i * 15}px` }} />
+              <div key={`skel-tag-${i}`} className="h-7 rounded-md bg-[var(--surface-2,#f3f4f6)] animate-pulse" style={{ width: `${60 + i * 15}px` }} />
             ))}
           </>
         ) : (

@@ -189,10 +189,10 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[100] bg-white border-t border-neutral-200 shadow-2xl transition-all duration-300">
+    <div className="fixed inset-x-0 bottom-0 z-[100] bg-[var(--surface,#fff)] border-t border-[var(--border-soft,#e5e7eb)] shadow-2xl transition-all duration-300">
       {/* Collapsible Header */}
       <div
-        className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-neutral-50 transition-colors"
+        className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-[var(--surface-bg,#fafafa)] transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
@@ -200,10 +200,10 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
             <Scale className="w-5 h-5 text-[var(--color-primary)]" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-neutral-800">
+            <h2 className="text-lg font-bold text-[var(--text-strong,#1f2937)]">
               Comparando {products.length} equipos
             </h2>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-[var(--text-muted,#6b7280)]">
               {showBestOption ? 'Mejor opción destacada' : 'Haz clic para expandir o colapsar'}
             </p>
           </div>
@@ -215,7 +215,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
             {products.slice(0, 3).map((product, index) => (
               <div
                 key={product.id}
-                className="w-10 h-10 rounded-lg border-2 border-white bg-neutral-100 overflow-hidden shadow-sm"
+                className="w-10 h-10 rounded-lg border-2 border-white bg-[var(--surface-2,#f3f4f6)] overflow-hidden shadow-sm"
                 style={{ zIndex: products.length - index }}
               >
                 <img
@@ -239,7 +239,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
           <Button
             isIconOnly
             variant="light"
-            className="cursor-pointer text-neutral-500 hover:text-red-500"
+            className="cursor-pointer text-[var(--text-muted,#6b7280)] hover:text-red-500"
             onPress={onClose}
           >
             <X className="w-5 h-5" />
@@ -262,9 +262,9 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                     ...comparisonState,
                     showOnlyDifferences: e.target.checked,
                   })}
-                  className="w-4 h-4 rounded border-neutral-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)] cursor-pointer"
+                  className="w-4 h-4 rounded border-[var(--border-strong,#d1d5db)] text-[var(--color-primary)] focus:ring-[var(--color-primary)] cursor-pointer"
                 />
-                <span className="text-sm text-neutral-600">Solo mostrar diferencias</span>
+                <span className="text-sm text-[var(--text-muted,#4b5563)]">Solo mostrar diferencias</span>
               </label>
             ) : (
               <div /> /* Placeholder para mantener justify-between */
@@ -276,7 +276,7 @@ export const ComparatorV2: React.FC<ComparatorLayoutProps & { isOpen: boolean; o
                 variant="light"
                 startContent={<Trash2 className="w-4 h-4" />}
                 onPress={onClearAll}
-                className="cursor-pointer text-neutral-600 hover:text-red-500"
+                className="cursor-pointer text-[var(--text-muted,#4b5563)] hover:text-red-500"
               >
                 Limpiar
               </Button>

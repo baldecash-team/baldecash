@@ -313,7 +313,7 @@ function ProductDetailContent() {
   const isAvailable = apiData.isAvailable;
 
   return (
-    <div className="min-h-screen bg-neutral-50 overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] overflow-x-hidden">
       {/* Navbar from Hero */}
       <Navbar
         landing={landing}
@@ -509,7 +509,7 @@ function ProductDetailContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+    <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] flex items-center justify-center">
       <CubeGridSpinner />
     </div>
   );

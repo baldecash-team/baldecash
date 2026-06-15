@@ -27,7 +27,7 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
   };
 
   return (
-    <div className="space-y-1 bg-white">
+    <div className="space-y-1 bg-[var(--surface,#fff)]">
       {options.map((option) => {
         const isSelected = selected.includes(option.value as UsageType);
         const Icon = getUsageIcon(option.value);
@@ -35,35 +35,35 @@ export const UsageFilter: React.FC<UsageFilterProps> = ({
         return (
           <label
             key={option.value}
-            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-neutral-50 cursor-pointer transition-colors group"
+            className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-[var(--surface-bg,#fafafa)] cursor-pointer transition-colors group"
           >
             <Checkbox
               isSelected={isSelected}
               onValueChange={() => handleToggle(option.value as UsageType)}
               classNames={{
                 base: 'cursor-pointer',
-                wrapper: 'before:border-2 before:border-neutral-300 after:bg-[var(--color-primary)] group-data-[selected=true]:after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
+                wrapper: 'before:border-2 before:border-[var(--border-strong,#d1d5db)] after:bg-[var(--color-primary)] group-data-[selected=true]:after:bg-[var(--color-primary)] before:transition-colors after:transition-all',
                 icon: 'text-white transition-opacity',
               }}
             />
             <div className="flex items-center gap-1.5 flex-1">
               <span
                 className={`transition-colors ${
-                  isSelected ? 'text-[var(--color-primary)]' : 'text-neutral-500'
+                  isSelected ? 'text-[var(--color-primary)]' : 'text-[var(--text-muted,#6b7280)]'
                 }`}
               >
                 <Icon className="w-4 h-4" />
               </span>
               <span
                 className={`text-xs transition-colors ${
-                  isSelected ? 'text-[var(--color-primary)] font-medium' : 'text-neutral-700'
+                  isSelected ? 'text-[var(--color-primary)] font-medium' : 'text-[var(--text,#374151)]'
                 }`}
               >
                 {option.label}
               </span>
             </div>
             {showCounts && (
-              <span className="text-xs text-neutral-400">({option.count})</span>
+              <span className="text-xs text-[var(--text-faint,#9ca3af)]">({option.count})</span>
             )}
           </label>
         );

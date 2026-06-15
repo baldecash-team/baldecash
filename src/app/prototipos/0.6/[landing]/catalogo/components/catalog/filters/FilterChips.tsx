@@ -25,7 +25,7 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
       className="flex flex-nowrap lg:flex-wrap items-center gap-2 py-3 overflow-x-auto lg:overflow-visible scrollbar-hide -mx-3 px-3 sm:-mx-4 sm:px-4 lg:mx-0 lg:px-0"
       style={{ scrollbarWidth: 'none' }}
     >
-      <span className="text-sm text-neutral-500 flex-shrink-0">Filtros:</span>
+      <span className="text-sm text-[var(--text-muted,#6b7280)] flex-shrink-0">Filtros:</span>
 
       {filters.map((filter) => (
         <Chip
@@ -41,7 +41,7 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
           }}
           endContent={<X className="w-3 h-3" />}
         >
-          <span className="text-neutral-500 mr-1">{filter.category}:</span>
+          <span className="text-[var(--text-muted,#6b7280)] mr-1">{filter.category}:</span>
           {filter.label}
         </Chip>
       ))}
@@ -49,7 +49,7 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
       {filters.length > 1 && (
         <button
           onClick={onClearAll}
-          className="flex items-center gap-1 text-xs text-neutral-500 hover:text-red-500 transition-colors cursor-pointer ml-2 flex-shrink-0 whitespace-nowrap"
+          className="flex items-center gap-1 text-xs text-[var(--text-muted,#6b7280)] hover:text-red-500 transition-colors cursor-pointer ml-2 flex-shrink-0 whitespace-nowrap"
         >
           <Trash2 className="w-3 h-3" />
           Limpiar todo

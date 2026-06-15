@@ -96,7 +96,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                 ? 'border-2 border-[#22c55e] shadow-xl scale-[1.02]'
                 : showBestOption
                 ? 'opacity-70 scale-[0.98]'
-                : 'border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.3)] hover:shadow-lg'
+                : 'border border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.3)] hover:shadow-lg'
             }`}
           >
             {/* Remove button */}
@@ -105,9 +105,9 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               size="sm"
               variant="flat"
               onPress={() => onRemoveProduct(product.id)}
-              className="absolute top-3 right-3 w-7 h-7 min-w-7 rounded-full bg-white/80 backdrop-blur border border-neutral-200 hover:bg-red-50 hover:border-red-200 cursor-pointer z-10 shadow-sm"
+              className="absolute top-3 right-3 w-7 h-7 min-w-7 rounded-full bg-[var(--surface,#fff)]/80 backdrop-blur border border-[var(--border-soft,#e5e7eb)] hover:bg-red-50 hover:border-red-200 cursor-pointer z-10 shadow-sm"
             >
-              <X className="w-4 h-4 text-neutral-500" />
+              <X className="w-4 h-4 text-[var(--text-muted,#6b7280)]" />
             </Button>
 
             <CardHeader className="flex flex-col items-center gap-3 pt-6 pb-4">
@@ -135,7 +135,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               )}
 
               {/* Product image */}
-              <div className={`w-32 h-32 rounded-xl ${isBest ? 'bg-[#22c55e]/5' : 'bg-neutral-50'} flex items-center justify-center p-4`}>
+              <div className={`w-32 h-32 rounded-xl ${isBest ? 'bg-[#22c55e]/5' : 'bg-[var(--surface-bg,#fafafa)]'} flex items-center justify-center p-4`}>
                 <img
                   src={product.images[0] || product.thumbnail}
                   alt={product.displayName}
@@ -145,8 +145,8 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
 
               {/* Product info */}
               <div className="text-center">
-                <p className="text-sm text-neutral-500">{product.brand}</p>
-                <p className="text-base font-semibold text-neutral-800 line-clamp-2">
+                <p className="text-sm text-[var(--text-muted,#6b7280)]">{product.brand}</p>
+                <p className="text-base font-semibold text-[var(--text-strong,#1f2937)] line-clamp-2">
                   {product.displayName}
                 </p>
               </div>
@@ -156,12 +156,12 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                 <span className={`text-2xl font-bold ${isBest ? 'text-[#22c55e]' : 'text-[var(--color-primary)]'}`}>
                   S/{formatMoney(getDisplayQuota(product))}
                 </span>
-                <span className="text-sm font-normal text-neutral-500">/mes</span>
+                <span className="text-sm font-normal text-[var(--text-muted,#6b7280)]">/mes</span>
                 {renderPriceDiff(index)}
               </div>
             </CardHeader>
 
-            <CardBody className="px-4 py-3 border-t border-neutral-100">
+            <CardBody className="px-4 py-3 border-t border-[var(--border-soft,#f3f4f6)]">
               {/* Specs list */}
               <div className="space-y-2">
                 {specs.map((spec) => {
@@ -179,14 +179,14 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                             : 'bg-[rgba(var(--color-primary-rgb),0.05)]'
                           : isWorst
                           ? 'bg-red-50'
-                          : 'bg-neutral-50/50'
+                          : 'bg-[var(--surface-bg,#fafafa)]/50'
                       }`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <Icon className={`w-4 h-4 flex-shrink-0 ${
-                          isWinner ? 'text-[#22c55e]' : isWorst ? 'text-red-400' : 'text-neutral-400'
+                          isWinner ? 'text-[#22c55e]' : isWorst ? 'text-red-400' : 'text-[var(--text-faint,#9ca3af)]'
                         }`} />
-                        <span className="text-xs text-neutral-500 truncate">{spec.label}</span>
+                        <span className="text-xs text-[var(--text-muted,#6b7280)] truncate">{spec.label}</span>
                       </div>
                       <div className="flex items-center gap-1.5 ml-2">
                         <span className={`text-sm font-medium ${
@@ -194,7 +194,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                             ? config.highlightVersion === 1 ? 'text-[#22c55e]' : 'text-[var(--color-primary)]'
                             : isWorst
                             ? 'text-red-600'
-                            : 'text-neutral-700'
+                            : 'text-[var(--text,#374151)]'
                         }`}>
                           {spec.values[index]}
                         </span>
@@ -211,12 +211,12 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
 
               {/* V2 highlight: progress bar for overall score */}
               {config.highlightVersion === 2 && (
-                <div className="mt-4 pt-3 border-t border-neutral-100">
-                  <div className="flex items-center justify-between text-xs text-neutral-500 mb-1.5">
+                <div className="mt-4 pt-3 border-t border-[var(--border-soft,#f3f4f6)]">
+                  <div className="flex items-center justify-between text-xs text-[var(--text-muted,#6b7280)] mb-1.5">
                     <span>Puntuación general</span>
                     <span className="font-medium text-[var(--color-primary)]">{wins}/{specs.filter(s => s.isDifferent).length}</span>
                   </div>
-                  <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-[var(--surface-2,#e5e7eb)] rounded-full overflow-hidden">
                     <div
                       className="h-full bg-[var(--color-primary)] rounded-full transition-all"
                       style={{
@@ -230,7 +230,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
               )}
             </CardBody>
 
-            <CardFooter className="px-4 py-4 border-t border-neutral-100 flex flex-col gap-2">
+            <CardFooter className="px-4 py-4 border-t border-[var(--border-soft,#f3f4f6)] flex flex-col gap-2">
               <Button
                 fullWidth
                 className={`cursor-pointer font-semibold transition-all ${
@@ -250,7 +250,7 @@ export const DesignStyleB: React.FC<DesignStyleBProps> = ({
                 className={`cursor-pointer font-medium ${
                   cartItems.includes(product.id)
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-600'
-                    : 'border-neutral-200 text-neutral-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
+                    : 'border-[var(--border-soft,#e5e7eb)] text-[var(--text-muted,#4b5563)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]'
                 }`}
                 startContent={cartItems.includes(product.id) ? <Check className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
                 onPress={() => !cartItems.includes(product.id) && onAddToCart?.(product.id)}

@@ -50,15 +50,15 @@ export const ProductPricing: React.FC<ProductPricingProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 space-y-5">
+    <div className="bg-[var(--surface,#fff)] rounded-2xl shadow-sm border border-[var(--border-soft,#f3f4f6)] p-6 space-y-5">
       {/* Price header */}
       <div>
         <div className="flex items-baseline gap-3">
-          <span className="text-3xl font-bold text-neutral-900">
+          <span className="text-3xl font-bold text-[var(--text-strong,#111827)]">
             S/ {formatPrice(price)}
           </span>
           {originalPrice && originalPrice > price && (
-            <span className="text-lg text-neutral-400 line-through">
+            <span className="text-lg text-[var(--text-faint,#9ca3af)] line-through">
               S/ {formatPrice(originalPrice)}
             </span>
           )}
@@ -72,16 +72,16 @@ export const ProductPricing: React.FC<ProductPricingProps> = ({
       </div>
 
       {/* Divider */}
-      <div className="border-t border-neutral-100" />
+      <div className="border-t border-[var(--border-soft,#f3f4f6)]" />
 
       {/* Monthly quota highlight */}
       <div className="bg-[#4654CD]/5 rounded-xl p-4 text-center">
-        <p className="text-xs text-neutral-500 mb-1">Cuota mensual desde</p>
+        <p className="text-xs text-[var(--text-muted,#6b7280)] mb-1">Cuota mensual desde</p>
         <p className="text-4xl font-bold text-[#4654CD]">
           S/ {formatPrice(quota)}
-          <span className="text-base font-normal text-neutral-500"> /mes</span>
+          <span className="text-base font-normal text-[var(--text-muted,#6b7280)]"> /mes</span>
         </p>
-        <p className="text-xs text-neutral-500 mt-1">
+        <p className="text-xs text-[var(--text-muted,#6b7280)] mt-1">
           {selectedTerm} meses
           {selectedInitial > 0 && ` con ${selectedInitial}% de inicial (S/ ${formatPrice(initialAmount)})`}
         </p>
@@ -90,8 +90,8 @@ export const ProductPricing: React.FC<ProductPricingProps> = ({
       {/* Term selector */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <CalendarDays className="w-4 h-4 text-neutral-400" />
-          <span className="text-sm font-medium text-neutral-700">Plazo</span>
+          <CalendarDays className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
+          <span className="text-sm font-medium text-[var(--text,#374151)]">Plazo</span>
         </div>
         <div className="flex gap-2 flex-wrap">
           {termOptions.map((term) => (
@@ -101,7 +101,7 @@ export const ProductPricing: React.FC<ProductPricingProps> = ({
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                 selectedTerm === term
                   ? 'bg-[#4654CD] text-white shadow-md'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
               }`}
             >
               {termLabels[term]}
@@ -113,8 +113,8 @@ export const ProductPricing: React.FC<ProductPricingProps> = ({
       {/* Initial payment selector */}
       <div>
         <div className="flex items-center gap-2 mb-2">
-          <CreditCard className="w-4 h-4 text-neutral-400" />
-          <span className="text-sm font-medium text-neutral-700">Cuota inicial</span>
+          <CreditCard className="w-4 h-4 text-[var(--text-faint,#9ca3af)]" />
+          <span className="text-sm font-medium text-[var(--text,#374151)]">Cuota inicial</span>
         </div>
         <div className="flex gap-2 flex-wrap">
           {initialOptions.map((initial) => (
@@ -124,7 +124,7 @@ export const ProductPricing: React.FC<ProductPricingProps> = ({
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                 selectedInitial === initial
                   ? 'bg-[#4654CD] text-white shadow-md'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                  : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text-muted,#4b5563)] hover:bg-[var(--surface-2,#e5e7eb)]'
               }`}
             >
               {initialLabels[initial]}
@@ -143,7 +143,7 @@ export const ProductPricing: React.FC<ProductPricingProps> = ({
       </button>
 
       {/* Fine print */}
-      <p className="text-[10px] text-neutral-400 text-center leading-relaxed">
+      <p className="text-[10px] text-[var(--text-faint,#9ca3af)] text-center leading-relaxed">
         * Las cuotas son referenciales. El monto final puede variar segun evaluacion crediticia.
         Sujeto a aprobacion. TEA referencial.
       </p>

@@ -80,13 +80,13 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
       backdrop="blur"
       placement="center"
       classNames={{
-        base: 'bg-white my-8 rounded-[14px]',
+        base: 'bg-[var(--surface,#fff)] my-8 rounded-[14px]',
         wrapper: 'items-center justify-center py-8 min-h-full z-[100]',
         backdrop: 'bg-black/50 z-[99]',
-        header: 'border-b border-neutral-200 bg-white py-4 pr-12 rounded-t-[14px]',
-        body: 'bg-white max-h-[60vh] overflow-y-auto scrollbar-hide',
-        footer: 'border-t border-neutral-200 bg-white rounded-b-[14px]',
-        closeButton: 'top-4 right-4 hover:bg-neutral-100 rounded-lg cursor-pointer',
+        header: 'border-b border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] py-4 pr-12 rounded-t-[14px]',
+        body: 'bg-[var(--surface,#fff)] max-h-[60vh] overflow-y-auto scrollbar-hide',
+        footer: 'border-t border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] rounded-b-[14px]',
+        closeButton: 'top-4 right-4 hover:bg-[var(--surface-2,#f3f4f6)] rounded-lg cursor-pointer',
       }}
     >
       <ModalContent>
@@ -94,13 +94,13 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           <div className="w-8 h-8 rounded-lg bg-[rgba(var(--color-primary-rgb),0.1)] flex items-center justify-center flex-shrink-0">
             <Settings className="w-4 h-4 text-[var(--color-primary)]" />
           </div>
-          <span className="text-lg font-semibold text-neutral-800">
+          <span className="text-lg font-semibold text-[var(--text-strong,#1f2937)]">
             Configuración del Comparador
           </span>
         </ModalHeader>
 
-        <ModalBody className="py-6 bg-white">
-          <p className="text-sm text-neutral-600 mb-4 pb-4 border-b border-neutral-200">
+        <ModalBody className="py-6 bg-[var(--surface,#fff)]">
+          <p className="text-sm text-[var(--text-muted,#4b5563)] mb-4 pb-4 border-b border-[var(--border-soft,#e5e7eb)]">
             Personaliza el diseño seleccionando diferentes versiones de cada componente.
           </p>
 
@@ -108,7 +108,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Layout className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Layout del Comparador</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Layout del Comparador</h3>
             </div>
             <RadioGroup
               value={config.layoutVersion.toString()}
@@ -123,12 +123,12 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.layoutVersion === version
                         ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                        : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
                     wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
-                    description: 'text-xs text-neutral-500',
+                    description: 'text-xs text-[var(--text-muted,#6b7280)]',
                   }}
                   description={layoutVersionLabels[version].description}
                 >
@@ -139,10 +139,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           </div>
 
           {/* Design Style - V1-V3 Exception */}
-          <div className="mb-6 pt-4 border-t border-neutral-200">
+          <div className="mb-6 pt-4 border-t border-[var(--border-soft,#e5e7eb)]">
             <div className="flex items-center gap-2 mb-3">
               <Palette className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Estilo de Diseño</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Estilo de Diseño</h3>
               <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
                 V1-V3
               </span>
@@ -160,12 +160,12 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.designStyle === version
                         ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                        : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
                     wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
-                    description: 'text-xs text-neutral-500',
+                    description: 'text-xs text-[var(--text-muted,#6b7280)]',
                   }}
                   description={designStyleLabels[version].description}
                 >
@@ -176,10 +176,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           </div>
 
           {/* Highlight Version */}
-          <div className="mb-6 pt-4 border-t border-neutral-200">
+          <div className="mb-6 pt-4 border-t border-[var(--border-soft,#e5e7eb)]">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Visualización Mejor/Peor</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Visualización Mejor/Peor</h3>
             </div>
             <RadioGroup
               value={config.highlightVersion.toString()}
@@ -194,12 +194,12 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.highlightVersion === version
                         ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                        : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
                     wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
-                    description: 'text-xs text-neutral-500',
+                    description: 'text-xs text-[var(--text-muted,#6b7280)]',
                   }}
                   description={highlightVersionLabels[version].description}
                 >
@@ -210,10 +210,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           </div>
 
           {/* Fields Version */}
-          <div className="mb-6 pt-4 border-t border-neutral-200">
+          <div className="mb-6 pt-4 border-t border-[var(--border-soft,#e5e7eb)]">
             <div className="flex items-center gap-2 mb-3">
               <List className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Campos de Comparación</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Campos de Comparación</h3>
             </div>
             <RadioGroup
               value={config.fieldsVersion.toString()}
@@ -228,12 +228,12 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.fieldsVersion === version
                         ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                        : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
                     wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
-                    description: 'text-xs text-neutral-500',
+                    description: 'text-xs text-[var(--text-muted,#6b7280)]',
                   }}
                   description={fieldsVersionLabels[version].description}
                 >
@@ -244,10 +244,10 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           </div>
 
           {/* Price Diff Version */}
-          <div className="pt-4 border-t border-neutral-200">
+          <div className="pt-4 border-t border-[var(--border-soft,#e5e7eb)]">
             <div className="flex items-center gap-2 mb-3">
               <DollarSign className="w-4 h-4 text-[var(--color-primary)]" />
-              <h3 className="font-semibold text-neutral-800">Diferencia de Precio</h3>
+              <h3 className="font-semibold text-[var(--text-strong,#1f2937)]">Diferencia de Precio</h3>
             </div>
             <RadioGroup
               value={config.priceDiffVersion.toString()}
@@ -262,12 +262,12 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
                     base: `max-w-full w-full p-3 border-2 rounded-lg cursor-pointer transition-all
                       ${config.priceDiffVersion === version
                         ? 'border-[var(--color-primary)] bg-[rgba(var(--color-primary-rgb),0.05)]'
-                        : 'border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                        : 'border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
                       }`,
                     wrapper: 'before:border-[var(--color-primary)] group-data-[selected=true]:border-[var(--color-primary)]',
                     labelWrapper: 'ml-2',
                     label: 'text-sm',
-                    description: 'text-xs text-neutral-500',
+                    description: 'text-xs text-[var(--text-muted,#6b7280)]',
                   }}
                   description={priceDiffVersionLabels[version].description}
                 >
@@ -278,7 +278,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
           </div>
         </ModalBody>
 
-        <ModalFooter className="bg-white justify-between">
+        <ModalFooter className="bg-[var(--surface,#fff)] justify-between">
           <Button
             variant="flat"
             startContent={copied ? <Check className="w-4 h-4 text-green-600" /> : <Link2 className="w-4 h-4" />}
@@ -286,7 +286,7 @@ export const ComparatorSettingsModal: React.FC<ComparatorSettingsModalProps> = (
             className={`cursor-pointer transition-colors ${
               copied
                 ? 'bg-green-100 text-green-700'
-                : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                : 'bg-[var(--surface-2,#f3f4f6)] text-[var(--text,#374151)] hover:bg-[var(--surface-2,#e5e7eb)]'
             }`}
           >
             {copied ? '¡Copiado!' : 'Generar URL'}

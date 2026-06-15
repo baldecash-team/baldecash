@@ -19,8 +19,8 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
 }) => {
   return (
     <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-      <span className="text-xs sm:text-sm text-neutral-600 whitespace-nowrap flex-shrink-0">
-        <span className="font-semibold text-neutral-800">{totalProducts}</span> equipos
+      <span className="text-xs sm:text-sm text-[var(--text-muted,#4b5563)] whitespace-nowrap flex-shrink-0">
+        <span className="font-semibold text-[var(--text-strong,#1f2937)]">{totalProducts}</span> equipos
       </span>
 
       <Select
@@ -33,28 +33,28 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
             onChange(selectedKey as SortOption);
           }
         }}
-        startContent={<ArrowUpDown className="w-4 h-4 text-neutral-400 flex-shrink-0" />}
+        startContent={<ArrowUpDown className="w-4 h-4 text-[var(--text-faint,#9ca3af)] flex-shrink-0" />}
         renderValue={(items) => {
           return items.map((item) => (
-            <span key={item.key} className="text-sm text-neutral-700 truncate">
+            <span key={item.key} className="text-sm text-[var(--text,#374151)] truncate">
               {item.textValue}
             </span>
           ));
         }}
         classNames={{
           base: 'min-w-[160px] sm:min-w-[200px]',
-          trigger: 'h-10 min-h-10 bg-white border border-neutral-200 hover:border-[rgba(var(--color-primary-rgb),0.5)] transition-colors cursor-pointer',
-          value: 'text-sm text-neutral-700',
-          popoverContent: 'bg-white border border-neutral-200 shadow-lg rounded-lg p-0',
-          listbox: 'p-1 bg-white',
-          listboxWrapper: 'max-h-[300px] bg-white',
+          trigger: 'h-10 min-h-10 bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] hover:border-[rgba(var(--color-primary-rgb),0.5)] transition-colors cursor-pointer',
+          value: 'text-sm text-[var(--text,#374151)]',
+          popoverContent: 'bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] shadow-lg rounded-lg p-0',
+          listbox: 'p-1 bg-[var(--surface,#fff)]',
+          listboxWrapper: 'max-h-[300px] bg-[var(--surface,#fff)]',
           innerWrapper: 'pr-8',
           selectorIcon: 'right-3 pointer-events-none',
         }}
         popoverProps={{
           classNames: {
-            base: 'bg-white',
-            content: 'p-0 bg-white border border-neutral-200 shadow-lg rounded-lg',
+            base: 'bg-[var(--surface,#fff)]',
+            content: 'p-0 bg-[var(--surface,#fff)] border border-[var(--border-soft,#e5e7eb)] shadow-lg rounded-lg',
           },
         }}
       >
@@ -64,7 +64,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({
             textValue={opt.label}
             classNames={{
               base: `px-3 py-2 rounded-md text-sm cursor-pointer transition-colors
-                text-neutral-700
+                text-[var(--text,#374151)]
                 data-[selected=false]:data-[hover=true]:bg-[rgba(var(--color-primary-rgb),0.1)]
                 data-[selected=false]:data-[hover=true]:text-[var(--color-primary)]
                 data-[selected=true]:bg-[var(--color-primary)]

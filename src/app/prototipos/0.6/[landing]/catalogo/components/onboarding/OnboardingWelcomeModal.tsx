@@ -38,7 +38,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
       placement="center"
       hideCloseButton
       classNames={{
-        base: 'bg-white rounded-[14px] mx-4',
+        base: 'bg-[var(--surface,#fff)] rounded-[14px] mx-4',
         wrapper: 'z-[100]',
         backdrop: 'bg-black/60 z-[99]',
         body: 'py-6',
@@ -57,7 +57,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
           </motion.div>
 
           <motion.h2
-            className="text-2xl font-bold text-neutral-800 text-center"
+            className="text-2xl font-bold text-[var(--text-strong,#1f2937)] text-center"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -68,7 +68,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
 
         <ModalBody className="text-center px-8">
           <motion.p
-            className="text-neutral-600"
+            className="text-[var(--text-muted,#4b5563)]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -107,7 +107,7 @@ export const OnboardingWelcomeModal: React.FC<OnboardingWelcomeModalProps> = ({
             <Button
               size="lg"
               variant="light"
-              className="w-full text-neutral-500 font-medium cursor-pointer hover:text-neutral-700"
+              className="w-full text-[var(--text-muted,#6b7280)] font-medium cursor-pointer hover:text-[var(--text,#374151)]"
               onPress={() => {
                 analytics.trackWelcomeModal({ shown: false, action: 'dismiss' });
                 onDismiss();

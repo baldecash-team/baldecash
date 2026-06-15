@@ -42,7 +42,7 @@ export const BrandFilterV6: React.FC<BrandFilterProps> = ({
             className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all cursor-pointer ${
               isSelected
                 ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white'
-                : 'border-neutral-200 bg-white text-neutral-700 hover:border-[rgba(var(--color-primary-rgb),0.5)]'
+                : 'border-[var(--border-soft,#e5e7eb)] bg-[var(--surface,#fff)] text-[var(--text,#374151)] hover:border-[rgba(var(--color-primary-rgb),0.5)]'
             }`}
           >
             {isSelected && (
@@ -70,7 +70,7 @@ export const BrandFilterV6: React.FC<BrandFilterProps> = ({
             {showCounts && (
               <span
                 className={`text-xs ${
-                  isSelected ? 'text-white/70' : 'text-neutral-400'
+                  isSelected ? 'text-white/70' : 'text-[var(--text-faint,#9ca3af)]'
                 }`}
               >
                 ({option.count})
