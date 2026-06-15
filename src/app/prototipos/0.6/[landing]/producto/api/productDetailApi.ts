@@ -105,6 +105,7 @@ interface ApiProductData {
   brand: string;
   category: string;
   type?: string;
+  condition?: string | null;
   price: string;
   original_price: string | null;
   discount: string | null;
@@ -455,6 +456,11 @@ function transformProductData(apiProduct: ApiProductData): ProductDetail {
     brand: apiProduct.brand,
     category: apiProduct.category,
     deviceType: mapCategoryToDeviceType(apiProduct.type || apiProduct.category),
+    // Condición: usa la del API; si no viene, la infiere del slug (p. ej.
+    // "...-reacondicionada-1022") como respaldo.
+    condition: apiProduct.condition
+      ? apiProduct.condition.toLowerCase()
+      : /reacondicion/i.test(apiProduct.slug || '') ? 'reacondicionada' : undefined,
     price: parseFloat(apiProduct.price),
     originalPrice: apiProduct.original_price ? parseFloat(apiProduct.original_price) : undefined,
     discount: apiProduct.discount ? parseFloat(apiProduct.discount) : undefined,

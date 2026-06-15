@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardBody } from '@nextui-org/react';
-import { Flame, Siren, Zap, Star, Gift, ChevronRight, Trophy, Heart, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Eye, type LucideProps } from 'lucide-react';
+import { Flame, Siren, Zap, Star, Gift, ChevronRight, Trophy, Heart, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Eye, Recycle, type LucideProps } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAnalytics } from '@/app/prototipos/0.6/analytics/useAnalytics';
 import {
@@ -45,6 +45,7 @@ const BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
   trending: TrendingDown,
   shield: Shield,
   eye: Eye,
+  recycle: Recycle,
 };
 
 interface PromotionalProductCardProps {

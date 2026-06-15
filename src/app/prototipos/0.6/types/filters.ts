@@ -58,6 +58,10 @@ export interface TypeFilter {
 export interface ConditionFilter {
   value: string;
   label: string;
+  /** Lucide icon name for the condition badge (e.g. "recycle"). */
+  icon?: string | null;
+  /** Hex color for the condition badge (e.g. "#F59E0B"). */
+  color?: string | null;
   count: number;
 }
 

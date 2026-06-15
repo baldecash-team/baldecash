@@ -1394,3 +1394,71 @@ export function isSectionEnabled(
   const section = config.sections.find(s => s.type === type);
   return section?.enabled ?? true;
 }
+
+// ============================================
+// Evaluate Access — locker-truck gate
+// ============================================
+
+/**
+ * Payload para POST /public/landing/{slug}/evaluate.
+ * Mutuamente excluyente: se envía accessToken XOR dni, nunca ambos.
+ * sessionUuid (opcional): si se envía, el backend ata el DNI resuelto a esa
+ * sesión de tracking — cubre tanto el caso token como el de DNI manual (D1).
+ */
+export type EvaluatePayload = ({ accessToken: string } | { dni: string }) & {
+  sessionUuid?: string;
+};
+
+/**
+ * Respuesta tipada de /evaluate.
+ * catalog_url es null cuando el backend no puede asignar un catálogo
+ * (p. ej. no_normal sin convenio disponible).
+ */
+export interface EvaluateResponse {
+  status: 'normal' | 'no_normal' | 'no_access';
+  catalog_url: string | null;
+  first_name?: string | null;
+}
+
+/**
+ * Llama a POST /public/landing/{slug}/evaluate con un identificador de acceso.
+ *
+ * El cuerpo del request incluye exactamente uno de los dos campos:
+ *   - access_token: cuando el visitante llegó con ?vip_auto=<token>
+ *   - dni: cuando el visitante ingresó su DNI en D1
+ *
+ * En caso de error de red o respuesta no-ok, relanza el error para que
+ * la máquina de estados del gate lo capture y muestre el estado de error.
+ *
+ * NOTA: nunca loggear el valor del DNI.
+ */
+export async function evaluateLandingAccess(
+  slug: string,
+  payload: EvaluatePayload,
+): Promise<EvaluateResponse> {
+  // Construir el body de forma mutuamente excluyente
+  const body: Record<string, string> =
+    'accessToken' in payload
+      ? { access_token: payload.accessToken }
+      : { dni: payload.dni };
+
+  // Si hay sesión de tracking, el backend ata el DNI a esa sesión.
+  if (payload.sessionUuid) {
+    body.session_uuid = payload.sessionUuid;
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/public/landing/${encodeURIComponent(slug)}/evaluate`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`evaluate error: ${response.status}`);
+  }
+
+  return response.json() as Promise<EvaluateResponse>;
+}

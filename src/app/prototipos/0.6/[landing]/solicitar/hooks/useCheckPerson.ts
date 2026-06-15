@@ -84,7 +84,7 @@ export function useCheckPerson(
       // Validate document length before calling
       const cleanNumber = documentNumber.trim();
 
-      if (documentType === 'dni' && cleanNumber.length !== 8) return;
+      if (documentType === 'dni' && cleanNumber.length < 8) return;
       if (documentType === 'ce' && cleanNumber.length < 9) return;
       if (documentType === 'passport' && cleanNumber.length < 6) return;
 

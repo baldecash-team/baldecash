@@ -114,10 +114,10 @@ export const filterTooltips: FilterTooltipContent = {
     recommendation: 'Selecciona el uso principal que le darás al equipo.',
   },
   condition: {
-    title: '¿Nuevo o reacondicionado?',
+    title: '¿Nuevo o semi nuevo?',
     description:
-      'Los equipos reacondicionados son revisados y reparados. Tienen garantía y menor precio.',
-    recommendation: 'Reacondicionado es ideal si buscas ahorrar sin sacrificar calidad.',
+      'Los equipos semi nuevos son revisados y reparados. Tienen garantía y menor precio.',
+    recommendation: 'Semi nuevo es ideal si buscas ahorrar sin sacrificar calidad.',
   },
 };
 
@@ -175,7 +175,7 @@ export const gamaOptions: FilterOption[] = [
 
 export const conditionOptions: FilterOption[] = [
   { value: 'nuevo', label: 'Nuevo', count: 30 },
-  { value: 'reacondicionado', label: 'Reacondicionado', count: 9 },
+  { value: 'reacondicionado', label: 'Semi nuevo', count: 9 },
 ];
 
 export const tagOptions: FilterOption[] = [

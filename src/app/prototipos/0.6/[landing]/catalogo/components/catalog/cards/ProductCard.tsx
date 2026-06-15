@@ -13,7 +13,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardBody, Button } from '@nextui-org/react';
-import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, type LucideProps } from 'lucide-react';
+import { Heart, Eye, GitCompare, Cpu, MemoryStick, HardDrive, Monitor, Flame, Siren, Zap, Star, Gift, Trophy, Sparkles, Crown, Rocket, PartyPopper, Bell, BadgePercent, ShoppingCart, Timer, Megaphone, ThumbsUp, Award, CircleDollarSign, Ticket, Tag, TrendingDown, Shield, Recycle, type LucideProps } from 'lucide-react';
 import type { AppliedCoupon } from '@/app/prototipos/0.6/[landing]/solicitar/context/ProductContext';
 import { getCouponQuotaDisplay } from '@/app/prototipos/0.6/utils/couponPricing';
 import { motion } from 'framer-motion';
@@ -53,10 +53,16 @@ const PROMO_BANNER_ICONS: Record<string, React.FC<LucideProps>> = {
   trending: TrendingDown,
   shield: Shield,
   eye: Eye,
+  recycle: Recycle,
 };
 import { ImageGallery } from '../ImageGallery';
 import { ProductTags } from '../ProductTags';
 import { RibbonLabel } from '../RibbonLabel';
+import { ConditionBadge } from '../ConditionBadge';
+import { isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
+import type { ConditionFilter } from '../../../../../types/filters';
+import { NvidiaBadge } from '@/app/prototipos/0.6/components/NvidiaBadge';
+import { parseNvidiaModel } from '@/app/prototipos/0.6/utils/nvidiaGpu';
 import { ColorSelector } from '../color-selector';
 import { formatMoneyNoDecimals } from '../../../utils/formatMoney';
 
@@ -92,6 +98,8 @@ interface ProductCardProps {
   needsPromoSpacer?: boolean;
   /** Cupón de campaña URL — muestra oferta de 1.ª cuota y precio de lista tachado */
   campaignCoupon?: AppliedCoupon | null;
+  /** Catálogo de condiciones del facet — estilo (label/icon/color) del badge de condición */
+  conditions?: ConditionFilter[] | null;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -117,6 +125,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   hideColors = true,
   needsPromoSpacer = false,
   campaignCoupon = null,
+  conditions = null,
 }) => {
   const analytics = useAnalytics();
 
@@ -288,6 +297,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const PromoBannerIcon = promoTemplate?.bannerIcon ? PROMO_BANNER_ICONS[promoTemplate.bannerIcon] : null;
   const isTopBarBanner = promoTemplate?.bannerStyle === 'top_bar' || !promoTemplate?.bannerStyle;
 
+  // Condición cruda para el badge: prioriza el código del API (nueva/reacondicionada/open_box);
+  // cae al enum normalizado para mock data sin conditionCode.
+  const conditionCode = product.conditionCode || product.condition;
+  // El badge se muestra SOLO para reacondicionados (no para nuevos ni open_box).
+  const showCondition = isRefurbishedCondition(conditionCode);
+  const hasTopLeftTags = (product.tags?.length ?? 0) > 0;
+
   return (
     <motion.div
       className="h-full w-full min-w-[min(280px,100%)] max-w-[398px]"
@@ -431,20 +447,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )}
             </div>
 
-            {/* Regular tags — top-left */}
-            {product.tags && product.tags.length > 0 && (
-              <div className="absolute top-3 left-3 z-10">
-                <ProductTags tags={product.tags} />
+            {/* Condition badge + regular tags — top-left */}
+            {(showCondition || hasTopLeftTags) && (
+              <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
+                {showCondition && (
+                  <ConditionBadge conditionCode={conditionCode} conditions={conditions} />
+                )}
+                {hasTopLeftTags && <ProductTags tags={product.tags} />}
               </div>
             )}
-            {/* Ribbon partner badges — bottom-left (10% from bottom) */}
-            {product.ribbonLabels && product.ribbonLabels.length > 0 && (
-              <div className="absolute left-3 z-10 flex flex-col gap-1" style={{ bottom: '25%' }}>
-                {product.ribbonLabels.map(r => (
-                  <RibbonLabel key={r.code} ribbon={r} />
-                ))}
-              </div>
-            )}
+            {/* Badge NVIDIA derivado del spec GPU + ribbons de partners (no-NVIDIA) — bottom-left */}
+            {(() => {
+              const gpuModel = displaySpecs?.gpu?.model && String(displaySpecs.gpu.model) !== 'null' ? String(displaySpecs.gpu.model) : '';
+              const nvidiaFromSpec = gpuModel ? parseNvidiaModel(gpuModel) : null;
+              const nonNvidiaRibbons = (product.ribbonLabels || []).filter(r => !(r.imageUrl && /nvidia/i.test(r.imageUrl)));
+              if (!nvidiaFromSpec && nonNvidiaRibbons.length === 0) return null;
+              return (
+                <div className="absolute left-3 z-10 flex flex-col gap-1" style={{ bottom: '25%' }}>
+                  {nvidiaFromSpec && <NvidiaBadge value={gpuModel} size="sm" />}
+                  {nonNvidiaRibbons.map(r => (
+                    <RibbonLabel key={r.code} ribbon={r} />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Content - Centered */}

@@ -3,6 +3,7 @@
 import { lazy, Suspense, useState, useEffect, useRef, type ReactNode } from 'react';
 import { useLenis } from './shared/hooks/useLenis';
 import { useDeviceCapabilities } from './shared/hooks/useDeviceCapabilities';
+import { useMacbookNeoFinancingPlans } from './shared/hooks/useMacbookNeoFinancingPlans';
 import StickyNav from './StickyNav';
 import HeroCanvasScrub from './HeroCanvasScrub';
 import MediaCardGallery from './MediaCardGallery';
@@ -58,6 +59,7 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
   useLenis();
   const { tier } = useDeviceCapabilities();
   const [videoEnded, setVideoEnded] = useState(tier === 'base');
+  const { minPrice } = useMacbookNeoFinancingPlans();
 
   // Scroll to top on mount and clear hash — skip in preview mode to allow hash-based section navigation
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
       <StickyNav videoEnded={videoEnded} landing={landing} previewBannerOffset={previewBannerOffset} promoBannerData={promoBannerData} />
 
       {/* S1: Hero — loads immediately */}
-      <HeroCanvasScrub tier={tier} onVideoEnd={() => setVideoEnded(true)} onVideoReplay={() => setVideoEnded(false)} />
+      <HeroCanvasScrub tier={tier} onVideoEnd={() => setVideoEnded(true)} onVideoReplay={() => setVideoEnded(false)} minPrice={minPrice} />
 
       {/* S2: Highlights — loads immediately (near hero) */}
       <MediaCardGallery />
@@ -99,7 +101,7 @@ export default function MacBookNeoLanding({ footerData, heroContent, landing = '
 
       {/* S6: Performance */}
       <LazySection fallbackHeight={900}>
-        <PerformanceSection />
+        <PerformanceSection minPrice={minPrice} />
       </LazySection>
 
       {/* S7: Display, Camera, Audio */}

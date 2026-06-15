@@ -100,7 +100,7 @@ export const financingPlans: V5FinancingPlan[] = [
       { id: 'silver', label: 'Silver', hex: '#E3E3E3', productUrl: '/macbook-neo/producto/laptop-macbook-neo-lpappr0001350/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-silver-sola.jpg' },
       { id: 'indigo', label: 'Indigo', hex: '#4B5EAA', productUrl: '/macbook-neo/producto/laptop-macbook-neo-indigo-lpappr0001350/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-indigo-sola.jpg' },
       { id: 'blush', label: 'Blush', hex: '#F2A7B0', productUrl: '/macbook-neo/producto/laptop-macbook-neo-blush-lpappr0001353/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-blush-sola.jpg' },
-      { id: 'citrus', label: 'Citrus', hex: '#DDDC8C', productUrl: '/macbook-neo/producto/macbook-neo-citrus-256/', image: 'https://baldecash.s3.amazonaws.com/images/products/macbook-neo/macbook-neo-citrus.png' },
+      { id: 'citrus', label: 'Citrus', hex: '#DDDC8C', productUrl: '/macbook-neo/producto/macbook-neo-citrus-256/', image: 'https://baldecash.s3.amazonaws.com/productos/macbook-neo-citrus-sola.jpg' },
     ],
   },
   {

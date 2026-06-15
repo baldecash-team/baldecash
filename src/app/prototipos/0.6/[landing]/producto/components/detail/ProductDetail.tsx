@@ -45,6 +45,8 @@ import {
   SpecSheetDownload,
 } from './index';
 import type { PricingSelection } from './pricing/PricingCalculator';
+import { RefurbishedInfoBanner } from './RefurbishedInfoBanner';
+import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
 interface ProductDetailProps {
   // Data props (from API - required, no fallback to mock)
@@ -149,6 +151,10 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
   }, [product.colors, product.colorSiblings, product.slug, hasSiblings]);
 
   const [selectedColorId, setSelectedColorId] = useState(defaultColorId);
+
+  // Reacondicionado: aviso de confirmación antes de pasar a solicitar.
+  const isRefurbished = isRefurbishedCondition(product.condition);
+  const [showRefurbModal, setShowRefurbModal] = useState(false);
 
   // Navigate to sibling product when color is selected
   const handleColorSelect = useCallback((colorId: string) => {
@@ -388,7 +394,16 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
     return spec?.value;
   };
 
+  // Gate: en reacondicionados, primero confirmar el aviso; luego proceder.
   const handleSolicitar = () => {
+    if (isRefurbished) {
+      setShowRefurbModal(true);
+      return;
+    }
+    proceedToSolicitar();
+  };
+
+  const proceedToSolicitar = () => {
     analytics.track('product_cta_click', {
       product_id: product.id,
       product_name: product.name,
@@ -422,6 +437,7 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
       initialAmount: initialAmount,
       image: productThumbnail,
       type: product.deviceType as SelectedProduct['type'],
+      condition: product.condition,
       variantId: product.variantId != null ? String(product.variantId) : (selectedColorId || undefined),
       colorName: selectedColor?.name,
       colorHex: selectedColor?.hex,
@@ -479,6 +495,9 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
               top: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem) + 0.5rem)',
             }}
           >
+            {/* Refurbished Info Banner */}
+            {isRefurbished && <RefurbishedInfoBanner />}
+
             {/* Combo Banner */}
             {combo && combo.accessories.length > 0 && (
               <div className="bg-gradient-to-r from-[rgba(var(--color-primary-rgb),0.05)] to-[rgba(var(--color-primary-rgb),0.02)] border border-[rgba(var(--color-primary-rgb),0.2)] rounded-xl p-4">
@@ -761,6 +780,14 @@ export const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
         )}
       </div>
+
+      {/* Aviso de reacondicionado antes de pasar a solicitar */}
+      <RefurbishedWarningModal
+        isOpen={showRefurbModal}
+        onClose={() => setShowRefurbModal(false)}
+        onConfirm={proceedToSolicitar}
+        productName={product.displayName}
+      />
     </div>
   );
 };

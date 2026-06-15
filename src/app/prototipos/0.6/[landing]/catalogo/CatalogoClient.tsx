@@ -46,6 +46,7 @@ import { WishlistDrawer } from './components/wishlist/WishlistDrawer';
 import { BlipChat, useBlipChat } from '@/app/prototipos/0.6/components/BlipChat';
 import { ResumeFinancingModal, useResumeFinancingModal } from './components/catalog/ResumeFinancingCard';
 import { CartLimitModal } from './components/catalog/CartLimitModal';
+import { RefurbishedWarningModal, isRefurbishedCondition } from '@/app/prototipos/0.6/components/RefurbishedWarningModal';
 
 // Empty state
 import { EmptyState } from './components/empty';
@@ -173,6 +174,13 @@ const comparatorConfig: ComparatorConfig = {
   defaultInitial: 10,
 };
 
+// Landings (landing_id de prod) donde NO se muestra la UI de cupón de referido
+// (banner de campaña + navbar simplificado). El cupón se sigue validando y
+// aplicando con normalidad: los precios de la vitrina mantienen el descuento y
+// el checkout también. Hardcodeado por ahora; se evaluará una configuración
+// escalable más adelante.
+const LANDINGS_SIN_BANNER_CUPON: number[] = [138, 140, 167, 174];
+
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-[var(--surface-bg,#fafafa)] flex items-center justify-center">
@@ -211,7 +219,6 @@ function CatalogoContent() {
     clearCartProducts,
     clearAccessories,
     appliedCoupon,
-    setAppliedCoupon,
     isHydrated: isProductContextHydrated,
   } = useProduct();
 
@@ -228,8 +235,16 @@ function CatalogoContent() {
 
 
   // Get layout data from context (fetched once at [landing] level)
-  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner } = useLayout();
+  const { layoutData, navbarProps, footerData, agreementData, isLoading: isLayoutLoading, hasError: hasLayoutError, primaryColor, settings, catalogBanner, landingId } = useLayout();
   const ALLOW_MULTI_PRODUCT = getAllowMultiProduct(settings);
+
+  // UI de referido (banner de campaña + navbar simplificado): visible solo si el
+  // cupón vino del ?coupon= (lockedFromUrl) y la landing actual no está excluida.
+  // En las landings excluidas el catálogo se ve normal (navbar completo, sin
+  // banner) PERO el descuento del cupón se mantiene en la vitrina y el checkout,
+  // porque `campaignCoupon` sigue llegando a las ProductCard.
+  const showCouponUi =
+    !!campaignCoupon && !LANDINGS_SIN_BANNER_CUPON.includes(landingId ?? -1);
 
   // Preview mode support
   const preview = usePreview();
@@ -237,24 +252,26 @@ function CatalogoContent() {
   const previewBannerOffset = previewKey ? 24 : 0;
 
   // Si el usuario entra al catálogo sin `?coupon=` en la URL, descartamos
-  // cualquier cupón de campaña almacenado (pendiente o ya aplicado con
-  // lockedFromUrl). Evita que el banner/vitrina y el wizard apliquen un
-  // cupón heredado de una sesión anterior cuando la intención actual no
-  // incluye cupón. Esperamos a que ProductContext hidrate para poder
-  // detectar el cupón aplicado proveniente de localStorage.
+  // únicamente el cupón de campaña PENDIENTE (estado transitorio one-shot
+  // que pudiera haber quedado de una captura incompleta). NO tocamos el
+  // cupón ya aplicado (lockedFromUrl): debe persistir hasta que el cliente
+  // envíe la solicitud (useSubmitApplication lo limpia) o borre el
+  // localStorage manualmente. Antes este efecto llamaba setAppliedCoupon(null)
+  // y, como el efecto de filter-sync elimina `?coupon=` del URL tras el
+  // primer render, al recargar el catálogo se borraba el cupón aplicado:
+  // desaparecía el banner de referido y se perdía el pre-seteo en /solicitar/.
+  // Esperamos a que ProductContext hidrate para evitar carreras con la lectura
+  // del cupón aplicado proveniente de localStorage.
   //
   // Importante: `hasCouponParam` se congela en el mount. El useEffect que
   // sincroniza la URL con los filtros (más abajo) hace router.replace y
   // elimina `?coupon=` del URL después del primer render; si releyéramos
-  // searchParams aquí, borraríamos el cupón recién capturado.
+  // searchParams aquí, descartaríamos el cupón recién capturado.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const hasCouponParam = useMemo(() => !!searchParams.get('coupon'), []);
   useEffect(() => {
     if (hasCouponParam || !isProductContextHydrated) return;
     clearPendingCoupon(landing);
-    if (appliedCoupon?.lockedFromUrl) {
-      setAppliedCoupon(null);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [landing, isProductContextHydrated]);
 
@@ -614,6 +631,7 @@ function CatalogoContent() {
       initialAmount: variantInfo?.initialAmount ?? 0,
       image: product.images[0] || product.thumbnail,
       type: product.deviceType,
+      condition: product.conditionCode || product.condition,
       variantId: variantInfo?.variantId || product.variantId,
       colorName: variantInfo?.colorName,
       colorHex: variantInfo?.colorHex,
@@ -847,6 +865,8 @@ function CatalogoContent() {
   const [isBlipChatOpen, setIsBlipChatOpen] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<CatalogProduct | null>(null);
   const [selectedVariantForCart, setSelectedVariantForCart] = useState<CartItem | null>(null);  // v0.6.1: Store selected variant
+  // Reacondicionado: aviso de confirmación al dar "Lo quiero" en un card reacondicionado
+  const [pendingRefurb, setPendingRefurb] = useState<{ cartItem: CartItem; product: CatalogProduct } | null>(null);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [isHelpPopoverOpen, setIsHelpPopoverOpen] = useState(false);
   const [isCartLimitModalOpen, setIsCartLimitModalOpen] = useState(false);
@@ -1186,7 +1206,7 @@ function CatalogoContent() {
           term: item.term ?? item.months,
           paymentFrequency: item.paymentFrequency,
           initialPercent: item.initialPercent,
-          initialAmount: Math.round((item.price * item.initialPercent) / 100),
+          initialAmount: Math.ceil((item.price * item.initialPercent) / 100 / 10) * 10,
           image: item.image,
           type: product?.deviceType || 'laptop',  // Product type for accessory compatibility filtering
           specs: product?.specs ? {
@@ -1406,6 +1426,41 @@ function CatalogoContent() {
     return null;
   }, [catalogProducts]);
 
+  // "Lo quiero" del card: dispara analítica y navega/abre el modal de carrito.
+  // Extraído del handler inline para poder diferirlo tras el aviso de reacondicionado.
+  const proceedAddToCart = useCallback((cartItem: CartItem, product: CatalogProduct) => {
+    // Fire filter snapshot before the user leaves or opens the modal
+    const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);
+    analytics.trackFilterSnapshot({
+      ...snap,
+      results_shown: totalProducts,
+      trigger: 'lo_quiero',
+    });
+
+    // Track Lo quiero click from catalog card
+    analytics.track('product_cta_click', {
+      product_id: cartItem.productId,
+      product_name: cartItem.name,
+      brand: cartItem.brand,
+      months: cartItem.months,
+      monthly_quota: Math.floor(cartItem.monthlyPayment),
+      initial_percent: cartItem.initialPercent,
+      location: 'catalog_card',
+    });
+
+    if (!ALLOW_MULTI_PRODUCT) {
+      // Single-product mode: go directly to solicitar
+      const target = findProductOrSibling(cartItem.productId) || product;
+      selectProductForWizard(target, cartItem);
+      router.push(getWizardUrl(landing));
+      return;
+    }
+    // Multi-product mode: open cart selection modal
+    setSelectedVariantForCart(cartItem);
+    const target = findProductOrSibling(cartItem.productId) || product;
+    handleOpenCartModal(target);
+  }, [filters, totalProducts, analytics, findProductOrSibling, selectProductForWizard, router, landing, handleOpenCartModal]);
+
   // Comparison handlers
   const getDeviceType = (product: CatalogProduct): string => {
     // Si tiene deviceType definido, usarlo. Si no, asumir 'laptop' (productos generados)
@@ -1587,7 +1642,7 @@ function CatalogoContent() {
       <Navbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
-        logoOnly={!!campaignCoupon}
+        logoOnly={showCouponUi}
         landing={landing}
         promoBannerData={navbarProps?.promoBannerData}
         logoUrl={navbarProps?.logoUrl}
@@ -1604,7 +1659,7 @@ function CatalogoContent() {
       )}
 
       {/* Secondary Navbar with Search, Wishlist, Cart — oculta para usuarios con cupón */}
-      {!campaignCoupon && (
+      {!showCouponUi && (
       <CatalogSecondaryNavbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
@@ -1665,7 +1720,7 @@ function CatalogoContent() {
           + main navbar + secondary navbar). */}
       <main
         style={{
-          paddingTop: campaignCoupon
+          paddingTop: showCouponUi
             ? 'var(--header-total-height, 4rem)'
             : 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
         }}
@@ -1694,7 +1749,7 @@ function CatalogoContent() {
         catalogBanner={catalogBanner}
         vipCountdownDate={vipCountdownDate}
         overlayVariant={overlayVariant}
-        campaignCoupon={campaignCoupon}
+        campaignCoupon={showCouponUi ? campaignCoupon : null}
         isCampaignCouponValidating={isCampaignCouponValidating}
       >
         {/* Search correction banner - shown when fuzzy search was applied */}
@@ -1726,37 +1781,14 @@ function CatalogoContent() {
                 hideColors
                 needsPromoSpacer={promoSpacerFlags[index]}
                 campaignCoupon={campaignCoupon}
+                conditions={apiFilters?.conditions}
                 onAddToCart={(cartItem: CartItem) => {
-                  // Fire filter snapshot before the user leaves or opens the modal
-                  const snap = buildFilterSnapshot(filters, apiQuotaRangeRef.current);
-                  analytics.trackFilterSnapshot({
-                    ...snap,
-                    results_shown: totalProducts,
-                    trigger: 'lo_quiero',
-                  });
-
-                  // Track Lo quiero click from catalog card
-                  analytics.track('product_cta_click', {
-                    product_id: cartItem.productId,
-                    product_name: cartItem.name,
-                    brand: cartItem.brand,
-                    months: cartItem.months,
-                    monthly_quota: Math.floor(cartItem.monthlyPayment),
-                    initial_percent: cartItem.initialPercent,
-                    location: 'catalog_card',
-                  });
-
-                  if (!ALLOW_MULTI_PRODUCT) {
-                    // Single-product mode: go directly to solicitar
-                    const target = findProductOrSibling(cartItem.productId) || product;
-                    selectProductForWizard(target, cartItem);
-                    router.push(getWizardUrl(landing));
+                  // Reacondicionado: confirmar aviso antes de continuar
+                  if (isRefurbishedCondition(product.conditionCode || product.condition)) {
+                    setPendingRefurb({ cartItem, product });
                     return;
                   }
-                  // Multi-product mode: open cart selection modal
-                  setSelectedVariantForCart(cartItem);
-                  const target = findProductOrSibling(cartItem.productId) || product;
-                  handleOpenCartModal(target);
+                  proceedAddToCart(cartItem, product);
                 }}
                 onFavorite={(wishlistItem: WishlistItem) => {
                   // v0.6.1: Pass full WishlistItem to store variant/color info
@@ -2355,6 +2387,16 @@ function CatalogoContent() {
           totalMonthlyQuota={totalMonthlyQuota}
         />
       )}
+
+      {/* Aviso de reacondicionado al dar "Lo quiero" en un card */}
+      <RefurbishedWarningModal
+        isOpen={!!pendingRefurb}
+        onClose={() => setPendingRefurb(null)}
+        onConfirm={() => {
+          if (pendingRefurb) proceedAddToCart(pendingRefurb.cartItem, pendingRefurb.product);
+        }}
+        productName={pendingRefurb?.product.displayName}
+      />
 
       {/* Toast para alertas de comparación */}
       {toast && (
