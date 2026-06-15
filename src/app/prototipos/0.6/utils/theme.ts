@@ -15,6 +15,11 @@ export function isDarkLanding(slug: string): boolean {
   return DARK_LANDINGS.includes(slug);
 }
 
+/** La landing nvidia usa su propio header (NvidiaNavbar) en todas sus rutas de flujo. */
+export function isNvidiaLanding(slug: string): boolean {
+  return slug === 'nvidia';
+}
+
 /** Colores de marca para landings oscuras (paleta oficial NVIDIA). */
 export const NVIDIA_GREEN = '#76B900';
 export const NVIDIA_TURQUOISE = '#00D9CB';
