@@ -16,6 +16,8 @@ import { MotivationalCard } from './MotivationalCard';
 import { SelectedProductBar, SelectedProductSpacer } from '../product';
 import { WizardStepId } from '../../../types/solicitar';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import type { PromoBannerData } from '@/app/prototipos/0.6/types/hero';
 import type { WizardMotivational } from '../../../../../services/wizardApi';
 
@@ -77,7 +79,9 @@ export const WizardLayout: React.FC<WizardLayoutProps> = ({
   return (
     <div className="min-h-screen bg-neutral-50 relative">
       {/* Navbar del Hero */}
-      {!hideNavbar && <Navbar {...navbarProps} landing={landing} />}
+      {!hideNavbar && (isNvidiaLanding(landing)
+        ? <NvidiaNavbar landing={landing} />
+        : <Navbar {...navbarProps} landing={landing} />)}
 
       {/* Spacer — dynamic height driven by --header-total-height CSS variable
           exposed by the Navbar component (preview + promo + navbar). */}

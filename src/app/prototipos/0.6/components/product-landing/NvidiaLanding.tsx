@@ -84,12 +84,25 @@ export default function NvidiaLanding({ footerData, landing = 'nvidia', previewB
     document.head.appendChild(link);
   }, []);
 
-  // Scroll top al montar (salvo preview con hash)
+  // Al montar: si llega un hash (link del NvidiaNavbar desde una subruta) hacemos
+  // scroll a esa sección; si no, scroll al top. Las secciones son lazy, así que se
+  // reintenta unas veces hasta que el elemento exista.
   useEffect(() => {
     if (window.location.pathname.includes('/preview/')) return;
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    window.scrollTo(0, 0);
-    if (window.location.hash) history.replaceState(null, '', window.location.pathname);
+    const id = window.location.hash.slice(1);
+    if (id && id !== 'top') {
+      let tries = 0;
+      const tick = () => {
+        const el = document.getElementById(id);
+        if (el) { el.scrollIntoView({ behavior: 'smooth' }); return; }
+        if (tries++ < 40) setTimeout(tick, 80); // ~3.2s máx (espera secciones lazy)
+      };
+      tick();
+    } else {
+      window.scrollTo(0, 0);
+      if (window.location.hash) history.replaceState(null, '', window.location.pathname);
+    }
   }, []);
 
   // Nav scrolled state

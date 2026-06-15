@@ -44,17 +44,38 @@ function laptopName(p: CatalogProduct): string {
   return brand && !model.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${model}` : model;
 }
 
-/** Specs cortas: "RTX 5050 8GB · 24GB · 1TB SSD" */
+/** Specs cortas: "Intel Core i9 · 32GB RAM · 1TB SSD".
+ *  Se omite la GPU porque las laptops ya están agrupadas por tarjeta (sería redundante)
+ *  y se muestra el procesador, que sí varía entre equipos (iCore/Ryzen). */
 function specOf(p: CatalogProduct): string {
   const s = p.specs;
   const parts: string[] = [];
-  if (s?.gpu?.model) parts.push(`${s.gpu.model}${s.gpu.vram ? ` ${s.gpu.vram}GB` : ''}`);
-  if (s?.ram?.size) parts.push(`${s.ram.size}GB`);
+  const cpu = s?.processor?.model || (typeof p.rawSpecs?.processor === 'string' ? p.rawSpecs.processor : '');
+  if (cpu) parts.push(cpu);
+  if (s?.ram?.size) parts.push(`${s.ram.size}GB RAM`);
   if (s?.storage?.size) {
     const st = s.storage.size >= 1024 ? `${Math.round(s.storage.size / 1024)}TB` : `${s.storage.size}GB`;
     parts.push(`${st} ${(s.storage.type || 'SSD').toUpperCase()}`);
   }
   return parts.join(' · ');
+}
+
+/** Imagen de la laptop prefiriendo la versión FULL de images[] sobre el thumbnail.
+ *  El thumbnail suele ser un `_thumb.webp` con el fondo blanco aplanado, mientras que
+ *  en images[] está la misma imagen en `.png` con transparencia (la que usa el detalle).
+ *  Busca en images[] la entrada con el mismo nombre (sin `_thumb`/extensión); si no la
+ *  halla, usa la primera imagen full; como último recurso, el thumbnail. */
+const imgStem = (url: string): string =>
+  (url.split('/').pop() || '').replace(/_thumb(?=\.)/i, '').replace(/\.(webp|png|jpe?g)$/i, '').toLowerCase();
+
+function thumbOf(p: CatalogProduct): string {
+  const imgs = p.images ?? [];
+  const thumbStem = p.thumbnail ? imgStem(p.thumbnail) : '';
+  if (thumbStem) {
+    const match = imgs.find((u) => imgStem(u) === thumbStem);
+    if (match) return match;
+  }
+  return imgs[0] || p.thumbnail;
 }
 
 function buildGroups(products: CatalogProduct[]): GpuGroup[] {
@@ -158,7 +179,7 @@ export default function NvidiaCatalogSection() {
                   {current.products.map((p) => (
                     <div className="lp-item" key={p.id}>
                       <span className="lp-thumb">
-                        <img src={p.thumbnail} alt={laptopName(p)} loading="lazy"
+                        <img src={thumbOf(p)} alt={laptopName(p)} loading="lazy"
                           onError={(e) => { (e.target as HTMLImageElement).src = '/images/products/placeholder.jpg'; }} />
                       </span>
                       {p.isFeatured && <span className="lp-rec">Recomendada</span>}

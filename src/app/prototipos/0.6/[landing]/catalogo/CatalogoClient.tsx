@@ -57,6 +57,8 @@ import { useOnboarding } from './hooks/useOnboarding';
 
 // Hero components (Navbar & Footer)
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 // Lead guard
 import { useLeadGuard } from '@/app/prototipos/0.6/hooks/useLeadGuard';
@@ -1580,6 +1582,9 @@ function CatalogoContent() {
   if (productsError && !hasActiveFilters) {
     return (
       <div className="min-h-screen bg-[var(--surface-bg,#fafafa)]">
+        {isNvidiaLanding(landing) ? (
+          <NvidiaNavbar landing={landing} />
+        ) : (
         <Navbar
           landing={landing}
           promoBannerData={navbarProps?.promoBannerData}
@@ -1594,6 +1599,7 @@ function CatalogoContent() {
           institutionName={navbarProps?.institutionName}
           previewBannerOffset={previewBannerOffset}
         />
+        )}
         <main
           style={{
             paddingTop: 'calc(var(--header-total-height, 6.5rem) + var(--catalog-secondary-height, 3.5rem))',
@@ -1629,7 +1635,10 @@ function CatalogoContent() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Navbar from Hero — para cupón de campaña: solo logo, no clickeable */}
+      {/* Navbar — nvidia usa su header propio en todas sus rutas */}
+      {isNvidiaLanding(landing) ? (
+        <NvidiaNavbar landing={landing} />
+      ) : (
       <Navbar
         hidePromoBanner={shouldHidePromoBanner}
         fullWidth
@@ -1647,6 +1656,7 @@ function CatalogoContent() {
         institutionName={navbarProps?.institutionName}
         previewBannerOffset={previewBannerOffset}
       />
+      )}
 
       {/* Secondary Navbar with Search, Wishlist, Cart — oculta para usuarios con cupón */}
       {!showCouponUi && (

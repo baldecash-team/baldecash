@@ -16,6 +16,8 @@ import { CubeGridSpinner, useScrollToTop } from '@/app/prototipos/_shared';
 import { NotFoundContent } from '@/app/prototipos/0.6/components/NotFoundContent';
 import { routes } from '@/app/prototipos/0.6/utils/routes';
 import { Navbar } from '@/app/prototipos/0.6/components/hero/Navbar';
+import { NvidiaNavbar } from '@/app/prototipos/0.6/components/product-landing/nvidia/NvidiaNavbar';
+import { isNvidiaLanding } from '@/app/prototipos/0.6/utils/theme';
 import { Footer } from '@/app/prototipos/0.6/components/hero/Footer';
 import { GamerNavbar } from '@/app/prototipos/0.6/components/zona-gamer/GamerNavbar';
 import { GamerFooter } from '@/app/prototipos/0.6/components/zona-gamer/GamerFooter';
@@ -489,7 +491,9 @@ function ConfirmacionContent() {
   return (
     <>
       <div className="min-h-screen bg-neutral-50 relative">
-        <Navbar {...navbarProps} landing={landing} />
+        {isNvidiaLanding(landing)
+          ? <NvidiaNavbar landing={landing} />
+          : <Navbar {...navbarProps} landing={landing} />}
         {/* Spacer — dynamic height driven by --header-total-height CSS variable. */}
         <div style={{ height: 'var(--header-total-height, 6.5rem)' }} />
 
