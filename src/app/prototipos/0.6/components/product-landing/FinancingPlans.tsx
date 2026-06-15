@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Check, ArrowRight, Zap, Star, Crown, type LucideIcon } from 'lucide-react';
-import { financingPlans } from './data/v5Data';
 import { BC } from './lib/constants';
+import { useMacbookNeoFinancingPlans } from './shared/hooks/useMacbookNeoFinancingPlans';
 import { BASE_PATH } from '@/app/prototipos/0.6/utils/routes';
 import { useReducedMotion } from './shared/hooks/useReducedMotion';
 import { useEventTrackerOptional } from '@/app/prototipos/0.6/[landing]/solicitar/context/EventTrackerContext';
@@ -21,16 +21,23 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
   const cardsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
+  const financingPlans = useMacbookNeoFinancingPlans();
+
   // Track selected color per plan
-  const [selectedColors, setSelectedColors] = useState<Record<string, string>>(() => {
-    const defaults: Record<string, string> = {};
-    financingPlans.forEach((plan) => {
-      if (plan.colorOptions?.length) {
-        defaults[plan.id] = plan.colorOptions[0].id;
-      }
+  const [selectedColors, setSelectedColors] = useState<Record<string, string>>({});
+
+  // Sync selectedColors cuando llegan los planes del API
+  useEffect(() => {
+    setSelectedColors((prev) => {
+      const next = { ...prev };
+      financingPlans.forEach((plan) => {
+        if (!next[plan.id] && plan.colorOptions?.length) {
+          next[plan.id] = plan.colorOptions[0].id;
+        }
+      });
+      return next;
     });
-    return defaults;
-  });
+  }, [financingPlans]);
 
   const isEnhanced = tier === 'enhanced' && !reducedMotion;
 
@@ -120,7 +127,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
 
         {/* Plan cards */}
         <div ref={cardsRef} className="flex flex-col md:flex-row gap-5 md:gap-4 items-stretch justify-center">
-          {financingPlans.filter((p) => p.id !== 'avanzado').map((plan) => {
+          {financingPlans.map((plan) => {
             const Icon = ICON_MAP[plan.icono] || Zap;
             const accent = plan.colorAccent;
             const isDestacado = plan.destacado;
