@@ -20,9 +20,10 @@ interface HeroProps {
   tier: string;
   onVideoEnd?: () => void;
   onVideoReplay?: () => void;
+  minPrice?: number | null;
 }
 
-export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: HeroProps) {
+export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay, minPrice }: HeroProps) {
   const tracker = useEventTrackerOptional();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoEnded, setVideoEnded] = useState(false);
@@ -186,7 +187,7 @@ export default function HeroCanvasScrub({ tier, onVideoEnd, onVideoReplay }: Her
               >
                 Desde{' '}
                 <span className="font-bold text-xl sm:text-2xl md:text-[40px]" style={{ color: isMobile ? '#03DBD0' : BC.primary }}>
-                  S/249
+                  S/{minPrice ?? 239}
                 </span>
                 <span style={{ color: isMobile ? '#f5f5f7' : '#6e6e73' }}>/mes</span>
               </p>

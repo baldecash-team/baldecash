@@ -21,7 +21,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
   const cardsRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
 
-  const financingPlans = useMacbookNeoFinancingPlans();
+  const { plans: financingPlans, minPrice } = useMacbookNeoFinancingPlans();
 
   // Track selected color per plan
   const [selectedColors, setSelectedColors] = useState<Record<string, string>>({});
@@ -121,7 +121,7 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
             Tu MacBook, a tu ritmo
           </h2>
           <p className="text-[13px] sm:text-[15px] text-[#86868b] max-w-[540px] mx-auto leading-[1.5]">
-            Desde <span className="text-[#f5f5f7] font-semibold">S/249/mes</span>. Sin inicial.
+            Desde <span className="text-[#f5f5f7] font-semibold">S/{minPrice ?? 239}/mes</span>. Sin inicial.
           </p>
         </div>
 

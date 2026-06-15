@@ -77,11 +77,17 @@ function siblingToColorOption(sib: ApiColorSibling): V5PlanColorOption {
   };
 }
 
-export function useMacbookNeoFinancingPlans(): V5FinancingPlan[] {
+interface FinancingPlansResult {
+  plans: V5FinancingPlan[];
+  minPrice: number | null; // mínimo entre todos los colores disponibles
+}
+
+export function useMacbookNeoFinancingPlans(): FinancingPlansResult {
   const [plans, setPlans] = useState<V5FinancingPlan[]>(
     // Arrancamos con los planes estáticos (sin 'avanzado') como fallback inmediato
     staticPlans.filter((p) => p.id !== 'avanzado'),
   );
+  const [minPrice, setMinPrice] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,6 +132,11 @@ export function useMacbookNeoFinancingPlans(): V5FinancingPlan[] {
 
       if (!cancelled && ordered.length > 0) {
         setPlans(ordered);
+        // Mínimo entre todos los monthlyPrice de todos los colorOptions de todos los planes
+        const allPrices = ordered.flatMap(p =>
+          (p.colorOptions ?? []).map(c => c.monthlyPrice).filter((v): v is number => v != null)
+        );
+        if (allPrices.length > 0) setMinPrice(Math.min(...allPrices));
       }
     }
 
@@ -133,5 +144,5 @@ export function useMacbookNeoFinancingPlans(): V5FinancingPlan[] {
     return () => { cancelled = true; };
   }, []);
 
-  return plans;
+  return { plans, minPrice };
 }
