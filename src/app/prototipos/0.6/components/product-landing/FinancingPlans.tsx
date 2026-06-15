@@ -27,11 +27,14 @@ export default function FinancingPlans({ tier }: FinancingPlansV5Props) {
   const [selectedColors, setSelectedColors] = useState<Record<string, string>>({});
 
   // Sync selectedColors cuando llegan los planes del API
+  // Resetea si el color guardado ya no está en los nuevos colorOptions (ej. silver desactivado)
   useEffect(() => {
     setSelectedColors((prev) => {
       const next = { ...prev };
       financingPlans.forEach((plan) => {
-        if (!next[plan.id] && plan.colorOptions?.length) {
+        const currentId = next[plan.id];
+        const stillValid = plan.colorOptions?.some(c => c.id === currentId);
+        if ((!currentId || !stillValid) && plan.colorOptions?.length) {
           next[plan.id] = plan.colorOptions[0].id;
         }
       });
